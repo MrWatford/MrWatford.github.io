@@ -303,6 +303,7 @@ main { flex: 1; }
   text-transform: uppercase;
   border-radius: 0 0 0.6cqw 0.6cqw;
 }
+.classroom .decor   { left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
 .classroom .poster  { left: 2.5%;  top: 9%;   width: 11.9%; }
 .classroom .shelf   { left: 1.6%;  top: 35.5%; width: 15%; }
 .classroom .clock   { left: 72%;   top: 6%;   width: 6.9%; }
@@ -406,6 +407,28 @@ a:hover .go::after { transform: translateX(5px); }
 
 /* ---------- Subject page banner (a scene from the classroom) ---------- */
 .scene-hero { position: relative; overflow: hidden; }
+/* Science decor on every subject page's wall: a planet garland along the top, and on wide
+   screens a Solar System poster and an Atom poster in the open wall beside the content. */
+.scene-hero.wall {
+  background-image:
+    url("../images/decor/planet-garland.svg"),
+    url("../images/decor/poster-solar-system.svg"),
+    url("../images/decor/poster-atom.svg"),
+    repeating-linear-gradient(90deg, transparent 0 36px, var(--wall-stripe) 36px 42px);
+  background-repeat: repeat-x, no-repeat, no-repeat, repeat;
+  background-size: 480px 72px, 104px auto, 104px auto, auto;
+  background-position: center top, calc(50% - 616px) 96px, calc(50% + 616px) 96px, 0 0;
+}
+@media (max-width: 1359px) {   /* not enough side wall for the posters: garland only */
+  .scene-hero.wall {
+    background-image:
+      url("../images/decor/planet-garland.svg"),
+      repeating-linear-gradient(90deg, transparent 0 36px, var(--wall-stripe) 36px 42px);
+    background-repeat: repeat-x, repeat;
+    background-size: 480px 72px, auto;
+    background-position: center top, 0 0;
+  }
+}
 .scene-hero::before {           /* green chair rail */
   content: "";
   position: absolute;
@@ -419,7 +442,7 @@ a:hover .go::after { transform: translateX(5px); }
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   align-items: end;
   gap: 24px;
-  padding-top: 32px;
+  padding-top: 72px; /* room for the planet garland */
 }
 .scene-grid .title-card { align-self: center; margin: 0 0 40px; }
 .title-card h1 { margin-bottom: 0.3em; }
@@ -950,7 +973,7 @@ a.card-link p { color: var(--muted); }
   .hotspot .badge { font-size: 2.6cqw; }
 
   .scene-hero::before { bottom: 150px; }
-  .scene-grid { grid-template-columns: 1fr; gap: 0; padding-top: 20px; }
+  .scene-grid { grid-template-columns: 1fr; gap: 0; padding-top: 62px; }
   .scene-grid .title-card { margin-bottom: 16px; }
   .stage { max-width: 340px; }
   .counter-strip { height: 52px; }
@@ -970,7 +993,7 @@ a.card-link p { color: var(--muted); }
 /* ---------- Printing (e.g., a parent prints an experiment page) ---------- */
 @media print {
   .site-header, .site-footer, .video, .btn, .stage, .counter-strip, .guide, .aside, .problem input, .score-box { display: none !important; }
-  body, .wall { background: white; }
+  body, .wall, .scene-hero.wall { background: white; }
   .scene-hero::before { display: none; }
   .scene-grid { display: block; }
   .panel { box-shadow: none; break-inside: avoid; }
