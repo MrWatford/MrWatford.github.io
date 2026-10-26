@@ -259,11 +259,15 @@ function normalize(text) {
     .toLowerCase()
     .replace(/[−–—]/g, "-")
     .replace(/\s+/g, "")
+    .replace(/\+\/?-/g, "±") // "+-7" and "+/-7" mean ±7
     .replace(/^\+/, "")
     // money, percent, and degree signs, and commas in big numbers: "$1,200" → "1200", "25%" → "25"
     .replace(/^(-?)\$/, "$1")
     .replace(/(\d)[%°]$/, "$1")
     .replace(/(\d),(?=\d{3}\b)/g, "$1")
+    // points: "x=7,y=5", "(7,5)", and "7,5" all count the same
+    .replace(/^\(?x=([^,()]+),y=([^,()]+)\)?$/, "($1,$2)")
+    .replace(/^(-?[\d.\/]+),(-?[\d.\/]+)$/, "($1,$2)")
     // "x=5" counts the same as "5"; "≥" and ">=" match too
     .replace(/^[a-z]=(?=.)/, "")
     .replace(/>=/g, "≥").replace(/<=/g, "≤");
