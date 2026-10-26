@@ -750,6 +750,18 @@ a.card-link p { color: var(--muted); }
 .meter { flex: 1 1 180px; height: 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
 .meter-fill { height: 100%; width: 0; border-radius: 999px; background: var(--yellow); transition: width 0.4s ease; }
 
+/* Chapter pages: one panel per topic, each with its own practice set */
+.topic { scroll-margin-top: 90px; }
+.topic-sub { margin: 26px 0 12px; padding-top: 18px; border-top: 2px dashed var(--line); font-size: 1.15rem; }
+.topic-list { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 20px; }
+.topic-list a { align-items: flex-start; }
+.topic-list small { font-weight: 600; color: var(--muted); }
+.chapter-nav { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; margin: 10px 0 30px; }
+.overline { text-decoration: overline; } /* repeating decimals */
+.btn.ghost { background: var(--white); color: var(--green-900); border-color: var(--green-700); }
+.btn.ghost:hover { background: var(--green-100); color: var(--green-900); }
+@media (max-width: 700px) { .topic-list { grid-template-columns: 1fr; } }
+
 /* ---------- Typing page extras ---------- */
 .game-feature { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 28px; align-items: center; }
 .game-feature ol { margin-bottom: 1.3em; }
