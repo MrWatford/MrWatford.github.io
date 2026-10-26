@@ -759,6 +759,39 @@ a.card-link p { color: var(--muted); }
 .chapter-nav { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 10px 0 30px; }
 .chapter-nav .btn { flex: 1 1 200px; text-align: center; }
 .overline { text-decoration: overline; } /* repeating decimals */
+
+/* Graph sketches (drawn as SVG). c1 = blue, c2 = red, c3 = green */
+.graph-fig { margin: 12px 0 4px; padding: 12px; }
+.graph-fig .graph + .graph { margin-top: 10px; }
+.graph { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; overflow: visible; }
+.graph.numline { max-width: 440px; }
+.g-grid { stroke: #d9e4dc; stroke-width: 1; fill: none; }
+.g-grid-line { stroke: #d9e4dc; stroke-width: 1; }
+.g-axis { stroke: var(--green-900); stroke-width: 1.6; }
+.gf0 { fill: var(--green-900); }
+.gf1 { fill: #2c4fa3; } .gf2 { fill: #d6372e; } .gf3 { fill: #2e8b3e; }
+.g-num { font: 600 10px "Nunito Sans", sans-serif; fill: var(--muted); }
+.g-num.big { font-size: 13px; }
+.g-axlbl { font: 700 11px "Nunito Sans", sans-serif; fill: var(--green-900); }
+.g-line, .g-seg, .g-ray { fill: none; stroke-width: 2.6; stroke-linecap: round; }
+.g-ray { stroke-width: 5; }
+.c1 { stroke: #2c4fa3; } .c2 { stroke: #d6372e; } .c3 { stroke: #2e8b3e; }
+.g-dash { stroke-dasharray: 7 5; }
+.g-shade { fill: rgba(44, 79, 163, 0.16); }
+.g-pt.c1, .g-dot.c1 { fill: #2c4fa3; } .g-pt.c2, .g-dot.c2 { fill: #d6372e; } .g-pt.c3, .g-dot.c3 { fill: #2e8b3e; }
+.g-pt { stroke: var(--white); stroke-width: 1.5; }
+.g-dot { stroke-width: 2.6; }
+.g-dot.open { fill: var(--white); }
+.g-poly { fill-opacity: 0.18; stroke-width: 2.2; stroke-linejoin: round; }
+.g-poly.c1 { fill: #2c4fa3; } .g-poly.c2 { fill: #d6372e; } .g-poly.c3 { fill: #2e8b3e; }
+.g-box { fill: rgba(44, 79, 163, 0.14); stroke: #2c4fa3; stroke-width: 2.6; }
+.g-bar { fill: rgba(44, 79, 163, 0.25); stroke: #2c4fa3; stroke-width: 1.6; }
+.g-lbl { font: 600 12px "Fredoka", sans-serif; paint-order: stroke; stroke: var(--white); stroke-width: 3px; stroke-linejoin: round; }
+.g-lbl.small { font-size: 11px; }
+.t1 { fill: #2c4fa3; } .t2 { fill: #d6372e; } .t3 { fill: #2e8b3e; }
+.graph-peek { flex-basis: 100%; }
+.graph-peek summary { cursor: pointer; font-weight: 800; color: var(--green-700); width: max-content; padding: 4px 0; }
+.graph-peek .figure { margin: 8px 0 0; }
 .data-table { border-collapse: collapse; margin: 6px 0 20px; background: var(--white); font-size: 1rem; max-width: 100%; }
 .data-table caption { text-align: left; font-weight: 800; color: var(--green-900); padding-bottom: 6px; }
 .data-table th, .data-table td { border: 1px solid var(--line); padding: 8px 14px; text-align: center; }
