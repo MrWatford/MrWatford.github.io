@@ -759,6 +759,10 @@ a.card-link p { color: var(--muted); }
 .chapter-nav { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 10px 0 30px; }
 .chapter-nav .btn { flex: 1 1 200px; text-align: center; }
 .overline { text-decoration: overline; } /* repeating decimals */
+.data-table { border-collapse: collapse; margin: 6px 0 20px; background: var(--white); font-size: 1rem; max-width: 100%; }
+.data-table caption { text-align: left; font-weight: 800; color: var(--green-900); padding-bottom: 6px; }
+.data-table th, .data-table td { border: 1px solid var(--line); padding: 8px 14px; text-align: center; }
+.data-table thead th, .data-table tbody th { background: var(--green-50); color: var(--green-900); }
 .btn.ghost { background: var(--white); color: var(--green-900); border-color: var(--green-700); }
 .btn.ghost:hover { background: var(--green-100); color: var(--green-900); }
 @media (max-width: 700px) { .topic-list { grid-template-columns: 1fr; } }
