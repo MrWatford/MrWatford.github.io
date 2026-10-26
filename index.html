@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mr. Watford's Classroom</title>
+  <meta name="description" content="Typing games, science experiments, and Pre-Algebra help from Mr. Watford.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-tips="Click any subject card to jump in!|Want the classroom back? Scroll to the top and click on me to hear more.">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">
+        <span class="brand-avatar"><img src="images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="index.html" aria-current="page">Home</a></li>
+          <li><a href="typing/index.html">Typing</a></li>
+          <li><a href="science/index.html">Science</a></li>
+          <li><a href="math/index.html">Pre-Algebra</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <h1 class="sr-only">Mr. Watford's Classroom</h1>
+
+    <!-- ===== THE CLASSROOM =====
+         Click the whiteboard, volcano, or computer to visit a subject.
+         Click Mr. Watford to hear what he says (change his lines in js/site.js). -->
+    <div class="home-stage">
+      <div class="classroom-wrap">
+        <div class="classroom wall">
+          <div class="rail"></div>
+          <div class="school-banner">Mr. Watford's Classroom</div>
+
+          <!-- Periodic table poster -->
+          <svg class="poster" viewBox="0 0 190 220" aria-hidden="true">
+            <defs>
+              <pattern id="elements" width="40" height="36" patternUnits="userSpaceOnUse">
+                <rect x="1" y="1" width="18" height="16" fill="#f7a6b8"/><rect x="21" y="1" width="18" height="16" fill="#f8d66d"/>
+                <rect x="1" y="19" width="18" height="16" fill="#7fd0c4"/><rect x="21" y="19" width="18" height="16" fill="#c3a8ec"/>
+              </pattern>
+            </defs>
+            <rect width="190" height="220" rx="6" fill="#fff" stroke="#e2dccb" stroke-width="3"/>
+            <text x="12" y="26" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="15" fill="#2b2b2b">PERIODIC TABLE</text>
+            <rect x="12" y="40" width="20" height="18" fill="url(#elements)"/>
+            <rect x="158" y="40" width="20" height="18" fill="#9ad38a"/>
+            <rect x="12" y="58" width="40" height="36" fill="url(#elements)"/>
+            <rect x="118" y="58" width="60" height="36" fill="url(#elements)"/>
+            <rect x="12" y="94" width="166" height="108" fill="url(#elements)"/>
+          </svg>
+
+          <!-- Shelf with a plant and a flask -->
+          <svg class="shelf" viewBox="0 0 240 140" aria-hidden="true">
+            <path d="M40 60h14v34l18 34H22l18-34z" fill="#dff1fb" stroke="#9cc7e0" stroke-width="3"/>
+            <path d="M30 114h52l6 14H24z" fill="#3d8ee0"/>
+            <path d="M120 96h60l-8 34h-44z" fill="#c8693b"/>
+            <g fill="#3f9a45"><ellipse cx="150" cy="70" rx="40" ry="22"/><ellipse cx="128" cy="54" rx="18" ry="26"/><ellipse cx="172" cy="54" rx="18" ry="26"/><ellipse cx="150" cy="44" rx="16" ry="28"/></g>
+            <rect x="0" y="128" width="240" height="12" rx="3" fill="#8a5a2b"/>
+          </svg>
+
+          <!-- Clock (shows the real time) -->
+          <svg class="clock" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="45" fill="#fff" stroke="#2e7d4a" stroke-width="8"/>
+            <path d="M50 12v8M50 80v8M12 50h8M80 50h8" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+            <line class="clock-hand hour" x1="50" y1="50" x2="50" y2="30" stroke="#222" stroke-width="5" stroke-linecap="round"/>
+            <line class="clock-hand minute" x1="50" y1="50" x2="50" y2="20" stroke="#c6362c" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="4" fill="#222"/>
+          </svg>
+
+          <!-- Window -->
+          <svg class="window" viewBox="0 0 270 420" preserveAspectRatio="xMinYMin slice" aria-hidden="true">
+            <rect width="270" height="420" fill="#fff"/>
+            <rect x="14" y="14" width="256" height="392" fill="#a9d8f5"/>
+            <rect x="14" y="250" width="256" height="156" fill="#8fd16a"/>
+            <g fill="#fff"><ellipse cx="200" cy="60" rx="34" ry="14"/><ellipse cx="224" cy="52" rx="24" ry="14"/><ellipse cx="70" cy="110" rx="26" ry="10"/></g>
+            <rect x="72" y="250" width="12" height="120" fill="#8a5a2b"/><ellipse cx="78" cy="235" rx="44" ry="40" fill="#3f9a45"/>
+            <rect x="196" y="230" width="12" height="140" fill="#8a5a2b"/><ellipse cx="202" cy="210" rx="40" ry="46" fill="#3f9a45"/>
+            <path d="M14 200h256M142 14v392" stroke="#fff" stroke-width="12"/>
+          </svg>
+
+          <!-- Whiteboard → Pre-Algebra -->
+          <a class="hotspot board" href="math/index.html" aria-label="Pre-Algebra Help" data-side="left"
+             data-say="This whiteboard is for Pre-Algebra. Click it for explanations, examples, and practice that checks your answers!">
+            <svg viewBox="0 0 640 400" aria-hidden="true">
+              <rect x="0" y="0" width="640" height="400" rx="10" fill="#9aa3ad"/>
+              <rect x="12" y="12" width="616" height="364" rx="4" fill="#fdfdfd"/>
+              <g class="marker">
+                <text x="40" y="76" font-size="46" fill="#d6372e">Pre-Algebra!</text>
+                <text x="44" y="140" font-size="34" fill="#2c4fa3">1. −3 + 5 = 2</text>
+                <text x="44" y="190" font-size="34" fill="#2c4fa3">2. Solve for x</text>
+                <text x="44" y="240" font-size="34" fill="#2c4fa3">3. Check it!</text>
+                <text x="44" y="300" font-size="32" fill="#2e8b3e">Click to practice!</text>
+              </g>
+              <rect x="150" y="380" width="34" height="9" rx="3" fill="#d6372e"/>
+              <rect x="192" y="380" width="34" height="9" rx="3" fill="#2e8b3e"/>
+              <rect x="234" y="380" width="34" height="9" rx="3" fill="#2c4fa3"/>
+            </svg>
+            <span class="badge">➗ Pre-Algebra</span>
+          </a>
+
+          <!-- Mr. Watford (click him to hear more) -->
+          <button class="teacher" type="button" aria-label="Talk to Mr. Watford">
+            <img src="images/mr-watford/explaining.png" alt="">
+          </button>
+
+          <div class="counter"></div>
+
+          <!-- Volcano → Science -->
+          <a class="hotspot volcano" href="science/index.html" aria-label="Science Experiments" data-side="left"
+             data-say="Here's our lab bench! Click the volcano for science experiments, materials lists, safety notes, and demo videos.">
+            <svg viewBox="0 0 340 250" aria-hidden="true">
+              <ellipse cx="170" cy="238" rx="150" ry="12" fill="#3a3a3a"/>
+              <path d="M58 236L148 74h44l90 162z" fill="#7d7a76"/>
+              <g fill="#5f5c58"><circle cx="120" cy="190" r="4"/><circle cx="210" cy="170" r="3"/><circle cx="170" cy="210" r="4"/><circle cx="235" cy="214" r="3"/><circle cx="140" cy="140" r="3"/></g>
+              <ellipse cx="170" cy="76" rx="24" ry="8" fill="#2b2b2b"/>
+              <path d="M156 78c-4 30-14 50-22 80M170 80c2 40-6 70-4 110M184 78c6 30 18 54 30 86" fill="none" stroke="#e8462e" stroke-width="9" stroke-linecap="round"/>
+              <path d="M156 78c-4 30-14 50-22 80M184 78c6 30 18 54 30 86" fill="none" stroke="#f79a2f" stroke-width="3" stroke-linecap="round"/>
+              <circle class="lava-bubble" cx="162" cy="62" r="7" fill="#f79a2f"/>
+              <circle class="lava-bubble" cx="178" cy="58" r="5" fill="#e8462e"/>
+              <circle class="lava-bubble" cx="170" cy="64" r="6" fill="#f5c431"/>
+              <rect x="2" y="176" width="48" height="60" rx="4" fill="#f28c28"/>
+              <rect x="8" y="196" width="36" height="20" rx="3" fill="#fff"/>
+              <text x="26" y="210" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="8.5" fill="#c55a11">SODA</text>
+              <path d="M292 180h40v52a4 4 0 0 1-4 4h-32a4 4 0 0 1-4-4z" fill="#eaf6fd" stroke="#9cc7e0" stroke-width="3"/>
+              <rect x="295" y="204" width="34" height="29" rx="2" fill="#e05252"/>
+            </svg>
+            <span class="badge">🌋 Science</span>
+          </a>
+
+          <!-- Computer → Typing -->
+          <a class="hotspot computer" href="typing/index.html" aria-label="Typing Games" data-side="right"
+             data-say="This computer has typing games like Word Rain. Click it and see how fast you can type!">
+            <svg viewBox="0 0 300 280" aria-hidden="true">
+              <defs><clipPath id="screen"><rect x="32" y="22" width="236" height="146" rx="4"/></clipPath></defs>
+              <rect x="20" y="10" width="260" height="170" rx="12" fill="#2b2f33"/>
+              <rect x="32" y="22" width="236" height="146" rx="4" fill="#e6f4ea"/>
+              <g clip-path="url(#screen)" font-family="Fredoka, sans-serif" font-weight="600" font-size="17" text-anchor="middle">
+                <g class="falling-word"><rect x="50" y="30" width="70" height="26" rx="13" fill="#fff" stroke="#2e7d4a" stroke-width="2"/><text x="85" y="49" fill="#163d24">light</text></g>
+                <g class="falling-word"><rect x="160" y="30" width="70" height="26" rx="13" fill="#f5c431"/><text x="195" y="49" fill="#163d24">type</text></g>
+                <g class="falling-word"><rect x="105" y="30" width="70" height="26" rx="13" fill="#fff" stroke="#2e7d4a" stroke-width="2"/><text x="140" y="49" fill="#163d24">jump</text></g>
+              </g>
+              <rect x="135" y="180" width="30" height="40" fill="#3b4045"/>
+              <rect x="95" y="216" width="110" height="10" rx="5" fill="#3b4045"/>
+              <rect x="30" y="236" width="240" height="34" rx="7" fill="#e3e5e8" stroke="#b9bec4" stroke-width="2"/>
+              <path d="M42 248h216M42 258h216" stroke="#b9bec4" stroke-width="2" stroke-dasharray="12 4"/>
+            </svg>
+            <span class="badge">⌨️ Typing</span>
+          </a>
+        </div>
+
+        <!-- Mr. Watford's caption (the words type themselves out) -->
+        <p class="caption">
+          <span class="caption-tag">Mr. Watford</span>
+          <span class="caption-text" aria-hidden="true">Welcome to my classroom!</span>
+          <span class="sr-only caption-live" aria-live="polite"></span>
+        </p>
+      </div>
+    </div>
+
+    <!-- ===== SUBJECT CARDS (easy tapping on phones) ===== -->
+    <section class="subjects" id="subjects">
+      <div class="container">
+        <div class="section-title">
+          <h2>Pick a subject</h2>
+          <p>Or click something in the classroom above!</p>
+        </div>
+        <div class="grid-3">
+          <a class="panel subject-link" href="typing/index.html">
+            <h3 class="panel-head"><span class="ic" aria-hidden="true">⌨️</span> Typing Games</h3>
+            <div class="panel-body">
+              <span class="tag">7th Grade</span>
+              <p>Build speed and accuracy with games you can play right in your browser.</p>
+              <ul class="checklist">
+                <li>Word Rain and more games</li>
+                <li>Home-row tips</li>
+              </ul>
+              <span class="go">Start typing</span>
+            </div>
+          </a>
+          <a class="panel subject-link" href="science/index.html">
+            <h3 class="panel-head"><span class="ic" aria-hidden="true">🔬</span> Science Lab</h3>
+            <div class="panel-body">
+              <span class="tag">6th &amp; 8th Grade</span>
+              <p>Separate areas for 6th and 8th grade science.</p>
+              <ul class="checklist">
+                <li>Chapter preview videos</li>
+                <li>Lab directions, safety notes, and demos</li>
+              </ul>
+              <span class="go">See experiments</span>
+            </div>
+          </a>
+          <a class="panel subject-link" href="math/index.html">
+            <h3 class="panel-head"><span class="ic" aria-hidden="true">➗</span> Pre-Algebra Help</h3>
+            <div class="panel-body">
+              <span class="tag">8th Grade</span>
+              <p>One page for each section of our textbook.</p>
+              <ul class="checklist">
+                <li>Explanations and worked examples</li>
+                <li>Practice that checks your answers</li>
+              </ul>
+              <span class="go">Start practicing</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== NEW + PARENTS ===== -->
+    <section class="page-body">
+      <div class="container grid-2">
+        <div class="panel">
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">✨</span> Recently added</h2>
+          <div class="panel-body">
+            <!-- Add newest pages at the top of this list -->
+            <ul class="updates">
+              <li>
+                <a href="typing/games/tower-typer.html">
+                  <span class="ic" aria-hidden="true">🏰</span>
+                  <span><strong>Tower Typer</strong><small>Typing • Castle defense game</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="typing/games/keyboard-kart.html">
+                  <span class="ic" aria-hidden="true">🏎️</span>
+                  <span><strong>Keyboard Kart</strong><small>Typing • Racing game</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="science/weathering-wars.html">
+                  <span class="ic" aria-hidden="true">⚔️</span>
+                  <span><strong>Weathering Wars</strong><small>8th Grade Science • Video demo</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="science/fossil-record-projects.html">
+                  <span class="ic" aria-hidden="true">🫙</span>
+                  <span><strong>Fossil Record Projects</strong><small>8th Grade Science • Video &amp; lab sheet</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="science/grade-8.html">
+                  <span class="ic" aria-hidden="true">🎬</span>
+                  <span><strong>Chapter Previews 4–5</strong><small>8th Grade Science • Videos</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="science/earthquake-tower.html">
+                  <span class="ic" aria-hidden="true">🏗️</span>
+                  <span><strong>Earthquake Tower Challenge</strong><small>6th Grade Science • STEM project</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="science/volcano-eruption.html">
+                  <span class="ic" aria-hidden="true">🌋</span>
+                  <span><strong>Volcano Eruption!</strong><small>6th Grade Science • Demo video &amp; project</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="science/grade-6.html">
+                  <span class="ic" aria-hidden="true">🎬</span>
+                  <span><strong>Chapter Previews 1–3</strong><small>6th Grade Science • Videos</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="math/3-2-adding-integers.html">
+                  <span class="ic" aria-hidden="true">➗</span>
+                  <span><strong>3.2 Adding Integers</strong><small>Pre-Algebra • Explanation &amp; practice</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="science/density-column.html">
+                  <span class="ic" aria-hidden="true">🧪</span>
+                  <span><strong>Density Column</strong><small>Science • 6th grade experiment</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+              <li>
+                <a href="typing/games/word-rain.html">
+                  <span class="ic" aria-hidden="true">🌧️</span>
+                  <span><strong>Word Rain</strong><small>Typing • Game</small></span>
+                  <span class="go" aria-hidden="true"></span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="panel" id="parents">
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">👪</span> For parents</h2>
+          <div class="panel-body">
+            <p>This site is a free study resource for my students. If you have questions, please contact me through the school office.</p>
+            <ul class="features">
+              <li><span class="ic" aria-hidden="true">🔒</span><span><strong>No accounts or logins</strong><span class="text">Students never sign up or share any personal information.</span></span></li>
+              <li><span class="ic" aria-hidden="true">💻</span><span><strong>Works on any device</strong><span class="text">Chromebooks, laptops, tablets, and phones.</span></span></li>
+              <li><span class="ic" aria-hidden="true">⭐</span><span><strong>Scores stay on your device</strong><span class="text">Game high scores are saved only in your own browser.</span></span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand" href="index.html">
+          <span class="brand-avatar"><img src="images/mr-watford/face.png" alt=""></span>
+          <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+        </a>
+        <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+      </div>
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="typing/index.html">Typing Games</a></li>
+          <li><a href="science/index.html">Science Experiments</a></li>
+          <li><a href="math/index.html">Pre-Algebra Help</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2>Good to know</h2>
+        <p>No logins, no forms, and no student information collected. Ever.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+  </footer>
+
+  <script src="js/site.js"></script>
+</body>
+</html>

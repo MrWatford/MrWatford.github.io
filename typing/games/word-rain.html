@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Word Rain | Mr. Watford's Typing Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;800&display=swap">
+<!-- This game keeps its own styling (a chalkboard look) instead of the site's style.css,
+     so the two never clash. -->
+<style>
+/* Layout: a classroom chalkboard in a wooden frame; words fall like chalk letters onto the ledge. One deliberate dark world. */
+:root {
+  --board: #22402f;
+  --board-deep: #183024;
+  --chalk: #eef3ea;
+  --chalk-dim: #a8bfb0;
+  --yellow: #f7d659;
+  --coral: #ff8f6b;
+  --mint: #93e6b8;
+  --wood: #8a5d38;
+  --wood-dark: #5e3d22;
+  --page: #13241b;
+  --display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--page); color: var(--chalk); }
+body { font-family: var(--body); }
+.app {
+  max-width: 980px; margin: 0 auto;
+  padding-block: 18px 22px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+/* Back-to-site button (added for the website) */
+.back {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 10px;
+  color: var(--chalk); text-decoration: none;
+  font: 700 14px/1 var(--body);
+  background: rgba(255,255,255,.07);
+  border: 1.5px solid rgba(238,243,234,.3); border-radius: 999px;
+  padding: 5px 16px 5px 5px;
+}
+.back img {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: #f8eed6; border: 2px solid var(--yellow);
+  object-fit: cover; object-position: center 15%;
+}
+.back:hover { border-color: var(--yellow); }
+.back:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.pill {
+  display: inline-block; background: var(--yellow); color: #3a2c00;
+  font: 700 12px/1 var(--body); letter-spacing: .08em; text-transform: uppercase;
+  padding: 6px 12px; border-radius: 999px;
+}
+h1 { font: 700 clamp(34px, 6vw, 48px)/1 var(--display); margin: 8px 0 0; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--yellow); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(64px, auto)); gap: 4px 18px; }
+.stat { display: flex; flex-direction: column; }
+.stat span { font: 700 11px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); }
+.stat b { font: 600 24px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+
+.frame {
+  background: linear-gradient(180deg, var(--wood), var(--wood-dark));
+  padding: 12px; border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);
+}
+.board {
+  position: relative; overflow: hidden; border-radius: 8px;
+  height: clamp(360px, 60vh, 580px);
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.06), transparent 60%),
+    radial-gradient(ellipse at 80% 70%, rgba(255,255,255,.04), transparent 55%),
+    linear-gradient(180deg, var(--board), var(--board-deep));
+  cursor: text;
+}
+.board.oops { animation: oops .25s; }
+@keyframes oops { 0%,100% { box-shadow: inset 0 0 0 0 transparent; } 40% { box-shadow: inset 0 0 0 4px var(--coral); } }
+.ledge {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 14px;
+  background: linear-gradient(180deg, var(--wood), var(--wood-dark));
+  border-top: 2px solid rgba(255,255,255,.12);
+}
+.word {
+  position: absolute; left: 0; top: 0; white-space: nowrap;
+  font: 600 24px/1 var(--display); letter-spacing: .02em;
+  color: var(--chalk); text-shadow: 0 0 1px rgba(255,255,255,.6);
+  padding: 4px 6px; border-radius: 8px; will-change: transform;
+}
+.word .done { color: var(--yellow); }
+.word.target { background: rgba(247,214,89,.12); outline: 2px dashed var(--yellow); outline-offset: 2px; }
+.word.attract { color: var(--chalk-dim); opacity: .55; }
+.word.pop { animation: pop .35s ease-out forwards; color: var(--mint); }
+.word.splat { animation: splat .45s ease-out forwards; color: var(--coral); }
+@keyframes pop { to { opacity: 0; transform: var(--t) scale(1.5); } }
+@keyframes splat { to { opacity: 0; transform: var(--t) scaleY(.3); } }
+
+.toast {
+  position: absolute; left: 50%; top: 38%; transform: translate(-50%,-50%);
+  font: 700 clamp(30px, 6vw, 46px)/1 var(--display); color: var(--yellow);
+  pointer-events: none; opacity: 0;
+}
+.toast.show { animation: toast 1.4s ease-out; }
+@keyframes toast { 0% { opacity: 0; transform: translate(-50%,-30%); } 20%,70% { opacity: 1; transform: translate(-50%,-50%); } 100% { opacity: 0; transform: translate(-50%,-70%); } }
+
+.panel-wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(15,30,22,.55); }
+.panel {
+  width: min(440px, 100%); text-align: center;
+  background: rgba(24,48,36,.96); border: 2px dashed rgba(238,243,234,.45);
+  border-radius: 18px; padding: 24px 22px; display: flex; flex-direction: column; gap: 14px;
+}
+.panel h2 { font: 700 30px/1.1 var(--display); margin: 0; text-wrap: balance; }
+.panel h2 em { font-style: normal; color: var(--yellow); }
+.panel p { margin: 0; line-height: 1.5; color: var(--chalk-dim); }
+.diffs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.diff {
+  font: 700 15px/1 var(--body); color: var(--chalk); background: transparent;
+  border: 2px solid rgba(238,243,234,.35); border-radius: 999px; padding: 10px 16px; cursor: pointer;
+}
+.diff small { display: block; font-weight: 600; font-size: 11px; color: var(--chalk-dim); margin-top: 4px; }
+.diff[aria-pressed="true"] { border-color: var(--yellow); background: rgba(247,214,89,.14); }
+.go {
+  font: 700 18px/1 var(--display); color: #2c2200; background: var(--yellow);
+  border: 0; border-radius: 999px; padding: 14px 22px; cursor: pointer;
+}
+.go:hover, .diff:hover { filter: brightness(1.08); }
+button:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
+.tips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.tip { font-size: 12px; font-weight: 600; color: var(--yellow); border: 1.5px dashed rgba(247,214,89,.6); border-radius: 999px; padding: 4px 10px; }
+.results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.results div { background: rgba(255,255,255,.05); border-radius: 12px; padding: 10px 6px; }
+.results span { display: block; font: 700 10px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); }
+.results b { font: 600 22px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+.best { color: var(--mint); font-weight: 800; }
+
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.typed { font: 600 22px/1.2 var(--display); min-height: 28px; min-width: 0; color: var(--chalk-dim); }
+.typed .done { color: var(--yellow); }
+.typed .rest { color: var(--chalk); opacity: .5; }
+.typed.shake { animation: shake .25s; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.right { display: flex; align-items: center; gap: 14px; }
+.lives { display: flex; gap: 6px; align-items: center; }
+.lives .lbl { font: 700 11px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); margin-right: 2px; }
+.drop { width: 14px; height: 14px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--mint); }
+.drop.lost { background: transparent; border: 2px solid rgba(238,243,234,.25); }
+.small-btn {
+  font: 700 13px/1 var(--body); color: var(--chalk); background: rgba(255,255,255,.07);
+  border: 1.5px solid rgba(238,243,234,.3); border-radius: 999px; padding: 8px 14px; cursor: pointer;
+}
+footer {
+  background: var(--board); border-radius: 12px; padding: 10px 14px; text-align: center;
+  font-size: 13px; font-weight: 600; color: var(--chalk-dim);
+}
+footer b { color: var(--chalk); }
+#kb { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px; border: 0; padding: 0; }
+@media (max-width: 560px) {
+  .stats { grid-template-columns: repeat(4, auto); gap: 4px 12px; }
+  .stat b { font-size: 20px; }
+  .word { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .word.pop, .word.splat, .toast.show, .board.oops, .typed.shake { animation-duration: .01s; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <a class="back" href="../index.html"><img src="../../images/mr-watford/face.png" alt="">← Back to Typing Games</a>
+
+  <header class="top">
+    <div>
+      <span class="pill">7th Grade Typing</span>
+      <h1>Word <em>Rain</em></h1>
+    </div>
+    <div class="stats" aria-live="off">
+      <div class="stat"><span>Score</span><b id="sScore">0</b></div>
+      <div class="stat"><span>Level</span><b id="sLevel">1</b></div>
+      <div class="stat"><span>WPM</span><b id="sWpm">0</b></div>
+      <div class="stat"><span>Accuracy</span><b id="sAcc">100%</b></div>
+    </div>
+  </header>
+
+  <div class="frame">
+    <div class="board" id="board">
+      <div class="ledge"></div>
+      <div class="toast" id="toast"></div>
+
+      <div class="panel-wrap" id="startPanel">
+        <div class="panel">
+          <h2>Catch every word <em>before it lands</em></h2>
+          <p>Type a falling word to clear it. Each word that hits the ledge costs a raindrop. Clear 10 words to reach the next level.</p>
+          <div class="diffs" role="group" aria-label="Difficulty">
+            <button class="diff" data-diff="easy" aria-pressed="true">Easy<small>3–5 letters</small></button>
+            <button class="diff" data-diff="medium" aria-pressed="false">Medium<small>up to 7</small></button>
+            <button class="diff" data-diff="hard" aria-pressed="false">Hard<small>long words</small></button>
+          </div>
+          <button class="go" id="startBtn">Start game</button>
+          <div class="tips">
+            <span class="tip">Eyes on the screen</span>
+            <span class="tip">Fingers on home row</span>
+            <span class="tip">Esc pauses</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-wrap" id="pausePanel" hidden>
+        <div class="panel">
+          <h2>Paused</h2>
+          <p>Rest your hands, then jump back in.</p>
+          <button class="go" id="resumeBtn">Resume</button>
+          <button class="small-btn" id="quitBtn">Quit to menu</button>
+        </div>
+      </div>
+
+      <div class="panel-wrap" id="overPanel" hidden>
+        <div class="panel">
+          <h2>The rain <em>won</em> this time</h2>
+          <div class="results">
+            <div><span>Score</span><b id="rScore">0</b></div>
+            <div><span>Level</span><b id="rLevel">1</b></div>
+            <div><span>Words</span><b id="rWords">0</b></div>
+            <div><span>WPM</span><b id="rWpm">0</b></div>
+            <div><span>Accuracy</span><b id="rAcc">0%</b></div>
+            <div><span>Best</span><b id="rBest">0</b></div>
+          </div>
+          <p id="rNote"></p>
+          <button class="go" id="againBtn">Play again</button>
+          <button class="small-btn" id="menuBtn">Change difficulty</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div class="typed" id="typed">Pick a difficulty and press Start.</div>
+    <div class="right">
+      <div class="lives" id="lives" aria-label="Lives"></div>
+      <button class="small-btn" id="pauseBtn">Pause</button>
+    </div>
+  </div>
+
+  <footer><b>Lighthouse Baptist Academy</b> • Mr. Watford's Typing Class • "Whatsoever ye do, do all to the glory of God."</footer>
+  <input id="kb" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Type the falling words here">
+</div>
+
+<script>
+(() => {
+  const WORDS = {
+    easy: "cat dog sun map run jump desk book rain tree fish bird lamp cup pen hat milk sand ship star cake frog gold kite lake moon nest owl park quiz rope seed team vote wind yard zoo bell coat door east farm gift hill ink jar king leaf mint note oak pond road salt tent unit vest wave yell zip bus fox glue"
+      .split(" "),
+    medium: "planet garden pencil rocket bridge castle forest helmet island jacket kitten ladder marble needle orange puzzle rabbit saddle ticket unlock valley window yellow zipper anchor basket candle engine falcon guitar hammer insect jungle lizard market napkin office parade quiver ribbon silver tunnel velvet whistle button cactus desert finger glider harbor kettle lantern meadow number pepper river summer travel winter"
+      .split(" "),
+    hard: "adventure balance calendar discovery education champion gratitude harmony important journey knowledge language mountain notebook operation paragraph question remember sentence telescope umbrella vocabulary wonderful yesterday absolute brilliant character delightful encourage fantastic geography hospital invention keyboard lighthouse magnificent neighbor orchestra practice responsible strawberry thunderstorm universe victory waterfall excellent faithful kindness patience schedule scientist attention beautiful celebrate direction elephant festival"
+      .split(" ")
+  };
+  const DIFF = {
+    easy:   { lists: ["easy"],           speed: 30, spawn: 2500 },
+    medium: { lists: ["easy", "medium"], speed: 38, spawn: 2300 },
+    hard:   { lists: ["medium", "hard"], speed: 44, spawn: 2200 }
+  };
+  const MAX_LIVES = 5, PER_LEVEL = 10;
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const $ = id => document.getElementById(id);
+  const board = $("board"), kb = $("kb"), typedEl = $("typed"), toast = $("toast");
+  const startPanel = $("startPanel"), pausePanel = $("pausePanel"), overPanel = $("overPanel");
+
+  let diff = "easy";
+  let S = null;              // game state
+  let attract = [];          // decorative words on the menu
+  let last = performance.now();
+
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  const saved = store("wordrain-diff"); if (saved && DIFF[saved]) diff = saved;
+
+  function syncDiffButtons() {
+    document.querySelectorAll(".diff").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.diff === diff)));
+  }
+  syncDiffButtons();
+  document.querySelectorAll(".diff").forEach(b => b.addEventListener("click", () => {
+    diff = b.dataset.diff; store("wordrain-diff", diff); syncDiffButtons();
+  }));
+
+  const boardH = () => board.clientHeight - 14;
+  const boardW = () => board.clientWidth;
+
+  function makeWordEl(text, cls) {
+    const el = document.createElement("div");
+    el.className = "word" + (cls ? " " + cls : "");
+    el.innerHTML = '<span class="done"></span><span class="rest"></span>';
+    el.lastChild.textContent = text;
+    board.insertBefore(el, board.querySelector(".panel-wrap"));
+    return el;
+  }
+  function place(w) {
+    const t = `translate(${w.x}px, ${w.y}px)`;
+    w.el.style.transform = t; w.el.style.setProperty("--t", t);
+  }
+
+  // ---- menu background words ----
+  function seedAttract() {
+    attract.forEach(w => w.el.remove()); attract = [];
+    const pool = WORDS.easy.concat(WORDS.medium);
+    for (let i = 0; i < 8; i++) {
+      const text = pool[Math.floor(Math.random() * pool.length)];
+      const el = makeWordEl(text, "attract");
+      const w = { text, el, x: Math.random() * Math.max(10, boardW() - el.offsetWidth - 10), y: (i / 8) * boardH() };
+      place(w); attract.push(w);
+    }
+  }
+
+  // ---- game ----
+  function newGame() {
+    attract.forEach(w => w.el.remove()); attract = [];
+    if (S) S.words.forEach(w => w.el.remove());
+    const d = DIFF[diff];
+    S = { mode: "play", words: [], target: null, score: 0, level: 1, lives: MAX_LIVES, cleared: 0,
+          keys: 0, correct: 0, errors: 0, elapsed: 0, spawnIn: 0, pool: d.lists.flatMap(l => WORDS[l]), d };
+    startPanel.hidden = true; overPanel.hidden = true; pausePanel.hidden = true;
+    renderLives(); renderStats(); renderTyped();
+    kb.focus();
+  }
+
+  function pickWord() {
+    const onBoard = new Set(S.words.map(w => w.text));
+    const firsts = new Set(S.words.map(w => w.text[0]));
+    let best = null;
+    for (let i = 0; i < 15; i++) {
+      const t = S.pool[Math.floor(Math.random() * S.pool.length)];
+      if (onBoard.has(t)) continue;
+      best = t;
+      if (!firsts.has(t[0])) break;   // prefer a new first letter so targeting is clear
+    }
+    return best || S.pool[0];
+  }
+  function spawn() {
+    const text = pickWord();
+    const el = makeWordEl(text);
+    const w = { text, el, idx: 0, x: 8 + Math.random() * Math.max(0, boardW() - el.offsetWidth - 16), y: -34 };
+    place(w); S.words.push(w);
+  }
+  const speed = () => S.d.speed * (1 + 0.14 * (S.level - 1));
+  const spawnGap = () => Math.max(750, S.d.spawn * Math.pow(0.88, S.level - 1));
+
+  function removeWord(w, cls) {
+    S.words = S.words.filter(x => x !== w);
+    if (S.target === w) S.target = null;
+    w.el.classList.remove("target");
+    w.el.classList.add(cls);
+    setTimeout(() => w.el.remove(), 500);
+  }
+
+  function handleChar(c) {
+    if (!S || S.mode !== "play") return;
+    S.keys++;
+    let t = S.target;
+    if (!t) {
+      const hits = S.words.filter(w => w.text[0] === c);
+      if (!hits.length) return oops();
+      t = hits.reduce((a, b) => (b.y > a.y ? b : a));
+      S.target = t; t.idx = 0; t.el.classList.add("target");
+    }
+    if (t.text[t.idx] !== c) return oops();
+    t.idx++; S.correct++;
+    t.el.firstChild.textContent = t.text.slice(0, t.idx);
+    t.el.lastChild.textContent = t.text.slice(t.idx);
+    if (t.idx === t.text.length) clearWord(t);
+    renderTyped(); renderStats();
+  }
+
+  function clearWord(w) {
+    S.score += w.text.length * 10 * S.level;
+    S.cleared++;
+    removeWord(w, "pop");
+    if (S.cleared % PER_LEVEL === 0) {
+      S.level++;
+      showToast("Level " + S.level);
+    }
+  }
+
+  function releaseTarget() {
+    const t = S && S.target; if (!t) return;
+    t.idx = 0; t.el.classList.remove("target");
+    t.el.firstChild.textContent = ""; t.el.lastChild.textContent = t.text;
+    S.target = null; renderTyped();
+  }
+
+  function oops() {
+    S.errors++;
+    board.classList.remove("oops"); void board.offsetWidth; board.classList.add("oops");
+    typedEl.classList.remove("shake"); void typedEl.offsetWidth; typedEl.classList.add("shake");
+    renderStats();
+  }
+
+  function landed(w) {
+    removeWord(w, "splat");
+    S.lives--; renderLives(); renderTyped();
+    if (S.lives <= 0) gameOver();
+  }
+
+  function showToast(text) {
+    toast.textContent = text;
+    toast.classList.remove("show"); void toast.offsetWidth; toast.classList.add("show");
+  }
+
+  const wpm = () => (S && S.elapsed > 3 ? Math.round((S.correct / 5) / (S.elapsed / 60)) : 0);
+  const acc = () => (S && S.keys ? Math.round((S.correct / S.keys) * 100) : 100);
+
+  function renderStats() {
+    $("sScore").textContent = S ? S.score.toLocaleString() : 0;
+    $("sLevel").textContent = S ? S.level : 1;
+    $("sWpm").textContent = wpm();
+    $("sAcc").textContent = acc() + "%";
+  }
+  function renderLives() {
+    const n = S ? S.lives : MAX_LIVES;
+    let h = '<span class="lbl">Drops</span>';
+    for (let i = 0; i < MAX_LIVES; i++) h += `<span class="drop${i < n ? "" : " lost"}"></span>`;
+    $("lives").innerHTML = h;
+  }
+  function renderTyped() {
+    if (!S || S.mode === "over") { typedEl.textContent = "Pick a difficulty and press Start."; return; }
+    const t = S.target;
+    if (!t) { typedEl.textContent = "Type the first letter of any word…"; return; }
+    typedEl.innerHTML = '<span class="done"></span><span class="rest"></span>';
+    typedEl.firstChild.textContent = t.text.slice(0, t.idx);
+    typedEl.lastChild.textContent = t.text.slice(t.idx);
+  }
+
+  function pause() {
+    if (!S || S.mode !== "play") return;
+    S.mode = "paused"; pausePanel.hidden = false; $("resumeBtn").focus();
+  }
+  function resume() {
+    if (!S || S.mode !== "paused") return;
+    S.mode = "play"; pausePanel.hidden = true; kb.focus();
+  }
+  function toMenu() {
+    if (S) { S.words.forEach(w => w.el.remove()); S = null; }
+    pausePanel.hidden = true; overPanel.hidden = true; startPanel.hidden = false;
+    renderStats(); renderLives(); renderTyped(); seedAttract(); $("startBtn").focus();
+  }
+
+  function gameOver() {
+    S.mode = "over";
+    const key = "wordrain-best-" + diff;
+    const prev = parseInt(store(key) || "0", 10) || 0;
+    const isBest = S.score > prev;
+    if (isBest) store(key, String(S.score));
+    $("rScore").textContent = S.score.toLocaleString();
+    $("rLevel").textContent = S.level;
+    $("rWords").textContent = S.cleared;
+    $("rWpm").textContent = wpm();
+    $("rAcc").textContent = acc() + "%";
+    $("rBest").textContent = Math.max(prev, S.score).toLocaleString();
+    $("rNote").innerHTML = isBest && S.score > 0
+      ? '<span class="best">New personal best on ' + diff + "!</span>"
+      : "Keep your eyes on the words, not the keys. You've got this.";
+    overPanel.hidden = false; renderTyped();
+    $("againBtn").focus();
+  }
+
+  // ---- loop ----
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (S && S.mode === "play") {
+      S.elapsed += dt;
+      S.spawnIn -= dt * 1000;
+      if (S.spawnIn <= 0) { spawn(); S.spawnIn = spawnGap(); }
+      const v = speed(), floor = boardH();
+      for (const w of S.words.slice()) {
+        w.y += v * dt; place(w);
+        if (w.y + w.el.offsetHeight >= floor) landed(w);
+        if (!S || S.mode !== "play") break;
+      }
+      if (S && S.mode === "play") $("sWpm").textContent = wpm();
+    } else if (!S && !reduced) {
+      for (const w of attract) {
+        w.y += 12 * dt;
+        if (w.y > boardH()) { w.y = -30; w.x = Math.random() * Math.max(10, boardW() - w.el.offsetWidth - 10); }
+        place(w);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---- input ----
+  kb.addEventListener("input", () => {
+    const v = kb.value; kb.value = "";
+    for (const ch of v) if (/[a-z]/i.test(ch)) handleChar(ch.toLowerCase());
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { if (S && S.mode === "play") pause(); else if (S && S.mode === "paused") resume(); return; }
+    if (S && S.mode === "play") {
+      if (e.key === "Backspace") { e.preventDefault(); releaseTarget(); return; }
+      if (document.activeElement !== kb && e.key.length === 1 && /[a-z]/i.test(e.key) && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault(); handleChar(e.key.toLowerCase()); kb.focus();
+      }
+    }
+  });
+  board.addEventListener("click", () => { if (S && S.mode === "play") kb.focus(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+
+  $("startBtn").addEventListener("click", newGame);
+  $("againBtn").addEventListener("click", newGame);
+  $("menuBtn").addEventListener("click", toMenu);
+  $("resumeBtn").addEventListener("click", resume);
+  $("quitBtn").addEventListener("click", toMenu);
+  $("pauseBtn").addEventListener("click", () => (S && S.mode === "paused" ? resume() : pause()));
+
+  renderLives(); renderStats();
+  requestAnimationFrame(() => { seedAttract(); requestAnimationFrame(frame); });
+})();
+</script>
+
+</body>
+</html>

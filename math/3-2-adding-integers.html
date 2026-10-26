@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3.2 Adding Integers | Pre-Algebra | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-tips="Stuck? Try drawing a number line on scratch paper.|Ask yourself: which number is farther from zero? That's your sign.|Use the side menu to jump straight to Practice.">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../index.html">
+        <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../typing/index.html">Typing</a></li>
+          <li><a href="../science/index.html">Science</a></li>
+          <li><a href="index.html" aria-current="page">Pre-Algebra</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ===== SCENE: the whiteboard ===== -->
+    <section class="scene-hero wall">
+      <div class="container scene-grid">
+        <div class="panel title-card">
+          <p class="panel-head"><span class="ic" aria-hidden="true">➗</span> Section 3.2</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="index.html">← All Pre-Algebra sections</a></p>
+            <h1>Adding Integers</h1>
+            <p class="lead">Integers are whole numbers and their opposites: …, −3, −2, −1, 0, 1, 2, 3, … Here's how to add them, even when some are negative.</p>
+            <ul class="facts">
+              <li><small>Chapter</small><strong>3 • Integers</strong></li>
+              <li><small>Examples</small><strong>4 worked</strong></li>
+              <li><small>Practice</small><strong>10 problems</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="stage" aria-hidden="true">
+          <svg viewBox="0 0 600 420">
+            <rect x="0" y="20" width="360" height="250" rx="8" fill="#9aa3ad"/>
+            <rect x="9" y="29" width="342" height="226" rx="3" fill="#fdfdfd"/>
+            <g class="marker">
+              <text x="26" y="78" font-size="38" fill="#d6372e">Integers!</text>
+              <text x="28" y="128" font-size="30" fill="#2c4fa3">−3 + 5 = 2</text>
+              <text x="28" y="172" font-size="30" fill="#2c4fa3">2 + (−6) = −4</text>
+              <text x="28" y="222" font-size="26" fill="#2e8b3e">Same sign? Add!</text>
+            </g>
+            <rect x="60" y="258" width="24" height="7" rx="3" fill="#d6372e"/><rect x="90" y="258" width="24" height="7" rx="3" fill="#2e8b3e"/>
+            <image class="stage-teacher" href="../images/mr-watford/explaining.png" x="170" y="71" width="430" height="349"/>
+          </svg>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container with-aside">
+
+        <!-- ===== SIDE MENU ===== -->
+        <aside class="aside">
+          <nav class="panel toc" aria-label="On this page">
+            <p class="panel-head">On this page</p>
+            <div class="panel-body">
+              <ol>
+                <li><a href="#big-idea">The big idea</a></li>
+                <li><a href="#examples">Worked examples</a></li>
+                <li><a href="#practice">Practice</a></li>
+              </ol>
+              <p class="toc-label">Your progress</p>
+              <div class="toc-score">0 of 10 correct</div>
+              <div class="meter"><div class="meter-fill"></div></div>
+            </div>
+          </nav>
+        </aside>
+
+        <div>
+          <!-- ===== EXPLANATION ===== -->
+          <section class="panel" id="big-idea">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">💡</span> The big idea</h2>
+            <div class="panel-body">
+              <p>Picture a number line. Adding a <strong>positive</strong> number means moving <strong>right</strong>. Adding a <strong>negative</strong> number means moving <strong>left</strong>. Start at the first number, then move by the second.</p>
+
+              <figure class="figure">
+                <svg viewBox="0 0 440 230" role="img" aria-label="Two number lines. Top: start at negative 3, move 5 right, land on 2. Bottom: start at 2, move 6 left, land on negative 4.">
+                  <defs>
+                    <marker id="arrowG" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#36905a"/></marker>
+                    <marker id="arrowR" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c6362c"/></marker>
+                  </defs>
+                  <!-- Top line: −3 + 5 = 2 -->
+                  <text class="nl-title" x="8" y="22">−3 + 5 = 2</text>
+                  <line class="nl-line" x1="16" y1="90" x2="424" y2="90"/>
+                  <path class="nl-tick" d="M28 82v16M60 82v16M92 82v16M124 82v16M156 82v16M188 82v16M220 80v20M252 82v16M284 82v16M316 82v16M348 82v16M380 82v16M412 82v16"/>
+                  <g class="nl-num"><text x="28" y="116">−6</text><text x="60" y="116">−5</text><text x="92" y="116">−4</text><text x="124" y="116">−3</text><text x="156" y="116">−2</text><text x="188" y="116">−1</text><text x="220" y="116">0</text><text x="252" y="116">1</text><text x="284" y="116">2</text><text x="316" y="116">3</text><text x="348" y="116">4</text><text x="380" y="116">5</text><text x="412" y="116">6</text></g>
+                  <path class="nl-arc" d="M124 82Q204 22 280 80" marker-end="url(#arrowG)"/>
+                  <text class="nl-label" x="204" y="46">+5 (right)</text>
+                  <circle class="nl-start" cx="124" cy="90" r="7"/>
+                  <circle class="nl-end" cx="284" cy="90" r="7"/>
+
+                  <!-- Bottom line: 2 + (−6) = −4 -->
+                  <text class="nl-title" x="8" y="140">2 + (−6) = −4</text>
+                  <line class="nl-line" x1="16" y1="200" x2="424" y2="200"/>
+                  <path class="nl-tick" d="M28 192v16M60 192v16M92 192v16M124 192v16M156 192v16M188 192v16M220 190v20M252 192v16M284 192v16M316 192v16M348 192v16M380 192v16M412 192v16"/>
+                  <g class="nl-num"><text x="28" y="226">−6</text><text x="60" y="226">−5</text><text x="92" y="226">−4</text><text x="124" y="226">−3</text><text x="156" y="226">−2</text><text x="188" y="226">−1</text><text x="220" y="226">0</text><text x="252" y="226">1</text><text x="284" y="226">2</text><text x="316" y="226">3</text><text x="348" y="226">4</text><text x="380" y="226">5</text><text x="412" y="226">6</text></g>
+                  <path class="nl-arc neg" d="M284 192Q188 132 96 190" marker-end="url(#arrowR)"/>
+                  <text class="nl-label neg" x="188" y="156">−6 (left)</text>
+                  <circle class="nl-start" cx="284" cy="200" r="7"/>
+                  <circle class="nl-end" cx="92" cy="200" r="7"/>
+                </svg>
+                <figcaption>Dark dot = where you start. Yellow dot = your answer.</figcaption>
+              </figure>
+
+              <p>You can also use two short rules. Both depend on <mark>absolute value</mark>, which is a number's distance from zero (so |−6| = 6 and |6| = 6).</p>
+
+              <div class="rules">
+                <div class="callout key">
+                  <h3>Rule 1: Same signs</h3>
+                  <p>Add the absolute values. Keep the sign they share.</p>
+                </div>
+                <div class="callout key">
+                  <h3>Rule 2: Different signs</h3>
+                  <p>Subtract the smaller absolute value from the larger. Use the sign of the number <strong>farther from zero</strong>.</p>
+                </div>
+              </div>
+
+              <p class="caption"><span class="caption-tag">Mr. Watford</span>Quick check: a number plus its opposite always equals zero, like −9 + 9 = 0. These are called additive inverses.</p>
+            </div>
+          </section>
+
+          <!-- ===== WORKED EXAMPLES ===== -->
+          <section class="panel" id="examples">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">✏️</span> Worked examples</h2>
+            <div class="panel-body">
+              <div class="example">
+                <h3><span>Example 1:</span> Two negatives</h3>
+                <div class="work">−6 + (−9)</div>
+                <p>Same signs, so add the absolute values: 6 + 9 = 15. Both numbers are negative, so the answer is negative.</p>
+                <p class="answer-line">Answer: −15</p>
+              </div>
+
+              <div class="example">
+                <h3><span>Example 2:</span> Negative plus positive</h3>
+                <div class="work">−11 + 4</div>
+                <p>Different signs, so subtract: 11 − 4 = 7. The −11 is farther from zero than the 4, so the answer is negative.</p>
+                <p class="answer-line">Answer: −7</p>
+              </div>
+
+              <div class="example">
+                <h3><span>Example 3:</span> Positive plus negative</h3>
+                <div class="work">14 + (−5)</div>
+                <p>Different signs, so subtract: 14 − 5 = 9. The 14 is farther from zero, so the answer is positive.</p>
+                <p class="answer-line">Answer: 9</p>
+              </div>
+
+              <div class="example">
+                <h3><span>Example 4:</span> A real-life problem</h3>
+                <div class="work">Early one winter morning it was −4°F. By noon the temperature had gone up 13 degrees. What was the noon temperature?</div>
+                <p>Going up means adding a positive: −4 + 13. Different signs, so subtract: 13 − 4 = 9. The 13 is farther from zero, so the answer is positive.</p>
+                <p class="answer-line">Answer: 9°F</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== PRACTICE =====
+               Each problem: <div class="problem" data-answer="ANSWER" data-hint="OPTIONAL HINT"><span class="q">QUESTION</span></div>
+               Add class "wide" for long word problems: <div class="problem wide" ...> -->
+          <section class="panel" id="practice">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🎯</span> Practice</h2>
+            <div class="panel-body">
+              <p>Type your answer and press <strong>Check</strong> (or the Enter key). Use the minus key for negatives, like <strong>-7</strong>.</p>
+
+              <div class="practice-list">
+                <div class="problem" data-answer="15" data-hint="Both positive: just add.">
+                  <span class="q">9 + 6 =</span>
+                </div>
+                <div class="problem" data-answer="-11" data-hint="Same signs: add 7 and 4, keep the negative sign.">
+                  <span class="q">−7 + (−4) =</span>
+                </div>
+                <div class="problem" data-answer="-7" data-hint="Different signs: subtract 10 − 3. Which number is farther from zero?">
+                  <span class="q">−10 + 3 =</span>
+                </div>
+                <div class="problem" data-answer="7" data-hint="Different signs: subtract 12 − 5. Which number is farther from zero?">
+                  <span class="q">12 + (−5) =</span>
+                </div>
+                <div class="problem" data-answer="0" data-hint="These numbers are opposites.">
+                  <span class="q">−6 + 6 =</span>
+                </div>
+                <div class="problem" data-answer="-5" data-hint="Different signs: subtract 20 − 15. The −20 is farther from zero.">
+                  <span class="q">15 + (−20) =</span>
+                </div>
+                <div class="problem" data-answer="-21" data-hint="Same signs: add 13 and 8, keep the negative sign.">
+                  <span class="q">−13 + (−8) =</span>
+                </div>
+                <div class="problem" data-answer="15" data-hint="Different signs: subtract 40 − 25. The 40 is farther from zero.">
+                  <span class="q">−25 + 40 =</span>
+                </div>
+                <div class="problem wide" data-answer="-75" data-hint="Write it as −120 + 45.">
+                  <span class="q">A submarine is 120 feet below sea level (−120). It rises 45 feet. What integer shows its new position?</span>
+                </div>
+                <div class="problem wide" data-answer="-5" data-hint="A loss is negative and a gain is positive: −8 + 3.">
+                  <span class="q">A football team loses 8 yards on one play, then gains 3 yards on the next. What integer shows the total change?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand" href="../index.html">
+          <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+          <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+        </a>
+        <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+      </div>
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="../typing/index.html">Typing Games</a></li>
+          <li><a href="../science/index.html">Science Experiments</a></li>
+          <li><a href="../math/index.html">Pre-Algebra Help</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2>Good to know</h2>
+        <p>No logins, no forms, and no student information collected. Ever.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+  </footer>
+
+  <script src="../js/site.js"></script>
+</body>
+</html>

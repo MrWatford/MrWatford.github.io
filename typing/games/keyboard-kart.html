@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Keyboard Kart | Mr. Watford's Typing Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;800&display=swap">
+<!-- This game keeps its own styling instead of the site's style.css, so the two never clash. -->
+<style>
+:root {
+  --page: #13241b;
+  --panel: #1b3526;
+  --chalk: #eef3ea;
+  --chalk-dim: #a8bfb0;
+  --yellow: #f7d659;
+  --red: #ff6b5b;
+  --mint: #93e6b8;
+  --wood: #8a5d38;
+  --wood-dark: #5e3d22;
+  --display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--page); color: var(--chalk); }
+body { font-family: var(--body); }
+.app {
+  max-width: 1040px; margin: 0 auto;
+  padding-block: 18px 22px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px;
+}
+.back {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 10px;
+  color: var(--chalk); text-decoration: none;
+  font: 700 14px/1 var(--body);
+  background: rgba(255,255,255,.07);
+  border: 1.5px solid rgba(238,243,234,.3); border-radius: 999px;
+  padding: 5px 16px 5px 5px;
+}
+.back img { width: 34px; height: 34px; border-radius: 50%; background: #f8eed6; border: 2px solid var(--yellow); object-fit: cover; object-position: center 15%; }
+.back:hover { border-color: var(--yellow); }
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.pill {
+  display: inline-block; background: var(--yellow); color: #3a2c00;
+  font: 700 12px/1 var(--body); letter-spacing: .08em; text-transform: uppercase;
+  padding: 6px 12px; border-radius: 999px;
+}
+h1 { font: 700 clamp(34px, 6vw, 48px)/1 var(--display); margin: 8px 0 0; }
+h1 em { font-style: normal; color: var(--yellow); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(64px, auto)); gap: 4px 18px; }
+.stat { display: flex; flex-direction: column; }
+.stat span { font: 700 11px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); }
+.stat b { font: 600 24px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+
+.frame {
+  background: linear-gradient(180deg, var(--wood), var(--wood-dark));
+  padding: 12px; border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.screen { position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #8fd0f2; cursor: text; }
+canvas { display: block; width: 100%; height: 100%; }
+
+/* Words to type */
+.wordbar {
+  display: flex; flex-wrap: wrap; align-items: stretch; justify-content: center; gap: 10px;
+  background: var(--panel); border-radius: 10px; padding: 10px;
+  min-height: 92px;
+}
+.chip {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 160px; padding: 6px 18px 8px;
+  border-radius: 14px; border: 3px solid transparent;
+  background: var(--chalk); color: #1c2a21;
+}
+.chip small { font: 800 11px/1.4 var(--body); letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+.chip .word { font: 600 clamp(24px, 3.4vw, 34px)/1.15 var(--display); letter-spacing: .02em; white-space: nowrap; }
+.chip .word .done { color: #2e9a52; }
+.chip.power { background: var(--yellow); color: #3a2c00; }
+.chip.power .word .done { color: #8a5a00; text-decoration: underline; }
+.chip.dodge { background: var(--red); color: #fff; animation: pulse .6s ease-in-out infinite alternate; }
+.chip.dodge .word .done { color: #ffe1dc; text-decoration: underline; }
+.chip.target { border-color: var(--mint); box-shadow: 0 0 0 3px rgba(147,230,184,.35); }
+.chip .next { font: 600 13px/1.3 var(--body); opacity: .6; }
+.chip.oops { animation: shake .25s; }
+@keyframes pulse { to { transform: scale(1.06); } }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+/* Menus on top of the race */
+.panel-wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; background: rgba(15,30,22,.6); overflow: auto; }
+.panel {
+  width: min(560px, 100%); text-align: center;
+  background: rgba(24,48,36,.97); border: 2px dashed rgba(238,243,234,.45);
+  border-radius: 18px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;
+}
+.panel.wide { width: min(900px, 100%); }
+.panel h2 { font: 700 clamp(22px, 3.6vw, 30px)/1.1 var(--display); margin: 0; }
+.panel h2 em { font-style: normal; color: var(--yellow); }
+.panel p { margin: 0; line-height: 1.5; color: var(--chalk-dim); }
+.setup { display: grid; grid-template-columns: 1fr 1.15fr; gap: 16px; text-align: left; }
+.setup .col { display: flex; flex-direction: column; gap: 10px; }
+details.howto-box { background: rgba(0,0,0,.2); border-radius: 12px; padding: 8px 12px; }
+details.howto-box summary { cursor: pointer; font-weight: 800; color: var(--yellow); }
+.howto { margin: 8px 0 0; padding-left: 1.2em; color: var(--chalk); font-size: 13.5px; line-height: 1.5; }
+.howto li { margin-bottom: 3px; }
+.howto b.w { color: #fff; } .howto b.y { color: var(--yellow); } .howto b.r { color: var(--red); }
+.host { display: flex; align-items: center; gap: 10px; text-align: left; background: rgba(0,0,0,.25); border-radius: 12px; padding: 8px 12px; }
+.host img { width: 46px; height: 46px; border-radius: 50%; background: #f8eed6; border: 3px solid var(--yellow); object-fit: cover; object-position: center 15%; flex-shrink: 0; }
+.host span { font-weight: 700; font-size: 14px; }
+.opt-label { display: block; font: 800 11px/1.4 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--chalk-dim); margin-bottom: 5px; }
+.choices { display: flex; gap: 6px; flex-wrap: wrap; }
+.choice {
+  font: 700 14px/1 var(--body); color: var(--chalk); background: transparent;
+  border: 2px solid rgba(238,243,234,.3); border-radius: 999px; padding: 8px 12px; cursor: pointer;
+}
+.choice small { display: block; font-weight: 600; font-size: 10.5px; color: var(--chalk-dim); margin-top: 3px; }
+.choice[aria-pressed="true"] { border-color: var(--yellow); background: rgba(247,214,89,.16); }
+.choice.boss { border-color: rgba(245,196,49,.6); }
+.choice.boss[aria-pressed="true"] { background: rgba(245,196,49,.28); }
+.boss-note { margin: 6px 0 0; font-size: 13px; font-weight: 800; color: var(--yellow); }
+.racer-row { display: flex; align-items: center; gap: 12px; }
+.racer-row canvas { width: 64px; height: 64px; border-radius: 50%; background: #f8eed6; border: 3px solid var(--yellow); flex-shrink: 0; }
+.racer-row .choices { margin-top: 4px; }
+.standings { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; text-align: left; }
+.standings li { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.06); border-radius: 12px; padding: 4px 10px 4px 4px; font-weight: 700; }
+.standings li.you { background: rgba(147,230,184,.18); outline: 2px solid var(--mint); }
+.standings li.boss { background: rgba(245,196,49,.16); }
+.standings img { width: 34px; height: 34px; border-radius: 50%; background: #f8eed6; }
+.standings .pos { font-family: var(--display); font-size: 18px; width: 34px; text-align: center; color: var(--yellow); }
+.standings .who { flex: 1; }
+.swatch { width: 32px; height: 32px; border-radius: 50%; border: 3px solid rgba(255,255,255,.25); cursor: pointer; padding: 0; }
+.swatch[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 3px var(--yellow); }
+.teacher { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: rgba(0,0,0,.2); border-radius: 12px; padding: 8px 12px; }
+.teacher label { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; cursor: pointer; }
+.teacher input { width: 18px; height: 18px; accent-color: var(--yellow); }
+.teacher small { flex-basis: 100%; color: var(--chalk-dim); font-size: 12px; }
+.go {
+  font: 700 19px/1 var(--display); color: #2c2200; background: var(--yellow);
+  border: 0; border-radius: 999px; padding: 14px 24px; cursor: pointer;
+}
+.go:hover, .choice:hover { filter: brightness(1.08); }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
+.results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.results div { background: rgba(255,255,255,.06); border-radius: 12px; padding: 10px 6px; }
+.results span { display: block; font: 700 10px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); }
+.results b { font: 600 22px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+.best { color: var(--mint); font-weight: 800; }
+.save-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
+.save-row input {
+  width: 92px; text-align: center; text-transform: uppercase; letter-spacing: .2em;
+  font: 600 22px/1 var(--display); padding: 8px; border-radius: 10px; border: 2px solid var(--yellow);
+  background: #0f2018; color: #fff;
+}
+.board { width: 100%; border-collapse: collapse; font-size: 14px; }
+.board th, .board td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,.1); text-align: left; }
+.board th { color: var(--chalk-dim); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.board td.n { font-family: var(--display); font-size: 17px; }
+.board tr:first-child td { color: var(--yellow); }
+.small-btn {
+  font: 700 13px/1 var(--body); color: var(--chalk); background: rgba(255,255,255,.07);
+  border: 1.5px solid rgba(238,243,234,.3); border-radius: 999px; padding: 8px 14px; cursor: pointer;
+}
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.bar .btn-row { justify-content: flex-end; }
+.hint { color: var(--chalk-dim); font-size: 14px; font-weight: 600; }
+footer { background: var(--panel); border-radius: 12px; padding: 10px 14px; text-align: center; font-size: 13px; font-weight: 600; color: var(--chalk-dim); }
+footer b { color: var(--chalk); }
+#kb { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px; border: 0; padding: 0; }
+.start-side { margin-top: auto; }
+@media (min-width: 761px) { .start-bottom { display: none; } }
+@media (max-width: 760px) {
+  .start-side { display: none; }
+  .setup { grid-template-columns: 1fr; }
+  .screen.menu-open { aspect-ratio: auto; min-height: 600px; }
+}
+@media (max-width: 560px) {
+  .chip { min-width: 0; flex: 1 1 40%; padding: 4px 10px 6px; }
+  .stats { gap: 4px 12px; }
+  .stat b { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .chip.dodge, .chip.oops { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <a class="back" href="../index.html"><img src="../../images/mr-watford/face.png" alt="">← Back to Typing Games</a>
+
+  <header class="top">
+    <div>
+      <span class="pill">7th Grade Typing</span>
+      <h1>Keyboard <em>Kart</em></h1>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>WPM</span><b id="sWpm">0</b></div>
+      <div class="stat"><span>Accuracy</span><b id="sAcc">100%</b></div>
+      <div class="stat"><span>Best (this track)</span><b id="sBest">–</b></div>
+    </div>
+  </header>
+
+  <div class="frame">
+    <div class="screen menu-open" id="screen">
+      <canvas id="road" width="960" height="540" aria-label="Race track"></canvas>
+
+      <!-- ===== START MENU ===== -->
+      <div class="panel-wrap" id="startPanel">
+        <div class="panel wide">
+          <h2>Ready to <em>race?</em></h2>
+          <div class="setup">
+            <div class="col">
+              <div class="host">
+                <img src="../../images/mr-watford/face.png" alt="">
+                <span>Start your engines! Keep your fingers on the home row. Your typing is your gas pedal!</span>
+              </div>
+              <details class="howto-box" open>
+                <summary>How to play</summary>
+                <ul class="howto">
+                  <li>Type the <b class="w">white word</b> to step on the gas. Keep typing to keep your speed!</li>
+                  <li>Drive through a <b class="y">? box</b> for a power-up, then type the <b class="y">yellow word</b> to use it.</li>
+                  <li>Oil ahead! Type the <b class="r">red word</b> fast to hop over it.</li>
+                  <li>Type 10 words in a row with no mistakes for a 🔥 <b>streak boost</b>.</li>
+                  <li>Finish 3 laps and try to beat all 3 racers.</li>
+                  <li>Think you're fast? Try the 👑 <b>Boss Race</b> against Mr. Watford!</li>
+                  <li><b>Backspace</b> switches words. <b>Esc</b> pauses.</li>
+                </ul>
+              </details>
+              <details class="howto-box">
+                <summary>Power-ups</summary>
+                <ul class="howto">
+                  <li>🚀 <b>Turbo</b>: a big burst of speed.</li>
+                  <li>🛡️ <b>Shield</b>: blocks the next oil slick.</li>
+                  <li>❄️ <b>Freeze Ray</b>: slows down every other racer.</li>
+                  <li>🍌 <b>Banana Peel</b>: drops behind you. Racers who hit it spin out!</li>
+                  <li>🧲 <b>Magnet</b>: pulls you toward the leader.</li>
+                </ul>
+              </details>
+              <button class="go start-side" data-start>Start race</button>
+            </div>
+            <div class="col">
+              <div>
+                <span class="opt-label">Race level</span>
+                <div class="choices" data-group="level">
+                  <button class="choice" data-value="easy">Easy<small>short words</small></button>
+                  <button class="choice" data-value="medium">Medium<small>up to 7 letters</small></button>
+                  <button class="choice" data-value="hard">Hard<small>long words, fast racers</small></button>
+                  <button class="choice boss" data-value="boss">👑 Boss Race<small>vs. Mr. Watford (75 WPM!)</small></button>
+                </div>
+                <p class="boss-note" id="bossNote" hidden></p>
+              </div>
+              <div>
+                <span class="opt-label">…or practice one keyboard row</span>
+                <div class="choices" data-group="level">
+                  <button class="choice" data-value="home">Home row<small>A S D F G H J K L</small></button>
+                  <button class="choice" data-value="top">Top row<small>Q W E R T Y U I O P</small></button>
+                  <button class="choice" data-value="bottom">Bottom row<small>Z X C V B N M</small></button>
+                </div>
+              </div>
+              <div>
+                <span class="opt-label">Track</span>
+                <div class="choices" data-group="track">
+                  <button class="choice" data-value="meadow">🌳 Meadow Loop</button>
+                  <button class="choice" data-value="desert">🌵 Desert Canyon</button>
+                  <button class="choice" data-value="snow">❄️ Snowy Summit</button>
+                  <button class="choice" data-value="night">🌙 Night Lights</button>
+                </div>
+              </div>
+              <div class="racer-row">
+                <canvas id="miiPreview" width="128" height="128" aria-label="Your racer"></canvas>
+                <div>
+                <span class="opt-label">Your racer &amp; kart color</span>
+                <div class="choices" data-group="kart">
+                  <button class="small-btn" id="newLook">🎲 New look</button>
+                  <button class="swatch" data-value="green" style="background:#2e7d4a" aria-label="Green kart"></button>
+                  <button class="swatch" data-value="purple" style="background:#7a3cff" aria-label="Purple kart"></button>
+                  <button class="swatch" data-value="orange" style="background:#f28c28" aria-label="Orange kart"></button>
+                  <button class="swatch" data-value="pink" style="background:#e0569b" aria-label="Pink kart"></button>
+                  <button class="swatch" data-value="teal" style="background:#1f9e9e" aria-label="Teal kart"></button>
+                  <button class="swatch" data-value="black" style="background:#2b2f33" aria-label="Black kart"></button>
+                </div>
+                </div>
+              </div>
+              <div class="teacher">
+                <label><input type="checkbox" id="teacherToggle"> 🏫 Teacher mode: class leaderboard</label>
+                <button class="small-btn" id="boardBtn" hidden>🏆 Today's leaderboard</button>
+                <small>Racers add 3-letter initials after each race. Scores are saved on this computer only and clear every new day.</small>
+              </div>
+            </div>
+          </div>
+          <button class="go start-bottom" id="startBtn" data-start>Start race</button>
+        </div>
+      </div>
+
+      <div class="panel-wrap" id="pausePanel" hidden>
+        <div class="panel">
+          <h2>Paused</h2>
+          <p>Rest your hands, then get back in the race.</p>
+          <button class="go" id="resumeBtn">Resume</button>
+          <button class="small-btn" id="quitBtn">Quit to menu</button>
+        </div>
+      </div>
+
+      <div class="panel-wrap" id="finishPanel" hidden>
+        <div class="panel">
+          <h2 id="fTitle">Finished!</h2>
+          <div class="results">
+            <div><span>Place</span><b id="rPlace">–</b></div>
+            <div><span>Time</span><b id="rTime">–</b></div>
+            <div><span>Best time</span><b id="rBest">–</b></div>
+            <div><span>WPM</span><b id="rWpm">0</b></div>
+            <div><span>Accuracy</span><b id="rAcc">0%</b></div>
+            <div><span>Words</span><b id="rWords">0</b></div>
+          </div>
+          <p id="rNote"></p>
+          <ol class="standings" id="standings" aria-label="Final standings"></ol>
+          <div class="save-row" id="saveRow" hidden>
+            <input id="initials" maxlength="3" placeholder="ABC" aria-label="Your 3-letter initials" autocomplete="off">
+            <button class="small-btn" id="saveScore">Add to leaderboard</button>
+          </div>
+          <button class="go" id="againBtn">Race again</button>
+          <div class="btn-row">
+            <button class="small-btn" id="menuBtn">Change level or track</button>
+            <button class="small-btn" id="finishBoardBtn" hidden>🏆 Leaderboard</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-wrap" id="boardPanel" hidden>
+        <div class="panel">
+          <h2>🏆 Today's <em>leaderboard</em></h2>
+          <p id="boardSub"></p>
+          <table class="board">
+            <thead><tr><th>#</th><th>Racer</th><th>Time</th><th>Place</th><th>WPM</th></tr></thead>
+            <tbody id="boardBody"></tbody>
+          </table>
+          <div class="btn-row">
+            <button class="go" id="boardClose">Close</button>
+            <button class="small-btn" id="boardClear">Clear today's board</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wordbar" aria-live="polite">
+      <div class="chip" id="driveChip"><small>⛽ Gas</small><span class="word"></span><span class="next"></span></div>
+      <div class="chip power" id="powerChip" hidden><small></small><span class="word"></span></div>
+      <div class="chip dodge" id="dodgeChip" hidden><small>⚠️ Dodge the oil!</small><span class="word"></span></div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div class="hint" id="hint">Pick a level and track, then press Start race.</div>
+    <div class="btn-row">
+      <button class="small-btn" id="soundBtn">🔊 Sound on</button>
+      <button class="small-btn" id="pauseBtn">Pause</button>
+    </div>
+  </div>
+
+  <footer><b>Lighthouse Baptist Academy</b> • Mr. Watford's Typing Class</footer>
+  <input id="kb" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Type the words here to race">
+</div>
+
+<script>
+(() => {
+  /* =========================================================
+     KEYBOARD KART
+     Typing is the gas pedal. The track drawing uses the classic
+     "pseudo-3D" road trick: the track is a long list of short
+     segments, and each one is projected onto the screen.
+     ========================================================= */
+
+  // ---------- Words ----------
+  const WORDS = {
+    easy: "cat dog sun map run jump desk book rain tree fish bird lamp cup pen hat milk sand ship star cake frog gold kite lake moon nest owl park quiz rope seed team vote wind yard zoo bell coat door east farm gift hill ink jar king leaf mint note oak pond road salt tent unit vest wave yell zip bus fox glue".split(" "),
+    medium: "planet garden pencil rocket bridge castle forest helmet island jacket kitten ladder marble needle orange puzzle rabbit saddle ticket unlock valley window yellow zipper anchor basket candle engine falcon guitar hammer insect jungle lizard market napkin office parade quiver ribbon silver tunnel velvet whistle button cactus desert finger glider harbor kettle lantern meadow number pepper river summer travel winter".split(" "),
+    hard: "adventure balance calendar discovery education champion gratitude harmony important journey knowledge language mountain notebook operation paragraph question remember sentence telescope umbrella vocabulary wonderful yesterday absolute brilliant character delightful encourage fantastic geography hospital invention keyboard magnificent neighbor orchestra practice responsible strawberry thunderstorm universe victory waterfall excellent faithful kindness patience schedule scientist attention beautiful celebrate direction elephant festival".split(" "),
+    // Row practice: every letter in these words comes from that row of the keyboard
+    // (the bottom row has no vowels, so its words mix bottom-row keys with home-row keys)
+    home: "ask ash add all dad fad gas had has lad lag sad sag dash gash hash lash flag glad half hall fall shall salad flask falls slash flash glass alas".split(" "),
+    top: "pet pie pot toe top tip tire tree true type wipe wire quote quiet query route outer otter poet pout pretty prop riot rope yet you your tour tutor tower power pepper".split(" "),
+    bottom: "can ban man van cab nab lab jab dab gab fax max zag clam calm band hand land sand bank mask black blank snack scan bland gland cabs bands".split(" ")
+  };
+  const POWER_WORDS = "rocket blast zoom thunder comet launch nitro super flash power".split(" ");
+  const DODGE_WORDS = "hop jump duck leap skip bounce swerve".split(" ");
+
+  const LEVELS = {
+    easy:   { name: "Easy",       words: WORDS.easy,                         rivals: [0.40, 0.46, 0.52] },
+    medium: { name: "Medium",     words: WORDS.easy.concat(WORDS.medium),    rivals: [0.56, 0.63, 0.70] },
+    hard:   { name: "Hard",       words: WORDS.medium.concat(WORDS.hard),    rivals: [0.72, 0.80, 0.88] },
+    boss:   { name: "Boss Race",  words: WORDS.easy.concat(WORDS.medium),    rivals: [0.56, 0.63, 0.70], boss: true },
+    home:   { name: "Home row",   words: WORDS.home,   rowPractice: true,    rivals: [0.36, 0.42, 0.48] },
+    top:    { name: "Top row",    words: WORDS.top,    rowPractice: true,    rivals: [0.34, 0.40, 0.46] },
+    bottom: { name: "Bottom row", words: WORDS.bottom, rowPractice: true,    rivals: [0.34, 0.40, 0.46] }
+  };
+  // In row practice, even the power-up and dodge words stay on that row
+  const powerWordsFor = lvl => lvl.rowPractice ? lvl.words.filter(w => w.length >= 4) : POWER_WORDS;
+  const dodgeWordsFor = lvl => lvl.rowPractice ? lvl.words.filter(w => w.length <= 4) : DODGE_WORDS;
+
+  const ITEMS = {
+    turbo:  { icon: "🚀", name: "Turbo" },
+    shield: { icon: "🛡️", name: "Shield" },
+    freeze: { icon: "❄️", name: "Freeze Ray" },
+    banana: { icon: "🍌", name: "Banana Peel" },
+    magnet: { icon: "🧲", name: "Magnet" }
+  };
+
+  const KART_COLORS = {
+    green:  { body: "#2e7d4a", helmet: "#f7d659" },
+    purple: { body: "#7a3cff", helmet: "#e6d9ff" },
+    orange: { body: "#f28c28", helmet: "#fff1c4" },
+    pink:   { body: "#e0569b", helmet: "#ffe0ef" },
+    teal:   { body: "#1f9e9e", helmet: "#d9fbfb" },
+    black:  { body: "#2b2f33", helmet: "#f7d659" }
+  };
+  const LAPS = 3;
+  const STREAK = 10;   // clean words in a row for a streak boost
+
+  // ---------- Random cartoon racers (like a Mii) ----------
+  const MII = {
+    skin: ["#fbe0c8", "#f1c27d", "#e0ac69", "#c68642", "#8d5524", "#5c3a21"],
+    hairColor: ["#2b1d14", "#4a2c17", "#7a4a24", "#b5651d", "#d9a441", "#e8d28a", "#1c1c1c", "#8e8e8e", "#c0392b", "#7a3cff", "#2f6fc4"],
+    hair: ["short", "spiky", "bob", "long", "bun", "curly", "bald", "ponytail", "mohawk"],
+    eyes: ["dots", "ovals", "happy", "sleepy"],
+    mouth: ["smile", "grin", "flat", "o"],
+    hat: [null, null, null, "cap", "beanie", "headband"],
+    hatColor: ["#d8432f", "#2f6fc4", "#2e7d4a", "#f5c431", "#e0569b", "#ffffff"]
+  };
+  const RACER_NAMES = ["Turbo Tina", "Speedy Sam", "Zippy Zoe", "Max Velocity", "Rocket Rita", "Dash Diego", "Nitro Nate", "Lightning Lily",
+    "Captain Comet", "Jet Jasmine", "Swift Sofia", "Blaze Ben", "Vroom Vic", "Quick Quinn", "Racer Ruby", "Zoom Zeke", "Hot Rod Hank", "Pixel Pete"];
+  const RIVAL_COLORS = ["#d8432f", "#2f6fc4", "#e0a91b", "#e0569b", "#1f9e9e", "#7a3cff", "#f28c28", "#2e7d4a"];
+  function randomMii() {
+    return {
+      skin: pick(MII.skin), hair: pick(MII.hair), hairColor: pick(MII.hairColor),
+      eyes: pick(MII.eyes), mouth: pick(MII.mouth), brows: Math.random() < 0.7,
+      glasses: Math.random() < 0.25, mustache: Math.random() < 0.12, blush: Math.random() < 0.6,
+      hat: pick(MII.hat), hatColor: pick(MII.hatColor)
+    };
+  }
+  // The boss: Mr. Watford types at 75 words per minute and has a few tricks
+  const BOSS_WPM = 75;
+  const speedForWpm = wpm => 0.12 + Math.sqrt(Math.min(1.3, wpm / 100));   // same curve the player uses
+  const BOSS_TAUNTS = {
+    passedYou: ["See ya! 👋", "Too slow! Eyes on the words!", "75 words per minute, coming through!", "Beep beep! Teacher coming through!"],
+    youPassed: ["Whoa, nice pass! Can you keep it?", "Not bad... but I'm just warming up!", "Hey! Who taught you to type like that?", "Hmm, you've been practicing!"]
+  };
+
+  // ---------- Track & camera settings ----------
+  const W = 960, H = 540;
+  const segmentLength = 200, rumbleLength = 3, lanes = 3;
+  const roadWidth = 2000, cameraHeight = 1000, drawDistance = 200;
+  const fieldOfView = 100;
+  const cameraDepth = 1 / Math.tan((fieldOfView / 2) * Math.PI / 180);
+  const playerZ = cameraHeight * cameraDepth;
+  const maxSpeed = segmentLength * 60;         // world units per second
+  const KART_W = 400;                          // kart width in world units
+  const LEN = { SHORT: 25, MEDIUM: 50, LONG: 100 };
+  const CURVE = { EASY: 2, MEDIUM: 4, HARD: 6 };
+  const HILL = { LOW: 20, MEDIUM: 40, HIGH: 60 };
+
+  // ---------- The four tracks ----------
+  const TRACKS = {
+    meadow: {
+      name: "Meadow Loop", sign: "TYPE FAST!",
+      sky: ["#6cc1ef", "#cdeefc"], clouds: true, hills: ["#8fc7a0", "#5e9e6c"],
+      light: { road: "#6c6f73", grass: "#5cb85c", rumble: "#ffffff", lane: "#d9d9d9" },
+      dark:  { road: "#666a6e", grass: "#4fa94f", rumble: "#d84a3a" },
+      scenery: ["tree", "tree", "bush"], trees: ["#7a4b25", "#2f7a35", "#3f9a45"],
+      layout: () => {
+        addStraight(LEN.SHORT);
+        addCurve(LEN.MEDIUM, CURVE.MEDIUM, HILL.LOW);
+        addStraight(LEN.MEDIUM, HILL.MEDIUM);
+        addSCurves();
+        addCurve(LEN.LONG, -CURVE.MEDIUM, HILL.MEDIUM);
+        addStraight(LEN.MEDIUM);
+        addCurve(LEN.MEDIUM, CURVE.HARD, -HILL.LOW);
+      }
+    },
+    desert: {
+      name: "Desert Canyon", sign: "STAY COOL!",
+      sky: ["#f39c55", "#fde3b0"], sun: true, hills: ["#d98b52", "#b8653a"], mesas: true,
+      light: { road: "#7a6a5c", grass: "#e9c98a", rumble: "#ffffff", lane: "#efe0c4" },
+      dark:  { road: "#756556", grass: "#dfbb78", rumble: "#c0392b" },
+      scenery: ["cactus", "cactus", "rock"], trees: ["#7a4b25", "#2f7a35", "#3f9a45"],
+      layout: () => {
+        addStraight(LEN.SHORT);
+        addCurve(LEN.LONG, CURVE.EASY);
+        addStraight(LEN.MEDIUM, HILL.LOW);
+        addCurve(LEN.MEDIUM, -CURVE.HARD);
+        addCurve(LEN.MEDIUM, CURVE.HARD);
+        addStraight(LEN.LONG);
+        addCurve(LEN.LONG, -CURVE.MEDIUM, HILL.MEDIUM);
+      }
+    },
+    snow: {
+      name: "Snowy Summit", sign: "BRRR! TYPE ON!",
+      sky: ["#9cc9e8", "#eaf6ff"], clouds: true, snow: true, hills: ["#dbe9f5", "#b9d2e6"],
+      light: { road: "#6f7c88", grass: "#f4f8fb", rumble: "#ffffff", lane: "#e6eef5" },
+      dark:  { road: "#69757f", grass: "#e6eef5", rumble: "#2f6fc4" },
+      scenery: ["pine", "pine", "snowman"], trees: ["#6b4423", "#1f5e3b", "#2a7a4c"],
+      layout: () => {
+        addStraight(LEN.SHORT);
+        addStraight(LEN.MEDIUM, HILL.HIGH);
+        addCurve(LEN.MEDIUM, CURVE.MEDIUM, -HILL.MEDIUM);
+        for (let i = 0; i < 6; i++) addRoad(10, 10, 10, 0, i % 2 ? -5 : 5);
+        addCurve(LEN.LONG, -CURVE.EASY, HILL.HIGH);
+        addCurve(LEN.MEDIUM, CURVE.HARD, -HILL.HIGH);
+        addSCurves();
+      }
+    },
+    night: {
+      name: "Night Lights", sign: "EYES ON THE WORDS",
+      sky: ["#0b1530", "#27325e"], stars: true, headlights: true, hills: ["#1c2a4a", "#14203a"],
+      light: { road: "#3a3d44", grass: "#1f4a2c", rumble: "#f7d659", lane: "#f7d659" },
+      dark:  { road: "#36393f", grass: "#1b4127", rumble: "#7a3cff" },
+      scenery: ["lamp", "tree", "lamp"], trees: ["#3b2614", "#143a22", "#1d4d2d"],
+      layout: () => {
+        addStraight(LEN.SHORT);
+        addSCurves();
+        addCurve(LEN.MEDIUM, CURVE.HARD);
+        addCurve(LEN.MEDIUM, -CURVE.HARD);
+        addStraight(LEN.MEDIUM, HILL.LOW);
+        addCurve(LEN.LONG, CURVE.MEDIUM, -HILL.LOW);
+      }
+    }
+  };
+
+  const canvas = document.getElementById("road");
+  const ctx = canvas.getContext("2d");
+  const face = new Image(); face.src = "../../images/mr-watford/face.png";
+
+  // ---------- Helpers ----------
+  const $ = id => document.getElementById(id);
+  const mod = (n, m) => ((n % m) + m) % m;
+  const interpolate = (a, b, p) => a + (b - a) * p;
+  const easeIn = (a, b, p) => a + (b - a) * Math.pow(p, 2);
+  const easeInOut = (a, b, p) => a + (b - a) * ((-Math.cos(p * Math.PI) / 2) + 0.5);
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  const ordinal = n => n + (["th", "st", "nd", "rd"][n] || "th");
+  const fmtTime = s => Math.floor(s / 60) + ":" + (s % 60).toFixed(1).padStart(4, "0");
+  const today = () => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+
+  // ---------- Settings (remembered on this device) ----------
+  const settings = {
+    level: LEVELS[store("keyboardkart-level")] ? store("keyboardkart-level") : "easy",
+    track: TRACKS[store("keyboardkart-track")] ? store("keyboardkart-track") : "meadow",
+    kart: KART_COLORS[store("keyboardkart-kart")] ? store("keyboardkart-kart") : "green",
+    teacher: store("keyboardkart-teacher") === "1",
+    mii: (() => { try { return JSON.parse(store("keyboardkart-mii")) || randomMii(); } catch (e) { return randomMii(); } })()
+  };
+  store("keyboardkart-mii", JSON.stringify(settings.mii));
+  const bestKey = () => "keyboardkart-best-" + settings.track + "-" + settings.level;
+
+  // ---------- Sound effects (made with the Web Audio API, no files needed) ----------
+  const Sound = {
+    ac: null, engine: null,
+    on: store("keyboardkart-sound") !== "0",
+    init() {
+      if (!this.ac) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) this.ac = new AC(); }
+      if (this.ac && this.ac.state === "suspended") this.ac.resume();
+    },
+    tone(freq, dur, type, vol, slideTo, delay) {
+      if (!this.on || !this.ac) return;
+      const t = this.ac.currentTime + (delay || 0);
+      const o = this.ac.createOscillator(), g = this.ac.createGain();
+      o.type = type || "sine";
+      o.frequency.setValueAtTime(freq, t);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+      g.gain.setValueAtTime(vol || 0.06, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(this.ac.destination);
+      o.start(t); o.stop(t + dur + 0.05);
+    },
+    notes(list, step, type, vol) { list.forEach((f, i) => this.tone(f, step * 1.6, type, vol, null, i * step)); },
+    engineStart() {
+      if (!this.on || !this.ac || this.engine) return;
+      const o = this.ac.createOscillator(), f = this.ac.createBiquadFilter(), g = this.ac.createGain();
+      o.type = "sawtooth"; o.frequency.value = 55;
+      f.type = "lowpass"; f.frequency.value = 420;
+      g.gain.value = 0.022;
+      o.connect(f); f.connect(g); g.connect(this.ac.destination);
+      o.start();
+      this.engine = { o };
+    },
+    engineSet(pct) { if (this.engine) this.engine.o.frequency.setTargetAtTime(55 + 150 * pct, this.ac.currentTime, 0.1); },
+    engineStop() { if (this.engine) { try { this.engine.o.stop(); } catch (e) {} this.engine = null; } },
+    word()   { this.tone(880, 0.08, "sine", 0.05); },
+    error()  { this.tone(150, 0.12, "square", 0.035); },
+    item()   { this.notes([660, 880, 1175], 0.07, "triangle", 0.05); },
+    turbo()  { this.tone(200, 0.55, "sawtooth", 0.045, 1200); },
+    shield() { this.tone(500, 0.3, "sine", 0.06, 1000); },
+    freeze() { this.tone(2000, 0.45, "triangle", 0.045, 600); },
+    drop()   { this.tone(420, 0.15, "square", 0.035, 200); },
+    splat()  { this.tone(260, 0.3, "square", 0.035, 90); },
+    spin()   { this.tone(600, 0.6, "sawtooth", 0.045, 120); },
+    hop()    { this.tone(300, 0.18, "sine", 0.06, 800); },
+    beep(go) { this.tone(go ? 880 : 440, go ? 0.45 : 0.15, "square", 0.045); },
+    lap()    { this.notes([660, 990], 0.1, "triangle", 0.05); },
+    streak() { this.notes([784, 988, 1175], 0.06, "sine", 0.05); },
+    finish() { this.notes([523, 659, 784, 1046], 0.12, "triangle", 0.07); }
+  };
+
+  // ---------- Build the track ----------
+  let segments = [];
+  let trackLength = 0;
+  let theme = TRACKS[settings.track];
+  let itemBoxes = [];   // { seg, offset, lap }  lap = the lap it was last grabbed on
+  let oils = [];        // { seg, lap }
+
+  const lastY = () => segments.length === 0 ? 0 : segments[segments.length - 1].p2.world.y;
+  function addSegment(curve, y) {
+    const n = segments.length;
+    segments.push({
+      index: n,
+      p1: { world: { y: lastY(), z: n * segmentLength }, camera: {}, screen: {} },
+      p2: { world: { y: y, z: (n + 1) * segmentLength }, camera: {}, screen: {} },
+      curve: curve, sprites: [], clip: 0,
+      color: Math.floor(n / rumbleLength) % 2 ? theme.dark : theme.light
+    });
+  }
+  function addRoad(enter, hold, leave, curve, y) {
+    const startY = lastY(), endY = startY + (y || 0) * segmentLength, total = enter + hold + leave;
+    for (let n = 0; n < enter; n++) addSegment(easeIn(0, curve, n / enter), easeInOut(startY, endY, n / total));
+    for (let n = 0; n < hold; n++)  addSegment(curve, easeInOut(startY, endY, (enter + n) / total));
+    for (let n = 0; n < leave; n++) addSegment(easeInOut(curve, 0, n / leave), easeInOut(startY, endY, (enter + hold + n) / total));
+  }
+  function addStraight(num, hill) { addRoad(num, num, num, 0, hill || 0); }
+  function addCurve(num, curve, hill) { addRoad(num, num, num, curve, hill || 0); }
+  function addSCurves() {
+    const m = LEN.MEDIUM;
+    addRoad(m, m, m, -CURVE.EASY, 0);
+    addRoad(m, m, m, CURVE.MEDIUM, HILL.MEDIUM);
+    addRoad(m, m, m, CURVE.EASY, -HILL.LOW);
+    addRoad(m, m, m, -CURVE.EASY, HILL.MEDIUM);
+    addRoad(m, m, m, -CURVE.MEDIUM, -HILL.MEDIUM);
+  }
+
+  function buildTrack() {
+    theme = TRACKS[settings.track];
+    segments = [];
+    theme.layout();
+    addRoad(60, 60, 60, -CURVE.EASY, -lastY() / segmentLength);   // ease back down to the start line
+
+    const N = segments.length;
+    trackLength = N * segmentLength;
+
+    // Start line and checkered finish line
+    const start = { road: "#ffffff", grass: theme.light.grass, rumble: "#ffffff" };
+    const finish = { road: "#1f1f1f", grass: theme.dark.grass, rumble: "#1f1f1f" };
+    for (let n = 0; n < rumbleLength * 2; n++) segments[n].color = n % 2 ? finish : start;
+
+    // Scenery
+    const addSprite = (n, type, offset) => { if (segments[n]) segments[n].sprites.push({ type, offset }); };
+    addSprite(6, "gantry", 0);
+    for (let n = 20; n < N; n += 9)  addSprite(n, pick(theme.scenery), -(1.5 + Math.random() * 2));
+    for (let n = 24; n < N; n += 11) addSprite(n, pick(theme.scenery), 1.5 + Math.random() * 2);
+    if (theme.scenery.includes("lamp")) for (let n = 14; n < N; n += 16) { addSprite(n, "lamp", -1.25); addSprite(n + 8, "lamp", 1.25); }
+    [0.12, 0.42, 0.66, 0.9].forEach((f, i) => addSprite(Math.floor(N * f), "sign", i % 2 ? 1.45 : -1.45));
+
+    // Power-up boxes (three across) and oil slicks
+    itemBoxes = [];
+    [0.16, 0.44, 0.7].forEach(f => [-2 / 3, 0, 2 / 3].forEach(o => itemBoxes.push({ seg: Math.floor(N * f), offset: o, lap: -1 })));
+    oils = [0.3, 0.57, 0.84].map(f => ({ seg: Math.floor(N * f), lap: -1 }));
+  }
+
+  const findSegment = z => segments[Math.floor(z / segmentLength) % segments.length];
+
+  // ---------- Game state ----------
+  let S = null;
+  let skyOffset = 0, hillOffset = 0, clock = 0;
+
+  function newRace() {
+    Sound.init();
+    buildTrack();
+    const lvl = LEVELS[settings.level];
+    S = {
+      mode: "countdown", countdown: 3.5, lastBeep: 4, time: 0,
+      dist: 0, speed: 0, gas: 0,
+      lvl, pool: lvl.words, powerPool: powerWordsFor(lvl), dodgePool: dodgeWordsFor(lvl),
+      drive: null, next: null, power: null, dodge: null, target: null,
+      item: null, turbo: 0, shield: false, freeze: 0, magnet: 0, spin: 0, hop: 0,
+      streak: 0, wordHadError: false,
+      keys: 0, correct: 0, words: 0,
+      rivals: makeRivals(lvl),
+      bananas: [],
+      lap: 1, toasts: [], saved: false,
+      bossAhead: true, lastTaunt: 0
+    };
+    S.boss = S.rivals.find(r => r.boss) || null;
+    S.drive = makeWord(pickWord(S.pool), "drive");
+    S.next = pickWord(S.pool);
+    say(S.boss ? "Think you can beat me? I type 75 words per minute!" : "Start your engines! " + theme.name + ", here we go!", 3.5);
+    ["startPanel", "finishPanel", "pausePanel", "boardPanel"].forEach(id => $(id).hidden = true);
+    $("screen").classList.remove("menu-open");
+    $("hint").textContent = "Get ready…";
+    renderWords(); renderStats();
+    kb.focus();
+  }
+
+  // Three random racers with random looks, names, and kart colors (plus Mr. Watford in a Boss Race)
+  function makeRivals(lvl) {
+    const names = RACER_NAMES.slice().sort(() => Math.random() - 0.5);
+    const colors = RIVAL_COLORS.filter(c => c !== KART_COLORS[settings.kart].body).sort(() => Math.random() - 0.5);
+    const rivals = lvl.rivals.map((pace, i) => ({
+      name: names[i], body: colors[i], mii: randomMii(),
+      dist: segmentLength * (5 + i * 5), lane: i % 2 ? 0.58 : -0.58, pace, speed: 0, spin: 0, turbo: 0, finish: null
+    }));
+    if (lvl.boss) rivals.push({
+      name: "Mr. Watford", boss: true, body: "#1d1d1d",
+      dist: segmentLength * 20, lane: 0.3, pace: speedForWpm(BOSS_WPM), speed: 0, spin: 0, turbo: 0, finish: null,
+      nextTurbo: trackLength * (0.3 + Math.random() * 0.3)
+    });
+    return rivals;
+  }
+  const racerCount = () => S.rivals.length + 1;
+
+  // ---------- Words on screen ----------
+  function makeWord(text, kind) { return { text, idx: 0, kind }; }
+  function activeWords() { return [S.dodge, S.power, S.drive].filter(Boolean); }
+  function pickWord(list) {
+    const used = new Set(activeWords().map(w => w.text[0]));
+    for (let i = 0; i < 30; i++) { const t = pick(list); if (!used.has(t[0])) return t; }
+    return pick(list);
+  }
+
+  function renderWords() {
+    const show = (chipId, w, label) => {
+      const chip = $(chipId);
+      chip.hidden = !w;
+      if (!w) return;
+      if (label !== undefined) chip.querySelector("small").textContent = label;
+      const el = chip.querySelector(".word");
+      el.innerHTML = '<span class="done"></span><span class="rest"></span>';
+      el.firstChild.textContent = w.text.slice(0, w.idx);
+      el.lastChild.textContent = w.text.slice(w.idx);
+      chip.classList.toggle("target", S.target === w);
+    };
+    if (!S) {
+      $("driveChip").querySelector(".word").textContent = "ready";
+      $("driveChip").querySelector(".next").textContent = "";
+      $("driveChip").classList.remove("target");
+      $("powerChip").hidden = true; $("dodgeChip").hidden = true;
+      return;
+    }
+    show("driveChip", S.drive);
+    $("driveChip").querySelector(".next").textContent = S.next ? "next: " + S.next : "";
+    show("powerChip", S.power, S.item ? S.item.icon + " Use " + S.item.name : "");
+    show("dodgeChip", S.dodge);
+  }
+
+  function oops(w) {
+    S.keys++;
+    S.streak = 0;
+    if (w) w.hadError = true;
+    const chipId = w && w.kind === "power" ? "powerChip" : w && w.kind === "dodge" ? "dodgeChip" : "driveChip";
+    const chip = $(chipId); chip.classList.remove("oops"); void chip.offsetWidth; chip.classList.add("oops");
+    S.gas = Math.max(0, S.gas - 0.04);
+    Sound.error();
+    renderStats();
+  }
+
+  function handleChar(c) {
+    if (!S || S.mode !== "race") return;
+    let t = S.target;
+    if (t && t.text[t.idx] !== c) {
+      // Switch to a different word if this letter starts one (handy when oil shows up mid-word)
+      const other = activeWords().find(w => w !== t && w.text[0] === c);
+      if (other) { t.idx = 0; t = null; S.target = null; }
+      else return oops(t);
+    }
+    if (!t) {
+      t = activeWords().find(w => w.text[0] === c);
+      if (!t) return oops(S.drive);
+      S.target = t; t.idx = 0;
+    }
+    S.keys++; S.correct++;
+    t.idx++;
+    // Gas settles at about (your WPM ÷ 100), so faster typing always means a faster kart
+    S.gas = Math.min(1.3, S.gas + 0.027);
+    if (t.idx === t.text.length) completeWord(t);
+    renderWords(); renderStats();
+  }
+
+  function completeWord(w) {
+    S.target = null;
+    if (w.kind === "drive") {
+      S.words++;
+      S.gas = Math.min(1.3, S.gas + 0.045);
+      Sound.word();
+      // Perfect streak: 10 words in a row with no mistakes
+      S.streak = w.hadError ? 0 : S.streak + 1;
+      if (S.streak >= STREAK) {
+        S.streak = 0;
+        S.turbo = Math.max(S.turbo, 1.0);
+        toast("🔥 Perfect streak! Speed boost!", "#ffb347");
+        Sound.streak();
+      }
+      const text = S.next && !activeWords().some(o => o !== w && o.text[0] === S.next[0]) ? S.next : pickWord(S.pool);
+      S.drive = null;
+      S.drive = makeWord(text, "drive");
+      S.next = pickWord(S.pool);
+    } else if (w.kind === "power") {
+      useItem();
+    } else if (w.kind === "dodge") {
+      S.dodge = null;
+      S.dodged = true;
+      toast("Nice! Ready to hop!", "#93e6b8");
+    }
+  }
+
+  function releaseTarget() {
+    if (!S || !S.target) return;
+    S.target.idx = 0; S.target = null; renderWords();
+  }
+
+  // ---------- Power-ups ----------
+  function giveItem() {
+    if (S.item) { toast("Box smashed!", "#f7d659"); return; }
+    // Like real kart games: leaders get defensive items, racers in the back get catch-up items
+    const p = place();
+    const bag = p === 1 ? ["banana", "banana", "shield", "shield", "freeze"]
+              : p === racerCount() ? ["turbo", "turbo", "magnet", "magnet", "freeze", "shield"]
+              : ["turbo", "shield", "freeze", "banana", "magnet"];
+    const id = pick(bag);
+    S.item = { id, ...ITEMS[id] };
+    S.power = makeWord(pickWord(S.powerPool), "power");
+    toast("Got " + S.item.icon + " " + S.item.name + "! Type the yellow word.", "#f7d659");
+    Sound.item();
+  }
+  function useItem() {
+    const it = S.item; S.item = null; S.power = null;
+    if (!it) return;
+    if (it.id === "turbo")  { S.turbo = 2.6; S.gas = Math.max(S.gas, 0.8); toast("🚀 TURBO!", "#ffb347"); Sound.turbo(); }
+    if (it.id === "shield") { S.shield = true; toast("🛡️ Shield up! Oil can't stop you.", "#8fd3ff"); Sound.shield(); }
+    if (it.id === "freeze") { S.freeze = 3.5; toast("❄️ Racers frozen!", "#bfe6ff"); Sound.freeze(); }
+    if (it.id === "magnet") { S.magnet = 3; toast("🧲 Magnet! Pulling you toward the leader!", "#ff9ec7"); Sound.turbo(); }
+    if (it.id === "banana") {
+      S.bananas.push({ dist: S.dist - segmentLength * 3, age: 0 });
+      toast("🍌 Banana dropped behind you!", "#f7d659"); Sound.drop();
+    }
+  }
+
+  // ---------- Announcer & toasts ----------
+  let announcer = { text: "", until: 0 };
+  function say(text, seconds) { announcer = { text, until: clock + (seconds || 2.5) }; }
+  function toast(text, color) { S.toasts.push({ text, color: color || "#fff", until: clock + 1.8 }); if (S.toasts.length > 2) S.toasts.shift(); }
+
+  // ---------- Stats ----------
+  const wpm = () => (S && S.time > 3 ? Math.round((S.correct / 5) / (S.time / 60)) : 0);
+  const acc = () => (S && S.keys ? Math.round((S.correct / S.keys) * 100) : 100);
+  function renderStats() {
+    $("sWpm").textContent = wpm();
+    $("sAcc").textContent = acc() + "%";
+    const best = parseFloat(store(bestKey()) || "");
+    $("sBest").textContent = best ? fmtTime(best) : "–";
+  }
+
+  // ---------- Update (game logic) ----------
+  function passed(prev, now, z) {
+    if (now >= prev) return z > prev && z <= now;
+    return z > prev || z <= now;   // wrapped past the finish line
+  }
+  function place() { return 1 + S.rivals.filter(r => r.dist > S.dist).length; }
+
+  function update(dt) {
+    clock += dt;
+    if (!S) return;
+    if (S.mode === "countdown") {
+      S.countdown -= dt;
+      const n = Math.ceil(S.countdown - 0.5);
+      if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; Sound.beep(n === 0); }
+      if (S.countdown <= 0) {
+        S.mode = "race";
+        say("GO! Type to drive!", 2);
+        Sound.engineStart();
+        $("hint").textContent = "Type the white word to drive. Backspace switches words. Esc pauses.";
+      }
+      return;
+    }
+    if (S.mode !== "race") return;
+
+    S.time += dt;
+    S.turbo = Math.max(0, S.turbo - dt);
+    S.freeze = Math.max(0, S.freeze - dt);
+    S.magnet = Math.max(0, S.magnet - dt);
+    S.spin = Math.max(0, S.spin - dt);
+    S.hop = Math.max(0, S.hop - dt);
+
+    // Gas slowly fades unless you keep typing
+    S.gas = Math.max(0, S.gas - S.gas * 0.3 * dt);
+    // 20 WPM ≈ 57 mph, 50 WPM ≈ 83 mph, 75 WPM ≈ 99 mph, 100 WPM ≈ 112 mph
+    let target = maxSpeed * (0.12 + Math.sqrt(S.gas));
+    if (S.magnet > 0) target = Math.max(target * 1.15, maxSpeed * (place() > 1 ? 1.25 : 1.05));
+    if (S.turbo > 0) target = Math.max(target, maxSpeed * 1.35);
+    if (S.spin > 0) target *= 0.25;
+    S.speed += (target - S.speed) * Math.min(1, dt * (S.turbo > 0 || S.magnet > 0 ? 3 : 1.6));
+    Sound.engineSet(Math.min(1.35, S.speed / maxSpeed));
+
+    const prevPos = mod(S.dist, trackLength);
+    S.dist += S.speed * dt;
+    const pos = mod(S.dist, trackLength);
+    const lapNow = Math.floor(S.dist / trackLength) + 1;
+
+    // Item boxes (you always drive the middle lane)
+    itemBoxes.forEach(b => {
+      if (b.offset === 0 && b.lap !== lapNow && passed(prevPos, pos, b.seg * segmentLength)) {
+        itemBoxes.filter(o => o.seg === b.seg).forEach(o => o.lap = lapNow);
+        giveItem();
+      }
+    });
+
+    // Oil slicks: show a red word about 4 seconds early
+    oils.forEach(o => {
+      if (o.lap === lapNow) return;
+      const z = o.seg * segmentLength;
+      const ahead = mod(z - pos, trackLength);
+      const warnAt = Math.max(segmentLength * 60, S.speed * 4 + segmentLength * 20);
+      if (!S.dodge && !S.dodged && ahead < warnAt && ahead > segmentLength * 2 && S.activeOil !== o) {
+        S.activeOil = o;
+        S.dodge = makeWord(pickWord(S.dodgePool), "dodge");
+      }
+      if (passed(prevPos, pos, z)) {
+        o.lap = lapNow;
+        if (S.dodged) { S.hop = 0.55; Sound.hop(); }
+        else if (S.shield) { S.shield = false; toast("🛡️ Shield blocked the oil!", "#8fd3ff"); Sound.shield(); }
+        else { S.spin = 1.1; S.gas *= 0.4; S.streak = 0; toast("Spun out! Keep typing!", "#ff6b5b"); Sound.spin(); }
+        if (S.target === S.dodge) S.target = null;
+        S.dodge = null; S.dodged = false; S.activeOil = null;
+        renderWords();
+      }
+    });
+
+    // Laps
+    if (lapNow > S.lap && lapNow <= LAPS) {
+      S.lap = lapNow;
+      say(lapNow === LAPS ? "Final lap! Type your fastest!" : "Lap " + lapNow + "! Keep it up!", 2.5);
+      Sound.lap();
+    }
+
+    // Rivals
+    S.rivals.forEach((r, i) => {
+      const gap = r.dist - S.dist;
+      r.spin = Math.max(0, r.spin - dt);
+      r.turbo = Math.max(0, r.turbo - dt);
+      let pace;
+      if (r.boss) {
+        // Mr. Watford: a steady 75 WPM, never slows down when ahead, and fires off turbos
+        pace = r.pace * (1 + 0.03 * Math.sin(clock * 0.5));
+        if (gap < -trackLength * 0.2) pace *= 1.1;
+        if (r.dist >= r.nextTurbo) {
+          r.turbo = 2.2;
+          r.nextTurbo += trackLength * (0.4 + Math.random() * 0.25);
+          if (Math.abs(gap) < trackLength * 0.3) toast("👑 Mr. Watford used TURBO!", "#ffb347");
+        }
+        if (r.turbo > 0) pace = 1.35;
+        if (S.freeze > 0) pace *= 0.75;               // only half-frozen
+      } else {
+        pace = r.pace * (1 + 0.05 * Math.sin(clock * 0.6 + i * 2));
+        if (gap > trackLength * 0.25) pace *= 0.9;      // don't run away too far
+        if (gap < -trackLength * 0.2) pace *= 1.1;      // don't fall too far behind
+        if (S.freeze > 0) pace *= 0.45;
+      }
+      if (r.spin > 0) pace *= 0.3;
+      const prev = r.dist;
+      r.speed += (maxSpeed * pace - r.speed) * Math.min(1, dt * (r.turbo > 0 ? 2.5 : 0.8));
+      r.dist += r.speed * dt;
+      r.offset = r.lane + 0.12 * Math.sin(clock * 0.7 + i);
+      // Rivals sometimes slip on oil (never the boss), and slip on your bananas (the boss dodges half)
+      if (!r.boss) oils.forEach(o => {
+        const z = o.seg * segmentLength;
+        if (passed(mod(prev, trackLength), mod(r.dist, trackLength), z) && Math.random() < 0.25) r.spin = 1;
+      });
+      S.bananas.forEach(b => {
+        if (!b.hit && prev < b.dist && r.dist >= b.dist) {
+          b.hit = true;
+          if (r.boss && Math.random() < 0.5) { toast("👑 Mr. Watford dodged your banana!", "#f7d659"); return; }
+          r.spin = r.boss ? 0.9 : 1.4;
+          toast("🍌 " + r.name + " slipped!", "#f7d659"); Sound.splat();
+        }
+      });
+      if (!r.finish && r.dist >= trackLength * LAPS) r.finish = S.time;
+    });
+
+    // Mr. Watford's trash talk when the lead changes
+    if (S.boss && S.time > 4) {
+      const bossAhead = S.boss.dist > S.dist;
+      if (bossAhead !== S.bossAhead && clock - S.lastTaunt > 6) {
+        say(pick(bossAhead ? BOSS_TAUNTS.passedYou : BOSS_TAUNTS.youPassed), 2.8);
+        S.lastTaunt = clock;
+      }
+      S.bossAhead = bossAhead;
+    }
+    S.bananas = S.bananas.filter(b => !b.hit && S.dist - b.dist < trackLength);
+
+    // Finish!
+    if (S.dist >= trackLength * LAPS) finishRace();
+    if (Math.floor(S.time * 4) !== Math.floor((S.time - dt) * 4)) renderStats();
+  }
+
+  function finishRace() {
+    S.mode = "over";
+    Sound.engineStop(); Sound.finish();
+    const p = 1 + S.rivals.filter(r => r.finish !== null).length;
+    S.finalPlace = p;
+    const prev = parseFloat(store(bestKey()) || "") || 0;
+    const isBest = !prev || S.time < prev;
+    if (isBest) store(bestKey(), String(S.time));
+    const beatBoss = S.boss && S.boss.finish === null;
+    if (beatBoss) store("keyboardkart-bossbeaten", String((parseInt(store("keyboardkart-bossbeaten") || "0", 10) || 0) + 1));
+    $("fTitle").innerHTML = beatBoss && p === 1 ? "👑 You beat <em>Mr. Watford!</em>"
+      : p === 1 ? "🏆 You <em>won!</em>" : "You finished <em>" + ordinal(p) + "!</em>";
+    $("rPlace").textContent = ordinal(p);
+    $("rTime").textContent = fmtTime(S.time);
+    $("rBest").textContent = fmtTime(isBest ? S.time : prev);
+    $("rWpm").textContent = wpm();
+    $("rAcc").textContent = acc() + "%";
+    $("rWords").textContent = S.words;
+    $("rNote").innerHTML = beatBoss
+      ? '<span class="best">You out-typed a 75 WPM teacher. Legendary!</span>'
+      : isBest
+      ? '<span class="best">New best time on ' + theme.name + " (" + S.lvl.name + ")!</span>"
+      : S.boss ? "Mr. Watford wins this time. Keep practicing and come back for a rematch!"
+      : p === 1 ? "Champion! Try a harder level, a new track, or the 👑 Boss Race." : "Eyes on the words, fingers on the home row. You've got this!";
+    renderStandings();
+    $("saveRow").hidden = !settings.teacher;
+    $("finishBoardBtn").hidden = !settings.teacher;
+    $("initials").value = "";
+    $("finishPanel").hidden = false;
+    $("hint").textContent = "Race complete!";
+    say(beatBoss ? "You beat me?! Amazing typing, champ!" : S.boss ? "Better luck next time! Keep practicing!"
+      : p === 1 ? "What a race! First place!" : "Great effort! Race again?", 4);
+    renderStats();
+    (settings.teacher ? $("initials") : $("againBtn")).focus();
+  }
+
+  // Everyone in race order: finished racers by finish time, then everyone else by distance
+  function raceOrder() {
+    const all = S.rivals.map(r => ({ r, dist: r.dist, finish: r.finish }))
+      .concat([{ you: true, dist: S.dist, finish: S.mode === "over" ? S.time : null }]);
+    return all.sort((a, b) => {
+      if (a.finish !== null && b.finish !== null) return a.finish - b.finish;
+      if (a.finish !== null) return -1;
+      if (b.finish !== null) return 1;
+      return b.dist - a.dist;
+    });
+  }
+  function portraitURL(entry) {
+    const c = document.createElement("canvas"); c.width = c.height = 68;
+    const g = c.getContext("2d");
+    if (entry.you) drawMii(g, 34, 38, 52, settings.mii, "front");
+    else if (entry.r.boss) drawBossHead(g, 34, 38, 50);
+    else drawMii(g, 34, 38, 52, entry.r.mii, "front");
+    return c.toDataURL();
+  }
+  function renderStandings() {
+    const list = $("standings");
+    list.innerHTML = "";
+    raceOrder().forEach((e, i) => {
+      const li = document.createElement("li");
+      if (e.you) li.className = "you"; else if (e.r.boss) li.className = "boss";
+      const pos = document.createElement("span"); pos.className = "pos"; pos.textContent = ordinal(i + 1);
+      const img = document.createElement("img"); img.alt = ""; img.src = portraitURL(e);
+      const who = document.createElement("span"); who.className = "who"; who.textContent = e.you ? "You" : e.r.name + (e.r.boss ? " 👑" : "");
+      li.append(pos, img, who);
+      list.appendChild(li);
+    });
+  }
+
+  // ---------- Teacher-mode leaderboard (this computer only, clears daily) ----------
+  function loadBoard() {
+    let b = null;
+    try { b = JSON.parse(store("keyboardkart-board") || "null"); } catch (e) { b = null; }
+    if (!b || b.date !== today()) b = { date: today(), entries: [] };
+    return b;
+  }
+  function saveBoard(b) { store("keyboardkart-board", JSON.stringify(b)); }
+  function showBoard() {
+    const b = loadBoard();
+    const rows = b.entries
+      .filter(e => e.track === settings.track && e.level === settings.level)
+      .sort((a, c) => a.time - c.time)
+      .slice(0, 10);
+    $("boardSub").textContent = TRACKS[settings.track].name + " • " + LEVELS[settings.level].name + " • fastest times today";
+    const body = $("boardBody");
+    body.innerHTML = "";
+    if (!rows.length) {
+      const tr = document.createElement("tr"); const td = document.createElement("td");
+      td.colSpan = 5; td.textContent = "No races yet today. Be the first!"; tr.appendChild(td); body.appendChild(tr);
+    }
+    rows.forEach((e, i) => {
+      const tr = document.createElement("tr");
+      [String(i + 1), e.name, fmtTime(e.time), ordinal(e.place), String(e.wpm)].forEach((v, j) => {
+        const td = document.createElement("td"); td.textContent = v; if (j !== 1) td.className = "n"; tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    $("boardPanel").hidden = false;
+    $("boardClose").focus();
+  }
+  $("initials").addEventListener("input", e => { e.target.value = e.target.value.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3); });
+  $("initials").addEventListener("keydown", e => { if (e.key === "Enter") $("saveScore").click(); });
+  $("saveScore").addEventListener("click", () => {
+    const name = $("initials").value;
+    if (!S || S.saved || name.length === 0) { $("initials").focus(); return; }
+    const b = loadBoard();
+    b.entries.push({ name, time: S.time, place: S.finalPlace, wpm: wpm(), track: settings.track, level: settings.level });
+    saveBoard(b);
+    S.saved = true;
+    $("saveRow").hidden = true;
+    showBoard();
+  });
+  $("boardBtn").addEventListener("click", showBoard);
+  $("finishBoardBtn").addEventListener("click", showBoard);
+  $("boardClose").addEventListener("click", () => { $("boardPanel").hidden = true; });
+  $("boardClear").addEventListener("click", () => {
+    if (confirm("Clear today's leaderboard on this computer?")) { saveBoard({ date: today(), entries: [] }); showBoard(); }
+  });
+
+  // ---------- Drawing ----------
+  function project(p, camX, camY, camZ) {
+    p.camera.x = (p.world.x || 0) - camX;
+    p.camera.y = p.world.y - camY;
+    p.camera.z = p.world.z - camZ;
+    p.screen.scale = cameraDepth / p.camera.z;
+    p.screen.x = Math.round(W / 2 + p.screen.scale * p.camera.x * W / 2);
+    p.screen.y = Math.round(H / 2 - p.screen.scale * p.camera.y * H / 2);
+    p.screen.w = Math.round(p.screen.scale * roadWidth * W / 2);
+  }
+  function polygon(x1, y1, x2, y2, x3, y3, x4, y4, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.lineTo(x4, y4); ctx.closePath(); ctx.fill();
+  }
+  function drawSegment(x1, y1, w1, x2, y2, w2, color) {
+    const r1 = w1 / 6, r2 = w2 / 6, l1 = w1 / 32, l2 = w2 / 32;
+    ctx.fillStyle = color.grass; ctx.fillRect(0, y2, W, y1 - y2);
+    polygon(x1 - w1 - r1, y1, x1 - w1, y1, x2 - w2, y2, x2 - w2 - r2, y2, color.rumble);
+    polygon(x1 + w1 + r1, y1, x1 + w1, y1, x2 + w2, y2, x2 + w2 + r2, y2, color.rumble);
+    polygon(x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, color.road);
+    if (color.lane) {
+      const lw1 = w1 * 2 / lanes, lw2 = w2 * 2 / lanes;
+      let lx1 = x1 - w1 + lw1, lx2 = x2 - w2 + lw2;
+      for (let lane = 1; lane < lanes; lx1 += lw1, lx2 += lw2, lane++)
+        polygon(lx1 - l1 / 2, y1, lx1 + l1 / 2, y1, lx2 + l2 / 2, y2, lx2 - l2 / 2, y2, color.lane);
+    }
+  }
+
+  // Fixed "random" positions for stars and snowflakes, so they don't flicker
+  const STARS = Array.from({ length: 60 }, (_, i) => ({ x: (i * 157) % W, y: (i * 89) % (H * 0.45), r: 0.8 + (i % 3) * 0.5 }));
+  const FLAKES = Array.from({ length: 90 }, (_, i) => ({ x: (i * 211) % W, y: (i * 137) % H, v: 40 + (i % 5) * 18, r: 1.5 + (i % 3) }));
+
+  function drawBackground() {
+    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+    sky.addColorStop(0, theme.sky[0]); sky.addColorStop(1, theme.sky[1]);
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+    if (theme.stars) {
+      ctx.fillStyle = "#fff";
+      STARS.forEach(s => { ctx.globalAlpha = 0.5 + 0.5 * Math.sin(clock * 2 + s.x); ctx.beginPath(); ctx.arc(mod(s.x - skyOffset * W, W), s.y, s.r, 0, Math.PI * 2); ctx.fill(); });
+      ctx.globalAlpha = 1;
+      const mx = mod(W * 0.78 - skyOffset * W * 0.5, W);
+      ctx.fillStyle = "#fdf6d8"; ctx.beginPath(); ctx.arc(mx, 80, 30, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = theme.sky[0]; ctx.beginPath(); ctx.arc(mx + 12, 72, 26, 0, Math.PI * 2); ctx.fill();
+    }
+    if (theme.sun) {
+      const sx = mod(W * 0.3 - skyOffset * W * 0.5, W);
+      ctx.fillStyle = "rgba(255,240,180,.5)"; ctx.beginPath(); ctx.arc(sx, 150, 70, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff4c2"; ctx.beginPath(); ctx.arc(sx, 150, 44, 0, Math.PI * 2); ctx.fill();
+    }
+    if (theme.clouds) {
+      ctx.fillStyle = "rgba(255,255,255,.9)";
+      for (let i = 0; i < 6; i++) {
+        const x = mod(i * 190 - skyOffset * W, W + 200) - 100, y = 50 + (i % 3) * 34;
+        ctx.beginPath(); ctx.ellipse(x, y, 46, 16, 0, 0, Math.PI * 2); ctx.ellipse(x + 30, y - 10, 30, 16, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    const hills = (offset, base, amp, color, freq) => {
+      ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 6) {
+        let n = 0.6 + 0.4 * Math.sin((x + offset * W) * freq) * Math.sin((x + offset * W) * freq * 0.37 + 1);
+        if (theme.mesas) n = Math.round(n * 3) / 3;   // flat-topped canyon walls
+        ctx.lineTo(x, base - amp * n);
+      }
+      ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+    };
+    hills(hillOffset * 0.5, H * 0.52, 70, theme.hills[0], 0.012);
+    hills(hillOffset, H * 0.56, 46, theme.hills[1], 0.02);
+  }
+
+  // ----- Scenery drawings (x = center, y = ground, w = width in pixels) -----
+  function drawTree(x, y, w) {
+    const c = theme.trees;
+    ctx.fillStyle = c[0]; ctx.fillRect(x - w * 0.08, y - w * 0.55, w * 0.16, w * 0.55);
+    ctx.fillStyle = c[1]; ctx.beginPath(); ctx.ellipse(x, y - w * 0.95, w * 0.45, w * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = c[2]; ctx.beginPath(); ctx.ellipse(x - w * 0.12, y - w * 1.1, w * 0.28, w * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  function drawPine(x, y, w) {
+    const c = theme.trees;
+    ctx.fillStyle = c[0]; ctx.fillRect(x - w * 0.07, y - w * 0.3, w * 0.14, w * 0.3);
+    [0, 1, 2].forEach(i => {
+      const top = y - w * (0.75 + i * 0.4), half = w * (0.48 - i * 0.12);
+      ctx.fillStyle = c[1]; ctx.beginPath(); ctx.moveTo(x, top - w * 0.25); ctx.lineTo(x + half, top + w * 0.45); ctx.lineTo(x - half, top + w * 0.45); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.moveTo(x, top - w * 0.25); ctx.lineTo(x + half * 0.35, top - w * 0.05); ctx.lineTo(x - half * 0.35, top - w * 0.05); ctx.closePath(); ctx.fill();
+    });
+  }
+  function drawSnowman(x, y, w) {
+    ctx.fillStyle = "#ffffff";
+    [[0.32, 0.3], [0.24, 0.78], [0.17, 1.15]].forEach(([r, h]) => { ctx.beginPath(); ctx.arc(x, y - w * h, w * r, 0, Math.PI * 2); ctx.fill(); });
+    ctx.fillStyle = "#222"; ctx.fillRect(x - w * 0.14, y - w * 1.42, w * 0.28, w * 0.14); ctx.fillRect(x - w * 0.2, y - w * 1.3, w * 0.4, w * 0.04);
+    ctx.fillStyle = "#f28c28"; ctx.beginPath(); ctx.moveTo(x, y - w * 1.15); ctx.lineTo(x + w * 0.16, y - w * 1.12); ctx.lineTo(x, y - w * 1.09); ctx.fill();
+    ctx.fillStyle = "#d8432f"; ctx.fillRect(x - w * 0.18, y - w * 1.0, w * 0.36, w * 0.06);
+  }
+  function drawCactus(x, y, w) {
+    ctx.fillStyle = "#3f8f4a";
+    const rr = (a, b, c, d) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(a, b, c, d, w * 0.08); else ctx.rect(a, b, c, d); ctx.fill(); };
+    rr(x - w * 0.12, y - w * 1.2, w * 0.24, w * 1.2);
+    rr(x - w * 0.45, y - w * 0.85, w * 0.16, w * 0.45); rr(x - w * 0.45, y - w * 0.52, w * 0.4, w * 0.14);
+    rr(x + w * 0.29, y - w * 1.0, w * 0.16, w * 0.4); rr(x + w * 0.05, y - w * 0.72, w * 0.4, w * 0.14);
+  }
+  function drawRock(x, y, w) {
+    ctx.fillStyle = "#a0714f"; ctx.beginPath();
+    ctx.moveTo(x - w * 0.5, y); ctx.lineTo(x - w * 0.38, y - w * 0.4); ctx.lineTo(x - w * 0.05, y - w * 0.55); ctx.lineTo(x + w * 0.35, y - w * 0.38); ctx.lineTo(x + w * 0.5, y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.15)"; ctx.beginPath(); ctx.moveTo(x - w * 0.38, y - w * 0.4); ctx.lineTo(x - w * 0.05, y - w * 0.55); ctx.lineTo(x - w * 0.1, y - w * 0.3); ctx.closePath(); ctx.fill();
+  }
+  function drawBush(x, y, w) {
+    ctx.fillStyle = theme.trees[2];
+    ctx.beginPath(); ctx.ellipse(x - w * 0.2, y - w * 0.2, w * 0.3, w * 0.22, 0, 0, Math.PI * 2); ctx.ellipse(x + w * 0.18, y - w * 0.22, w * 0.32, w * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  function drawLamp(x, y, w) {
+    ctx.fillStyle = "#2b2f33"; ctx.fillRect(x - w * 0.04, y - w * 1.6, w * 0.08, w * 1.6); ctx.fillRect(x - w * 0.2, y - w * 1.62, w * 0.4, w * 0.07);
+    const g = ctx.createRadialGradient(x, y - w * 1.5, 0, x, y - w * 1.5, w * 0.7);
+    g.addColorStop(0, "rgba(255,236,150,.9)"); g.addColorStop(1, "rgba(255,236,150,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - w * 1.5, w * 0.7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#fff6c8"; ctx.beginPath(); ctx.arc(x, y - w * 1.52, w * 0.1, 0, Math.PI * 2); ctx.fill();
+  }
+  function drawSign(x, y, w) {
+    ctx.fillStyle = "#5e3d22"; ctx.fillRect(x - w * 0.4, y - w * 0.55, w * 0.06, w * 0.55); ctx.fillRect(x + w * 0.34, y - w * 0.55, w * 0.06, w * 0.55);
+    ctx.fillStyle = "#2e7d4a"; ctx.fillRect(x - w * 0.5, y - w * 0.9, w, w * 0.4);
+    ctx.fillStyle = "#f7d659"; ctx.font = "700 " + Math.max(6, w * (theme.sign.length > 12 ? 0.09 : 0.14)) + "px Fredoka"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(theme.sign, x, y - w * 0.7);
+  }
+  function drawGantry(x, y, w) {
+    ctx.fillStyle = "#e9ecef"; ctx.fillRect(x - w / 2, y - w * 0.42, w * 0.03, w * 0.42); ctx.fillRect(x + w / 2 - w * 0.03, y - w * 0.42, w * 0.03, w * 0.42);
+    ctx.fillStyle = "#2e7d4a"; ctx.fillRect(x - w / 2, y - w * 0.5, w, w * 0.1);
+    ctx.fillStyle = "#f7d659"; ctx.font = "700 " + Math.max(6, w * 0.06) + "px Fredoka"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("KEYBOARD KART GP", x, y - w * 0.45);
+  }
+  function drawItemBox(x, y, w) {
+    const bob = Math.sin(clock * 4 + x) * w * 0.08, s = w;
+    ctx.save(); ctx.translate(x, y - s * 0.75 + bob); ctx.rotate(Math.sin(clock * 2) * 0.15);
+    const g = ctx.createLinearGradient(-s / 2, -s / 2, s / 2, s / 2); g.addColorStop(0, "#ffe680"); g.addColorStop(1, "#f28c28");
+    ctx.fillStyle = g; ctx.globalAlpha = 0.92; ctx.fillRect(-s / 2, -s / 2, s, s); ctx.globalAlpha = 1;
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = Math.max(1, s * 0.06); ctx.strokeRect(-s / 2, -s / 2, s, s);
+    ctx.fillStyle = "#fff"; ctx.font = "700 " + Math.max(6, s * 0.7) + "px Fredoka"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("?", 0, s * 0.04);
+    ctx.restore();
+  }
+  function drawOil(x, y, w) {
+    ctx.fillStyle = "#1d1d24"; ctx.beginPath(); ctx.ellipse(x, y - w * 0.05, w / 2, w * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(160,120,255,.6)"; ctx.lineWidth = Math.max(1, w * 0.02);
+    ctx.beginPath(); ctx.ellipse(x - w * 0.1, y - w * 0.06, w * 0.18, w * 0.04, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  function drawBanana(x, y, w) {
+    ctx.strokeStyle = "#f7d659"; ctx.lineWidth = Math.max(2, w * 0.22); ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(x, y - w * 0.55, w * 0.4, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+    ctx.strokeStyle = "#7a4b25"; ctx.lineWidth = Math.max(1, w * 0.08);
+    ctx.beginPath(); ctx.moveTo(x - w * 0.34, y - w * 0.36); ctx.lineTo(x - w * 0.42, y - w * 0.3); ctx.stroke();
+    ctx.lineCap = "butt";
+  }
+  const SPRITES = {
+    tree: [drawTree, 1100], pine: [drawPine, 1000], bush: [drawBush, 800], snowman: [drawSnowman, 650],
+    cactus: [drawCactus, 700], rock: [drawRock, 900], lamp: [drawLamp, 700], sign: [drawSign, 1000],
+    gantry: [drawGantry, roadWidth * 2.5], box: [drawItemBox, 330], oil: [drawOil, 900], banana: [drawBanana, 300]
+  };
+
+  // ----- Mii-style heads. g = canvas to draw on, (x, y) = center of the head, s = head size -----
+  function drawMii(g, x, y, s, m, view) {
+    const r = s / 2, hc = m.hairColor;
+    const ell = (ex, ey, rx, ry, color, rot) => { g.fillStyle = color; g.beginPath(); g.ellipse(ex, ey, rx, ry, rot || 0, 0, Math.PI * 2); g.fill(); };
+    const topHalf = (ey, rx, ry, color) => { g.fillStyle = color; g.beginPath(); g.ellipse(0, ey, rx, ry, 0, Math.PI, 0); g.fill(); };
+    const box = (bx, by, bw, bh, color, rad) => { g.fillStyle = color; g.beginPath(); if (g.roundRect) g.roundRect(bx, by, bw, bh, rad || 0); else g.rect(bx, by, bw, bh); g.fill(); };
+    const spikes = color => { g.fillStyle = color; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(i * r * 0.36 - r * 0.2, -r * 0.7); g.lineTo(i * r * 0.36, -r * 1.22 + Math.abs(i) * r * 0.12); g.lineTo(i * r * 0.36 + r * 0.2, -r * 0.7); g.fill(); } };
+    const curls = color => { for (let i = -3; i <= 3; i++) ell(i * r * 0.27, -r * 0.82 + Math.abs(i) * r * 0.1, r * 0.22, r * 0.22, color); };
+    const hat = () => {
+      if (m.hat === "cap") { topHalf(-r * 0.42, r * 0.95, r * 0.62, m.hatColor); if (view === "front") ell(0, -r * 0.4, r * 1.0, r * 0.15, m.hatColor); }
+      if (m.hat === "beanie") { topHalf(-r * 0.32, r * 0.95, r * 0.85, m.hatColor); box(-r * 0.97, -r * 0.46, r * 1.94, r * 0.24, "rgba(255,255,255,.35)", r * 0.1); ell(0, -r * 1.18, r * 0.2, r * 0.2, "#fff"); }
+      if (m.hat === "headband") box(-r * 0.92, -r * 0.45, r * 1.84, r * 0.17, m.hatColor, r * 0.05);
+    };
+    g.save(); g.translate(x, y);
+    if (view === "front") {
+      // hair behind the head
+      if (m.hair === "long") box(-r, -r * 0.6, r * 2, r * 1.75, hc, r * 0.5);
+      if (m.hair === "bob") ell(0, 0, r * 1.08, r * 0.95, hc);
+      if (m.hair === "bun") ell(0, -r * 1.0, r * 0.38, r * 0.38, hc);
+      if (m.hair === "ponytail") ell(r * 0.95, r * 0.15, r * 0.28, r * 0.55, hc, 0.3);
+      ell(-r * 0.88, r * 0.08, r * 0.18, r * 0.2, m.skin); ell(r * 0.88, r * 0.08, r * 0.18, r * 0.2, m.skin);
+      ell(0, 0, r * 0.88, r * 0.98, m.skin);
+      // hair on top
+      if (m.hair === "mohawk") box(-r * 0.15, -r * 1.2, r * 0.3, r * 0.75, hc, r * 0.12);
+      else if (m.hair !== "bald") {
+        topHalf(-r * 0.22, r * 0.92, r * 0.78, hc);
+        if (m.hair === "spiky") spikes(hc);
+        if (m.hair === "curly") curls(hc);
+        if (m.hair === "bob" || m.hair === "long") { box(-r * 0.95, -r * 0.3, r * 0.26, r * 0.8, hc, r * 0.1); box(r * 0.69, -r * 0.3, r * 0.26, r * 0.8, hc, r * 0.1); }
+      }
+      hat();
+      // face
+      if (m.brows) { g.strokeStyle = hc === "#e8d28a" ? "#b08a3a" : hc; g.lineWidth = r * 0.08; g.lineCap = "round"; [-1, 1].forEach(sd => { g.beginPath(); g.moveTo(sd * r * 0.18, -r * 0.13); g.lineTo(sd * r * 0.46, -r * 0.17); g.stroke(); }); }
+      [-1, 1].forEach(sd => {
+        const ex = sd * r * 0.32, ey = r * 0.07;
+        if (m.eyes === "dots") { ell(ex, ey, r * 0.09, r * 0.13, "#1d1d1d"); ell(ex + r * 0.03, ey - r * 0.04, r * 0.03, r * 0.03, "#fff"); }
+        if (m.eyes === "ovals") { ell(ex, ey, r * 0.16, r * 0.18, "#fff"); ell(ex, ey + r * 0.02, r * 0.09, r * 0.1, "#1d1d1d"); }
+        if (m.eyes === "happy") { g.strokeStyle = "#1d1d1d"; g.lineWidth = r * 0.07; g.lineCap = "round"; g.beginPath(); g.arc(ex, ey + r * 0.05, r * 0.11, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+        if (m.eyes === "sleepy") { g.fillStyle = "#1d1d1d"; g.beginPath(); g.arc(ex, ey, r * 0.11, 0, Math.PI); g.fill(); }
+      });
+      ell(0, r * 0.3, r * 0.09, r * 0.06, "rgba(0,0,0,.16)");
+      if (m.blush) { ell(-r * 0.52, r * 0.38, r * 0.13, r * 0.08, "rgba(240,110,120,.35)"); ell(r * 0.52, r * 0.38, r * 0.13, r * 0.08, "rgba(240,110,120,.35)"); }
+      if (m.mustache) { ell(-r * 0.14, r * 0.44, r * 0.17, r * 0.07, hc); ell(r * 0.14, r * 0.44, r * 0.17, r * 0.07, hc); }
+      g.strokeStyle = "#5a2a2a"; g.fillStyle = "#5a1f1f"; g.lineWidth = r * 0.07; g.lineCap = "round";
+      if (m.mouth === "smile") { g.beginPath(); g.arc(0, r * 0.42, r * 0.2, Math.PI * 0.15, Math.PI * 0.85); g.stroke(); }
+      if (m.mouth === "grin") { g.beginPath(); g.ellipse(0, r * 0.52, r * 0.22, r * 0.16, 0, 0, Math.PI); g.fill(); }
+      if (m.mouth === "flat") { g.beginPath(); g.moveTo(-r * 0.15, r * 0.6); g.lineTo(r * 0.15, r * 0.6); g.stroke(); }
+      if (m.mouth === "o") ell(0, r * 0.6, r * 0.08, r * 0.1, "#5a1f1f");
+      if (m.glasses) { g.strokeStyle = "#222"; g.lineWidth = r * 0.06; [-1, 1].forEach(sd => { g.beginPath(); g.arc(sd * r * 0.32, r * 0.07, r * 0.19, 0, Math.PI * 2); g.stroke(); }); g.beginPath(); g.moveTo(-r * 0.13, r * 0.05); g.lineTo(r * 0.13, r * 0.05); g.stroke(); }
+    } else {
+      // seen from behind: mostly hair
+      if (m.hair === "long") box(-r * 0.95, -r * 0.6, r * 1.9, r * 1.8, hc, r * 0.5);
+      if (m.hair === "bun") ell(0, -r * 1.0, r * 0.38, r * 0.38, hc);
+      ell(-r * 0.88, r * 0.08, r * 0.16, r * 0.18, m.skin); ell(r * 0.88, r * 0.08, r * 0.16, r * 0.18, m.skin);
+      ell(0, 0, r * 0.88, r * 0.98, m.skin);
+      if (m.hair === "mohawk") box(-r * 0.15, -r * 1.2, r * 1.6 * 0.19, r * 1.9, hc, r * 0.12);
+      else if (m.hair !== "bald") {
+        ell(0, -r * 0.12, r * 0.93, r * (m.hair === "bob" ? 1.0 : 0.9), hc);
+        if (m.hair === "spiky") spikes(hc);
+        if (m.hair === "curly") curls(hc);
+        if (m.hair === "ponytail") ell(0, r * 0.8, r * 0.24, r * 0.5, hc);
+      }
+      hat();
+    }
+    g.restore();
+  }
+  // Mr. Watford's real cartoon face with a gold crown
+  function drawBossHead(g, x, y, s) {
+    const r = s / 2;
+    g.save();
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fillStyle = "#f8eed6"; g.fill();
+    if (face.complete && face.naturalWidth) { g.save(); g.clip(); g.drawImage(face, x - r * 1.05, y - r * 1.22, r * 2.1, r * 2.7); g.restore(); }
+    g.strokeStyle = "#f5c431"; g.lineWidth = Math.max(2, r * 0.12); g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = "#f5c431"; g.beginPath();
+    g.moveTo(x - r * 0.7, y - r * 0.85); g.lineTo(x - r * 0.75, y - r * 1.5); g.lineTo(x - r * 0.35, y - r * 1.15); g.lineTo(x, y - r * 1.65);
+    g.lineTo(x + r * 0.35, y - r * 1.15); g.lineTo(x + r * 0.75, y - r * 1.5); g.lineTo(x + r * 0.7, y - r * 0.85); g.closePath(); g.fill();
+    g.fillStyle = "#d8432f"; g.beginPath(); g.arc(x, y - r * 1.05, r * 0.12, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }
+
+  function roundRect(x, y, w, h, r, color) {
+    ctx.fillStyle = color; ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+    ctx.fill();
+  }
+  function drawKart(cx, by, w, k, opts) {
+    opts = opts || {};
+    const h = w * 0.62;
+    ctx.save(); ctx.translate(cx, by - (opts.lift || 0));
+    if (opts.spin) ctx.rotate(opts.spin);
+    if (opts.lean) ctx.rotate(opts.lean);
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(0, (opts.lift || 0) - h * 0.02, w * 0.55, h * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+    if (opts.turbo) {
+      ctx.fillStyle = Math.random() < 0.5 ? "#ffb347" : "#f7d659";
+      [-0.2, 0.2].forEach(s => { ctx.beginPath(); ctx.moveTo(w * s - w * 0.06, -h * 0.18); ctx.lineTo(w * s + w * 0.06, -h * 0.18); ctx.lineTo(w * s, h * (0.15 + Math.random() * 0.2)); ctx.closePath(); ctx.fill(); });
+    }
+    roundRect(-w * 0.5, -h * 0.45, w * 0.22, h * 0.45, w * 0.05, "#222");
+    roundRect(w * 0.28, -h * 0.45, w * 0.22, h * 0.45, w * 0.05, "#222");
+    roundRect(-w * 0.36, -h * 0.58, w * 0.72, h * 0.44, w * 0.08, k.body);
+    roundRect(-w * 0.44, -h * 0.78, w * 0.88, h * 0.09, w * 0.03, "#2b2f33");
+    roundRect(-w * 0.3, -h * 0.72, w * 0.05, h * 0.16, 2, "#2b2f33");
+    roundRect(w * 0.25, -h * 0.72, w * 0.05, h * 0.16, 2, "#2b2f33");
+    // The driver: your racer from behind, rivals glancing back, Mr. Watford with his crown
+    if (k.boss) drawBossHead(ctx, 0, -h * 0.95, w * 0.36);
+    else if (k.mii) drawMii(ctx, 0, -h * 0.92, w * 0.34, k.mii, opts.back ? "back" : "front");
+    roundRect(-w * 0.12, -h * 0.34, w * 0.24, h * 0.12, 3, "#f7d659");
+    if (k.boss) { ctx.fillStyle = "#1d1d1d"; ctx.font = "700 " + Math.max(6, h * 0.11) + "px Fredoka"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("W", 0, -h * 0.28); ctx.strokeStyle = "#f5c431"; ctx.lineWidth = Math.max(1, w * 0.02); ctx.strokeRect(-w * 0.36, -h * 0.58, w * 0.72, h * 0.44); }
+    if (theme.headlights) { ctx.fillStyle = "#ff3b3b"; ctx.fillRect(-w * 0.34, -h * 0.5, w * 0.08, h * 0.06); ctx.fillRect(w * 0.26, -h * 0.5, w * 0.08, h * 0.06); }
+    if (opts.frozen) { ctx.fillStyle = "rgba(170,220,255,.55)"; ctx.fillRect(-w * 0.52, -h * 1.0, w * 1.04, h); }
+    if (opts.magnet) {
+      ctx.strokeStyle = "rgba(255,120,190,.85)"; ctx.lineWidth = 3;
+      for (let i = 0; i < 3; i++) { const r = w * (0.4 + ((clock * 1.5 + i / 3) % 1) * 0.5); ctx.globalAlpha = 1 - ((clock * 1.5 + i / 3) % 1); ctx.beginPath(); ctx.arc(0, -h * 0.5, r, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+    }
+    if (opts.shield) {
+      ctx.strokeStyle = "rgba(120,200,255,.9)"; ctx.fillStyle = "rgba(120,200,255,.15)"; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.ellipse(0, -h * 0.5, w * 0.68, h * 0.75, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
+    if (opts.name && w > 70) {
+      ctx.font = "700 " + Math.min(18, w * 0.13) + "px Nunito Sans"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      ctx.fillStyle = k.boss ? "rgba(120,90,0,.8)" : "rgba(0,0,0,.55)"; const tw = ctx.measureText(opts.name).width + 12;
+      const ty = by - w * (k.boss ? 1.12 : 0.98);
+      ctx.fillRect(cx - tw / 2, ty - 18, tw, 20);
+      ctx.fillStyle = k.boss ? "#f5c431" : "#fff"; ctx.fillText(opts.name, cx, ty);
+    }
+  }
+
+  function render() {
+    const camPos = mod((S ? S.dist : clock * maxSpeed * 0.25) - playerZ, trackLength);
+    const base = findSegment(camPos);
+    const basePercent = (camPos % segmentLength) / segmentLength;
+    const playerPos = mod(camPos + playerZ, trackLength);
+    const playerSeg = findSegment(playerPos);
+    const playerPercent = (playerPos % segmentLength) / segmentLength;
+    const playerY = interpolate(playerSeg.p1.world.y, playerSeg.p2.world.y, playerPercent);
+
+    drawBackground();
+
+    // Road, from near to far
+    let maxy = H, x = 0, dx = -(base.curve * basePercent);
+    const N = segments.length;
+    for (let n = 0; n < drawDistance; n++) {
+      const seg = segments[(base.index + n) % N];
+      seg.looped = seg.index < base.index;
+      seg.clip = maxy;
+      const camZ = camPos - (seg.looped ? trackLength : 0);
+      project(seg.p1, -x, playerY + cameraHeight, camZ);
+      project(seg.p2, -x - dx, playerY + cameraHeight, camZ);
+      x += dx; dx += seg.curve;
+      if (seg.p1.camera.z <= cameraDepth || seg.p2.screen.y >= seg.p1.screen.y || seg.p2.screen.y >= maxy) continue;
+      drawSegment(seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w, seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w, seg.color);
+      maxy = seg.p1.screen.y;
+    }
+
+    // Things on the road, from far to near
+    const extras = {};
+    const lapNow = S ? Math.floor(S.dist / trackLength) + 1 : 0;
+    const addExtra = (segIndex, obj) => { (extras[segIndex] = extras[segIndex] || []).push(obj); };
+    itemBoxes.forEach(b => { if (b.lap !== lapNow) addExtra(b.seg, { type: "box", offset: b.offset, percent: 0 }); });
+    oils.forEach(o => { if (o.lap !== lapNow) addExtra(o.seg, { type: "oil", offset: 0, percent: 0 }); });
+    if (S) {
+      S.bananas.forEach(b => { const bp = mod(b.dist, trackLength); addExtra(findSegment(bp).index, { type: "banana", offset: 0, percent: (bp % segmentLength) / segmentLength }); });
+      S.rivals.forEach(r => {
+        const rp = mod(r.dist, trackLength), seg = findSegment(rp);
+        addExtra(seg.index, { type: "kart", rival: r, offset: r.offset, percent: (rp % segmentLength) / segmentLength });
+      });
+    }
+
+    for (let n = drawDistance - 1; n > 0; n--) {
+      const seg = segments[(base.index + n) % N];
+      if (seg.p1.camera.z <= cameraDepth) continue;
+      const list = seg.sprites.map(s => ({ ...s, percent: 0 })).concat(extras[seg.index] || []);
+      list.forEach(s => {
+        const scale = interpolate(seg.p1.screen.scale, seg.p2.screen.scale, s.percent);
+        const sx = interpolate(seg.p1.screen.x, seg.p2.screen.x, s.percent) + scale * s.offset * roadWidth * W / 2;
+        const sy = interpolate(seg.p1.screen.y, seg.p2.screen.y, s.percent);
+        const sw = scale * (s.type === "kart" ? KART_W : SPRITES[s.type][1]) * W / 2;
+        if (sw < 1 || sw > W * 3) return;
+        ctx.save();
+        if (seg.clip < sy) { ctx.beginPath(); ctx.rect(0, 0, W, seg.clip); ctx.clip(); }
+        if (s.type === "kart") drawKart(sx, sy, sw, s.rival, { name: s.rival.boss ? "👑 Mr. Watford" : s.rival.name, frozen: S && S.freeze > 0 && !s.rival.boss, turbo: s.rival.turbo > 0, spin: s.rival.spin > 0 ? s.rival.spin * 8 : 0 });
+        else SPRITES[s.type][0](sx, sy, sw);
+        ctx.restore();
+      });
+    }
+
+    // Headlights on the night track
+    if (theme.headlights) {
+      ctx.save(); ctx.globalCompositeOperation = "lighter";
+      const g = ctx.createRadialGradient(W / 2, H * 0.72, 10, W / 2, H * 0.72, 300);
+      g.addColorStop(0, "rgba(255,236,170,.22)"); g.addColorStop(1, "rgba(255,236,170,0)");
+      ctx.fillStyle = g; ctx.fillRect(0, H * 0.4, W, H * 0.6); ctx.restore();
+    }
+
+    // Your kart
+    if (S) {
+      const speedPct = S.speed / maxSpeed;
+      const lean = -playerSeg.curve * speedPct * 0.03;
+      const bounce = speedPct > 0.05 ? Math.sin(clock * 30) * 1.2 : 0;
+      const lift = S.hop > 0 ? Math.sin((1 - S.hop / 0.55) * Math.PI) * 60 : 0;
+      const spin = S.spin > 0 ? (1 - S.spin / 1.1) * Math.PI * 4 : 0;
+      drawKart(W / 2 - playerSeg.curve * speedPct * 14, H - 6 + bounce, W * 0.2,
+        { ...KART_COLORS[settings.kart], mii: settings.mii }, { lean, lift, spin, back: true, turbo: S.turbo > 0, shield: S.shield, magnet: S.magnet > 0 });
+      if (S.turbo > 0 || S.magnet > 0) {   // speed lines
+        ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 3;
+        for (let i = 0; i < 10; i++) { const a = Math.random() * Math.PI * 2, r1 = 180 + Math.random() * 60; ctx.beginPath(); ctx.moveTo(W / 2 + Math.cos(a) * r1, H * 0.55 + Math.sin(a) * r1 * 0.6); ctx.lineTo(W / 2 + Math.cos(a) * (r1 + 90), H * 0.55 + Math.sin(a) * (r1 + 90) * 0.6); ctx.stroke(); }
+      }
+    }
+
+    // Falling snow
+    if (theme.snow) {
+      ctx.fillStyle = "rgba(255,255,255,.85)";
+      const drift = S ? S.speed / maxSpeed : 0.25;
+      FLAKES.forEach(f => {
+        const y = mod(f.y + clock * (f.v + drift * 120), H), x = mod(f.x + Math.sin(clock + f.x) * 12 - skyOffset * W * 2, W);
+        ctx.beginPath(); ctx.arc(x, y, f.r, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+    drawHud();
+  }
+
+  function hudBox(x, y, w, h) { ctx.fillStyle = "rgba(19,36,27,.78)"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, 12); else ctx.rect(x, y, w, h); ctx.fill(); }
+
+  // Mini-map: an oval with a dot for every racer
+  function drawMiniMap() {
+    const cx = W - 79, cy = 146, rx = 58, ry = 34;
+    hudBox(W - 144, 98, 130, 96);
+    ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy - ry - 6); ctx.lineTo(cx, cy - ry + 6); ctx.stroke();
+    const dot = (dist, color, big) => {
+      const a = -Math.PI / 2 + (mod(dist, trackLength) / trackLength) * Math.PI * 2;
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry, big ? 7 : 5, 0, Math.PI * 2); ctx.fill();
+      if (big) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); }
+    };
+    S.rivals.forEach(r => dot(r.dist, r.boss ? "#f5c431" : r.body, false));
+    dot(S.dist, KART_COLORS[settings.kart].body, true);
+  }
+
+  // Live standings down the left side, with each racer's face
+  function drawStandings() {
+    const order = raceOrder(), rowH = 30, top = 98;
+    hudBox(14, top, 170, order.length * rowH + 10);
+    order.forEach((e, i) => {
+      const y = top + 5 + i * rowH;
+      if (e.you) { ctx.fillStyle = "rgba(147,230,184,.22)"; ctx.fillRect(18, y, 162, rowH - 2); }
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#f7d659"; ctx.font = "600 15px Fredoka"; ctx.fillText(String(i + 1), 24, y + rowH / 2);
+      ctx.fillStyle = "#f8eed6"; ctx.beginPath(); ctx.arc(52, y + rowH / 2, 12, 0, Math.PI * 2); ctx.fill();
+      if (e.you) drawMii(ctx, 52, y + rowH / 2 + 1, 21, settings.mii, "front");
+      else if (e.r.boss) drawBossHead(ctx, 52, y + rowH / 2 + 2, 20);
+      else drawMii(ctx, 52, y + rowH / 2 + 1, 21, e.r.mii, "front");
+      ctx.fillStyle = e.you ? "#93e6b8" : e.r && e.r.boss ? "#f5c431" : "#fff";
+      ctx.font = "700 13px Nunito Sans";
+      ctx.fillText(e.you ? "You" : e.r.name, 70, y + rowH / 2);
+    });
+    ctx.textBaseline = "alphabetic";
+  }
+
+  function drawHud() {
+    if (!S) { drawAnnouncer(); return; }
+    ctx.textBaseline = "alphabetic";
+    // Lap + time
+    hudBox(14, 14, 170, 74);
+    ctx.fillStyle = "#a8bfb0"; ctx.font = "800 13px Nunito Sans"; ctx.textAlign = "left"; ctx.fillText("LAP", 28, 36);
+    ctx.fillStyle = "#fff"; ctx.font = "600 30px Fredoka"; ctx.fillText(Math.min(S.lap, LAPS) + "/" + LAPS, 28, 68);
+    ctx.fillStyle = "#f7d659"; ctx.font = "600 18px Fredoka"; ctx.fillText(fmtTime(S.time), 98, 66);
+    // Place
+    const p = S.mode === "over" ? S.finalPlace : place();
+    hudBox(W - 144, 14, 130, 74);
+    ctx.textAlign = "center"; ctx.fillStyle = "#a8bfb0"; ctx.font = "800 13px Nunito Sans"; ctx.fillText("PLACE", W - 79, 36);
+    ctx.fillStyle = p === 1 ? "#f7d659" : "#fff"; ctx.font = "600 34px Fredoka"; ctx.fillText(ordinal(p), W - 92, 72);
+    ctx.fillStyle = "#a8bfb0"; ctx.font = "600 16px Fredoka"; ctx.fillText("/" + racerCount(), W - 40, 72);
+    drawMiniMap();
+    drawStandings();
+    // Item slot
+    hudBox(W / 2 - 38, 12, 76, 76);
+    ctx.strokeStyle = S.item ? "#f7d659" : "rgba(255,255,255,.3)"; ctx.lineWidth = 3; ctx.strokeRect(W / 2 - 28, 22, 56, 56);
+    ctx.font = S.item ? "36px sans-serif" : "600 28px Fredoka"; ctx.fillStyle = S.item ? "#fff" : "rgba(255,255,255,.35)"; ctx.textBaseline = "middle";
+    ctx.fillText(S.item ? S.item.icon : "?", W / 2, 51);
+    ctx.textBaseline = "alphabetic";
+    // Speed bar + streak
+    const pct = Math.min(1.35, S.speed / maxSpeed) / 1.35;
+    hudBox(14, H - 54, 300, 40);
+    ctx.fillStyle = "rgba(255,255,255,.15)"; ctx.fillRect(28, H - 40, 110, 12);
+    ctx.fillStyle = S.turbo > 0 ? "#ffb347" : S.magnet > 0 ? "#ff9ec7" : "#93e6b8"; ctx.fillRect(28, H - 40, 110 * pct, 12);
+    ctx.fillStyle = "#fff"; ctx.font = "600 18px Fredoka"; ctx.textAlign = "left"; ctx.fillText(Math.round(S.speed / maxSpeed * 100) + " mph", 146, H - 27);
+    ctx.fillStyle = S.streak > 0 ? "#ffb347" : "rgba(255,255,255,.4)"; ctx.font = "600 17px Fredoka"; ctx.fillText("🔥 " + S.streak + "/" + STREAK, 228, H - 27);
+    if (S.shield) { ctx.font = "22px sans-serif"; ctx.fillText("🛡️", 324, H - 26); }
+    // Toasts
+    S.toasts = S.toasts.filter(t => t.until > clock);
+    const toastTop = announcer.until > clock ? 182 : 104;   // sit below Mr. Watford's caption when he's talking
+    S.toasts.forEach((t, i) => {
+      ctx.font = "600 26px Fredoka"; ctx.textAlign = "center";
+      const tw = ctx.measureText(t.text).width + 28;
+      ctx.globalAlpha = Math.min(1, (t.until - clock) * 2);
+      hudBox(W / 2 - tw / 2, toastTop + i * 46, tw, 40);
+      ctx.fillStyle = t.color; ctx.fillText(t.text, W / 2, toastTop + 29 + i * 46);
+      ctx.globalAlpha = 1;
+    });
+    // Countdown
+    if (S.mode === "countdown") {
+      const n = Math.ceil(S.countdown - 0.5);
+      const label = n > 0 ? String(Math.min(3, n)) : "GO!";
+      ctx.font = "700 140px Fredoka"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.lineWidth = 10; ctx.strokeStyle = "#13241b"; ctx.strokeText(label, W / 2, H * 0.5);
+      ctx.fillStyle = label === "GO!" ? "#93e6b8" : "#f7d659"; ctx.fillText(label, W / 2, H * 0.5);
+      ctx.textBaseline = "alphabetic";
+    }
+    drawAnnouncer();
+  }
+
+  // Mr. Watford's caption bar, like in his videos
+  function drawAnnouncer() {
+    if (!announcer.text || announcer.until < clock) return;
+    ctx.font = "700 20px Nunito Sans"; ctx.textAlign = "left";
+    const tw = ctx.measureText(announcer.text).width;
+    const bw = tw + 110, bx = W / 2 - bw / 2, by = 112;
+    ctx.globalAlpha = Math.min(1, (announcer.until - clock) * 2);
+    ctx.fillStyle = "rgba(34,36,38,.9)"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw, 56, 12); else ctx.rect(bx, by, bw, 56); ctx.fill();
+    ctx.fillStyle = "#2f6fc4"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx + 76, by - 11, 112, 20, 10); else ctx.rect(bx + 76, by - 11, 112, 20); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "800 11px Nunito Sans"; ctx.fillText("MR. WATFORD", bx + 90, by + 4);
+    ctx.font = "700 20px Nunito Sans"; ctx.fillText(announcer.text, bx + 84, by + 36);
+    if (face.complete && face.naturalWidth) {
+      ctx.save(); ctx.beginPath(); ctx.arc(bx + 38, by + 26, 32, 0, Math.PI * 2); ctx.fillStyle = "#f8eed6"; ctx.fill(); ctx.clip();
+      ctx.drawImage(face, bx + 6, by - 10, 64, 82); ctx.restore();
+      ctx.strokeStyle = "#f7d659"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(bx + 38, by + 26, 32, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ---------- Main loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const paused = S && S.mode === "paused";
+    if (!paused) {
+      update(dt);
+      const seg = findSegment(mod((S ? S.dist : clock * maxSpeed * 0.25), trackLength));
+      const speedPct = S ? S.speed / maxSpeed : 0.25;
+      skyOffset = mod(skyOffset + seg.curve * speedPct * dt * 0.02, 1);
+      hillOffset = mod(hillOffset + seg.curve * speedPct * dt * 0.04, 1);
+    }
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Menus ----------
+  function syncChoices() {
+    document.querySelectorAll('[data-group="level"] .choice').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === settings.level)));
+    document.querySelectorAll('[data-group="track"] .choice').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === settings.track)));
+    document.querySelectorAll('[data-group="kart"] .swatch').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === settings.kart)));
+    $("teacherToggle").checked = settings.teacher;
+    $("boardBtn").hidden = !settings.teacher;
+    const beaten = parseInt(store("keyboardkart-bossbeaten") || "0", 10) || 0;
+    $("bossNote").hidden = beaten === 0;
+    $("bossNote").textContent = "👑 Mr. Watford has been beaten " + beaten + (beaten === 1 ? " time" : " times") + " on this computer!";
+    drawPreview();
+    renderStats();
+  }
+  function drawPreview() {
+    const c = $("miiPreview"), g = c.getContext("2d");
+    g.clearRect(0, 0, c.width, c.height);
+    drawMii(g, 64, 72, 92, settings.mii, "front");
+  }
+  $("newLook").addEventListener("click", () => {
+    settings.mii = randomMii();
+    store("keyboardkart-mii", JSON.stringify(settings.mii));
+    drawPreview();
+  });
+  document.querySelectorAll("[data-group] [data-value]").forEach(b => b.addEventListener("click", () => {
+    const group = b.closest("[data-group]").dataset.group;
+    settings[group] = b.dataset.value;
+    store("keyboardkart-" + group, b.dataset.value);
+    if (group === "track") buildTrack();   // preview the new track behind the menu
+    syncChoices();
+  }));
+  $("teacherToggle").addEventListener("change", e => {
+    settings.teacher = e.target.checked;
+    store("keyboardkart-teacher", settings.teacher ? "1" : "0");
+    syncChoices();
+  });
+  function updateSoundBtn() { $("soundBtn").textContent = Sound.on ? "🔊 Sound on" : "🔇 Sound off"; $("soundBtn").setAttribute("aria-pressed", String(Sound.on)); }
+  $("soundBtn").addEventListener("click", () => {
+    Sound.on = !Sound.on;
+    store("keyboardkart-sound", Sound.on ? "1" : "0");
+    if (!Sound.on) Sound.engineStop();
+    else { Sound.init(); if (S && S.mode === "race") Sound.engineStart(); Sound.word(); }
+    updateSoundBtn();
+    if (S && S.mode === "race") kb.focus();
+  });
+
+  function pause() {
+    if (!S || (S.mode !== "race" && S.mode !== "countdown")) return;
+    S.resumeMode = S.mode; S.mode = "paused";
+    Sound.engineStop();
+    $("pausePanel").hidden = false; $("resumeBtn").focus();
+  }
+  function resume() {
+    if (!S || S.mode !== "paused") return;
+    S.mode = S.resumeMode; $("pausePanel").hidden = true;
+    if (S.mode === "race") Sound.engineStart();
+    kb.focus();
+  }
+  function toMenu() {
+    S = null; Sound.engineStop(); buildTrack();
+    ["pausePanel", "finishPanel", "boardPanel"].forEach(id => $(id).hidden = true);
+    $("startPanel").hidden = false;
+    $("screen").classList.add("menu-open");
+    $("hint").textContent = "Pick a level and track, then press Start race.";
+    renderWords(); syncChoices();
+    (window.matchMedia("(min-width: 761px)").matches ? document.querySelector(".start-side") : $("startBtn")).focus();
+  }
+
+  // ---------- Keyboard ----------
+  const kb = $("kb");
+  kb.addEventListener("input", () => {
+    const v = kb.value; kb.value = "";
+    for (const ch of v) if (/[a-z]/i.test(ch)) handleChar(ch.toLowerCase());
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { if (S && S.mode === "paused") resume(); else pause(); return; }
+    if (S && S.mode === "race") {
+      if (e.key === "Backspace") { e.preventDefault(); releaseTarget(); return; }
+      if (document.activeElement !== kb && e.key.length === 1 && /[a-z]/i.test(e.key) && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault(); handleChar(e.key.toLowerCase()); kb.focus();
+      }
+    }
+  });
+  $("screen").addEventListener("click", () => { if (S && S.mode === "race") kb.focus(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+
+  document.querySelectorAll("[data-start]").forEach(b => b.addEventListener("click", newRace));
+  $("againBtn").addEventListener("click", newRace);
+  $("menuBtn").addEventListener("click", toMenu);
+  $("resumeBtn").addEventListener("click", resume);
+  $("quitBtn").addEventListener("click", toMenu);
+  $("pauseBtn").addEventListener("click", () => (S && S.mode === "paused" ? resume() : pause()));
+
+  // ---------- Go! ----------
+  buildTrack();
+  syncChoices(); updateSoundBtn(); renderWords();
+  // Lets the teacher (or a test) peek at the race state from the browser console
+  window.__kart = { get state() { return S; }, get trackLength() { return trackLength; }, get settings() { return settings; }, words: WORDS, drawMii, randomMii, drawBossHead };
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tower Typer | Mr. Watford's Typing Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;800&display=swap">
+<!-- This game keeps its own styling instead of the site's style.css, so the two never clash. -->
+<style>
+:root {
+  --page: #1a1530;
+  --panel: #262046;
+  --chalk: #f1eefc;
+  --chalk-dim: #b5acd6;
+  --yellow: #f7d659;
+  --red: #ff6b5b;
+  --mint: #93e6b8;
+  --stone: #6b6488;
+  --stone-dark: #48416a;
+  --display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--page); color: var(--chalk); }
+body { font-family: var(--body); }
+.app {
+  max-width: 1040px; margin: 0 auto;
+  padding-block: 18px 22px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px;
+}
+.back {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 10px;
+  color: var(--chalk); text-decoration: none;
+  font: 700 14px/1 var(--body);
+  background: rgba(255,255,255,.07);
+  border: 1.5px solid rgba(241,238,252,.3); border-radius: 999px;
+  padding: 5px 16px 5px 5px;
+}
+.back img { width: 34px; height: 34px; border-radius: 50%; background: #f8eed6; border: 2px solid var(--yellow); object-fit: cover; object-position: center 15%; }
+.back:hover { border-color: var(--yellow); }
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.pill {
+  display: inline-block; background: var(--yellow); color: #3a2c00;
+  font: 700 12px/1 var(--body); letter-spacing: .08em; text-transform: uppercase;
+  padding: 6px 12px; border-radius: 999px;
+}
+h1 { font: 700 clamp(34px, 6vw, 48px)/1 var(--display); margin: 8px 0 0; }
+h1 em { font-style: normal; color: var(--yellow); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(64px, auto)); gap: 4px 18px; }
+.stat { display: flex; flex-direction: column; }
+.stat span { font: 700 11px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); }
+.stat b { font: 600 24px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+
+.frame {
+  background: linear-gradient(180deg, var(--stone), var(--stone-dark));
+  padding: 12px; border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.15);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.screen { position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #4f9a4a; }
+canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+
+/* Typing bar under the battlefield */
+.typebar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px;
+  background: var(--panel); border-radius: 10px; padding: 10px 14px; min-height: 70px;
+}
+.typed { font: 600 clamp(22px, 3vw, 30px)/1.2 var(--display); color: var(--chalk-dim); min-width: 0; }
+.typed .done { color: var(--mint); }
+.typed .rest { color: var(--chalk); opacity: .45; }
+.typed.shake { animation: shake .25s; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.spells { display: flex; gap: 8px; flex-wrap: wrap; }
+.spell {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 92px; padding: 5px 10px 6px; border-radius: 12px;
+  background: rgba(255,255,255,.06); border: 2px solid rgba(255,255,255,.12);
+  opacity: .45; transition: opacity .2s, border-color .2s;
+}
+.spell.ready { opacity: 1; border-color: var(--yellow); box-shadow: 0 0 12px rgba(247,214,89,.35); }
+.spell b { font: 600 18px/1.2 var(--display); }
+.spell small { font: 800 10px/1.3 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--chalk-dim); }
+
+/* Menus on top of the battlefield */
+.panel-wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; background: rgba(20,16,40,.62); overflow: auto; }
+.panel {
+  width: min(560px, 100%); text-align: center;
+  background: rgba(38,32,70,.97); border: 2px dashed rgba(241,238,252,.45);
+  border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;
+}
+.panel.wide { width: min(920px, 100%); }
+.panel h2 { font: 700 clamp(22px, 3.6vw, 30px)/1.1 var(--display); margin: 0; }
+.panel h2 em { font-style: normal; color: var(--yellow); }
+.panel p { margin: 0; line-height: 1.5; color: var(--chalk-dim); }
+.setup { display: grid; grid-template-columns: 1fr 1.1fr; gap: 14px; text-align: left; }
+.setup .col { display: flex; flex-direction: column; gap: 8px; }
+details.box { background: rgba(0,0,0,.22); border-radius: 12px; padding: 7px 12px; }
+details.box summary { cursor: pointer; font-weight: 800; color: var(--yellow); }
+.howto { margin: 6px 0 0; padding-left: 1.2em; font-size: 13.5px; line-height: 1.45; }
+.howto li { margin-bottom: 2px; }
+.host { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,.25); border-radius: 12px; padding: 7px 12px; }
+.host img { width: 44px; height: 44px; border-radius: 50%; background: #f8eed6; border: 3px solid var(--yellow); object-fit: cover; object-position: center 15%; flex-shrink: 0; }
+.host span { font-weight: 700; font-size: 13.5px; }
+.opt-label { display: block; font: 800 11px/1.4 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--chalk-dim); margin-bottom: 4px; }
+.choices { display: flex; gap: 5px; flex-wrap: wrap; }
+.choice {
+  font: 700 13.5px/1 var(--body); color: var(--chalk); background: transparent;
+  border: 2px solid rgba(241,238,252,.3); border-radius: 999px; padding: 7px 11px; cursor: pointer;
+}
+.choice small { display: block; font-weight: 600; font-size: 10px; color: var(--chalk-dim); margin-top: 3px; }
+.choice[aria-pressed="true"] { border-color: var(--yellow); background: rgba(247,214,89,.16); }
+.roster { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px 10px; font-size: 12.5px; margin-top: 6px; }
+.achievements { list-style: none; padding: 0; margin: 6px 0 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 10px; font-size: 12.5px; }
+.achievements li { opacity: .45; }
+.achievements li.got { opacity: 1; color: var(--yellow); font-weight: 700; }
+.teacher { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; background: rgba(0,0,0,.2); border-radius: 12px; padding: 7px 12px; }
+.teacher label { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13.5px; cursor: pointer; }
+.teacher input { width: 18px; height: 18px; accent-color: var(--yellow); }
+.teacher small { flex-basis: 100%; color: var(--chalk-dim); font-size: 11.5px; }
+.go {
+  font: 700 19px/1 var(--display); color: #2c2200; background: var(--yellow);
+  border: 0; border-radius: 999px; padding: 13px 24px; cursor: pointer;
+}
+.go:hover, .choice:hover { filter: brightness(1.08); }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
+.results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.results div { background: rgba(255,255,255,.06); border-radius: 12px; padding: 8px 6px; }
+.results span { display: block; font: 700 10px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); }
+.results b { font: 600 21px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+.stars { font-size: 36px; letter-spacing: 6px; }
+.best { color: var(--mint); font-weight: 800; }
+.new-ach { color: var(--yellow); font-weight: 800; }
+.save-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
+.save-row input {
+  width: 92px; text-align: center; text-transform: uppercase; letter-spacing: .2em;
+  font: 600 22px/1 var(--display); padding: 8px; border-radius: 10px; border: 2px solid var(--yellow);
+  background: #120e24; color: #fff;
+}
+.board { width: 100%; border-collapse: collapse; font-size: 14px; }
+.board th, .board td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,.1); text-align: left; }
+.board th { color: var(--chalk-dim); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.board td.n { font-family: var(--display); font-size: 17px; }
+.board tr:first-child td { color: var(--yellow); }
+.small-btn {
+  font: 700 13px/1 var(--body); color: var(--chalk); background: rgba(255,255,255,.07);
+  border: 1.5px solid rgba(241,238,252,.3); border-radius: 999px; padding: 8px 14px; cursor: pointer;
+}
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.hint { color: var(--chalk-dim); font-size: 14px; font-weight: 600; }
+footer { background: var(--panel); border-radius: 12px; padding: 10px 14px; text-align: center; font-size: 13px; font-weight: 600; color: var(--chalk-dim); }
+footer b { color: var(--chalk); }
+#kb { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px; border: 0; padding: 0; }
+@media (max-width: 760px) {
+  .setup { grid-template-columns: 1fr; }
+  .screen.menu-open { aspect-ratio: auto; min-height: 700px; }
+}
+@media (max-width: 560px) { .spell { min-width: 0; flex: 1; } }
+@media (prefers-reduced-motion: reduce) { .typed.shake { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <a class="back" href="../index.html"><img src="../../images/mr-watford/face.png" alt="">← Back to Typing Games</a>
+
+  <header class="top">
+    <div>
+      <span class="pill">7th Grade Typing</span>
+      <h1>Tower <em>Typer</em></h1>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>WPM</span><b id="sWpm">0</b></div>
+      <div class="stat"><span>Accuracy</span><b id="sAcc">100%</b></div>
+      <div class="stat"><span>Best score</span><b id="sBest">–</b></div>
+    </div>
+  </header>
+
+  <div class="frame">
+    <div class="screen menu-open" id="screen">
+      <canvas id="field" width="960" height="540" aria-label="Battlefield"></canvas>
+
+      <!-- ===== START MENU ===== -->
+      <div class="panel-wrap" id="startPanel">
+        <div class="panel wide">
+          <h2>Defend the <em>castle!</em></h2>
+          <div class="setup">
+            <div class="col">
+              <div class="host">
+                <img src="../../images/mr-watford/face.png" alt="">
+                <span>Monsters are marching on the castle! Type their words and I'll zap them with lightning. Ready, wizard?</span>
+              </div>
+              <details class="box" open>
+                <summary>How to play</summary>
+                <ul class="howto">
+                  <li><b>Type a monster's word</b> to zap it.</li>
+                  <li><b>Click a stone pad</b> to build a tower. Click a tower to upgrade or sell it.</li>
+                  <li><b>Click the castle</b> to upgrade your wizard powers.</li>
+                  <li>Type <b>meteor</b>, <b>freeze</b>, or <b>heal</b> to cast a spell when you have enough mana.</li>
+                  <li>Clean words in a row build your <b>combo</b> for bonus coins.</li>
+                  <li><b>Backspace</b> erases a letter. <b>Enter</b> starts the next wave early. <b>Esc</b> pauses.</li>
+                </ul>
+              </details>
+              <details class="box">
+                <summary>Meet the monsters</summary>
+                <div class="roster">
+                  <span>🟢 Goblin: the basic grunt</span>
+                  <span>🦊 Runner: fast!</span>
+                  <span>🛡️ Knight: tough armor</span>
+                  <span>🦇 Bat: flies over cannons</span>
+                  <span>💧 Slime: splits in two</span>
+                  <span>💰 Gold goblin: zap for treasure!</span>
+                  <span>👹 Giant: mini-boss</span>
+                  <span>🪨 Paragraph Golem: boss</span>
+                  <span>📚 Grade Book Golem: boss</span>
+                  <span>🐉 Sentence Dragon: final boss</span>
+                </div>
+              </details>
+              <details class="box">
+                <summary>Towers, spells &amp; wizard powers</summary>
+                <ul class="howto">
+                  <li>🏹 <b>Arrow</b> 50 • ❄️ <b>Frost</b> 60 • 💣 <b>Cannon</b> 80 (can't hit bats) • ⚡ <b>Lightning</b> 100</li>
+                  <li>☄️ <b>meteor</b> 60 mana • 🧊 <b>freeze</b> 40 mana • 💚 <b>heal</b> 50 mana</li>
+                  <li>Castle upgrades: ⚡ <b>Zap Power</b>, ✨ <b>Double Bolt</b>, 🔮 <b>Mana Flow</b></li>
+                </ul>
+              </details>
+              <details class="box">
+                <summary id="achSummary">Achievements</summary>
+                <ul class="achievements" id="achList"></ul>
+              </details>
+            </div>
+            <div class="col">
+              <div>
+                <span class="opt-label">Mode</span>
+                <div class="choices" data-group="mode">
+                  <button class="choice" data-value="campaign">🏰 Campaign<small>12 waves + final boss</small></button>
+                  <button class="choice" data-value="endless">♾️ Endless<small>how long can you last?</small></button>
+                </div>
+              </div>
+              <div>
+                <span class="opt-label">Difficulty</span>
+                <div class="choices" data-group="level">
+                  <button class="choice" data-value="easy">Easy<small>short words</small></button>
+                  <button class="choice" data-value="medium">Medium<small>up to 7 letters</small></button>
+                  <button class="choice" data-value="hard">Hard<small>long words, fast</small></button>
+                </div>
+              </div>
+              <div>
+                <span class="opt-label">…or practice one keyboard row</span>
+                <div class="choices" data-group="level">
+                  <button class="choice" data-value="home">Home row<small>A S D F G H J K L</small></button>
+                  <button class="choice" data-value="top">Top row<small>Q W E R T Y U I O P</small></button>
+                  <button class="choice" data-value="bottom">Bottom row<small>Z X C V B N M</small></button>
+                </div>
+              </div>
+              <div>
+                <span class="opt-label">Map</span>
+                <div class="choices" data-group="map">
+                  <button class="choice" data-value="meadow">🌳 Meadow Keep</button>
+                  <button class="choice" data-value="volcano">🌋 Volcano Fortress</button>
+                  <button class="choice" data-value="snow">❄️ Frost Peak</button>
+                  <button class="choice" data-value="twin">🔀 Twin Roads</button>
+                </div>
+              </div>
+              <div class="teacher">
+                <label><input type="checkbox" id="teacherToggle"> 🏫 Teacher mode: class leaderboard</label>
+                <button class="small-btn" id="boardBtn" hidden>🏆 Today's leaderboard</button>
+                <small>Players add 3-letter initials after each game. Saved on this computer only; clears every new day.</small>
+              </div>
+              <button class="go" id="startBtn">Start battle</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-wrap" id="pausePanel" hidden>
+        <div class="panel">
+          <h2>Paused</h2>
+          <p>The monsters are waiting. Rest your hands, then jump back in.</p>
+          <button class="go" id="resumeBtn">Resume</button>
+          <button class="small-btn" id="quitBtn">Quit to menu</button>
+        </div>
+      </div>
+
+      <div class="panel-wrap" id="endPanel" hidden>
+        <div class="panel">
+          <h2 id="eTitle">Victory!</h2>
+          <div class="stars" id="eStars" aria-label="Stars"></div>
+          <div class="results">
+            <div><span>Score</span><b id="rScore">0</b></div>
+            <div><span>Waves</span><b id="rWaves">0</b></div>
+            <div><span>Best score</span><b id="rBest">0</b></div>
+            <div><span>WPM</span><b id="rWpm">0</b></div>
+            <div><span>Accuracy</span><b id="rAcc">0%</b></div>
+            <div><span>Best combo</span><b id="rCombo">0</b></div>
+          </div>
+          <p id="eNote"></p>
+          <p id="eAch" class="new-ach" hidden></p>
+          <div class="save-row" id="saveRow" hidden>
+            <input id="initials" maxlength="3" placeholder="ABC" aria-label="Your 3-letter initials" autocomplete="off">
+            <button class="small-btn" id="saveScore">Add to leaderboard</button>
+          </div>
+          <button class="go" id="againBtn">Play again</button>
+          <div class="btn-row">
+            <button class="small-btn" id="endlessBtn" hidden>♾️ Try Endless mode</button>
+            <button class="small-btn" id="menuBtn">Change map or difficulty</button>
+            <button class="small-btn" id="endBoardBtn" hidden>🏆 Leaderboard</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-wrap" id="boardPanel" hidden>
+        <div class="panel">
+          <h2>🏆 Today's <em>leaderboard</em></h2>
+          <p id="boardSub"></p>
+          <table class="board">
+            <thead><tr><th>#</th><th>Player</th><th>Score</th><th>Waves</th><th>WPM</th></tr></thead>
+            <tbody id="boardBody"></tbody>
+          </table>
+          <div class="btn-row">
+            <button class="go" id="boardClose">Close</button>
+            <button class="small-btn" id="boardClear">Clear today's board</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="typebar">
+      <div class="typed" id="typed" aria-live="polite">Pick a map and press Start battle.</div>
+      <div class="spells">
+        <div class="spell" id="spell-meteor"><b>☄️ meteor</b><small>60 mana</small></div>
+        <div class="spell" id="spell-freeze"><b>🧊 freeze</b><small>40 mana</small></div>
+        <div class="spell" id="spell-heal"><b>💚 heal</b><small>50 mana</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div class="hint" id="hint">Click a stone pad to build a tower. Type words to zap monsters.</div>
+    <div class="btn-row">
+      <button class="small-btn" id="soundBtn">🔊 Sound on</button>
+      <button class="small-btn" id="pauseBtn">Pause</button>
+    </div>
+  </div>
+
+  <footer><b>Lighthouse Baptist Academy</b> • Mr. Watford's Typing Class</footer>
+  <input id="kb" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Type monster words here">
+</div>
+
+<script>
+(() => {
+  /* =========================================================
+     TOWER TYPER
+     Monsters walk a path toward the castle. Type a monster's
+     word to zap it; build towers with the coins you earn.
+     ========================================================= */
+
+  const W = 960, H = 540;
+  const canvas = document.getElementById("field");
+  const ctx = canvas.getContext("2d");
+  const face = new Image(); face.src = "../../images/mr-watford/face.png";
+  const $ = id => document.getElementById(id);
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const today = () => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+
+  // ---------- Words ----------
+  const SPELLS = {
+    meteor: { cost: 60, icon: "☄️" },
+    freeze: { cost: 40, icon: "🧊" },
+    heal:   { cost: 50, icon: "💚" }
+  };
+  const notSpell = list => list.filter(w => !SPELLS[w]);
+  const WORDS = {
+    easy: notSpell("cat dog sun map run jump desk book rain tree fish bird lamp cup pen hat milk sand ship star cake frog gold kite lake moon nest owl park quiz rope seed team vote wind yard zoo bell coat door east farm gift hill ink jar king leaf mint note oak pond road salt tent unit vest wave yell zip bus glue box web toy log van egg ice joy key lip nut pig rug sky top wax yak".split(" ")),
+    medium: notSpell("planet garden pencil rocket bridge castle forest helmet island jacket kitten ladder marble needle orange puzzle rabbit saddle ticket unlock valley window yellow zipper anchor basket candle engine falcon guitar hammer insect jungle lizard market napkin office parade quiver ribbon silver tunnel velvet whistle button cactus desert finger glider harbor kettle lantern meadow number pepper river summer travel winter banana dragon goblin wizard potion shield".split(" ")),
+    hard: notSpell("adventure balance calendar discovery education champion gratitude harmony important journey knowledge language mountain notebook operation paragraph question remember sentence telescope umbrella vocabulary wonderful yesterday absolute brilliant character delightful encourage fantastic geography hospital invention keyboard magnificent neighbor orchestra practice responsible strawberry thunderstorm universe victory waterfall excellent faithful kindness patience schedule scientist attention beautiful celebrate direction elephant festival legendary".split(" ")),
+    // Row practice: every letter comes from that row (the bottom row has no vowels, so it borrows home-row keys)
+    home: "ask ash add all dad fad gas had has lad lag sad sag dash gash hash lash flag glad half hall fall shall salad flask falls slash flash glass alas".split(" "),
+    top: "pet pie pot toe top tip tire tree true type wipe wire quote quiet query route outer otter poet pout pretty prop riot rope yet you your tour tutor tower power pepper".split(" "),
+    bottom: "can ban man van cab nab lab jab dab gab fax max zag clam calm band hand land sand bank mask black blank snack scan bland gland cabs bands".split(" ")
+  };
+  const LEVELS = {
+    easy:   { name: "Easy",       pool: WORDS.easy,                       short: WORDS.easy,   speed: 0.8,  hp: 1 },
+    medium: { name: "Medium",     pool: WORDS.easy.concat(WORDS.medium),  short: WORDS.easy,   speed: 1,    hp: 1 },
+    hard:   { name: "Hard",       pool: WORDS.medium.concat(WORDS.hard),  short: WORDS.medium, speed: 1.15, hp: 1.2 },
+    home:   { name: "Home row",   pool: WORDS.home,   short: WORDS.home.filter(w => w.length <= 4),   speed: 0.75, hp: 1, row: true },
+    top:    { name: "Top row",    pool: WORDS.top,    short: WORDS.top.filter(w => w.length <= 4),    speed: 0.75, hp: 1, row: true },
+    bottom: { name: "Bottom row", pool: WORDS.bottom, short: WORDS.bottom.filter(w => w.length <= 4), speed: 0.75, hp: 1, row: true }
+  };
+  // Boss sentences (each word is one zap)
+  const BOSS_TEXT = {
+    dragon: ["type quickly to save the castle", "every keystroke counts", "keep your eyes on the screen", "the kingdom needs a typing legend", "accuracy beats speed every time"],
+    golem: ["slow and steady wins the race but quick fingers win the battle", "a strong castle needs strong typists like you", "keep calm and keep typing until the very end", "rocks are tough but your typing is tougher"],
+    gradebook: ["quiz essay review study notes project reading spelling", "homework grade test vocabulary science typing", "study notes quiz review essay project grade test"]
+  };
+
+  // ---------- Maps ----------
+  // Every map ends at the castle gate (870, 270)
+  const MAPS = {
+    meadow: {
+      name: "Meadow Keep",
+      paths: [[[-40, 110], [260, 110], [260, 330], [120, 330], [120, 470], [470, 470], [470, 200], [650, 200], [650, 430], [790, 430], [790, 270], [870, 270]]],
+      pads: [[180, 210], [350, 250], [205, 400], [360, 385], [560, 320], [560, 110], [730, 330], [880, 400], [720, 110], [380, 90]],
+      ground: ["#5dae55", "#4a9445"], road: ["#6e4a2a", "#c9995e", "#d9ad70"], scenery: "meadow"
+    },
+    volcano: {
+      name: "Volcano Fortress",
+      paths: [[[-40, 430], [200, 430], [200, 150], [420, 150], [420, 380], [620, 380], [620, 120], [790, 120], [790, 270], [870, 270]]],
+      pads: [[110, 330], [300, 260], [300, 70], [520, 250], [520, 470], [710, 220], [700, 45], [880, 400], [300, 480]],
+      ground: ["#5c4842", "#3f302c"], road: ["#221a19", "#5e4f4a", "#6f5f59"], scenery: "volcano", embers: true
+    },
+    snow: {
+      name: "Frost Peak",
+      paths: [[[-40, 270], [150, 270], [150, 90], [380, 90], [380, 450], [560, 450], [560, 170], [720, 170], [720, 400], [810, 400], [810, 270], [870, 270]]],
+      pads: [[70, 170], [260, 180], [260, 360], [470, 300], [470, 90], [640, 300], [640, 80], [890, 400], [100, 420], [760, 500]],
+      ground: ["#eef4f8", "#d6e3ec"], road: ["#7f95a8", "#b5c6d3", "#c7d5df"], scenery: "snow", snowfall: true
+    },
+    twin: {
+      name: "Twin Roads",
+      paths: [
+        [[-40, 90], [300, 90], [300, 270], [520, 270], [520, 120], [700, 120], [700, 400], [800, 400], [800, 270], [870, 270]],
+        [[-40, 460], [300, 460], [300, 270], [520, 270], [520, 120], [700, 120], [700, 400], [800, 400], [800, 270], [870, 270]]
+      ],
+      pads: [[150, 180], [150, 370], [400, 180], [400, 370], [610, 220], [610, 40], [610, 470], [750, 200], [880, 400], [60, 275]],
+      ground: ["#9cc45f", "#7aa64a"], road: ["#6e4a2a", "#c9995e", "#d9ad70"], scenery: "autumn"
+    }
+  };
+  const CASTLE = { x: 880, y: 262 };
+  // Pre-compute each path's segments and length
+  Object.values(MAPS).forEach(mp => {
+    mp.routes = mp.paths.map(pts => {
+      const segs = []; let len = 0;
+      for (let i = 0; i < pts.length - 1; i++) { const [ax, ay] = pts[i], [bx, by] = pts[i + 1], l = dist(ax, ay, bx, by); segs.push({ ax, ay, bx, by, len: l, start: len }); len += l; }
+      return { pts, segs, len };
+    });
+  });
+  function pointOn(route, d) {
+    d = clamp(d, 0, route.len);
+    for (const s of route.segs) if (d <= s.start + s.len) { const t = (d - s.start) / s.len; return [s.ax + (s.bx - s.ax) * t, s.ay + (s.by - s.ay) * t]; }
+    return route.pts[route.pts.length - 1];
+  }
+  const posOf = m => pointOn(map().routes[m.route], m.d);
+  const leftOf = m => map().routes[m.route].len - m.d;   // distance still to walk (smaller = closer to the castle)
+
+  // ---------- Monsters ----------
+  const TYPES = {
+    goblin:    { hp: 10, speed: 42, reward: 5,   size: 15, color: "#5cb85c", words: "pool" },
+    runner:    { hp: 10, speed: 78, reward: 6,   size: 13, color: "#f28c28", words: "short" },
+    knight:    { hp: 20, speed: 30, reward: 10,  size: 17, color: "#9aa3ad", words: "pool" },
+    bat:       { hp: 10, speed: 56, reward: 6,   size: 13, color: "#7a3cff", words: "short", flying: true },
+    slime:     { hp: 10, speed: 40, reward: 4,   size: 16, color: "#3ec7c7", words: "pool", splits: true },
+    mini:      { hp: 5,  speed: 52, reward: 2,   size: 10, color: "#3ec7c7", words: "short" },
+    treasure:  { hp: 10, speed: 95, reward: 40,  size: 14, color: "#f5c431", words: "short", lives: 0 },
+    giant:     { hp: 40, speed: 22, reward: 30,  size: 26, color: "#b55d3a", words: "pool", lives: 5, boss: true },
+    golem:     { hp: 0,  speed: 18, reward: 80,  size: 32, color: "#8a8496", words: "phrase", lives: 10, boss: true },
+    gradebook: { hp: 0,  speed: 19, reward: 100, size: 32, color: "#2f6fc4", words: "phrase", lives: 15, boss: true },
+    dragon:    { hp: 0,  speed: 16, reward: 150, size: 36, color: "#d8432f", words: "phrase", lives: 20, flying: true, boss: true }
+  };
+  const CAMPAIGN_WAVES = 12;
+  function waveList(n) {
+    const list = [], add = (type, count) => { for (let i = 0; i < count; i++) list.push(type); };
+    const bosses = [];
+    if (n <= CAMPAIGN_WAVES) {
+      const plan = {
+        1: [["goblin", 6]], 2: [["goblin", 7], ["runner", 3]], 3: [["goblin", 6], ["runner", 3], ["knight", 2]],
+        4: [["goblin", 5], ["bat", 4], ["runner", 3]], 5: [["slime", 4], ["goblin", 5], ["knight", 3]],
+        6: [["goblin", 6], ["runner", 4]], 7: [["bat", 6], ["slime", 4], ["knight", 3]], 8: [["runner", 8], ["goblin", 6], ["knight", 4]],
+        9: [["slime", 6], ["bat", 6]], 10: [["knight", 6], ["runner", 6], ["bat", 5], ["slime", 4]],
+        11: [["goblin", 8], ["bat", 6], ["runner", 6], ["giant", 1]], 12: [["goblin", 6], ["runner", 5]]
+      }[n];
+      plan.forEach(([t, c]) => (TYPES[t].boss ? bosses : list).push(...Array(c).fill(t)));
+      if (n === 6) bosses.push("giant");
+      if (n === 9) bosses.push("golem");
+      if (n === 11) bosses.push("gradebook");
+      if (n === 12) bosses.push("dragon");
+    } else {
+      // Endless: bigger mixed waves, and a boss every 4th wave
+      ["goblin", "runner", "knight", "bat", "slime"].forEach((t, i) => add(t, 2 + Math.floor((n - 8) / (i + 2))));
+      if (n % 4 === 0) bosses.push(["giant", "golem", "dragon", "gradebook"][(n / 4) % 4]);
+      if (n % 2 === 0) add("giant", Math.floor((n - 12) / 6));
+    }
+    shuffle(list);
+    // Gold treasure goblins sneak in from wave 3
+    if (n >= 3 && Math.random() < 0.45) list.splice(Math.floor(Math.random() * list.length), 0, "treasure");
+    if (n >= 8 && Math.random() < 0.35) list.splice(Math.floor(Math.random() * list.length), 0, "treasure");
+    return list.concat(bosses);
+  }
+
+  // ---------- Towers & wizard upgrades ----------
+  const TOWERS = {
+    arrow:     { name: "Arrow",     icon: "🏹", cost: 50,  range: 120, rate: 0.6, dmg: 3, color: "#7a4b25", roof: "#2e7d4a" },
+    frost:     { name: "Frost",     icon: "❄️", cost: 60,  range: 105, rate: 1.0, dmg: 1, color: "#5a8fb8", roof: "#bfe6ff" },
+    cannon:    { name: "Cannon",    icon: "💣", cost: 80,  range: 115, rate: 1.5, dmg: 7, splash: 55, ground: true, color: "#4a4a55", roof: "#2b2b33" },
+    lightning: { name: "Lightning", icon: "⚡", cost: 100, range: 125, rate: 1.3, dmg: 5, chain: 3, color: "#5a3f8a", roof: "#c9a6ff" }
+  };
+  const upgradeCost = t => Math.round(TOWERS[t.type].cost * (t.level === 1 ? 0.8 : 1.2));
+  const sellValue = t => Math.round(t.spent * 0.6);
+  const HERO = {
+    power:  { name: "Zap Power",   icon: "⚡", costs: [80, 140, 220], about: "Zaps hit harder" },
+    double: { name: "Double Bolt", icon: "✨", costs: [100, 160, 240], about: "Chance to zap a second monster" },
+    mana:   { name: "Mana Flow",   icon: "🔮", costs: [60, 110, 170], about: "Mana fills faster" }
+  };
+  const zapDamage = () => 10 + G.hero.power * 6;
+  const doubleChance = () => [0, 0.25, 0.4, 0.55][G.hero.double];
+  const manaPerKey = () => 1.2 * (1 + G.hero.mana * 0.4);
+
+  // ---------- Achievements (saved on this device) ----------
+  const ACH = {
+    first_win: "🏆 First Victory: win a campaign",
+    flawless:  "💎 Flawless Defense: win with all 20 hearts",
+    dragon:    "🐉 Dragon Slayer: defeat the Sentence Dragon",
+    golem:     "🪨 Golem Smasher: defeat the Paragraph Golem",
+    gradebook: "📚 Grade Book Buster: defeat Mr. Watford's Grade Book Golem",
+    combo25:   "🔥 Combo King: reach a 25-word combo",
+    combo50:   "⚡ Unstoppable: reach a 50-word combo",
+    treasure:  "💰 Treasure Hunter: zap 5 gold goblins in one game",
+    builder:   "🏗️ Master Builder: have 8 towers at once",
+    maxed:     "⬆️ Fully Loaded: upgrade a tower to level 3",
+    caster:    "🔮 Spell Slinger: cast 10 spells in one game",
+    wizard:    "🧙 Archmage: max out a wizard power",
+    endless20: "♾️ Endless Hero: reach wave 20 in Endless",
+    speed:     "💨 Lightning Fingers: finish 5+ waves at 40+ WPM",
+    rowwin:    "⌨️ Row Master: win a campaign in row practice",
+    allmaps:   "🗺️ World Defender: win on all 4 maps"
+  };
+  let earned = new Set();
+  try { earned = new Set(JSON.parse(store("towertyper-ach") || "[]")); } catch (e) { earned = new Set(); }
+  function unlock(id) {
+    if (earned.has(id)) return;
+    earned.add(id);
+    store("towertyper-ach", JSON.stringify([...earned]));
+    if (G) { G.newAch.push(ACH[id]); G.banner = { text: "🏅 Achievement unlocked! " + ACH[id].split(":")[0], until: clock + 3.5 }; }
+    Sound.achieve();
+    renderAchievements();
+  }
+  function renderAchievements() {
+    const list = $("achList"); list.innerHTML = "";
+    Object.entries(ACH).forEach(([id, text]) => {
+      const li = document.createElement("li");
+      li.textContent = (earned.has(id) ? "" : "🔒 ") + text;
+      if (earned.has(id)) li.className = "got";
+      list.appendChild(li);
+    });
+    $("achSummary").textContent = "Achievements (" + earned.size + "/" + Object.keys(ACH).length + ")";
+  }
+
+  // ---------- Sound effects (Web Audio, no files) ----------
+  const Sound = {
+    ac: null, on: store("towertyper-sound") !== "0",
+    init() { if (!this.ac) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) this.ac = new AC(); } if (this.ac && this.ac.state === "suspended") this.ac.resume(); },
+    tone(freq, dur, type, vol, slideTo, delay) {
+      if (!this.on || !this.ac) return;
+      const t = this.ac.currentTime + (delay || 0), o = this.ac.createOscillator(), g = this.ac.createGain();
+      o.type = type || "sine"; o.frequency.setValueAtTime(freq, t);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+      g.gain.setValueAtTime(vol || 0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(this.ac.destination); o.start(t); o.stop(t + dur + 0.05);
+    },
+    notes(list, step, type, vol) { list.forEach((f, i) => this.tone(f, step * 1.6, type, vol, null, i * step)); },
+    key() { this.tone(1200, 0.03, "sine", 0.02); },
+    zap() { this.tone(1600, 0.18, "sawtooth", 0.04, 300); },
+    kill() { this.notes([880, 1320], 0.05, "triangle", 0.045); },
+    coins() { this.notes([1046, 1318, 1568, 2093], 0.05, "triangle", 0.05); },
+    error() { this.tone(150, 0.12, "square", 0.035); },
+    build() { this.notes([392, 523, 659], 0.06, "triangle", 0.05); },
+    shoot() { this.tone(700, 0.05, "square", 0.012, 400); },
+    boom() { this.tone(120, 0.4, "sawtooth", 0.06, 40); },
+    hurt() { this.tone(200, 0.3, "square", 0.05, 80); },
+    spell() { this.tone(300, 0.6, "sawtooth", 0.05, 1500); },
+    wave() { this.notes([392, 392, 587], 0.12, "square", 0.05); },
+    roar() { this.tone(90, 1.0, "sawtooth", 0.07, 50); },
+    achieve() { this.notes([784, 988, 1175, 1568], 0.08, "sine", 0.06); },
+    win() { this.notes([523, 659, 784, 1046, 1318], 0.12, "triangle", 0.07); },
+    lose() { this.notes([392, 330, 262, 196], 0.18, "triangle", 0.06); }
+  };
+
+  // ---------- Settings ----------
+  const settings = {
+    mode: store("towertyper-mode") === "endless" ? "endless" : "campaign",
+    level: LEVELS[store("towertyper-level")] ? store("towertyper-level") : "easy",
+    map: MAPS[store("towertyper-map")] ? store("towertyper-map") : "meadow",
+    teacher: store("towertyper-teacher") === "1"
+  };
+  const map = () => MAPS[settings.map];
+  const bestKey = () => "towertyper-best-" + settings.mode + "-" + settings.map + "-" + settings.level;
+
+  // ---------- Game state ----------
+  let G = null;
+  let clock = 0, shake = 0;
+
+  function newGame() {
+    Sound.init();
+    drawMap();
+    G = {
+      mode: "build", lvl: LEVELS[settings.level], endless: settings.mode === "endless",
+      wave: 0, buildTimer: 15, queue: [], spawnTimer: 0, groupLeft: 0, spawnCount: 0,
+      lives: 20, coins: 120, mana: 30, score: 0,
+      monsters: [], towers: [], shots: [], bolts: [], particles: [], floats: [],
+      buf: "", combo: 0, bestCombo: 0, wordHadError: false,
+      keys: 0, correct: 0, typingTime: 0, freeze: 0,
+      hero: { power: 0, double: 0, mana: 0 },
+      menu: null, treasureCaught: 0, spellsCast: 0, newAch: [], banner: null, saved: false
+    };
+    ["startPanel", "endPanel", "pausePanel", "boardPanel"].forEach(id => $(id).hidden = true);
+    $("screen").classList.remove("menu-open");
+    say("Welcome to " + map().name + "! Build towers, then press Enter to start!", 4);
+    $("hint").textContent = "Click a stone pad to build, or the castle for wizard powers. Press Enter to send the first wave.";
+    renderTyped(); renderStats();
+    kb.focus();
+  }
+
+  function startWave() {
+    if (!G || G.mode !== "build") return;
+    G.wave++;
+    G.mode = "wave";
+    G.queue = waveList(G.wave);
+    G.spawnTimer = 0.5;
+    G.groupLeft = groupSize();
+    Sound.wave();
+    const boss = G.queue.find(t => TYPES[t].boss);
+    const lines = {
+      giant: "Wave " + G.wave + ": a GIANT is stomping this way!",
+      golem: "Wave " + G.wave + ": the PARAGRAPH GOLEM rises! Type every sentence!",
+      gradebook: "Uh oh... my GRADE BOOK came to life! Wave " + G.wave + "!",
+      dragon: "Here comes the SENTENCE DRAGON! Type every word!"
+    };
+    if (boss) say(lines[boss], 3.5);
+    else say(pick(["Wave " + G.wave + " incoming! Fingers ready!", "Here they come! Wave " + G.wave + "!", "Wave " + G.wave + "! Eyes on the words!"]), 2.5);
+    $("hint").textContent = "Type the monsters' words! Backspace erases a letter. Esc pauses.";
+  }
+  const groupSize = () => Math.min(6, 2 + Math.floor(G.wave / 3));
+  const endlessHp = () => (G.wave > CAMPAIGN_WAVES ? 1 + (G.wave - CAMPAIGN_WAVES) * 0.1 : 1);
+  const endlessSpeed = () => (G.wave > CAMPAIGN_WAVES ? 1 + Math.min(0.4, (G.wave - CAMPAIGN_WAVES) * 0.025) : 1);
+
+  // ---------- Monsters ----------
+  function pickWord(list) {
+    // Prefer a word whose first letter isn't already on screen (easier to read), but it's not required
+    const onScreen = new Set(G.monsters.map(m => m.word).filter(Boolean));
+    const letters = new Set([...onScreen].map(w => w[0]));
+    for (let i = 0; i < 30; i++) { const w = pick(list); if (!onScreen.has(w) && !letters.has(w[0])) return w; }
+    for (let i = 0; i < 30; i++) { const w = pick(list); if (!onScreen.has(w)) return w; }
+    return pick(list);
+  }
+  function giveWord(m) {
+    if (m.phrase) { m.word = m.phrase.words[m.phrase.idx] || null; return; }
+    m.word = pickWord(TYPES[m.type].words === "short" ? G.lvl.short : G.lvl.pool);
+  }
+
+  function spawn(type, at, route) {
+    const T = TYPES[type];
+    const mp = map();
+    const m = {
+      type, d: at || 0, route: route !== undefined ? route : (G.spawnCount++ % mp.routes.length),
+      hp: T.hp * G.lvl.hp * endlessHp(), speed: T.speed * G.lvl.speed * endlessSpeed() * (0.9 + Math.random() * 0.2),
+      word: null, slow: 0, hitFlash: 0, wobble: Math.random() * 6
+    };
+    if (T.words === "phrase") {
+      let words = pick(BOSS_TEXT[type]).split(" ");
+      if (type === "gradebook") words = shuffle(words).slice(0, 8);
+      m.phrase = { words, idx: 0 };
+      m.hp = words.length * 10;
+      if (type === "dragon") { shake = 0.6; Sound.roar(); }
+    }
+    m.maxHp = m.hp;
+    G.monsters.push(m);
+    giveWord(m);
+    return m;
+  }
+
+  // ---------- Typing (letters are matched against every word on screen) ----------
+  const kb = $("kb");
+  const onMap = m => m.d > 55;
+  const spellReady = name => G && G.mana >= SPELLS[name].cost;
+  function candidates(text) {
+    const list = G.monsters.filter(m => m.word && onMap(m) && m.word.startsWith(text)).map(m => ({ word: m.word, monster: m }));
+    Object.keys(SPELLS).forEach(name => { if (name.startsWith(text)) list.push({ word: name, spell: name }); });
+    return list;
+  }
+
+  function handleChar(c) {
+    if (!G || (G.mode !== "wave" && G.mode !== "build")) return;
+    const next = G.buf + c;
+    const cands = candidates(next);
+    if (!cands.length) return oops();
+    G.buf = next;
+    G.keys++; G.correct++;
+    G.mana = Math.min(100, G.mana + manaPerKey());
+    Sound.key();
+    const exact = cands.filter(t => t.word === next);
+    if (exact.length) {
+      // Finished a word: the monster closest to the castle wins
+      const hit = exact.filter(t => t.monster).sort((a, b) => leftOf(a.monster) - leftOf(b.monster))[0] || exact[0];
+      completeWord(hit);
+    }
+    renderTyped(); renderStats();
+  }
+
+  function oops() {
+    G.keys++;
+    G.combo = 0;
+    G.wordHadError = true;
+    Sound.error();
+    const el = $("typed"); el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake");
+    renderStats();
+  }
+
+  function completeWord(t) {
+    G.buf = "";
+    if (t.spell && !spellReady(t.spell)) {
+      floatText(W / 2, H - 80, "Need " + SPELLS[t.spell].cost + " mana for " + t.spell + "!", "#c9a6ff");
+      return;
+    }
+    if (!G.wordHadError) { G.combo++; G.bestCombo = Math.max(G.bestCombo, G.combo); }
+    G.wordHadError = false;
+    if (G.combo >= 25) unlock("combo25");
+    if (G.combo >= 50) unlock("combo50");
+    if (t.spell) { castSpell(t.spell); return; }
+    zap(t.monster);
+  }
+
+  // If the words on screen change (a monster died or got a new word), make sure the typed letters still match something
+  function syncBuffer() {
+    if (G && G.buf && !candidates(G.buf).length) { G.buf = ""; renderTyped(); }
+  }
+
+  const comboMult = () => 1 + Math.min(2, Math.floor(G.combo / 5)) * 0.5;   // x1, x1.5, then x2 at 10+ words
+
+  function zap(m, bonus) {
+    if (!G.monsters.includes(m)) return;
+    const [x, y] = posOf(m);
+    G.bolts.push({ x1: CASTLE.x - 30, y1: CASTLE.y - 82, x2: x, y2: y - 6, life: 0.22, color: bonus ? "#c9a6ff" : null });
+    Sound.zap();
+    m.hitFlash = 0.15;
+    if (m.phrase) {
+      m.phrase.idx++;
+      damage(m, 10, true);
+      if (G.monsters.includes(m)) giveWord(m);
+    } else {
+      damage(m, bonus ? 10 : zapDamage(), true);
+      if (G.monsters.includes(m)) giveWord(m);
+    }
+    // Double Bolt: sometimes a second free zap hits the next monster in line
+    if (!bonus && Math.random() < doubleChance()) {
+      const other = G.monsters.filter(o => o !== m && onMap(o) && !o.phrase).sort((a, b) => leftOf(a) - leftOf(b))[0];
+      if (other) setTimeout(() => { if (G && G.mode !== "over") zap(other, true); }, 120);
+    }
+    syncBuffer();
+  }
+
+  function damage(m, amount, typed) {
+    if (!G.monsters.includes(m)) return;
+    m.hp -= amount;
+    m.hitFlash = 0.12;
+    if (m.hp <= 0) kill(m, typed);
+  }
+
+  function kill(m, typed) {
+    const T = TYPES[m.type];
+    const [x, y] = posOf(m);
+    G.monsters = G.monsters.filter(o => o !== m);
+    const coins = Math.round((T.reward + (typed ? 2 : 0)) * comboMult());
+    G.coins += coins;
+    G.score += coins * 10;
+    floatText(x, y - 30, "+" + coins + " 🪙", "#f7d659");
+    burst(x, y, T.color, T.boss ? 40 : 14);
+    if (m.type === "treasure") { G.treasureCaught++; burst(x, y, "#fff6a8", 20); Sound.coins(); if (G.treasureCaught >= 5) unlock("treasure"); }
+    else Sound.kill();
+    if (T.splits) { spawn("mini", Math.max(0, m.d - 12), m.route); spawn("mini", m.d + 12, m.route); }
+    if (T.boss && m.type !== "giant") {
+      shake = 0.8; Sound.boom();
+      say({ dragon: "You defeated the Sentence Dragon! Incredible typing!", golem: "The Paragraph Golem crumbles! Great work!", gradebook: "You closed my grade book! Nicely done!" }[m.type], 3.5);
+      unlock(m.type);
+    }
+    syncBuffer();
+  }
+
+  function castSpell(name) {
+    G.mana -= SPELLS[name].cost;
+    G.spellsCast++;
+    if (G.spellsCast >= 10) unlock("caster");
+    Sound.spell();
+    if (name === "meteor") {
+      const front = G.monsters.slice().sort((a, b) => leftOf(a) - leftOf(b))[0];
+      if (front) { const [x, y] = posOf(front); G.shots.push({ kind: "meteor", x: x + 120, y: y - 300, tx: x, ty: y, t: 0, dur: 0.5 }); }
+      say("METEOR!", 1.5);
+    }
+    if (name === "freeze") { G.freeze = 5; say("Freeze! Everybody chill out!", 2); burst(W / 2, H / 2, "#bfe6ff", 30); }
+    if (name === "heal") { G.lives = Math.min(20, G.lives + 3); floatText(CASTLE.x, CASTLE.y - 90, "+3 ❤️", "#ff8fa3"); say("Castle repaired!", 2); }
+    renderStats();
+  }
+
+  function renderTyped() {
+    const el = $("typed");
+    if (!G) el.textContent = "Pick a map and press Start battle.";
+    else if (!G.buf) el.textContent = G.mode === "build" ? "Build towers, then press Enter for the next wave…" : "Type any monster's word…";
+    else {
+      const c = candidates(G.buf);
+      el.innerHTML = '<span class="done"></span><span class="rest"></span>';
+      el.firstChild.textContent = G.buf;
+      el.lastChild.textContent = c.length === 1 ? c[0].word.slice(G.buf.length) : "";
+    }
+    for (const name in SPELLS) $("spell-" + name).classList.toggle("ready", !!spellReady(name));
+  }
+
+  // ---------- Stats ----------
+  const wpm = () => (G && G.typingTime > 3 ? Math.round((G.correct / 5) / (G.typingTime / 60)) : 0);
+  const acc = () => (G && G.keys ? Math.round((G.correct / G.keys) * 100) : 100);
+  function renderStats() {
+    $("sWpm").textContent = wpm();
+    $("sAcc").textContent = acc() + "%";
+    const best = parseInt(store(bestKey()) || "0", 10);
+    $("sBest").textContent = best ? best.toLocaleString() : "–";
+    if (G) for (const name in SPELLS) $("spell-" + name).classList.toggle("ready", !!spellReady(name));
+  }
+
+  // ---------- Effects ----------
+  function burst(x, y, color, n) {
+    if (reduceMotion) n = Math.min(n, 6);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = 40 + Math.random() * 160;
+      G.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.5 + Math.random() * 0.5, color, size: 2 + Math.random() * 4 });
+    }
+  }
+  function floatText(x, y, text, color) { if (G) G.floats.push({ x, y, text, color, life: 1.2 }); }
+  let announcer = { text: "", until: 0 };
+  function say(text, seconds) { announcer = { text, until: clock + (seconds || 2.5) }; }
+
+  // ---------- Update ----------
+  function update(dt) {
+    clock += dt;
+    shake = Math.max(0, shake - dt);
+    if (!G) return;
+    if (G.mode === "paused" || G.mode === "over") { stepEffects(dt); return; }
+    if (G.mode === "wave") G.typingTime += dt;
+    G.freeze = Math.max(0, G.freeze - dt);
+
+    if (G.mode === "build" && G.wave > 0) {
+      G.buildTimer -= dt;
+      if (G.buildTimer <= 0) startWave();
+    }
+
+    // Spawning, in groups
+    if (G.mode === "wave" && G.queue.length) {
+      G.spawnTimer -= dt;
+      if (G.spawnTimer <= 0) {
+        const type = G.queue.shift();
+        spawn(type);
+        G.groupLeft--;
+        if (TYPES[type].boss) G.spawnTimer = 3;
+        else if (G.groupLeft > 0) G.spawnTimer = 0.55;
+        else { G.groupLeft = groupSize(); G.spawnTimer = Math.max(2.2, 5 - G.wave * 0.2); }
+      }
+    }
+
+    // Monsters walk
+    G.monsters.slice().forEach(m => {
+      if (!m.word && !m.phrase) giveWord(m);
+      m.slow = Math.max(0, m.slow - dt);
+      m.hitFlash = Math.max(0, m.hitFlash - dt);
+      let sp = m.speed;
+      if (m.slow > 0) sp *= 0.55;
+      if (G.freeze > 0) sp *= 0.35;
+      m.d += sp * dt;
+      if (m.type === "treasure" && Math.random() < dt * 8) { const [x, y] = posOf(m); G.particles.push({ x: x + (Math.random() - 0.5) * 16, y: y - 6, vx: 0, vy: -20, life: 0.5, color: "#fff6a8", size: 3 }); }
+      if (leftOf(m) <= 0) {
+        G.monsters = G.monsters.filter(o => o !== m);
+        syncBuffer();
+        const T = TYPES[m.type];
+        if (T.lives === 0) { say("The gold goblin got away with the treasure!", 2); return; }
+        const lost = T.lives || 1;
+        G.lives -= lost;
+        G.combo = 0;
+        shake = 0.35; Sound.hurt();
+        floatText(CASTLE.x, CASTLE.y - 80, "-" + lost + " ❤️", "#ff6b5b");
+        if (G.lives <= 0) endGame(false);
+      }
+    });
+    if (G.mode === "over") return;
+
+    // Towers shoot
+    G.towers.forEach(t => {
+      const T = TOWERS[t.type];
+      t.cool -= dt;
+      const range = T.range * (1 + (t.level - 1) * 0.15);
+      const inRange = G.monsters.filter(m => {
+        if (T.ground && TYPES[m.type].flying) return false;
+        const [x, y] = posOf(m); return dist(t.x, t.y, x, y) <= range;
+      }).sort((a, b) => leftOf(a) - leftOf(b));
+      if (inRange.length) { const [x, y] = posOf(inRange[0]); t.aim = Math.atan2(y - t.y, x - t.x); }
+      if (t.cool > 0 || !inRange.length) return;
+      t.cool = T.rate / (1 + (t.level - 1) * 0.25);
+      const dmg = T.dmg * (1 + (t.level - 1) * 0.6);
+      const m = inRange[0];
+      const [x, y] = posOf(m);
+      if (t.type === "lightning") {
+        const chain = [m];
+        inRange.slice(1).forEach(o => { if (chain.length < T.chain + t.level - 1) chain.push(o); });
+        let px = t.x, py = t.y - 26;
+        chain.forEach(o => { const [ox, oy] = posOf(o); G.bolts.push({ x1: px, y1: py, x2: ox, y2: oy - 6, life: 0.15, color: "#c9a6ff" }); px = ox; py = oy; damage(o, dmg); });
+      } else {
+        G.shots.push({ kind: t.type, x: t.x, y: t.y - 20, target: m, tx: x, ty: y, speed: t.type === "cannon" ? 320 : 520, dmg, level: t.level });
+      }
+      Sound.shoot();
+    });
+
+    // Shots fly
+    G.shots = G.shots.filter(s => {
+      if (s.kind === "meteor") {
+        s.t += dt;
+        if (s.t >= s.dur) {
+          G.monsters.slice().forEach(m => { const [x, y] = posOf(m); if (dist(x, y, s.tx, s.ty) < 110) damage(m, 40); });
+          burst(s.tx, s.ty, "#ff8a3d", 50); burst(s.tx, s.ty, "#f7d659", 30);
+          shake = 0.6; Sound.boom();
+          return false;
+        }
+        return true;
+      }
+      if (G.monsters.includes(s.target)) { const [x, y] = posOf(s.target); s.tx = x; s.ty = y; }
+      const dx = s.tx - s.x, dy = s.ty - s.y, d = Math.hypot(dx, dy), step = s.speed * dt;
+      if (d <= step) {
+        if (s.kind === "cannon") {
+          G.monsters.slice().forEach(m => { if (TYPES[m.type].flying) return; const [x, y] = posOf(m); if (dist(x, y, s.tx, s.ty) < TOWERS.cannon.splash) damage(m, s.dmg); });
+          burst(s.tx, s.ty, "#ffb347", 12);
+        } else if (G.monsters.includes(s.target)) {
+          damage(s.target, s.dmg);
+          if (s.kind === "frost") s.target.slow = 1.2 + s.level * 0.4;
+        }
+        return false;
+      }
+      s.x += dx / d * step; s.y += dy / d * step;
+      return true;
+    });
+
+    // Wave finished?
+    if (G.mode === "wave" && !G.queue.length && !G.monsters.length) {
+      if (!G.endless && G.wave >= CAMPAIGN_WAVES) endGame(true);
+      else {
+        if (G.endless && G.wave >= 20) unlock("endless20");
+        const bonus = 20 + G.wave * 5;
+        G.coins += bonus; G.score += bonus * 10;
+        G.mode = "build"; G.buildTimer = 15;
+        say("Wave " + G.wave + " cleared! +" + bonus + " coins. Build up, then press Enter!", 3.5);
+        $("hint").textContent = "Build or upgrade. The next wave starts in 15 seconds (or press Enter).";
+        renderTyped();
+      }
+    }
+    stepEffects(dt);
+    if (Math.floor(clock * 4) !== Math.floor((clock - dt) * 4)) renderStats();
+  }
+
+  function stepEffects(dt) {
+    G.bolts = G.bolts.filter(b => (b.life -= dt) > 0);
+    G.particles = G.particles.filter(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.92; p.vy *= 0.92; return (p.life -= dt) > 0; });
+    G.floats = G.floats.filter(f => { f.y -= 30 * dt; return (f.life -= dt) > 0; });
+  }
+
+  function endGame(won) {
+    G.mode = "over";
+    G.buf = "";
+    const wavesDone = won ? CAMPAIGN_WAVES : Math.max(0, G.wave - 1);
+    const stars = won ? (G.lives >= 15 ? 3 : G.lives >= 8 ? 2 : 1) : 0;
+    G.score += won ? G.lives * 100 : 0;
+    // Achievements earned at the end
+    if (won) {
+      unlock("first_win");
+      if (G.lives >= 20) unlock("flawless");
+      if (G.lvl.row) unlock("rowwin");
+      const wins = new Set(JSON.parse(store("towertyper-mapwins") || "[]")); wins.add(settings.map);
+      store("towertyper-mapwins", JSON.stringify([...wins]));
+      if (wins.size >= Object.keys(MAPS).length) unlock("allmaps");
+    }
+    if (wavesDone >= 5 && wpm() >= 40) unlock("speed");
+    const prev = parseInt(store(bestKey()) || "0", 10) || 0;
+    const isBest = G.score > prev;
+    if (isBest) store(bestKey(), String(G.score));
+    if (won) Sound.win(); else Sound.lose();
+    $("eTitle").innerHTML = G.endless ? "You survived <em>" + wavesDone + " waves!</em>"
+      : won ? "🏰 The castle is <em>safe!</em>" : "The castle <em>fell</em>…";
+    $("eStars").textContent = won ? "⭐".repeat(stars) + "☆".repeat(3 - stars) : "";
+    $("rScore").textContent = G.score.toLocaleString();
+    $("rWaves").textContent = G.endless ? String(wavesDone) : wavesDone + "/" + CAMPAIGN_WAVES;
+    $("rBest").textContent = Math.max(prev, G.score).toLocaleString();
+    $("rWpm").textContent = wpm();
+    $("rAcc").textContent = acc() + "%";
+    $("rCombo").textContent = G.bestCombo;
+    $("eNote").innerHTML = isBest ? '<span class="best">New best score!</span>'
+      : G.endless ? "Can you survive even longer next time?"
+      : won && stars === 3 ? "Perfect defense! Try a harder level, a new map, or Endless mode."
+      : won ? "Victory! Can you win with 3 stars next time?" : "So close! Build towers early, upgrade your wizard, and use your spells.";
+    $("eAch").hidden = !G.newAch.length;
+    $("eAch").textContent = "🏅 New achievements: " + G.newAch.map(a => a.split(":")[0]).join(", ");
+    $("saveRow").hidden = !settings.teacher;
+    $("endBoardBtn").hidden = !settings.teacher;
+    $("endlessBtn").hidden = G.endless || !won;
+    $("initials").value = "";
+    say(won ? "You saved the castle! What a wizard!" : G.endless ? "What a stand! Great typing!" : "We'll get them next time. Keep practicing!", 4);
+    $("endPanel").hidden = false;
+    $("hint").textContent = won ? "Victory!" : "Game over.";
+    renderTyped(); renderStats();
+    (settings.teacher ? $("initials") : $("againBtn")).focus();
+  }
+
+  // ---------- Building & wizard menu (click a pad, a tower, or the castle) ----------
+  function canvasPoint(e) {
+    const r = canvas.getBoundingClientRect();
+    return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H];
+  }
+  function menuOptions() {
+    const M = G.menu;
+    if (!M) return [];
+    if (M.kind === "build") {
+      return Object.keys(TOWERS).map((type, i) => {
+        const a = -Math.PI / 2 + (i - 1.5) * 0.85;
+        const ox = M.x + Math.cos(a) * 62;
+        const oy = M.y < 90 ? M.y - Math.sin(a) * 62 : M.y + Math.sin(a) * 62;   // pads near the top open their menu below
+        return { x: clamp(ox, 26, W - 26), y: oy, label: TOWERS[type].icon, cost: TOWERS[type].cost, ok: G.coins >= TOWERS[type].cost, action: "build", type };
+      });
+    }
+    if (M.kind === "hero") {
+      return Object.keys(HERO).map((id, i) => {
+        const lvl = G.hero[id], cost = HERO[id].costs[lvl];
+        const spots = [[CASTLE.x - 120, CASTLE.y - 40], [CASTLE.x - 110, CASTLE.y - 110], [CASTLE.x - 50, CASTLE.y - 150]];
+        return { x: spots[i][0], y: spots[i][1], label: HERO[id].icon, cost: lvl < 3 ? cost : null, ok: lvl < 3 && G.coins >= cost, action: "hero", id, level: lvl };
+      });
+    }
+    const t = M.tower, opts = [];
+    const up = M.y < 90 ? 58 : -58;
+    if (t.level < 3) opts.push({ x: M.x - 44, y: M.y + up, label: "⬆️", cost: upgradeCost(t), ok: G.coins >= upgradeCost(t), action: "upgrade" });
+    opts.push({ x: M.x + 44, y: M.y + up, label: "💰", cost: -sellValue(t), ok: true, action: "sell" });
+    return opts;
+  }
+  canvas.addEventListener("click", e => {
+    if (!G || G.mode === "over" || G.mode === "paused") { kb.focus(); return; }
+    const [x, y] = canvasPoint(e);
+    const opt = menuOptions().find(o => dist(o.x, o.y, x, y) < 24);
+    if (opt) {
+      if (opt.ok) doMenu(opt);
+      else floatText(opt.x, opt.y - 26, opt.cost === null ? "Maxed out!" : "Need " + opt.cost + " 🪙", "#ff6b5b");
+      kb.focus(); return;
+    }
+    const tower = G.towers.find(t => dist(t.x, t.y, x, y) < 26);
+    if (tower) { G.menu = { kind: "tower", x: tower.x, y: tower.y, tower }; kb.focus(); return; }
+    const pad = map().pads.find(([px, py]) => dist(px, py, x, y) < 26 && !G.towers.some(t => t.x === px && t.y === py));
+    if (pad) { G.menu = { kind: "build", x: pad[0], y: pad[1] }; kb.focus(); return; }
+    if (Math.abs(x - CASTLE.x) < 60 && y > CASTLE.y - 130 && y < CASTLE.y + 60) { G.menu = { kind: "hero", x: CASTLE.x, y: CASTLE.y }; kb.focus(); return; }
+    G.menu = null;
+    kb.focus();
+  });
+  function doMenu(opt) {
+    const M = G.menu;
+    if (opt.action === "build") {
+      G.coins -= opt.cost;
+      G.towers.push({ type: opt.type, x: M.x, y: M.y, level: 1, cool: 0, aim: 0, spent: opt.cost });
+      floatText(M.x, M.y - 30, TOWERS[opt.type].name + " tower!", "#93e6b8");
+      burst(M.x, M.y, "#f7d659", 16);
+      Sound.build();
+      if (G.towers.length >= 8) unlock("builder");
+    }
+    if (opt.action === "upgrade") {
+      G.coins -= opt.cost; M.tower.level++; M.tower.spent += opt.cost;
+      floatText(M.x, M.y - 30, "Level " + M.tower.level + "!", "#93e6b8");
+      burst(M.x, M.y, "#93e6b8", 16); Sound.build();
+      if (M.tower.level === 3) unlock("maxed");
+    }
+    if (opt.action === "sell") {
+      G.coins += sellValue(M.tower);
+      G.towers = G.towers.filter(t => t !== M.tower);
+      floatText(M.x, M.y - 30, "+" + sellValue(M.tower) + " 🪙", "#f7d659");
+    }
+    if (opt.action === "hero") {
+      G.coins -= opt.cost; G.hero[opt.id]++;
+      floatText(opt.x, opt.y - 30, HERO[opt.id].name + " " + G.hero[opt.id] + "!", "#c9a6ff");
+      burst(CASTLE.x, CASTLE.y - 80, "#c9a6ff", 24); Sound.spell();
+      if (G.hero[opt.id] === 3) unlock("wizard");
+      return;   // keep the wizard menu open so they can buy more
+    }
+    G.menu = null;
+  }
+
+  // ---------- Teacher-mode leaderboard (this computer only, clears daily) ----------
+  function loadBoard() {
+    let b = null;
+    try { b = JSON.parse(store("towertyper-board") || "null"); } catch (e) { b = null; }
+    if (!b || b.date !== today()) b = { date: today(), entries: [] };
+    return b;
+  }
+  function saveBoard(b) { store("towertyper-board", JSON.stringify(b)); }
+  function showBoard() {
+    const rows = loadBoard().entries
+      .filter(e => e.map === settings.map && e.level === settings.level && e.mode === settings.mode)
+      .sort((a, c) => c.score - a.score).slice(0, 10);
+    $("boardSub").textContent = MAPS[settings.map].name + " • " + LEVELS[settings.level].name + " • " + (settings.mode === "endless" ? "Endless" : "Campaign") + " • top scores today";
+    const body = $("boardBody"); body.innerHTML = "";
+    if (!rows.length) { const tr = document.createElement("tr"), td = document.createElement("td"); td.colSpan = 5; td.textContent = "No games yet today. Be the first!"; tr.appendChild(td); body.appendChild(tr); }
+    rows.forEach((e, i) => {
+      const tr = document.createElement("tr");
+      [String(i + 1), e.name, e.score.toLocaleString(), String(e.waves), String(e.wpm)].forEach((v, j) => { const td = document.createElement("td"); td.textContent = v; if (j !== 1) td.className = "n"; tr.appendChild(td); });
+      body.appendChild(tr);
+    });
+    $("boardPanel").hidden = false; $("boardClose").focus();
+  }
+  $("initials").addEventListener("input", e => { e.target.value = e.target.value.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3); });
+  $("initials").addEventListener("keydown", e => { if (e.key === "Enter") $("saveScore").click(); });
+  $("saveScore").addEventListener("click", () => {
+    const name = $("initials").value;
+    if (!G || G.saved || !name) { $("initials").focus(); return; }
+    const b = loadBoard();
+    b.entries.push({ name, score: G.score, waves: G.endless ? Math.max(0, G.wave - 1) : Math.min(G.wave, CAMPAIGN_WAVES), wpm: wpm(), map: settings.map, level: settings.level, mode: settings.mode });
+    saveBoard(b); G.saved = true; $("saveRow").hidden = true; showBoard();
+  });
+  $("boardBtn").addEventListener("click", showBoard);
+  $("endBoardBtn").addEventListener("click", showBoard);
+  $("boardClose").addEventListener("click", () => { $("boardPanel").hidden = true; });
+  $("boardClear").addEventListener("click", () => { if (confirm("Clear today's leaderboard on this computer?")) { saveBoard({ date: today(), entries: [] }); showBoard(); } });
+
+  // ---------- Drawing the map (once per game, reused every frame) ----------
+  const mapCanvas = document.createElement("canvas"); mapCanvas.width = W; mapCanvas.height = H;
+  function drawMap() {
+    const g = mapCanvas.getContext("2d"), mp = map();
+    const grad = g.createLinearGradient(0, 0, 0, H); grad.addColorStop(0, mp.ground[0]); grad.addColorStop(1, mp.ground[1]);
+    g.fillStyle = grad; g.fillRect(0, 0, W, H);
+    let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    for (let i = 0; i < 900; i++) { g.fillStyle = rnd() < 0.5 ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.05)"; g.fillRect(rnd() * W, rnd() * H, 3, 3); }
+    // the road(s)
+    const stroke = (w, color) => mp.routes.forEach(r => { g.strokeStyle = color; g.lineWidth = w; g.lineJoin = "round"; g.lineCap = "round"; g.beginPath(); r.pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); });
+    stroke(56, mp.road[0]); stroke(46, mp.road[1]); stroke(30, mp.road[2]);
+    g.setLineDash([6, 14]); stroke(4, "rgba(0,0,0,.18)"); g.setLineDash([]);
+    // scenery that stays off the road and pads
+    const nearRoad = (x, y, pad) => mp.routes.some(r => r.segs.some(s => {
+      const t = clamp(((x - s.ax) * (s.bx - s.ax) + (y - s.ay) * (s.by - s.ay)) / (s.len * s.len), 0, 1);
+      return dist(x, y, s.ax + (s.bx - s.ax) * t, s.ay + (s.by - s.ay) * t) < pad;
+    })) || mp.pads.some(([px, py]) => dist(px, py, x, y) < 48) || dist(x, y, CASTLE.x, CASTLE.y) < 100;
+    const tree = (x, y, trunk, c1, c2) => {
+      g.fillStyle = "rgba(0,0,0,.18)"; g.beginPath(); g.ellipse(x + 4, y + 12, 16, 6, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = trunk; g.fillRect(x - 3, y, 6, 12);
+      g.fillStyle = c1; g.beginPath(); g.arc(x, y - 6, 15, 0, Math.PI * 2); g.fill();
+      g.fillStyle = c2; g.beginPath(); g.arc(x - 4, y - 10, 9, 0, Math.PI * 2); g.fill();
+    };
+    const pine = (x, y) => {
+      g.fillStyle = "rgba(0,0,0,.12)"; g.beginPath(); g.ellipse(x + 4, y + 12, 14, 5, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#6b4423"; g.fillRect(x - 3, y + 2, 6, 10);
+      [[0, 22], [-10, 17], [-20, 12]].forEach(([dy, half]) => { g.fillStyle = "#1f5e3b"; g.beginPath(); g.moveTo(x, y + dy - 22); g.lineTo(x + half, y + dy + 4); g.lineTo(x - half, y + dy + 4); g.fill(); });
+      g.fillStyle = "#fff"; g.beginPath(); g.moveTo(x, y - 42); g.lineTo(x + 5, y - 33); g.lineTo(x - 5, y - 33); g.fill();
+    };
+    const rock = (x, y, c1, c2) => { g.fillStyle = c1; g.beginPath(); g.ellipse(x, y, 10, 7, 0, 0, Math.PI * 2); g.fill(); g.fillStyle = c2; g.beginPath(); g.ellipse(x - 3, y - 2, 5, 3, 0, 0, Math.PI * 2); g.fill(); };
+    for (let i = 0; i < 75; i++) {
+      const x = rnd() * W, y = rnd() * H, k = rnd();
+      if (nearRoad(x, y, 46)) continue;
+      if (mp.scenery === "meadow") {
+        if (k < 0.45) tree(x, y, "#6b4423", "#2f7a35", "#3f9a45");
+        else if (k < 0.7) rock(x, y, "#8a8496", "#a8a2b4");
+        else ["#f7d659", "#ff8fa3", "#ffffff"].forEach((c, j) => { g.fillStyle = c; g.beginPath(); g.arc(x + j * 6 - 6, y + (j % 2) * 4, 2.5, 0, Math.PI * 2); g.fill(); });
+      } else if (mp.scenery === "autumn") {
+        if (k < 0.55) tree(x, y, "#6b4423", pick(["#e0702b", "#d8432f", "#e8b02a"]), pick(["#f2a03d", "#f5c431"]));
+        else if (k < 0.75) rock(x, y, "#8a8496", "#a8a2b4");
+        else { g.fillStyle = "#e8812b"; g.beginPath(); g.ellipse(x, y, 9, 7, 0, 0, Math.PI * 2); g.fill(); g.fillStyle = "#3f7a35"; g.fillRect(x - 1, y - 10, 3, 5); }
+      } else if (mp.scenery === "snow") {
+        if (k < 0.55) pine(x, y);
+        else if (k < 0.7) { g.fillStyle = "#fff"; g.beginPath(); g.arc(x, y, 9, 0, Math.PI * 2); g.arc(x, y - 13, 6, 0, Math.PI * 2); g.fill(); g.fillStyle = "#f28c28"; g.fillRect(x, y - 14, 5, 2); }
+        else { g.fillStyle = "rgba(170,210,240,.6)"; g.beginPath(); g.ellipse(x, y, 18, 8, 0, 0, Math.PI * 2); g.fill(); }
+      } else if (mp.scenery === "volcano") {
+        if (k < 0.3) { const lg = g.createRadialGradient(x, y, 2, x, y, 22); lg.addColorStop(0, "#ffd36b"); lg.addColorStop(0.5, "#ff6a2b"); lg.addColorStop(1, "rgba(255,80,30,0)"); g.fillStyle = lg; g.beginPath(); g.ellipse(x, y, 24, 14, 0, 0, Math.PI * 2); g.fill(); }
+        else if (k < 0.7) rock(x, y, "#2b2220", "#4a3b37");
+        else { g.strokeStyle = "#2b2220"; g.lineWidth = 3; g.beginPath(); g.moveTo(x, y + 10); g.lineTo(x, y - 12); g.moveTo(x, y - 4); g.lineTo(x - 8, y - 12); g.moveTo(x, y - 8); g.lineTo(x + 7, y - 15); g.stroke(); }
+      }
+    }
+    // stone build pads
+    mp.pads.forEach(([x, y]) => {
+      g.fillStyle = "rgba(0,0,0,.2)"; g.beginPath(); g.ellipse(x + 2, y + 4, 26, 12, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#8a8496"; g.beginPath(); g.arc(x, y, 23, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#a8a2b4"; g.beginPath(); g.arc(x, y, 18, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#8a8496"; g.lineWidth = 2; g.beginPath(); g.moveTo(x - 18, y); g.lineTo(x + 18, y); g.moveTo(x, y - 18); g.lineTo(x, y + 18); g.stroke();
+    });
+  }
+
+  // ---------- Drawing each frame ----------
+  function drawFace(x, y, r) {
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = "#f8eed6"; ctx.fill(); ctx.clip();
+    if (face.complete && face.naturalWidth) ctx.drawImage(face, x - r * 1.05, y - r * 1.15, r * 2.1, r * 2.7);
+    ctx.restore();
+  }
+  function drawCastle() {
+    const { x, y } = CASTLE;
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x, y + 52, 60, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#b9b2cc"; ctx.fillRect(x - 46, y - 40, 92, 90);
+    ctx.fillStyle = "#a39bba";
+    [[-58, -70], [34, -70]].forEach(([dx, dy]) => { ctx.fillRect(x + dx, y + dy, 24, 120); for (let i = 0; i < 3; i++) ctx.fillRect(x + dx + i * 9, y + dy - 10, 6, 10); });
+    for (let i = 0; i < 6; i++) ctx.fillRect(x - 46 + i * 17, y - 50, 10, 10);
+    ctx.fillStyle = "#5e3d22"; ctx.beginPath(); ctx.moveTo(x - 16, y + 50); ctx.lineTo(x - 16, y + 18); ctx.arc(x, y + 18, 16, Math.PI, 0); ctx.lineTo(x + 16, y + 50); ctx.fill();
+    [[-46, -80], [46, -80]].forEach(([dx, dy]) => {
+      ctx.fillStyle = "#5e3d22"; ctx.fillRect(x + dx - 1, y + dy - 26, 2, 26);
+      ctx.fillStyle = "#2e7d4a"; ctx.beginPath(); ctx.moveTo(x + dx + 1, y + dy - 26); ctx.lineTo(x + dx + 18 + Math.sin(clock * 4) * 3, y + dy - 20); ctx.lineTo(x + dx + 1, y + dy - 14); ctx.fill();
+    });
+    // Mr. Watford the wizard
+    const wy = y - 72;
+    ctx.fillStyle = "#4a2d8a"; ctx.beginPath(); ctx.moveTo(x - 20, wy + 4); ctx.lineTo(x + 20, wy + 4); ctx.lineTo(x, wy - 46); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#f7d659"; ctx.font = "14px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("★", x + 2, wy - 18);
+    drawFace(x, wy + 18, 17);
+    ctx.strokeStyle = "#f7d659"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, wy + 18, 17, 0, Math.PI * 2); ctx.stroke();
+    const glow = G && G.bolts.some(b => !b.color) ? 1 : 0.4 + 0.2 * Math.sin(clock * 4);
+    ctx.fillStyle = "#7a4b25"; ctx.fillRect(x - 32, wy - 6, 4, 44);
+    ctx.fillStyle = "rgba(247,214,89," + glow + ")"; ctx.beginPath(); ctx.arc(x - 30, wy - 10, 7, 0, Math.PI * 2); ctx.fill();
+    // wizard power pips
+    if (G) {
+      const lv = G.hero.power + G.hero.double + G.hero.mana;
+      for (let i = 0; i < lv; i++) { ctx.fillStyle = "#c9a6ff"; ctx.beginPath(); ctx.arc(x - 40 + (i % 9) * 10, y + 62, 3.5, 0, Math.PI * 2); ctx.fill(); }
+    }
+  }
+
+  function drawTower(t) {
+    const T = TOWERS[t.type], { x, y } = t;
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x + 3, y + 8, 22, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = T.color; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x - 16, y - 26, 32, 34, 5); else ctx.rect(x - 16, y - 26, 32, 34); ctx.fill();
+    if (t.type === "cannon") {
+      ctx.save(); ctx.translate(x, y - 22); ctx.rotate(t.aim); ctx.fillStyle = "#1d1d24"; ctx.fillRect(0, -6, 26, 12); ctx.restore();
+      ctx.fillStyle = T.roof; ctx.beginPath(); ctx.arc(x, y - 22, 11, 0, Math.PI * 2); ctx.fill();
+    } else if (t.type === "frost") {
+      ctx.fillStyle = T.roof; ctx.beginPath(); ctx.moveTo(x, y - 54); ctx.lineTo(x + 12, y - 30); ctx.lineTo(x, y - 22); ctx.lineTo(x - 12, y - 30); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.beginPath(); ctx.moveTo(x, y - 50); ctx.lineTo(x + 4, y - 34); ctx.lineTo(x, y - 28); ctx.fill();
+    } else if (t.type === "lightning") {
+      ctx.fillStyle = "#3a2a5a"; ctx.fillRect(x - 3, y - 48, 6, 24);
+      ctx.fillStyle = T.roof; ctx.beginPath(); ctx.arc(x, y - 50, 9 + Math.sin(clock * 8) * 1.5, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = T.roof; ctx.beginPath(); ctx.moveTo(x - 20, y - 24); ctx.lineTo(x + 20, y - 24); ctx.lineTo(x, y - 48); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#3a2a1a"; ctx.fillRect(x - 3, y - 18, 6, 10);
+    }
+    for (let i = 0; i < t.level; i++) { ctx.fillStyle = "#f7d659"; ctx.beginPath(); ctx.arc(x - 8 + i * 8, y + 2, 3, 0, Math.PI * 2); ctx.fill(); }
+  }
+
+  function drawMonster(m) {
+    const T = TYPES[m.type];
+    const [x, y0] = posOf(m);
+    const bob = Math.sin(clock * (T.flying ? 8 : 10) + m.wobble) * (T.flying ? 5 : 2);
+    const y = y0 + (T.flying ? -14 : 0) + bob, s = T.size;
+    ctx.save();
+    ctx.fillStyle = T.flying ? "rgba(0,0,0,.15)" : "rgba(0,0,0,.22)";
+    ctx.beginPath(); ctx.ellipse(x, y0 + (T.flying ? 10 : s * 0.7), s * (T.flying ? 0.7 : 0.9), s * (T.flying ? 0.22 : 0.3), 0, 0, Math.PI * 2); ctx.fill();
+    const body = m.hitFlash > 0 ? "#ffffff" : T.color;
+    const eye = (ex, ey, r) => { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ex, ey, r, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#1d1d1d"; ctx.beginPath(); ctx.arc(ex + r * 0.25, ey, r * 0.5, 0, Math.PI * 2); ctx.fill(); };
+    if (m.type === "goblin" || m.type === "runner" || m.type === "giant" || m.type === "treasure") {
+      ctx.fillStyle = body;
+      ctx.beginPath(); ctx.moveTo(x - s * 0.7, y - s * 0.3); ctx.lineTo(x - s * 1.25, y - s * 0.9); ctx.lineTo(x - s * 0.4, y - s * 0.7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x + s * 0.7, y - s * 0.3); ctx.lineTo(x + s * 1.25, y - s * 0.9); ctx.lineTo(x + s * 0.4, y - s * 0.7); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill();
+      eye(x - s * 0.35, y - s * 0.15, s * 0.28); eye(x + s * 0.35, y - s * 0.15, s * 0.28);
+      ctx.strokeStyle = "#1d1d1d"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y + s * 0.25, s * 0.35, 0.2, Math.PI - 0.2); ctx.stroke();
+      if (m.type === "giant") { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(x - s * 0.25, y + s * 0.35); ctx.lineTo(x - s * 0.12, y + s * 0.65); ctx.lineTo(x, y + s * 0.38); ctx.lineTo(x + s * 0.12, y + s * 0.65); ctx.lineTo(x + s * 0.25, y + s * 0.35); ctx.fill(); ctx.fillStyle = "#6b4423"; ctx.fillRect(x + s * 0.8, y - s * 0.6, s * 0.25, s * 1.4); }
+      if (m.type === "runner" || m.type === "treasure") { ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.lineWidth = 2; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(x - s * 1.4 - i * 4, y - 6 + i * 6); ctx.lineTo(x - s * 2.2 - i * 4, y - 6 + i * 6); ctx.stroke(); } }
+      if (m.type === "treasure") { ctx.fillStyle = "#7a4b25"; ctx.beginPath(); ctx.ellipse(x + s * 0.9, y + s * 0.4, s * 0.55, s * 0.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#f7d659"; ctx.font = "700 " + s + "px Fredoka"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("$", x + s * 0.9, y + s * 0.45); }
+    } else if (m.type === "knight") {
+      ctx.fillStyle = body; ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#6c7480"; ctx.fillRect(x - s * 0.7, y - s * 0.25, s * 1.4, s * 0.3);
+      ctx.fillStyle = "#1d1d1d"; ctx.fillRect(x - s * 0.5, y - s * 0.17, s * 1.0, s * 0.12);
+      ctx.fillStyle = "#d8432f"; ctx.beginPath(); ctx.moveTo(x, y - s); ctx.lineTo(x - s * 0.2, y - s * 1.5); ctx.lineTo(x + s * 0.35, y - s * 1.3); ctx.fill();
+      ctx.fillStyle = "#2f6fc4"; ctx.fillRect(x - s * 1.35, y - s * 0.1, s * 0.6, s * 0.9);
+      ctx.fillStyle = "#f7d659"; ctx.fillRect(x - s * 1.1, y + s * 0.1, s * 0.1, s * 0.5);
+    } else if (m.type === "bat") {
+      const flap = Math.sin(clock * 18 + m.wobble) * 0.5;
+      ctx.fillStyle = body;
+      [-1, 1].forEach(sd => { ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + sd * s * 1.4, y - s * (1.2 + flap), x + sd * s * 2.2, y - s * 0.2); ctx.quadraticCurveTo(x + sd * s * 1.4, y + s * 0.1, x, y + s * 0.3); ctx.fill(); });
+      ctx.beginPath(); ctx.arc(x, y, s * 0.75, 0, Math.PI * 2); ctx.fill();
+      eye(x - s * 0.25, y - s * 0.1, s * 0.2); eye(x + s * 0.25, y - s * 0.1, s * 0.2);
+    } else if (m.type === "slime" || m.type === "mini") {
+      const squish = 1 + Math.sin(clock * 8 + m.wobble) * 0.08;
+      ctx.fillStyle = body; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.ellipse(x, y + s * 0.2, s * 1.1 * squish, s * 0.85 / squish, 0, Math.PI, 0); ctx.lineTo(x + s * 1.1 * squish, y + s * 0.6); ctx.lineTo(x - s * 1.1 * squish, y + s * 0.6); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(x - s * 0.4, y - s * 0.2, s * 0.2, s * 0.12, -0.5, 0, Math.PI * 2); ctx.fill();
+      eye(x - s * 0.3, y + s * 0.05, s * 0.2); eye(x + s * 0.3, y + s * 0.05, s * 0.2);
+    } else if (m.type === "golem") {
+      const stone = m.hitFlash > 0 ? "#fff" : "#8a8496";
+      ctx.fillStyle = stone;
+      ctx.beginPath(); ctx.moveTo(x - s, y + s * 0.6); ctx.lineTo(x - s * 1.1, y - s * 0.3); ctx.lineTo(x - s * 0.5, y - s * 0.95); ctx.lineTo(x + s * 0.5, y - s * 0.95); ctx.lineTo(x + s * 1.1, y - s * 0.3); ctx.lineTo(x + s, y + s * 0.6); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#6b6576"; [[-0.6, 0.1], [0.5, -0.2], [0, 0.4]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(x + dx * s, y + dy * s, s * 0.18, 0, Math.PI * 2); ctx.fill(); });
+      ctx.fillStyle = "#93e6b8"; ctx.shadowColor = "#93e6b8"; ctx.shadowBlur = 10;
+      ctx.fillRect(x - s * 0.45, y - s * 0.5, s * 0.3, s * 0.14); ctx.fillRect(x + s * 0.15, y - s * 0.5, s * 0.3, s * 0.14); ctx.shadowBlur = 0;
+      ctx.fillStyle = stone; ctx.fillRect(x - s * 1.5, y - s * 0.2, s * 0.45, s * 0.8); ctx.fillRect(x + s * 1.05, y - s * 0.2, s * 0.45, s * 0.8);
+    } else if (m.type === "gradebook") {
+      // a wobbly stack of grade books with Mr. Watford's face on top
+      const cols = ["#2f6fc4", "#d8432f", "#2e7d4a", "#f5c431"];
+      cols.forEach((c, i) => {
+        ctx.fillStyle = m.hitFlash > 0 ? "#fff" : c;
+        const bw = s * (1.9 - i * 0.15), by = y + s * 0.5 - i * s * 0.36, tilt = Math.sin(clock * 3 + i) * 3;
+        ctx.save(); ctx.translate(x + tilt, by); ctx.fillRect(-bw / 2, -s * 0.18, bw, s * 0.34); ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.fillRect(-bw / 2 + 4, -s * 0.06, bw - 8, 3); ctx.restore();
+      });
+      ctx.fillStyle = "#fff"; ctx.font = "700 " + s * 0.32 + "px Fredoka"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("A+", x + s * 0.55, y + s * 0.15);
+      drawFace(x, y - s * 0.95, s * 0.5);
+      ctx.strokeStyle = "#f5c431"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y - s * 0.95, s * 0.5, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = "#1d1d1d"; ctx.lineWidth = 2; [-1, 1].forEach(sd => { ctx.beginPath(); ctx.moveTo(x + sd * s * 0.95, y + s * 0.1); ctx.lineTo(x + sd * s * 1.45, y - s * 0.25 + Math.sin(clock * 6 + sd) * 4); ctx.stroke(); });
+    } else if (m.type === "dragon") {
+      const flap = Math.sin(clock * 5) * 0.4;
+      ctx.fillStyle = m.hitFlash > 0 ? "#fff" : "#a8322a";
+      [-1, 1].forEach(sd => { ctx.beginPath(); ctx.moveTo(x + sd * s * 0.3, y - s * 0.2); ctx.lineTo(x + sd * s * 2.0, y - s * (1.3 + flap)); ctx.lineTo(x + sd * s * 1.7, y + s * 0.1); ctx.lineTo(x + sd * s * 1.2, y - s * 0.2); ctx.lineTo(x + sd * s * 1.0, y + s * 0.3); ctx.closePath(); ctx.fill(); });
+      ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(x, y, s * 0.85, s * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#f7d659"; [-0.4, 0, 0.4].forEach(o => { ctx.beginPath(); ctx.moveTo(x + o * s - 5, y - s * 0.6); ctx.lineTo(x + o * s, y - s * 0.95); ctx.lineTo(x + o * s + 5, y - s * 0.6); ctx.fill(); });
+      eye(x - s * 0.3, y - s * 0.15, s * 0.17); eye(x + s * 0.3, y - s * 0.15, s * 0.17);
+      ctx.fillStyle = "#ffb347"; if (Math.sin(clock * 3) > 0.3) { ctx.beginPath(); ctx.moveTo(x - 6, y + s * 0.4); ctx.lineTo(x + 6, y + s * 0.4); ctx.lineTo(x, y + s * 0.4 + 18 + Math.random() * 8); ctx.fill(); }
+    }
+    if (G.freeze > 0 || m.slow > 0) { ctx.fillStyle = "rgba(170,220,255,.35)"; ctx.beginPath(); ctx.arc(x, y, s * 1.15, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+    if (m.hp < m.maxHp) {
+      const bw = Math.max(24, s * 2);
+      ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(x - bw / 2, y - s - 14, bw, 5);
+      ctx.fillStyle = "#93e6b8"; ctx.fillRect(x - bw / 2, y - s - 14, bw * Math.max(0, m.hp / m.maxHp), 5);
+    }
+    return [x, y - s - (m.hp < m.maxHp ? 18 : 10) - (m.type === "gradebook" ? s * 0.5 : 0)];
+  }
+
+  // Place every word label, nudging labels apart so they never overlap (or hide behind the score bar)
+  function layoutTags(list) {
+    const placed = [{ x: 10, y: 10, w: 460, h: 44, hud: true }, { x: W - 190, y: 10, w: 180, h: 44, hud: true }];
+    list.filter(([m]) => m.word && onMap(m)).sort((a, b) => leftOf(a[0]) - leftOf(b[0])).forEach(([m, [x, y]]) => {
+      const big = TYPES[m.type].words === "phrase";
+      ctx.font = "600 " + (big ? 22 : 17) + "px Fredoka";
+      const tw = ctx.measureText(m.word).width + 14, th = big ? 28 : 24;
+      const r = { m, ax: x, ay: y, w: tw, h: th, x: clamp(x - tw / 2, 2, W - tw - 2), y: y - th, big };
+      const hits = () => placed.some(p => r.x < p.x + p.w + 2 && r.x + r.w + 2 > p.x && r.y < p.y + p.h + 2 && r.y + r.h + 2 > p.y);
+      for (let i = 0; i < 8 && hits(); i++) {
+        const up = y - th - (i + 1) * (th + 3), down = y + 20 + i * (th + 3);
+        r.y = up > 58 + (big ? 16 : 0) ? up : down;
+      }
+      placed.push(r);
+    });
+    return placed.filter(p => !p.hud);
+  }
+
+  function drawWordTag(r) {
+    const m = r.m;
+    const typed = G.buf && m.word.startsWith(G.buf) ? G.buf.length : 0;
+    ctx.font = "600 " + (r.big ? 22 : 17) + "px Fredoka";
+    if (Math.abs(r.y + r.h - r.ay) > 4) {
+      ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(clamp(r.ax, r.x + 6, r.x + r.w - 6), r.y > r.ay ? r.y : r.y + r.h); ctx.lineTo(r.ax, r.ay); ctx.stroke();
+    }
+    ctx.fillStyle = typed ? "rgba(40,30,10,.92)" : m.type === "treasure" ? "rgba(90,70,0,.9)" : "rgba(20,16,40,.82)";
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 8); else ctx.rect(r.x, r.y, r.w, r.h); ctx.fill();
+    if (typed) { ctx.strokeStyle = "#f7d659"; ctx.lineWidth = 2; ctx.stroke(); }
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    const done = m.word.slice(0, typed), rest = m.word.slice(typed);
+    ctx.fillStyle = "#93e6b8"; ctx.fillText(done, r.x + 7, r.y + r.h / 2 + 1);
+    ctx.fillStyle = r.big ? "#ffb3a8" : m.type === "treasure" ? "#ffe680" : "#ffffff";
+    ctx.fillText(rest, r.x + 7 + ctx.measureText(done).width, r.y + r.h / 2 + 1);
+    if (m.phrase) {
+      ctx.font = "700 12px Nunito Sans"; ctx.fillStyle = "#ffb3a8"; ctx.textAlign = "center";
+      ctx.fillText("Word " + (m.phrase.idx + 1) + " of " + m.phrase.words.length, r.x + r.w / 2, r.y < 80 ? r.y + r.h + 12 : r.y - 10);
+    }
+  }
+
+  function drawBolt(b) {
+    ctx.strokeStyle = b.color || "#fff6a8"; ctx.lineWidth = b.color ? 2.5 : 4;
+    ctx.shadowColor = b.color || "#f7d659"; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.moveTo(b.x1, b.y1);
+    for (let i = 1; i < 7; i++) { const t = i / 7; ctx.lineTo(b.x1 + (b.x2 - b.x1) * t + (Math.random() - 0.5) * 22, b.y1 + (b.y2 - b.y1) * t + (Math.random() - 0.5) * 22); }
+    ctx.lineTo(b.x2, b.y2); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  function hudBox(x, y, w, h) { ctx.fillStyle = "rgba(20,16,40,.78)"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, 12); else ctx.rect(x, y, w, h); ctx.fill(); }
+
+  function drawHud() {
+    ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    hudBox(10, 10, 460, 44);
+    ctx.font = "600 20px Fredoka";
+    ctx.fillStyle = "#ff8fa3"; ctx.fillText("❤️ " + Math.max(0, G.lives), 22, 32);
+    ctx.fillStyle = "#f7d659"; ctx.fillText("🪙 " + G.coins, 102, 32);
+    ctx.fillStyle = "#fff"; ctx.fillText(G.endless ? "Wave " + Math.max(1, G.wave) + " ♾️" : "Wave " + Math.max(1, G.wave) + "/" + CAMPAIGN_WAVES, 196, 32);
+    ctx.fillStyle = "#c9a6ff"; ctx.font = "800 11px Nunito Sans"; ctx.fillText("MANA", 318, 25);
+    ctx.fillStyle = "rgba(255,255,255,.15)"; ctx.fillRect(318, 34, 138, 9);
+    ctx.fillStyle = "#c9a6ff"; ctx.fillRect(318, 34, 138 * G.mana / 100, 9);
+    if (G.combo >= 3) {
+      const mult = comboMult();
+      hudBox(W - 190, 10, 180, 44);
+      ctx.fillStyle = mult > 1 ? "#ffb347" : "#fff"; ctx.font = "600 20px Fredoka"; ctx.textAlign = "center";
+      ctx.fillText("🔥 Combo " + G.combo + (mult > 1 ? "  x" + mult : ""), W - 100, 32);
+    }
+    if (G.mode === "build") {
+      ctx.textAlign = "center"; hudBox(W / 2 - 185, H - 60, 370, 44);
+      ctx.fillStyle = G.wave ? "#93e6b8" : "#f7d659"; ctx.font = "600 18px Fredoka";
+      ctx.fillText(G.wave ? "Next wave in " + Math.ceil(G.buildTimer) + "… (Enter = go now)" : "Click a pad to build • Enter = start wave 1", W / 2, H - 38);
+    }
+    if (G.freeze > 0) { ctx.fillStyle = "rgba(170,220,255," + Math.min(0.18, G.freeze * 0.05) + ")"; ctx.fillRect(0, 0, W, H); }
+    if (G.banner && G.banner.until > clock) {
+      ctx.font = "700 20px Fredoka"; ctx.textAlign = "center";
+      const tw = ctx.measureText(G.banner.text).width + 36;
+      ctx.globalAlpha = Math.min(1, (G.banner.until - clock) * 2);
+      const by = H - 116;
+      ctx.fillStyle = "rgba(90,60,0,.92)"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(W / 2 - tw / 2, by, tw, 40, 20); else ctx.rect(W / 2 - tw / 2, by, tw, 40); ctx.fill();
+      ctx.strokeStyle = "#f7d659"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = "#ffe680"; ctx.fillText(G.banner.text, W / 2, by + 21);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawMenu() {
+    const M = G.menu; if (!M) return;
+    if (M.kind === "tower") {
+      const T = TOWERS[M.tower.type];
+      ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(M.x, M.y, T.range * (1 + (M.tower.level - 1) * 0.15), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      hudBox(M.x - 64, M.y + 14, 128, 22); ctx.font = "700 13px Nunito Sans"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
+      ctx.fillText(T.name + " • Level " + M.tower.level, M.x, M.y + 25);
+    }
+    if (M.kind === "hero") {
+      hudBox(CASTLE.x - 250, CASTLE.y + 70, 250, 26); ctx.font = "700 13px Nunito Sans"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#c9a6ff";
+      ctx.fillText("🧙 Wizard powers (click to upgrade)", CASTLE.x - 125, CASTLE.y + 83);
+    }
+    menuOptions().forEach(o => {
+      ctx.fillStyle = o.ok ? "rgba(38,32,70,.95)" : "rgba(60,30,40,.9)";
+      ctx.strokeStyle = o.ok ? "#f7d659" : o.cost === null ? "#93e6b8" : "#ff6b5b"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(o.x, o.y, 22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.font = "20px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff"; ctx.fillText(o.label, o.x, o.y - 2);
+      ctx.font = "700 11px Nunito Sans";
+      if (o.action === "hero") {
+        ctx.fillStyle = "#fff"; ctx.fillText(HERO[o.id].name + " " + o.level + "/3", o.x, o.y - 31);
+        ctx.fillStyle = o.cost === null ? "#93e6b8" : o.ok ? "#f7d659" : "#ff6b5b"; ctx.fillText(o.cost === null ? "MAX" : o.cost + "🪙", o.x, o.y + 31);
+      } else {
+        ctx.fillStyle = o.cost < 0 ? "#93e6b8" : o.ok ? "#f7d659" : "#ff6b5b";
+        ctx.fillText((o.cost < 0 ? "+" + -o.cost : o.cost) + "🪙", o.x, o.y + 31);
+      }
+    });
+  }
+
+  function drawAnnouncer() {
+    if (!announcer.text || announcer.until < clock) return;
+    ctx.font = "700 18px Nunito Sans"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    const tw = ctx.measureText(announcer.text).width;
+    const bw = tw + 100, bx = clamp(W / 2 - bw / 2, 6, W - bw - 6), by = 72;
+    ctx.globalAlpha = Math.min(1, (announcer.until - clock) * 2);
+    ctx.fillStyle = "rgba(34,36,38,.9)"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw, 50, 12); else ctx.rect(bx, by, bw, 50); ctx.fill();
+    ctx.fillStyle = "#2f6fc4"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx + 68, by - 10, 112, 20, 10); else ctx.rect(bx + 68, by - 10, 112, 20); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "800 11px Nunito Sans"; ctx.fillText("MR. WATFORD", bx + 82, by + 4);
+    ctx.font = "700 18px Nunito Sans"; ctx.fillText(announcer.text, bx + 76, by + 33);
+    drawFace(bx + 34, by + 24, 28);
+    ctx.strokeStyle = "#f7d659"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(bx + 34, by + 24, 28, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Embers (volcano) and snowflakes (Frost Peak), placed so they don't flicker
+  const EMBERS = Array.from({ length: 50 }, (_, i) => ({ x: (i * 211) % W, y: (i * 137) % H, v: 20 + (i % 5) * 10 }));
+  function drawWeather() {
+    const mp = map();
+    if (mp.embers) EMBERS.forEach(e => { const y = ((e.y - clock * e.v) % H + H) % H, x = e.x + Math.sin(clock + e.x) * 8; ctx.fillStyle = "rgba(255," + (120 + (e.x % 80)) + ",40,.8)"; ctx.fillRect(x, y, 3, 3); });
+    if (mp.snowfall) EMBERS.forEach(e => { const y = (e.y + clock * e.v * 1.5) % H, x = (e.x + Math.sin(clock + e.x) * 12 + W) % W; ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.beginPath(); ctx.arc(x, y, 2 + (e.x % 3) * 0.6, 0, Math.PI * 2); ctx.fill(); });
+  }
+
+  function render() {
+    ctx.save();
+    if (shake > 0 && !reduceMotion) ctx.translate((Math.random() - 0.5) * 12 * shake, (Math.random() - 0.5) * 12 * shake);
+    ctx.drawImage(mapCanvas, 0, 0);
+    drawCastle();
+    if (G) {
+      G.towers.slice().sort((a, b) => a.y - b.y).forEach(drawTower);
+      const tags = G.monsters.slice().sort((a, b) => posOf(a)[1] - posOf(b)[1]).map(m => [m, drawMonster(m)]);
+      G.shots.forEach(s => {
+        if (s.kind === "meteor") {
+          const p = s.t / s.dur, mx = s.x + (s.tx - s.x) * p, my = s.y + (s.ty - s.y) * p;
+          ctx.fillStyle = "rgba(255,138,61,.4)"; ctx.beginPath(); ctx.arc(s.tx, s.ty, 110 * p, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.arc(mx, my, 22, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#f7d659"; ctx.beginPath(); ctx.arc(mx - 4, my - 4, 11, 0, Math.PI * 2); ctx.fill();
+          return;
+        }
+        ctx.fillStyle = s.kind === "frost" ? "#bfe6ff" : s.kind === "cannon" ? "#1d1d24" : "#7a4b25";
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.kind === "cannon" ? 6 : 3.5, 0, Math.PI * 2); ctx.fill();
+      });
+      G.bolts.forEach(drawBolt);
+      G.particles.forEach(p => { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); });
+      ctx.globalAlpha = 1;
+      drawWeather();
+      layoutTags(tags).forEach(drawWordTag);
+      G.floats.forEach(f => { ctx.globalAlpha = Math.min(1, f.life * 1.5); ctx.font = "700 16px Fredoka"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#1d1d1d"; ctx.fillText(f.text, f.x + 1, f.y + 1); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y); });
+      ctx.globalAlpha = 1;
+      drawMenu();
+      drawHud();
+    } else drawWeather();
+    ctx.restore();
+    drawAnnouncer();
+  }
+
+  // ---------- Main loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    update(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Menus & buttons ----------
+  function syncChoices() {
+    ["mode", "level", "map"].forEach(group => document.querySelectorAll('[data-group="' + group + '"] .choice').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === settings[group]))));
+    $("teacherToggle").checked = settings.teacher;
+    $("boardBtn").hidden = !settings.teacher;
+    renderStats();
+  }
+  document.querySelectorAll("[data-group] .choice").forEach(b => b.addEventListener("click", () => {
+    const group = b.closest("[data-group]").dataset.group;
+    settings[group] = b.dataset.value;
+    store("towertyper-" + group, b.dataset.value);
+    if (group === "map") drawMap();
+    syncChoices();
+  }));
+  $("teacherToggle").addEventListener("change", e => { settings.teacher = e.target.checked; store("towertyper-teacher", settings.teacher ? "1" : "0"); syncChoices(); });
+  function updateSoundBtn() { $("soundBtn").textContent = Sound.on ? "🔊 Sound on" : "🔇 Sound off"; $("soundBtn").setAttribute("aria-pressed", String(Sound.on)); }
+  $("soundBtn").addEventListener("click", () => { Sound.on = !Sound.on; store("towertyper-sound", Sound.on ? "1" : "0"); if (Sound.on) { Sound.init(); Sound.build(); } updateSoundBtn(); if (G) kb.focus(); });
+  function pause() { if (!G || (G.mode !== "wave" && G.mode !== "build")) return; G.resumeMode = G.mode; G.mode = "paused"; $("pausePanel").hidden = false; $("resumeBtn").focus(); }
+  function resume() { if (!G || G.mode !== "paused") return; G.mode = G.resumeMode; $("pausePanel").hidden = true; kb.focus(); }
+  function toMenu() { G = null; ["pausePanel", "endPanel", "boardPanel"].forEach(id => $(id).hidden = true); $("startPanel").hidden = false; $("screen").classList.add("menu-open"); renderTyped(); renderAchievements(); syncChoices(); $("startBtn").focus(); }
+
+  kb.addEventListener("input", () => { const v = kb.value; kb.value = ""; for (const ch of v) if (/[a-z]/i.test(ch)) handleChar(ch.toLowerCase()); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { if (G && G.mode === "paused") resume(); else if (G && G.menu) G.menu = null; else pause(); return; }
+    if (!G || (G.mode !== "wave" && G.mode !== "build")) return;
+    if (e.key === "Enter") { e.preventDefault(); if (G.mode === "build") startWave(); return; }
+    if (e.key === "Backspace") { e.preventDefault(); G.buf = G.buf.slice(0, -1); renderTyped(); return; }
+    if (document.activeElement !== kb && e.key.length === 1 && /[a-z]/i.test(e.key) && !e.ctrlKey && !e.metaKey) { e.preventDefault(); handleChar(e.key.toLowerCase()); kb.focus(); }
+  });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+  $("startBtn").addEventListener("click", newGame);
+  $("againBtn").addEventListener("click", newGame);
+  $("endlessBtn").addEventListener("click", () => { settings.mode = "endless"; store("towertyper-mode", "endless"); syncChoices(); newGame(); });
+  $("menuBtn").addEventListener("click", toMenu);
+  $("resumeBtn").addEventListener("click", resume);
+  $("quitBtn").addEventListener("click", toMenu);
+  $("pauseBtn").addEventListener("click", () => (G && G.mode === "paused" ? resume() : pause()));
+
+  drawMap(); syncChoices(); updateSoundBtn(); renderTyped(); renderAchievements();
+  // Lets the teacher (or a test) peek at the game from the browser console
+  window.__tower = { get state() { return G; }, startWave: () => startWave(), spawn: (type, at) => spawn(type, at), MAPS, TOWERS, HERO, settings, CASTLE };
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>

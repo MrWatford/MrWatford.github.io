@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<!--
+  ============ HOW TO USE THIS TEMPLATE ============
+  1. Copy this file into the "math" folder.
+  2. Rename it with the section number and title, using dashes and no spaces
+     (for example: 3-3-subtracting-integers.html).
+  3. Replace everything in [SQUARE BRACKETS], including the whiteboard text in the scene.
+  4. Practice problems: each one looks like this:
+       <div class="problem" data-answer="ANSWER" data-hint="HINT">
+         <span class="q">QUESTION</span>
+       </div>
+     - Students type negatives with the regular minus key; "-7" and "−7" both count.
+     - If more than one answer is OK, separate them with |, like data-answer="1/2|0.5".
+     - data-hint is optional. It shows after a wrong try.
+     - For a long word problem, use class="problem wide".
+     Copy the block as many times as you like. The numbering, score, and
+     Mr. Watford's reactions are automatic. Update the "0 of 2 correct" in the side menu.
+  5. Change Mr. Watford's corner tips in data-tips on the <body> tag (separate tips with |).
+  6. Add a card for it in math/index.html (copy the card that's already there),
+     and add it to "Recently added" on the home page (index.html).
+  Explanations and examples should be in your own words, not copied from the textbook.
+  ==================================================
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[#.# SECTION TITLE] | Pre-Algebra | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-tips="[A helpful tip for this section]|[Another tip]">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../index.html">
+        <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../typing/index.html">Typing</a></li>
+          <li><a href="../science/index.html">Science</a></li>
+          <li><a href="../math/index.html" aria-current="page">Pre-Algebra</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="scene-hero wall">
+      <div class="container scene-grid">
+        <div class="panel title-card">
+          <p class="panel-head"><span class="ic" aria-hidden="true">➗</span> Section [#.#]</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="../math/index.html">← All Pre-Algebra sections</a></p>
+            <h1>[SECTION TITLE]</h1>
+            <p class="lead">[One sentence about what this section is about.]</p>
+          </div>
+        </div>
+        <div class="stage" aria-hidden="true">
+          <svg viewBox="0 0 600 420">
+            <rect x="0" y="20" width="360" height="250" rx="8" fill="#9aa3ad"/>
+            <rect x="9" y="29" width="342" height="226" rx="3" fill="#fdfdfd"/>
+            <!-- Whiteboard writing: keep each line short (about 12 characters) -->
+            <g class="marker">
+              <text x="26" y="80" font-size="38" fill="#d6372e">[Title!]</text>
+              <text x="28" y="132" font-size="30" fill="#2c4fa3">[Example 1]</text>
+              <text x="28" y="180" font-size="30" fill="#2c4fa3">[Example 2]</text>
+              <text x="28" y="228" font-size="26" fill="#2e8b3e">[Short tip]</text>
+            </g>
+            <rect x="60" y="258" width="24" height="7" rx="3" fill="#d6372e"/><rect x="90" y="258" width="24" height="7" rx="3" fill="#2c4fa3"/>
+            <image class="stage-teacher" href="../images/mr-watford/explaining.png" x="170" y="71" width="430" height="349"/>
+          </svg>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container with-aside">
+
+        <aside class="aside">
+          <nav class="panel toc" aria-label="On this page">
+            <p class="panel-head">On this page</p>
+            <div class="panel-body">
+              <ol>
+                <li><a href="#big-idea">The big idea</a></li>
+                <li><a href="#examples">Worked examples</a></li>
+                <li><a href="#practice">Practice</a></li>
+              </ol>
+              <p class="toc-label">Your progress</p>
+              <div class="toc-score">0 of 2 correct</div>
+              <div class="meter"><div class="meter-fill"></div></div>
+            </div>
+          </nav>
+        </aside>
+
+        <div>
+          <section class="panel" id="big-idea">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">💡</span> The big idea</h2>
+            <div class="panel-body">
+              <p>[Short explanation in your own words.]</p>
+              <div class="callout key">
+                <h3>[Rule or key fact]</h3>
+                <p>[Explain it simply.]</p>
+              </div>
+              <p class="caption"><span class="caption-tag">Mr. Watford</span>[A quick tip in your voice.]</p>
+            </div>
+          </section>
+
+          <section class="panel" id="examples">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">✏️</span> Worked examples</h2>
+            <div class="panel-body">
+              <div class="example">
+                <h3><span>Example 1:</span> [Short label]</h3>
+                <div class="work">[The problem]</div>
+                <p>[How to solve it, step by step.]</p>
+                <p class="answer-line">Answer: [answer]</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> [Short label]</h3>
+                <div class="work">[The problem]</div>
+                <p>[How to solve it, step by step.]</p>
+                <p class="answer-line">Answer: [answer]</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" id="practice">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🎯</span> Practice</h2>
+            <div class="panel-body">
+              <p>Type your answer and press <strong>Check</strong> (or the Enter key).</p>
+              <div class="practice-list">
+                <div class="problem" data-answer="[ANSWER]" data-hint="[HINT]">
+                  <span class="q">[QUESTION] =</span>
+                </div>
+                <div class="problem" data-answer="[ANSWER]" data-hint="[HINT]">
+                  <span class="q">[QUESTION] =</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand" href="../index.html">
+          <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+          <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+        </a>
+        <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+      </div>
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="../typing/index.html">Typing Games</a></li>
+          <li><a href="../science/index.html">Science Experiments</a></li>
+          <li><a href="../math/index.html">Pre-Algebra Help</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2>Good to know</h2>
+        <p>No logins, no forms, and no student information collected. Ever.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+  </footer>
+
+  <script src="../js/site.js"></script>
+</body>
+</html>
