@@ -259,7 +259,14 @@ function normalize(text) {
     .toLowerCase()
     .replace(/[−–—]/g, "-")
     .replace(/\s+/g, "")
-    .replace(/^\+/, "");
+    .replace(/^\+/, "")
+    // money, percent, and degree signs, and commas in big numbers: "$1,200" → "1200", "25%" → "25"
+    .replace(/^(-?)\$/, "$1")
+    .replace(/(\d)[%°]$/, "$1")
+    .replace(/(\d),(?=\d{3}\b)/g, "$1")
+    // "x=5" counts the same as "5"; "≥" and ">=" match too
+    .replace(/^[a-z]=(?=.)/, "")
+    .replace(/>=/g, "≥").replace(/<=/g, "≤");
   if (cleaned !== "" && !isNaN(Number(cleaned))) return String(Number(cleaned));
   return cleaned;
 }
@@ -287,8 +294,15 @@ document.querySelectorAll(".practice-list").forEach(function (list) {
       right === problems.length
         ? "All " + problems.length + " correct — great job! 🌟"
         : "Score: " + right + " of " + problems.length;
-    document.querySelectorAll(".meter-fill").forEach(function (bar) { bar.style.width = percent; });
-    if (tocScore) tocScore.textContent = right + " of " + problems.length + " correct";
+    scoreBox.querySelector(".meter-fill").style.width = percent;
+    // The side menu shows the total for the whole page (a page can have several practice sets)
+    if (tocScore) {
+      const all = document.querySelectorAll(".practice-list .problem").length;
+      const allRight = document.querySelectorAll(".practice-list .problem.correct").length;
+      tocScore.textContent = allRight + " of " + all + " correct";
+      const tocBar = document.querySelector(".toc .meter-fill");
+      if (tocBar) tocBar.style.width = Math.round((allRight / all) * 100) + "%";
+    }
     return right === problems.length;
   }
 
