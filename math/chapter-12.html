@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Statistics and Probability | Pre-Algebra | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-tips="Always put the data in order before finding the median.|Probability = favorable outcomes ÷ total outcomes.|Type probabilities as fractions in simplest form, like 1/6.">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../index.html">
+        <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../typing/index.html">Typing</a></li>
+          <li><a href="../science/index.html">Science</a></li>
+          <li><a href="index.html" aria-current="page">Pre-Algebra</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ===== SCENE: the whiteboard ===== -->
+    <section class="scene-hero wall">
+      <div class="container scene-grid">
+        <div class="panel title-card">
+          <p class="panel-head"><span class="ic" aria-hidden="true">📊</span> Pre-Algebra</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="index.html">← All Pre-Algebra topics</a></p>
+            <h1>Statistics and Probability</h1>
+            <p class="lead">Making sense of data with averages and graphs, spotting patterns and trends, and finding how likely something is to happen.</p>
+            <ul class="facts">
+              <li><small>Topics</small><strong>8</strong></li>
+              <li><small>Examples</small><strong>24 worked</strong></li>
+              <li><small>Practice</small><strong>64 problems</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="stage" aria-hidden="true">
+          <svg viewBox="0 0 600 420">
+            <rect x="0" y="20" width="360" height="250" rx="8" fill="#9aa3ad"/>
+            <rect x="9" y="29" width="342" height="226" rx="3" fill="#fdfdfd"/>
+            <g class="marker">
+              <text x="26" y="78" font-size="36" fill="#d6372e">Data!</text>
+              <text x="26" y="126" font-size="28" fill="#2c4fa3">mean = 7</text>
+              <text x="26" y="172" font-size="28" fill="#2c4fa3">P(heads) = 1/2</text>
+              <text x="26" y="222" font-size="25" fill="#2e8b3e">Look for patterns</text>
+            </g>
+            <rect x="60" y="258" width="24" height="7" rx="3" fill="#d6372e"/><rect x="90" y="258" width="24" height="7" rx="3" fill="#2c4fa3"/>
+            <image class="stage-teacher" href="../images/mr-watford/explaining.png" x="170" y="71" width="430" height="349"/>
+          </svg>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container with-aside">
+
+        <!-- ===== SIDE MENU ===== -->
+        <aside class="aside">
+          <nav class="panel toc" aria-label="On this page">
+            <p class="panel-head">On this page</p>
+            <div class="panel-body">
+              <ol>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#measures">Mean, median, mode</a></li>
+                    <li><a href="#illustrating">Box plots & stem-and-leaf</a></li>
+                    <li><a href="#histograms">Histograms</a></li>
+                    <li><a href="#scatterplots">Scatterplots</a></li>
+                    <li><a href="#trend-lines">Trend lines</a></li>
+                    <li><a href="#two-way">Two-way tables</a></li>
+                    <li><a href="#probability">Probability</a></li>
+                    <li><a href="#compound">Compound events</a></li>
+              </ol>
+              <p class="toc-label">Your progress</p>
+              <div class="toc-score">0 of 64 correct</div>
+              <div class="meter"><div class="meter-fill"></div></div>
+            </div>
+          </nav>
+        </aside>
+
+        <div>
+          <!-- ===== CHAPTER OVERVIEW ===== -->
+          <section class="panel" id="overview">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🗺️</span> What this page covers</h2>
+            <div class="panel-body">
+              <p>Statistics helps us collect, organize, and understand data. Probability tells how likely an event is. Here we find mean, median, mode, and range, build box plots and histograms, read scatterplots and trend lines, use two-way tables, and find the probability of single and compound events.</p>
+              <ul class="mini-list topic-list">
+                    <li><a href="#measures"><span class="ic" aria-hidden="true">📏</span> <span><strong>Statistical Measures</strong><br><small>Mean, median, mode, and range.</small></span></a></li>
+                    <li><a href="#illustrating"><span class="ic" aria-hidden="true">📦</span> <span><strong>Illustrating Data</strong><br><small>Stem-and-leaf plots, quartiles, and box plots.</small></span></a></li>
+                    <li><a href="#histograms"><span class="ic" aria-hidden="true">📊</span> <span><strong>Frequency Tables and Histograms</strong><br><small>Count data in intervals and graph it.</small></span></a></li>
+                    <li><a href="#scatterplots"><span class="ic" aria-hidden="true">✳️</span> <span><strong>Scatterplots</strong><br><small>Graph pairs of data and look for a relationship.</small></span></a></li>
+                    <li><a href="#trend-lines"><span class="ic" aria-hidden="true">📈</span> <span><strong>Trend Lines</strong><br><small>Draw a line of best fit and use it to predict.</small></span></a></li>
+                    <li><a href="#two-way"><span class="ic" aria-hidden="true">🧮</span> <span><strong>Two-Way Frequency Tables</strong><br><small>Organize data by two categories at once.</small></span></a></li>
+                    <li><a href="#probability"><span class="ic" aria-hidden="true">🎲</span> <span><strong>Probability</strong><br><small>How likely is it? Theoretical and experimental probability.</small></span></a></li>
+                    <li><a href="#compound"><span class="ic" aria-hidden="true">🃏</span> <span><strong>Probabilities of Compound Events</strong><br><small>Two or more events: counting outcomes and multiplying.</small></span></a></li>
+              </ul>
+              <p class="caption"><span class="caption-tag">Mr. Watford</span>Give probabilities as fractions in simplest form, like 3/10. Decimals like 0.3 also work.</p>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Statistical Measures ===== -->
+          <section class="panel topic" id="measures">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">📏</span> Statistical Measures</h2>
+            <div class="panel-body">
+              <div class="rules">
+                <div class="callout key"><h3>Mean (average)</h3><p>Add all the values and divide by how many there are.</p></div>
+                <div class="callout key"><h3>Median (middle)</h3><p>Put the values in order. It's the middle one, or the average of the two middle ones.</p></div>
+                <div class="callout"><h3>Mode (most often)</h3><p>The value that appears most. There can be more than one, or none.</p></div>
+                <div class="callout"><h3>Range (spread)</h3><p>Greatest value minus least value.</p></div>
+              </div>
+              <p>An <strong>outlier</strong> is a value far from the rest. Outliers pull the mean toward them, so the median is often a better “typical” value when there's an outlier.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Mean</h3>
+                <div class="work">4, 8, 6, 10, 7</div>
+                <p>4 + 8 + 6 + 10 + 7 = 35. 35 ÷ 5.</p>
+                <p class="answer-line">Answer: 7</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Median, even count</h3>
+                <div class="work">12, 3, 9, 5</div>
+                <p>In order: 3, 5, 9, 12. Middle two: 5 and 9. (5 + 9) ÷ 2.</p>
+                <p class="answer-line">Answer: 7</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Score needed</h3>
+                <div class="work">Test scores 86, 92, 88. What score on the 4th test makes the mean 90?</div>
+                <p>4 tests × 90 = 360 total. 360 − 266.</p>
+                <p class="answer-line">Answer: 94</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="8" data-hint="32 ÷ 4">
+                  <span class="q">Mean of 5, 9, 7, 11 =</span>
+                </div>
+                <div class="problem" data-answer="7" data-hint="Order them first.">
+                  <span class="q">Median of 3, 9, 5, 7, 11 =</span>
+                </div>
+                <div class="problem" data-answer="6" data-hint="Middle two are 4 and 8.">
+                  <span class="q">Median of 2, 10, 4, 8 =</span>
+                </div>
+                <div class="problem" data-answer="5" data-hint="Which appears most?">
+                  <span class="q">Mode of 3, 5, 5, 6, 8, 5, 6 =</span>
+                </div>
+                <div class="problem" data-answer="15" data-hint="19 − 4">
+                  <span class="q">Range of 12, 4, 19, 7 =</span>
+                </div>
+                <div class="problem" data-answer="2" data-hint="8 ÷ 4">
+                  <span class="q">Mean of −2, 4, 0, 6 =</span>
+                </div>
+                <div class="problem wide" data-answer="7" data-hint="4 × 8 = 32 total">
+                  <span class="q">Your quiz scores are 7, 8, 10. What do you need on the 4th quiz for a mean of 8?</span>
+                </div>
+                <div class="problem wide" data-answer="median" data-hint="40 is an outlier.">
+                  <span class="q">Data: 4, 5, 5, 6, 40. Which is a better typical value, mean or median?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Illustrating Data ===== -->
+          <section class="panel topic" id="illustrating">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">📦</span> Illustrating Data</h2>
+            <div class="panel-body">
+              <p>A <strong>stem-and-leaf plot</strong> splits each number into a stem (tens digit) and a leaf (ones digit). The row “3 | 1 4 8” means 31, 34, and 38.</p>
+              <p>A <strong>box plot</strong> (box-and-whisker plot) shows the <strong>five-number summary</strong>:</p>
+              <ol>
+                <li><strong>Minimum</strong> (least value)</li>
+                <li><strong>Lower quartile, Q1</strong>: the median of the lower half</li>
+                <li><strong>Median</strong></li>
+                <li><strong>Upper quartile, Q3</strong>: the median of the upper half</li>
+                <li><strong>Maximum</strong> (greatest value)</li>
+              </ol>
+              <div class="callout key"><h3>Interquartile range (IQR)</h3><p>IQR = Q3 − Q1. It measures the spread of the middle half of the data.</p></div>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Five-number summary</h3>
+                <div class="work">2, 4, 6, 8, 10, 12, 14, 16</div>
+                <p>Median: (8 + 10) ÷ 2 = 9. Lower half 2, 4, 6, 8 → Q1 = 5. Upper half 10, 12, 14, 16 → Q3 = 13.</p>
+                <p class="answer-line">Answer: 2, 5, 9, 13, 16</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> IQR</h3>
+                <div class="work">Use the data above.</div>
+                <p>Q3 − Q1 = 13 − 5.</p>
+                <p class="answer-line">Answer: 8</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Stem-and-leaf</h3>
+                <div class="work">Rows: 4 | 2 7 and 5 | 0 3 9. What is the greatest value?</div>
+                <p>The last row is 50, 53, 59.</p>
+                <p class="answer-line">Answer: 59</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="9" data-hint="(8 + 10) ÷ 2">
+                  <span class="q">Data: 3, 5, 6, 8, 10, 12, 15, 18. Median =</span>
+                </div>
+                <div class="problem" data-answer="5.5" data-hint="Lower half 3, 5, 6, 8">
+                  <span class="q">Data: 3, 5, 6, 8, 10, 12, 15, 18. Q1 =</span>
+                </div>
+                <div class="problem" data-answer="13.5" data-hint="Upper half 10, 12, 15, 18">
+                  <span class="q">Data: 3, 5, 6, 8, 10, 12, 15, 18. Q3 =</span>
+                </div>
+                <div class="problem" data-answer="8" data-hint="13.5 − 5.5">
+                  <span class="q">Data: 3, 5, 6, 8, 10, 12, 15, 18. IQR =</span>
+                </div>
+                <div class="problem" data-answer="15" data-hint="Q3 − Q1">
+                  <span class="q">A box plot has Q1 = 20 and Q3 = 35. IQR =</span>
+                </div>
+                <div class="problem wide" data-answer="28" data-hint="Max − min">
+                  <span class="q">A box plot goes from 12 to 40. What is the range?</span>
+                </div>
+                <div class="problem wide" data-answer="61" data-hint="Stem 6, leaf 1">
+                  <span class="q">Stem-and-leaf row “6 | 1 5 8”. What is the smallest value in that row?</span>
+                </div>
+                <div class="problem wide" data-answer="5" data-hint="Count the leaves.">
+                  <span class="q">Stem-and-leaf rows “1 | 2 5” and “2 | 0 4 9”. How many values are there?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Frequency Tables and Histograms ===== -->
+          <section class="panel topic" id="histograms">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">📊</span> Frequency Tables and Histograms</h2>
+            <div class="panel-body">
+              <p>A <strong>frequency table</strong> counts how many data values fall in each interval. A <strong>histogram</strong> is a bar graph of that table: the bars touch, and each bar's height is the frequency.</p>
+              <table class="data-table">
+                <caption>Test scores for one class</caption>
+                <thead><tr><th>Score</th><th>Frequency</th></tr></thead>
+                <tbody>
+                  <tr><td>60–69</td><td>3</td></tr>
+                  <tr><td>70–79</td><td>7</td></tr>
+                  <tr><td>80–89</td><td>8</td></tr>
+                  <tr><td>90–99</td><td>2</td></tr>
+                </tbody>
+              </table>
+              <p>Intervals must be the same size and must not overlap.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Total</h3>
+                <div class="work">How many students are in the class? (table above)</div>
+                <p>3 + 7 + 8 + 2.</p>
+                <p class="answer-line">Answer: 20</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Most common</h3>
+                <div class="work">Which interval has the most scores?</div>
+                <p>The tallest bar is 80–89 with 8.</p>
+                <p class="answer-line">Answer: 80–89</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Percent</h3>
+                <div class="work">What percent scored 90 or higher?</div>
+                <p>2 out of 20 = 0.10.</p>
+                <p class="answer-line">Answer: 10%</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="7" data-hint="Read the frequency.">
+                  <span class="q">Using the table: how many scored 70–79?</span>
+                </div>
+                <div class="problem" data-answer="10" data-hint="8 + 2">
+                  <span class="q">Using the table: how many scored 80 or higher?</span>
+                </div>
+                <div class="problem" data-answer="10" data-hint="3 + 7">
+                  <span class="q">Using the table: how many scored below 80?</span>
+                </div>
+                <div class="problem" data-answer="15%" data-hint="3 out of 20">
+                  <span class="q">Using the table: what percent scored 60–69?</span>
+                </div>
+                <div class="problem wide" data-answer="2/5|0.4" data-hint="8/20">
+                  <span class="q">Using the table: what fraction scored 80–89? (simplest form)</span>
+                </div>
+                <div class="problem wide" data-answer="no" data-hint="The bars touch.">
+                  <span class="q">Do histogram bars have gaps between them? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="10" data-hint="Each holds 10 whole numbers.">
+                  <span class="q">Intervals 0–9, 10–19, 20–29… How wide is each interval?</span>
+                </div>
+                <div class="problem wide" data-answer="20" data-hint="Add them.">
+                  <span class="q">A frequency table has counts 4, 9, 6, and 1. How many data values in all?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Scatterplots ===== -->
+          <section class="panel topic" id="scatterplots">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">✳️</span> Scatterplots</h2>
+            <div class="panel-body">
+              <p>A <strong>scatterplot</strong> graphs pairs of data as points to show whether two variables are related.</p>
+              <div class="rules">
+                <div class="callout key"><h3>Positive correlation</h3><p>As one goes up, the other tends to go up. Points rise left to right.</p></div>
+                <div class="callout key"><h3>Negative correlation</h3><p>As one goes up, the other tends to go down. Points fall left to right.</p></div>
+                <div class="callout"><h3>No correlation</h3><p>No clear pattern.</p></div>
+                <div class="callout"><h3>Outlier</h3><p>A point far away from the rest.</p></div>
+              </div>
+              <p>A correlation doesn't prove that one thing <em>causes</em> the other.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Positive</h3>
+                <div class="work">Height and arm span</div>
+                <p>Taller people usually have longer arm spans.</p>
+                <p class="answer-line">Answer: positive</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Negative</h3>
+                <div class="work">A car's age and its value</div>
+                <p>Older cars are usually worth less.</p>
+                <p class="answer-line">Answer: negative</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> None</h3>
+                <div class="work">Shoe size and birthday month</div>
+                <p>No reason for a pattern.</p>
+                <p class="answer-line">Answer: no correlation</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="positive" data-hint="More studying, higher scores">
+                  <span class="q">Hours studied and test score (positive, negative, or none)</span>
+                </div>
+                <div class="problem" data-answer="negative" data-hint="Warmer days, fewer sales">
+                  <span class="q">Outside temperature and hot chocolate sales</span>
+                </div>
+                <div class="problem" data-answer="none|no correlation|no" data-hint="Any connection?">
+                  <span class="q">Number of pets and favorite color</span>
+                </div>
+                <div class="problem" data-answer="negative" data-hint="More miles, less gas">
+                  <span class="q">Miles driven and gas left in the tank</span>
+                </div>
+                <div class="problem" data-answer="positive" data-hint="Older trees are usually taller.">
+                  <span class="q">Age of a tree and its height</span>
+                </div>
+                <div class="problem wide" data-answer="positive" data-hint="Both go up together.">
+                  <span class="q">Points rise from left to right. What kind of correlation?</span>
+                </div>
+                <div class="problem wide" data-answer="negative" data-hint="One goes up, one goes down.">
+                  <span class="q">Points fall from left to right. What kind of correlation?</span>
+                </div>
+                <div class="problem wide" data-answer="no" data-hint="Correlation isn&#39;t causation.">
+                  <span class="q">Does a correlation always mean one thing causes the other? (yes or no)</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Trend Lines ===== -->
+          <section class="panel topic" id="trend-lines">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">📈</span> Trend Lines</h2>
+            <div class="panel-body">
+              <p>A <strong>trend line</strong> (line of best fit) is a straight line drawn through the middle of the points on a scatterplot, with about as many points above it as below.</p>
+              <p>Write its equation as y = mx + b, then use it to <strong>predict</strong>. The slope tells how much y changes for each 1 unit of x.</p>
+              <div class="callout key"><h3>Example</h3><p>Plant height y (cm) after x weeks: y = 2.5x + 4. After 6 weeks: 2.5(6) + 4 = 19 cm. The plant grows about 2.5 cm per week.</p></div>
+              <p>Be careful predicting far beyond the data. A trend may not continue forever.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Predict</h3>
+                <div class="work">y = 3x + 10 gives sales y for x days. Predict day 8.</div>
+                <p>3(8) + 10.</p>
+                <p class="answer-line">Answer: 34</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Slope meaning</h3>
+                <div class="work">y = 15x + 20 gives cost y for x hours. What does 15 mean?</div>
+                <p>Each extra hour adds $15.</p>
+                <p class="answer-line">Answer: $15 per hour</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Find x</h3>
+                <div class="work">y = 4x + 2. When is y = 30?</div>
+                <p>4x + 2 = 30, so 4x = 28.</p>
+                <p class="answer-line">Answer: x = 7</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="25" data-hint="2(10) + 5">
+                  <span class="q">Trend line y = 2x + 5. Predict y when x = 10.</span>
+                </div>
+                <div class="problem wide" data-answer="24" data-hint="−36 + 60">
+                  <span class="q">Trend line y = −3x + 60. Predict y when x = 12.</span>
+                </div>
+                <div class="problem wide" data-answer="18" data-hint="10 + 8">
+                  <span class="q">Trend line y = 0.5x + 8. Predict y when x = 20.</span>
+                </div>
+                <div class="problem" data-answer="10" data-hint="5x + 15 = 65">
+                  <span class="q">Trend line y = 5x + 15. For what x is y = 65?</span>
+                </div>
+                <div class="problem wide" data-answer="25" data-hint="The slope">
+                  <span class="q">A trend line for savings is y = 25x + 100, x in weeks. How much is added each week?</span>
+                </div>
+                <div class="problem wide" data-answer="100" data-hint="The y-intercept">
+                  <span class="q">A trend line for savings is y = 25x + 100. What was the starting amount?</span>
+                </div>
+                <div class="problem wide" data-answer="3" data-hint="(10 − 4) ÷ 2">
+                  <span class="q">A trend line passes through (0, 4) and (2, 10). What is its slope?</span>
+                </div>
+                <div class="problem wide" data-answer="19" data-hint="y = 3x + 4">
+                  <span class="q">A trend line passes through (0, 4) and (2, 10). Predict y when x = 5.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Two-Way Frequency Tables ===== -->
+          <section class="panel topic" id="two-way">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🧮</span> Two-Way Frequency Tables</h2>
+            <div class="panel-body">
+              <p>A <strong>two-way table</strong> sorts data by two categories at the same time. The totals are in the last row and column.</p>
+              <table class="data-table">
+                <caption>Students surveyed: do you play an instrument?</caption>
+                <thead><tr><th></th><th>Plays</th><th>Doesn't play</th><th>Total</th></tr></thead>
+                <tbody>
+                  <tr><th>7th grade</th><td>18</td><td>12</td><td>30</td></tr>
+                  <tr><th>8th grade</th><td>22</td><td>8</td><td>30</td></tr>
+                  <tr><th>Total</th><td>40</td><td>20</td><td>60</td></tr>
+                </tbody>
+              </table>
+              <p>A <strong>relative frequency</strong> is a count divided by a total, written as a fraction, decimal, or percent.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Read a cell</h3>
+                <div class="work">How many 8th graders play an instrument?</div>
+                <p>Row “8th grade,” column “Plays.”</p>
+                <p class="answer-line">Answer: 22</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Total</h3>
+                <div class="work">How many students play an instrument?</div>
+                <p>The total of the “Plays” column.</p>
+                <p class="answer-line">Answer: 40</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Relative frequency</h3>
+                <div class="work">What fraction of 7th graders play?</div>
+                <p>18 out of 30 7th graders = 18/30.</p>
+                <p class="answer-line">Answer: 3/5</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="12" data-hint="Row 7th, column Doesn&#39;t play">
+                  <span class="q">Using the table: how many 7th graders don't play?</span>
+                </div>
+                <div class="problem" data-answer="20" data-hint="Column total">
+                  <span class="q">Using the table: how many students don't play?</span>
+                </div>
+                <div class="problem wide" data-answer="60" data-hint="Grand total">
+                  <span class="q">Using the table: how many students were surveyed?</span>
+                </div>
+                <div class="problem wide" data-answer="2/3" data-hint="40/60">
+                  <span class="q">Using the table: what fraction of all students play? (simplest form)</span>
+                </div>
+                <div class="problem wide" data-answer="11/15" data-hint="22/30">
+                  <span class="q">Using the table: what fraction of 8th graders play? (simplest form)</span>
+                </div>
+                <div class="problem wide" data-answer="9/20|0.45" data-hint="18/40">
+                  <span class="q">Using the table: what fraction of students who play are 7th graders? (simplest form)</span>
+                </div>
+                <div class="problem wide" data-answer="60%" data-hint="18/30 = 0.6">
+                  <span class="q">Using the table: what percent of 7th graders play?</span>
+                </div>
+                <div class="problem wide" data-answer="8|8th" data-hint="18/30 vs 22/30">
+                  <span class="q">Using the table: which grade has a greater share of players, 7th or 8th? (type 7 or 8)</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Probability ===== -->
+          <section class="panel topic" id="probability">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🎲</span> Probability</h2>
+            <div class="panel-body">
+              <p><strong>Probability</strong> is a number from 0 to 1 that tells how likely an event is. 0 means impossible, 1 means certain, and 1/2 means equally likely to happen or not.</p>
+              <div class="callout key"><h3>Theoretical probability</h3><p>P(event) = number of favorable outcomes ÷ number of possible outcomes</p></div>
+              <div class="rules">
+                <div class="callout"><h3>Complement</h3><p>P(not A) = 1 − P(A)</p></div>
+                <div class="callout"><h3>Experimental probability</h3><p>Based on what actually happened: times it happened ÷ total trials.</p></div>
+              </div>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Number cube</h3>
+                <div class="work">P(rolling a number greater than 4)</div>
+                <p>5 or 6: 2 favorable out of 6.</p>
+                <p class="answer-line">Answer: 1/3</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Marbles</h3>
+                <div class="work">A bag has 3 red, 5 blue, and 2 green marbles. P(not blue)</div>
+                <p>5 of 10 are blue, so P(not blue) = 1 − 5/10.</p>
+                <p class="answer-line">Answer: 1/2</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Experimental</h3>
+                <div class="work">A coin landed heads 18 times in 30 flips. Experimental P(heads)?</div>
+                <p>18/30.</p>
+                <p class="answer-line">Answer: 3/5</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="1/6" data-hint="1 favorable out of 6">
+                  <span class="q">Number cube: P(rolling a 5) =</span>
+                </div>
+                <div class="problem" data-answer="1/2|0.5" data-hint="2, 4, 6">
+                  <span class="q">Number cube: P(rolling an even number) =</span>
+                </div>
+                <div class="problem" data-answer="0" data-hint="Impossible">
+                  <span class="q">Number cube: P(rolling a 7) =</span>
+                </div>
+                <div class="problem" data-answer="1/5|0.2" data-hint="2/10">
+                  <span class="q">Bag: 3 red, 5 blue, 2 green. P(green) =</span>
+                </div>
+                <div class="problem" data-answer="7/10|0.7" data-hint="1 − 3/10">
+                  <span class="q">Bag: 3 red, 5 blue, 2 green. P(not red) =</span>
+                </div>
+                <div class="problem" data-answer="1/4|0.25" data-hint="Only A">
+                  <span class="q">Letters in MATH. P(choosing a vowel) =</span>
+                </div>
+                <div class="problem wide" data-answer="3/10|0.3" data-hint="12/40">
+                  <span class="q">A spinner landed on red 12 times in 40 spins. Experimental P(red) =</span>
+                </div>
+                <div class="problem" data-answer="0.65|13/20" data-hint="1 − 0.35">
+                  <span class="q">If P(rain) = 0.35, what is P(no rain)?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Probabilities of Compound Events ===== -->
+          <section class="panel topic" id="compound">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🃏</span> Probabilities of Compound Events</h2>
+            <div class="panel-body">
+              <p>A <strong>compound event</strong> combines two or more events, like flipping a coin <em>and</em> rolling a number cube.</p>
+              <div class="callout key"><h3>Counting principle</h3><p>If one choice has m options and another has n options, there are m × n outcomes in all.</p></div>
+              <div class="rules">
+                <div class="callout key"><h3>Independent events</h3><p>One doesn't affect the other.<br>P(A and B) = P(A) × P(B)</p></div>
+                <div class="callout key"><h3>Dependent events</h3><p>The first changes the second (like drawing without putting it back).<br>P(A and B) = P(A) × P(B after A)</p></div>
+              </div>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Counting</h3>
+                <div class="work">4 shirts and 3 pairs of pants. How many outfits?</div>
+                <p>4 × 3.</p>
+                <p class="answer-line">Answer: 12</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Independent</h3>
+                <div class="work">P(heads and rolling a 6)</div>
+                <p>1/2 × 1/6.</p>
+                <p class="answer-line">Answer: 1/12</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Dependent</h3>
+                <div class="work">A bag has 4 red and 6 blue. Draw two without replacing. P(red, then red)</div>
+                <p>4/10 × 3/9 = 12/90.</p>
+                <p class="answer-line">Answer: 2/15</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="12" data-hint="3 × 4">
+                  <span class="q">3 sandwiches and 4 drinks. How many lunch combos?</span>
+                </div>
+                <div class="problem" data-answer="8" data-hint="2 × 2 × 2">
+                  <span class="q">A coin is flipped 3 times. How many outcomes?</span>
+                </div>
+                <div class="problem" data-answer="1/4|0.25" data-hint="1/2 × 1/2">
+                  <span class="q">P(heads and rolling an even number) =</span>
+                </div>
+                <div class="problem" data-answer="1/36" data-hint="1/6 × 1/6">
+                  <span class="q">Two number cubes: P(both show 6) =</span>
+                </div>
+                <div class="problem wide" data-answer="1/8|0.125" data-hint="1/4 × 1/2">
+                  <span class="q">A spinner has 4 equal colors. Spin it and flip a coin. P(red and tails) =</span>
+                </div>
+                <div class="problem wide" data-answer="4/25|0.16" data-hint="4/10 × 4/10">
+                  <span class="q">Bag: 4 red, 6 blue. Draw, replace, draw again. P(red, then red) =</span>
+                </div>
+                <div class="problem wide" data-answer="2/9" data-hint="5/10 × 4/9">
+                  <span class="q">Bag: 5 red, 5 blue. Draw two without replacing. P(blue, then blue) =</span>
+                </div>
+                <div class="problem wide" data-answer="10000" data-hint="10 × 10 × 10 × 10">
+                  <span class="q">A 4-digit code uses digits 0–9 and digits can repeat. How many codes?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="chapter-nav">
+            <a class="btn ghost" href="chapter-11.html">← Perimeter, Area, and Volume</a>
+                <a class="btn ghost" href="index.html">All Pre-Algebra topics</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div>
+          <a class="brand" href="../index.html">
+            <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+            <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+          </a>
+          <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+        </div>
+        <nav aria-label="Footer">
+          <h2>Explore</h2>
+          <ul>
+            <li><a href="../typing/index.html">Typing Games</a></li>
+            <li><a href="../science/index.html">Science Experiments</a></li>
+            <li><a href="../math/index.html">Pre-Algebra Help</a></li>
+          </ul>
+        </nav>
+        <div>
+          <h2>Good to know</h2>
+          <p>No logins, no forms, and no student information collected. Ever.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+    </footer>
+
+    <script src="../js/site.js"></script>
+  </body>
+  </html>

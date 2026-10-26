@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relations and Functions | Pre-Algebra | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-tips="Slope is rise over run: change in y ÷ change in x.|In y = mx + b, b is where the line crosses the y-axis.|Type equations like y=2x+3, and points like (2,5).">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../index.html">
+        <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../typing/index.html">Typing</a></li>
+          <li><a href="../science/index.html">Science</a></li>
+          <li><a href="index.html" aria-current="page">Pre-Algebra</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ===== SCENE: the whiteboard ===== -->
+    <section class="scene-hero wall">
+      <div class="container scene-grid">
+        <div class="panel title-card">
+          <p class="panel-head"><span class="ic" aria-hidden="true">📈</span> Pre-Algebra</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="index.html">← All Pre-Algebra topics</a></p>
+            <h1>Relations and Functions</h1>
+            <p class="lead">Connecting inputs to outputs: ordered pairs, functions, slope, and graphing and writing the equations of lines.</p>
+            <ul class="facts">
+              <li><small>Topics</small><strong>7</strong></li>
+              <li><small>Examples</small><strong>21 worked</strong></li>
+              <li><small>Practice</small><strong>56 problems</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="stage" aria-hidden="true">
+          <svg viewBox="0 0 600 420">
+            <rect x="0" y="20" width="360" height="250" rx="8" fill="#9aa3ad"/>
+            <rect x="9" y="29" width="342" height="226" rx="3" fill="#fdfdfd"/>
+            <g class="marker">
+              <text x="26" y="78" font-size="36" fill="#d6372e">Lines!</text>
+              <text x="26" y="126" font-size="28" fill="#2c4fa3">y = mx + b</text>
+              <text x="26" y="172" font-size="28" fill="#2c4fa3">m = slope</text>
+              <text x="26" y="222" font-size="25" fill="#2e8b3e">b = y-intercept</text>
+            </g>
+            <rect x="60" y="258" width="24" height="7" rx="3" fill="#d6372e"/><rect x="90" y="258" width="24" height="7" rx="3" fill="#2c4fa3"/>
+            <image class="stage-teacher" href="../images/mr-watford/explaining.png" x="170" y="71" width="430" height="349"/>
+          </svg>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container with-aside">
+
+        <!-- ===== SIDE MENU ===== -->
+        <aside class="aside">
+          <nav class="panel toc" aria-label="On this page">
+            <p class="panel-head">On this page</p>
+            <div class="panel-body">
+              <ol>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#relations">Relations</a></li>
+                    <li><a href="#functions">Functions</a></li>
+                    <li><a href="#slope">Slope</a></li>
+                    <li><a href="#graphing-lines">Graphing lines</a></li>
+                    <li><a href="#writing-lines">Writing equations</a></li>
+                    <li><a href="#proportional">Proportional relationships</a></li>
+                    <li><a href="#linear-inequalities">Linear inequalities</a></li>
+              </ol>
+              <p class="toc-label">Your progress</p>
+              <div class="toc-score">0 of 56 correct</div>
+              <div class="meter"><div class="meter-fill"></div></div>
+            </div>
+          </nav>
+        </aside>
+
+        <div>
+          <!-- ===== CHAPTER OVERVIEW ===== -->
+          <section class="panel" id="overview">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🗺️</span> What this page covers</h2>
+            <div class="panel-body">
+              <p>A relation pairs inputs with outputs, and a function is a special relation where each input has exactly one output. Here we describe relations with tables and graphs, find slope, graph and write linear equations, recognize proportional relationships, and graph linear inequalities.</p>
+              <ul class="mini-list topic-list">
+                    <li><a href="#relations"><span class="ic" aria-hidden="true">🔗</span> <span><strong>Illustrating Relations</strong><br><small>Ordered pairs, tables, mapping diagrams, domain, and range.</small></span></a></li>
+                    <li><a href="#functions"><span class="ic" aria-hidden="true">⚙️</span> <span><strong>Functions</strong><br><small>Each input has exactly one output. Use function notation.</small></span></a></li>
+                    <li><a href="#slope"><span class="ic" aria-hidden="true">⛰️</span> <span><strong>Slope</strong><br><small>How steep a line is: rise over run.</small></span></a></li>
+                    <li><a href="#graphing-lines"><span class="ic" aria-hidden="true">📉</span> <span><strong>Graphing Linear Equations</strong><br><small>Slope-intercept form and intercepts.</small></span></a></li>
+                    <li><a href="#writing-lines"><span class="ic" aria-hidden="true">✍️</span> <span><strong>Writing Linear Equations</strong><br><small>Write y = mx + b from a slope and a point, or two points.</small></span></a></li>
+                    <li><a href="#proportional"><span class="ic" aria-hidden="true">🔁</span> <span><strong>Proportional Relationships</strong><br><small>y = kx: straight lines through the origin.</small></span></a></li>
+                    <li><a href="#linear-inequalities"><span class="ic" aria-hidden="true">🟦</span> <span><strong>Graphing Linear Inequalities</strong><br><small>Dashed or solid boundary lines, and which side to shade.</small></span></a></li>
+              </ul>
+              <p class="caption"><span class="caption-tag">Mr. Watford</span>Type equations like y=2x+3 and points like (2,5). Fractions use a slash, like 2/3.</p>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Illustrating Relations ===== -->
+          <section class="panel topic" id="relations">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🔗</span> Illustrating Relations</h2>
+            <div class="panel-body">
+              <p>A <strong>relation</strong> is any set of ordered pairs (x, y). You can show a relation as a list of pairs, a table, a mapping diagram, or a graph.</p>
+              <div class="rules">
+                <div class="callout key"><h3>Domain</h3><p>The set of all <strong>inputs</strong> (x-values).</p></div>
+                <div class="callout key"><h3>Range</h3><p>The set of all <strong>outputs</strong> (y-values).</p></div>
+              </div>
+              <p>For the relation {(1, 4), (2, 6), (3, 4)}, the domain is {1, 2, 3} and the range is {4, 6}. List each value only once.</p>
+              <p>On the coordinate plane, the first number tells how far to move left or right, and the second tells how far to move up or down.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Domain and range</h3>
+                <div class="work">{(−2, 5), (0, 3), (4, 5)}</div>
+                <p>Inputs: −2, 0, 4. Outputs: 5, 3, 5. List 5 only once.</p>
+                <p class="answer-line">Answer: Domain {−2, 0, 4}; Range {3, 5}</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> From a table</h3>
+                <div class="work">x: 1, 2, 3 &nbsp; y: 2, 4, 6. What is the rule?</div>
+                <p>Each y is double its x.</p>
+                <p class="answer-line">Answer: y = 2x</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Quadrant</h3>
+                <div class="work">In which quadrant is (−3, 4)?</div>
+                <p>Left (negative x) and up (positive y).</p>
+                <p class="answer-line">Answer: Quadrant II</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="{1,3,5}|1,3,5|{1,5,3}|{3,1,5}|{3,5,1}|{5,1,3}|{5,3,1}|3,1,5|5,3,1" data-hint="The x-values">
+                  <span class="q">Domain of {(1, 7), (3, 9), (5, 11)}. Type like {1,3,5}</span>
+                </div>
+                <div class="problem" data-answer="{7,9,11}|7,9,11|{11,9,7}|11,9,7|{9,7,11}|{7,11,9}|{9,11,7}|{11,7,9}" data-hint="The y-values">
+                  <span class="q">Range of {(1, 7), (3, 9), (5, 11)}</span>
+                </div>
+                <div class="problem" data-answer="{8,10}|8,10|{10,8}|10,8" data-hint="List 8 only once.">
+                  <span class="q">Range of {(2, 8), (4, 8), (6, 10)}</span>
+                </div>
+                <div class="problem" data-answer="{-1,0}|-1,0|{0,-1}|0,-1" data-hint="List −1 only once.">
+                  <span class="q">Domain of {(−1, 0), (0, 2), (−1, 5)}</span>
+                </div>
+                <div class="problem wide" data-answer="4|IV" data-hint="Right and down">
+                  <span class="q">In which quadrant is (5, −2)? (type 1, 2, 3, or 4)</span>
+                </div>
+                <div class="problem wide" data-answer="3|III" data-hint="Left and down">
+                  <span class="q">In which quadrant is (−6, −1)? (type 1, 2, 3, or 4)</span>
+                </div>
+                <div class="problem wide" data-answer="14" data-hint="Each y is x + 4.">
+                  <span class="q">A table has x = 1, 2, 3 and y = 5, 6, 7. What is y when x = 10?</span>
+                </div>
+                <div class="problem wide" data-answer="24" data-hint="Each y is 3 times x.">
+                  <span class="q">A table has x = 1, 2, 3 and y = 3, 6, 9. What is y when x = 8?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Functions ===== -->
+          <section class="panel topic" id="functions">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">⚙️</span> Functions</h2>
+            <div class="panel-body">
+              <p>A <strong>function</strong> is a relation where every input has <strong>exactly one</strong> output. If an x-value is paired with two different y-values, it's not a function.</p>
+              <div class="rules">
+                <div class="callout key"><h3>Vertical line test</h3><p>If any vertical line touches a graph more than once, the graph is not a function.</p></div>
+                <div class="callout key"><h3>Function notation</h3><p>f(x) = 3x − 1 means “the output of f for input x.” So f(4) = 3(4) − 1 = 11.</p></div>
+              </div>
+              <p>Outputs may repeat: {(1, 5), (2, 5)} is still a function. Only repeated <em>inputs</em> with different outputs break the rule.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Function?</h3>
+                <div class="work">{(1, 2), (2, 4), (1, 6)}</div>
+                <p>The input 1 has two outputs, 2 and 6.</p>
+                <p class="answer-line">Answer: not a function</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Evaluate</h3>
+                <div class="work">f(x) = x<sup>2</sup> + 1. Find f(−3).</div>
+                <p>(−3)<sup>2</sup> + 1 = 9 + 1.</p>
+                <p class="answer-line">Answer: 10</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Find the input</h3>
+                <div class="work">g(x) = 2x + 5. For what x does g(x) = 17?</div>
+                <p>2x + 5 = 17, so 2x = 12.</p>
+                <p class="answer-line">Answer: x = 6</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="yes" data-hint="Does any input repeat?">
+                  <span class="q">Is {(1, 3), (2, 5), (3, 7)} a function? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="no" data-hint="Look at the input 4.">
+                  <span class="q">Is {(4, 1), (4, 2), (5, 3)} a function? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="yes" data-hint="Outputs can repeat.">
+                  <span class="q">Is {(1, 6), (2, 6), (3, 6)} a function? (yes or no)</span>
+                </div>
+                <div class="problem" data-answer="17" data-hint="4(5) − 3">
+                  <span class="q">f(x) = 4x − 3. Find f(5).</span>
+                </div>
+                <div class="problem" data-answer="15" data-hint="−2(−4) + 7">
+                  <span class="q">f(x) = −2x + 7. Find f(−4).</span>
+                </div>
+                <div class="problem" data-answer="4" data-hint="9 − 5">
+                  <span class="q">h(x) = x<sup>2</sup> − 5. Find h(3).</span>
+                </div>
+                <div class="problem" data-answer="6" data-hint="3x + 2 = 20">
+                  <span class="q">g(x) = 3x + 2. For what x does g(x) = 20?</span>
+                </div>
+                <div class="problem wide" data-answer="115" data-hint="40 + 75">
+                  <span class="q">A plumber charges C(h) = 40 + 25h dollars for h hours. Find C(3).</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Slope ===== -->
+          <section class="panel topic" id="slope">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">⛰️</span> Slope</h2>
+            <div class="panel-body">
+              <p>The <strong>slope</strong> of a line tells how steep it is. It's the change in y divided by the change in x, often called <strong>rise over run</strong>.</p>
+              <div class="callout key"><h3>Slope formula</h3><p>m = (y<sub>2</sub> − y<sub>1</sub>) ÷ (x<sub>2</sub> − x<sub>1</sub>)</p></div>
+              <div class="rules">
+                <div class="callout"><h3>Positive slope</h3><p>Line goes up from left to right.</p></div>
+                <div class="callout"><h3>Negative slope</h3><p>Line goes down from left to right.</p></div>
+                <div class="callout"><h3>Zero slope</h3><p>Horizontal line (y = a number).</p></div>
+                <div class="callout"><h3>Undefined slope</h3><p>Vertical line (x = a number).</p></div>
+              </div>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Two points</h3>
+                <div class="work">Slope through (1, 2) and (4, 11)</div>
+                <p>(11 − 2) ÷ (4 − 1) = 9 ÷ 3.</p>
+                <p class="answer-line">Answer: 3</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Negative slope</h3>
+                <div class="work">Slope through (−2, 5) and (2, −1)</div>
+                <p>(−1 − 5) ÷ (2 − (−2)) = −6 ÷ 4.</p>
+                <p class="answer-line">Answer: −3/2</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Horizontal line</h3>
+                <div class="work">Slope through (3, 7) and (8, 7)</div>
+                <p>(7 − 7) ÷ (8 − 3) = 0 ÷ 5.</p>
+                <p class="answer-line">Answer: 0</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="3" data-hint="(7 − 1) ÷ (2 − 0)">
+                  <span class="q">Slope through (0, 1) and (2, 7) =</span>
+                </div>
+                <div class="problem" data-answer="-2" data-hint="(0 − 4) ÷ (3 − 1)">
+                  <span class="q">Slope through (1, 4) and (3, 0) =</span>
+                </div>
+                <div class="problem" data-answer="2/3" data-hint="4 ÷ 6, simplified">
+                  <span class="q">Slope through (2, 3) and (8, 7) =</span>
+                </div>
+                <div class="problem" data-answer="2" data-hint="8 ÷ 4">
+                  <span class="q">Slope through (−1, −2) and (3, 6) =</span>
+                </div>
+                <div class="problem" data-answer="0" data-hint="The y-values are the same.">
+                  <span class="q">Slope through (−4, 5) and (2, 5) =</span>
+                </div>
+                <div class="problem wide" data-answer="undefined" data-hint="The x-values are the same.">
+                  <span class="q">Slope through (3, 1) and (3, 9): type undefined or a number</span>
+                </div>
+                <div class="problem wide" data-answer="1/12" data-hint="2/24">
+                  <span class="q">A ramp rises 2 feet over a run of 24 feet. What is its slope? (fraction)</span>
+                </div>
+                <div class="problem wide" data-answer="-6" data-hint="(10 − 40) ÷ 5">
+                  <span class="q">Water drains from 40 gallons to 10 gallons in 5 minutes. What is the slope in gallons per minute?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Graphing Linear Equations ===== -->
+          <section class="panel topic" id="graphing-lines">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">📉</span> Graphing Linear Equations</h2>
+            <div class="panel-body">
+              <p>An equation whose graph is a straight line is a <strong>linear equation</strong>. The most useful form is <strong>slope-intercept form</strong>:</p>
+              <div class="callout key"><h3>y = mx + b</h3><p><strong>m</strong> is the slope and <strong>b</strong> is the y-intercept (where the line crosses the y-axis).</p></div>
+              <p>To graph y = 2x − 3: plot the y-intercept (0, −3), then use the slope 2 = 2/1 to go up 2 and right 1 to the next point. Draw the line through them.</p>
+              <p>The <strong>x-intercept</strong> is where the line crosses the x-axis. Find it by setting y = 0.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Read slope and intercept</h3>
+                <div class="work">y = −4x + 7</div>
+                <p>m is the number with x, and b is the constant.</p>
+                <p class="answer-line">Answer: slope −4, y-intercept 7</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Is the point on the line?</h3>
+                <div class="work">Is (2, 1) on y = 3x − 5?</div>
+                <p>3(2) − 5 = 1. It matches.</p>
+                <p class="answer-line">Answer: yes</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> x-intercept</h3>
+                <div class="work">Find the x-intercept of y = 2x − 8.</div>
+                <p>0 = 2x − 8, so 2x = 8.</p>
+                <p class="answer-line">Answer: x = 4, the point (4, 0)</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="5" data-hint="The number in front of x">
+                  <span class="q">What is the slope of y = 5x − 2?</span>
+                </div>
+                <div class="problem" data-answer="-2" data-hint="The constant">
+                  <span class="q">What is the y-intercept of y = 5x − 2?</span>
+                </div>
+                <div class="problem" data-answer="9" data-hint="b = 9">
+                  <span class="q">What is the y-intercept of y = −x + 9?</span>
+                </div>
+                <div class="problem wide" data-answer="1/2|0.5" data-hint="m = 1/2">
+                  <span class="q">What is the slope of y = (1/2)x + 4? (fraction)</span>
+                </div>
+                <div class="problem" data-answer="yes" data-hint="2(3) + 1 = 7">
+                  <span class="q">Is (3, 7) on the line y = 2x + 1? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="no" data-hint="−3(−1) + 2 = 5">
+                  <span class="q">Is (−1, 4) on the line y = −3x + 2? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="4" data-hint="0 = 3x − 12">
+                  <span class="q">Find the x-intercept of y = 3x − 12 (just the x-value).</span>
+                </div>
+                <div class="problem" data-answer="y=-2x+6|y=6-2x" data-hint="Subtract 2x from both sides.">
+                  <span class="q">Rewrite 2x + y = 6 in slope-intercept form.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Writing Linear Equations ===== -->
+          <section class="panel topic" id="writing-lines">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">✍️</span> Writing Linear Equations</h2>
+            <div class="panel-body">
+              <p>To write the equation of a line, you need its <strong>slope (m)</strong> and <strong>y-intercept (b)</strong>.</p>
+              <ol>
+                <li>If you're given two points, find the slope first.</li>
+                <li>Put the slope and one point into y = mx + b and solve for b.</li>
+                <li>Write the final equation with your m and b.</li>
+              </ol>
+              <div class="callout key"><h3>Example</h3><p>Slope 3 through (2, 5): 5 = 3(2) + b → b = −1 → y = 3x − 1</p></div>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Slope and intercept</h3>
+                <div class="work">Slope −2, y-intercept 5</div>
+                <p>Just fill in y = mx + b.</p>
+                <p class="answer-line">Answer: y = −2x + 5</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Slope and a point</h3>
+                <div class="work">Slope 4 through (1, 3)</div>
+                <p>3 = 4(1) + b, so b = −1.</p>
+                <p class="answer-line">Answer: y = 4x − 1</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Two points</h3>
+                <div class="work">Through (0, 2) and (3, 8)</div>
+                <p>Slope: 6 ÷ 3 = 2. The point (0, 2) gives b = 2.</p>
+                <p class="answer-line">Answer: y = 2x + 2</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="y=3x-4|y=-4+3x" data-hint="y = mx + b">
+                  <span class="q">Slope 3, y-intercept −4</span>
+                </div>
+                <div class="problem" data-answer="y=-x+6|y=6-x|y=-1x+6" data-hint="m = −1">
+                  <span class="q">Slope −1, y-intercept 6</span>
+                </div>
+                <div class="problem" data-answer="y=2x+4|y=4+2x" data-hint="10 = 2(3) + b">
+                  <span class="q">Slope 2 through (3, 10)</span>
+                </div>
+                <div class="problem" data-answer="y=-3x+7|y=7-3x" data-hint="1 = −3(2) + b">
+                  <span class="q">Slope −3 through (2, 1)</span>
+                </div>
+                <div class="problem" data-answer="y=3x-1|y=-1+3x" data-hint="Slope is 6 ÷ 2.">
+                  <span class="q">Through (0, −1) and (2, 5)</span>
+                </div>
+                <div class="problem" data-answer="y=2x+2|y=2+2x" data-hint="Slope 2, then 4 = 2(1) + b">
+                  <span class="q">Through (1, 4) and (3, 8)</span>
+                </div>
+                <div class="problem" data-answer="y=-3" data-hint="Slope 0, so y is always −3.">
+                  <span class="q">Horizontal line through (5, −3)</span>
+                </div>
+                <div class="problem wide" data-answer="y=2x+3|y=3+2x" data-hint="Rate is the slope; start fee is b.">
+                  <span class="q">A taxi charges $3 to start plus $2 per mile. Write the cost y for x miles.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Proportional Relationships ===== -->
+          <section class="panel topic" id="proportional">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🔁</span> Proportional Relationships</h2>
+            <div class="panel-body">
+              <p>Two quantities are in a <strong>proportional relationship</strong> if their ratio y/x is always the same. That constant ratio is called the <strong>constant of proportionality</strong>, k.</p>
+              <div class="callout key"><h3>y = kx</h3><p>The graph is a straight line through the origin (0, 0). The slope of the line is k, which is also the unit rate.</p></div>
+              <p>A line like y = 2x + 3 is linear but <strong>not</strong> proportional, because it doesn't pass through the origin.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Find k</h3>
+                <div class="work">x: 2, 4, 6 &nbsp; y: 7, 14, 21</div>
+                <p>7/2 = 14/4 = 21/6 = 3.5. The ratio is always the same.</p>
+                <p class="answer-line">Answer: k = 3.5, so y = 3.5x</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Proportional?</h3>
+                <div class="work">x: 1, 2, 3 &nbsp; y: 4, 6, 8</div>
+                <p>4/1 = 4 but 6/2 = 3. The ratios differ.</p>
+                <p class="answer-line">Answer: not proportional</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Use it</h3>
+                <div class="work">Apples cost $1.25 per pound. How much do 8 pounds cost?</div>
+                <p>y = 1.25x, so y = 1.25(8).</p>
+                <p class="answer-line">Answer: $10</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="6" data-hint="k is the number in front of x.">
+                  <span class="q">y = 6x. What is the constant of proportionality?</span>
+                </div>
+                <div class="problem wide" data-answer="5" data-hint="k = y ÷ x">
+                  <span class="q">If y is proportional to x and y = 15 when x = 3, what is k?</span>
+                </div>
+                <div class="problem wide" data-answer="45" data-hint="k = 5, so y = 5(9).">
+                  <span class="q">If y is proportional to x and y = 20 when x = 4, what is y when x = 9?</span>
+                </div>
+                <div class="problem" data-answer="no" data-hint="Does it go through (0, 0)?">
+                  <span class="q">Is y = 4x + 1 proportional? (yes or no)</span>
+                </div>
+                <div class="problem" data-answer="yes" data-hint="It has the form y = kx.">
+                  <span class="q">Is y = (2/3)x proportional? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="yes" data-hint="8/2, 20/5, 40/10">
+                  <span class="q">x: 2, 5, 10 and y: 8, 20, 40. Is this proportional? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="60" data-hint="180 ÷ 3">
+                  <span class="q">A car travels 180 miles in 3 hours at a steady speed. Write y = kx for distance y after x hours. What is k?</span>
+                </div>
+                <div class="problem wide" data-answer="82.5|82.50" data-hint="y = 11x">
+                  <span class="q">You earn $11 per hour. How much do you earn in 7.5 hours?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Graphing Linear Inequalities ===== -->
+          <section class="panel topic" id="linear-inequalities">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🟦</span> Graphing Linear Inequalities</h2>
+            <div class="panel-body">
+              <p>The graph of an inequality like y &gt; 2x + 1 is a whole <strong>region</strong> of the plane, not just a line.</p>
+              <ol>
+                <li>Graph the boundary line y = 2x + 1. Use a <strong>dashed</strong> line for &lt; or &gt; (points on the line don't count) and a <strong>solid</strong> line for ≤ or ≥.</li>
+                <li><strong>Shade</strong> the side that makes the inequality true. For y &gt; or y ≥, shade <strong>above</strong>. For y &lt; or y ≤, shade <strong>below</strong>.</li>
+                <li>Check with a test point, like (0, 0), if it isn't on the line.</li>
+              </ol>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Line and shading</h3>
+                <div class="work">y ≤ −x + 3</div>
+                <p>≤ means solid, and “less than” means below.</p>
+                <p class="answer-line">Answer: solid line, shade below</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Test a point</h3>
+                <div class="work">Is (1, 5) a solution of y > 3x?</div>
+                <p>3(1) = 3. Is 5 &gt; 3? Yes.</p>
+                <p class="answer-line">Answer: yes</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Test (0, 0)</h3>
+                <div class="work">Is (0, 0) a solution of y < 2x − 4?</div>
+                <p>0 &lt; 2(0) − 4 means 0 &lt; −4, which is false.</p>
+                <p class="answer-line">Answer: no</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="dashed" data-hint="&gt; doesn&#39;t include the line.">
+                  <span class="q">y > 4x − 1: dashed or solid line?</span>
+                </div>
+                <div class="problem" data-answer="solid" data-hint="≥ includes the line.">
+                  <span class="q">y ≥ x + 2: dashed or solid line?</span>
+                </div>
+                <div class="problem" data-answer="below" data-hint="y &lt; means below.">
+                  <span class="q">y < −2x + 5: shade above or below?</span>
+                </div>
+                <div class="problem" data-answer="above" data-hint="y ≥ means above.">
+                  <span class="q">y ≥ 3x: shade above or below?</span>
+                </div>
+                <div class="problem" data-answer="yes" data-hint="Is 1 &lt; 5?">
+                  <span class="q">Is (2, 1) a solution of y < x + 3? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="no" data-hint="Is 0 &gt; 1?">
+                  <span class="q">Is (0, 0) a solution of y > 2x + 1? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="yes" data-hint="2(3) + 1 = 7, and ≤ includes 7.">
+                  <span class="q">Is (3, 7) a solution of y ≤ 2x + 1? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="no" data-hint="−(−1) + 1 = 2. Is 2 &gt; 2?">
+                  <span class="q">Is (−1, 2) a solution of y > −x + 1? (yes or no)</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="chapter-nav">
+            <a class="btn ghost" href="chapter-7.html">← Applying Equations and Inequalities</a>
+                <a class="btn ghost" href="index.html">All Pre-Algebra topics</a>
+                <a class="btn" href="chapter-9.html">Systems of Linear Equations →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div>
+          <a class="brand" href="../index.html">
+            <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+            <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+          </a>
+          <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+        </div>
+        <nav aria-label="Footer">
+          <h2>Explore</h2>
+          <ul>
+            <li><a href="../typing/index.html">Typing Games</a></li>
+            <li><a href="../science/index.html">Science Experiments</a></li>
+            <li><a href="../math/index.html">Pre-Algebra Help</a></li>
+          </ul>
+        </nav>
+        <div>
+          <h2>Good to know</h2>
+          <p>No logins, no forms, and no student information collected. Ever.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+    </footer>
+
+    <script src="../js/site.js"></script>
+  </body>
+  </html>

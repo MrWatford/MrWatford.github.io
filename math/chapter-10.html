@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Geometry | Pre-Algebra | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-tips="Supplementary angles add to 180°. Complementary angles add to 90°.|The hypotenuse is always the longest side, across from the right angle.|Type points like (3,-2).">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../index.html">
+        <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../typing/index.html">Typing</a></li>
+          <li><a href="../science/index.html">Science</a></li>
+          <li><a href="index.html" aria-current="page">Pre-Algebra</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ===== SCENE: the whiteboard ===== -->
+    <section class="scene-hero wall">
+      <div class="container scene-grid">
+        <div class="panel title-card">
+          <p class="panel-head"><span class="ic" aria-hidden="true">📐</span> Pre-Algebra</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="index.html">← All Pre-Algebra topics</a></p>
+            <h1>Geometry</h1>
+            <p class="lead">Angles, polygons, right triangles, the coordinate plane, congruent and similar figures, and moving shapes with transformations.</p>
+            <ul class="facts">
+              <li><small>Topics</small><strong>7</strong></li>
+              <li><small>Examples</small><strong>21 worked</strong></li>
+              <li><small>Practice</small><strong>56 problems</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="stage" aria-hidden="true">
+          <svg viewBox="0 0 600 420">
+            <rect x="0" y="20" width="360" height="250" rx="8" fill="#9aa3ad"/>
+            <rect x="9" y="29" width="342" height="226" rx="3" fill="#fdfdfd"/>
+            <g class="marker">
+              <text x="26" y="78" font-size="36" fill="#d6372e">Geometry!</text>
+              <text x="26" y="126" font-size="28" fill="#2c4fa3">a² + b² = c²</text>
+              <text x="26" y="172" font-size="28" fill="#2c4fa3">3² + 4² = 5²</text>
+              <text x="26" y="222" font-size="25" fill="#2e8b3e">Right triangles</text>
+            </g>
+            <rect x="60" y="258" width="24" height="7" rx="3" fill="#d6372e"/><rect x="90" y="258" width="24" height="7" rx="3" fill="#2c4fa3"/>
+            <image class="stage-teacher" href="../images/mr-watford/explaining.png" x="170" y="71" width="430" height="349"/>
+          </svg>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container with-aside">
+
+        <!-- ===== SIDE MENU ===== -->
+        <aside class="aside">
+          <nav class="panel toc" aria-label="On this page">
+            <p class="panel-head">On this page</p>
+            <div class="panel-body">
+              <ol>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#angles">Angles</a></li>
+                    <li><a href="#polygons">Polygons</a></li>
+                    <li><a href="#pythagorean">Pythagorean theorem</a></li>
+                    <li><a href="#coordinate-geometry">Distance & midpoint</a></li>
+                    <li><a href="#congruence-similarity">Congruent & similar</a></li>
+                    <li><a href="#translations-reflections">Slides & flips</a></li>
+                    <li><a href="#rotations-dilations">Turns & resizing</a></li>
+              </ol>
+              <p class="toc-label">Your progress</p>
+              <div class="toc-score">0 of 56 correct</div>
+              <div class="meter"><div class="meter-fill"></div></div>
+            </div>
+          </nav>
+        </aside>
+
+        <div>
+          <!-- ===== CHAPTER OVERVIEW ===== -->
+          <section class="panel" id="overview">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🗺️</span> What this page covers</h2>
+            <div class="panel-body">
+              <p>Geometry is the study of shapes and space, and it shows the order and design in the world God made. Here we work with angle pairs, the angles of polygons, the Pythagorean theorem, distance and midpoint on the coordinate plane, congruent and similar figures, and four transformations: translations, reflections, rotations, and dilations.</p>
+              <ul class="mini-list topic-list">
+                    <li><a href="#angles"><span class="ic" aria-hidden="true">📐</span> <span><strong>Angles</strong><br><small>Angle types and angle pairs.</small></span></a></li>
+                    <li><a href="#polygons"><span class="ic" aria-hidden="true">⬡</span> <span><strong>Polygons</strong><br><small>Triangles, quadrilaterals, and angle sums.</small></span></a></li>
+                    <li><a href="#pythagorean"><span class="ic" aria-hidden="true">📏</span> <span><strong>The Pythagorean Theorem</strong><br><small>a² + b² = c² for right triangles.</small></span></a></li>
+                    <li><a href="#coordinate-geometry"><span class="ic" aria-hidden="true">🗺️</span> <span><strong>Coordinate Geometry</strong><br><small>Distance and midpoint on the coordinate plane.</small></span></a></li>
+                    <li><a href="#congruence-similarity"><span class="ic" aria-hidden="true">🔺</span> <span><strong>Congruence and Similarity</strong><br><small>Same shape and size, or same shape at a different size.</small></span></a></li>
+                    <li><a href="#translations-reflections"><span class="ic" aria-hidden="true">🪞</span> <span><strong>Translations and Reflections</strong><br><small>Slide a figure, or flip it over a line.</small></span></a></li>
+                    <li><a href="#rotations-dilations"><span class="ic" aria-hidden="true">🔄</span> <span><strong>Rotations and Dilations</strong><br><small>Turn a figure around the origin, or stretch and shrink it.</small></span></a></li>
+              </ul>
+              <p class="caption"><span class="caption-tag">Mr. Watford</span>Angle answers are in degrees. You can type them with or without the ° sign.</p>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Angles ===== -->
+          <section class="panel topic" id="angles">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">📐</span> Angles</h2>
+            <div class="panel-body">
+              <p>Angles are measured in degrees (°). An <strong>acute</strong> angle is less than 90°, a <strong>right</strong> angle is exactly 90°, an <strong>obtuse</strong> angle is between 90° and 180°, and a <strong>straight</strong> angle is 180°.</p>
+              <div class="rules">
+                <div class="callout key"><h3>Complementary</h3><p>Two angles that add to <strong>90°</strong>.</p></div>
+                <div class="callout key"><h3>Supplementary</h3><p>Two angles that add to <strong>180°</strong>.</p></div>
+                <div class="callout"><h3>Vertical angles</h3><p>Opposite angles formed by two crossing lines. They are always <strong>equal</strong>.</p></div>
+                <div class="callout"><h3>Parallel lines + a transversal</h3><p>Corresponding angles are equal, and alternate interior angles are equal.</p></div>
+              </div>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Complement</h3>
+                <div class="work">Find the complement of a 35° angle.</div>
+                <p>90 − 35.</p>
+                <p class="answer-line">Answer: 55°</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Supplement</h3>
+                <div class="work">Find the supplement of a 112° angle.</div>
+                <p>180 − 112.</p>
+                <p class="answer-line">Answer: 68°</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Algebra</h3>
+                <div class="work">Two supplementary angles measure x° and (2x + 30)°. Find x.</div>
+                <p>x + 2x + 30 = 180, so 3x = 150.</p>
+                <p class="answer-line">Answer: x = 50</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="62" data-hint="90 − 28">
+                  <span class="q">Complement of 28° =</span>
+                </div>
+                <div class="problem" data-answer="105" data-hint="180 − 75">
+                  <span class="q">Supplement of 75° =</span>
+                </div>
+                <div class="problem" data-answer="41" data-hint="180 − 139">
+                  <span class="q">Supplement of 139° =</span>
+                </div>
+                <div class="problem wide" data-answer="64" data-hint="Vertical angles are equal.">
+                  <span class="q">Two lines cross. One angle is 64°. What is its vertical angle?</span>
+                </div>
+                <div class="problem wide" data-answer="obtuse" data-hint="Between 90° and 180°">
+                  <span class="q">A 130° angle is acute, right, obtuse, or straight?</span>
+                </div>
+                <div class="problem wide" data-answer="30" data-hint="x + 2x = 90">
+                  <span class="q">Two complementary angles are x° and 2x°. Find x.</span>
+                </div>
+                <div class="problem wide" data-answer="40" data-hint="4x + 20 = 180">
+                  <span class="q">Two supplementary angles are (x + 20)° and (3x)°. Find x.</span>
+                </div>
+                <div class="problem wide" data-answer="72" data-hint="Corresponding angles are equal.">
+                  <span class="q">Parallel lines are cut by a transversal. One corresponding angle is 72°. What is the other?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Polygons ===== -->
+          <section class="panel topic" id="polygons">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">⬡</span> Polygons</h2>
+            <div class="panel-body">
+              <p>A <strong>polygon</strong> is a closed figure made of straight sides. It's named by its number of sides: triangle (3), quadrilateral (4), pentagon (5), hexagon (6), octagon (8), decagon (10).</p>
+              <div class="callout key"><h3>Angle sum</h3><p>The interior angles of a polygon with n sides add up to <strong>(n − 2) × 180°</strong>.<br>Triangle: 180°. Quadrilateral: 360°. Pentagon: 540°.</p></div>
+              <p>A <strong>regular polygon</strong> has all sides equal and all angles equal. Each angle = angle sum ÷ n.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Missing triangle angle</h3>
+                <div class="work">A triangle has angles of 48° and 67°. Find the third.</div>
+                <p>180 − 48 − 67.</p>
+                <p class="answer-line">Answer: 65°</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Angle sum</h3>
+                <div class="work">Find the sum of the interior angles of a hexagon.</div>
+                <p>(6 − 2) × 180 = 4 × 180.</p>
+                <p class="answer-line">Answer: 720°</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Regular polygon</h3>
+                <div class="work">Find each angle of a regular octagon.</div>
+                <p>Sum: 6 × 180 = 1,080. Divide by 8.</p>
+                <p class="answer-line">Answer: 135°</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="55" data-hint="180 − 90 − 35">
+                  <span class="q">A triangle has angles of 90° and 35°. Find the third angle.</span>
+                </div>
+                <div class="problem wide" data-answer="57" data-hint="180 − 123">
+                  <span class="q">A triangle has angles of 52° and 71°. Find the third angle.</span>
+                </div>
+                <div class="problem" data-answer="60" data-hint="180 ÷ 3">
+                  <span class="q">Each angle of an equilateral triangle =</span>
+                </div>
+                <div class="problem wide" data-answer="75" data-hint="360 − 285">
+                  <span class="q">A quadrilateral has angles 80°, 95°, and 110°. Find the fourth.</span>
+                </div>
+                <div class="problem" data-answer="540" data-hint="(5 − 2) × 180">
+                  <span class="q">Sum of the interior angles of a pentagon =</span>
+                </div>
+                <div class="problem" data-answer="1440" data-hint="(10 − 2) × 180">
+                  <span class="q">Sum of the interior angles of a decagon =</span>
+                </div>
+                <div class="problem" data-answer="120" data-hint="720 ÷ 6">
+                  <span class="q">Each interior angle of a regular hexagon =</span>
+                </div>
+                <div class="problem wide" data-answer="7" data-hint="(n − 2) × 180 = 900">
+                  <span class="q">How many sides does a polygon have if its angles add to 900°?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: The Pythagorean Theorem ===== -->
+          <section class="panel topic" id="pythagorean">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">📏</span> The Pythagorean Theorem</h2>
+            <div class="panel-body">
+              <p>In a right triangle, the two shorter sides are the <strong>legs</strong> (a and b), and the longest side, across from the right angle, is the <strong>hypotenuse</strong> (c).</p>
+              <div class="callout key"><h3>a<sup>2</sup> + b<sup>2</sup> = c<sup>2</sup></h3><p>The sum of the squares of the legs equals the square of the hypotenuse.</p></div>
+              <ul>
+                <li><strong>Find the hypotenuse:</strong> add the squares, then take the square root.</li>
+                <li><strong>Find a leg:</strong> subtract the squares, then take the square root.</li>
+                <li><strong>Is it a right triangle?</strong> Check whether a<sup>2</sup> + b<sup>2</sup> = c<sup>2</sup> with c as the longest side.</li>
+              </ul>
+              <p>Common whole-number sets: 3-4-5, 5-12-13, 8-15-17, 7-24-25, and their multiples.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Find the hypotenuse</h3>
+                <div class="work">Legs 6 and 8</div>
+                <p>36 + 64 = 100, and √100 = 10.</p>
+                <p class="answer-line">Answer: 10</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Find a leg</h3>
+                <div class="work">Hypotenuse 13, one leg 5</div>
+                <p>169 − 25 = 144, and √144 = 12.</p>
+                <p class="answer-line">Answer: 12</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Real life</h3>
+                <div class="work">A 10-foot ladder leans on a wall with its base 6 feet out. How high does it reach?</div>
+                <p>100 − 36 = 64, and √64 = 8.</p>
+                <p class="answer-line">Answer: 8 feet</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="5" data-hint="9 + 16 = 25">
+                  <span class="q">Legs 3 and 4. Hypotenuse =</span>
+                </div>
+                <div class="problem" data-answer="15" data-hint="81 + 144 = 225">
+                  <span class="q">Legs 9 and 12. Hypotenuse =</span>
+                </div>
+                <div class="problem" data-answer="17" data-hint="64 + 225 = 289">
+                  <span class="q">Legs 8 and 15. Hypotenuse =</span>
+                </div>
+                <div class="problem" data-answer="24" data-hint="625 − 49 = 576">
+                  <span class="q">Hypotenuse 25, one leg 7. Other leg =</span>
+                </div>
+                <div class="problem" data-answer="6" data-hint="100 − 64 = 36">
+                  <span class="q">Hypotenuse 10, one leg 8. Other leg =</span>
+                </div>
+                <div class="problem wide" data-answer="yes" data-hint="25 + 144 = 169?">
+                  <span class="q">Is a triangle with sides 5, 12, 13 a right triangle? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="no" data-hint="16 + 25 = 41, not 36">
+                  <span class="q">Is a triangle with sides 4, 5, 6 a right triangle? (yes or no)</span>
+                </div>
+                <div class="problem wide" data-answer="30" data-hint="576 + 324 = 900">
+                  <span class="q">A TV screen is 24 inches wide and 18 inches tall. How long is the diagonal, in inches?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Coordinate Geometry ===== -->
+          <section class="panel topic" id="coordinate-geometry">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🗺️</span> Coordinate Geometry</h2>
+            <div class="panel-body">
+              <div class="rules">
+                <div class="callout key"><h3>Distance</h3><p>Draw a right triangle between the points and use the Pythagorean theorem:<br>d = √((x<sub>2</sub> − x<sub>1</sub>)<sup>2</sup> + (y<sub>2</sub> − y<sub>1</sub>)<sup>2</sup>)</p></div>
+                <div class="callout key"><h3>Midpoint</h3><p>Average the x's and average the y's:<br>((x<sub>1</sub> + x<sub>2</sub>)/2, (y<sub>1</sub> + y<sub>2</sub>)/2)</p></div>
+              </div>
+              <p>If two points are on the same horizontal or vertical line, the distance is just the difference of the coordinates that change.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Distance</h3>
+                <div class="work">(1, 2) and (4, 6)</div>
+                <p>Δx = 3, Δy = 4. √(9 + 16) = √25.</p>
+                <p class="answer-line">Answer: 5</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Midpoint</h3>
+                <div class="work">(2, 8) and (6, −4)</div>
+                <p>x: (2 + 6)/2 = 4. y: (8 + (−4))/2 = 2.</p>
+                <p class="answer-line">Answer: (4, 2)</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Same line</h3>
+                <div class="work">(−3, 5) and (7, 5)</div>
+                <p>Same y, so just 7 − (−3).</p>
+                <p class="answer-line">Answer: 10</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="10" data-hint="√(36 + 64)">
+                  <span class="q">Distance between (0, 0) and (6, 8) =</span>
+                </div>
+                <div class="problem" data-answer="5" data-hint="Δx = 3, Δy = 4">
+                  <span class="q">Distance between (2, 1) and (5, 5) =</span>
+                </div>
+                <div class="problem" data-answer="13" data-hint="Δx = 5, Δy = 12">
+                  <span class="q">Distance between (−1, −2) and (4, 10) =</span>
+                </div>
+                <div class="problem" data-answer="10" data-hint="Same x: 6 − (−4)">
+                  <span class="q">Distance between (3, −4) and (3, 6) =</span>
+                </div>
+                <div class="problem wide" data-answer="(5,3)" data-hint="Average each coordinate.">
+                  <span class="q">Midpoint of (0, 0) and (10, 6). Type like (5,3)</span>
+                </div>
+                <div class="problem" data-answer="(5,4)" data-hint="(2 + 8)/2 and (7 + 1)/2">
+                  <span class="q">Midpoint of (2, 7) and (8, 1)</span>
+                </div>
+                <div class="problem" data-answer="(1,-3)" data-hint="(−4 + 6)/2 and (3 − 9)/2">
+                  <span class="q">Midpoint of (−4, 3) and (6, −9)</span>
+                </div>
+                <div class="problem wide" data-answer="5" data-hint="Δx = 3, Δy = 4">
+                  <span class="q">A map grid puts your house at (1, 1) and school at (4, 5), in miles. How far apart are they, straight-line?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Congruence and Similarity ===== -->
+          <section class="panel topic" id="congruence-similarity">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🔺</span> Congruence and Similarity</h2>
+            <div class="panel-body">
+              <div class="rules">
+                <div class="callout key"><h3>Congruent (≅)</h3><p>Same shape <strong>and</strong> same size. Matching sides and matching angles are equal.</p></div>
+                <div class="callout key"><h3>Similar (~)</h3><p>Same shape, possibly a different size. Matching angles are equal, and matching sides are <strong>proportional</strong>.</p></div>
+              </div>
+              <p>To find a missing side of similar figures, set up a proportion with matching sides. The ratio of matching sides is the <strong>scale factor</strong>.</p>
+              <p class="caption"><span class="caption-tag">Mr. Watford</span>Shadow problems use similar triangles: a person and a tree with their shadows make two triangles with the same angles.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Congruent sides</h3>
+                <div class="work">△ABC ≅ △DEF and AB = 9 cm. Find DE.</div>
+                <p>AB matches DE, and congruent sides are equal.</p>
+                <p class="answer-line">Answer: 9 cm</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Missing side</h3>
+                <div class="work">Similar triangles: sides 4 and 6 match sides 10 and x.</div>
+                <p>4/10 = 6/x, so 4x = 60.</p>
+                <p class="answer-line">Answer: x = 15</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Shadows</h3>
+                <div class="work">A 6-foot man casts a 4-foot shadow. A tree casts a 20-foot shadow. How tall is the tree?</div>
+                <p>6/4 = t/20, so 4t = 120.</p>
+                <p class="answer-line">Answer: 30 feet</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="48" data-hint="Matching angles are equal.">
+                  <span class="q">△PQR ≅ △XYZ and ∠Q = 48°. What is ∠Y?</span>
+                </div>
+                <div class="problem wide" data-answer="3" data-hint="9 ÷ 3">
+                  <span class="q">Similar triangles: a side of 3 matches a side of 9. What is the scale factor from small to large?</span>
+                </div>
+                <div class="problem wide" data-answer="15" data-hint="2/6 = 5/x">
+                  <span class="q">Similar rectangles: 2 by 5, and 6 by x. Find x.</span>
+                </div>
+                <div class="problem wide" data-answer="9" data-hint="8/6 = 12/x">
+                  <span class="q">Similar triangles: sides 8 and 12 match sides 6 and x. Find x.</span>
+                </div>
+                <div class="problem wide" data-answer="7" data-hint="5/15 = x/21">
+                  <span class="q">Similar triangles: sides 5 and x match sides 15 and 21. Find x.</span>
+                </div>
+                <div class="problem wide" data-answer="65" data-hint="180 − 40 − 75">
+                  <span class="q">Two similar triangles have angles of 40° and 75°. What is the third angle of either one?</span>
+                </div>
+                <div class="problem wide" data-answer="20" data-hint="5/3 = h/12">
+                  <span class="q">A 5-foot girl casts a 3-foot shadow. A flagpole casts a 12-foot shadow. How tall is the flagpole?</span>
+                </div>
+                <div class="problem" data-answer="yes" data-hint="Same shape, all angles 90°">
+                  <span class="q">Are all squares similar? (yes or no)</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Translations and Reflections ===== -->
+          <section class="panel topic" id="translations-reflections">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🪞</span> Translations and Reflections</h2>
+            <div class="panel-body">
+              <p>A <strong>transformation</strong> moves a figure to a new position. The new figure is called the <strong>image</strong>, and we label its points with a prime mark: A becomes A′.</p>
+              <div class="rules">
+                <div class="callout key"><h3>Translation (slide)</h3><p>Every point moves the same distance and direction.<br>Right/left changes x. Up/down changes y.<br>(x, y) → (x + a, y + b)</p></div>
+                <div class="callout key"><h3>Reflection (flip)</h3><p>Over the <strong>x-axis</strong>: (x, y) → (x, −y)<br>Over the <strong>y-axis</strong>: (x, y) → (−x, y)</p></div>
+              </div>
+              <p>Translations and reflections keep the same size and shape, so the image is congruent to the original.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Translation</h3>
+                <div class="work">Move (2, −3) 4 units left and 5 units up.</div>
+                <p>x: 2 − 4 = −2. y: −3 + 5 = 2.</p>
+                <p class="answer-line">Answer: (−2, 2)</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Reflect over x-axis</h3>
+                <div class="work">Reflect (5, 4) over the x-axis.</div>
+                <p>Keep x, change the sign of y.</p>
+                <p class="answer-line">Answer: (5, −4)</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Reflect over y-axis</h3>
+                <div class="work">Reflect (−3, 7) over the y-axis.</div>
+                <p>Change the sign of x, keep y.</p>
+                <p class="answer-line">Answer: (3, 7)</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="(4,6)" data-hint="Add 3 to x and 4 to y.">
+                  <span class="q">Translate (1, 2) right 3 and up 4. Type like (4,6)</span>
+                </div>
+                <div class="problem" data-answer="(-1,-3)" data-hint="5 − 6 and −1 − 2">
+                  <span class="q">Translate (5, −1) left 6 and down 2.</span>
+                </div>
+                <div class="problem" data-answer="(7,-3)" data-hint="Add 7 to x, subtract 3 from y.">
+                  <span class="q">Translate (0, 0) by (x + 7, y − 3).</span>
+                </div>
+                <div class="problem" data-answer="(4,-3)" data-hint="(x, −y)">
+                  <span class="q">Reflect (4, 3) over the x-axis.</span>
+                </div>
+                <div class="problem" data-answer="(-4,3)" data-hint="(−x, y)">
+                  <span class="q">Reflect (4, 3) over the y-axis.</span>
+                </div>
+                <div class="problem" data-answer="(-2,6)" data-hint="Change the sign of y.">
+                  <span class="q">Reflect (−2, −6) over the x-axis.</span>
+                </div>
+                <div class="problem wide" data-answer="5" data-hint="8 − 3">
+                  <span class="q">A point moved from (3, 1) to (8, −2). How many units right did it move?</span>
+                </div>
+                <div class="problem wide" data-answer="yes" data-hint="Same size and shape">
+                  <span class="q">Is a reflected figure congruent to the original? (yes or no)</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Rotations and Dilations ===== -->
+          <section class="panel topic" id="rotations-dilations">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🔄</span> Rotations and Dilations</h2>
+            <div class="panel-body">
+              <div class="rules">
+                <div class="callout key"><h3>Rotation (turn) about the origin</h3><p>90° counterclockwise: (x, y) → (−y, x)<br>180°: (x, y) → (−x, −y)<br>90° clockwise: (x, y) → (y, −x)</p></div>
+                <div class="callout key"><h3>Dilation (resize) from the origin</h3><p>Multiply both coordinates by the scale factor k:<br>(x, y) → (kx, ky)<br>k &gt; 1 enlarges; 0 &lt; k &lt; 1 shrinks.</p></div>
+              </div>
+              <p>Rotations keep size and shape (congruent). Dilations keep shape but change size (similar).</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Rotate 90° counterclockwise</h3>
+                <div class="work">(3, 1)</div>
+                <p>(x, y) → (−y, x), so (−1, 3).</p>
+                <p class="answer-line">Answer: (−1, 3)</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Rotate 180°</h3>
+                <div class="work">(−4, 2)</div>
+                <p>Change both signs.</p>
+                <p class="answer-line">Answer: (4, −2)</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Dilate</h3>
+                <div class="work">(6, −2) with scale factor 1/2</div>
+                <p>Multiply each coordinate by 1/2.</p>
+                <p class="answer-line">Answer: (3, −1)</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="(-2,-5)" data-hint="Change both signs.">
+                  <span class="q">Rotate (2, 5) 180° about the origin. Type like (-2,-5)</span>
+                </div>
+                <div class="problem wide" data-answer="(-1,4)" data-hint="(x, y) → (−y, x)">
+                  <span class="q">Rotate (4, 1) 90° counterclockwise about the origin.</span>
+                </div>
+                <div class="problem" data-answer="(1,-4)" data-hint="(x, y) → (y, −x)">
+                  <span class="q">Rotate (4, 1) 90° clockwise about the origin.</span>
+                </div>
+                <div class="problem" data-answer="(3,2)" data-hint="Change both signs.">
+                  <span class="q">Rotate (−3, −2) 180° about the origin.</span>
+                </div>
+                <div class="problem" data-answer="(8,12)" data-hint="Multiply each by 4.">
+                  <span class="q">Dilate (2, 3) by a scale factor of 4.</span>
+                </div>
+                <div class="problem" data-answer="(5,-3)" data-hint="Multiply each by 1/2.">
+                  <span class="q">Dilate (10, −6) by a scale factor of 1/2.</span>
+                </div>
+                <div class="problem wide" data-answer="3" data-hint="9 ÷ 3">
+                  <span class="q">A point (3, 4) is dilated to (9, 12). What is the scale factor?</span>
+                </div>
+                <div class="problem wide" data-answer="no" data-hint="It changes the size.">
+                  <span class="q">Does a dilation with scale factor 2 make a congruent figure? (yes or no)</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="chapter-nav">
+            <a class="btn ghost" href="chapter-9.html">← Systems of Linear Equations</a>
+                <a class="btn ghost" href="index.html">All Pre-Algebra topics</a>
+                <a class="btn" href="chapter-11.html">Perimeter, Area, and Volume →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div>
+          <a class="brand" href="../index.html">
+            <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+            <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+          </a>
+          <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+        </div>
+        <nav aria-label="Footer">
+          <h2>Explore</h2>
+          <ul>
+            <li><a href="../typing/index.html">Typing Games</a></li>
+            <li><a href="../science/index.html">Science Experiments</a></li>
+            <li><a href="../math/index.html">Pre-Algebra Help</a></li>
+          </ul>
+        </nav>
+        <div>
+          <h2>Good to know</h2>
+          <p>No logins, no forms, and no student information collected. Ever.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+    </footer>
+
+    <script src="../js/site.js"></script>
+  </body>
+  </html>

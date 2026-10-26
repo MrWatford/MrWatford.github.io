@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perimeter, Area, and Volume | Pre-Algebra | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-tips="Perimeter is in units, area in square units, volume in cubic units.|Radius is half the diameter. Check which one you&#39;re given!|Use 3.14 for π, or type answers like 28π.">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../index.html">
+        <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../typing/index.html">Typing</a></li>
+          <li><a href="../science/index.html">Science</a></li>
+          <li><a href="index.html" aria-current="page">Pre-Algebra</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ===== SCENE: the whiteboard ===== -->
+    <section class="scene-hero wall">
+      <div class="container scene-grid">
+        <div class="panel title-card">
+          <p class="panel-head"><span class="ic" aria-hidden="true">📦</span> Pre-Algebra</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="index.html">← All Pre-Algebra topics</a></p>
+            <h1>Perimeter, Area, and Volume</h1>
+            <p class="lead">Measuring around shapes, covering them, and filling them: perimeter, circumference, area, surface area, and volume.</p>
+            <ul class="facts">
+              <li><small>Topics</small><strong>7</strong></li>
+              <li><small>Examples</small><strong>21 worked</strong></li>
+              <li><small>Practice</small><strong>56 problems</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="stage" aria-hidden="true">
+          <svg viewBox="0 0 600 420">
+            <rect x="0" y="20" width="360" height="250" rx="8" fill="#9aa3ad"/>
+            <rect x="9" y="29" width="342" height="226" rx="3" fill="#fdfdfd"/>
+            <g class="marker">
+              <text x="26" y="78" font-size="36" fill="#d6372e">Measure it!</text>
+              <text x="26" y="126" font-size="28" fill="#2c4fa3">A = πr²</text>
+              <text x="26" y="172" font-size="28" fill="#2c4fa3">V = lwh</text>
+              <text x="26" y="222" font-size="25" fill="#2e8b3e">Use 3.14 for π</text>
+            </g>
+            <rect x="60" y="258" width="24" height="7" rx="3" fill="#d6372e"/><rect x="90" y="258" width="24" height="7" rx="3" fill="#2c4fa3"/>
+            <image class="stage-teacher" href="../images/mr-watford/explaining.png" x="170" y="71" width="430" height="349"/>
+          </svg>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container with-aside">
+
+        <!-- ===== SIDE MENU ===== -->
+        <aside class="aside">
+          <nav class="panel toc" aria-label="On this page">
+            <p class="panel-head">On this page</p>
+            <div class="panel-body">
+              <ol>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#perimeter">Perimeter & circumference</a></li>
+                    <li><a href="#area">Area</a></li>
+                    <li><a href="#similar-regions">Similar figures</a></li>
+                    <li><a href="#sa-prisms">Surface area: prisms</a></li>
+                    <li><a href="#sa-pyramids">Surface area: cones & spheres</a></li>
+                    <li><a href="#volume-prisms">Volume: prisms</a></li>
+                    <li><a href="#volume-pyramids">Volume: cones & spheres</a></li>
+              </ol>
+              <p class="toc-label">Your progress</p>
+              <div class="toc-score">0 of 56 correct</div>
+              <div class="meter"><div class="meter-fill"></div></div>
+            </div>
+          </nav>
+        </aside>
+
+        <div>
+          <!-- ===== CHAPTER OVERVIEW ===== -->
+          <section class="panel" id="overview">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🗺️</span> What this page covers</h2>
+            <div class="panel-body">
+              <p>Perimeter measures the distance around a figure, area measures the space it covers, surface area measures the total area of a solid's outside, and volume measures how much a solid holds. Here we use formulas for all four, including circles, cylinders, cones, and spheres, and see how size changes affect similar figures.</p>
+              <ul class="mini-list topic-list">
+                    <li><a href="#perimeter"><span class="ic" aria-hidden="true">⭕</span> <span><strong>Perimeter and Circumference</strong><br><small>The distance around a polygon or a circle.</small></span></a></li>
+                    <li><a href="#area"><span class="ic" aria-hidden="true">⬛</span> <span><strong>Area</strong><br><small>Rectangles, triangles, parallelograms, trapezoids, and circles.</small></span></a></li>
+                    <li><a href="#similar-regions"><span class="ic" aria-hidden="true">🔍</span> <span><strong>Lengths and Areas of Similar Figures</strong><br><small>Lengths scale by k, areas by k².</small></span></a></li>
+                    <li><a href="#sa-prisms"><span class="ic" aria-hidden="true">🎁</span> <span><strong>Surface Areas of Prisms and Cylinders</strong><br><small>Add up the area of every face.</small></span></a></li>
+                    <li><a href="#sa-pyramids"><span class="ic" aria-hidden="true">🔺</span> <span><strong>Surface Areas of Pyramids, Cones, and Spheres</strong><br><small>Slant height, lateral area, and spheres.</small></span></a></li>
+                    <li><a href="#volume-prisms"><span class="ic" aria-hidden="true">🧊</span> <span><strong>Volumes of Prisms and Cylinders</strong><br><small>Base area times height.</small></span></a></li>
+                    <li><a href="#volume-pyramids"><span class="ic" aria-hidden="true">🍦</span> <span><strong>Volumes of Pyramids, Cones, and Spheres</strong><br><small>One-third of a prism, and the sphere formula.</small></span></a></li>
+              </ul>
+              <p class="caption"><span class="caption-tag">Mr. Watford</span>Use 3.14 for π unless the problem says otherwise. You can also type answers with π, like 28π.</p>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Perimeter and Circumference ===== -->
+          <section class="panel topic" id="perimeter">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">⭕</span> Perimeter and Circumference</h2>
+            <div class="panel-body">
+              <p>The <strong>perimeter</strong> of a polygon is the sum of its side lengths. For a rectangle, P = 2l + 2w.</p>
+              <p>The perimeter of a circle is called its <strong>circumference</strong>. The <strong>radius</strong> (r) goes from the center to the edge, and the <strong>diameter</strong> (d) goes all the way across, so d = 2r.</p>
+              <div class="callout key"><h3>Circumference</h3><p>C = πd or C = 2πr. We use π ≈ 3.14.</p></div>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Rectangle</h3>
+                <div class="work">Perimeter of a 12 m by 5 m rectangle</div>
+                <p>2(12) + 2(5) = 24 + 10.</p>
+                <p class="answer-line">Answer: 34 m</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Circle from radius</h3>
+                <div class="work">Circumference when r = 7 cm</div>
+                <p>2 × 3.14 × 7 = 43.96.</p>
+                <p class="answer-line">Answer: 43.96 cm (or 14π cm)</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Find the diameter</h3>
+                <div class="work">A circle's circumference is 62.8 in. Find its diameter.</div>
+                <p>62.8 = 3.14d, so d = 62.8 ÷ 3.14.</p>
+                <p class="answer-line">Answer: 20 in.</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="22" data-hint="2(7) + 2(4)">
+                  <span class="q">Perimeter of a 7 by 4 rectangle =</span>
+                </div>
+                <div class="problem" data-answer="36" data-hint="4 × 9">
+                  <span class="q">Perimeter of a square with 9-inch sides =</span>
+                </div>
+                <div class="problem wide" data-answer="30" data-hint="Add the sides.">
+                  <span class="q">Perimeter of a triangle with sides 5, 12, and 13 =</span>
+                </div>
+                <div class="problem" data-answer="31.4|10π|10pi" data-hint="2 × 3.14 × 5">
+                  <span class="q">Circumference, r = 5. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="18.84|6π|6pi" data-hint="2 × 3.14 × 3">
+                  <span class="q">Circumference, r = 3. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="25.12|8π|8pi" data-hint="3.14 × 8">
+                  <span class="q">Circumference, d = 8. Use 3.14.</span>
+                </div>
+                <div class="problem wide" data-answer="5" data-hint="31.4 ÷ 3.14 = 10 = d">
+                  <span class="q">A circle has a circumference of 31.4 cm. What is its radius? (Use 3.14)</span>
+                </div>
+                <div class="problem wide" data-answer="46" data-hint="2(15) + 2(8)">
+                  <span class="q">A rectangular garden is 15 ft by 8 ft. How many feet of fence go around it?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Area ===== -->
+          <section class="panel topic" id="area">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">⬛</span> Area</h2>
+            <div class="panel-body">
+              <p><strong>Area</strong> is the number of square units a figure covers.</p>
+              <div class="rules">
+                <div class="callout"><h3>Rectangle</h3><p>A = lw</p></div>
+                <div class="callout"><h3>Parallelogram</h3><p>A = bh (h is the straight-up height)</p></div>
+                <div class="callout"><h3>Triangle</h3><p>A = (1/2)bh</p></div>
+                <div class="callout"><h3>Trapezoid</h3><p>A = (1/2)(b<sub>1</sub> + b<sub>2</sub>)h</p></div>
+              </div>
+              <div class="callout key"><h3>Circle</h3><p>A = πr<sup>2</sup>. Square the radius first, then multiply by π.</p></div>
+              <p>For an odd shape, split it into simple shapes and add their areas.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Triangle</h3>
+                <div class="work">Base 10 ft, height 7 ft</div>
+                <p>(1/2)(10)(7).</p>
+                <p class="answer-line">Answer: 35 ft²</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Trapezoid</h3>
+                <div class="work">Bases 4 and 10, height 6</div>
+                <p>(1/2)(4 + 10)(6) = (1/2)(14)(6).</p>
+                <p class="answer-line">Answer: 42 square units</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Circle</h3>
+                <div class="work">Radius 3 m</div>
+                <p>3.14 × 3² = 3.14 × 9.</p>
+                <p class="answer-line">Answer: 28.26 m² (or 9π m²)</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="54" data-hint="lw">
+                  <span class="q">Area of a 9 by 6 rectangle =</span>
+                </div>
+                <div class="problem" data-answer="40" data-hint="bh">
+                  <span class="q">Area of a parallelogram, base 8, height 5 =</span>
+                </div>
+                <div class="problem" data-answer="30" data-hint="(1/2)(10)(6)">
+                  <span class="q">Area of a triangle, base 10, height 6 =</span>
+                </div>
+                <div class="problem wide" data-answer="40" data-hint="(1/2)(16)(5)">
+                  <span class="q">Area of a trapezoid, bases 6 and 10, height 5 =</span>
+                </div>
+                <div class="problem" data-answer="50.24|16π|16pi" data-hint="3.14 × 16">
+                  <span class="q">Area of a circle, r = 4. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="314|100π|100pi" data-hint="3.14 × 100">
+                  <span class="q">Area of a circle, r = 10. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="3.14|π|pi|1π" data-hint="r = 1">
+                  <span class="q">Area of a circle, d = 2. Use 3.14.</span>
+                </div>
+                <div class="problem wide" data-answer="92" data-hint="80 + 12">
+                  <span class="q">A room is an L-shape made of a 10 by 8 rectangle and a 4 by 3 rectangle. Total area?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Lengths and Areas of Similar Figures ===== -->
+          <section class="panel topic" id="similar-regions">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🔍</span> Lengths and Areas of Similar Figures</h2>
+            <div class="panel-body">
+              <p>When a figure is enlarged or shrunk by a scale factor <strong>k</strong>:</p>
+              <div class="rules">
+                <div class="callout key"><h3>Lengths</h3><p>Every length (sides, perimeter, circumference) is multiplied by <strong>k</strong>.</p></div>
+                <div class="callout key"><h3>Areas</h3><p>Every area is multiplied by <strong>k<sup>2</sup></strong>.</p></div>
+              </div>
+              <p>Why k<sup>2</sup>? Area uses two lengths multiplied together, and each one grew by k. Double the sides of a square and its area becomes 4 times as big.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Perimeter</h3>
+                <div class="work">A triangle has perimeter 15. It's enlarged by a scale factor of 3. New perimeter?</div>
+                <p>Lengths multiply by 3.</p>
+                <p class="answer-line">Answer: 45</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Area</h3>
+                <div class="work">A rectangle has area 12 cm². It's enlarged by a scale factor of 3. New area?</div>
+                <p>Areas multiply by 3<sup>2</sup> = 9.</p>
+                <p class="answer-line">Answer: 108 cm²</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Find k</h3>
+                <div class="work">Two similar squares have areas 25 and 100. What is the scale factor?</div>
+                <p>Area ratio 100/25 = 4 = k<sup>2</sup>, so k = 2.</p>
+                <p class="answer-line">Answer: 2</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="36" data-hint="Multiply by 2.">
+                  <span class="q">A figure is enlarged by a scale factor of 2. Its perimeter was 18. New perimeter?</span>
+                </div>
+                <div class="problem wide" data-answer="40" data-hint="Multiply by 2² = 4.">
+                  <span class="q">A figure is enlarged by a scale factor of 2. Its area was 10. New area?</span>
+                </div>
+                <div class="problem wide" data-answer="90" data-hint="Multiply by 9.">
+                  <span class="q">A figure is enlarged by a scale factor of 3. Its area was 10. New area?</span>
+                </div>
+                <div class="problem wide" data-answer="12" data-hint="Multiply by 1/4.">
+                  <span class="q">A figure is shrunk by a scale factor of 1/2. Its area was 48. New area?</span>
+                </div>
+                <div class="problem wide" data-answer="25" data-hint="k²">
+                  <span class="q">Similar triangles have a scale factor of 5. How many times bigger is the area?</span>
+                </div>
+                <div class="problem wide" data-answer="2" data-hint="36/9 = 4 = k²">
+                  <span class="q">Two similar figures have areas 9 and 36. What is the scale factor from small to large?</span>
+                </div>
+                <div class="problem wide" data-answer="5" data-hint="100/4 = 25 = k²">
+                  <span class="q">Two similar figures have areas 4 and 100. What is the scale factor?</span>
+                </div>
+                <div class="problem wide" data-answer="216" data-hint="k = 3, so multiply by 9.">
+                  <span class="q">A 4-inch photo is enlarged to 12 inches wide. The small photo has area 24 in². What is the large photo's area?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Surface Areas of Prisms and Cylinders ===== -->
+          <section class="panel topic" id="sa-prisms">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🎁</span> Surface Areas of Prisms and Cylinders</h2>
+            <div class="panel-body">
+              <p><strong>Surface area</strong> is the total area of all the outside surfaces of a solid. Imagine unfolding it into a flat pattern (a <strong>net</strong>) and adding the areas.</p>
+              <div class="rules">
+                <div class="callout key"><h3>Rectangular prism</h3><p>SA = 2lw + 2lh + 2wh</p></div>
+                <div class="callout key"><h3>Cylinder</h3><p>SA = 2πr<sup>2</sup> + 2πrh<br>(two circles + the label wrapped around)</p></div>
+              </div>
+              <p>A cube with edge s has SA = 6s<sup>2</sup>.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Rectangular prism</h3>
+                <div class="work">2 by 3 by 4</div>
+                <p>2(6) + 2(8) + 2(12) = 12 + 16 + 24.</p>
+                <p class="answer-line">Answer: 52 square units</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Cube</h3>
+                <div class="work">Edge 5 cm</div>
+                <p>6 × 5² = 6 × 25.</p>
+                <p class="answer-line">Answer: 150 cm²</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Cylinder</h3>
+                <div class="work">r = 3, h = 5</div>
+                <p>2π(9) + 2π(3)(5) = 18π + 30π = 48π ≈ 150.72.</p>
+                <p class="answer-line">Answer: 150.72 (or 48π)</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="96" data-hint="6 × 16">
+                  <span class="q">Surface area of a cube with edge 4 =</span>
+                </div>
+                <div class="problem wide" data-answer="94" data-hint="2(12) + 2(15) + 2(20)">
+                  <span class="q">Surface area of a 3 by 4 by 5 rectangular prism =</span>
+                </div>
+                <div class="problem wide" data-answer="40" data-hint="2(2) + 2(6) + 2(12)">
+                  <span class="q">Surface area of a 1 by 2 by 6 rectangular prism =</span>
+                </div>
+                <div class="problem wide" data-answer="87.92|28π|28pi" data-hint="8π + 20π = 28π">
+                  <span class="q">Surface area of a cylinder, r = 2, h = 5. Use 3.14.</span>
+                </div>
+                <div class="problem wide" data-answer="31.4|10π|10pi" data-hint="2π + 8π = 10π">
+                  <span class="q">Surface area of a cylinder, r = 1, h = 4. Use 3.14.</span>
+                </div>
+                <div class="problem wide" data-answer="314|100π|100pi" data-hint="2πrh">
+                  <span class="q">Area of the label (side only) of a can with r = 5 and h = 10. Use 3.14.</span>
+                </div>
+                <div class="problem wide" data-answer="184" data-hint="2(60) + 2(20) + 2(12)">
+                  <span class="q">How much wrapping paper covers a gift box 10 in. by 6 in. by 2 in. (no overlap)?</span>
+                </div>
+                <div class="problem wide" data-answer="3" data-hint="6s² = 54">
+                  <span class="q">A cube has a surface area of 54 cm². What is its edge length?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Surface Areas of Pyramids, Cones, and Spheres ===== -->
+          <section class="panel topic" id="sa-pyramids">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🔺</span> Surface Areas of Pyramids, Cones, and Spheres</h2>
+            <div class="panel-body">
+              <p>Pyramids and cones come to a point. Their side area uses the <strong>slant height</strong> (ℓ), measured along the slanted side, not straight up.</p>
+              <div class="rules">
+                <div class="callout key"><h3>Regular pyramid</h3><p>SA = B + (1/2)Pℓ<br>B = base area, P = base perimeter</p></div>
+                <div class="callout key"><h3>Cone</h3><p>SA = πr<sup>2</sup> + πrℓ</p></div>
+                <div class="callout key"><h3>Sphere</h3><p>SA = 4πr<sup>2</sup></p></div>
+              </div>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Square pyramid</h3>
+                <div class="work">Base edge 6, slant height 4</div>
+                <p>B = 36. P = 24. SA = 36 + (1/2)(24)(4) = 36 + 48.</p>
+                <p class="answer-line">Answer: 84 square units</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Cone</h3>
+                <div class="work">r = 3, slant height 5</div>
+                <p>π(9) + π(3)(5) = 9π + 15π = 24π ≈ 75.36.</p>
+                <p class="answer-line">Answer: 75.36 (or 24π)</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Sphere</h3>
+                <div class="work">r = 3</div>
+                <p>4π(9) = 36π ≈ 113.04.</p>
+                <p class="answer-line">Answer: 113.04 (or 36π)</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="56" data-hint="16 + (1/2)(16)(5)">
+                  <span class="q">Surface area of a square pyramid, base edge 4, slant height 5 =</span>
+                </div>
+                <div class="problem wide" data-answer="340" data-hint="100 + (1/2)(40)(12)">
+                  <span class="q">Surface area of a square pyramid, base edge 10, slant height 12 =</span>
+                </div>
+                <div class="problem wide" data-answer="50.24|16π|16pi" data-hint="4π + 12π">
+                  <span class="q">Surface area of a cone, r = 2, slant height 6. Use 3.14.</span>
+                </div>
+                <div class="problem wide" data-answer="188.4|60π|60pi" data-hint="25π + 35π">
+                  <span class="q">Surface area of a cone, r = 5, slant height 7. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="12.56|4π|4pi" data-hint="4π(1)">
+                  <span class="q">Surface area of a sphere, r = 1. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="314|100π|100pi" data-hint="4π(25)">
+                  <span class="q">Surface area of a sphere, r = 5. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="50.24|16π|16pi" data-hint="r = 2">
+                  <span class="q">Surface area of a sphere, d = 4. Use 3.14.</span>
+                </div>
+                <div class="problem wide" data-answer="1256|400π|400pi" data-hint="4 × 3.14 × 100">
+                  <span class="q">A ball has radius 10 cm. How much material covers it? Use 3.14.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Volumes of Prisms and Cylinders ===== -->
+          <section class="panel topic" id="volume-prisms">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🧊</span> Volumes of Prisms and Cylinders</h2>
+            <div class="panel-body">
+              <p><strong>Volume</strong> is the number of cubic units a solid holds. For any prism or cylinder:</p>
+              <div class="callout key"><h3>V = Bh</h3><p>B is the area of the base and h is the height.</p></div>
+              <div class="rules">
+                <div class="callout"><h3>Rectangular prism</h3><p>V = lwh</p></div>
+                <div class="callout"><h3>Cylinder</h3><p>V = πr<sup>2</sup>h</p></div>
+              </div>
+              <p>For a triangular prism, B is the triangle's area: (1/2)bh.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Rectangular prism</h3>
+                <div class="work">4 by 5 by 6</div>
+                <p>4 × 5 × 6.</p>
+                <p class="answer-line">Answer: 120 cubic units</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Cylinder</h3>
+                <div class="work">r = 2, h = 10</div>
+                <p>3.14 × 4 × 10 = 125.6.</p>
+                <p class="answer-line">Answer: 125.6 (or 40π)</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Triangular prism</h3>
+                <div class="work">Triangle base 6 and height 4; prism length 10</div>
+                <p>B = (1/2)(6)(4) = 12. V = 12 × 10.</p>
+                <p class="answer-line">Answer: 120 cubic units</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem" data-answer="60" data-hint="lwh">
+                  <span class="q">Volume of a 3 by 4 by 5 box =</span>
+                </div>
+                <div class="problem" data-answer="216" data-hint="6 × 6 × 6">
+                  <span class="q">Volume of a cube with edge 6 =</span>
+                </div>
+                <div class="problem" data-answer="282.6|90π|90pi" data-hint="3.14 × 9 × 10">
+                  <span class="q">Volume of a cylinder, r = 3, h = 10. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="87.92|28π|28pi" data-hint="3.14 × 4 × 7">
+                  <span class="q">Volume of a cylinder, r = 2, h = 7. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="157|50π|50pi" data-hint="r = 5">
+                  <span class="q">Volume of a cylinder, d = 10, h = 2. Use 3.14.</span>
+                </div>
+                <div class="problem wide" data-answer="90" data-hint="B = 10, then × 9">
+                  <span class="q">Volume of a triangular prism: triangle base 5, height 4, prism length 9 =</span>
+                </div>
+                <div class="problem wide" data-answer="2400" data-hint="20 × 10 × 12">
+                  <span class="q">A fish tank is 20 in. by 10 in. by 12 in. How many cubic inches of water fill it?</span>
+                </div>
+                <div class="problem wide" data-answer="6" data-hint="120 = 20h">
+                  <span class="q">A box has volume 120 and a base of 4 by 5. How tall is it?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== TOPIC: Volumes of Pyramids, Cones, and Spheres ===== -->
+          <section class="panel topic" id="volume-pyramids">
+            <h2 class="panel-head"><span class="ic" aria-hidden="true">🍦</span> Volumes of Pyramids, Cones, and Spheres</h2>
+            <div class="panel-body">
+              <p>A pyramid holds exactly <strong>one-third</strong> as much as a prism with the same base and height. A cone holds one-third as much as a matching cylinder.</p>
+              <div class="rules">
+                <div class="callout key"><h3>Pyramid</h3><p>V = (1/3)Bh</p></div>
+                <div class="callout key"><h3>Cone</h3><p>V = (1/3)πr<sup>2</sup>h</p></div>
+                <div class="callout key"><h3>Sphere</h3><p>V = (4/3)πr<sup>3</sup></p></div>
+              </div>
+              <p>Remember: h is the straight-up height, not the slant height.</p>
+
+              <h3 class="topic-sub">✏️ Worked examples</h3>
+              <div class="example">
+                <h3><span>Example 1:</span> Pyramid</h3>
+                <div class="work">Square base 6 by 6, height 5</div>
+                <p>(1/3)(36)(5) = 60.</p>
+                <p class="answer-line">Answer: 60 cubic units</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 2:</span> Cone</h3>
+                <div class="work">r = 3, h = 4</div>
+                <p>(1/3)(3.14)(9)(4) = 12π ≈ 37.68.</p>
+                <p class="answer-line">Answer: 37.68 (or 12π)</p>
+              </div>
+              <div class="example">
+                <h3><span>Example 3:</span> Sphere</h3>
+                <div class="work">r = 3</div>
+                <p>(4/3)(3.14)(27) = 36π ≈ 113.04.</p>
+                <p class="answer-line">Answer: 113.04 (or 36π)</p>
+              </div>
+
+              <h3 class="topic-sub">🎯 Practice</h3>
+              <div class="practice-list">
+                <div class="problem wide" data-answer="80" data-hint="(1/3)(30)(8)">
+                  <span class="q">Volume of a pyramid with base area 30 and height 8 =</span>
+                </div>
+                <div class="problem wide" data-answer="30" data-hint="(1/3)(9)(10)">
+                  <span class="q">Volume of a square pyramid, base 3 by 3, height 10 =</span>
+                </div>
+                <div class="problem" data-answer="94.2|30π|30pi" data-hint="(1/3)π(9)(10)">
+                  <span class="q">Volume of a cone, r = 3, h = 10. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="75.36|24π|24pi" data-hint="(1/3)π(36)(2)">
+                  <span class="q">Volume of a cone, r = 6, h = 2. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="113.04|36π|36pi" data-hint="(4/3)π(27)">
+                  <span class="q">Volume of a sphere, r = 3. Use 3.14.</span>
+                </div>
+                <div class="problem" data-answer="904.32|288π|288pi" data-hint="(4/3)π(216)">
+                  <span class="q">Volume of a sphere, r = 6. Use 3.14.</span>
+                </div>
+                <div class="problem wide" data-answer="30" data-hint="One-third">
+                  <span class="q">A cylinder holds 90 cubic inches. How much does a cone with the same base and height hold?</span>
+                </div>
+                <div class="problem wide" data-answer="10" data-hint="40 = (1/3)(12)h">
+                  <span class="q">A pyramid has volume 40 and base area 12. What is its height?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="chapter-nav">
+            <a class="btn ghost" href="chapter-10.html">← Geometry</a>
+                <a class="btn ghost" href="index.html">All Pre-Algebra topics</a>
+                <a class="btn" href="chapter-12.html">Statistics and Probability →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div>
+          <a class="brand" href="../index.html">
+            <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+            <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+          </a>
+          <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+        </div>
+        <nav aria-label="Footer">
+          <h2>Explore</h2>
+          <ul>
+            <li><a href="../typing/index.html">Typing Games</a></li>
+            <li><a href="../science/index.html">Science Experiments</a></li>
+            <li><a href="../math/index.html">Pre-Algebra Help</a></li>
+          </ul>
+        </nav>
+        <div>
+          <h2>Good to know</h2>
+          <p>No logins, no forms, and no student information collected. Ever.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+    </footer>
+
+    <script src="../js/site.js"></script>
+  </body>
+  </html>
