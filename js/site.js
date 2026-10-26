@@ -313,6 +313,8 @@ document.querySelectorAll(".practice-list").forEach(function (list) {
   scoreBox.querySelector("button").addEventListener("click", function () {
     problems.forEach(function (problem) {
       problem.classList.remove("correct", "wrong");
+      const peek = problem.querySelector(".graph-peek");
+      if (peek) peek.open = false;
       problem.querySelector("input").value = "";
       problem.querySelector(".feedback").textContent = "";
     });
@@ -346,6 +348,9 @@ document.querySelectorAll(".practice-list").forEach(function (list) {
     feedback.setAttribute("aria-live", "polite");
 
     problem.append(input, button, feedback);
+    // A "Show the graph" box (if the problem has one) goes below the answer, and opens on a correct answer
+    const peek = problem.querySelector(".graph-peek");
+    if (peek) problem.append(peek);
 
     function check() {
       if (input.value.trim() === "") {
@@ -358,6 +363,7 @@ document.querySelectorAll(".practice-list").forEach(function (list) {
       problem.classList.toggle("wrong", !isRight);
       if (isRight) {
         feedback.textContent = praise[Math.floor(Math.random() * praise.length)];
+        if (peek) peek.open = true;
       } else {
         feedback.textContent = "Not quite — try again." +
           (problem.dataset.hint ? " Hint: " + problem.dataset.hint : "");
