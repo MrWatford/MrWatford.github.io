@@ -294,7 +294,7 @@ main { flex: 1; }
 .classroom > * { position: absolute; }
 .classroom .rail { left: 0; right: 0; top: 61.5%; height: 1.4%; background: var(--green-700); }
 .classroom .school-banner {
-  left: 26%; width: 34%; top: 0; height: 4.4%;
+  left: 21.75%; width: 34%; top: 0; height: 4.4%; /* centered over the whiteboard (18.75% + 40% / 2) */
   background: var(--green-700);
   color: var(--yellow);
   display: grid; place-items: center;
