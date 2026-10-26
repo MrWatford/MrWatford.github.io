@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" width="120" height="180">
+  <!-- Wall poster: a simple atom model -->
+  <rect x="2" y="2" width="116" height="176" rx="5" fill="#fff" stroke="#e2dccb" stroke-width="3"/>
+  <text x="60" y="22" text-anchor="middle" font-family="Nunito Sans, Arial, sans-serif" font-weight="800" font-size="12" fill="#2b2b2b">THE ATOM</text>
+  <g fill="none" stroke="#2c4fa3" stroke-width="2.4">
+    <ellipse cx="60" cy="96" rx="44" ry="16"/>
+    <ellipse cx="60" cy="96" rx="44" ry="16" transform="rotate(60 60 96)"/>
+    <ellipse cx="60" cy="96" rx="44" ry="16" transform="rotate(-60 60 96)"/>
+  </g>
+  <g><circle cx="56" cy="93" r="6" fill="#d6372e"/><circle cx="65" cy="94" r="6" fill="#7a8899"/><circle cx="59" cy="101" r="6" fill="#7a8899"/><circle cx="65" cy="102" r="6" fill="#d6372e"/></g>
+  <g fill="#2e8b3e"><circle cx="104" cy="96" r="4.5"/><circle cx="38" cy="134" r="4.5"/><circle cx="38" cy="58" r="4.5"/></g>
+  <g font-family="Nunito Sans, Arial, sans-serif" font-weight="700" font-size="8.5">
+    <circle cx="16" cy="152" r="4" fill="#d6372e"/><text x="24" y="155" fill="#2b2b2b">proton</text>
+    <circle cx="66" cy="152" r="4" fill="#7a8899"/><text x="74" y="155" fill="#2b2b2b">neutron</text>
+    <circle cx="16" cy="167" r="3.5" fill="#2e8b3e"/><text x="24" y="170" fill="#2b2b2b">electron</text>
+  </g>
+</svg>

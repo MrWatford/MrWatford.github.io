@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 72" width="480" height="72">
+  <!-- One section of the planet garland. It repeats across the top of every classroom wall. -->
+  <path d="M0 4Q120 24 240 4Q360 24 480 4" fill="none" stroke="#8a5a2b" stroke-width="2"/>
+  <g stroke="#8a5a2b" stroke-width="1.2">
+    <path d="M60 9V24M120 14V26M180 9V26M300 9V24M360 14V27M420 9V26"/>
+  </g>
+  <!-- Earth -->
+  <circle cx="60" cy="35" r="11" fill="#3d8ee0"/>
+  <path d="M53 29q5-3 7 2t6 3q-3 5-8 3t-5-8zM63 40q4-1 6 2-3 3-6 2z" fill="#3f9a45"/>
+  <!-- Star -->
+  <path d="M120 27l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z" fill="#f5c431" stroke="#e0a91c" stroke-width="1"/>
+  <!-- Mars -->
+  <circle cx="180" cy="34" r="8" fill="#d9603b"/>
+  <circle cx="177" cy="32" r="2" fill="#b8472a"/>
+  <!-- Jupiter -->
+  <circle cx="300" cy="38" r="15" fill="#e8b98a"/>
+  <path d="M286 33h28M285.5 40h29M288 46h24" stroke="#c98a5a" stroke-width="2.6"/>
+  <ellipse cx="305" cy="43" rx="3.5" ry="2" fill="#c0563a"/>
+  <!-- Star -->
+  <path d="M360 28l2.2 4.6 5 .7-3.6 3.5.8 5-4.4-2.4-4.4 2.4.8-5-3.6-3.5 5-.7z" fill="#f5c431" stroke="#e0a91c" stroke-width="1"/>
+  <!-- Saturn -->
+  <circle cx="420" cy="35" r="9" fill="#f0d27a"/>
+  <ellipse cx="420" cy="36" rx="19" ry="5" fill="none" stroke="#c9a24a" stroke-width="2.4" transform="rotate(-14 420 36)"/>
+</svg>
