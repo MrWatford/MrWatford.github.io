@@ -756,7 +756,8 @@ a.card-link p { color: var(--muted); }
 .topic-list { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 20px; }
 .topic-list a { align-items: flex-start; }
 .topic-list small { font-weight: 600; color: var(--muted); }
-.chapter-nav { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; margin: 10px 0 30px; }
+.chapter-nav { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 10px 0 30px; }
+.chapter-nav .btn { flex: 1 1 200px; text-align: center; }
 .overline { text-decoration: overline; } /* repeating decimals */
 .btn.ghost { background: var(--white); color: var(--green-900); border-color: var(--green-700); }
 .btn.ghost:hover { background: var(--green-100); color: var(--green-900); }
