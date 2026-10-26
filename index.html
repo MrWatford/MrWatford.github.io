@@ -88,7 +88,9 @@
           <!-- Shelf with a plant and a flask -->
           <svg class="shelf" viewBox="0 0 240 140" aria-hidden="true">
             <path d="M40 60h14v34l18 34H22l18-34z" fill="#dff1fb" stroke="#9cc7e0" stroke-width="3"/>
-            <path d="M30 114h52l6 14H24z" fill="#3d8ee0"/>
+            <!-- Liquid follows the flask's slanted sides, so it stays inside the glass -->
+            <path d="M31 112h32l8.5 15.5H22.5z" fill="#3d8ee0"/>
+            <path d="M31 112h32" stroke="#8cc3f0" stroke-width="2"/>
             <path d="M120 96h60l-8 34h-44z" fill="#c8693b"/>
             <g fill="#3f9a45"><ellipse cx="150" cy="70" rx="40" ry="22"/><ellipse cx="128" cy="54" rx="18" ry="26"/><ellipse cx="172" cy="54" rx="18" ry="26"/><ellipse cx="150" cy="44" rx="16" ry="28"/></g>
             <rect x="0" y="128" width="240" height="12" rx="3" fill="#8a5a2b"/>
