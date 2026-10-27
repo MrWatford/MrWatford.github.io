@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keyboard Kingdoms | Mr. Watford's Typing Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;800&display=swap">
+<!-- This game keeps its own styling instead of the site's style.css, so the two never clash. -->
+<style>
+:root {
+  --page: #14202c;
+  --panel: #1b2b3a;
+  --chalk: #eef3ea;
+  --chalk-dim: #a9b8c6;
+  --yellow: #f7d659;
+  --red: #ff6b5b;
+  --blue: #5aa2ff;
+  --mint: #93e6b8;
+  --mana: #c77dff;
+  --wood: #6f4b2c;
+  --wood-dark: #47301b;
+  --display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--page); color: var(--chalk); }
+body { font-family: var(--body); }
+.app {
+  max-width: 1040px; margin: 0 auto;
+  padding-block: 18px 22px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px;
+}
+.back {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 10px;
+  color: var(--chalk); text-decoration: none;
+  font: 700 14px/1 var(--body);
+  background: rgba(255,255,255,.07);
+  border: 1.5px solid rgba(238,243,234,.3); border-radius: 999px;
+  padding: 5px 16px 5px 5px;
+}
+.back img { width: 34px; height: 34px; border-radius: 50%; background: #f8eed6; border: 2px solid var(--yellow); object-fit: cover; object-position: center 15%; }
+.back:hover { border-color: var(--yellow); }
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.pill { display: inline-block; background: var(--yellow); color: #3a2c00; font: 700 12px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; }
+h1 { font: 700 clamp(34px, 6vw, 48px)/1 var(--display); margin: 8px 0 0; }
+h1 em { font-style: normal; color: var(--yellow); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(64px, auto)); gap: 4px 18px; }
+.stat { display: flex; flex-direction: column; }
+.stat span { font: 700 11px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); }
+.stat b { font: 600 24px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+
+.frame {
+  background: linear-gradient(180deg, var(--wood), var(--wood-dark));
+  padding: 12px; border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);
+  display: flex; flex-direction: column; gap: 12px;
+  scroll-margin-top: 8px;
+}
+/* On short screens (like many Chromebooks) the game shrinks so the cards below it stay visible */
+.screen { position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #2d5a2f; cursor: text;
+  width: min(100%, max(520px, calc((100vh - 168px) * 16 / 9))); margin: 0 auto; }
+canvas { display: block; width: 100%; height: 100%; }
+
+/* Your hand of cards */
+.hand { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: center; gap: 8px; background: var(--panel); border-radius: 10px; padding: 8px; min-height: 104px; }
+.card {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 150px; padding: 6px 12px 8px; border-radius: 14px; border: 3px solid transparent;
+  background: var(--chalk); color: #1c2430;
+}
+.card .top-row { display: flex; align-items: center; gap: 6px; font: 800 12px/1.3 var(--body); letter-spacing: .06em; text-transform: uppercase; }
+.card .icon { font-size: 20px; }
+.card .cost { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--mana); color: #fff; font: 700 14px/1 var(--display); }
+.card .word { font: 600 clamp(22px, 3vw, 30px)/1.15 var(--display); letter-spacing: .02em; white-space: nowrap; }
+.card .word .done { color: #2e9a52; }
+.card.target { border-color: var(--mint); box-shadow: 0 0 0 3px rgba(147,230,184,.35); }
+.card.poor { opacity: .72; }
+.card.waiting { background: #e9dcff; }
+.card.waiting::after { content: "Waiting for mana…"; font: 800 11px/1.3 var(--body); color: #6a3fa0; }
+.card.oops { animation: shake .25s; }
+.card.next { min-width: 92px; background: transparent; color: var(--chalk-dim); border: 2px dashed rgba(238,243,234,.3); }
+.card.next .word { font-size: 16px; }
+.card.bonus { background: var(--yellow); color: #3a2c00; }
+.card.bonus .word .done { color: #8a5a00; text-decoration: underline; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+/* Menus on top of the game */
+.panel-wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; background: rgba(10,18,28,.66); overflow: auto; }
+.panel {
+  width: min(560px, 100%); text-align: center;
+  background: rgba(22,36,52,.97); border: 2px dashed rgba(238,243,234,.45);
+  border-radius: 18px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;
+}
+.panel.wide { width: min(920px, 100%); }
+.panel h2 { font: 700 clamp(22px, 3.6vw, 30px)/1.1 var(--display); margin: 0; }
+.panel h2 em { font-style: normal; color: var(--yellow); }
+.panel p { margin: 0; line-height: 1.5; color: var(--chalk-dim); }
+.setup { display: grid; grid-template-columns: 1fr 1.1fr; gap: 16px; text-align: left; }
+.setup .col { display: flex; flex-direction: column; gap: 10px; }
+details.howto-box { background: rgba(0,0,0,.2); border-radius: 12px; padding: 8px 12px; }
+details.howto-box summary { cursor: pointer; font-weight: 800; color: var(--yellow); }
+.howto { margin: 8px 0 0; padding-left: 1.2em; color: var(--chalk); font-size: 13.5px; line-height: 1.5; }
+.howto li { margin-bottom: 3px; }
+.howto b.y { color: var(--yellow); } .howto b.m { color: var(--mana); }
+.host { display: flex; align-items: center; gap: 10px; text-align: left; background: rgba(0,0,0,.25); border-radius: 12px; padding: 8px 12px; }
+.host img { width: 46px; height: 46px; border-radius: 50%; background: #f8eed6; border: 3px solid var(--yellow); object-fit: cover; object-position: center 15%; flex-shrink: 0; }
+.host span { font-weight: 700; font-size: 14px; }
+.opt-label { display: block; font: 800 11px/1.4 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--chalk-dim); margin-bottom: 5px; }
+.choices { display: flex; gap: 6px; flex-wrap: wrap; }
+.choice { font: 700 14px/1 var(--body); color: var(--chalk); background: transparent; border: 2px solid rgba(238,243,234,.3); border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+.choice small { display: block; font-weight: 600; font-size: 10.5px; color: var(--chalk-dim); margin-top: 3px; }
+.choice[aria-pressed="true"] { border-color: var(--yellow); background: rgba(247,214,89,.16); }
+.choice.boss { border-color: rgba(245,196,49,.6); }
+.deck-line { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 22px; background: rgba(0,0,0,.2); border-radius: 12px; padding: 8px 10px; }
+.deck-line span { font: 700 13px/1 var(--body); color: var(--chalk-dim); margin-right: 6px; }
+.teacher { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: rgba(0,0,0,.2); border-radius: 12px; padding: 8px 12px; font-size: 14px; font-weight: 700; }
+.btn { font: 700 18px/1 var(--display); color: #3a2c00; background: var(--yellow); border: 0; border-radius: 999px; padding: 13px 26px; cursor: pointer; box-shadow: 0 4px 0 #b8941f; }
+.btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #b8941f; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--chalk); border: 2px solid rgba(238,243,234,.4); box-shadow: none; }
+.small-btn { font: 700 13px/1 var(--body); color: var(--chalk); background: rgba(255,255,255,.08); border: 1.5px solid rgba(238,243,234,.3); border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.results { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.results div { background: rgba(0,0,0,.25); border-radius: 12px; padding: 8px; }
+.results span { display: block; font: 800 11px/1.3 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); }
+.results b { font: 600 26px/1.2 var(--display); }
+.unlock-note { font-weight: 800; color: var(--yellow); }
+/* Deck builder */
+.deck-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: left; }
+.dcard { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; border-radius: 12px; border: 2px solid rgba(238,243,234,.25); background: rgba(255,255,255,.05); color: var(--chalk); cursor: pointer; font: inherit; text-align: left; }
+.dcard .nm { font: 600 16px/1.2 var(--display); }
+.dcard .ds { font-size: 12px; color: var(--chalk-dim); line-height: 1.3; }
+.dcard .cst { position: absolute; top: 6px; right: 8px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--mana); font: 700 13px/1 var(--display); }
+.dcard[aria-pressed="true"] { border-color: var(--yellow); background: rgba(247,214,89,.14); }
+.dcard.locked { cursor: not-allowed; opacity: .55; }
+.dcard.locked .ds { color: var(--yellow); font-weight: 700; }
+.save-row { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.save-row input { font: 700 20px/1 var(--display); width: 90px; text-align: center; text-transform: uppercase; padding: 8px; border-radius: 10px; border: 2px solid var(--yellow); background: #0d1620; color: var(--chalk); }
+.board { width: 100%; border-collapse: collapse; font-weight: 700; }
+.board th { font: 800 11px/1.4 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-dim); padding: 4px; }
+.board td { padding: 6px 4px; border-top: 1px solid rgba(255,255,255,.08); }
+.board td.n { font-family: var(--display); font-size: 17px; }
+.footer-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; color: var(--chalk-dim); font-size: 13px; }
+.footer-row kbd { font: 700 12px/1 var(--body); background: rgba(255,255,255,.12); border-radius: 5px; padding: 3px 6px; color: var(--chalk); }
+.touch-note { background: rgba(255,107,91,.15); border: 1.5px solid var(--red); border-radius: 12px; padding: 8px 12px; font-weight: 700; color: #ffd6d0; }
+@media (max-width: 760px) {
+  .setup { grid-template-columns: 1fr; }
+  .results { grid-template-columns: repeat(2, 1fr); }
+  .deck-grid { grid-template-columns: repeat(2, 1fr); }
+  .card { min-width: 130px; }
+}
+@media (prefers-reduced-motion: reduce) { .card.oops { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <a class="back" href="../index.html"><img src="../../images/mr-watford/face.png" alt="">← Back to Typing Games</a>
+
+  <header class="top">
+    <div>
+      <span class="pill">7th Grade Typing</span>
+      <h1>Keyboard <em>Kingdoms</em></h1>
+    </div>
+    <div class="stats" aria-live="off">
+      <div class="stat"><span>Wins</span><b id="statWins">0</b></div>
+      <div class="stat"><span>WPM</span><b id="statWpm">0</b></div>
+      <div class="stat"><span>Cards</span><b id="statCards">8/12</b></div>
+    </div>
+  </header>
+
+  <div class="frame">
+    <div class="screen" id="screen">
+      <canvas id="game" width="960" height="540" aria-label="Castle battle arena"></canvas>
+
+      <!-- Start menu -->
+      <div class="panel-wrap" id="menuPanel">
+        <div class="panel wide">
+          <h2>Defend your castle. <em>Type</em> to call your army!</h2>
+          <div class="setup">
+            <div class="col">
+              <div class="host">
+                <img src="../../images/mr-watford/face.png" alt="">
+                <span>Mr. Watford says: "Type a card's word to send it into battle. Knock down the red towers before they knock down yours!"</span>
+              </div>
+              <details class="howto-box" open>
+                <summary>How to play</summary>
+                <ol class="howto">
+                  <li>Your 4 cards are below the arena. <b class="y">Type a card's word</b> to play it.</li>
+                  <li>Each card costs <b class="m">💧 mana</b>. Mana fills up over time. Big cards have longer words!</li>
+                  <li>Press <b class="y">⬅ ➡</b> (or <b class="y">A</b> and <b class="y">D</b>) to pick the left or right bridge.</li>
+                  <li>Destroy a red tower for a 👑 crown. Knock down the King's tower to win right away!</li>
+                  <li>Type the gold <b class="y">💧 mana word</b> when it pops up for +2 mana.</li>
+                  <li>Most crowns after 3 minutes wins. <b class="y">Backspace</b> switches words. <b class="y">Esc</b> pauses.</li>
+                </ol>
+              </details>
+            </div>
+            <div class="col">
+              <div>
+                <span class="opt-label">Opponent</span>
+                <div class="choices" id="levelChoices">
+                  <button class="choice" data-level="easy">Easy<small>Short words</small></button>
+                  <button class="choice" data-level="medium">Medium<small>Longer words</small></button>
+                  <button class="choice" data-level="hard">Hard<small>Big words, smart enemy</small></button>
+                  <button class="choice boss" data-level="boss">👑 Mr. Watford<small>Boss battle!</small></button>
+                </div>
+              </div>
+              <div>
+                <span class="opt-label">Row practice</span>
+                <div class="choices" id="rowChoices">
+                  <button class="choice" data-level="home">Home row</button>
+                  <button class="choice" data-level="top">Top row</button>
+                  <button class="choice" data-level="bottom">Bottom row</button>
+                </div>
+              </div>
+              <div class="deck-line" id="deckLine"><span>Your deck:</span></div>
+              <div class="btn-row" style="justify-content:flex-start"><button class="small-btn" id="deckBtn">🃏 Build your deck</button></div>
+              <div class="teacher">
+                <label><input type="checkbox" id="teacherToggle"> 🏫 Teacher mode: class leaderboard</label>
+                <button class="small-btn" id="boardBtn" hidden>🏆 Today's leaderboard</button>
+              </div>
+              <p class="touch-note" id="touchNote" hidden>This game needs a keyboard. Try it on a Chromebook or computer!</p>
+              <div class="btn-row"><button class="btn" id="startBtn">Battle! ⚔️</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deck builder -->
+      <div class="panel-wrap" id="deckPanel" hidden>
+        <div class="panel wide">
+          <h2>Build your <em>deck</em></h2>
+          <p id="deckCount">Pick 8 cards.</p>
+          <div class="deck-grid" id="deckGrid"></div>
+          <div class="btn-row">
+            <button class="btn" id="deckSave">Save deck</button>
+            <button class="btn ghost" id="deckCancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause -->
+      <div class="panel-wrap" id="pausePanel" hidden>
+        <div class="panel">
+          <h2>Paused</h2>
+          <p>The battle is on hold.</p>
+          <div class="btn-row">
+            <button class="btn" id="resumeBtn">Back to battle ▶</button>
+            <button class="btn ghost" id="quitBtn">Quit to menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game over -->
+      <div class="panel-wrap" id="overPanel" hidden>
+        <div class="panel">
+          <h2 id="overTitle">Victory!</h2>
+          <div class="results">
+            <div><span>Crowns</span><b id="resCrowns">0 – 0</b></div>
+            <div><span>Words</span><b id="resWords">0</b></div>
+            <div><span>WPM</span><b id="resWpm">0</b></div>
+            <div><span>Accuracy</span><b id="resAcc">0%</b></div>
+          </div>
+          <p id="resNote"></p>
+          <p class="unlock-note" id="resUnlock" hidden></p>
+          <div class="save-row" id="saveRow" hidden>
+            <label for="initials">Your initials:</label>
+            <input id="initials" maxlength="3" autocomplete="off" placeholder="ABC">
+            <button class="small-btn" id="saveScore">Add to leaderboard</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="againBtn">Battle again ⚔️</button>
+            <button class="btn ghost" id="menuBtn">Menu</button>
+            <button class="btn ghost" id="finishBoardBtn" hidden>🏆 Leaderboard</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="panel-wrap" id="boardPanel" hidden>
+        <div class="panel">
+          <h2>🏆 Today's <em>leaderboard</em></h2>
+          <p id="boardSub"></p>
+          <table class="board">
+            <thead><tr><th>#</th><th>Name</th><th>Result</th><th>Crowns</th><th>WPM</th></tr></thead>
+            <tbody id="boardBody"></tbody>
+          </table>
+          <p style="font-size:12px">Only saved on this computer. Clears every day.</p>
+          <div class="btn-row">
+            <button class="btn" id="boardClose">Close</button>
+            <button class="small-btn" id="boardClear">Clear today's list</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hand" id="hand" aria-live="polite"></div>
+  </div>
+
+  <div class="footer-row">
+    <span>Type a card's word to play it • <kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> pick a lane • <kbd>Backspace</kbd> switch words • <kbd>Esc</kbd> pause</span>
+    <button class="small-btn" id="soundBtn">🔊 Sound on</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  /* =========================================================
+     KEYBOARD KINGDOMS: a castle battle where typing a card's word plays it.
+     Two castles, a river, two bridges. Destroy towers to earn crowns.
+     ========================================================= */
+
+  // ---------- Words (cards get words whose length matches their cost) ----------
+  const WORDS = {
+    easy: "cat dog sun map run jump desk book rain tree fish bird lamp cup pen hat milk sand ship star cake frog gold kite lake moon nest owl park quiz rope seed team vote wind yard zoo bell coat door east farm gift hill ink jar king leaf mint note oak pond road salt tent unit vest wave yell zip bus fox glue".split(" "),
+    medium: "planet garden pencil rocket bridge castle forest helmet island jacket kitten ladder marble needle orange puzzle rabbit saddle ticket unlock valley window yellow zipper anchor basket candle engine falcon guitar hammer insect jungle lizard market napkin office parade quiver ribbon silver tunnel velvet whistle button cactus desert finger glider harbor kettle lantern meadow number pepper river summer travel winter".split(" "),
+    hard: "adventure balance calendar discovery education champion gratitude harmony important journey knowledge language mountain notebook operation paragraph question remember sentence telescope umbrella vocabulary wonderful yesterday absolute brilliant character delightful encourage fantastic geography hospital invention keyboard magnificent neighbor orchestra practice responsible strawberry thunderstorm universe victory waterfall excellent faithful kindness patience schedule scientist attention beautiful celebrate direction elephant festival".split(" "),
+    // Row practice: every letter in these words comes from that row of the keyboard
+    // (the bottom row has no vowels, so its words mix bottom-row keys with home-row keys)
+    home: "ask ash add all dad fad gas had has lad lag sad sag dash gash hash lash flag glad half hall fall shall salad flask falls slash flash glass alas".split(" "),
+    top: "pet pie pot toe top tip tire tree true type wipe wire quote quiet query route outer otter poet pout pretty prop riot rope yet you your tour tutor tower power pepper".split(" "),
+    bottom: "can ban man van cab nab lab jab dab gab fax max zag clam calm band hand land sand bank mask black blank snack scan bland gland cabs bands".split(" ")
+  };
+  const MANA_WORDS = "mana gem crown shield royal castle flag".split(" ");
+  // Word length for each mana cost: cheap cards = short words, big cards = long words
+  const LENGTHS = { 2: [3, 4], 3: [4, 5], 4: [5, 6], 5: [6, 9] };
+
+  // AI = how the computer plays: regen (mana speed), think (seconds between decisions), smart (0-1)
+  const LEVELS = {
+    easy:   { name: "Easy",        words: "easy",   lenShift: 0, ai: { regen: 0.62, think: 1.8, smart: 0.18 }, deck: ["knight", "archers", "giant", "scouts", "crossbow", "cannon", "fireball", "arrows"], foe: "the Blue Hill Baron" },
+    medium: { name: "Medium",      words: "medium", lenShift: 0, ai: { regen: 0.86, think: 1.1, smart: 0.55 },  deck: ["knight", "archers", "giant", "dragon", "crossbow", "cannon", "fireball", "scouts"], foe: "Lady Redstone" },
+    hard:   { name: "Hard",        words: "hard",   lenShift: 1, ai: { regen: 0.98, think: 0.7, smart: 0.85 },  deck: ["giant", "dragon", "crossbow", "catapult", "ram", "knight", "fireball", "arrows"], foe: "the Iron Duke" },
+    boss:   { name: "Mr. Watford", words: "medium", lenShift: 1, ai: { regen: 1.12, think: 0.55, smart: 1 },    deck: ["giant", "dragon", "catapult", "ram", "crossbow", "squires", "fireball", "arrows"], foe: "Mr. Watford's Royal Army", boss: true },
+    home:   { name: "Home row",    words: "home",   lenShift: 0, ai: { regen: 0.62, think: 1.8, smart: 0.18 }, deck: ["knight", "archers", "giant", "scouts", "crossbow", "cannon", "fireball", "arrows"], foe: "the Blue Hill Baron", rowPractice: true },
+    top:    { name: "Top row",     words: "top",    lenShift: 0, ai: { regen: 0.62, think: 1.8, smart: 0.18 }, deck: ["knight", "archers", "giant", "scouts", "crossbow", "cannon", "fireball", "arrows"], foe: "the Blue Hill Baron", rowPractice: true },
+    bottom: { name: "Bottom row",  words: "bottom", lenShift: 0, ai: { regen: 0.62, think: 1.8, smart: 0.18 }, deck: ["knight", "archers", "giant", "scouts", "crossbow", "cannon", "fireball", "arrows"], foe: "the Blue Hill Baron", rowPractice: true }
+  };
+
+  // ---------- Cards ----------
+  // Unit stats: hp, dmg (per hit), hs (seconds between hits), range/sight/r in tiles, spd in tiles per second
+  // targets: "ground" (can't hit flyers), "all", or "buildings" (only towers and cannons)
+  const CARDS = {
+    knight:   { name: "Knight",       icon: "🛡️", cost: 3, kind: "troop", count: 1, desc: "Tough sword fighter.",
+                unit: { hp: 720, dmg: 82, hs: 1.2, range: 0.7, spd: 1.0, sight: 5.5, r: 0.45, targets: "ground" } },
+    archers:  { name: "Archers",      icon: "🏹", cost: 3, kind: "troop", count: 2, desc: "Two archers. Hit air and ground.",
+                unit: { hp: 140, dmg: 44, hs: 1.0, range: 5, spd: 1.0, sight: 5.5, r: 0.35, targets: "all", proj: "arrow" } },
+    giant:    { name: "Giant",        icon: "👊", cost: 5, kind: "troop", count: 1, desc: "Huge and slow. Only attacks towers.",
+                unit: { hp: 2100, dmg: 130, hs: 1.5, range: 0.8, spd: 0.7, sight: 7, r: 0.75, targets: "buildings" } },
+    scouts:   { name: "Scouts",       icon: "🏃", cost: 2, kind: "troop", count: 3, desc: "Three fast, light fighters.",
+                unit: { hp: 90, dmg: 52, hs: 1.1, range: 0.6, spd: 1.6, sight: 5, r: 0.3, targets: "ground" } },
+    crossbow: { name: "Crossbow",     icon: "🎯", cost: 4, kind: "troop", count: 1, desc: "Long-range sharpshooter.",
+                unit: { hp: 360, dmg: 105, hs: 1.1, range: 6, spd: 1.0, sight: 6.5, r: 0.4, targets: "all", proj: "bolt" } },
+    cannon:   { name: "Cannon",       icon: "💣", cost: 3, kind: "building", count: 1, desc: "Defense that blasts ground troops.",
+                unit: { hp: 650, dmg: 85, hs: 0.9, range: 5.5, spd: 0, sight: 5.5, r: 0.6, targets: "ground", proj: "ball", life: 30 } },
+    fireball: { name: "Fireball",     icon: "🔥", cost: 4, kind: "spell", desc: "Big blast in one spot.", spell: { dmg: 340, radius: 2.4 } },
+    arrows:   { name: "Arrow Volley", icon: "🌧️", cost: 3, kind: "spell", desc: "Rain of arrows over a wide area.", spell: { dmg: 150, radius: 3.6 } },
+    dragon:   { name: "Dragon",       icon: "🐉", cost: 4, kind: "troop", count: 1, unlock: 1, desc: "Flies over the river. Splash damage.",
+                unit: { hp: 560, dmg: 72, hs: 1.6, range: 3.5, spd: 1.4, sight: 5.5, r: 0.55, targets: "all", flying: true, splash: 1.1, proj: "flame" } },
+    squires:  { name: "Squire Squad", icon: "👥", cost: 4, kind: "troop", count: 6, unlock: 2, desc: "Six young squires swarm in.",
+                unit: { hp: 95, dmg: 45, hs: 1.0, range: 0.6, spd: 1.2, sight: 5, r: 0.3, targets: "ground" } },
+    ram:      { name: "Battering Ram", icon: "🐏", cost: 4, kind: "troop", count: 1, unlock: 3, desc: "Charges straight at towers.",
+                unit: { hp: 950, dmg: 230, hs: 1.6, range: 0.7, spd: 1.45, sight: 7, r: 0.6, targets: "buildings" } },
+    catapult: { name: "Catapult",     icon: "🪨", cost: 5, kind: "troop", count: 1, unlock: 5, desc: "Slow siege engine. Huge splash.",
+                unit: { hp: 520, dmg: 170, hs: 2.6, range: 7, spd: 0.55, sight: 7.5, r: 0.65, targets: "ground", splash: 1.3, proj: "rock" } }
+  };
+  const CARD_ORDER = ["knight", "archers", "giant", "scouts", "crossbow", "cannon", "fireball", "arrows", "dragon", "squires", "ram", "catapult"];
+  const STARTER = ["knight", "archers", "giant", "scouts", "crossbow", "cannon", "fireball", "arrows"];
+  const TOWER = { princess: { hp: 1150, dmg: 46, hs: 0.8, range: 7.5, r: 1.1 }, king: { hp: 2200, dmg: 58, hs: 1.0, range: 7, r: 1.5 } };
+
+  // ---------- Helpers ----------
+  const $ = id => document.getElementById(id);
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  const today = () => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+  const fmtTime = s => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- Saved progress (this device only) ----------
+  const wins = () => Number(store("kingdoms-wins") || 0);
+  const unlocked = () => CARD_ORDER.filter(k => !CARDS[k].unlock || wins() >= CARDS[k].unlock);
+  function loadDeck() {
+    let d = null;
+    try { d = JSON.parse(store("kingdoms-deck") || "null"); } catch (e) { d = null; }
+    const ok = Array.isArray(d) && d.length === 8 && d.every(k => unlocked().includes(k));
+    return ok ? d : STARTER.slice();
+  }
+  const settings = {
+    level: LEVELS[store("kingdoms-level")] ? store("kingdoms-level") : "easy",
+    teacher: store("kingdoms-teacher") === "1",
+    deck: loadDeck()
+  };
+
+  // ---------- Sound effects (Web Audio, no files needed) ----------
+  const Sound = {
+    on: store("kingdoms-sound") !== "0", ac: null,
+    ctx() { if (!this.ac) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) this.ac = new AC(); } if (this.ac && this.ac.state === "suspended") this.ac.resume(); return this.ac; },
+    tone(f, d, type, vol, to) {
+      if (!this.on) return; const ac = this.ctx(); if (!ac) return;
+      const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || "sine"; o.frequency.setValueAtTime(f, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + d);
+      g.gain.setValueAtTime(vol || 0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+      o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + 0.02);
+    },
+    noise(d, vol, lp) {
+      if (!this.on) return; const ac = this.ctx(); if (!ac) return;
+      const n = Math.floor(ac.sampleRate * d), b = ac.createBuffer(1, n, ac.sampleRate), c = b.getChannelData(0);
+      for (let i = 0; i < n; i++) c[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+      f.type = "lowpass"; f.frequency.value = lp || 900; s.buffer = b; g.gain.value = vol || 0.25;
+      s.connect(f); f.connect(g); g.connect(ac.destination); s.start();
+    },
+    key() { this.tone(880, 0.04, "triangle", 0.04); },
+    oops() { this.tone(160, 0.12, "square", 0.05); },
+    deploy() { this.tone(392, 0.12, "triangle", 0.1); setTimeout(() => this.tone(587, 0.16, "triangle", 0.1), 70); },
+    hit() { this.noise(0.06, 0.08, 1400); },
+    boom() { this.noise(0.5, 0.4, 500); this.tone(90, 0.4, "sawtooth", 0.07, 50); },
+    crown() { [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => this.tone(f, 0.18, "triangle", 0.1), i * 90)); },
+    mana() { this.tone(1046, 0.1, "sine", 0.08); setTimeout(() => this.tone(1568, 0.14, "sine", 0.08), 60); },
+    lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => this.tone(f, 0.3, "triangle", 0.1), i * 180)); }
+  };
+
+  // ---------- Arena geometry ----------
+  // The arena is 18 tiles wide and 24 tall. Your castle is at the bottom (team 0), the enemy's at the top (team 1).
+  const cv = $("game"), ctx = cv.getContext("2d");
+  const W = 960, H = 540, COLS = 18, ROWS = 24, T = 22.5, AX = (W - COLS * T) / 2;
+  const RIVER = 12, BRIDGES = [3.5, 14.5];
+  const sx = x => AX + x * T, sy = y => y * T;
+  const laneX = lane => BRIDGES[lane];
+  const mirrorY = (team, y) => team === 0 ? y : ROWS - y;
+  const sideOf = y => y < RIVER ? 1 : 0;             // which team's half a point is in
+  const laneOf = x => x < COLS / 2 ? 0 : 1;
+  const TEAM_COLOR = ["#3d7fe0", "#d9453a"], TEAM_DARK = ["#1f4f9a", "#8e2620"], TEAM_LIGHT = ["#9cc4ff", "#ffaaa0"];
+
+  // ---------- The arena background (drawn once, reused every frame) ----------
+  function makeCanvas(w, h, draw) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); return c; }
+  function rng(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+  const BG = makeCanvas(W, H, (g) => {
+    const r = rng(5);
+    // castle grounds outside the arena: darker grass, trees, and banners
+    g.fillStyle = "#24482a"; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 70; i++) {
+      const x = r() < 0.5 ? r() * (AX - 20) : AX + COLS * T + 20 + r() * (AX - 20), y = r() * H, rad = 14 + r() * 22;
+      g.fillStyle = "rgba(0,0,0,.25)"; g.beginPath(); g.ellipse(x + 4, y + 6, rad, rad * 0.8, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = ["#2f6b34", "#3a7d3d", "#28592c"][i % 3]; g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "rgba(255,255,255,.08)"; g.beginPath(); g.arc(x - rad * 0.3, y - rad * 0.3, rad * 0.5, 0, Math.PI * 2); g.fill();
+    }
+    // arena grass (checkered)
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      g.fillStyle = (x + y) % 2 ? "#6cad4e" : "#64a548";
+      g.fillRect(sx(x), sy(y), T + 0.5, T + 0.5);
+    }
+    // stone border
+    g.strokeStyle = "#6b6257"; g.lineWidth = 6; g.strokeRect(AX - 3, -3, COLS * T + 6, H + 6);
+    // dirt paths from the bridges to the towers
+    g.fillStyle = "rgba(196,164,112,.75)";
+    for (const bx of BRIDGES) { g.fillRect(sx(bx - 0.8), sy(4.5), 1.6 * T, sy(19.5) - sy(4.5)); }
+    g.fillRect(sx(3.5), sy(3.7), sx(14.5) - sx(3.5), 1.6 * T); g.fillRect(sx(3.5), sy(18.7), sx(14.5) - sx(3.5), 1.6 * T);
+    // river
+    const rg = g.createLinearGradient(0, sy(RIVER - 0.65), 0, sy(RIVER + 0.65));
+    rg.addColorStop(0, "#3d8fc4"); rg.addColorStop(0.5, "#5fb3e0"); rg.addColorStop(1, "#3d8fc4");
+    g.fillStyle = rg; g.fillRect(AX, sy(RIVER - 0.65), COLS * T, 1.3 * T);
+    g.fillStyle = "#4f7f3a"; g.fillRect(AX, sy(RIVER - 0.75), COLS * T, 3); g.fillRect(AX, sy(RIVER + 0.65), COLS * T, 3);
+    // wooden bridges
+    for (const bx of BRIDGES) {
+      g.fillStyle = "#8a5d33"; g.fillRect(sx(bx - 0.95), sy(RIVER - 0.95), 1.9 * T, 1.9 * T);
+      g.strokeStyle = "#5e3d1f"; g.lineWidth = 2;
+      for (let k = 1; k < 5; k++) { const y = sy(RIVER - 0.95) + (k * 1.9 * T) / 5; g.beginPath(); g.moveTo(sx(bx - 0.95), y); g.lineTo(sx(bx + 0.95), y); g.stroke(); }
+      g.fillStyle = "#5e3d1f"; g.fillRect(sx(bx - 1.05), sy(RIVER - 0.95), 4, 1.9 * T); g.fillRect(sx(bx + 0.95) - 2, sy(RIVER - 0.95), 4, 1.9 * T);
+    }
+    // the dotted line where each side may place troops
+    g.setLineDash([4, 6]); g.strokeStyle = "rgba(255,255,255,.25)"; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(AX, sy(RIVER + 1.6)); g.lineTo(AX + COLS * T, sy(RIVER + 1.6)); g.stroke(); g.setLineDash([]);
+  });
+  const face = new Image(); face.src = "../../images/mr-watford/face.png";
+
+  // ---------- Game state ----------
+  let S = null, mode = "menu";   // menu | run | paused | over
+  let idSeq = 1;
+
+  function makeTower(team, kind, lane) {
+    const st = TOWER[kind];
+    const x = kind === "king" ? COLS / 2 : laneX(lane);
+    const y = mirrorY(team, kind === "king" ? 20.9 : 19.5);
+    return { id: idSeq++, team, kind, lane, x, y, hp: st.hp, maxHp: st.hp, dmg: st.dmg, hs: st.hs, range: st.range, r: st.r, cd: 1, active: kind !== "king", isTower: true, building: true, alive: true, flash: 0 };
+  }
+
+  function newState() {
+    const lvl = LEVELS[settings.level];
+    const s = {
+      level: settings.level, lvl,
+      time: 180, elapsed: 0, overtime: false,
+      towers: [makeTower(0, "princess", 0), makeTower(0, "princess", 1), makeTower(0, "king"), makeTower(1, "princess", 0), makeTower(1, "princess", 1), makeTower(1, "king")],
+      units: [], shots: [], fx: [], floaters: [],
+      crowns: [0, 0],
+      mana: [5, 5],
+      lane: 0,
+      deck: shuffle(settings.deck.slice()), hand: [], next: null,
+      target: null, typed: 0, waiting: null,         // the word being typed, and a typed card waiting for mana
+      bonus: null, nextBonus: 12 + Math.random() * 6,
+      correct: 0, wrong: 0, words: 0, played: 0, startT: performance.now(),
+      ai: { deck: shuffle(lvl.deck.slice()), hand: [], think: 2.5, plan: null },
+      result: null, endT: 0, shake: 0, saved: false
+    };
+    S = s;
+    for (let i = 0; i < 4; i++) drawCard();
+    S.next = S.deck.shift();
+    for (let i = 0; i < 4; i++) S.ai.hand.push(S.ai.deck.shift());
+    return s;
+  }
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+  // ---------- Card words ----------
+  function wordPool() {
+    const k = S.lvl.words;
+    if (k === "easy") return WORDS.easy.concat(WORDS.medium.filter(w => w.length <= 6));
+    if (k === "medium") return WORDS.easy.concat(WORDS.medium, WORDS.hard.filter(w => w.length <= 9));
+    if (k === "hard") return WORDS.medium.concat(WORDS.hard);
+    return WORDS[k];
+  }
+  function usedFirstLetters(except) {
+    const l = S.hand.filter(c => c !== except).map(c => c.word[0]);
+    if (S.bonus) l.push(S.bonus.word[0]);
+    return l;
+  }
+  // A and D pick lanes, so no word may start with them
+  const startsOk = w => w[0] !== "a" && w[0] !== "d";
+  function wordFor(cardKey, avoid) {
+    const cost = CARDS[cardKey].cost;
+    let [lo, hi] = LENGTHS[cost];
+    lo += S.lvl.lenShift; hi += S.lvl.lenShift * 2;
+    const pool = wordPool().filter(startsOk);
+    let options = pool.filter(w => w.length >= lo && w.length <= hi && !avoid.includes(w[0]));
+    if (!options.length) options = pool.filter(w => !avoid.includes(w[0]));   // row practice has fewer long words
+    if (!options.length) options = pool;
+    // row practice has only a few words of each length: cheap cards get the shorter half, big cards the longer half
+    if (S.lvl.rowPractice && options.length > 3) {
+      options.sort((a, b) => a.length - b.length);
+      const half = Math.ceil(options.length / 2);
+      if (cost <= 2) options = options.slice(0, half);
+      else if (cost >= 4) options = options.slice(-half);
+    }
+    return pick(options.length ? options : pool);
+  }
+  // Deal one card from the deck into your hand (used to fill the starting hand)
+  function drawCard() {
+    const card = { key: S.deck.shift(), word: "" };
+    S.hand.push(card);
+    card.word = wordFor(card.key, usedFirstLetters(card));
+  }
+
+  // ---------- Placing troops, buildings, and spells ----------
+  function spawnUnits(team, key, lane, at) {
+    const card = CARDS[key];
+    const baseY = at ? at.y : mirrorY(team, card.kind === "building" ? 15.4 : key === "giant" || key === "ram" || key === "catapult" ? 17.6 : 16.8);
+    const baseX = at ? at.x : card.kind === "building" ? (lane === 0 ? 6.4 : 11.6) : laneX(lane);
+    for (let i = 0; i < card.count; i++) {
+      const a = (i / card.count) * Math.PI * 2, spread = card.count > 1 ? 0.55 + card.count * 0.05 : 0;
+      const u = card.unit;
+      S.units.push({
+        id: idSeq++, team, key, lane, x: clamp(baseX + Math.cos(a) * spread, 0.6, COLS - 0.6), y: baseY + Math.sin(a) * spread * 0.7,
+        hp: u.hp, maxHp: u.hp, dmg: u.dmg, hs: u.hs, range: u.range, spd: u.spd, sight: u.sight, r: u.r,
+        targets: u.targets, flying: !!u.flying, splash: u.splash || 0, proj: u.proj || null,
+        building: card.kind === "building", life: u.life || 0,
+        cd: 0.4, deployT: 1.0, target: null, retarget: 0, alive: true, flash: 0, face: team === 0 ? -1 : 1, walk: Math.random() * 6
+      });
+    }
+  }
+
+  // Best place for a spell: the spot that hits the most enemy troops (in a lane, or anywhere), else a tower
+  function spellSpot(team, lane, radius) {
+    const foes = S.units.filter(u => u.alive && u.team !== team && (lane === null || laneOf(u.x) === lane));
+    let best = null, bestScore = 0;
+    for (const f of foes) {
+      let score = 0;
+      for (const g of foes) if (dist(f, g) <= radius) score += CARDS[g.key].cost / CARDS[g.key].count + 0.5;
+      if (score > bestScore) { bestScore = score; best = { x: f.x, y: f.y }; }
+    }
+    if (best) return { spot: best, score: bestScore };
+    const tw = laneTower(1 - team, lane === null ? 0 : lane);
+    return { spot: { x: tw.x, y: tw.y }, score: 0 };
+  }
+  function castSpell(team, key, lane) {
+    const sp = CARDS[key].spell;
+    const { spot } = spellSpot(team, lane, sp.radius);
+    const from = S.towers.find(t => t.team === team && t.kind === "king");
+    S.shots.push({ kind: key === "fireball" ? "fireball" : "volley", team, x: from.x, y: from.y, tx: spot.x, ty: spot.y, speed: key === "fireball" ? 11 : 14, dmg: sp.dmg, splash: sp.radius, spell: true });
+  }
+
+  function play(team, key, lane) {
+    const card = CARDS[key];
+    if (card.kind === "spell") castSpell(team, key, lane);
+    else spawnUnits(team, key, lane);
+    if (team === 0) { S.played++; Sound.deploy(); }
+  }
+
+  // An enemy tower: the small tower in that lane, or the King's tower if it has fallen
+  function laneTower(team, lane) {
+    return S.towers.find(t => t.team === team && t.kind === "princess" && t.lane === lane && t.alive) || S.towers.find(t => t.team === team && t.kind === "king");
+  }
+
+  // ---------- Typing ----------
+  function typeLetter(ch) {
+    if (!S.target) {
+      const options = S.hand.map(c => ({ type: "card", ref: c })).filter(o => o.ref !== S.waiting);
+      if (S.bonus) options.push({ type: "bonus", ref: S.bonus });
+      const hit = options.find(o => o.ref.word[0] === ch);
+      if (!hit) { miss(); return; }
+      S.target = hit; S.typed = 0;
+    }
+    const word = S.target.ref.word;
+    if (word[S.typed] === ch) { S.typed++; S.correct++; Sound.key(); if (S.typed >= word.length) finishWord(); }
+    else miss();
+  }
+  function miss() {
+    S.wrong++; Sound.oops();
+    const el = document.querySelector(".card.target");
+    if (el) { el.classList.remove("oops"); void el.offsetWidth; el.classList.add("oops"); }
+  }
+  function finishWord() {
+    const t = S.target; S.target = null; S.typed = 0; S.words++;
+    if (t.type === "bonus") { S.mana[0] = Math.min(10, S.mana[0] + 2); S.bonus = null; S.nextBonus = 14 + Math.random() * 8; Sound.mana(); floater("+2 💧", "#c77dff", 0); return; }
+    const card = t.ref;
+    if (S.mana[0] >= CARDS[card.key].cost) useCard(card, S.lane);
+    else { S.waiting = card; card.lane = S.lane; }   // deploys as soon as there's enough mana
+  }
+  function useCard(card, lane) {
+    S.mana[0] -= CARDS[card.key].cost;
+    play(0, card.key, lane);
+    // the used card goes to the back of the deck; the next card takes its place with a new word
+    const i = S.hand.indexOf(card);
+    S.deck.push(card.key);
+    const nk = S.next; S.next = S.deck.shift();
+    const nc = { key: nk, word: "" };
+    S.hand[i] = nc; nc.word = wordFor(nk, usedFirstLetters(nc));
+    if (S.waiting === card) S.waiting = null;
+  }
+
+  // ---------- Input ----------
+  window.addEventListener("keydown", e => {
+    if (mode !== "run" && mode !== "paused") return;
+    if (e.key === "Escape") { e.preventDefault(); if (mode === "run") pause(); else resume(); return; }
+    if (mode !== "run" || S.result) return;
+    if (e.key === "ArrowLeft") { e.preventDefault(); setLane(0); return; }
+    if (e.key === "ArrowRight") { e.preventDefault(); setLane(1); return; }
+    if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === " ") { e.preventDefault(); return; }
+    if (e.key === "Backspace") { e.preventDefault(); S.target = null; S.typed = 0; return; }
+    if (e.key.length === 1 && /[a-z]/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      const ch = e.key.toLowerCase();
+      // A and D pick lanes, unless they're the next letter of the word being typed
+      const midWord = S.target && S.target.ref.word[S.typed] === ch;
+      if ((ch === "a" || ch === "d") && !midWord) setLane(ch === "a" ? 0 : 1);
+      else typeLetter(ch);
+    }
+  });
+  function setLane(l) { if (S.lane !== l) { S.lane = l; Sound.tone(l ? 660 : 520, 0.06, "sine", 0.06); } }
+
+  // ---------- The computer opponent ----------
+  function aiThink() {
+    const ai = S.ai, smart = S.lvl.ai.smart;
+    const mana = S.mana[1];
+    const afford = ai.hand.filter(k => CARDS[k].cost <= mana);
+    if (!afford.length) return;
+    // Threats: your troops on its half (or about to cross)
+    const threats = [0, 1].map(lane => S.units.filter(u => u.alive && u.team === 0 && laneOf(u.x) === lane && u.y < RIVER + 3.5));
+    const threatValue = threats.map(list => list.reduce((a, u) => a + CARDS[u.key].cost / CARDS[u.key].count, 0));
+    const tl = threatValue[0] >= threatValue[1] ? 0 : 1;
+    // Spell at a juicy cluster
+    if (Math.random() < smart) {
+      for (const k of afford) {
+        if (CARDS[k].kind !== "spell") continue;
+        const { score } = spellSpot(1, null, CARDS[k].spell.radius);
+        if (score >= (k === "fireball" ? 5.5 : 4.5)) { aiPlay(k, laneOf(spellSpot(1, null, CARDS[k].spell.radius).spot.x)); return; }
+      }
+    }
+    if (threatValue[tl] >= 2 && Math.random() < 0.35 + smart * 0.65) {
+      const foes = threats[tl];
+      const air = foes.some(u => u.flying), swarm = foes.length >= 3;
+      const troops = afford.filter(k => CARDS[k].kind !== "spell");
+      let choice = null;
+      if (air) choice = troops.find(k => CARDS[k].unit.targets === "all");
+      if (!choice && swarm) choice = troops.find(k => CARDS[k].unit.splash) || afford.find(k => k === "arrows");
+      if (!choice) choice = troops.find(k => CARDS[k].unit.targets !== "buildings") || troops[0];
+      if (choice) { aiPlay(choice, tl); return; }
+    }
+    // Build an attack when it has plenty of mana
+    const want = 6 + Math.random() * 3 * (1 - smart) + (smart > 0.8 ? 1 : 0);
+    if (mana >= want || mana >= 9.5) {
+      const troops = afford.filter(k => CARDS[k].kind === "troop");
+      if (!troops.length) return;
+      // smart players lead with a tank and attack the weaker tower
+      const tank = troops.find(k => k === "giant" || k === "ram");
+      const lane = smart > 0.5 ? weakerLane() : pick([0, 1]);
+      aiPlay(smart > 0.4 && tank ? tank : pick(troops), lane);
+      ai.plan = { lane, support: S.time };
+    } else if (ai.plan && S.time < ai.plan.support - 1.5 && S.time > ai.plan.support - 6 && Math.random() < smart) {
+      // send support behind the tank
+      const sup = afford.filter(k => CARDS[k].kind === "troop" && CARDS[k].unit.targets !== "buildings");
+      if (sup.length) { aiPlay(pick(sup), ai.plan.lane); ai.plan = null; }
+    }
+  }
+  function weakerLane() {
+    const t0 = laneTower(0, 0), t1 = laneTower(0, 1);
+    return t0.hp / t0.maxHp <= t1.hp / t1.maxHp ? 0 : 1;
+  }
+  function aiPlay(key, lane) {
+    if (S.mana[1] < CARDS[key].cost) return;
+    S.mana[1] -= CARDS[key].cost;
+    play(1, key, lane);
+    const i = S.ai.hand.indexOf(key);
+    S.ai.deck.push(key);
+    S.ai.hand[i] = S.ai.deck.shift();
+  }
+
+  // ---------- Battle simulation ----------
+  const enemiesOf = team => S.units.filter(u => u.alive && u.team !== team && u.deployT <= 0).concat(S.towers.filter(t => t.alive && t.team !== team));
+  function canHit(a, b) {
+    if (a.targets === "buildings") return !!b.building;
+    if (a.targets === "ground") return !b.flying;
+    return true;
+  }
+  function findTarget(u) {
+    let best = null, bd = Infinity;
+    for (const e of enemiesOf(u.team)) {
+      if (!canHit(u, e)) continue;
+      // troops go for the nearest thing they can hit that they can see; giants and rams see buildings from anywhere
+      const d = dist(u, e) - e.r;
+      const limit = u.targets === "buildings" ? 99 : u.sight;
+      if (d < bd && d <= limit) { bd = d; best = e; }
+    }
+    if (!best) best = laneTower(1 - u.team, laneOf(u.x));
+    return best;
+  }
+
+  function update(dt) {
+    if (mode !== "run") return;
+    if (S.result) { S.endT += dt; if (S.endT > 2.2) endGame(); return; }
+    S.time -= dt; S.elapsed += dt;
+    S.shake = Math.max(0, S.shake - dt);
+    // Mana (doubles in the last minute and in overtime)
+    const double = S.time <= 60 || S.overtime;
+    const rate = (1 / 2.8) * (double ? 2 : 1);
+    S.mana[0] = Math.min(10, S.mana[0] + rate * dt);
+    S.mana[1] = Math.min(10, S.mana[1] + rate * S.lvl.ai.regen * dt);
+    if (S.waiting && S.mana[0] >= CARDS[S.waiting.key].cost) useCard(S.waiting, S.waiting.lane);
+
+    // Bonus mana word
+    if (S.bonus) { S.bonus.t -= dt; if (S.bonus.t <= 0) { if (S.target && S.target.ref === S.bonus) { S.target = null; S.typed = 0; } S.bonus = null; S.nextBonus = 12 + Math.random() * 8; } }
+    else { S.nextBonus -= dt; if (S.nextBonus <= 0) { const w = { word: "", t: 9 }; S.bonus = w; w.word = pickBonusWord(); } }
+
+    // Computer opponent
+    S.ai.think -= dt;
+    if (S.ai.think <= 0) { S.ai.think = S.lvl.ai.think * (0.7 + Math.random() * 0.6); if (Math.random() > 0.15 * (1 - S.lvl.ai.smart)) aiThink(); }
+
+    // Units
+    for (const u of S.units) {
+      if (!u.alive) continue;
+      u.flash = Math.max(0, u.flash - dt);
+      if (u.deployT > 0) { u.deployT -= dt; continue; }
+      if (u.building) { u.hp -= (u.maxHp / u.life) * dt; if (u.hp <= 0) { kill(u); continue; } }
+      u.retarget -= dt;
+      if (!u.target || !u.target.alive || u.retarget <= 0) { u.target = findTarget(u); u.retarget = 0.35; }
+      const tg = u.target;
+      if (!tg) continue;
+      const reach = u.range + u.r + tg.r;
+      const d = dist(u, tg);
+      u.cd -= dt;
+      if (d <= reach) {
+        if (u.cd <= 0) { attack(u, tg); u.cd = u.hs; }
+      } else if (!u.building) {
+        moveToward(u, tg, dt);
+      }
+    }
+    separate();
+
+    // Towers
+    for (const t of S.towers) {
+      if (!t.alive) continue;
+      t.flash = Math.max(0, t.flash - dt);
+      if (!t.active) continue;
+      t.cd -= dt;
+      if (t.cd > 0) continue;
+      let best = null, bd = Infinity;
+      for (const u of S.units) if (u.alive && u.team !== t.team && u.deployT <= 0) { const d = dist(t, u) - u.r; if (d <= t.range && d < bd) { bd = d; best = u; } }
+      if (best) { S.shots.push({ kind: t.kind === "king" ? "ball" : "arrow", team: t.team, x: t.x, y: t.y - 0.6, target: best, speed: 12, dmg: t.dmg }); t.cd = t.hs; }
+    }
+
+    // Shots in flight
+    for (const sh of S.shots) {
+      const tx = sh.target ? sh.target.x : sh.tx, ty = sh.target ? sh.target.y : sh.ty;
+      const dx = tx - sh.x, dy = ty - sh.y, d = Math.hypot(dx, dy), step = sh.speed * dt;
+      if (d <= step) {
+        sh.done = true;
+        if (sh.splash) splashDamage(sh.team, tx, ty, sh.splash, sh.dmg, sh.spell, sh.groundOnly);
+        else if (sh.target && sh.target.alive) damage(sh.target, sh.dmg);
+        if (sh.spell || sh.splash) S.fx.push({ kind: sh.kind === "volley" ? "volley" : "boom", x: tx, y: ty, r: sh.splash, t: 0.5 });
+        if (sh.spell) { Sound.boom(); S.shake = reduceMotion ? 0 : 0.25; }
+      } else { sh.x += dx / d * step; sh.y += dy / d * step; }
+    }
+    S.shots = S.shots.filter(s => !s.done);
+    S.units = S.units.filter(u => u.alive);
+    S.fx.forEach(f => f.t -= dt); S.fx = S.fx.filter(f => f.t > 0);
+    S.floaters.forEach(f => f.t -= dt); S.floaters = S.floaters.filter(f => f.t > 0);
+
+    // Clock
+    if (S.time <= 0 && !S.result) {
+      if (!S.overtime && S.crowns[0] === S.crowns[1]) { S.overtime = true; S.time = 60; floater("OVERTIME! Next crown wins!", "#f7d659", 2); Sound.crown(); }
+      else if (S.crowns[0] !== S.crowns[1]) finish(S.crowns[0] > S.crowns[1] ? "win" : "lose");
+      else {
+        // Still tied after overtime: whoever's most-damaged tower has more health left wins
+        const weakest = team => Math.min(...S.towers.filter(t => t.team === team).map(t => t.alive ? t.hp / t.maxHp : 0));
+        const mine = weakest(0), theirs = weakest(1);
+        if (Math.abs(mine - theirs) < 0.005) finish("draw");
+        else { floater("Tiebreaker: most tower health wins!", "#f7d659", 2); finish(mine > theirs ? "win" : "lose"); S.tiebreak = true; }
+      }
+    }
+  }
+
+  function pickBonusWord() {
+    const avoid = usedFirstLetters(null);
+    let list = (S.lvl.rowPractice ? WORDS[S.lvl.words].filter(w => w.length >= 4) : MANA_WORDS).filter(startsOk);
+    const ok = list.filter(w => !avoid.includes(w[0]));
+    return pick(ok.length ? ok : list);
+  }
+
+  function moveToward(u, tg, dt) {
+    let wx = tg.x, wy = tg.y;
+    // Ground troops must use a bridge to cross the river
+    if (!u.flying && sideOf(u.y) !== sideOf(tg.y) && Math.abs(u.y - RIVER) > 0.2) {
+      const bx = Math.abs(u.x - BRIDGES[0]) < Math.abs(u.x - BRIDGES[1]) ? BRIDGES[0] : BRIDGES[1];
+      const myBank = u.y > RIVER ? RIVER + 1.1 : RIVER - 1.1, farBank = u.y > RIVER ? RIVER - 1.1 : RIVER + 1.1;
+      if (Math.abs(u.x - bx) > 0.35) { wx = bx; wy = myBank; }
+      else { wx = bx; wy = farBank; }
+    }
+    const dx = wx - u.x, dy = wy - u.y, d = Math.hypot(dx, dy) || 1;
+    const step = Math.min(d, u.spd * dt);
+    u.x += dx / d * step; u.y += dy / d * step;
+    u.walk += dt * u.spd * 8;
+    u.face = dy < 0 ? -1 : 1;
+  }
+
+  // Push overlapping ground troops apart so they don't stack
+  function separate() {
+    const list = S.units.filter(u => u.alive && !u.flying && !u.building);
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const a = list[i], b = list[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), min = (a.r + b.r) * 0.9;
+      if (d > 0.001 && d < min) {
+        const push = (min - d) / 2, nx = dx / d, ny = dy / d;
+        a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
+      }
+    }
+    for (const u of list) { u.x = clamp(u.x, 0.4, COLS - 0.4); u.y = clamp(u.y, 0.4, ROWS - 0.4); }
+  }
+
+  function attack(u, tg) {
+    if (u.proj) {
+      S.shots.push({ kind: u.proj, team: u.team, x: u.x, y: u.y, target: u.splash ? null : tg, tx: tg.x, ty: tg.y, speed: u.proj === "rock" ? 7 : 11, dmg: u.dmg, splash: u.splash, groundOnly: u.targets === "ground" });
+    } else {
+      damage(tg, u.dmg);
+      if (u.team === 0 || Math.random() < 0.5) Sound.hit();
+    }
+  }
+
+  function splashDamage(team, x, y, radius, dmg, spell, groundOnly) {
+    for (const e of enemiesOf(team)) {
+      if (groundOnly && e.flying) continue;
+      if (Math.hypot(e.x - x, e.y - y) <= radius + e.r * 0.5) damage(e, e.isTower && spell ? dmg * 0.35 : dmg);
+    }
+  }
+
+  function damage(e, amount) {
+    if (!e.alive) return;
+    e.hp -= amount; e.flash = 0.12;
+    if (e.isTower && e.kind === "king") e.active = true;
+    if (e.hp <= 0) kill(e);
+  }
+
+  function kill(e) {
+    e.alive = false; e.hp = 0;
+    S.fx.push({ kind: e.isTower ? "rubble" : "poof", x: e.x, y: e.y, r: e.isTower ? 1.6 : e.r + 0.3, t: e.isTower ? 1.2 : 0.45 });
+    if (!e.isTower) return;
+    const winner = 1 - e.team;
+    Sound.boom();
+    S.shake = reduceMotion ? 0 : 0.5;
+    if (e.kind === "king") {
+      S.crowns[winner] = 3;
+      floater(winner === 0 ? "👑 KING'S TOWER DOWN! 👑" : "Your King's tower fell!", winner === 0 ? "#f7d659" : "#ff6b5b", 2);
+      finish(winner === 0 ? "win" : "lose");
+    } else {
+      S.crowns[winner]++;
+      S.towers.find(t => t.team === e.team && t.kind === "king").active = true;
+      floater(winner === 0 ? "👑 +1 Crown!" : "Your tower fell!", winner === 0 ? "#f7d659" : "#ff6b5b", 2);
+      if (winner === 0) Sound.crown();
+      if (S.overtime) finish(winner === 0 ? "win" : "lose");
+    }
+  }
+
+  function finish(result) {
+    if (S.result) return;
+    S.result = result; S.endT = 0; S.target = null;
+    if (result === "win") Sound.crown(); else if (result === "lose") Sound.lose();
+  }
+
+  function floater(text, color, big) { S.floaters.push({ text, color, t: big === 2 ? 2.4 : 1.4, big }); }
+
+  // ---------- Drawing ----------
+  function drawTower(t) {
+    const x = sx(t.x), y = sy(t.y), rad = t.r * T;
+    if (!t.alive) {
+      ctx.fillStyle = "#7d756a"; ctx.beginPath(); ctx.ellipse(x, y + 4, rad * 0.9, rad * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#5c554c"; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(x + Math.cos(i * 1.7) * rad * 0.5, y + Math.sin(i * 2.3) * rad * 0.3, rad * 0.22, 0, Math.PI * 2); ctx.fill(); }
+      return;
+    }
+    // shadow and stone base
+    ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(x + 4, y + rad * 0.55, rad * 1.05, rad * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    const g = ctx.createLinearGradient(x - rad, 0, x + rad, 0);
+    g.addColorStop(0, "#8d857a"); g.addColorStop(0.45, "#c9c1b3"); g.addColorStop(1, "#7a7266");
+    ctx.fillStyle = g;
+    ctx.fillRect(x - rad, y - rad * 1.2, rad * 2, rad * 1.75);
+    ctx.beginPath(); ctx.ellipse(x, y + rad * 0.55, rad, rad * 0.4, 0, 0, Math.PI); ctx.fill();
+    // stone lines
+    ctx.strokeStyle = "rgba(60,54,46,.35)"; ctx.lineWidth = 1;
+    for (let k = 1; k < 4; k++) { const yy = y - rad * 1.2 + k * rad * 0.45; ctx.beginPath(); ctx.moveTo(x - rad, yy); ctx.lineTo(x + rad, yy); ctx.stroke(); }
+    // battlements
+    ctx.fillStyle = "#b5ad9f";
+    for (let k = 0; k < 5; k++) ctx.fillRect(x - rad + k * (rad * 2 / 5) + 1, y - rad * 1.45, rad * 2 / 5 - 3, rad * 0.3);
+    // team roof / flag
+    ctx.fillStyle = TEAM_COLOR[t.team];
+    ctx.beginPath(); ctx.ellipse(x, y - rad * 1.2, rad * 0.75, rad * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+    if (t.kind === "king") {
+      if (S.lvl.boss && t.team === 1 && face.complete && face.naturalWidth) {
+        ctx.save(); ctx.beginPath(); ctx.arc(x, y - rad * 1.55, rad * 0.62, 0, Math.PI * 2); ctx.clip();
+        ctx.fillStyle = "#f8eed6"; ctx.fillRect(x - rad, y - rad * 2.3, rad * 2, rad * 2);
+        const fw = rad * 1.6, fh = fw * face.naturalHeight / face.naturalWidth;
+        ctx.drawImage(face, x - fw / 2, y - rad * 1.55 - fh * 0.32, fw, fh); ctx.restore();
+        ctx.strokeStyle = "#f5c431"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y - rad * 1.55, rad * 0.62, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        ctx.fillStyle = "#f5c431";
+        ctx.beginPath(); const cx = x, cy = y - rad * 1.55, w = rad * 0.9;
+        ctx.moveTo(cx - w / 2, cy + w * 0.25); ctx.lineTo(cx - w / 2, cy - w * 0.15); ctx.lineTo(cx - w / 4, cy + w * 0.05); ctx.lineTo(cx, cy - w * 0.3); ctx.lineTo(cx + w / 4, cy + w * 0.05); ctx.lineTo(cx + w / 2, cy - w * 0.15); ctx.lineTo(cx + w / 2, cy + w * 0.25); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "#a07a10"; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+      if (!t.active) { ctx.font = "600 10px Fredoka, sans-serif"; ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.textAlign = "center"; ctx.fillText("zzz", x + rad * 0.9, y - rad * 1.9); }
+    } else {
+      ctx.strokeStyle = "#5a4630"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - rad * 1.25); ctx.lineTo(x, y - rad * 2.1); ctx.stroke();
+      ctx.fillStyle = TEAM_COLOR[t.team]; ctx.beginPath(); ctx.moveTo(x, y - rad * 2.1); ctx.lineTo(x + rad * 0.7, y - rad * 1.9); ctx.lineTo(x, y - rad * 1.7); ctx.fill();
+    }
+    if (t.flash > 0) { ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(x - rad, y - rad * 1.2, rad * 2, rad * 1.75); }
+    hpBar(x, y + rad * 0.85, rad * 2.1, t.hp / t.maxHp, t.team, true, Math.ceil(t.hp));
+  }
+
+  function hpBar(x, y, w, p, team, big, num) {
+    const h = big ? 7 : 4;
+    ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(x - w / 2 - 1, y - 1, w + 2, h + 2);
+    ctx.fillStyle = TEAM_COLOR[team]; ctx.fillRect(x - w / 2, y, w * clamp(p, 0, 1), h);
+    if (big && num !== undefined) { ctx.font = "700 10px Fredoka, sans-serif"; ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText(String(num), x, y + h + 1); }
+  }
+
+  function drawUnit(u, t) {
+    const x = sx(u.x), y = sy(u.y), r = u.r * T * 1.25;
+    const lift = u.flying ? 10 : 0;
+    const bob = u.building ? 0 : Math.abs(Math.sin(u.walk)) * 2;
+    ctx.globalAlpha = u.deployT > 0 ? 0.45 + 0.4 * Math.sin(t * 20) * 0.5 : 1;
+    // shadow
+    ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(x, y + r * 0.55, r * 0.9, r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(x, y - lift - bob);
+    const c = TEAM_COLOR[u.team], dk = TEAM_DARK[u.team], lt = TEAM_LIGHT[u.team];
+    const skin = "#e9b98c";
+    switch (u.key) {
+      case "knight":
+        body(r, c, dk); head(r * 0.5, -r * 0.7, "#b8bec6", "#8a9099");      // steel helmet
+        ctx.fillStyle = "#6e7680"; ctx.fillRect(-r * 0.25, -r * 0.82, r * 0.5, r * 0.12);
+        sword(r * 0.85, -r * 0.1, u);
+        shield(-r * 0.85, 0, r * 0.45, c);
+        break;
+      case "archers":
+        body(r, "#4a6b2e", "#2f4a1c"); head(r * 0.48, -r * 0.7, skin, "#b88a5e");
+        ctx.fillStyle = c; ctx.beginPath(); ctx.arc(0, -r * 0.85, r * 0.5, Math.PI, 0); ctx.fill();   // team-colored hood
+        ctx.strokeStyle = "#7a4e22"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(r * 0.7, -r * 0.1, r * 0.6, -1.2, 1.2); ctx.stroke();
+        break;
+      case "giant":
+        body(r, "#9b6b3c", "#6b4522"); ctx.fillStyle = c; ctx.fillRect(-r * 0.9, -r * 0.15, r * 1.8, r * 0.3);   // belt
+        head(r * 0.45, -r * 0.85, skin, "#b88a5e");
+        ctx.fillStyle = "#e0b98a"; ctx.beginPath(); ctx.arc(r * 0.95, -r * 0.05 + Math.sin(u.walk) * 2, r * 0.32, 0, Math.PI * 2); ctx.arc(-r * 0.95, -r * 0.05 - Math.sin(u.walk) * 2, r * 0.32, 0, Math.PI * 2); ctx.fill();
+        break;
+      case "scouts":
+        body(r, c, dk); head(r * 0.5, -r * 0.7, skin, "#b88a5e");
+        ctx.fillStyle = "#4a3320"; ctx.beginPath(); ctx.arc(0, -r * 0.88, r * 0.45, Math.PI, 0); ctx.fill();
+        ctx.strokeStyle = "#c7cbd1"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(r * 0.6, 0); ctx.lineTo(r * 1.15, -r * 0.5); ctx.stroke();
+        break;
+      case "crossbow":
+        body(r, "#5b4a3a", "#3a2e22"); head(r * 0.5, -r * 0.7, skin, "#b88a5e");
+        ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(0, -r * 0.95, r * 0.65, r * 0.22, 0, 0, Math.PI * 2); ctx.fill();   // wide hat
+        ctx.strokeStyle = "#6b4520"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(r * 0.3, -r * 0.1); ctx.lineTo(r * 1.2, -r * 0.1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(r * 1.0, -r * 0.45); ctx.lineTo(r * 1.0, r * 0.25); ctx.stroke();
+        break;
+      case "squires":
+        body(r, c, dk); head(r * 0.5, -r * 0.7, skin, "#b88a5e");
+        ctx.fillStyle = "#c7a24a"; ctx.beginPath(); ctx.arc(0, -r * 0.88, r * 0.42, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = "#c7cbd1"; ctx.fillRect(r * 0.55, -r * 0.6, r * 0.18, r * 0.9);
+        break;
+      case "dragon": {
+        const flap = Math.sin(t * 10 + u.id) * 0.5;
+        ctx.fillStyle = TEAM_DARK[u.team];
+        for (const sgn of [-1, 1]) { ctx.save(); ctx.scale(sgn, 1); ctx.rotate(-0.3 + flap * 0.6); ctx.beginPath(); ctx.moveTo(r * 0.3, -r * 0.2); ctx.lineTo(r * 1.6, -r * 0.9); ctx.lineTo(r * 1.3, r * 0.1); ctx.closePath(); ctx.fill(); ctx.restore(); }
+        ctx.fillStyle = u.team === 0 ? "#5aa064" : "#a8573e"; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.65, r * 0.85, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -r * 0.9, r * 0.45, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(-r * 0.17, -r * 0.95, r * 0.1, 0, Math.PI * 2); ctx.arc(r * 0.17, -r * 0.95, r * 0.1, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = c; ctx.beginPath(); ctx.arc(0, r * 0.2, r * 0.2, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+      case "ram":
+        ctx.fillStyle = "#6b4a2a"; roundRect(-r * 0.75, -r * 1.0, r * 1.5, r * 1.9, r * 0.3); ctx.fill();
+        ctx.fillStyle = "#8e6a40"; roundRect(-r * 0.3, -r * 1.35, r * 0.6, r * 1.6, r * 0.25); ctx.fill();   // the log
+        ctx.fillStyle = "#c8c0b0"; ctx.beginPath(); ctx.arc(0, (u.team === 0 ? -1 : 1) * r * 1.25, r * 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#2b2b2b"; for (const sgn of [-1, 1]) for (const yy of [-0.6, 0.6]) { ctx.beginPath(); ctx.ellipse(sgn * r * 0.82, yy * r, r * 0.16, r * 0.3, 0, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = c; ctx.fillRect(-r * 0.75, r * 0.65, r * 1.5, r * 0.2);
+        break;
+      case "catapult":
+        ctx.fillStyle = "#7a5530"; roundRect(-r * 0.85, -r * 0.7, r * 1.7, r * 1.4, r * 0.2); ctx.fill();
+        ctx.strokeStyle = "#4a3018"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, r * 0.4); ctx.lineTo(0, -r * 1.2 + Math.max(0, u.cd / u.hs) * r * 0.8); ctx.stroke();
+        ctx.fillStyle = "#8a8a84"; ctx.beginPath(); ctx.arc(0, -r * 1.2 + Math.max(0, u.cd / u.hs) * r * 0.8, r * 0.28, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#2b2b2b"; for (const sgn of [-1, 1]) { ctx.beginPath(); ctx.arc(sgn * r * 0.85, r * 0.45, r * 0.28, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = c; ctx.fillRect(-r * 0.85, -r * 0.1, r * 1.7, r * 0.18);
+        break;
+      case "cannon": {
+        ctx.fillStyle = "#6b4a2a"; ctx.beginPath(); ctx.arc(0, 0, r * 0.95, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = c; ctx.beginPath(); ctx.arc(0, 0, r * 0.95, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = c; ctx.stroke();
+        const ang = u.target ? Math.atan2(u.target.y - u.y, u.target.x - u.x) : (u.team === 0 ? -Math.PI / 2 : Math.PI / 2);
+        ctx.rotate(ang); ctx.fillStyle = "#2f2f33"; roundRect(0, -r * 0.3, r * 1.3, r * 0.6, r * 0.2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+    }
+    if (u.flash > 0) { ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.arc(0, -r * 0.2, r * 0.95, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    if (u.hp < u.maxHp || u.building) hpBar(x, y - lift - r * 1.75, Math.max(14, r * 1.8), u.hp / u.maxHp, u.team, false);
+    // little team arrow under each troop so it's clear whose it is
+    ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(x, y + r * 0.6, r * 0.55, r * 0.18, 0, 0, Math.PI * 2); ctx.globalAlpha = 0.6; ctx.fill(); ctx.globalAlpha = 1;
+
+    function body(rr, col, dark) {
+      const gr = ctx.createRadialGradient(-rr * 0.3, -rr * 0.3, rr * 0.1, 0, 0, rr);
+      gr.addColorStop(0, col); gr.addColorStop(1, dark);
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(0, 0, rr * 0.85, rr * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    function head(rr, yy, col, dark) {
+      const gr = ctx.createRadialGradient(-rr * 0.3, yy - rr * 0.3, rr * 0.1, 0, yy, rr);
+      gr.addColorStop(0, col); gr.addColorStop(1, dark);
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, yy, rr, 0, Math.PI * 2); ctx.fill();
+    }
+    function sword(xx, yy, uu) {
+      const swing = uu.cd > uu.hs - 0.25 ? -0.9 : 0.2;
+      ctx.save(); ctx.translate(xx, yy); ctx.rotate(swing); ctx.fillStyle = "#d9dde3"; ctx.fillRect(-1.5, -r * 1.1, 3, r * 1.1); ctx.fillStyle = "#7a5a2a"; ctx.fillRect(-4, 0, 8, 3); ctx.restore();
+    }
+    function shield(xx, yy, rr, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(xx, yy, rr, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#e8d48a"; ctx.lineWidth = 1.5; ctx.stroke(); }
+  }
+
+  function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+  function drawShot(sh) {
+    const x = sx(sh.x), y = sy(sh.y);
+    const tx = sh.target ? sh.target.x : sh.tx, ty = sh.target ? sh.target.y : sh.ty;
+    const ang = Math.atan2(sy(ty) - y, sx(tx) - x);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+    if (sh.kind === "arrow" || sh.kind === "bolt") { ctx.strokeStyle = "#f2e2b8"; ctx.lineWidth = sh.kind === "bolt" ? 2.5 : 1.8; ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(4, 0); ctx.stroke(); ctx.fillStyle = "#ccc"; ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(2, -2.5); ctx.lineTo(2, 2.5); ctx.fill(); }
+    else if (sh.kind === "ball") { ctx.fillStyle = "#2b2b2b"; ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill(); }
+    else if (sh.kind === "rock") { ctx.fillStyle = "#8a847a"; ctx.beginPath(); ctx.arc(0, -Math.sin(Math.min(1, dist(sh, { x: tx, y: ty }) / 6) * Math.PI) * 10, 5, 0, Math.PI * 2); ctx.fill(); }
+    else if (sh.kind === "flame") { const g = ctx.createRadialGradient(0, 0, 1, 0, 0, 8); g.addColorStop(0, "#fff3a8"); g.addColorStop(1, "rgba(255,120,30,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill(); }
+    else if (sh.kind === "fireball") { const g = ctx.createRadialGradient(0, 0, 2, 0, 0, 16); g.addColorStop(0, "#fff7c0"); g.addColorStop(0.4, "#ffa63a"); g.addColorStop(1, "rgba(220,60,20,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill(); }
+    else if (sh.kind === "volley") { ctx.strokeStyle = "#f2e2b8"; ctx.lineWidth = 1.5; for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(-10, i * 4); ctx.lineTo(4, i * 4); ctx.stroke(); } }
+    ctx.restore();
+  }
+
+  function drawFx(f) {
+    const x = sx(f.x), y = sy(f.y), r = f.r * T;
+    const p = 1 - f.t / (f.kind === "rubble" ? 1.2 : f.kind === "poof" ? 0.45 : 0.5);
+    if (f.kind === "boom") {
+      ctx.fillStyle = "rgba(255,150,40," + (0.5 * (1 - p)) + ")"; ctx.beginPath(); ctx.arc(x, y, r * (0.5 + p * 0.6), 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(255,230,160," + (1 - p) + ")"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, r * (0.6 + p * 0.5), 0, Math.PI * 2); ctx.stroke();
+    } else if (f.kind === "volley") {
+      ctx.strokeStyle = "rgba(240,225,180," + (1 - p) + ")"; ctx.lineWidth = 2;
+      for (let i = 0; i < 14; i++) { const a = i * 2.4, d = (i % 5) / 5 * r; const ax = x + Math.cos(a) * d, ay = y + Math.sin(a) * d * 0.7; ctx.beginPath(); ctx.moveTo(ax, ay - 8); ctx.lineTo(ax, ay); ctx.stroke(); }
+      ctx.strokeStyle = "rgba(255,255,255," + 0.5 * (1 - p) + ")"; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    } else if (f.kind === "poof") {
+      ctx.fillStyle = "rgba(230,225,215," + 0.6 * (1 - p) + ")";
+      for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(x + Math.cos(i * 1.3) * r * p, y + Math.sin(i * 1.3) * r * p * 0.7 - p * 6, r * 0.4, 0, Math.PI * 2); ctx.fill(); }
+    } else if (f.kind === "rubble") {
+      ctx.fillStyle = "rgba(180,170,155," + 0.7 * (1 - p) + ")";
+      for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.arc(x + Math.cos(i * 0.7) * r * (0.4 + p), y + Math.sin(i * 0.7) * r * (0.4 + p) * 0.6 - p * 12, r * 0.35, 0, Math.PI * 2); ctx.fill(); }
+    }
+  }
+
+  function drawSidePanels() {
+    const L = 14, Rx = AX + COLS * T + 14, PW = AX - 28;
+    const panel = (x, y, w, h) => { ctx.fillStyle = "rgba(10,18,28,.72)"; roundRect(x, y, w, h, 14); ctx.fill(); };
+    // enemy (top right)
+    panel(Rx, 14, PW, 98);
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillStyle = TEAM_LIGHT[1]; ctx.font = "700 13px 'Nunito Sans', sans-serif"; ctx.fillText("OPPONENT", Rx + 14, 34);
+    ctx.fillStyle = "#fff"; ctx.font = "600 16px Fredoka, sans-serif"; wrapText(S.lvl.foe, Rx + 14, 56, PW - 24, 18);
+    crownsRow(Rx + 14, 92, S.crowns[1], 1);
+    // timer
+    panel(Rx, 124, PW, 74);
+    ctx.fillStyle = S.overtime ? "#f7d659" : "#a9b8c6"; ctx.font = "700 12px 'Nunito Sans', sans-serif"; ctx.fillText(S.overtime ? "OVERTIME" : "TIME LEFT", Rx + 14, 144);
+    ctx.fillStyle = S.time <= 10 && !S.result ? "#ff6b5b" : "#fff"; ctx.font = "700 32px Fredoka, sans-serif"; ctx.fillText(fmtTime(Math.max(0, S.time)), Rx + 14, 176);
+    if (S.time <= 60 || S.overtime) { ctx.fillStyle = "#c77dff"; ctx.font = "700 13px Fredoka, sans-serif"; ctx.fillText("2× MANA!", Rx + 110, 178); }
+    // you (bottom left): crowns, lane, mana
+    panel(L, 300, PW, 226);
+    ctx.fillStyle = TEAM_LIGHT[0]; ctx.font = "700 13px 'Nunito Sans', sans-serif"; ctx.fillText("YOU", L + 14, 320);
+    crownsRow(L + 14, 346, S.crowns[0], 0);
+    ctx.fillStyle = "#a9b8c6"; ctx.font = "700 12px 'Nunito Sans', sans-serif"; ctx.fillText("LANE  (⬅ ➡ or A D)", L + 14, 380);
+    for (const l of [0, 1]) {
+      const bx = L + 14 + l * ((PW - 34) / 2 + 6), bw = (PW - 34) / 2;
+      ctx.fillStyle = S.lane === l ? "#f7d659" : "rgba(255,255,255,.1)"; roundRect(bx, 392, bw, 34, 10); ctx.fill();
+      ctx.fillStyle = S.lane === l ? "#3a2c00" : "#cfd8e0"; ctx.font = "700 15px Fredoka, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(l === 0 ? "⬅ LEFT" : "RIGHT ➡", bx + bw / 2, 410);
+    }
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#a9b8c6"; ctx.font = "700 12px 'Nunito Sans', sans-serif"; ctx.fillText("MANA", L + 14, 446);
+    ctx.fillStyle = "#c77dff"; ctx.font = "700 30px Fredoka, sans-serif"; ctx.fillText("💧" + Math.floor(S.mana[0]), L + 14, 478);
+    const segW = (PW - 28) / 10;
+    for (let i = 0; i < 10; i++) {
+      const fill = clamp(S.mana[0] - i, 0, 1);
+      ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(L + 14 + i * segW, 500, segW - 3, 14);
+      ctx.fillStyle = "#c77dff"; ctx.fillRect(L + 14 + i * segW, 500, (segW - 3) * fill, 14);
+    }
+    // your army's banner (top left)
+    panel(L, 14, PW, 70);
+    ctx.fillStyle = "#fff"; ctx.font = "700 17px Fredoka, sans-serif"; ctx.fillText("Keyboard Kingdoms", L + 14, 40);
+    ctx.fillStyle = "#a9b8c6"; ctx.font = "600 12px 'Nunito Sans', sans-serif"; ctx.fillText("Played " + S.played + (S.played === 1 ? " card • " : " cards • ") + S.words + (S.words === 1 ? " word" : " words"), L + 14, 64);
+  }
+  function crownsRow(x, y, n, team) {
+    ctx.font = "22px sans-serif"; ctx.textAlign = "left";
+    for (let i = 0; i < 3; i++) { ctx.globalAlpha = i < n ? 1 : 0.25; ctx.fillText("👑", x + i * 30, y); }
+    ctx.globalAlpha = 1;
+  }
+  function wrapText(text, x, y, maxW, lh) {
+    const words = text.split(" "); let line = "", yy = y;
+    for (const w of words) { const test = line ? line + " " + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, yy); line = w; yy += lh; } else line = test; }
+    ctx.fillText(line, x, yy);
+  }
+
+  function render(t) {
+    ctx.save();
+    if (S && S.shake > 0) ctx.translate((Math.random() - 0.5) * 10 * S.shake, (Math.random() - 0.5) * 10 * S.shake);
+    ctx.drawImage(BG, 0, 0);
+    // shimmering water
+    ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 9; i++) { const x = AX + ((i * 47 + t * 25) % (COLS * T)); ctx.beginPath(); ctx.moveTo(x, sy(RIVER - 0.2 + (i % 3) * 0.2)); ctx.lineTo(x + 12, sy(RIVER - 0.2 + (i % 3) * 0.2)); ctx.stroke(); }
+    if (!S) { ctx.restore(); return; }
+    // highlight the lane you'll play into
+    const lx = sx(laneX(S.lane));
+    ctx.fillStyle = "rgba(247,214,89,.16)"; ctx.fillRect(lx - 1.2 * T, sy(RIVER + 1.6), 2.4 * T, sy(ROWS) - sy(RIVER + 1.6));
+    ctx.fillStyle = "rgba(247,214,89,.9)"; ctx.font = "700 18px Fredoka, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("▲", lx, sy(RIVER + 2.4) + Math.sin(t * 5) * 3);
+    // everything sorted top to bottom so lower things overlap upper things
+    const things = [];
+    S.towers.forEach(tw => things.push({ y: tw.y + 0.5, d: () => drawTower(tw) }));
+    S.units.forEach(u => things.push({ y: u.y + (u.flying ? 3 : 0), d: () => drawUnit(u, t) }));
+    things.sort((a, b) => a.y - b.y).forEach(o => o.d());
+    S.fx.forEach(drawFx);
+    S.shots.forEach(drawShot);
+    ctx.restore();
+    drawSidePanels();
+    // messages
+    S.floaters.forEach((f, i) => {
+      ctx.globalAlpha = clamp(f.t, 0, 1);
+      ctx.font = "700 " + (f.big === 2 ? 30 : 22) + "px Fredoka, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.lineWidth = 6; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.fillStyle = f.color;
+      const y = f.big === 0 ? 470 - (1.4 - f.t) * 30 : 220 + i * 36;
+      const x = f.big === 0 ? sx(laneX(S.lane)) : W / 2;
+      ctx.strokeText(f.text, x, y); ctx.fillText(f.text, x, y);
+    });
+    ctx.globalAlpha = 1;
+    if (S.result) {
+      ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(AX, 0, COLS * T, H);
+      const txt = S.result === "win" ? "VICTORY!" : S.result === "lose" ? "DEFEAT" : "DRAW";
+      ctx.font = "700 64px Fredoka, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.lineWidth = 10; ctx.strokeStyle = "rgba(0,0,0,.65)"; ctx.fillStyle = S.result === "win" ? "#f7d659" : S.result === "lose" ? "#ff6b5b" : "#eef3ea";
+      ctx.strokeText(txt, W / 2, H / 2); ctx.fillText(txt, W / 2, H / 2);
+    }
+  }
+
+  // ---------- Your hand of cards (below the arena) ----------
+  let lastHand = "";
+  function updateHand() {
+    if (!S || mode === "menu") { setHand('<div class="card next"><span class="word">Pick an opponent and press Battle!</span></div>', "menu"); return; }
+    let html = "", sig = Math.floor(S.mana[0]) + "|" + (S.waiting ? S.waiting.word : "");
+    S.hand.forEach(c => {
+      const card = CARDS[c.key], isT = S.target && S.target.ref === c, typed = isT ? S.typed : 0;
+      const cls = "card" + (isT ? " target" : "") + (S.waiting === c ? " waiting" : "") + (S.mana[0] < card.cost && S.waiting !== c ? " poor" : "");
+      html += '<div class="' + cls + '"><div class="top-row"><span class="cost">' + card.cost + '</span><span class="icon">' + card.icon + "</span>" + esc(card.name) + '</div><span class="word"><span class="done">' + esc(c.word.slice(0, typed)) + "</span>" + esc(c.word.slice(typed)) + "</span></div>";
+      sig += "|" + c.word + typed + cls;
+    });
+    if (S.bonus) {
+      const isT = S.target && S.target.ref === S.bonus, typed = isT ? S.typed : 0;
+      html += '<div class="card bonus' + (isT ? " target" : "") + '"><div class="top-row">💧 Mana word +2</div><span class="word"><span class="done">' + esc(S.bonus.word.slice(0, typed)) + "</span>" + esc(S.bonus.word.slice(typed)) + "</span></div>";
+      sig += "|b" + S.bonus.word + typed;
+    }
+    if (S.next) { html += '<div class="card next"><div class="top-row">Next</div><span class="word">' + CARDS[S.next].icon + " " + esc(CARDS[S.next].name) + "</span></div>"; sig += "|n" + S.next; }
+    setHand(html, sig);
+  }
+  function setHand(html, sig) { if (sig === lastHand) return; lastHand = sig; $("hand").innerHTML = html; }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function wpm() { const m = S.elapsed / 60; return m > 0.05 ? Math.round(S.correct / 5 / m) : 0; }
+  function updateStats() {
+    $("statWins").textContent = wins();
+    $("statWpm").textContent = S && mode !== "menu" ? wpm() : 0;
+    $("statCards").textContent = unlocked().length + "/" + CARD_ORDER.length;
+  }
+
+  // ---------- Menus ----------
+  function showOnly(id) { ["menuPanel", "deckPanel", "pausePanel", "overPanel", "boardPanel"].forEach(p => { $(p).hidden = p !== id; }); }
+  function syncMenu() {
+    document.querySelectorAll(".choice[data-level]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.level === settings.level)));
+    $("deckLine").innerHTML = "<span>Your deck:</span>" + settings.deck.map(k => '<b title="' + esc(CARDS[k].name) + '">' + CARDS[k].icon + "</b>").join(" ");
+    $("teacherToggle").checked = settings.teacher;
+    $("boardBtn").hidden = !settings.teacher;
+    updateStats();
+  }
+  document.querySelectorAll(".choice[data-level]").forEach(b => b.addEventListener("click", () => { settings.level = b.dataset.level; store("kingdoms-level", settings.level); syncMenu(); }));
+  $("teacherToggle").addEventListener("change", e => { settings.teacher = e.target.checked; store("kingdoms-teacher", settings.teacher ? "1" : "0"); syncMenu(); });
+
+  // Deck builder: pick exactly 8 unlocked cards
+  let picking = [];
+  function openDeck() {
+    picking = settings.deck.slice();
+    renderDeckGrid();
+    showOnly("deckPanel");
+  }
+  function renderDeckGrid() {
+    const open = unlocked(), grid = $("deckGrid");
+    grid.innerHTML = "";
+    CARD_ORDER.forEach(k => {
+      const c = CARDS[k], locked = !open.includes(k), on = picking.includes(k);
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "dcard" + (locked ? " locked" : ""); b.setAttribute("aria-pressed", String(on));
+      b.innerHTML = '<span class="cst">' + c.cost + '</span><span class="nm">' + c.icon + " " + esc(c.name) + '</span><span class="ds">' + (locked ? "🔒 Win " + c.unlock + " battle" + (c.unlock > 1 ? "s" : "") + " to unlock" : esc(c.desc)) + "</span>";
+      if (!locked) b.addEventListener("click", () => {
+        if (on) picking = picking.filter(x => x !== k); else if (picking.length < 8) picking.push(k);
+        renderDeckGrid();
+      });
+      grid.appendChild(b);
+    });
+    $("deckCount").textContent = picking.length === 8 ? "Your deck is ready! (8 of 8)" : "Pick 8 cards. (" + picking.length + " of 8 chosen)";
+    $("deckSave").disabled = picking.length !== 8;
+  }
+  $("deckBtn").addEventListener("click", openDeck);
+  $("deckSave").addEventListener("click", () => { if (picking.length !== 8) return; settings.deck = picking.slice(); store("kingdoms-deck", JSON.stringify(settings.deck)); showOnly("menuPanel"); syncMenu(); });
+  $("deckCancel").addEventListener("click", () => { showOnly("menuPanel"); });
+
+  function start() {
+    newState(); lastHand = "";
+    mode = "run"; showOnly(null);
+    Sound.ctx();
+    document.querySelector(".frame").scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
+  }
+  function pause() { mode = "paused"; showOnly("pausePanel"); }
+  function resume() { mode = "run"; showOnly(null); }
+  function toMenu() { mode = "menu"; S = null; showOnly("menuPanel"); syncMenu(); updateHand(); }
+
+  function endGame() {
+    mode = "over";
+    const r = S.result, total = S.correct + S.wrong;
+    $("overTitle").innerHTML = r === "win" ? "🏆 <em>Victory!</em>" : r === "lose" ? "Defeat…" : "It's a draw!";
+    $("resCrowns").textContent = S.crowns[0] + " – " + S.crowns[1];
+    $("resWords").textContent = S.words;
+    $("resWpm").textContent = wpm();
+    $("resAcc").textContent = (total ? Math.round(S.correct / total * 100) : 100) + "%";
+    $("resNote").textContent = (S.tiebreak ? "Tied on crowns, so it came down to tower health. " : "") +
+      (r === "win" ? "You beat " + S.lvl.foe + "!" : r === "lose" ? S.lvl.foe + " won this time. Try a different deck or lane!" : "Nobody broke through. So close!");
+    // Unlock new cards by winning
+    $("resUnlock").hidden = true;
+    if (r === "win") {
+      const before = unlocked();
+      store("kingdoms-wins", String(wins() + 1));
+      const fresh = unlocked().filter(k => !before.includes(k));
+      if (fresh.length) { $("resUnlock").hidden = false; $("resUnlock").textContent = "🎉 New card unlocked: " + fresh.map(k => CARDS[k].icon + " " + CARDS[k].name).join(", ") + "! Add it in Build your deck."; }
+    }
+    $("saveRow").hidden = !settings.teacher;
+    $("finishBoardBtn").hidden = !settings.teacher;
+    $("initials").value = "";
+    showOnly("overPanel"); updateStats();
+    if (settings.teacher) setTimeout(() => $("initials").focus(), 50); else $("againBtn").focus();
+  }
+  $("startBtn").addEventListener("click", start);
+  $("againBtn").addEventListener("click", start);
+  $("menuBtn").addEventListener("click", toMenu);
+  $("resumeBtn").addEventListener("click", resume);
+  $("quitBtn").addEventListener("click", toMenu);
+
+  // ---------- Teacher-mode leaderboard (this computer only, clears daily) ----------
+  function loadBoard() { let b = null; try { b = JSON.parse(store("kingdoms-board") || "null"); } catch (e) { b = null; } if (!b || b.date !== today()) b = { date: today(), entries: [] }; return b; }
+  function saveBoard(b) { store("kingdoms-board", JSON.stringify(b)); }
+  const RESULT_RANK = { win: 2, draw: 1, lose: 0 };
+  function showBoard() {
+    const rows = loadBoard().entries.filter(e => e.level === settings.level).sort((a, c) => RESULT_RANK[c.result] - RESULT_RANK[a.result] || c.crowns - a.crowns || c.wpm - a.wpm).slice(0, 10);
+    $("boardSub").textContent = "vs. " + LEVELS[settings.level].foe + " • today";
+    const body = $("boardBody"); body.innerHTML = "";
+    if (!rows.length) { const tr = document.createElement("tr"), td = document.createElement("td"); td.colSpan = 5; td.textContent = "No battles yet today. Be the first!"; tr.appendChild(td); body.appendChild(tr); }
+    rows.forEach((e, i) => {
+      const tr = document.createElement("tr");
+      [String(i + 1), e.name, e.result === "win" ? "🏆 Win" : e.result === "draw" ? "Draw" : "Loss", e.crowns + "–" + e.lost, String(e.wpm)].forEach((v, j) => { const td = document.createElement("td"); td.textContent = v; if (j !== 1) td.className = "n"; tr.appendChild(td); });
+      body.appendChild(tr);
+    });
+    $("boardPanel").hidden = false; $("boardClose").focus();
+  }
+  $("initials").addEventListener("input", e => { e.target.value = e.target.value.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3); });
+  $("initials").addEventListener("keydown", e => { if (e.key === "Enter") $("saveScore").click(); });
+  $("saveScore").addEventListener("click", () => {
+    const name = $("initials").value;
+    if (!S || S.saved || !name) { $("initials").focus(); return; }
+    const b = loadBoard();
+    b.entries.push({ name, result: S.result, crowns: S.crowns[0], lost: S.crowns[1], wpm: wpm(), level: S.level });
+    saveBoard(b); S.saved = true; $("saveRow").hidden = true; showBoard();
+  });
+  $("boardBtn").addEventListener("click", showBoard);
+  $("finishBoardBtn").addEventListener("click", showBoard);
+  $("boardClose").addEventListener("click", () => { $("boardPanel").hidden = true; });
+  $("boardClear").addEventListener("click", () => { if (confirm("Clear today's leaderboard on this computer?")) { saveBoard({ date: today(), entries: [] }); showBoard(); } });
+
+  // ---------- Sound button, touch note, auto-pause ----------
+  function updateSoundBtn() { $("soundBtn").textContent = Sound.on ? "🔊 Sound on" : "🔇 Sound off"; $("soundBtn").setAttribute("aria-pressed", String(Sound.on)); }
+  $("soundBtn").addEventListener("click", () => { Sound.on = !Sound.on; store("kingdoms-sound", Sound.on ? "1" : "0"); updateSoundBtn(); });
+  updateSoundBtn();
+  if (window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches) $("touchNote").hidden = false;
+  document.addEventListener("visibilitychange", () => { if (document.hidden && mode === "run" && S && !S.result) pause(); });
+
+  // ---------- Main loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    update(dt);
+    render(now / 1000);
+    updateHand();
+    if (S && mode === "run") updateStats();
+    requestAnimationFrame(frame);
+  }
+  syncMenu(); updateHand();
+
+  // Hooks for testing in the browser console (not used by the game itself)
+  window.__kingdoms = {
+    get state() { return S; }, get mode() { return mode; }, set mode(m) { mode = m; },
+    settings, start, CARDS, LEVELS,
+    step: dt => { update(dt); render(performance.now() / 1000); updateHand(); },
+    type: w => { for (const ch of w) typeLetter(ch); },
+    play: (team, key, lane) => play(team, key, lane),
+    aiThink
+  };
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
