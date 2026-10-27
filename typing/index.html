@@ -69,34 +69,18 @@
       <div class="container">
 
         <!-- ===== FEATURED GAME =====
-             To add another game: copy this whole panel, or add a card in the grid below -->
+             Each game shows a looping gameplay clip from images/games/ (the "-still" picture is used when motion is turned off).
+             To add another game: copy a card in the grid below and add its clip pictures. -->
         <section class="panel">
           <h2 class="panel-head"><span class="ic" aria-hidden="true">🌧️</span> Featured game</h2>
           <div class="panel-body game-feature">
+            <picture class="game-clip">
+              <source srcset="../images/games/word-rain-still.webp" media="(prefers-reduced-motion: reduce)">
+              <img src="../images/games/word-rain.webp" width="512" height="352" alt="Word Rain gameplay: words fall down a green chalkboard and get typed away before they reach the ledge.">
+            </picture>
             <div>
               <h2>Word Rain</h2>
-              <p>Words fall down the chalkboard. Type each one before it lands on the ledge!</p>
-              <ol>
-                <li>Pick <strong>Easy</strong>, <strong>Medium</strong>, or <strong>Hard</strong>, then press Start.</li>
-                <li>Type any falling word to clear it. Start with its first letter.</li>
-                <li>Each word that lands costs one of your 5 raindrops.</li>
-                <li>Clear 10 words to reach the next level. Words fall faster each level!</li>
-              </ol>
-              <p><strong>Esc</strong> pauses the game. <strong>Backspace</strong> lets you switch to a different word. Your best score is saved on your own device.</p>
               <a class="btn" href="games/word-rain.html">Play Word Rain →</a>
-            </div>
-            <div class="game-preview" aria-hidden="true">
-              <svg viewBox="0 0 380 240">
-                <rect width="380" height="240" fill="#e6f4ea"/>
-                <g font-family="Fredoka, sans-serif" font-weight="600" font-size="18" text-anchor="middle">
-                  <g class="falling-word"><rect x="30" y="20" width="84" height="32" rx="16" fill="#fff" stroke="#2e7d4a" stroke-width="2"/><text x="72" y="42" fill="#163d24">grace</text></g>
-                  <g class="falling-word"><rect x="150" y="20" width="84" height="32" rx="16" fill="#f5c431"/><text x="192" y="42" fill="#163d24">type</text></g>
-                  <g class="falling-word"><rect x="268" y="20" width="84" height="32" rx="16" fill="#fff" stroke="#2e7d4a" stroke-width="2"/><text x="310" y="42" fill="#163d24">jump</text></g>
-                </g>
-                <rect x="0" y="186" width="380" height="4" fill="#2e7d4a" opacity=".3"/>
-                <rect x="110" y="198" width="160" height="32" rx="10" fill="#163d24"/>
-                <text x="126" y="220" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="16" fill="#f5c431">typ|</text>
-              </svg>
             </div>
           </div>
         </section>
@@ -107,13 +91,10 @@
           <a class="panel subject-link" href="games/keyboard-kart.html">
             <h2 class="panel-head"><span class="ic" aria-hidden="true">🏎️</span> Keyboard Kart</h2>
             <div class="panel-body">
-              <p>Race 3 laps against 3 rivals! Your typing is the gas pedal. Grab power-ups, hop over oil slicks, and race for 1st place.</p>
-              <ul class="checklist">
-                <li>4 tracks: Meadow, Desert, Snow, and Night</li>
-                <li>Practice the home, top, or bottom row</li>
-                <li>Turbo, Shield, Freeze Ray, Banana Peel, and Magnet power-ups</li>
-                <li>👑 Boss Race: can you beat Mr. Watford at 75 WPM?</li>
-              </ul>
+              <picture class="game-clip">
+                <source srcset="../images/games/keyboard-kart-still.webp" media="(prefers-reduced-motion: reduce)">
+                <img src="../images/games/keyboard-kart.webp" width="512" height="352" loading="lazy" alt="Keyboard Kart gameplay: a go-kart races down the track in 1st place while words are typed for gas, power-ups, and dodging oil.">
+              </picture>
               <span class="go">Play Keyboard Kart</span>
             </div>
           </a>
@@ -121,13 +102,10 @@
           <a class="panel subject-link" href="games/tower-typer.html">
             <h2 class="panel-head"><span class="ic" aria-hidden="true">🏰</span> Tower Typer</h2>
             <div class="panel-body">
-              <p>Monsters are marching on the castle! Type their words to zap them with lightning, and build towers to hold the line.</p>
-              <ul class="checklist">
-                <li>4 maps, Campaign or ♾️ Endless mode, and row practice</li>
-                <li>Towers, wizard powers, and typed spells</li>
-                <li>Bosses: Giant, Paragraph Golem, 📚 Mr. Watford's Grade Book Golem, and the 🐉 Sentence Dragon</li>
-                <li>16 achievements to unlock</li>
-              </ul>
+              <picture class="game-clip">
+                <source srcset="../images/games/tower-typer-still.webp" media="(prefers-reduced-motion: reduce)">
+                <img src="../images/games/tower-typer.webp" width="512" height="352" loading="lazy" alt="Tower Typer gameplay: monsters march along a winding path toward the castle while towers and typed words stop them.">
+              </picture>
               <span class="go">Play Tower Typer</span>
             </div>
           </a>
@@ -137,13 +115,10 @@
           <a class="panel subject-link" href="games/jungle-dash.html">
             <h2 class="panel-head"><span class="ic" aria-hidden="true">🌴</span> Jungle Dash</h2>
             <div class="panel-body">
-              <p>Run through the jungle with a gorilla on your heels! Steer between lanes and type the words to jump and duck.</p>
-              <ul class="checklist">
-                <li>⬅ ➡ (or A and D) change lanes to dodge boulders and grab coins</li>
-                <li>Type the word to jump logs and rivers or duck under branches</li>
-                <li>Vine Shield, Sloth Time, Coin Magnet, Jungle Dash, and Banana Toss power-ups</li>
-                <li>Easy, Medium, Hard, plus home, top, and bottom row practice</li>
-              </ul>
+              <picture class="game-clip">
+                <source srcset="../images/games/jungle-dash-still.webp" media="(prefers-reduced-motion: reduce)">
+                <img src="../images/games/jungle-dash.webp" width="512" height="352" loading="lazy" alt="Jungle Dash gameplay: an explorer runs down a jungle trail, switching lanes and typing words to jump a fallen log.">
+              </picture>
               <span class="go">Play Jungle Dash</span>
             </div>
           </a>
@@ -151,13 +126,10 @@
           <a class="panel subject-link" href="games/keyboard-kingdoms.html">
             <h2 class="panel-head"><span class="ic" aria-hidden="true">⚔️</span> New game: Keyboard Kingdoms</h2>
             <div class="panel-body">
-              <p>A castle battle! Type a card's word to send knights, archers, giants, and dragons across the river. Knock down the red towers to win crowns.</p>
-              <ul class="checklist">
-                <li>12 cards: troops, spells, and buildings. Big cards have longer words!</li>
-                <li>Build your own deck and unlock new cards by winning</li>
-                <li>⬅ ➡ (or A and D) pick the left or right bridge</li>
-                <li>👑 Boss battle: Mr. Watford's Royal Army</li>
-              </ul>
+              <picture class="game-clip">
+                <source srcset="../images/games/keyboard-kingdoms-still.webp" media="(prefers-reduced-motion: reduce)">
+                <img src="../images/games/keyboard-kingdoms.webp" width="512" height="352" loading="lazy" alt="Keyboard Kingdoms gameplay: blue and red troops cross the bridges between two castles as cards are played by typing their words.">
+              </picture>
               <span class="go">Play Keyboard Kingdoms</span>
             </div>
           </a>
