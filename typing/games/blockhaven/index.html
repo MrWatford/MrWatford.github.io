@@ -112,6 +112,18 @@ kbd { display: inline-block; min-width: 26px; padding: 3px 7px; border-radius: 6
 #waterTint { position: absolute; inset: 0; background: rgba(30, 80, 190, .38); }
 #clickToPlay { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); background: rgba(20,24,21,.85); border: 2px solid #fff; border-radius: 10px; padding: 10px 16px; font-weight: 800; pointer-events: auto; cursor: pointer; }
 #debug { position: absolute; left: 10px; bottom: 10px; font: 700 12px/1.5 monospace; background: rgba(0,0,0,.5); padding: 6px 8px; border-radius: 6px; white-space: pre; }
+#xpbar { position: relative; width: 100%; height: 7px; background: rgba(0,0,0,.55); border: 1px solid #111; border-radius: 4px; }
+#xpbar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(#b8ff6a, #6ad02a); border-radius: 3px; }
+#xpbar b { position: absolute; left: 50%; top: -15px; transform: translateX(-50%); font: 800 13px var(--body); color: #b8ff6a; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
+#effects { position: absolute; right: 14px; top: 44px; display: grid; gap: 4px; justify-items: end; }
+#effects span { background: rgba(20,24,21,.82); border-radius: 8px; padding: 3px 9px; font-weight: 800; font-size: 13px; }
+.armor-col { display: grid; gap: 3px; align-content: start; }
+.armor-col .slot.empty-armor { opacity: .75; }
+.armor-col .slot .ghost { position: absolute; inset: 0; display: grid; place-items: center; font-size: 20px; opacity: .45; pointer-events: none; }
+.inv-row { display: flex; gap: 10px; align-items: flex-start; }
+details.more { background: #222723; border: 2px solid #111; border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; }
+details.more summary { cursor: pointer; font-weight: 800; }
+details.more .set { margin-top: 10px; }
 #modeTag { position: absolute; right: 14px; bottom: 14px; font: 400 9px var(--pixel); color: rgba(255,255,255,.75); text-shadow: 0 2px 0 #000; }
 
 /* ---------- inventory & crafting panels ---------- */
@@ -176,9 +188,12 @@ kbd { display: inline-block; min-width: 26px; padding: 3px 7px; border-radius: 6
   <div id="tip" hidden></div>
   <div id="toasts" aria-live="polite"></div>
   <div id="saveDot">💾 Saved</div>
+  <div id="effects"></div>
   <div id="itemName"></div>
   <div id="bottom">
+    <div class="icons" id="armor" style="align-self:flex-start"></div>
     <div id="stats"><div class="icons" id="hearts"></div><div class="icons" id="air"></div><div class="icons" id="food"></div></div>
+    <div id="xpbar"><i></i><b></b></div>
     <div id="hotbar"></div>
   </div>
   <div id="modeTag"></div>
@@ -227,6 +242,11 @@ kbd { display: inline-block; min-width: 26px; padding: 3px 7px; border-radius: 6
       <label class="mode-opt"><input type="radio" name="mode" value="survival" checked><b>⛏️ Survival</b><span>Gather resources, craft tools, keep your health and food up.</span></label>
       <label class="mode-opt"><input type="radio" name="mode" value="creative"><b>🏗️ Creative</b><span>Every block, unlimited supplies, flying, and no damage.</span></label>
     </div>
+    <details class="more"><summary>More world options</summary>
+      <label class="set"><span>Difficulty</span><select id="nwDiff" class="text-in"><option value="peaceful">Peaceful (no monsters)</option><option value="easy" selected>Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
+      <label class="set"><span>Monsters can break blocks</span><input type="checkbox" id="nwGrief" checked></label>
+      <label class="set"><span>Keep your items when you faint</span><input type="checkbox" id="nwKeep" checked></label>
+    </details>
     <div class="row"><button class="btn primary" type="submit">Create World</button><button class="btn" type="button" data-back>Cancel</button></div>
   </form>
 </section>
@@ -247,6 +267,11 @@ kbd { display: inline-block; min-width: 26px; padding: 3px 7px; border-radius: 6
     <button class="btn primary" id="btnResume">Resume</button>
     <div class="row"><button class="btn" id="btnSave">Save</button><button class="btn" id="btnExport">Download world</button></div>
     <div class="row"><button class="btn" id="btnSettings2">Settings</button><button class="btn" id="btnControls2">Controls</button></div>
+    <details class="more" id="worldOpts"><summary>World options</summary>
+      <label class="set"><span>Difficulty</span><select id="pDiff" class="text-in"><option value="peaceful">Peaceful (no monsters)</option><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
+      <label class="set"><span>Monsters can break blocks</span><input type="checkbox" id="pGrief"></label>
+      <label class="set"><span>Keep your items when you faint</span><input type="checkbox" id="pKeep"></label>
+    </details>
     <button class="btn" id="btnTitle">Save &amp; return to title</button>
     <a class="btn" href="../../index.html" id="btnLeave">Back to Mr. Watford's Games</a>
   </div>
@@ -290,7 +315,8 @@ kbd { display: inline-block; min-width: 26px; padding: 3px 7px; border-radius: 6
       <tr><td><kbd>F3</kbd></td><td>Show position and speed info</td></tr>
     </table>
     <p class="note"><b>Inventory:</b> click a stack to pick it up and click a slot to put it down. Right-click picks up half or drops one. Shift-click moves a stack across. Point at a slot and press 1–9 to swap it into the hotbar.</p>
-    <p class="note"><b>Survival:</b> keep your hearts and apples full. Eat by holding food and right-clicking. If you faint, you wake up at your starting spot and keep everything you were carrying.</p>
+    <p class="note"><b>Survival:</b> keep your hearts and food full. Eat by holding food and right-clicking. Monsters come out in the dark, so light your home with torches. Sleep in a bed to skip the night and set where you wake up. If you faint, you wake up at your bed (or the starting spot). You keep your items unless that world option is turned off.</p>
+    <p class="note"><b>Creatures:</b> left-click to attack. Hold a bow's right-click to pull, then let go to shoot. Hold wheat, carrots, or seeds to lead animals, and right-click two of the same kind to breed them. Use shears on sheep and a bucket on cows.</p>
     <div class="row"><button class="btn primary" data-back>Done</button></div>
   </div>
 </section>
