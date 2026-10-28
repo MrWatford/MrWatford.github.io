@@ -16,7 +16,9 @@ export const B = {
   EMBER_BRICKS: 59, BLACKSTONE_BRICKS: 60, GOLD_BLOCK: 61, PORTAL: 62, FIRE: 63, EMBER_WART: 64, CRIMSON_PLANKS: 65, WARPED_PLANKS: 66, QUARTZ_BLOCK: 67,
   // the Hollow (the end realm) and strongholds
   HOLLOWSTONE: 68, VIOLET_BRICKS: 69, END_FRAME: 70, END_PORTAL: 71, GATEWAY: 72, WYRM_EGG: 73, CHORUS_PLANT: 74, CHORUS_FLOWER: 75, SHELL_BOX: 76,
-  HOLLOW_BRICKS: 77, VIOLET_PILLAR: 78
+  HOLLOW_BRICKS: 77, VIOLET_PILLAR: 78,
+  // villages and the Blightking
+  SKULL: 79, BEACON: 80, JADE_ORE: 81, JADE_BLOCK: 82, COMPOSTER: 83, FLETCH_TABLE: 84, LOOM: 85, ALTAR: 86, SMITH_TABLE: 87, HAY: 88
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -38,7 +40,7 @@ export const I = {
   GOLD_HELMET: 372, GOLD_CHEST: 373, GOLD_LEGS: 374, GOLD_BOOTS: 375,
   DUSK_HELMET: 376, DUSK_CHEST: 377, DUSK_LEGS: 378, DUSK_BOOTS: 379,
   DUSK_PICK: 380, DUSK_AXE: 381, DUSK_SHOVEL: 382, DUSK_SWORD: 383, DUSK_HOE: 384,
-  EYE: 385, GLIDER: 386, SHELL: 387, CHORUS_FRUIT: 388, WYRM_SCALE: 389,
+  EYE: 385, GLIDER: 386, SHELL: 387, CHORUS_FRUIT: 388, WYRM_SCALE: 389, JADE: 390, RADIANT_STAR: 391,
   SPAWN: 400   // spawn eggs: 400 + index in SPAWN_EGGS
 };
 
@@ -136,6 +138,16 @@ block(B.GATEWAY, "Hollow Gateway", { shape: "glow", render: "water", solid: fals
 block(B.WYRM_EGG, "Wyrm Egg", { hardness: 3, tool: "pick", light: 1, tex: "wyrm_egg", category: HOLLOW });
 block(B.CHORUS_PLANT, "Chorus Plant", { render: "cutout", hardness: 0.4, tool: "axe", drops: "chorus", tex: "chorus_plant", category: HOLLOW });
 block(B.CHORUS_FLOWER, "Chorus Flower", { render: "cutout", hardness: 0.4, tool: "axe", drops: "chorus", tex: "chorus_flower", category: HOLLOW });
+block(B.SKULL, "Blight Skull", { shape: "head", render: "cutout", hardness: 1, drops: I.BLIGHT_SKULL, tex: "skull_face", noItem: true, category: "Ember Depths" });
+block(B.BEACON, "Beacon", { shape: "glow", render: "water", hardness: 3, light: 15, interact: "beacon", tex: "beacon", category: "Useful" });
+block(B.JADE_ORE, "Jade Ore", { hardness: 3, tool: "pick", tier: 3, drops: I.JADE, tex: "jade_ore", category: "Nature" });
+block(B.JADE_BLOCK, "Block of Jade", { hardness: 5, tool: "pick", tier: 3, tex: "jade_block" });
+block(B.COMPOSTER, "Composter", { hardness: 0.6, tool: "axe", tex: ["composter_top", "composter_side", "planks"], category: "Village", job: "farmer" });
+block(B.FLETCH_TABLE, "Fletching Table", { hardness: 2.5, tool: "axe", tex: ["fletch_top", "fletch_side", "planks"], category: "Village", job: "fletcher" });
+block(B.LOOM, "Loom", { hardness: 2.5, tool: "axe", tex: ["loom_top", "loom_side", "planks"], category: "Village", job: "shepherd" });
+block(B.ALTAR, "Healing Altar", { hardness: 2, tool: "pick", tier: 1, light: 6, tex: ["altar_top", "altar_side", "cobble"], category: "Village", job: "cleric" });
+block(B.SMITH_TABLE, "Smithing Anvil", { hardness: 5, tool: "pick", tier: 1, tex: ["smith_top", "smith_side", "iron_block"], category: "Village", job: "smith" });
+block(B.HAY, "Hay Bale", { hardness: 0.5, tool: "hoe", tex: ["hay_top", "hay_side", "hay_top"], category: "Village" });
 block(B.SHELL_BOX, "Shell Box", { hardness: 2, tool: "pick", interact: "shellbox", drops: 0, tex: ["shellbox_top", "shellbox_side", "shellbox_top"], category: "Useful" });
 export const BLOCKS = defs;
 export const blockDef = v => defs[v & 255] || defs[0];
@@ -210,6 +222,9 @@ item(I.EYE, "Eye of the Void", { icon: "eye_void", stack: 64, category: "Tools" 
 item(I.SHELL, "Sheller Shell", { icon: "shell" });
 item(I.CHORUS_FRUIT, "Chorus Fruit", { icon: "chorus", kind: "food", food: 4, category: "Food", sideEffect: "blink" });
 item(I.WYRM_SCALE, "Wyrm Scale", { icon: "scale" });
+item(I.JADE, "Jade", { icon: "jade" });
+item(I.RADIANT_STAR, "Radiant Star", { icon: "star" });
+items[I.BLIGHT_SKULL].places = B.SKULL;   // skulls can be set down as blocks (three on Wailing Sand summon the Blightking)
 const TIERS = [
   { key: "WOOD", label: "Wooden", tier: 1, speed: 2, dur: 60, color: "#b48a52", dark: "#7d5a30" },
   { key: "STONE", label: "Stone", tier: 2, speed: 4, dur: 132, color: "#8d8d8d", dark: "#5b5b5b" },
@@ -238,7 +253,7 @@ export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skelet
   ["cow", "Cow", "#4a3424", "#e8e8e8"], ["sheep", "Sheep", "#eeeeee", "#f0c0b0"], ["pig", "Pig", "#f0a0a0", "#d07070"], ["chicken", "Chicken", "#f4f4f4", "#e03a2a"], ["rabbit", "Rabbit", "#9a7a5a", "#e8dcc8"],
   ["flare", "Flare", "#f0b030", "#fff07a"], ["wailer", "Wailer", "#f0f0f0", "#b0b0b0"], ["boarkin", "Boarkin", "#e8a090", "#ffd84a"], ["brute", "Boarkin Brute", "#c08070", "#3a3a3a"],
   ["rotboar", "Rotboar", "#e8a090", "#5a8a4a"], ["hogbeast", "Hogbeast", "#c07850", "#f0e0c0"], ["blight", "Blight Rattler", "#2a2a2a", "#5a5a5a"], ["magma", "Magma Gloop", "#4a1a10", "#ff8a1a"], ["strider", "Lavastrider", "#a02a2a", "#5a5a5a"],
-  ["sheller", "Sheller", "#9a6aa8", "#e8d0f0"]];
+  ["sheller", "Sheller", "#9a6aa8", "#e8d0f0"], ["villager", "Villager", "#8a5a3a", "#e8b890"], ["golem", "Ironwarden", "#d8d4cc", "#6a8a4a"], ["blightking", "Blightking", "#1a1a1a", "#5a5a5a"]];
 // Glider Wings go in the chest armor slot: jump while falling to glide
 item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
@@ -308,6 +323,16 @@ export const RECIPES = [
   { out: [B.BLACKSTONE_BRICKS, 4], ins: [[B.BLACKSTONE, 4]], table: true },
   { out: [I.DUSK_INGOT, 1], ins: [[I.DUSK_SCRAP, 4], [I.GOLD_INGOT, 4]], table: true },
   { out: [I.EYE, 1], ins: [[I.VOID_PEARL, 1], [I.FLARE_POWDER, 1]] },
+  { out: [B.JADE_BLOCK, 1], ins: [[I.JADE, 9]], table: true },
+  { out: [I.JADE, 9], ins: [[B.JADE_BLOCK, 1]], table: true },
+  { out: [B.BEACON, 1], ins: [[I.RADIANT_STAR, 1], [B.GLASS, 5], [B.OBSIDIAN, 3]], table: true },
+  { out: [B.COMPOSTER, 1], ins: [["planks", 7]], table: true },
+  { out: [B.FLETCH_TABLE, 1], ins: [[I.FLINT, 2], ["planks", 4]], table: true },
+  { out: [B.LOOM, 1], ins: [[I.STRING, 2], ["planks", 2]], table: true },
+  { out: [B.ALTAR, 1], ins: [[B.COBBLE, 4], [I.SHINE_DUST, 1]], table: true },
+  { out: [B.SMITH_TABLE, 1], ins: [[I.IRON_INGOT, 2], ["planks", 4]], table: true },
+  { out: [B.HAY, 1], ins: [[I.WHEAT, 9]] },
+  { out: [I.WHEAT, 9], ins: [[B.HAY, 1]] },
   { out: [B.SHELL_BOX, 1], ins: [[I.SHELL, 2], [B.CHEST, 1]], table: true },
   { out: [B.HOLLOW_BRICKS, 4], ins: [[B.HOLLOWSTONE, 4]], table: true },
   { out: [B.VIOLET_PILLAR, 1], ins: [[B.VIOLET_BRICKS, 2]], table: true },
@@ -339,7 +364,9 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "crimson_wart", "warped_wart", "shroomlight", "ember_bricks", "blackstone_bricks", "gold_block", "portal", "fire", "wart0", "wart1", "wart2",
   "crimson_planks", "warped_planks", "quartz_block",
   "hollowstone", "hollow_bricks", "violet_bricks", "violet_pillar", "violet_pillar_top", "frame_top", "frame_top_eye", "frame_side", "end_portal", "gateway",
-  "wyrm_egg", "chorus_plant", "chorus_flower", "shellbox_top", "shellbox_side"];
+  "wyrm_egg", "chorus_plant", "chorus_flower", "shellbox_top", "shellbox_side",
+  "skull_face", "beacon", "jade_ore", "jade_block", "composter_top", "composter_side", "fletch_top", "fletch_side", "loom_top", "loom_side",
+  "altar_top", "altar_side", "smith_top", "smith_side", "hay_top", "hay_side"];
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
 
@@ -550,6 +577,24 @@ Object.assign(PAINT, {
   shellbox_side(P) { P.fill(["#9a6aa8", "#8e609c"]); P.rect(0, 7, 16, 2, "#5a3a68"); },
   shellbox_top(P) { P.fill(["#9a6aa8", "#a676b4"]); P.rect(3, 3, 10, 10, "#b088c0"); }
 });
+Object.assign(PAINT, {
+  skull_face(P) { P.fill(["#2a2a2a", "#222", "#333"]); P.rect(3, 5, 3, 3, "#0a0a0a"); P.rect(10, 5, 3, 3, "#0a0a0a"); P.rect(5, 11, 6, 2, "#0a0a0a"); P.rect(6, 11, 1, 2, "#5a5a5a"); P.rect(9, 11, 1, 2, "#5a5a5a"); },
+  beacon(P) { P.fill(["rgba(200,240,255,.55)"]); P.rect(0, 0, 16, 1, "rgba(255,255,255,.9)"); P.rect(0, 15, 16, 1, "rgba(255,255,255,.9)"); P.rect(0, 0, 1, 16, "rgba(255,255,255,.9)"); P.rect(15, 0, 1, 16, "rgba(255,255,255,.9)"); P.rect(5, 5, 6, 6, "rgba(120,255,240,.95)"); },
+  jade_ore(P) { PAINT.stone(P); oreSpots(P, ["#2ac86a", "#5ae08a", "#18a050"]); },
+  jade_block(P) { P.fill(["#2ac86a", "#24b85e"]); P.rect(2, 2, 12, 12, "#3ad87a"); P.rect(5, 5, 6, 6, "#5ae08a"); },
+  composter_side(P) { PAINT.planks(P); P.rect(0, 0, 16, 2, "#6a4a28"); for (let x = 3; x < 16; x += 5) P.rect(x, 2, 1, 14, "#6a4a28"); },
+  composter_top(P) { P.fill(["#6a4a28"]); P.rect(2, 2, 12, 12, "#4a6a2a"); P.specks(8, ["#5a3a1a", "#6a8a3a"]); },
+  fletch_side(P) { PAINT.birch_planks(P); P.rect(3, 4, 2, 8, "#ffffff"); P.rect(10, 5, 1, 8, "#8a6235"); P.px(9, 4, "#8a8a8a"); },
+  fletch_top(P) { PAINT.birch_planks(P); P.rect(4, 4, 8, 8, "#e8d8a0"); P.rect(7, 2, 1, 12, "#8a6235"); },
+  loom_side(P) { PAINT.planks(P); for (let x = 2; x < 15; x += 2) P.rect(x, 3, 1, 10, "#e8e8e8"); },
+  loom_top(P) { PAINT.planks(P); P.rect(2, 2, 12, 12, "#c8302a"); P.rect(4, 4, 8, 8, "#f2f2f2"); },
+  altar_side(P) { PAINT.stone_bricks(P); P.rect(6, 4, 4, 8, "#ffe27a"); P.rect(4, 6, 8, 4, "#ffe27a"); },
+  altar_top(P) { P.fill(["#8f8f8f"]); P.rect(3, 3, 10, 10, "#b8a8e8"); P.rect(6, 6, 4, 4, "#ffe27a"); },
+  smith_side(P) { P.fill(["#5a5a5a", "#505050"]); P.rect(0, 0, 16, 4, "#3a3a3a"); P.rect(5, 4, 6, 9, "#4a4a4a"); P.rect(2, 13, 12, 3, "#3a3a3a"); },
+  smith_top(P) { P.fill(["#4a4a4a"]); P.rect(1, 3, 14, 10, "#6a6a6a"); P.rect(3, 6, 10, 4, "#7a7a7a"); },
+  hay_side(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, (x + Math.floor(P.r() * 2)) % 3 ? "#d8b030" : "#c09a20"); P.rect(0, 3, 16, 1, "#8a3a20"); P.rect(0, 12, 16, 1, "#8a3a20"); },
+  hay_top(P) { P.fill(["#d8b030", "#c8a028", "#e0bc40"]); P.rect(3, 0, 1, 16, "#8a3a20"); P.rect(12, 0, 1, 16, "#8a3a20"); }
+});
 function crop(P, h, pal) { for (let x = 1; x < 16; x += 2) { const hh = Math.max(2, h - Math.floor(P.r() * 3)); for (let y = 15; y > 15 - hh; y--) P.px(x + (y % 3 === 0 ? 0 : 0), y, P.pick(pal)); } }
 function oreSpots(P, pal) { for (let i = 0; i < 5; i++) { const x = 1 + Math.floor(P.r() * 12), y = 1 + Math.floor(P.r() * 12); P.px(x, y, pal[0]); P.px(x + 1, y, pal[1]); P.px(x, y + 1, pal[1]); if (P.r() < 0.7) P.px(x + 1, y + 1, pal[2]); } }
 function stem(P) { P.rect(7, 6, 2, 10, "#3f8a2c"); P.px(6, 11, "#4f9a33"); P.px(9, 9, "#4f9a33"); P.px(5, 10, "#4f9a33"); }
@@ -625,6 +670,8 @@ Object.assign(ICON_PAINT, {
   chorus(P) { for (let y = 4; y < 13; y++) for (let x = 4; x < 13; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 18) P.px(x, y, P.pick(["#9a6aa8", "#b088c0", "#7a5a8a"])); P.rect(8, 2, 1, 3, "#5a3a68"); },
   scale(P) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 8) ** 2 + (y - 8.5) ** 2 < 20) P.px(x, y, (x + y) % 3 ? "#2a1a3a" : "#5a2a7a"); },
   glider(P) { for (let x = 1; x < 15; x++) { const h = Math.round(6 - Math.abs(x - 7.5) * 0.6); for (let y = 4; y < 4 + h + 4; y++) if (Math.abs(x - 7.5) > 1) P.px(x, y + Math.abs(x - 7.5) * 0.3, y === 4 ? "#9a8aa8" : "#6a5a7a"); } P.rect(7, 4, 2, 8, "#4a3a5a"); },
+  jade(P) { for (let y = 3; y < 14; y++) { const w = y < 8 ? y - 3 : 13 - y; for (let x = 8 - w; x <= 8 + w; x++) P.px(x, y, x < 8 ? "#2ac86a" : "#18a050"); } P.rect(7, 5, 2, 2, "#a8f8c0"); },
+  star(P) { for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? 3 : 7; P.rect(Math.round(8 + Math.cos(a) * r) - 1, Math.round(8 + Math.sin(a) * r) - 1, 2, 2, "#fff6c0"); } P.rect(5, 5, 6, 6, "#fffbe0"); P.rect(7, 7, 2, 2, "#ffffff"); },
   skull(P) { P.rect(4, 3, 8, 8, "#2a2a2a"); P.rect(5, 11, 6, 3, "#2a2a2a"); P.rect(5, 6, 2, 2, "#0a0a0a"); P.rect(9, 6, 2, 2, "#0a0a0a"); P.rect(6, 12, 1, 2, "#5a5a5a"); P.rect(9, 12, 1, 2, "#5a5a5a"); }
 });
 function blob(P, pal) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) { const dx = x - 8, dy = y - 8.5; if (dx * dx + dy * dy < 16 + P.r() * 6) P.px(x, y, P.pick(pal)); } }

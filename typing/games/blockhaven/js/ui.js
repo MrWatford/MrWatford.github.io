@@ -1,5 +1,6 @@
 // Menus, the on-screen HUD, and the inventory / crafting / chest / furnace screens.
 import { B, I, ITEMS, BLOCKS, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, itemDef, iconURL, buildAtlas, TILE } from "./blocks.js";
+import { TRADES } from "./entities.js";
 import { maxStack, newStack } from "./inventory.js";
 import { Sound } from "./audio.js";
 
@@ -126,7 +127,7 @@ export const UI = {
     $("armor").innerHTML = survival && armor ? icons(armor, "shield") : "";
     const lv = G.levelInfo(); $("xpbar").style.visibility = survival ? "visible" : "hidden";
     $("xpbar").querySelector("i").style.width = Math.round(lv.frac * 100) + "%"; $("xpbar").querySelector("b").textContent = lv.level ? lv.level : "";
-    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating" };
+    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift" };
     $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${names[k] || k}</span>`).join("");
     $("modeTag").textContent = survival ? "" : "CREATIVE" + (p.flying ? " • FLYING" : "");
   },
@@ -163,7 +164,21 @@ export const UI = {
     const inv = `<div class="inv-card"><h3>Inventory${G.mode === "survival" ? ` <span class="note" style="color:#444">Level ${G.levelInfo().level}</span>` : ""}</h3><div class="inv-row">${armorCol}<div><div class="grid9">${slots("inv", 9, 36)}</div><div class="grid9 hotrow">${slots("inv", 0, 9)}</div></div></div>
       <p class="help">Click: pick up / put down • Right-click: half / one • Shift-click: move across • Point + 1–9: swap to hotbar${armorCol ? " • Armor goes in the left column" : ""}</p></div>`;
     let left = "";
-    if (panelKind === "chest") {
+    if (panelKind === "trade") {
+      const e = G.ents.list.find(o => o.uid === panelCtx);
+      const JOBS = { farmer: "Composter", fletcher: "Fletching Table", shepherd: "Loom", cleric: "Healing Altar", smith: "Smithing Anvil" };
+      const rows = e ? TRADES[e.def.prof].map((t, i) => {
+        const can = t[0].every(([id, n]) => G.inv.count(id) >= n), sold = e.uses[i] >= t[2];
+        const ins = t[0].map(([id, n]) => `<span class="${G.inv.count(id) >= n ? "" : "miss"}"><img src="${iconURL(id)}" alt="">${n} ${escapeAttr(itemDef(id).name)}</span>`).join(" + ");
+        return `<div class="recipe ${can && !sold ? "ok" : ""}"><div class="out"><img src="${iconURL(t[1][0])}" alt="">${t[1][1] > 1 ? `<b>${t[1][1]}</b>` : ""}</div>
+          <div><div class="name">${escapeAttr(itemDef(t[1][0]).name)}${t[1][1] > 1 ? " ×" + t[1][1] : ""}</div><div class="ins">${ins}</div>${sold ? `<div class="need">Sold out for now</div>` : `<div class="note" style="color:#555;font-size:11px">${t[2] - e.uses[i]} left</div>`}</div>
+          <button class="btn small ${can && !sold ? "primary" : ""}" data-trade="${i}" ${can && !sold ? "" : "disabled"}>Trade</button></div>`;
+      }).join("") : `<p class="note">They wandered off.</p>`;
+      left = `<div class="inv-card"><h3>${e ? escapeAttr(e.def.name) : "Trading"} <span class="note" style="color:#444">Pay with Jade</span></h3><div class="recipes">${rows}</div>
+        <p class="help">${e && JOBS[e.def.prof] ? `Sold-out trades come back while this villager works at their ${JOBS[e.def.prof]} (up to twice a day).` : "The Wanderer only stays for a few minutes!"} Shift-click Trade to trade as many times as you can.</p></div>`;
+      p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
+      p.querySelectorAll("[data-trade]").forEach(b => b.onclick = ev => G.trade(panelCtx, +b.dataset.trade, ev.shiftKey));
+    } else if (panelKind === "chest") {
       left = `<div class="inv-card"><h3>Chest</h3><div class="grid9">${slots("box", 0, 27)}</div><p class="help">Things in a chest stay saved. Breaking the chest drops everything inside.</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (panelKind === "furnace") {
@@ -179,7 +194,7 @@ export const UI = {
         <p class="help">Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore.</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (G.mode === "creative") {
-      const cats = ["All", "Building", "Nature", "Useful", "Tools", "Food", "Items", "Ember Depths", "The Hollow", "Creatures"];
+      const cats = ["All", "Building", "Nature", "Useful", "Village", "Tools", "Food", "Items", "Ember Depths", "The Hollow", "Creatures"];
       const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || d.category === creativeCat) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
       left = `<div class="inv-card"><h3>Every block <span class="note" style="color:#444">Click to grab a stack</span></h3>
         <div class="filters"><input id="cSearch" placeholder="Search blocks…" value="${escapeAttr(creativeSearch)}">${cats.map(c => `<button class="chip-btn" data-cat="${c}" aria-pressed="${c === creativeCat}">${c}</button>`).join("")}</div>

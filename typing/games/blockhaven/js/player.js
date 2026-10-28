@@ -63,6 +63,7 @@ export class Player {
     } else {
     let speed = this.flying ? (input.sprint ? 16 : 9) : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
     if (this.inWater && !this.flying) speed *= this.inLava ? 0.3 : 0.55;
+    speed *= this.speedMul || 1;
     if (this.onGround && !this.flying && world.id(Math.floor(p.x), Math.floor(p.y - 0.1), Math.floor(p.z)) === B.SOUL_SAND) speed *= 0.5;   // Wailing Sand slows you down
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     let mx = -sin * input.f + cos * input.r, mz = -cos * input.f - sin * input.r;

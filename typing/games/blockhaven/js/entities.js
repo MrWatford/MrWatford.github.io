@@ -1,7 +1,7 @@
 // Creatures and moving things: models, animation, movement, path finding, behavior, spawning, and saving.
 // Each species is described by data (size, health, behavior, drops, model) and shares the same body physics.
 import * as THREE from "../lib/three.module.min.js";
-import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, OPEN, SPAWN_EGGS } from "./blocks.js";
+import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { Sound } from "./audio.js";
 
@@ -215,6 +215,49 @@ Object.assign(SPECIES, {
       { name: "head", size: [8, 8, 8], pivot: [0, 6, 0], off: [0, 0, 0], paint: { all: solid(["#f0e8b0"]), front: face(["#f0e8b0"], P => { P.rect(3, 5, 3, 3, "#2a1a2a"); P.rect(10, 5, 3, 3, "#2a1a2a"); }) } },
       { name: "lid", size: [16, 10, 16], pivot: [0, 8, 0], off: [0, 5, 0], paint: { all: solid(SHELLC), top: P => { P.fill(SHELLC); P.rect(3, 3, 10, 10, "#b088c0"); } } }] } }
 });
+// ----- villages -----
+// Trades: [what you give, what you get, how many times before restocking]
+export const TRADES = {
+  farmer: [[[[I.WHEAT, 20]], [I.JADE, 1], 12], [[[I.CARROT, 15]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.BREAD, 6], 12], [[[I.JADE, 1]], [I.APPLE, 4], 12], [[[I.JADE, 2]], [I.STEAK, 5], 8]],
+  fletcher: [[[[I.STICK, 24]], [I.JADE, 1], 12], [[[I.FLINT, 10]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.ARROW, 16], 12], [[[I.JADE, 2]], [I.BOW, 1], 6], [[[I.JADE, 1], [I.FEATHER, 4]], [I.ARROW, 24], 8]],
+  shepherd: [[[[B.WOOL, 18]], [I.JADE, 1], 12], [[[I.JADE, 2]], [I.SHEARS, 1], 6], [[[I.JADE, 3]], [B.BED, 1], 6], [[[I.JADE, 1]], [B.WOOL, 4], 12]],
+  cleric: [[[[I.ROTTEN_FLESH, 32]], [I.JADE, 1], 12], [[[I.WART, 22]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.SHINE_DUST, 2], 12], [[[I.JADE, 5]], [I.VOID_PEARL, 1], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 2], 8]],
+  smith: [[[[I.COAL, 15]], [I.JADE, 1], 12], [[[I.IRON_INGOT, 4]], [I.JADE, 1], 12], [[[I.JADE, 6]], [I.IRON_PICK, 1], 4], [[[I.JADE, 7]], [I.IRON_SWORD, 1], 4], [[[I.JADE, 9]], [I.IRON_CHEST, 1], 3], [[[I.JADE, 4]], [I.IRON_HELMET, 1], 4]],
+  wanderer: [[[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2]]
+};
+const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], wanderer: ["#2a5aa0", "#245094"] };
+const VSKIN = ["#e8b890", "#deae86"];
+const villagerModel = prof => ({ type: "villager", parts: [
+  { name: "body", size: [8, 12, 6], pivot: [0, 12, 0], off: [0, 6, 0], paint: { all: P => { P.fill(ROBE[prof]); if (prof === "smith") P.rect(3, 4, 10, 12, "#5a3a20"); if (prof === "farmer") P.rect(3, 6, 10, 10, "#e8e0c8"); if (prof === "cleric") P.rect(6, 0, 4, 16, "#ffe27a"); } } },
+  { name: "robe", size: [8, 12, 6], pivot: [0, 0, 0], off: [0, 6, 0], paint: { all: solid(ROBE[prof]) } },
+  { name: "head", size: [8, 10, 8], pivot: [0, 24, 0], off: [0, 5, 0], paint: { all: solid(VSKIN), top: solid(prof === "farmer" ? ["#e0c060", "#d0b050"] : ["#5a3a20"]), front: face(VSKIN, P => { P.rect(0, 0, 16, 3, prof === "farmer" ? "#e0c060" : "#5a3a20"); P.rect(3, 6, 3, 2, "#fff"); P.rect(4, 6, 2, 2, "#2a6a2a"); P.rect(10, 6, 3, 2, "#fff"); P.rect(10, 6, 2, 2, "#2a6a2a"); P.rect(4, 4, 8, 1, "#4a2a10"); }) } },
+  { name: "nose", parent: "head", size: [2, 4, 2], pivot: [0, -1.5, 5], off: [0, 0, 0], paint: { all: solid(["#d8a078"]) } },
+  { name: "arms", size: [10, 4, 4], pivot: [0, 19, 3], off: [0, 0, 0], paint: { all: solid(ROBE[prof]), front: P => { P.fill(ROBE[prof]); P.rect(5, 4, 6, 8, VSKIN[0]); } } }] });
+Object.assign(SPECIES, {
+  ...Object.fromEntries(["farmer", "fletcher", "shepherd", "cleric", "smith", "wanderer"].map(prof => [prof, {
+    name: prof === "wanderer" ? "Wanderer" : "Villager (" + prof[0].toUpperCase() + prof.slice(1) + ")", villager: true, persist: prof !== "wanderer", prof,
+    hp: 20, speed: 1.8, w: 0.6, h: 1.95, ai: "villager", xp: 0, sound: "hmm", drops: () => [], model: villagerModel(prof) }])),
+  golem: { name: "Ironwarden", persist: true, hp: 100, speed: 1.8, w: 1.4, h: 2.7, ai: "golem", dmg: 9, xp: 0, sound: "clank", knockUp: true,
+    drops: () => [[I.IRON_INGOT, randi(3, 5)]],
+    model: { type: "golem", parts: [
+      { name: "body", size: [18, 12, 11], pivot: [0, 31, 0], off: [0, 6, 0], paint: { all: P => { P.fill(["#d8d4cc", "#ccc8c0", "#e0dcd4"]); for (let i = 0; i < 4; i++) P.rect(Math.floor(Math.random() * 12), Math.floor(Math.random() * 12), 2, 5, "#5a8a3a"); } } },
+      { name: "waist", size: [9, 5, 6], pivot: [0, 26, 0], off: [0, 2.5, 0], paint: { all: solid(["#ccc8c0"]) } },
+      { name: "head", size: [8, 10, 8], pivot: [0, 43, -2], off: [0, 5, 0], paint: { all: solid(["#d8d4cc"]), front: face(["#d8d4cc"], P => { P.rect(3, 6, 3, 2, "#a02020"); P.rect(10, 6, 3, 2, "#a02020"); P.rect(2, 4, 12, 1, "#8a8680"); }) } },
+      { name: "nose", parent: "head", size: [2, 4, 2], pivot: [0, -1, 5], off: [0, 0, 0], paint: { all: solid(["#c0bcb4"]) } },
+      { name: "armR", size: [4, 30, 6], pivot: [-11, 42, 0], off: [0, -13, 0], paint: { all: solid(["#ccc8c0", "#d8d4cc"]) } },
+      { name: "armL", size: [4, 30, 6], pivot: [11, 42, 0], off: [0, -13, 0], paint: { all: solid(["#ccc8c0", "#d8d4cc"]) } },
+      { name: "legR", size: [6, 26, 5], pivot: [-4, 26, 0], off: [0, -13, 0], paint: { all: solid(["#ccc8c0"]) } },
+      { name: "legL", size: [6, 26, 5], pivot: [4, 26, 0], off: [0, -13, 0], paint: { all: solid(["#ccc8c0"]) } }] } },
+  blightking: { name: "Blightking", boss: true, persist: true, hostile: true, hp: 300, speed: 5, w: 1.2, h: 3.4, ai: "blightking", flies: true, fireproof: true, dmg: 8, xp: 0, sound: "roar",
+    drops: () => [],
+    model: { type: "blightking", parts: [
+      { name: "bar", size: [20, 3, 3], pivot: [0, 44, 0], off: [0, 0, 0], paint: { all: solid(BLIGHT) } },
+      { name: "head", size: [8, 8, 8], pivot: [0, 46, 0], off: [0, 4, 0], paint: { all: solid(BLIGHT), front: face(BLIGHT, P => { P.rect(3, 6, 3, 3, "#d0f0ff"); P.rect(10, 6, 3, 3, "#d0f0ff"); P.rect(4, 12, 8, 1, "#0a0a0a"); }) } },
+      { name: "headL", size: [6, 6, 6], pivot: [9, 46, 0], off: [0, 3, 0], paint: { all: solid(BLIGHT), front: face(BLIGHT, P => { P.rect(3, 6, 3, 3, "#d0f0ff"); P.rect(10, 6, 3, 3, "#d0f0ff"); }) } },
+      { name: "headR", size: [6, 6, 6], pivot: [-9, 46, 0], off: [0, 3, 0], paint: { all: solid(BLIGHT), front: face(BLIGHT, P => { P.rect(3, 6, 3, 3, "#d0f0ff"); P.rect(10, 6, 3, 3, "#d0f0ff"); }) } },
+      { name: "ribs", size: [10, 12, 5], pivot: [0, 42, 0], off: [0, -6, 0], paint: { all: P => { P.clear(); P.rect(7, 0, 2, 16, "#2a2a2a"); for (let y = 1; y < 16; y += 3) P.rect(1, y, 14, 2, "#2a2a2a"); } } },
+      { name: "spine", size: [3, 14, 3], pivot: [0, 30, 0], off: [0, -7, 0], paint: { all: solid(BLIGHT) } }] } }
+});
 function spiderModel(pal) {
   const legs = [];
   for (let i = 0; i < 4; i++) for (const s of [-1, 1]) legs.push({ name: "leg" + i + (s > 0 ? "L" : "R"), size: [16, 2, 2], pivot: [s * 3, 5, 3 - i * 2], off: [s * 8, 0, 0], paint: { all: solid(["#2a2220"]) }, side: s, index: i });
@@ -242,13 +285,14 @@ export function lineOfSight(world, a, b) {
 }
 
 // ---------- path finding (small and bounded so it never freezes the game) ----------
-function standable(world, x, y, z, tall) {
-  if (solidCell(world, x, y, z) || solidCell(world, x, y + 1, z) || (tall > 2 && solidCell(world, x, y + 2, z))) return false;
+function standable(world, x, y, z, tall, doors) {
+  const blocked = (xx, yy, zz) => solidCell(world, xx, yy, zz) && !(doors && world.id(xx, yy, zz) === B.DOOR);
+  if (blocked(x, y, z) || blocked(x, y + 1, z) || (tall > 2 && blocked(x, y + 2, z))) return false;
   const below = world.id(x, y - 1, z);
   if (below === B.LAVA || world.id(x, y, z) === B.LAVA) return false;
   return solidCell(world, x, y - 1, z) || below === B.WATER;
 }
-export function findPath(world, sx, sy, sz, tx, ty, tz, tall, maxNodes = 350) {
+export function findPath(world, sx, sy, sz, tx, ty, tz, tall, maxNodes = 350, doors = false) {
   const key = (x, y, z) => x + "," + y + "," + z;
   const open = [{ x: sx, y: sy, z: sz, g: 0, f: Math.abs(tx - sx) + Math.abs(ty - sy) + Math.abs(tz - sz), parent: null }];
   const seen = new Map([[key(sx, sy, sz), open[0]]]);
@@ -264,7 +308,7 @@ export function findPath(world, sx, sy, sz, tx, ty, tz, tall, maxNodes = 350) {
         const x = n.x + dx, y = n.y + dy, z = n.z + dz;
         if (dy === 1 && solidCell(world, n.x, n.y + 2, n.z)) continue;
         if (dy < 0 && (solidCell(world, x, n.y, z) || solidCell(world, x, n.y + 1, z))) continue;
-        if (!standable(world, x, y, z, tall)) continue;
+        if (!standable(world, x, y, z, tall, doors)) continue;
         const k = key(x, y, z), g = n.g + 1 + (dy !== 0 ? 0.5 : 0);
         const old = seen.get(k);
         if (old && old.g <= g) break;
@@ -292,6 +336,10 @@ export class Entity {
     this.breedCd = opts.breedCd || 0; this.love = 0; this.sheared = !!opts.sheared; this.eggT = opts.eggT ?? rand(300, 600);
     this.name = opts.name || null; this.persist = !!(this.def.animal || this.def.persist || this.name);
     this.cid = opts.cid ?? null; this.phase = "circle"; this.phaseT = 8; this.ang = 0; this.open = 0;
+    // villagers: home, job site, trades used, restocks
+    this.home = opts.home || null; this.job = opts.job || null; this.uses = opts.uses || null; this.restockT = opts.restockT || 0; this.restockDay = opts.restockDay || 0; this.restocks = opts.restocks || 0;
+    this.taskT = 0; this.task = "wander"; this.summonT = opts.summonT || 0;
+    if (this.def.villager && !this.uses) this.uses = (TRADES[this.def.prof] || []).map(() => 0);
     this.barterT = 0;
     this.onGround = false; this.inWater = false; this.inLava = false; this.walkPhase = 0; this.hurtT = 0; this.iframes = 0;
     this.attackCd = 0; this.thinkT = Math.random() * 0.3; this.state = "idle"; this.target = null; this.goal = null; this.path = null; this.pathT = 0;
@@ -306,7 +354,8 @@ export class Entity {
   get eyeY() { return this.pos.y + this.h * 0.85; }
   toJSON() {
     return { uid: this.uid, sp: this.sp, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), yaw: +this.yaw.toFixed(2), hp: this.hp,
-      baby: this.baby, growT: Math.round(this.growT), breedCd: Math.round(this.breedCd), sheared: this.sheared, eggT: Math.round(this.eggT), size: this.size, name: this.name };
+      baby: this.baby, growT: Math.round(this.growT), breedCd: Math.round(this.breedCd), sheared: this.sheared, eggT: Math.round(this.eggT), size: this.size, name: this.name,
+      home: this.home, job: this.job, uses: this.uses, restockT: this.restockT, restockDay: this.restockDay, restocks: this.restocks, summonT: this.summonT };
   }
 }
 
@@ -375,7 +424,7 @@ export class Entities {
     const w = this.world, keep = [];
     for (const e of this.list) {
       if (Math.floor(e.pos.x / CHUNK) !== c.cx || Math.floor(e.pos.z / CHUNK) !== c.cz) continue;
-      if (e.def.boss) { this.ctx.bossLeft(e); }
+      if (e.sp === "dragon") { this.ctx.bossLeft(e); }
       if (e.persist && !e.def.noSave) keep.push(e.toJSON());
       e.gone = true;
     }
@@ -402,6 +451,14 @@ export class Entities {
   // ----- first visit: a few animals live here -----
   populate(c) {
     const w = this.world, x0 = c.cx * CHUNK, z0 = c.cz * CHUNK;
+    const vp = w.gen.villagePiece && (w.gen.version >= 5 || w.newGen.has(c.key)) ? w.gen.villagePiece(c.cx, c.cz) : null;
+    if (vp) {   // villagers move into the village (and an Ironwarden guards the plaza)
+      const [hx, hy, hz] = vp.home;
+      if (vp.type === "plaza") { this.add("golem", hx, hy, hz, { home: vp.home }); this.add(vp.prof, hx + 2, hy, hz, { home: vp.home }); }
+      else this.add(vp.prof, hx, hy, hz, { home: vp.type === "house" ? [vp.bed[0] + 0.5, vp.bed[1], vp.bed[2] + 2.5] : vp.home, job: vp.job });
+      if (vp.type === "farm") for (let lx = 4; lx <= 11; lx++) for (let lz = 4; lz <= 11; lz++) if (lz !== 7) w.crops.add((x0 + lx) + "," + (vp.y + 1) + "," + (z0 + lz));
+      return;
+    }
     if (w.gen.isEnd && w.gen.isEnd()) {   // Shellers guard each Hollow tower
       const city = w.gen.city(c.cx, c.cz);
       if (city) for (const [dx, dy, dz] of [[-3, 0, -3], [3, 6, 3], [-3, 12, 3], [3, 18, -3]]) if (city.y + dy < HEIGHT - 4) this.add("sheller", city.x + dx + 0.5, city.y + dy, city.z + dz + 0.5);
@@ -428,6 +485,14 @@ export class Entities {
     if (this.spawnT > 0) return;
     this.spawnT = 1;
     const ctx = this.ctx, s = ctx.settings(), w = this.world, p = ctx.player();
+    // now and then, a Wanderer shows up during the day to trade
+    if (!w.gen.isNether() && !(w.gen.isEnd && w.gen.isEnd()) && daylight > 0.8 && (this.wanderT = (this.wanderT ?? 120) - 1) <= 0) {
+      this.wanderT = 300;
+      if (Math.random() < 0.5 && !this.list.some(e => e.sp === "wanderer")) {
+        const a = Math.random() * Math.PI * 2, x = Math.floor(p.pos.x + Math.cos(a) * 14), z = Math.floor(p.pos.z + Math.sin(a) * 14);
+        if (w.isLoaded(x, z)) { const y = w.surfaceY(x, z) + 1; if (SOLID[w.id(x, y - 1, z)] && !solidCell(w, x, y, z) && !solidCell(w, x, y + 1, z)) { this.add("wanderer", x + 0.5, y, z + 0.5); this.ctx.toast("A Wanderer has arrived to trade!"); } }
+      }
+    }
     if (s.difficulty === "peaceful" || ctx.creative()) return;
     const cap = { easy: 8, normal: 12, hard: 16 }[s.difficulty] || 10;
     const hostiles = this.list.filter(e => e.def.hostile || e.sp === "voidwalker").length;
@@ -524,7 +589,8 @@ export class Entities {
       const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d2 = dx * dx + dz * dz;
       // far-away monsters wander off (despawn); animals and named creatures stay
       if (!e.persist && !e.def.noSave && (d2 > 72 * 72 || (d2 > 36 * 36 && Math.random() < dt / 30))) { e.gone = true; continue; }
-      if (e.def.boss && d2 > 200 * 200) { e.gone = true; continue; }
+      if (e.def.boss && !e.persist && d2 > 200 * 200) { e.gone = true; continue; }
+      if (e.sp === "wanderer" && e.age > 300) { this.ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "poof"); e.gone = true; continue; }   // the Wanderer moves on
       if (!w.isLoaded(e.pos.x, e.pos.z)) continue;
       if (e.dead) { this.dying(e, dt); continue; }
       e.age += dt;
@@ -596,6 +662,7 @@ export class Entities {
     }
     const airTop = e.onGround ? e.pos.y : Math.max(e.airTop ?? e.pos.y, e.pos.y);
     const bumped = moveBody(w, e, dt);
+    if (bumped && (mx || mz) && def.villager) this.openDoorAhead(e, mx, mz);
     if (bumped && (mx || mz)) {
       if (def.climbs) e.vel.y = 3;                    // skitters climb walls
       else if (e.onGround) e.wantJump = true;          // everyone else hops up one block
@@ -641,6 +708,9 @@ export class Entities {
     if (def.ai === "crystal") return;
     if (def.ai === "sheller") return this.thinkSheller(e, d, dmgMul);
     if (def.ai === "dragon") return this.thinkDragon(e, d, dmgMul);
+    if (def.ai === "villager") return this.thinkVillager(e, d);
+    if (def.ai === "golem") return this.thinkGolem(e, d, dmgMul);
+    if (def.ai === "blightking") return this.thinkBlightking(e, d, dmgMul);
     if (def.ai === "rotboar" && !(e.angry > 0)) { this.wander(e); return; }
     if (def.ai === "boarkin" && !(e.angry > 0) && (ctx.wearingGold() || d > 12)) {
       if (ctx.heldId() === I.GOLD_INGOT && d < 8) { e.goal = d > 2.2 ? { x: p.pos.x, z: p.pos.z, speed: def.speed * 0.6 } : null; return; }   // admires your gold
@@ -802,6 +872,108 @@ export class Entities {
       case "takeoff": e.goal = { x: e.pos.x + 10, z: e.pos.z, y: groundY + 20, speed: 9 }; if (e.phaseT <= 0) toCircle(); break;
     }
   }
+  // Walk to a spot: straight there when it's close and clear, otherwise find a path (through doors for villagers)
+  moveTo(e, t, speed, stop = 1.2) {
+    const dd = Math.hypot(t.x - e.pos.x, t.z - e.pos.z);
+    if (dd < stop && Math.abs(t.y - e.pos.y) < 2) { e.goal = null; e.path = null; return true; }
+    if (dd < 6 && Math.abs(t.y - e.pos.y) < 1.2 && lineOfSight(this.world, { x: e.pos.x, y: e.pos.y + 1, z: e.pos.z }, { x: t.x, y: t.y + 1, z: t.z })) { e.goal = { x: t.x, z: t.z, speed }; e.path = null; return false; }
+    e.pathT -= 0.15;
+    if (!e.path || !e.path.length || e.pathT <= 0 || e.pathEdits !== this.world.editCount) {
+      e.pathT = 2; e.pathEdits = this.world.editCount;
+      e.path = findPath(this.world, Math.floor(e.pos.x), Math.floor(e.pos.y + 0.01), Math.floor(e.pos.z), Math.floor(t.x), Math.floor(t.y + 0.01), Math.floor(t.z), Math.ceil(e.h), 350, !!e.def.villager);
+      e.goal = e.path.length ? { ...e.path[0], speed } : { x: t.x, z: t.z, speed };
+    } else if (e.goal) e.goal.speed = speed;
+    return false;
+  }
+  openDoorAhead(e, mx, mz) {
+    const w = this.world, x = Math.floor(e.pos.x + mx * 0.7), y = Math.floor(e.pos.y + 0.1), z = Math.floor(e.pos.z + mz * 0.7);
+    for (const yy of [y, y + 1]) { const v = w.get(x, yy, z); if (idOf(v) === B.DOOR && !(metaOf(v) & OPEN)) { w.set(x, yy, z, make(B.DOOR, metaOf(v) | OPEN)); Sound.door(true); } }
+  }
+  // Villagers: work at their job site during the day, go home at night, run from monsters
+  thinkVillager(e, d) {
+    const ctx = this.ctx, time = ctx.time(), night = time > 0.52 && time < 0.97;
+    const home = e.home ? { x: e.home[0], y: e.home[1], z: e.home[2] } : null;
+    if (e.trading > 0) { e.trading -= 0.15; e.goal = null; const p = ctx.player(); e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)); return; }
+    const danger = this.list.find(o => o.def.hostile && !o.dead && !o.def.boss && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 8);
+    if (danger || e.fleeT > 0) {
+      if (e.fleeT > 0) e.fleeT -= 0.15;
+      const from = danger ? danger.pos : ctx.player().pos, ax = e.pos.x - from.x, az = e.pos.z - from.z, l = Math.hypot(ax, az) || 1;
+      if (night && home) this.moveTo(e, home, e.def.speed * 1.5); else e.goal = { x: e.pos.x + ax / l * 5, z: e.pos.z + az / l * 5, speed: e.def.speed * 1.5 };
+      return;
+    }
+    if (Math.random() < 0.01) Sound.mob("hmm", d);
+    if (night && home) { this.moveTo(e, home, e.def.speed); return; }
+    e.taskT -= 0.15;
+    if (e.taskT <= 0) { e.taskT = rand(8, 18); e.task = e.job && Math.random() < 0.55 ? "work" : "wander"; }
+    if (e.task === "work" && e.job) {
+      const j = { x: e.job[0] + 0.5, y: e.job[1], z: e.job[2] + 0.5 };
+      if (this.moveTo(e, j, e.def.speed, 1.9)) {
+        // working at the job site restocks trades (up to twice a day)
+        const day = ctx.day();
+        if (e.restockDay !== day) { e.restockDay = day; e.restocks = 0; }
+        e.restockT += 0.15;
+        if (e.restockT > 20 && e.restocks < 2 && e.uses.some(u => u > 0)) { e.uses = e.uses.map(() => 0); e.restocks++; e.restockT = 0; ctx.particles(e.pos.x, e.pos.y + 2, e.pos.z, "xp"); }
+      }
+      return;
+    }
+    if (home && Math.hypot(home.x - e.pos.x, home.z - e.pos.z) > 14) { this.moveTo(e, home, e.def.speed); return; }
+    this.wander(e);
+  }
+  // The Ironwarden guards its village: it fights monsters, and anyone who hurts villagers
+  thinkGolem(e, d, dmgMul) {
+    const ctx = this.ctx, p = ctx.player();
+    let target = null;
+    if (e.angry > 0 && this.targetable()) { e.angry -= 0.15; target = { pos: p.pos, isPlayer: true }; }
+    else {
+      const foe = this.list.filter(o => o.def.hostile && !o.dead && !o.def.boss && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 16).sort((a, b) => Math.hypot(a.pos.x - e.pos.x, a.pos.z - e.pos.z) - Math.hypot(b.pos.x - e.pos.x, b.pos.z - e.pos.z))[0];
+      if (foe) target = { pos: foe.pos, ent: foe };
+    }
+    if (target) {
+      const dd = Math.hypot(target.pos.x - e.pos.x, target.pos.z - e.pos.z);
+      this.moveTo(e, target.pos, e.def.speed * 1.3, 1.6);
+      e.yaw = Math.atan2(-(target.pos.x - e.pos.x), -(target.pos.z - e.pos.z));
+      if (dd < 2.6 && Math.abs(target.pos.y - e.pos.y) < 2 && e.attackCd <= 0) {
+        e.attackCd = 1.5; e.swing = 0.5;
+        if (target.isPlayer) ctx.hurtPlayer(e.def.dmg * dmgMul, "The Ironwarden protects its village!", e);
+        else { const l = dd || 1; this.damage(target.ent, 15, e, { x: (target.pos.x - e.pos.x) / l, z: (target.pos.z - e.pos.z) / l }); target.ent.vel.y = 8; }
+        Sound.mob("clank", d);
+      }
+      return;
+    }
+    const home = e.home ? { x: e.home[0], y: e.home[1], z: e.home[2] } : null;
+    if (home && Math.hypot(home.x - e.pos.x, home.z - e.pos.z) > 16) { this.moveTo(e, home, e.def.speed * 0.6); return; }
+    this.wander(e);
+  }
+  // The Blightking: a long, glowing summoning, then skull volleys; at half health it gets armor and dives at you
+  thinkBlightking(e, d, dmgMul) {
+    const ctx = this.ctx, p = ctx.player();
+    if (e.summonT > 0) {
+      e.summonT -= 0.15; e.goal = null; e.vel.x = e.vel.y = e.vel.z = 0;
+      e.hp = Math.max(1, e.maxHp * (1 - e.summonT / 10));
+      if (e.summonT <= 0) { e.hp = e.maxHp; ctx.explode(e.pos.x, e.pos.y + 1.5, e.pos.z, 6, null); Sound.mob("roar", 0); }
+      return;
+    }
+    e.armored = e.hp < e.maxHp / 2;
+    if (e.hp < e.maxHp && Math.random() < 0.15) e.hp += 0.5;   // it slowly heals itself
+    if (!this.targetable() || d > 64) { e.goal = null; return; }
+    if (e.diveT > 0) {   // armored dive
+      e.diveT -= 0.15;
+      e.goal = { x: p.pos.x, z: p.pos.z, y: p.pos.y + 0.5, speed: 11 };
+      if (d < 2.8 && e.attackCd <= 0) { e.attackCd = 1.5; ctx.hurtPlayer(e.def.dmg * dmgMul, "The Blightking crashed into you!", e); ctx.effect("blight", 10); e.diveT = 0; }
+      return;
+    }
+    e.ang = (e.ang || 0) + 0.15 * 0.5;
+    e.goal = { x: p.pos.x + Math.cos(e.ang) * 9, z: p.pos.z + Math.sin(e.ang) * 9, y: p.pos.y + 5, speed: e.def.speed };
+    e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z));
+    if (e.attackCd <= 0) {
+      e.attackCd = e.armored ? 0.9 : 1.3;
+      const side = [-1, 0, 1][randi(0, 2)] * 0.6, sx = e.pos.x + Math.cos(e.yaw) * side, sz = e.pos.z - Math.sin(e.yaw) * side, sy = e.pos.y + 3;
+      const dx = p.pos.x - sx, dy = p.pos.y + 1 - sy, dz = p.pos.z - sz, l = Math.hypot(dx, dy, dz) || 1;
+      this.addProjectile("skull", sx, sy, sz, dx / l * 11, dy / l * 11, dz / l * 11, { owner: e, noGrav: true, dmg: 6 * dmgMul });
+      Sound.mob("fireshoot", d);
+    }
+    if (e.armored && (e.diveCd = (e.diveCd || 6) - 0.15) <= 0) { e.diveCd = 7; e.diveT = 2; Sound.mob("roar", d); }
+  }
   lineToPlayer(e) { const p = this.ctx.player(); return lineOfSight(this.world, { x: e.pos.x, y: e.pos.y + 1.5, z: e.pos.z }, { x: p.pos.x, y: p.pos.y + 1.5, z: p.pos.z }); }
   // Boarkin trade: give one gold ingot, get something useful back after they look it over
   barter(e) {
@@ -891,7 +1063,12 @@ export class Entities {
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
     if (e.dead || e.iframes > 0 || n <= 0) return false;
-    if (e.def.boss) { n *= e.perched ? 1 : 0.6; knock = null; if (attacker === "explosion") n *= 0.3; }
+    if (e.summonT > 0) return false;   // can't be hurt while it's being summoned
+    if (e.sp === "dragon") { n *= e.perched ? 1 : 0.6; knock = null; if (attacker === "explosion") n *= 0.3; }
+    if (e.sp === "blightking") { knock = null; if (attacker === "explosion") n *= 0.2; }
+    if (attacker === "player" && e.def.villager) for (const g of this.near(e.pos.x, e.pos.y, e.pos.z, 24, o => o.sp === "golem")) g.angry = 30;   // hurting villagers angers the Ironwarden
+    if (e.def.villager) e.fleeT = 4;
+    if (attacker === "player" && e.sp === "golem") e.angry = 30;
     if (e.sp === "sheller" && e.open < 1) n *= 0.25;   // the shell protects it when closed
     if (e.def.static) knock = null;
     if (e.sp === "voidwalker" && attacker && attacker.projectile) { this.teleport(e); return false; }   // dodges arrows
@@ -947,6 +1124,7 @@ export class Entities {
     if (e.sp === "sheep" && id === I.SHEARS && !e.sheared && !e.baby) { e.sheared = true; ctx.drop(B.WOOL, randi(1, 3), e.pos.x, e.pos.y + 1, e.pos.z); ctx.wear(); Sound.mob("baa", 2); return true; }
     if (e.sp === "cow" && id === I.BUCKET && !e.baby) { ctx.swapHeld(I.MILK_BUCKET); Sound.mob("moo", 2); return true; }
     if (e.sp === "boarkin" && id === I.GOLD_INGOT && !(e.angry > 0) && e.barterT <= 0) { ctx.consume(); e.barterT = 4; e.goal = null; Sound.mob("snort", 2); return true; }
+    if (e.def.villager && !e.baby) { e.trading = 30; ctx.openTrade(e); Sound.mob("hmm", 2); return true; }
     return false;
   }
 
@@ -969,8 +1147,8 @@ export class Entities {
       const fl = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.01, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff })); fl.position.z = 0.22;
       mesh.add(shaft, tip, fl);
     } else {
-      const color = { pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, fireball: 0xff7a1a, bigfire: 0xffb030, breath: 0xb050ff, bullet: 0xf0e8b0, eye: 0x3ad0a0 }[kind] || 0xffffff;
-      const s = kind === "bigfire" || kind === "breath" ? 0.6 : kind === "fireball" || kind === "bullet" ? 0.3 : 0.2;
+      const color = { pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, fireball: 0xff7a1a, bigfire: 0xffb030, breath: 0xb050ff, bullet: 0xf0e8b0, eye: 0x3ad0a0, skull: 0x2a2a2a }[kind] || 0xffffff;
+      const s = kind === "bigfire" || kind === "breath" ? 0.6 : kind === "fireball" || kind === "bullet" || kind === "skull" ? 0.35 : 0.2;
       mesh = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), new THREE.MeshBasicMaterial({ color, fog: false }));
     }
     mesh.position.set(x, y, z); this.scene.add(mesh);
@@ -995,7 +1173,9 @@ export class Entities {
         const nx = pr.x + pr.vx * dt / steps, ny = pr.y + pr.vy * dt / steps, nz = pr.z + pr.vz * dt / steps;
         // hit a creature?
         const hitE = this.list.find(e => !e.dead && e !== pr.owner && (pr.fromPlayer || pr.kind === "bigfire" || pr.kind === "arrow") && nx > e.pos.x - e.w / 2 - 0.1 && nx < e.pos.x + e.w / 2 + 0.1 && ny > e.pos.y && ny < e.pos.y + e.h && nz > e.pos.z - e.w / 2 - 0.1 && nz < e.pos.z + e.w / 2 + 0.1);
-        if (hitE && pr.kind !== "pearl" && (pr.fromPlayer || pr.kind !== "arrow" || !pr.owner || !pr.owner.def.hostile || !hitE.def.hostile)) {
+        if (hitE && hitE.armored && pr.kind === "arrow") { pr.gone = true; ctx.particles(nx, ny, nz, "poof"); Sound.mob("clank", this.dist(hitE)); break; }   // arrows bounce off the Blightking's armor
+        if (hitE && pr.kind === "skull" && hitE !== pr.owner) { this.damage(hitE, pr.dmg || 6, null); ctx.explode(nx, ny, nz, 1, pr.owner); pr.gone = true; break; }
+        if (hitE && pr.kind !== "pearl" && pr.kind !== "skull" && (pr.fromPlayer || pr.kind !== "arrow" || !pr.owner || !pr.owner.def.hostile || !hitE.def.hostile)) {
           if (pr.kind === "arrow") { const l = Math.hypot(pr.vx, pr.vz) || 1; this.damage(hitE, pr.dmg, pr.fromPlayer ? "player" : { projectile: true }, { x: pr.vx / l * 0.5, z: pr.vz / l * 0.5 }); if (pr.fromPlayer && hitE.sp !== "voidwalker") { hitE.angry = 40; } }
           if (pr.kind === "bigfire") { if (pr.fromPlayer && hitE.sp === "wailer") this.damage(hitE, 1000, "player"); ctx.explode(nx, ny, nz, pr.power || 1.3, pr.owner); }
           if (pr.kind === "fireball" && !hitE.def.fireproof) { this.damage(hitE, 5, pr.fromPlayer ? "player" : null); hitE.burning = 4; }
@@ -1008,6 +1188,7 @@ export class Entities {
           if (pr.kind === "bigfire") ctx.explode(nx, ny, nz, pr.power || 1.3, pr.owner);
           if (pr.kind === "breath") ctx.cloud(nx, ny, nz);
           if (pr.kind === "bullet") { ctx.hurtPlayer(pr.dmg || 4, "A Sheller's bullet got you!", null); ctx.effect("levitation", 6); }
+          if (pr.kind === "skull") { ctx.hurtPlayer(pr.dmg || 6, "A Blightking skull hit you!", { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } }); ctx.effect("blight", 8); ctx.explode(nx, ny, nz, 1, pr.owner); }
           pr.gone = true; break;
         }
         // hit a block?
@@ -1019,6 +1200,7 @@ export class Entities {
           else if (pr.kind === "fireball") { ctx.ignite(Math.floor(pr.x), Math.floor(pr.y), Math.floor(pr.z)); pr.gone = true; }
           else if (pr.kind === "breath") { ctx.cloud(pr.x, pr.y + 0.5, pr.z); pr.gone = true; }
           else if (pr.kind === "bullet") { ctx.particles(pr.x, pr.y, pr.z, "poof"); pr.gone = true; }
+          else if (pr.kind === "skull") { ctx.explode(pr.x, pr.y, pr.z, 1, pr.owner); pr.gone = true; }
           else this.landThrown(pr);
           break;
         }
@@ -1138,6 +1320,17 @@ export class Entities {
       P.cage.position.y = P.core.position.y = 16 / 16 + Math.sin(e.age * 2) * 0.15;
     } else if (t === "sheller") {
       P.lid.position.y = (8 + e.open * 6) / 16; P.head.visible = e.open > 0.2;
+    } else if (t === "villager") {
+      P.robe.rotation.x = swing * 0.15;
+    } else if (t === "golem") {
+      P.legR.rotation.x = swing * 0.7; P.legL.rotation.x = -swing * 0.7;
+      const atk = e.swing > 0 ? -Math.sin(e.swing * 6) * 1.6 : 0;
+      P.armR.rotation.x = -swing * 0.6 + atk; P.armL.rotation.x = swing * 0.6 + atk;
+    } else if (t === "blightking") {
+      P.headL.rotation.y = Math.sin(e.age * 1.3) * 0.4; P.headR.rotation.y = Math.sin(e.age * 1.1 + 1) * 0.4;
+      P.spine.rotation.x = Math.sin(e.age * 2) * 0.2; e.root.position.y = Math.sin(e.age * 1.5) * 0.15;
+      if (e.summonT > 0) { const k = 0.6 + Math.sin(e.age * 20) * 0.4; e.mat.color.setRGB(0.5 + k * 0.5, 0.6 + k * 0.4, 1); return; }
+      if (e.armored && Math.sin(e.age * 6) > 0.6) { e.mat.color.setRGB(0.8, 0.85, 1); return; }
     } else if (t === "flare") {
       for (let i = 0; i < 10; i++) { const a = e.age * (i < 5 ? 2 : -1.6) + (i % 5) * Math.PI * 2 / 5, r = i < 5 ? 0.45 : 0.3; P["rod" + i].position.set(Math.cos(a) * r, (i < 5 ? 16 : 8) / 16 + Math.sin(e.age * 3 + i) * 0.05, Math.sin(a) * r); }
       e.root.position.y = Math.sin(e.age * 2) * 0.1;

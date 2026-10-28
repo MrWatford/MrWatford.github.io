@@ -2,7 +2,7 @@
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
   buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN } from "./blocks.js";
-import { Entities, SPECIES } from "./entities.js";
+import { Entities, SPECIES, TRADES } from "./entities.js";
 import { Generator, NetherGen, EndGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
@@ -176,7 +176,9 @@ const ents = new Entities(scene, {
   cloud: (x, y, z) => addCloud(x, y, z),
   crystalGone: i => { const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
   bossLeft: e => { (G.dimData.end || (G.dimData.end = {})).wyrmHp = e.hp; },
-  bossDefeated: e => wyrmDefeated(e),
+  bossDefeated: e => e.sp === "dragon" ? wyrmDefeated(e) : blightDefeated(e),
+  time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m),
+  openTrade: e => openPanel("trade", e.uid),
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
@@ -193,7 +195,7 @@ function swapHeld(id) {
 }
 
 // ---------- status effects (poison, queasy, burning) ----------
-const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating" };
+const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift" };
 function addEffect(k, t) { if (G.creative) return; G.effects[k] = Math.max(G.effects[k] || 0, t); G.hudDirty = true; }
 let effT = 0;
 function tickEffects(dt) {
@@ -207,6 +209,7 @@ function tickEffects(dt) {
     if (k === "queasy") p.exhaust += dt * 0.6;
     if (k === "fire") { if (p.inWater && !p.inLava) { delete G.effects.fire; G.hudDirty = true; } else if (tick) hurt(1, "You were burned. Jump in water to put out flames!", null, true); }
     if (k === "blight" && tick && Math.floor(G.effects[k]) % 2 === 0) hurt(1, "The Blight wore you down. Blight Rattlers cause it, so fight them with good armor.", null, true);
+    if (k === "regen" && tick && Math.floor(G.effects[k]) % 2 === 0 && p.health < 20) { p.health = Math.min(20, p.health + 1); G.hudDirty = true; }
   }
 }
 
@@ -227,6 +230,62 @@ function updateFires(dt) {
     if (f.t <= 0) { if (G.world.id(f.x, f.y, f.z) === B.FIRE) G.world.set(f.x, f.y, f.z, B.AIR); fires.splice(i, 1); }
   }
 }
+
+// ---------- the Blightking: three Blight Skulls on a T of Wailing Sand ----------
+function checkBlightSummon(x, y, z) {
+  const w = G.world;
+  for (const [ax, az] of [[1, 0], [0, 1]]) for (const s of [-2, -1, 0]) {
+    const sx = x + ax * s, sz = z + az * s, row = [0, 1, 2].map(i => [sx + ax * i, sz + az * i]);
+    if (!row.every(([bx, bz]) => w.id(bx, y, bz) === B.SKULL && w.id(bx, y - 1, bz) === B.SOUL_SAND)) continue;
+    const [mx, mz] = row[1];
+    if (w.id(mx, y - 2, mz) !== B.SOUL_SAND) continue;
+    for (const [bx, bz] of row) { w.set(bx, y, bz, B.AIR); w.set(bx, y - 1, bz, B.AIR); }
+    w.set(mx, y - 2, mz, B.AIR);
+    const e = ents.add("blightking", mx + 0.5, y - 2, mz + 0.5, { summonT: 10 });
+    e.yaw = G.player.yaw;
+    Sound.mob("roar", 0);
+    UI.toast("The Blightking is waking up! Get ready, and back away from the blast.", "bad");
+    return true;
+  }
+  return false;
+}
+function blightDefeated(e) {
+  explode(e.pos.x, e.pos.y + 1.5, e.pos.z, 3, null);
+  spawnDrop(I.RADIANT_STAR, 1, e.pos.x, e.pos.y + 1, e.pos.z);
+  spawnOrbs(50, e.pos.x, e.pos.y + 1, e.pos.z);
+  Sound.levelUp();
+  UI.toast("You defeated the Blightking! It dropped a Radiant Star. Use it to craft a Beacon.", "good");
+}
+// Beacons: standing within 24 blocks gives Regeneration and Swiftness
+let beaconT = 0;
+function tickBeacons(dt) {
+  if ((beaconT += dt) < 1) return; beaconT = 0;
+  const p = G.player;
+  for (const k of G.world.beacons) {
+    const [x, y, z] = k.split(",").map(Number);
+    if (G.world.isLoaded(x, z) && G.world.id(x, y, z) !== B.BEACON) { G.world.beacons.delete(k); continue; }
+    if (Math.hypot(p.pos.x - x, p.pos.y - y, p.pos.z - z) < 24) { G.effects.regen = Math.max(G.effects.regen || 0, 4); G.effects.swift = Math.max(G.effects.swift || 0, 4); G.hudDirty = true; return; }
+  }
+}
+// Trading with villagers
+G.trade = (uid, i, many) => {
+  const e = ents.list.find(o => o.uid === uid);
+  if (!e) return;
+  const t = TRADES[e.def.prof][i];
+  let done = 0;
+  for (let k = 0; k < (many ? 16 : 1); k++) {
+    if (e.uses[i] >= t[2]) break;
+    if (!t[0].every(([id, n]) => G.inv.count(id) >= n)) break;
+    for (const [id, n] of t[0]) G.inv.remove(id, n);
+    const left = G.inv.add(t[1][0], t[1][1]);
+    if (left) G.dropItem(t[1][0], left);
+    e.uses[i]++; done++;
+    spawnOrbs(2, e.pos.x, e.pos.y + 1, e.pos.z);
+  }
+  if (!done) { Sound.error(); UI.toast(e.uses[i] >= t[2] ? "Sold out for now. Villagers restock while they work." : "You don't have enough for that trade.", "bad"); return; }
+  Sound.craft(); puff(e.pos.x, e.pos.y + 2, e.pos.z, "xp"); e.trading = 30;
+  G.hudDirty = true; UI.refreshPanel();
+};
 
 // ---------- the Hollow: travel, the Wyrm fight, and its rewards ----------
 const clouds = [];
@@ -748,6 +807,7 @@ function makeWorld(dim) {
   for (const k of data.visited || []) w.visited.add(k);
   for (const k of data.crops || []) w.crops.add(k);
   for (const k of data.newGen || []) w.newGen.add(k);
+  w.beacons = new Set(data.beacons || []);
   w.onLoad = c => ents.loadChunk(c);
   w.onUnload = c => ents.unloadChunk(c);
   return w;
@@ -755,7 +815,7 @@ function makeWorld(dim) {
 function dimSnapshot(w) {
   const old = G.dimData[w.dim] || {};
   if (w.dim === "end") { const dr = ents.list.find(e => e.sp === "dragon" && !e.dead); if (dr) old.wyrmHp = dr.hp; }
-  return { ...old, mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], portals: old.portals || [], links: old.links || {} };
+  return { ...old, mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {} };
 }
 // Build (and draw) the land around a spot, with a progress bar
 async function loadArea(x, z, label) {
@@ -1142,7 +1202,8 @@ function useItem() {
   }
   if (sd && sd.kind === "spawn" && hit) {
     const x = hit.x + hit.nx + 0.5, y = hit.y + hit.ny, z = hit.z + hit.nz + 0.5;
-    ents.add(sd.species, x, y, z); puff(x, y + 0.5, z, "poof");
+    const sp = sd.species === "villager" ? ["farmer", "fletcher", "shepherd", "cleric", "smith"][Math.floor(Math.random() * 5)] : sd.species;
+    ents.add(sp, x, y, z, sp === "blightking" ? { summonT: 10 } : sp === "golem" ? { home: [x, y, z] } : {}); puff(x, y + 0.5, z, "poof");
     if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
     G.hudDirty = true; return;
   }
@@ -1196,6 +1257,16 @@ function useItem() {
     return;
   }
   if (slot.id === B.BED) { placeBed(hit, slot); return; }
+  if (sd.places) {   // items that can be set down as a block (Blight Skulls)
+    const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
+    if (w.id(x, y, z) && !BLOCKS[w.id(x, y, z)].replaceable) return;
+    if (!SOLID[w.id(x, y - 1, z)]) { UI.toast("Set it on top of a block.", "bad"); return; }
+    w.set(x, y, z, sd.places);
+    if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+    Sound.place("stone"); G.hudDirty = true; heldId = -1;
+    if (sd.places === B.SKULL) checkBlightSummon(x, y, z);
+    return;
+  }
   if (!isBlockItem(slot.id)) return;
   let x = hit.x, y = hit.y, z = hit.z;
   const hitDef = blockDef(hit.v);
@@ -1221,6 +1292,7 @@ function useItem() {
     if (blocksPlayer(v, x, y, z)) return;
     w.set(x, y, z, v);
     if (id === B.SHELL_BOX) w.containers.set(x + "," + y + "," + z, { type: "chest", slots: slot.contents ? slot.contents.map(s => s && { ...s }) : new Array(27).fill(null) });
+    if (id === B.BEACON) { w.beacons.add(x + "," + y + "," + z); UI.toast("The Beacon glows! Within 24 blocks you'll heal over time and move faster.", "good"); }
   }
   if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
   Sound.place(MATERIAL(id)); G.swing = 0.01; G.hudDirty = true; heldId = G.inv.slots[G.selected] ? heldId : -1;
@@ -1313,6 +1385,7 @@ function interact(hit, kind) {
   if (kind === "table") { openPanel("table"); return; }
   if (kind === "bed") { useBed(hit); return; }
   if (kind === "frame") { fillFrame(hit); return; }
+  if (kind === "beacon") { UI.toast("This Beacon gives Regeneration and Swiftness to anyone within 24 blocks."); return; }
   if (kind === "shellbox") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
     Sound.door(true); openPanel("chest", key); return;
@@ -1355,6 +1428,7 @@ function fillLoot(box, hit) {
   if (r() < 0.35) put(I.FLINT_STEEL, 1);
   if (r() < 0.45) put(I.GOLD_NUGGET, 3 + Math.floor(r() * 9));
   if (r() < 0.3) put(I.VOID_PEARL, 1 + Math.floor(r() * 2));
+  if (r() < 0.4) put(I.JADE, 1 + Math.floor(r() * 4));
   if (r() < 0.7) put(I.IRON_INGOT, 2 + Math.floor(r() * 4));
   if (r() < 0.35) put(I.SKYSHARD, 1 + Math.floor(r() * 2));
   if (r() < 0.5) put(I.STONE_PICK, 1);
@@ -1511,6 +1585,8 @@ function survival(dt) {
   if (iframes > 0) iframes -= dt;
   tickEffects(dt);
   p.levitate = !!G.effects.levitation;
+  p.speedMul = G.effects.swift ? 1.25 : 1;
+  tickBeacons(dt);
   if (p.gliding && (G.glideT = (G.glideT || 0) + dt) >= 1) { G.glideT = 0; const wings = G.inv.slots[37]; if (wings && wings.id === I.GLIDER) { wings.dur = (wings.dur ?? 432) - 1; if (wings.dur <= 0) { G.inv.slots[37] = null; p.gliding = false; UI.toast("Your Glider Wings wore out!", "bad"); } G.hudDirty = true; } }
   if (p.inLava) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true); } }
   const w = G.world, fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y), fz = Math.floor(p.pos.z);
@@ -1745,9 +1821,9 @@ function loop(now) {
   pGeo.setDrawRange(0, n); pGeo.attributes.position.needsUpdate = true; pGeo.attributes.color.needsUpdate = true;
 
   // the boss health bar
-  const boss = G.dim === "end" ? ents.list.find(e => e.def.boss && !e.gone) : null, bar = document.getElementById("bossbar");
-  bar.hidden = !boss || Math.hypot(boss.pos.x - p.pos.x, boss.pos.z - p.pos.z) > 160;
-  if (!bar.hidden) bar.querySelector("i").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%";
+  const boss = ents.list.filter(e => e.def.boss && !e.gone).sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0], bar = document.getElementById("bossbar");
+  bar.hidden = !boss || Math.hypot(boss.pos.x - p.pos.x, boss.pos.z - p.pos.z) > (boss.sp === "dragon" ? 160 : 64);
+  if (!bar.hidden) { bar.querySelector("i").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%"; bar.querySelector("b").textContent = boss.def.name + (boss.armored ? " (armored: arrows bounce off)" : ""); }
   if (G.hudDirty) { G.hudDirty = false; UI.hud(); }
   if (running) { G.autosaveT += dt; if (G.autosaveT > AUTOSAVE) { G.autosaveT = 0; saveNow(true); } }
   if (G.debug) {
@@ -1764,4 +1840,4 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { hand, ents, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };
+G._test = { hand, ents, checkBlightSummon, tickBeacons, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };

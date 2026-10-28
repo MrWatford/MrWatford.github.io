@@ -201,6 +201,9 @@ export function buildChunk(world, chunk, fancy) {
       const diag = [[[x + a, y, z + a], [x + b, y, z + b], [x + b, y + h, z + b], [x + a, y + h, z + a]], [[x + a, y, z + b], [x + b, y, z + a], [x + b, y + h, z + a], [x + a, y + h, z + b]]];
       const uv = h < 1 ? [[0, 0], [1, 0], [1, h], [0, h]] : UV;
       for (const q of diag) { quad(solidBuf, q, tile, uv, L); quad(solidBuf, [q[1], q[0], q[3], q[2]], tile, [uv[1], uv[0], uv[3], uv[2]], L); }
+    } else if (def.shape === "head") {   // a small block sitting on the ground (skulls)
+      const box = [0.25, 0, 0.25, 0.75, 0.5, 0.75], tile = faceTile(v, 1), l = [sky[i] / 15, blk[i] / 15, 1];
+      for (const F of FACES) quad(solidBuf, F.c.map(p => [x + (p[0] ? box[3] : box[0]), y + (p[1] ? box[4] : box[1]), z + (p[2] ? box[5] : box[2])]), tile, UV, [l, l, l, l].map(q => [q[0], q[1], F.shade]));
     } else if (def.shape === "door") {
       const meta = metaOf(v), box = doorBox(meta), tile = faceTile(v, 1), l = [sky[i] / 15, blk[i] / 15, 1];
       for (const F of FACES) {

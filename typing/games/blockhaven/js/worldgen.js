@@ -1,10 +1,12 @@
 // Builds the natural world from a seed. The same seed always makes the same land.
 import { Noise, hashSeed, rng, hash3 } from "./noise.js";
-import { B, CHUNK, HEIGHT, SEA, make, EYE_IN } from "./blocks.js";
+import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD } from "./blocks.js";
 
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
-// Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds. Raise this when generation changes.
-export const CURRENT_GEN = 4;
+// Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade. Raise this when generation changes.
+export const CURRENT_GEN = 5;
+export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
+const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
 export function strongholdSpots(seed) {
   const r = rng(seed ^ 0x51ed27), base = r() * Math.PI * 2;
@@ -115,6 +117,7 @@ export class Generator {
     vein(B.IRON_ORE, 11, 4, 46, 6);
     vein(B.SKY_ORE, 2, 3, 18, 4);
     vein(B.GRAVEL, 4, 6, 50, 10);
+    if (ver >= 5 && ["mountain", "peak"].includes(cols[8 + 8 * CHUNK].biome)) vein(B.JADE_ORE, 5, 4, 50, 2);
     vein(B.DIRT, 4, 6, 50, 10);
 
     // trees and plants
@@ -140,7 +143,77 @@ export class Generator {
     if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
     else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
     if (ver >= 4) for (const s of this.strongholds) if (Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
+    if (ver >= 5) { const vp = this.villagePiece(cx, cz); if (vp) this.buildVillagePiece(data, vp, x0, z0); }
     return data;
+  }
+
+  // ----- villages: a 3×3 group of chunks around a plaza with a well -----
+  villageAt(cx, cz) {
+    const rx = Math.floor(cx / 6), rz = Math.floor(cz / 6);
+    if (hash3(this.seed, rx, 1234, rz) > 0.4) return null;
+    const vx = rx * 6 + 3, vz = rz * 6 + 3, col = this.column(vx * 16 + 8, vz * 16 + 8);
+    if (!["plains", "sandy", "forest", "birch"].includes(col.biome) || col.h <= SEA + 1 || col.h > SEA + 18) return null;
+    if (Math.abs(cx - vx) > 1 || Math.abs(cz - vz) > 1) return null;
+    return { vx, vz, sandy: col.biome === "sandy" };
+  }
+  villagePiece(cx, cz) {
+    const v = this.villageAt(cx, cz);
+    if (!v) return null;
+    const dx = cx - v.vx, dz = cz - v.vz, x0 = cx * 16, z0 = cz * 16;
+    const y = Math.max(SEA + 1, this.column(x0 + 8, z0 + 8).h);
+    const type = !dx && !dz ? "plaza" : hash3(this.seed, cx, 1235, cz) < 0.3 ? "farm" : "house";
+    const prof = type === "farm" ? "farmer" : PROFESSIONS[Math.floor(hash3(this.seed, cx, 1236, cz) * PROFESSIONS.length)];
+    const piece = { type, y, dx, dz, sandy: v.sandy, prof, center: [v.vx * 16 + 8, v.vz * 16 + 8] };
+    if (type === "house") { piece.bed = [x0 + 5, y + 1, z0 + 5]; piece.job = [x0 + 9, y + 1, z0 + 9]; piece.home = [x0 + 7.5, y + 1, z0 + 7.5]; }
+    if (type === "farm") { piece.job = [x0 + 3, y + 1, z0 + 3]; piece.home = [x0 + 7.5, y + 1, z0 + 2.5]; }
+    if (type === "plaza") piece.home = [x0 + 7.5, y + 1, z0 + 12.5];
+    return piece;
+  }
+  buildVillagePiece(data, vp, x0, z0) {
+    const y = vp.y, put = (lx, yy, lz, v) => { if (lx >= 0 && lx < 16 && lz >= 0 && lz < 16 && yy > 0 && yy < HEIGHT) data[idx(lx, yy, lz)] = v; };
+    const wall = vp.sandy ? B.SANDSTONE : B.PLANKS, post = vp.sandy ? B.SANDSTONE : B.LOG, ground = vp.sandy ? B.SAND : B.GRASS;
+    // level the building site: fill below, clear above
+    for (let lx = 2; lx <= 13; lx++) for (let lz = 2; lz <= 13; lz++) {
+      for (let yy = y; yy > y - 8 && yy > 0; yy--) { const i = idx(lx, yy, lz); if (data[i] !== B.AIR && data[i] !== B.WATER && yy < y) break; data[i] = yy === y ? ground : B.DIRT; }
+      for (let yy = y + 1; yy < Math.min(HEIGHT - 1, y + 10); yy++) put(lx, yy, lz, B.AIR);
+    }
+    // gravel paths toward the plaza
+    const path = (lx, lz) => { const i = idx(lx, y, lz); if (data[i] !== B.WATER) data[i] = B.GRAVEL; };
+    if (vp.type === "plaza") { for (let a = 0; a < 16; a++) for (const b of [7, 8]) { path(a, b); path(b, a); } }
+    else if (vp.dx) { for (let a = vp.dx > 0 ? 0 : 11; a < (vp.dx > 0 ? 5 : 16); a++) { path(a, 7); path(a, 8); } }
+    else { for (let a = vp.dz > 0 ? 0 : 11; a < (vp.dz > 0 ? 5 : 16); a++) { path(7, a); path(8, a); } }
+    if (vp.type === "plaza") {
+      for (let lx = 5; lx <= 10; lx++) for (let lz = 5; lz <= 10; lz++) put(lx, y, lz, B.GRAVEL);
+      for (let lx = 6; lx <= 9; lx++) for (let lz = 6; lz <= 9; lz++) { const rim = lx === 6 || lx === 9 || lz === 6 || lz === 9; put(lx, y, lz, rim ? B.COBBLE : B.WATER); put(lx, y - 1, lz, rim ? B.COBBLE : B.WATER); if (rim) put(lx, y + 1, lz, B.COBBLE); }
+      for (const [lx, lz] of [[6, 6], [9, 6], [6, 9], [9, 9]]) for (let yy = y + 2; yy <= y + 3; yy++) put(lx, yy, lz, post);
+      for (let lx = 6; lx <= 9; lx++) for (let lz = 6; lz <= 9; lz++) put(lx, y + 4, lz, wall);
+      put(7, y + 1, 11, B.TORCH); put(8, y + 1, 4, B.TORCH);
+    } else if (vp.type === "farm") {
+      for (let lx = 3; lx <= 12; lx++) for (let lz = 3; lz <= 12; lz++) {
+        const edge = lx === 3 || lx === 12 || lz === 3 || lz === 12;
+        if (edge) { put(lx, y, lz, B.LOG); continue; }
+        if (lz === 7) { put(lx, y, lz, B.WATER); continue; }
+        put(lx, y, lz, make(B.FARMLAND, 1));
+        put(lx, y + 1, lz, make(lx < 8 ? B.WHEAT : B.CARROTS, Math.floor(hash3(this.seed, x0 + lx, y, z0 + lz) * 8)));
+      }
+      put(3, y + 1, 3, B.COMPOSTER); put(12, y + 1, 12, B.HAY); put(12, y + 2, 12, B.TORCH);
+    } else {
+      for (let lx = 4; lx <= 10; lx++) for (let lz = 4; lz <= 10; lz++) {
+        const edgeX = lx === 4 || lx === 10, edgeZ = lz === 4 || lz === 10, corner = edgeX && edgeZ;
+        put(lx, y, lz, wall);
+        for (let yy = y + 1; yy <= y + 4; yy++) {
+          if (corner) put(lx, yy, lz, post);
+          else if (edgeX || edgeZ) put(lx, yy, lz, yy === y + 2 && (lx === 7 || lz === 7) ? B.GLASS : wall);
+          else put(lx, yy, lz, B.AIR);
+        }
+        put(lx, y + 5, lz, wall);
+      }
+      // a door on the side facing the plaza (left open)
+      const [dlx, dlz, f] = vp.dx > 0 ? [4, 7, 3] : vp.dx < 0 ? [10, 7, 1] : vp.dz > 0 ? [7, 4, 2] : [7, 10, 0];
+      put(dlx, y + 1, dlz, make(B.DOOR, f | OPEN)); put(dlx, y + 2, dlz, make(B.DOOR, f | OPEN | TOP));
+      put(5, y + 1, 5, make(B.BED, 0)); put(5, y + 1, 6, make(B.BED, 0 | HEAD));
+      put(9, y + 1, 9, JOB_BLOCK[vp.prof]); put(9, y + 1, 5, B.TORCH);
+    }
   }
 
   // An underground fort of stone bricks: a portal room with four halls leading to treasure rooms
