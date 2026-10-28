@@ -991,20 +991,35 @@ window.addEventListener("keydown", e => {
 window.addEventListener("keyup", e => keys.delete(e.code));
 window.addEventListener("blur", () => { keys.clear(); mouseL = mouseR = false; if (G.state === "play") pause(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) { keys.clear(); if (G.state === "play" || G.state === "panel") pause(); else Sound.pause(); } });
+// left button (or R): break and attack; right button (or F): place and use
+function pressL() { mouseL = true; G.mining = null; if (!attack() && G.creative) creativeBreak(); }
+function pressR() {
+  mouseR = true;
+  const s = G.inv.slots[G.selected];
+  if (s && s.id === I.BOW && !entityTarget()) { if (G.creative || G.inv.count(I.ARROW) > 0) G.bowT = 0; else { UI.toast("You need arrows to shoot. Make them from flint, a stick, and a feather.", "bad"); Sound.error(); } }
+  else { useItem(); G.useCooldown = 0.28; }
+}
+function releaseL() { mouseL = false; G.mining = null; }
+function releaseR() { mouseR = false; if (G.bowT >= 0) releaseBow(); }
 canvas.addEventListener("mousedown", e => {
   if (G.state !== "play") return;
   if (!locked) { requestLock(); return; }
-  if (e.button === 0) { mouseL = true; G.mining = null; if (!attack() && G.creative) creativeBreak(); }
-  if (e.button === 2) {
-    mouseR = true;
-    const s = G.inv.slots[G.selected];
-    if (s && s.id === I.BOW && !entityTarget()) { if (G.creative || G.inv.count(I.ARROW) > 0) G.bowT = 0; else { UI.toast("You need arrows to shoot. Make them from flint, a stick, and a feather.", "bad"); Sound.error(); } }
-    else { useItem(); G.useCooldown = 0.28; }
-  }
+  if (e.button === 0) pressL();
+  if (e.button === 2) pressR();
 });
 window.addEventListener("mouseup", e => {
-  if (e.button === 0) { mouseL = false; G.mining = null; }
-  if (e.button === 2) { mouseR = false; if (G.bowT >= 0) releaseBow(); }
+  if (e.button === 0) releaseL();
+  if (e.button === 2) releaseR();
+});
+// keyboard versions of the mouse buttons, for touchpads and Chromebooks without a mouse
+window.addEventListener("keydown", e => {
+  if (G.state !== "play" || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.code === "KeyF") pressR();
+  else if (e.code === "KeyR") pressL();
+});
+window.addEventListener("keyup", e => {
+  if (e.code === "KeyF" && mouseR) releaseR();
+  else if (e.code === "KeyR" && mouseL) releaseL();
 });
 canvas.addEventListener("contextmenu", e => e.preventDefault());
 document.addEventListener("mousemove", e => {
@@ -1607,15 +1622,15 @@ function survival(dt) {
 // ---------- first-time tips ----------
 const TIPS_S = [
   ["move", "Use <b>W A S D</b> to walk and the <b>mouse</b> to look around. <b>Space</b> jumps."],
-  ["chop", "Find a tree. <b>Hold the left mouse button</b> on its trunk to chop a log."],
+  ["chop", "Find a tree. <b>Hold the left mouse button</b> (or the <b>R</b> key) on its trunk to chop a log."],
   ["craft", "Press <b>E</b> and make <b>Oak Planks</b> from your log."],
-  ["place", "Pick planks with <b>1–9</b> or the wheel, then <b>right-click</b> to place them."],
-  ["table", "Make a <b>Workbench</b>, place it, and <b>right-click</b> it to make tools. Build a shelter before night!"]
+  ["place", "Pick planks with <b>1–9</b> or the wheel, then <b>right-click</b> (or press <b>F</b>) to place them."],
+  ["table", "Make a <b>Workbench</b>, place it, and <b>right-click</b> it (or press <b>F</b>) to make tools. Build a shelter before night!"]
 ];
 const TIPS_C = [
   ["move", "Use <b>W A S D</b> to move. <b>Tap Space twice</b> to fly, then Space to rise and <b>C</b> to go down."],
   ["craft", "Press <b>E</b> to open the block chooser. Click a block, then click a hotbar slot."],
-  ["place", "<b>Right-click</b> to place blocks and <b>left-click</b> to remove them. Have fun building!"]
+  ["place", "<b>Right-click</b> (or <b>F</b>) to place blocks and <b>left-click</b> (or <b>R</b>) to remove them. Have fun building!"]
 ];
 function updateTips() {
   const list = G.creative ? TIPS_C : TIPS_S, next = list.find(([k]) => !G.tips[k]);
