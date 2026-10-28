@@ -64,10 +64,26 @@ Tech: static site on GitHub Pages, no build step. Plain ES modules in `js/`, Thr
 | Old worlds | Done | Places the player already changed keep their original land. Untouched places get new features (`newGen` per dimension, land version `CURRENT_GEN = 3`) |
 | Creatures traveling through portals, Hogbeast → rotten variant [zoglin] | Missing | |
 
+## Milestone 4: strongholds, the Hollow [End], and the Hollow Wyrm [Ender Dragon] (published 2026-10-28)
+| Feature | Status | Notes |
+|---|---|---|
+| Eye of the Void [eye of ender] | Done | Void Pearl + Flare Powder. Thrown on the Surface, it flies toward the nearest of 3 strongholds (260–460 blocks out), dives when you're within ~12 blocks, then drops (80%) or shatters |
+| Strongholds | Done | Land v4. Underground stone/mossy brick portal room, 4 halls, 4 treasure rooms (loot includes Void Pearls). Older worlds only get them in places the player hasn't changed |
+| Hollow Portal | Done | 12 frames (≈10% start with an eye); filling all of them opens a 3×3 portal; stepping in travels instantly |
+| The Hollow dimension | Done | Separate save. Central island of Hollowstone, 10 obsidian pillars, starry purple sky, void below (damages, then faints you; Creative is lifted back up), arrival obsidian platform at x 100 |
+| Hollow Wyrm boss | Done | Boss bar; circles the pillars, strafes and spits void breath (lingering damaging clouds), charges with a hover/roar/fast-flap wind-up and knock-up, lands on the center to rest (full damage there, 60% while flying), takes off again. Void Crystals heal it (beam shown) and explode when hit. Health and destroyed crystals are saved if you leave or faint |
+| Victory | Done | Death animation, ≈400 XP, Wyrm Scales, exit fountain portal home, Wyrm Egg, Gateway to the outer islands (with a return Gateway). Defeat is saved; the Wyrm does not come back |
+| Outer islands | Done | Floating islands past 380 blocks, Chorus plants (Chorus Fruit: blink-teleport food; smelts into Violet Bricks), Voidwalkers |
+| Hollow towers [end cities] | Partial | Violet brick towers with floors, treasure chests (the top chest always has Glider Wings), 4 Shellers each. No ships yet |
+| Sheller [shulker] | Done | Hides in its shell (takes 25% damage closed), opens to fire slow homing bullets that cause Floating (levitation) for 6 s; bullets can be swatted. Drops Sheller Shells |
+| Shell Box [shulker box] | Done | 2 shells + chest. Keeps its 27 slots of contents when broken and placed again |
+| Glider Wings [elytra] | Done | Worn as a chestplate; press Space while falling. Look down to dive and speed up, up to slow; no fall damage while gliding; crashing into walls hurts; loses durability while gliding. No rocket boosts yet |
+| Resummoning the Wyrm | Missing | |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
-| End-style dimension, dragon boss, wither boss | Missing |
+| Wither-style summoned boss | Missing (Blight Skulls already drop from Blight Rattlers) |
 | Pets (wolf/cat/parrot), mounts, aquatic life, wildlife roster | Missing |
 | Villagers, trading, golems, villages and other structures | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
