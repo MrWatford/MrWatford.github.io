@@ -1,6 +1,6 @@
 // Holds the blocks of the world in 16×16 columns ("chunks") and remembers every change the player makes.
 import { B, CHUNK, HEIGHT, idOf } from "./blocks.js";
-import { idx } from "./worldgen.js";
+import { idx, CURRENT_GEN } from "./worldgen.js";
 
 export const chunkKey = (cx, cz) => cx + "," + cz;
 
@@ -13,6 +13,7 @@ export class World {
     this.dirtyQueue = new Set();   // chunks that need their 3D shape rebuilt
     this.entityStore = new Map();  // creatures waiting in unloaded chunks: key → [saved creature]
     this.visited = new Set();      // chunks that already got their starting animals
+    this.newGen = new Set();       // (older worlds only) chunks first made with the newest land features
     this.crops = new Set();        // "x,y,z" of crops and saplings that grow over time
     this.editCount = 0;            // bumps on every block change (creatures re-plan their paths)
     this.onLoad = null; this.onUnload = null;
@@ -34,8 +35,15 @@ export class World {
     const key = chunkKey(cx, cz);
     let c = this.chunks.get(key);
     if (c) return c;
-    const data = this.gen.generate(cx, cz);
     const m = this.mods.get(key);
+    // older worlds: places the player already changed keep their original shapes; untouched places get new features
+    let opts = {};
+    if (this.gen.version < CURRENT_GEN) {
+      const fresh = !m || this.newGen.has(key);
+      if (fresh) this.newGen.add(key);
+      opts = { version: fresh ? CURRENT_GEN : this.gen.version };
+    }
+    const data = this.gen.generate(cx, cz, opts);
     if (m) for (const [i, v] of m) data[i] = v;
     c = { cx, cz, key, data, dirty: true, mesh: null };
     this.chunks.set(key, c);

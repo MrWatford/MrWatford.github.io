@@ -3,7 +3,7 @@ import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
   buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET } from "./blocks.js";
 import { Entities, SPECIES } from "./entities.js";
-import { Generator, LOOT } from "./worldgen.js";
+import { Generator, NetherGen, LOOT, LAVA_LEVEL, CURRENT_GEN } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
 import { Player, raycast, blockBoxes, REACH } from "./player.js";
@@ -34,17 +34,17 @@ scene.add(camera);
 const atlasTex = new THREE.CanvasTexture(buildAtlas());
 atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestFilter; atlasTex.generateMipmaps = false;
 
-const uniforms = { map: { value: atlasTex }, daylight: { value: 1 }, fogColor: { value: new THREE.Color(0x8fd0f5) }, fogNear: { value: 40 }, fogFar: { value: 64 }, alphaTest: { value: 0.5 }, opacity: { value: 1 } };
+const uniforms = { map: { value: atlasTex }, daylight: { value: 1 }, ambient: { value: 0.11 }, fogColor: { value: new THREE.Color(0x8fd0f5) }, fogNear: { value: 40 }, fogFar: { value: 64 }, alphaTest: { value: 0.5 }, opacity: { value: 1 } };
 const VERT = `attribute vec3 lt; varying vec2 vUv; varying vec3 vLt; varying float vDist;
 void main() { vUv = uv; vLt = lt; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDist = length(mv.xyz); gl_Position = projectionMatrix * mv; }`;
-const FRAG = `uniform sampler2D map; uniform float daylight, fogNear, fogFar, alphaTest, opacity; uniform vec3 fogColor;
+const FRAG = `uniform sampler2D map; uniform float daylight, ambient, fogNear, fogFar, alphaTest, opacity; uniform vec3 fogColor;
 varying vec2 vUv; varying vec3 vLt; varying float vDist;
 void main() {
   vec4 t = texture2D(map, vUv);
   if (t.a < alphaTest) discard;
   float s = vLt.x * daylight, b = vLt.y;
   float l = max(s, b);
-  l = 0.11 + 0.89 * pow(l, 1.5);
+  l = ambient + (1.0 - ambient) * pow(l, 1.5);
   vec3 tint = mix(vec3(1.0), vec3(1.0, 0.85, 0.62), clamp((b - s) * 1.5, 0.0, 1.0));
   vec3 col = t.rgb * l * vLt.z * tint;
   col = mix(col, fogColor, smoothstep(fogNear, fogFar, vDist));
@@ -170,10 +170,12 @@ const ents = new Entities(scene, {
   consume: () => { const s = G.inv.slots[G.selected]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.selected] = null; } G.hudDirty = true; heldId = -1; },
   wear: () => { const s = G.inv.slots[G.selected]; if (s) wearTool(s, 1); },
   swapHeld: id => swapHeld(id), give: (id, n) => G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
+  wearingGold: () => [36, 37, 38, 39].some(i => G.inv.slots[i] && [I.GOLD_HELMET, I.GOLD_CHEST, I.GOLD_LEGS, I.GOLD_BOOTS].includes(G.inv.slots[i].id)),
+  ignite: (x, y, z) => ignite(x, y, z),
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
-const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3] };
+const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1] };
 function puff(x, y, z, kind) {
   const c = PUFF_COLORS[kind] || [1, 1, 1], n = kind === "heart" ? 6 : 14;
   for (let i = 0; i < n; i++) { if (parts.length >= PMAX) parts.shift(); parts.push({ x: x + (Math.random() - 0.5) * 0.8, y: y + Math.random() * 0.6, z: z + (Math.random() - 0.5) * 0.8, vx: (Math.random() - 0.5) * 2, vy: kind === "heart" ? 1.5 : Math.random() * 2, vz: (Math.random() - 0.5) * 2, life: 0.6 + Math.random() * 0.4, c, floaty: true }); }
@@ -186,7 +188,7 @@ function swapHeld(id) {
 }
 
 // ---------- status effects (poison, queasy, burning) ----------
-const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire" };
+const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted" };
 function addEffect(k, t) { if (G.creative) return; G.effects[k] = Math.max(G.effects[k] || 0, t); G.hudDirty = true; }
 let effT = 0;
 function tickEffects(dt) {
@@ -198,8 +200,183 @@ function tickEffects(dt) {
     if (G.effects[k] <= 0) { delete G.effects[k]; G.hudDirty = true; continue; }
     if (k === "poison" && tick && p.health > 1) hurt(1, "Poison wore you down.", null, true);
     if (k === "queasy") p.exhaust += dt * 0.6;
-    if (k === "fire") { if (p.inWater) { delete G.effects.fire; G.hudDirty = true; } else if (tick) hurt(1, "You were burned. Jump in water to put out flames!", null, true); }
+    if (k === "fire") { if (p.inWater && !p.inLava) { delete G.effects.fire; G.hudDirty = true; } else if (tick) hurt(1, "You were burned. Jump in water to put out flames!", null, true); }
+    if (k === "blight" && tick && Math.floor(G.effects[k]) % 2 === 0) hurt(1, "The Blight wore you down. Blight Rattlers cause it, so fight them with good armor.", null, true);
   }
+}
+
+// ---------- fire: lasts forever on Ember Depths rock, burns out quickly anywhere else ----------
+const fires = [];
+function ignite(x, y, z) {
+  const w = G.world;
+  if (w.id(x, y, z) && !BLOCKS[w.id(x, y, z)].replaceable) y++;
+  if (w.id(x, y, z) && !BLOCKS[w.id(x, y, z)].replaceable) return false;
+  if (!SOLID[w.id(x, y - 1, z)]) return false;
+  w.set(x, y, z, B.FIRE);
+  if (![B.EMBERRACK, B.MAGMA, B.SOUL_SAND].includes(w.id(x, y - 1, z))) fires.push({ x, y, z, t: 6 + Math.random() * 4 });
+  return true;
+}
+function updateFires(dt) {
+  for (let i = fires.length - 1; i >= 0; i--) {
+    const f = fires[i]; f.t -= dt;
+    if (f.t <= 0) { if (G.world.id(f.x, f.y, f.z) === B.FIRE) G.world.set(f.x, f.y, f.z, B.AIR); fires.splice(i, 1); }
+  }
+}
+
+// ---------- portals between the Surface and the Ember Depths ----------
+const DIM_NAMES = { overworld: "the Surface", nether: "the Ember Depths" };
+// Light a portal inside an obsidian frame. (x, y, z) is an empty spot inside the frame.
+function lightPortal(x, y, z) {
+  const w = G.world;
+  for (const axis of [0, 1]) {
+    const cell = (a, yy) => axis === 0 ? [a, yy, z] : [x, yy, a];
+    const start = axis === 0 ? x : z, seen = new Set(), queue = [[start, y]];
+    let ok = true;
+    while (queue.length && ok) {
+      const [a, yy] = queue.pop(), k = a + "," + yy;
+      if (seen.has(k)) continue;
+      const id = w.id(...cell(a, yy));
+      if (id === B.OBSIDIAN) continue;
+      if (id !== B.AIR && id !== B.FIRE) { ok = false; break; }
+      seen.add(k);
+      if (seen.size > 21 * 21) { ok = false; break; }
+      queue.push([a + 1, yy], [a - 1, yy], [a, yy + 1], [a, yy - 1]);
+    }
+    if (!ok || !seen.size) continue;
+    const pts = [...seen].map(s => s.split(",").map(Number));
+    const minA = Math.min(...pts.map(q => q[0])), maxA = Math.max(...pts.map(q => q[0])), minY = Math.min(...pts.map(q => q[1])), maxY = Math.max(...pts.map(q => q[1]));
+    const wd = maxA - minA + 1, ht = maxY - minY + 1;
+    if (wd < 2 || ht < 3 || wd > 21 || ht > 21 || pts.length !== wd * ht) continue;
+    let frame = true;
+    for (let a = minA; a <= maxA; a++) if (w.id(...cell(a, minY - 1)) !== B.OBSIDIAN || w.id(...cell(a, maxY + 1)) !== B.OBSIDIAN) frame = false;
+    for (let yy = minY; yy <= maxY; yy++) if (w.id(...cell(minA - 1, yy)) !== B.OBSIDIAN || w.id(...cell(maxA + 1, yy)) !== B.OBSIDIAN) frame = false;
+    if (!frame) continue;
+    for (const [a, yy] of pts) w.set(...cell(a, yy), make(B.PORTAL, axis));
+    const anchor = axis === 0 ? { x: minA, y: minY, z, axis, w: wd, h: ht } : { x, y: minY, z: minA, axis, w: wd, h: ht };
+    registerPortal(G.dim, anchor);
+    Sound.mob("portal", 0); puff(x + 0.5, y + 1, z + 0.5, "portal");
+    UI.toast("The portal hums to life! Step in and wait a moment to travel.", "good");
+    return true;
+  }
+  return false;
+}
+function portalList(dim) { const d = G.dimData[dim] || (G.dimData[dim] = {}); return d.portals || (d.portals = []); }
+function registerPortal(dim, a) { const list = portalList(dim); if (!list.some(q => q.x === a.x && q.y === a.y && q.z === a.z)) list.push(a); }
+const portalKey = a => a.x + "," + a.y + "," + a.z;
+// Which registered portal is this block part of?
+function portalAt(x, y, z) {
+  return portalList(G.dim).find(a => y >= a.y && y < a.y + a.h && (a.axis === 0 ? (z === a.z && x >= a.x && x < a.x + a.w) : (x === a.x && z >= a.z && z < a.z + a.w)));
+}
+// Breaking the frame (or the portal itself) switches the whole portal off
+function breakPortal(x, y, z) {
+  const w = G.world, seen = new Set(), queue = [[x, y, z]];
+  while (queue.length && seen.size < 500) {
+    const [a, b, c] = queue.pop(), k = a + "," + b + "," + c;
+    if (seen.has(k)) continue; seen.add(k);
+    for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) if (w.id(a + dx, b + dy, c + dz) === B.PORTAL) { w.set(a + dx, b + dy, c + dz, B.AIR); queue.push([a + dx, b + dy, c + dz]); }
+  }
+  const list = portalList(G.dim);
+  for (let i = list.length - 1; i >= 0; i--) { const a = list[i]; if (G.world.isLoaded(a.x, a.z) && w.id(a.x, a.y, a.z) !== B.PORTAL) list.splice(i, 1); }
+}
+let portalT = 0, portalCooldown = false;
+function checkPortal(dt) {
+  const p = G.player, w = G.world, a = p.aabb();
+  let inside = null;
+  for (let yy = Math.floor(a[1]); yy <= Math.floor(a[4] - 0.01) && !inside; yy++) for (let xx = Math.floor(a[0]); xx <= Math.floor(a[3]) && !inside; xx++) for (let zz = Math.floor(a[2]); zz <= Math.floor(a[5]) && !inside; zz++) if (w.id(xx, yy, zz) === B.PORTAL) inside = [xx, yy, zz];
+  const tint = document.getElementById("portalTint");
+  if (!inside) { portalT = 0; portalCooldown = false; tint.style.opacity = 0; return; }
+  if (portalCooldown) { tint.style.opacity = 0.15; return; }
+  if (portalT === 0) Sound.mob("portal", 0);
+  portalT += dt;
+  const need = G.creative ? 0.6 : 2.5;
+  tint.style.opacity = Math.min(0.85, portalT / need);
+  if (portalT >= need && !G.traveling) { portalT = 0; travel(G.dim === "nether" ? "overworld" : "nether", portalAt(...inside) || { x: inside[0], y: inside[1], z: inside[2], axis: idOf(w.get(...inside)) === B.PORTAL ? metaOf(w.get(...inside)) & 1 : 0, w: 2, h: 3 }); }
+}
+async function travel(toDim, fromPortal) {
+  const p = G.player, fromDim = G.dim, back = { x: p.pos.x, y: p.pos.y, z: p.pos.z };
+  const scale = toDim === "nether" ? 1 / 8 : 8, tx = Math.floor(p.pos.x * scale), tz = Math.floor(p.pos.z * scale);
+  G.traveling = true;
+  try {
+    G.state = "loading"; UI.show("loading"); UI.setLoading(0, "Traveling to " + DIM_NAMES[toDim] + "…");
+    document.getElementById("portalTint").style.opacity = 0;
+    await saveNow(false);
+    clearWorldMeshes(); G.world.chunks.clear(); G.world.dirtyQueue.clear(); fires.length = 0;
+    G.dim = toDim; G.world = makeWorld(toDim); G.gen = G.world.gen;
+    // a remembered link takes you back to the same portal every time
+    const link = fromPortal && (G.dimData[fromDim].links || {})[portalKey(fromPortal)];
+    let dest = link && link.dim === toDim ? link : null;
+    if (!dest) {
+      const range = toDim === "nether" ? 16 : 128;
+      dest = portalList(toDim).filter(a => Math.hypot(a.x - tx, a.z - tz) <= range).sort((a, b) => Math.hypot(a.x - tx, a.z - tz) - Math.hypot(b.x - tx, b.z - tz))[0] || null;
+    }
+    const cx = dest ? dest.x : tx, cz = dest ? dest.z : tz;
+    p.pos.x = cx + 0.5; p.pos.z = cz + 0.5;
+    await loadArea(cx, cz, "Traveling to " + DIM_NAMES[toDim] + "…");
+    if (dest && G.world.id(dest.x, dest.y, dest.z) !== B.PORTAL) {   // that portal was broken
+      const list = portalList(toDim), at = list.findIndex(q => q.x === dest.x && q.y === dest.y && q.z === dest.z); if (at >= 0) list.splice(at, 1); dest = null;
+    }
+    if (!dest) dest = buildPortal(tx, tz);
+    // remember the link both ways
+    if (fromPortal) {
+      (G.dimData[fromDim].links = G.dimData[fromDim].links || {})[portalKey(fromPortal)] = { dim: toDim, ...dest };
+      (G.dimData[toDim].links = G.dimData[toDim].links || {})[portalKey(dest)] = { dim: fromDim, ...fromPortal };
+    }
+    p.pos.x = (dest.axis === 0 ? dest.x + 1 : dest.x) + 0.5; p.pos.y = dest.y; p.pos.z = (dest.axis === 0 ? dest.z : dest.z + 1) + 0.5;
+    if (dest.axis === 0 && dest.w < 2) p.pos.x = dest.x + 0.5;
+    p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null;
+    portalCooldown = true; portalT = 0;
+    await saveNow(false);
+    G.state = "pause"; UI.show("none"); UI.hud(); G.resume();
+    UI.toast(toDim === "nether" ? "Welcome to the Ember Depths! Watch out for lava, and don't sleep here." : "Back on the Surface.", toDim === "nether" ? "bad" : "good");
+    if (toDim === "nether" && !G.tips.nether) { G.tips.nether = true; UI.toast("Tip: wear a piece of gold armor and the Boarkin won't attack. Give them gold ingots to trade.", ""); }
+  } catch (err) {
+    console.error(err);
+    // something went wrong: go back where we were
+    clearWorldMeshes(); if (G.world) G.world.chunks.clear();
+    G.dim = fromDim; G.world = makeWorld(fromDim); G.gen = G.world.gen;
+    Object.assign(p.pos, back);
+    await loadArea(back.x, back.z, "Returning…");
+    portalCooldown = true;
+    G.state = "pause"; UI.show("none"); G.resume();
+    UI.toast("The portal fizzled. Try again.", "bad");
+  }
+  G.traveling = false;
+}
+// Find a safe spot near (tx, tz) and build a working portal there (with a small platform if needed)
+function buildPortal(tx, tz) {
+  const w = G.world, nether = G.dim === "nether";
+  const fits = (x, y, z) => {
+    for (let a = 0; a < 4; a++) {
+      if (!SOLID[w.id(x + a, y - 1, z)] || w.id(x + a, y - 1, z) === B.LAVA) return false;
+      for (let b = 0; b < 5; b++) { const id = w.id(x + a, y + b, z); if (id && !BLOCKS[id].replaceable && id !== B.FIRE) return false; }
+    }
+    for (const dz of [-1, 1]) for (let a = 1; a < 3; a++) for (let b = 0; b < 3; b++) { const id = w.id(x + a, y + b, z + dz); if (SOLID[id] || id === B.LAVA) return false; }
+    return true;
+  };
+  let spot = null;
+  for (let r = 0; r <= 16 && !spot; r++) for (let dx = -r; dx <= r && !spot; dx++) for (let dz = -r; dz <= r && !spot; dz++) {
+    if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+    const x = tx + dx, z = tz + dz;
+    if (!w.isLoaded(x, z) || !w.isLoaded(x + 3, z + 1)) continue;
+    if (nether) { for (let y = 66; y > LAVA_LEVEL + 1 && !spot; y--) if (fits(x, y, z)) spot = { x, y, z }; }
+    else { const y = w.surfaceY(x, z) + 1; if (y > 2 && y < HEIGHT - 8 && fits(x, y, z)) spot = { x, y, z }; }
+  }
+  if (!spot) {   // no good place: carve one out and stand it on an obsidian platform
+    const y = nether ? Math.max(LAVA_LEVEL + 8, Math.min(60, 40)) : Math.max(3, w.surfaceY(tx, tz) + 1);
+    spot = { x: tx, y, z: tz };
+    for (let a = -1; a < 5; a++) for (let dz = -2; dz <= 2; dz++) {
+      if (w.id(tx + a, y - 1, tz + dz) !== B.BEDROCK) w.set(tx + a, y - 1, tz + dz, B.OBSIDIAN);
+      for (let b = 0; b < 5; b++) if (w.id(tx + a, y + b, tz + dz) !== B.BEDROCK) w.set(tx + a, y + b, tz + dz, B.AIR);
+    }
+  }
+  const { x, y, z } = spot;
+  for (let a = 0; a < 4; a++) for (let b = 0; b < 5; b++) {
+    const edge = a === 0 || a === 3 || b === 0 || b === 4;
+    w.set(x + a, y + b, z, edge ? B.OBSIDIAN : make(B.PORTAL, 0));
+  }
+  const anchor = { x: x + 1, y: y + 1, z, axis: 0, w: 2, h: 3 };
+  registerPortal(G.dim, anchor);
+  return anchor;
 }
 
 // ---------- experience ----------
@@ -391,7 +568,7 @@ function clearWorldMeshes() {
 // ---------- dimensions: each has its own generator, block changes, containers, and creatures ----------
 function makeWorld(dim) {
   const data = G.dimData[dim] || (G.dimData[dim] = {});
-  const gen = new Generator(G.meta.seed, G.meta.gen || 1);
+  const gen = dim === "nether" ? new NetherGen(G.meta.seed) : new Generator(G.meta.seed, G.meta.gen || 1);
   const w = new World(gen);
   w.dim = dim;
   w.modsFromJSON(data.mods);
@@ -399,12 +576,29 @@ function makeWorld(dim) {
   for (const k of Object.keys(data.entities || {})) w.entityStore.set(k, data.entities[k]);
   for (const k of data.visited || []) w.visited.add(k);
   for (const k of data.crops || []) w.crops.add(k);
+  for (const k of data.newGen || []) w.newGen.add(k);
   w.onLoad = c => ents.loadChunk(c);
   w.onUnload = c => ents.unloadChunk(c);
   return w;
 }
 function dimSnapshot(w) {
-  return { mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops] };
+  const old = G.dimData[w.dim] || {};
+  return { mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], portals: old.portals || [], links: old.links || {} };
+}
+// Build (and draw) the land around a spot, with a progress bar
+async function loadArea(x, z, label) {
+  const R = G.settings.renderDist, pcx = Math.floor(x / CHUNK), pcz = Math.floor(z / CHUNK);
+  const toLoad = OFFSETS[R + 1], toMesh = OFFSETS[Math.min(R, 3)];
+  let done = 0; const total = toLoad.length + toMesh.length;
+  for (const [dx, dz] of toLoad) {
+    G.world.load(pcx + dx, pcz + dz);
+    if (++done % 4 === 0) { UI.setLoading(done / total, label); await frame(); }
+  }
+  for (const [dx, dz] of toMesh) {
+    const c = G.world.chunks.get(chunkKey(pcx + dx, pcz + dz));
+    if (c && neighborsReady(c)) meshChunk(c);
+    if (++done % 4 === 0) { UI.setLoading(done / total, label); await frame(); }
+  }
 }
 
 // ---------- starting, loading, saving ----------
@@ -427,18 +621,7 @@ async function startWorld(save) {
   if (!p.spawn) { const s = G.gen.findSpawn(); p.spawn = { x: s.x, y: null, z: s.z }; Object.assign(p.pos, { x: s.x, y: 70, z: s.z }); }
   p.air = 10; G.selected = 0; G.drops = []; G.mining = null; G.hudDirty = true;
   // build the land around the player before dropping them in
-  const R = G.settings.renderDist, pcx = Math.floor(p.pos.x / CHUNK), pcz = Math.floor(p.pos.z / CHUNK);
-  const toLoad = OFFSETS[R + 1], toMesh = OFFSETS[Math.min(R, 3)];
-  let done = 0; const total = toLoad.length + toMesh.length;
-  for (const [dx, dz] of toLoad) {
-    G.world.load(pcx + dx, pcz + dz);
-    if (++done % 4 === 0) { UI.setLoading(done / total, "Shaping hills and valleys"); await frame(); }
-  }
-  for (const [dx, dz] of toMesh) {
-    const c = G.world.chunks.get(chunkKey(pcx + dx, pcz + dz));
-    if (c && neighborsReady(c)) meshChunk(c);
-    if (++done % 4 === 0) { UI.setLoading(done / total, "Planting trees and lighting torches"); await frame(); }
-  }
+  await loadArea(p.pos.x, p.pos.z, G.dim === "nether" ? "Heating up the Ember Depths" : "Shaping hills and valleys");
   if (p.spawn.y == null) { placeSafely(p, p.spawn.x, p.spawn.z); p.spawn.y = p.pos.y; }
   else if (!save.player) placeSafely(p, p.pos.x, p.pos.z);
   else if (p.collides(G.world, p.aabb())) placeSafely(p, p.pos.x, p.pos.z);
@@ -458,6 +641,17 @@ function placeSafely(p, x, z) {
   // make sure the land there exists first (it may be far from where the player was)
   const cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK);
   for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) w.load(cx + dx, cz + dz);
+  if (w.gen.isNether()) {   // no open sky here: look for a cave floor near the player's height
+    for (let ring = 0; ring < 8; ring++) for (let dz = -ring; dz <= ring; dz++) for (let dx = -ring; dx <= ring; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
+      const bx = Math.floor(x) + dx, bz = Math.floor(z) + dz;
+      for (let k = 0; k < 50; k++) for (const y of [Math.floor(p.pos.y) - k, Math.floor(p.pos.y) + k]) {
+        if (y < LAVA_LEVEL + 1 || y > HEIGHT - 4) continue;
+        if (SOLID[w.id(bx, y - 1, bz)] && !SOLID[w.id(bx, y, bz)] && !SOLID[w.id(bx, y + 1, bz)] && w.id(bx, y, bz) !== B.LAVA && w.id(bx, y - 1, bz) !== B.MAGMA) { p.pos.x = bx + 0.5; p.pos.y = y; p.pos.z = bz + 0.5; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; return; }
+      }
+    }
+    return;
+  }
   for (let ring = 0; ring < 8; ring++) for (let dz = -ring; dz <= ring; dz++) for (let dx = -ring; dx <= ring; dx++) {
     if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
     const bx = Math.floor(x) + dx, bz = Math.floor(z) + dz, y = w.surfaceY(bx, bz), top = w.id(bx, y, bz);
@@ -661,6 +855,7 @@ function breakBlock(x, y, z, drops, quiet) {
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
   w.crops.delete(x + "," + y + "," + z);
+  if (id === B.OBSIDIAN || id === B.PORTAL) setTimeout(() => breakPortal(x, y, z), 0);
   if (id === B.DOOR) {   // doors are two blocks tall: remove both halves
     if (metaOf(v) & TOP) y -= 1;
     w.set(x, y, z, B.AIR);
@@ -683,6 +878,9 @@ function breakBlock(x, y, z, drops, quiet) {
     if (heldTool() && heldTool().type === "shears" && (id === B.LEAVES || id === B.BIRCH_LEAVES)) drop = id;
     if (id === B.TALL_GRASS) drop = r < 0.12 ? I.SEEDS : r < 0.14 ? I.CARROT : 0;
     if (id === B.GRAVEL && r < 0.1) drop = I.FLINT;
+    if (drop === "shine") drop = [I.SHINE_DUST, 2 + Math.floor(Math.random() * 3)];
+    if (drop === "goldnuggets") drop = [I.GOLD_NUGGET, 2 + Math.floor(Math.random() * 4)];
+    if (drop === "wart") drop = [I.WART, (metaOf(v) & 7) >= 7 ? 2 + Math.floor(Math.random() * 3) : 1];
     if (drop === "crop") {
       const ripe = (metaOf(v) & 7) >= 7;
       if (id === B.WHEAT) { if (ripe) spawnDrop(I.WHEAT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
@@ -696,7 +894,8 @@ function breakBlock(x, y, z, drops, quiet) {
   if (box) { for (const s of box.slots) if (s) spawnDrop(s.id, s.n, x + 0.5, y + 0.5, z + 0.5, s); w.containers.delete(key); }
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
-  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING].includes(aid) || (aid === B.DOOR && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART].includes(aid) || (aid === B.DOOR && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if (aid === B.FIRE) w.set(x, y + 1, z, B.AIR);
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
   if (id === B.LOG || id === B.BIRCH_LOG) tipDone("chop");
   G.hudDirty = true;
@@ -713,6 +912,7 @@ function entityTarget() {
 }
 // Hit whatever creature is in front of you. Returns true if something was hit.
 function attack() {
+  { const p = G.player; if (ents.deflect({ x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z }, lookDir(), 4)) { G.swing = 0.01; return true; } }
   const e = entityTarget();
   if (!e) return false;
   if (G.attackCd > 0) return true;
@@ -809,7 +1009,10 @@ function useItem() {
   }
   if (slot.id === I.BONE_MEAL) { useBoneMeal(hit, slot); return; }
   if (slot.id === I.FLINT_STEEL) {
-    if (hitId === B.TNT) { w.set(hit.x, hit.y, hit.z, B.AIR); primeTNT(hit.x, hit.y, hit.z); wearTool(slot, 1); }
+    if (hitId === B.TNT) { w.set(hit.x, hit.y, hit.z, B.AIR); primeTNT(hit.x, hit.y, hit.z); wearTool(slot, 1); return; }
+    const ax = hit.x + hit.nx, ay = hit.y + hit.ny, az = hit.z + hit.nz;
+    if (hitId === B.OBSIDIAN && !w.id(ax, ay, az) && lightPortal(ax, ay, az)) { wearTool(slot, 1); return; }
+    if (ignite(ax, ay, az)) { wearTool(slot, 1); Sound.mob("fireshoot", 0); }
     return;
   }
   if (slot.id === B.BED) { placeBed(hit, slot); return; }
@@ -825,6 +1028,7 @@ function useItem() {
   if (d.front) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces and chests face you
   if (d.shape === "cross" && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return; }
   if (id === B.SAPLING) w.crops.add(x + "," + y + "," + z);
+  if (id === B.WATER && G.world.gen.isNether()) { puff(x + 0.5, y + 0.5, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); return; }
   if (id === B.LAVA || id === B.WATER) { placeLiquid(id, x, y, z); if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; } G.hudDirty = true; return; }
   if (id === B.TORCH && !OPAQUE[idOf(hit.v)]) { Sound.error(); return; }
   if (id === B.DOOR) {
@@ -864,6 +1068,7 @@ function useBucket(slot) {
     return;
   }
   const liquid = slot.id === I.WATER_BUCKET ? B.WATER : B.LAVA;
+  if (liquid === B.WATER && G.world.gen.isNether()) { puff(hit.x + 0.5, hit.y + 1.5, hit.z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); if (!G.creative) { G.inv.slots[G.selected] = newStack(I.BUCKET, 1); heldId = -1; } G.hudDirty = true; return; }
   let x = hit.x, y = hit.y, z = hit.z;
   if (!blockDef(hit.v).replaceable && idOf(hit.v) !== B.WATER) { x += hit.nx; y += hit.ny; z += hit.nz; }
   const here = w.id(x, y, z);
@@ -899,6 +1104,7 @@ function placeBed(hit, slot) {
   Sound.place("soft"); G.hudDirty = true; heldId = -1;
 }
 function useBed(hit) {
+  if (G.world.gen.isNether()) { breakBlock(hit.x, hit.y, hit.z, false); explode(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5, 3, null); UI.toast("Beds explode in the Ember Depths! Only sleep on the Surface.", "bad"); return; }
   const meta = metaOf(hit.v), [dx, dz] = DIR[meta & 3];
   const head = meta & HEAD ? { x: hit.x, z: hit.z } : { x: hit.x + dx, z: hit.z + dz };
   G.player.spawn = { x: head.x + 0.5, y: hit.y + 1, z: head.z + 0.5, bed: [hit.x, hit.y, hit.z] };
@@ -938,7 +1144,21 @@ function interact(hit, kind) {
 function fillLoot(box, hit) {
   const r = rng(hashSeed(G.meta.seed) ^ (hit.x * 73856093) ^ (hit.z * 19349663));
   const put = (id, n) => { const i = box.slots.findIndex(s => !s); if (i >= 0 && n > 0) box.slots[i] = newStack(id, n); };
+  if (G.world.gen.isNether()) {   // fortress and bastion treasure
+    put(I.GOLD_INGOT, 2 + Math.floor(r() * 5)); put(I.GOLD_NUGGET, 4 + Math.floor(r() * 10));
+    if (r() < 0.6) put(B.OBSIDIAN, 2 + Math.floor(r() * 5));
+    if (r() < 0.5) put(I.IRON_INGOT, 2 + Math.floor(r() * 4));
+    if (r() < 0.4) put(I.WART, 3 + Math.floor(r() * 5));
+    if (r() < 0.3) put(I.GOLD_CHEST, 1);
+    if (r() < 0.25) put(I.SKYSHARD, 1 + Math.floor(r() * 2));
+    if (r() < 0.12) put(I.DUSK_SCRAP, 1);
+    for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
+    UI.toast("You found a treasure chest!", "good"); return;
+  }
   put(I.COAL, 3 + Math.floor(r() * 6)); put(I.APPLE, 1 + Math.floor(r() * 3)); put(B.TORCH, 4 + Math.floor(r() * 6));
+  if (r() < 0.55) put(B.OBSIDIAN, 1 + Math.floor(r() * 4));
+  if (r() < 0.35) put(I.FLINT_STEEL, 1);
+  if (r() < 0.45) put(I.GOLD_NUGGET, 3 + Math.floor(r() * 9));
   if (r() < 0.7) put(I.IRON_INGOT, 2 + Math.floor(r() * 4));
   if (r() < 0.35) put(I.SKYSHARD, 1 + Math.floor(r() * 2));
   if (r() < 0.5) put(I.STONE_PICK, 1);
@@ -1057,6 +1277,7 @@ function hurt(n, why, src, bypassArmor) {
   n = Math.max(0.5, Math.round(n * 2) / 2);
   p.health = Math.max(0, p.health - n); p.hurtT = 0.4;
   if (src && src.pos) { const dx = p.pos.x - src.pos.x, dz = p.pos.z - src.pos.z, l = Math.hypot(dx, dz) || 1; p.vel.x += dx / l * 6; p.vel.z += dz / l * 6; p.vel.y = Math.max(p.vel.y, 4); }
+  if (src && src.def && src.def.knockUp) p.vel.y = 9;   // Hogbeasts toss you into the air
   Sound.hurt(); UI.flash(); G.hudDirty = true;
   if (p.health <= 0) die(why);
 }
@@ -1072,9 +1293,17 @@ function die(why) {
   if (document.pointerLockElement) document.exitPointerLock();
   UI.show("death");
 }
-G.respawn = () => {
+G.respawn = async () => {
   const p = G.player;
   p.health = 20; p.hunger = 20; p.air = 10; p.exhaust = 0; p.flying = false;
+  if (G.dim !== "overworld") {   // you always wake up on the Surface
+    G.state = "loading"; UI.show("loading");
+    G.dimData[G.dim] = dimSnapshot(G.world);
+    clearWorldMeshes(); G.world.chunks.clear();
+    G.dim = "overworld"; G.world = makeWorld("overworld"); G.gen = G.world.gen;
+    p.pos.x = p.spawn.x; p.pos.z = p.spawn.z; p.pos.y = p.spawn.y || 60;
+    await loadArea(p.spawn.x, p.spawn.z, "Waking up on the Surface…");
+  }
   placeSafely(p, p.spawn.x, p.spawn.z);
   if (p.spawn.bed && G.world.id(...p.spawn.bed) !== B.BED) { UI.toast("Your bed was missing, so you woke up at the world's starting spot.", "bad"); delete p.spawn.bed; }
   G.state = "pause"; G.resume();
@@ -1086,6 +1315,9 @@ function survival(dt) {
   if (iframes > 0) iframes -= dt;
   tickEffects(dt);
   if (p.inLava) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true); } }
+  const w = G.world, fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y), fz = Math.floor(p.pos.z);
+  if (w.id(fx, fy, fz) === B.FIRE || w.id(fx, fy + 1, fz) === B.FIRE) addEffect("fire", 4);
+  if (p.onGround && w.id(fx, Math.floor(p.pos.y - 0.1), fz) === B.MAGMA && !p.crouch && (G.magmaT = (G.magmaT || 0) + dt) > 1) { G.magmaT = 0; hurt(1, "Magma blocks are hot! Crouch (C) to walk on them safely.", null, true); }
   if (G.wset.difficulty === "peaceful" && p.health < 20 && (G.peaceT = (G.peaceT || 0) + dt) > 2) { G.peaceT = 0; p.health++; G.hudDirty = true; }
   survT += dt;
   if (survT > 50) { survT = 0; p.exhaust += 4; }         // slowly get hungry over time
@@ -1119,7 +1351,22 @@ function tipDone(k) { if (!G.tips[k]) { G.tips[k] = true; updateTips(); } }
 
 // ---------- sky ----------
 const SKY_DAY = new THREE.Color(0x8fd0f5), SKY_SET = new THREE.Color(0xf2a66a), SKY_NIGHT = new THREE.Color(0x0b1430), skyCol = new THREE.Color();
+const NETHER_SKY = new THREE.Color(0x3a0c0c);
+let ashT = 0, rumbleT = 8;
 function updateSky() {
+  const nether = G.world && G.world.gen.isNether();
+  sun.visible = moon.visible = !nether;
+  if (nether) {
+    uniforms.daylight.value = 0; uniforms.ambient.value = 0.3;
+    skyCol.copy(NETHER_SKY);
+    scene.background = skyCol; uniforms.fogColor.value.copy(skyCol); stars.visible = false;
+    // drifting ash and embers, and a low rumble now and then
+    const p = G.player;
+    if ((ashT += 1 / 60) > 0.08) { ashT = 0; parts.push({ x: p.pos.x + (Math.random() - 0.5) * 16, y: p.pos.y + Math.random() * 8, z: p.pos.z + (Math.random() - 0.5) * 16, vx: (Math.random() - 0.5) * 0.4, vy: -0.3, vz: (Math.random() - 0.5) * 0.4, life: 4, c: Math.random() < 0.25 ? PUFF_COLORS.ember : PUFF_COLORS.ash, floaty: true }); if (parts.length > PMAX) parts.shift(); }
+    if ((rumbleT -= 1 / 60) <= 0) { rumbleT = 8 + Math.random() * 10; Sound.mob("rumble", 0); }
+    return 0.5;
+  }
+  uniforms.ambient.value = 0.11;
   const a = G.time * Math.PI * 2, h = Math.sin(a);       // h: height of the sun (−1..1)
   const day = Math.min(1, Math.max(0, h * 2.2 + 0.35));
   const daylight = 0.22 + 0.78 * day;                      // nights stay dim, not pitch black
@@ -1141,7 +1388,9 @@ function applyView() {
   const R = G.settings.renderDist * CHUNK;
   uniforms.fogFar.value = waterUniforms.fogFar.value = R - 2;
   uniforms.fogNear.value = waterUniforms.fogNear.value = R * 0.55;
+  if (G.world && G.world.gen.isNether()) { uniforms.fogNear.value = R * 0.3; uniforms.fogFar.value = R * 0.85; }
   if (G.player.headInWater) { uniforms.fogNear.value = 2; uniforms.fogFar.value = 18; }
+  if (G.player.inLava) { uniforms.fogNear.value = 0.5; uniforms.fogFar.value = 4; uniforms.fogColor.value.set(0xff6a10); }
   camera.far = Math.max(120, R + 40); camera.updateProjectionMatrix();
 }
 
@@ -1166,7 +1415,7 @@ window.addEventListener("resize", resize);
 G.listWorlds = () => Saves.list();
 G.storageOK = () => Saves.persistent();
 G.newWorld = ({ name, seed, mode, settings }) => {
-  const save = { id: newId(), name, seed, mode, created: Date.now(), played: Date.now(), day: 1, version: 2, gen: 2, dims: {}, inventory: [], tips: {}, settings };
+  const save = { id: newId(), name, seed, mode, created: Date.now(), played: Date.now(), day: 1, version: 2, gen: CURRENT_GEN, dims: {}, inventory: [], tips: {}, settings };
   startWorld(save);
 };
 G.loadWorld = async id => {
@@ -1227,6 +1476,8 @@ function loop(now) {
     updateFurnaces(dt);
     tickCrops(dt);
     updateTNT(dt);
+    updateFires(dt);
+    if (G.state === "play") checkPortal(dt);
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
@@ -1285,7 +1536,7 @@ function loop(now) {
   if (running) { G.autosaveT += dt; if (G.autosaveT > AUTOSAVE) { G.autosaveT = 0; saveNow(true); } }
   if (G.debug) {
     document.getElementById("debug").textContent =
-      `x ${p.pos.x.toFixed(1)}  y ${p.pos.y.toFixed(1)}  z ${p.pos.z.toFixed(1)}\nchunk ${Math.floor(p.pos.x / 16)}, ${Math.floor(p.pos.z / 16)}   loaded ${G.world.chunks.size}\n${fps} fps   day ${G.meta.day || 1}  time ${(G.time * 24).toFixed(1)}h\n${G.gen.column(Math.floor(p.pos.x), Math.floor(p.pos.z)).biome}`;
+      `${DIM_NAMES[G.dim]}\nx ${p.pos.x.toFixed(1)}  y ${p.pos.y.toFixed(1)}  z ${p.pos.z.toFixed(1)}\nchunk ${Math.floor(p.pos.x / 16)}, ${Math.floor(p.pos.z / 16)}   loaded ${G.world.chunks.size}\n${fps} fps   day ${G.meta.day || 1}  time ${(G.time * 24).toFixed(1)}h\n${G.gen.column(Math.floor(p.pos.x), Math.floor(p.pos.z)).biome}`;
   }
   renderer.render(scene, camera);
 }
@@ -1297,4 +1548,4 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { hand, ents, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };
+G._test = { hand, ents, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };

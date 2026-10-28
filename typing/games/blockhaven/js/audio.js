@@ -68,6 +68,14 @@ export const Sound = {
       case "hurt": this.tone(240 * r(), 0.18, "sawtooth", g(0.1), -100); break;
       case "bow": this.noise(1400, 0.15, g(0.3), 1.5); this.tone(300, 0.1, "triangle", g(0.08), 200); break;
       case "arrowhit": this.noise(800, 0.08, g(0.25), 2); break;
+      case "flare": this.noise(300, 0.4, g(0.25), 0.8, "lowpass"); this.tone(90, 0.3, "sawtooth", g(0.05)); break;
+      case "wail": this.tone(520 * r(), 1.2, "sine", g(0.12), -260); this.tone(780 * r(), 1.0, "sine", g(0.05), -300); break;
+      case "snort": this.noise(700, 0.15, g(0.3), 3); this.tone(150, 0.12, "square", g(0.05), -40); break;
+      case "grunt": this.tone(120 * r(), 0.3, "sawtooth", g(0.07), -30); break;
+      case "chirp": this.tone(1100 * r(), 0.1, "triangle", g(0.05), 400); break;
+      case "fireshoot": this.noise(900, 0.3, g(0.35), 0.8); break;
+      case "portal": this.tone(200, 2.5, "sine", g(0.08), 300); this.noise(1200, 2, g(0.06), 0.5); break;
+      case "rumble": this.noise(80, 3, g(0.18), 0.5, "lowpass"); break;
     }
   },
   explode(dist = 0) { const k = Math.max(0.15, 1 - dist / 60); this.noise(120, 1.2, 0.9 * k, 0.6, "lowpass"); this.noise(500, 0.5, 0.5 * k, 0.8); this.tone(60, 0.8, "sine", 0.4 * k, -30); },
