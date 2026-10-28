@@ -239,6 +239,10 @@ footer b { color: var(--chalk); }
                   <li>❄️ <b>Freeze Ray</b>: slows down every other racer.</li>
                   <li>🍌 <b>Banana Peel</b>: drops behind you. Racers who hit it spin out!</li>
                   <li>🧲 <b>Magnet</b>: pulls you toward the leader.</li>
+                  <li>🟢 <b>Green Bouncer</b>: flies straight ahead and knocks out the first racer it reaches (if it gets there in time).</li>
+                  <li>🔴 <b>Red Seeker</b>: chases down the racer right in front of you.</li>
+                  <li>🔵 <b>Blue Zapper</b>: flies all the way to whoever is in 1st place.</li>
+                  <li>☄️ <b>Rocket Cannon</b>: only for last place! Blasts you forward and bumps everyone you pass.</li>
                 </ul>
               </details>
               <button class="go start-side" data-start>Start race</button>
@@ -407,7 +411,11 @@ footer b { color: var(--chalk); }
     shield: { icon: "🛡️", name: "Shield" },
     freeze: { icon: "❄️", name: "Freeze Ray" },
     banana: { icon: "🍌", name: "Banana Peel" },
-    magnet: { icon: "🧲", name: "Magnet" }
+    magnet: { icon: "🧲", name: "Magnet" },
+    green:  { icon: "🟢", name: "Green Bouncer" },
+    red:    { icon: "🔴", name: "Red Seeker" },
+    blue:   { icon: "🔵", name: "Blue Zapper" },
+    rocket: { icon: "☄️", name: "Rocket Cannon" }
   };
 
   const KART_COLORS = {
@@ -684,7 +692,8 @@ footer b { color: var(--chalk); }
       dist: 0, speed: 0, gas: 0,
       lvl, pool: lvl.words, powerPool: powerWordsFor(lvl), dodgePool: dodgeWordsFor(lvl),
       drive: null, next: null, power: null, dodge: null, target: null,
-      item: null, turbo: 0, shield: false, freeze: 0, magnet: 0, spin: 0, hop: 0,
+      item: null, turbo: 0, shield: false, freeze: 0, magnet: 0, spin: 0, hop: 0, rocket: 0,
+      shots: [],
       streak: 0, wordHadError: false,
       keys: 0, correct: 0, words: 0,
       rivals: makeRivals(lvl),
@@ -822,10 +831,11 @@ footer b { color: var(--chalk); }
   function giveItem() {
     if (S.item) { toast("Box smashed!", "#f7d659"); return; }
     // Like real kart games: leaders get defensive items, racers in the back get catch-up items
-    const p = place();
-    const bag = p === 1 ? ["banana", "banana", "shield", "shield", "freeze"]
-              : p === racerCount() ? ["turbo", "turbo", "magnet", "magnet", "freeze", "shield"]
-              : ["turbo", "shield", "freeze", "banana", "magnet"];
+    // Only last place can get the Rocket Cannon (twice as likely when far behind)
+    const p = place(), leader = Math.max(...S.rivals.map(r => r.dist)), farBehind = leader - S.dist > trackLength * 0.15;
+    const bag = p === 1 ? ["banana", "banana", "shield", "shield", "freeze", "green", "green"]
+              : p === racerCount() ? ["turbo", "turbo", "magnet", "red", "red", "blue", "rocket"].concat(farBehind ? ["rocket"] : [])
+              : ["turbo", "shield", "freeze", "banana", "magnet", "green", "red", "red"].concat(p >= 3 ? ["blue"] : []);
     const id = pick(bag);
     S.item = { id, ...ITEMS[id] };
     S.power = makeWord(pickWord(S.powerPool), "power");
@@ -839,6 +849,11 @@ footer b { color: var(--chalk); }
     if (it.id === "shield") { S.shield = true; toast("🛡️ Shield up! Oil can't stop you.", "#8fd3ff"); Sound.shield(); }
     if (it.id === "freeze") { S.freeze = 3.5; toast("❄️ Racers frozen!", "#bfe6ff"); Sound.freeze(); }
     if (it.id === "magnet") { S.magnet = 3; toast("🧲 Magnet! Pulling you toward the leader!", "#ff9ec7"); Sound.turbo(); }
+    if (it.id === "green" || it.id === "red" || it.id === "blue") fireShot(it.id);
+    if (it.id === "rocket") {
+      S.rocket = 3.5; S.spin = 0; S.gas = Math.max(S.gas, 0.8);
+      toast("☄️ ROCKET CANNON! Hang on!", "#ffb347"); Sound.turbo();
+    }
     if (it.id === "banana") {
       S.bananas.push({ dist: S.dist - segmentLength * 3, age: 0 });
       toast("🍌 Banana dropped behind you!", "#f7d659"); Sound.drop();
@@ -867,6 +882,40 @@ footer b { color: var(--chalk); }
   }
   function place() { return 1 + S.rivals.filter(r => r.dist > S.dist).length; }
 
+  // Shells: Green Bouncer flies straight and hits the first racer it reaches, Red Seeker chases the racer
+  // just ahead of you, and Blue Zapper flies all the way to whoever is in 1st place
+  function fireShot(kind) {
+    const ahead = S.rivals.filter(r => r.dist > S.dist && r.finish === null).sort((a, b) => a.dist - b.dist);
+    const target = kind === "red" ? ahead[0] : kind === "blue" ? ahead[ahead.length - 1] : null;
+    if (kind !== "green" && !target) { toast("Nobody ahead of you! It fizzled out.", "#f7d659"); Sound.drop(); return; }
+    S.shots.push({ kind, dist: S.dist + segmentLength * 2, offset: 0, age: 0, target });
+    toast(ITEMS[kind].icon + " " + ITEMS[kind].name + (target ? " fired at " + (target.boss ? "Mr. Watford" : target.name) + "!" : " fired!"), "#f7d659");
+    Sound.drop();
+  }
+  function hitRival(r, kind) {
+    r.spin = kind === "blue" ? (r.boss ? 1.6 : 2.4) : r.boss ? 1.1 : 1.6;
+    const who = r.boss ? "Mr. Watford" : r.name;
+    toast((ITEMS[kind] ? ITEMS[kind].icon : "💥") + " " + (kind === "blue" ? "ZAP! " : "Bonk! ") + who + " spun out!", "#ff9ec7");
+    Sound.spin();
+  }
+  function updateShots(dt) {
+    S.shots.forEach(s => {
+      s.age += dt;
+      const speed = maxSpeed * (s.kind === "blue" ? 2.6 : s.kind === "red" ? 2.1 : 1.9);
+      const prev = s.dist;
+      s.dist += speed * dt;
+      if (s.target) {
+        s.offset += ((s.target.offset || 0) - s.offset) * Math.min(1, dt * 4);   // steer toward its target's lane
+        if (s.dist >= s.target.dist) { s.done = true; if (s.target.finish === null) hitRival(s.target, s.kind); }
+      } else {
+        const r = S.rivals.find(o => o.finish === null && prev < o.dist && s.dist >= o.dist);
+        if (r) { s.done = true; hitRival(r, s.kind); }
+      }
+      if (s.age > (s.kind === "green" ? 3 : 10)) s.done = true;   // a Green Bouncer runs out of bounce
+    });
+    S.shots = S.shots.filter(s => !s.done);
+  }
+
   function update(dt) {
     clock += dt;
     if (!S) return;
@@ -890,6 +939,7 @@ footer b { color: var(--chalk); }
     S.magnet = Math.max(0, S.magnet - dt);
     S.spin = Math.max(0, S.spin - dt);
     S.hop = Math.max(0, S.hop - dt);
+    S.rocket = Math.max(0, S.rocket - dt);
 
     // Gas slowly fades unless you keep typing
     S.gas = Math.max(0, S.gas - S.gas * 0.3 * dt);
@@ -898,10 +948,11 @@ footer b { color: var(--chalk); }
     if (S.magnet > 0) target = Math.max(target * 1.15, maxSpeed * (place() > 1 ? 1.25 : 1.05));
     if (S.turbo > 0) target = Math.max(target, maxSpeed * 1.35);
     if (S.spin > 0) target *= 0.25;
-    S.speed += (target - S.speed) * Math.min(1, dt * (S.turbo > 0 || S.magnet > 0 ? 3 : 1.6));
+    if (S.rocket > 0) { target = maxSpeed * 1.9; S.spin = 0; }   // the Rocket Cannon drives for you
+    S.speed += (target - S.speed) * Math.min(1, dt * (S.turbo > 0 || S.magnet > 0 || S.rocket > 0 ? 3 : 1.6));
     Sound.engineSet(Math.min(1.35, S.speed / maxSpeed));
 
-    const prevPos = mod(S.dist, trackLength);
+    const prevPos = mod(S.dist, trackLength), prevDist = S.dist;
     S.dist += S.speed * dt;
     const pos = mod(S.dist, trackLength);
     const lapNow = Math.floor(S.dist / trackLength) + 1;
@@ -926,7 +977,7 @@ footer b { color: var(--chalk); }
       }
       if (passed(prevPos, pos, z)) {
         o.lap = lapNow;
-        if (S.dodged) { S.hop = 0.55; Sound.hop(); }
+        if (S.dodged || S.rocket > 0) { S.hop = 0.55; Sound.hop(); }
         else if (S.shield) { S.shield = false; toast("🛡️ Shield blocked the oil!", "#8fd3ff"); Sound.shield(); }
         else { S.spin = 1.1; S.gas *= 0.4; S.streak = 0; toast("Spun out! Keep typing!", "#ff6b5b"); Sound.spin(); }
         if (S.target === S.dodge) S.target = null;
@@ -962,6 +1013,8 @@ footer b { color: var(--chalk); }
       const prev = r.dist;
       r.speed += (maxSpeed * pace - r.speed) * Math.min(1, dt * (r.turbo > 0 ? 2.5 : 0.8));
       r.dist += r.speed * dt;
+      // the Rocket Cannon bumps anyone you blast past
+      if (S.rocket > 0 && r.finish === null && prev >= prevDist && r.dist < S.dist && !(r.spin > 0)) hitRival(r, "rocket");
       r.offset = r.lane + 0.12 * Math.sin(clock * 0.7 + i);
       // Rivals sometimes slip on oil (never the boss), and slip on your bananas (the boss dodges half)
       if (!r.boss) oils.forEach(o => {
@@ -989,6 +1042,7 @@ footer b { color: var(--chalk); }
       S.bossAhead = bossAhead;
     }
     S.bananas = S.bananas.filter(b => !b.hit && S.dist - b.dist < trackLength);
+    updateShots(dt);
 
     // Finish!
     if (S.dist >= trackLength * LAPS) finishRace();
@@ -1262,7 +1316,24 @@ footer b { color: var(--chalk); }
     ctx.beginPath(); ctx.moveTo(x - w * 0.34, y - w * 0.36); ctx.lineTo(x - w * 0.42, y - w * 0.3); ctx.stroke();
     ctx.lineCap = "butt";
   }
+  // shells: a round shell with a white rim and a spinning pattern
+  function drawShot(color, dark) {
+    return (x, y, w) => {
+      const r = w * 0.45, cy = y - r, a = clock * 12;
+      ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(x, cy + r * 0.35, r * 1.05, r * 0.45, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, cy, r, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = dark;
+      for (let k = 0; k < 3; k++) { const px = x + Math.cos(a + k * 2.1) * r * 0.5; if (Math.sin(a + k * 2.1) > 0) { ctx.beginPath(); ctx.arc(px, cy - r * 0.35, r * 0.2, 0, Math.PI * 2); ctx.fill(); } }
+      if (color === "#3a7bff") {   // the Blue Zapper has little wings
+        ctx.fillStyle = "#fff"; const f = Math.sin(clock * 40) * r * 0.2;
+        ctx.beginPath(); ctx.ellipse(x - r * 1.15, cy - r * 0.2 + f, r * 0.45, r * 0.18, -0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x + r * 1.15, cy - r * 0.2 + f, r * 0.45, r * 0.18, 0.4, 0, Math.PI * 2); ctx.fill();
+      }
+    };
+  }
   const SPRITES = {
+    shot_green: [drawShot("#2fbf55", "#1b7a36"), 320], shot_red: [drawShot("#e8433a", "#9c1f19"), 320], shot_blue: [drawShot("#3a7bff", "#1c46a8"), 340],
     tree: [drawTree, 1100], pine: [drawPine, 1000], bush: [drawBush, 800], snowman: [drawSnowman, 650],
     cactus: [drawCactus, 700], rock: [drawRock, 900], lamp: [drawLamp, 700], sign: [drawSign, 1000],
     gantry: [drawGantry, roadWidth * 2.5], box: [drawItemBox, 330], oil: [drawOil, 900], banana: [drawBanana, 300]
@@ -1431,6 +1502,7 @@ footer b { color: var(--chalk); }
     oils.forEach(o => { if (o.lap !== lapNow) addExtra(o.seg, { type: "oil", offset: 0, percent: 0 }); });
     if (S) {
       S.bananas.forEach(b => { const bp = mod(b.dist, trackLength); addExtra(findSegment(bp).index, { type: "banana", offset: 0, percent: (bp % segmentLength) / segmentLength }); });
+      S.shots.forEach(s => { const sp = mod(s.dist, trackLength); addExtra(findSegment(sp).index, { type: "shot_" + s.kind, offset: s.offset, percent: (sp % segmentLength) / segmentLength }); });
       S.rivals.forEach(r => {
         const rp = mod(r.dist, trackLength), seg = findSegment(rp);
         addExtra(seg.index, { type: "kart", rival: r, offset: r.offset, percent: (rp % segmentLength) / segmentLength });
@@ -1471,8 +1543,8 @@ footer b { color: var(--chalk); }
       const lift = S.hop > 0 ? Math.sin((1 - S.hop / 0.55) * Math.PI) * 60 : 0;
       const spin = S.spin > 0 ? (1 - S.spin / 1.1) * Math.PI * 4 : 0;
       drawKart(W / 2 - playerSeg.curve * speedPct * 14, H - 6 + bounce, W * 0.2,
-        { ...KART_COLORS[settings.kart], mii: settings.mii }, { lean, lift, spin, back: true, turbo: S.turbo > 0, shield: S.shield, magnet: S.magnet > 0 });
-      if (S.turbo > 0 || S.magnet > 0) {   // speed lines
+        { ...KART_COLORS[settings.kart], mii: settings.mii }, { lean, lift, spin, back: true, turbo: S.turbo > 0 || S.rocket > 0, shield: S.shield, magnet: S.magnet > 0 });
+      if (S.turbo > 0 || S.magnet > 0 || S.rocket > 0) {   // speed lines
         ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 3;
         for (let i = 0; i < 10; i++) { const a = Math.random() * Math.PI * 2, r1 = 180 + Math.random() * 60; ctx.beginPath(); ctx.moveTo(W / 2 + Math.cos(a) * r1, H * 0.55 + Math.sin(a) * r1 * 0.6); ctx.lineTo(W / 2 + Math.cos(a) * (r1 + 90), H * 0.55 + Math.sin(a) * (r1 + 90) * 0.6); ctx.stroke(); }
       }
@@ -1712,7 +1784,7 @@ footer b { color: var(--chalk); }
   buildTrack();
   syncChoices(); updateSoundBtn(); renderWords();
   // Lets the teacher (or a test) peek at the race state from the browser console
-  window.__kart = { get state() { return S; }, get trackLength() { return trackLength; }, get settings() { return settings; }, words: WORDS, drawMii, randomMii, drawBossHead };
+  window.__kart = { get state() { return S; }, get trackLength() { return trackLength; }, get settings() { return settings; }, words: WORDS, drawMii, randomMii, drawBossHead, giveItem, useItem, ITEMS };
   requestAnimationFrame(frame);
 })();
 </script>
