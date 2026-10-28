@@ -250,7 +250,7 @@ footer b { color: var(--chalk); }
                   <button class="choice" data-value="easy">Easy<small>short words</small></button>
                   <button class="choice" data-value="medium">Medium<small>up to 7 letters</small></button>
                   <button class="choice" data-value="hard">Hard<small>long words, fast racers</small></button>
-                  <button class="choice boss" data-value="boss">👑 Boss Race<small>vs. Mr. Watford (75 WPM!)</small></button>
+                  <button class="choice boss" data-value="boss">👑 Boss Race<small>vs. Mr. Watford (50 WPM!)</small></button>
                 </div>
                 <p class="boss-note" id="bossNote" hidden></p>
               </div>
@@ -442,11 +442,11 @@ footer b { color: var(--chalk); }
       hat: pick(MII.hat), hatColor: pick(MII.hatColor)
     };
   }
-  // The boss: Mr. Watford types at 75 words per minute and has a few tricks
-  const BOSS_WPM = 75;
+  // The boss: Mr. Watford types at up to 50 words per minute and has a few tricks
+  const BOSS_WPM = 50;
   const speedForWpm = wpm => 0.12 + Math.sqrt(Math.min(1.3, wpm / 100));   // same curve the player uses
   const BOSS_TAUNTS = {
-    passedYou: ["See ya! 👋", "Too slow! Eyes on the words!", "75 words per minute, coming through!", "Beep beep! Teacher coming through!"],
+    passedYou: ["See ya! 👋", "Too slow! Eyes on the words!", "50 words per minute, coming through!", "Beep beep! Teacher coming through!"],
     youPassed: ["Whoa, nice pass! Can you keep it?", "Not bad... but I'm just warming up!", "Hey! Who taught you to type like that?", "Hmm, you've been practicing!"]
   };
 
@@ -695,7 +695,7 @@ footer b { color: var(--chalk); }
     S.boss = S.rivals.find(r => r.boss) || null;
     S.drive = makeWord(pickWord(S.pool), "drive");
     S.next = pickWord(S.pool);
-    say(S.boss ? "Think you can beat me? I type 75 words per minute!" : "Start your engines! " + theme.name + ", here we go!", 3.5);
+    say(S.boss ? "Think you can beat me? I type 50 words per minute!" : "Start your engines! " + theme.name + ", here we go!", 3.5);
     ["startPanel", "finishPanel", "pausePanel", "boardPanel"].forEach(id => $(id).hidden = true);
     $("screen").classList.remove("menu-open");
     $("hint").textContent = "Get ready…";
@@ -950,9 +950,8 @@ footer b { color: var(--chalk); }
       r.turbo = Math.max(0, r.turbo - dt);
       let pace;
       if (r.boss) {
-        // Mr. Watford: a steady 75 WPM, never slows down when ahead, and fires off turbos
-        pace = r.pace * (1 + 0.03 * Math.sin(clock * 0.5));
-        if (gap < -trackLength * 0.2) pace *= 1.1;
+        // Mr. Watford: a steady pace that never goes over 50 WPM, never slows down when ahead, and fires off turbos
+        pace = r.pace * (0.97 + 0.03 * Math.sin(clock * 0.5));
         if (r.dist >= r.nextTurbo) {
           r.turbo = 2.2;
           r.nextTurbo += trackLength * (0.4 + Math.random() * 0.25);
@@ -1022,7 +1021,7 @@ footer b { color: var(--chalk); }
     $("rAcc").textContent = acc() + "%";
     $("rWords").textContent = S.words;
     $("rNote").innerHTML = beatBoss
-      ? '<span class="best">You out-typed a 75 WPM teacher. Legendary!</span>'
+      ? '<span class="best">You out-typed a 50 WPM teacher. Legendary!</span>'
       : isBest
       ? '<span class="best">New best time on ' + theme.name + " (" + S.lvl.name + ")!</span>"
       : S.boss ? "Mr. Watford wins this time. Keep practicing and come back for a rematch!"
