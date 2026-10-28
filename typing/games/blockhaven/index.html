@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blockhaven | Mr. Watford's Free-Time Games</title>
+<meta name="description" content="Blockhaven: explore, mine, craft, and build in a block world. Saves on your own device.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* All styles are scoped to this game page (it does not load the site's style sheet). */
+:root {
+  --ink: #1d2420; --panel: #2b2f2c; --panel-2: #3a403b; --line: #121513; --text: #f3f1e6; --dim: #b9c0b4;
+  --green: #4f9a33; --green-2: #6bb544; --yellow: #f5c431; --red: #e0453a; --sky: #8fd0f5;
+  --body: "Nunito Sans", system-ui, sans-serif; --display: "Fredoka", system-ui, sans-serif; --pixel: "Press Start 2P", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1210; color: var(--text); font-family: var(--body); }
+body.bh { -webkit-user-select: none; user-select: none; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+body.menu-bg { background: linear-gradient(#7cc4f2, #bfe6fb 70%); }
+body.menu-bg #view { visibility: hidden; }
+button, input, select { font: inherit; }
+[hidden] { display: none !important; }
+
+/* ---------- menus ---------- */
+.screen { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; z-index: 20; overflow-y: auto; }
+.screen.dim { background: rgba(8, 12, 10, .62); }
+#title { background: linear-gradient(#7cc4f2, #bfe6fb 70%); }
+#titleScene { position: absolute; inset: auto 0 0 0; width: 100%; height: 46%; object-fit: cover; object-position: center bottom; image-rendering: pixelated; }
+.menu { position: relative; width: min(440px, 100%); display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.menu.wide { width: min(720px, 100%); }
+.logo { font: 400 clamp(16px, 7vw, 46px)/1.2 var(--pixel); text-align: center; color: #fff; letter-spacing: 2px; margin: 0 0 4px;
+  text-shadow: 0 4px 0 #2f6b1e, 0 8px 0 rgba(0,0,0,.25); }
+.tagline { text-align: center; margin: 0 0 14px; font-weight: 800; color: #24481a; }
+.card { background: var(--panel); border: 3px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.card h2 { font: 600 24px/1.2 var(--display); margin: 0 0 12px; }
+.card p { margin: 0 0 10px; color: var(--dim); line-height: 1.45; }
+.btn { appearance: none; border: 3px solid var(--line); border-radius: 10px; padding: 11px 16px; cursor: pointer;
+  background: linear-gradient(#7d8a7f, #626e64); color: #fff; font: 600 18px/1.1 var(--display); text-shadow: 0 2px 0 rgba(0,0,0,.35);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.25), 0 3px 0 rgba(0,0,0,.35); text-decoration: none; text-align: center; }
+.btn:hover, .btn:focus-visible { background: linear-gradient(#8fb07f, #6d9a5b); outline: none; }
+.btn:focus-visible { box-shadow: 0 0 0 3px var(--yellow); }
+.btn.primary { background: linear-gradient(#6bb544, #4f9a33); }
+.btn.primary:hover { background: linear-gradient(#7fca55, #5ea83b); }
+.btn.danger { background: linear-gradient(#d4584d, #a83a31); }
+.btn.small { padding: 7px 10px; font-size: 15px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > .btn { flex: 1; }
+.back-link { color: #24481a; font-weight: 800; text-align: center; }
+.foot { text-align: center; font-size: 13px; color: #24481a; font-weight: 700; margin-top: 6px; }
+label.field { display: grid; gap: 6px; font-weight: 800; margin-bottom: 12px; }
+label.field small { font-weight: 400; color: var(--dim); }
+.text-in { padding: 10px 12px; border-radius: 8px; border: 2px solid #111; background: #1a1e1b; color: #fff; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.mode-opt { display: block; border: 3px solid #111; border-radius: 10px; padding: 12px; cursor: pointer; background: #222723; }
+.mode-opt input { position: absolute; opacity: 0; }
+.mode-opt b { display: block; font: 600 18px var(--display); }
+.mode-opt span { font-size: 13px; color: var(--dim); }
+.mode-opt:has(input:checked) { border-color: var(--yellow); background: #333a2c; }
+.world-list { display: grid; gap: 8px; max-height: 46vh; overflow: auto; margin-bottom: 12px; }
+.world { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; background: #222723; border: 2px solid #111; border-radius: 10px; padding: 10px 12px; }
+.world b { font: 600 18px var(--display); }
+.world small { display: block; color: var(--dim); }
+.world .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.empty { color: var(--dim); text-align: center; padding: 16px; }
+.settings-grid { display: grid; gap: 12px; }
+.set { display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; align-items: center; }
+.set span { font-weight: 800; }
+.set output { color: var(--yellow); font-weight: 800; margin-left: 6px; }
+input[type=range] { width: 100%; accent-color: var(--green-2); }
+.keys { width: 100%; border-collapse: collapse; }
+.keys td { padding: 6px 8px; border-bottom: 1px solid #444; vertical-align: top; }
+.keys td:first-child { white-space: nowrap; }
+kbd { display: inline-block; min-width: 26px; padding: 3px 7px; border-radius: 6px; background: #ddd; color: #111; font: 800 13px var(--body); border-bottom: 3px solid #999; text-align: center; margin: 1px; }
+.progress { height: 18px; border: 3px solid #111; border-radius: 8px; background: #1a1e1b; overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: linear-gradient(#7fca55, #4f9a33); transition: width .15s; }
+.note { font-size: 13px; color: var(--dim); }
+.warn { background: #4a3a14; border: 2px solid #8a6a1a; border-radius: 8px; padding: 8px 10px; font-size: 14px; color: #ffe9a8; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+#crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); mix-blend-mode: difference; }
+#crosshair::before, #crosshair::after { content: ""; position: absolute; background: #fff; }
+#crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; }
+#crosshair::after { top: 10px; left: 0; width: 22px; height: 2px; }
+#bottom { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+#stats { display: flex; justify-content: space-between; width: 100%; gap: 12px; }
+.icons { display: flex; gap: 1px; }
+.icons i { width: 18px; height: 18px; background-size: 100% 100%; image-rendering: pixelated; }
+#hotbar { display: flex; background: rgba(20, 24, 21, .72); border: 3px solid #111; border-radius: 8px; padding: 3px; gap: 3px; }
+.slot { position: relative; width: 48px; height: 48px; background: rgba(120, 130, 122, .35); border: 2px solid rgba(0,0,0,.55); border-radius: 6px; pointer-events: auto; }
+.slot img { position: absolute; inset: 6px; width: 32px; height: 32px; image-rendering: pixelated; pointer-events: none; }
+.slot b { position: absolute; right: 3px; bottom: 1px; font: 800 14px var(--body); color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; pointer-events: none; }
+.slot .dur { position: absolute; left: 5px; right: 5px; bottom: 4px; height: 3px; background: #000; pointer-events: none; }
+.slot .dur i { display: block; height: 100%; background: #5fd35f; }
+#hotbar .slot { pointer-events: none; }
+#hotbar .slot.sel { border-color: #fff; box-shadow: 0 0 0 2px #111, inset 0 0 0 2px #fff; background: rgba(255,255,255,.18); }
+#itemName { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); font: 800 16px var(--body); text-shadow: 0 2px 0 #000; transition: opacity .4s; }
+#toasts { position: absolute; left: 50%; top: 14%; transform: translateX(-50%); display: grid; gap: 6px; justify-items: center; }
+.toast { background: rgba(20, 24, 21, .85); border: 2px solid #111; border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 15px; animation: toast 2.6s forwards; }
+.toast.bad { color: #ffb3a8; } .toast.good { color: #b7f5a0; }
+@keyframes toast { 0% { opacity: 0; transform: translateY(-6px); } 8%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+#saveDot { position: absolute; right: 14px; top: 12px; background: rgba(20,24,21,.8); border-radius: 8px; padding: 5px 10px; font-weight: 800; font-size: 13px; opacity: 0; transition: opacity .4s; }
+#saveDot.on { opacity: 1; }
+#tip { position: absolute; left: 14px; top: 12px; max-width: 330px; background: rgba(20, 24, 21, .85); border: 2px solid var(--yellow); border-radius: 10px; padding: 10px 12px; font-weight: 700; line-height: 1.4; font-size: 15px; }
+#tip small { display: block; color: var(--yellow); font: 400 9px var(--pixel); margin-bottom: 5px; }
+#flash { position: absolute; inset: 0; background: rgba(220, 30, 20, .35); opacity: 0; transition: opacity .35s; }
+#flash.on { opacity: 1; transition: none; }
+#waterTint { position: absolute; inset: 0; background: rgba(30, 80, 190, .38); }
+#clickToPlay { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); background: rgba(20,24,21,.85); border: 2px solid #fff; border-radius: 10px; padding: 10px 16px; font-weight: 800; pointer-events: auto; cursor: pointer; }
+#debug { position: absolute; left: 10px; bottom: 10px; font: 700 12px/1.5 monospace; background: rgba(0,0,0,.5); padding: 6px 8px; border-radius: 6px; white-space: pre; }
+#modeTag { position: absolute; right: 14px; bottom: 14px; font: 400 9px var(--pixel); color: rgba(255,255,255,.75); text-shadow: 0 2px 0 #000; }
+
+/* ---------- inventory & crafting panels ---------- */
+#panel { z-index: 25; background: rgba(8, 12, 10, .55); }
+.inv-wrap { display: grid; grid-template-columns: minmax(260px, 340px) auto; gap: 14px; align-items: start; }
+.inv-card { background: #c6c6c6; color: #262626; border: 3px solid #111; border-radius: 12px; padding: 12px; box-shadow: inset 0 3px 0 #fff, inset 0 -3px 0 #8b8b8b, 0 10px 30px rgba(0,0,0,.45); }
+.inv-card h3 { margin: 0 0 8px; font: 600 18px var(--display); color: #2a2a2a; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.grid9 { display: grid; grid-template-columns: repeat(9, 48px); gap: 3px; }
+.inv-card .slot { background: #8b8b8b; border-color: #373737 #fff #fff #373737; border-radius: 3px; cursor: pointer; }
+.inv-card .slot:hover { background: #a8a8a8; }
+.hotrow { margin-top: 10px; }
+.help { font-size: 12.5px; color: #3a3a3a; margin: 8px 0 0; line-height: 1.4; max-width: 470px; }
+.recipes { display: grid; gap: 6px; max-height: min(56vh, 520px); overflow-y: auto; padding-right: 4px; }
+.recipe { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; background: #b3b3b3; border: 2px solid #8b8b8b; border-radius: 8px; padding: 5px 7px; }
+.recipe.ok { background: #d9ecd0; border-color: #6aa84f; }
+.recipe .out { position: relative; width: 40px; height: 40px; }
+.recipe .out img { width: 36px; height: 36px; image-rendering: pixelated; }
+.recipe .out b { position: absolute; right: 0; bottom: 0; font: 800 12px var(--body); color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; }
+.recipe .name { font-weight: 800; font-size: 14px; }
+.recipe .ins { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; font-weight: 800; }
+.recipe .ins span { display: inline-flex; align-items: center; gap: 2px; }
+.recipe .ins img { width: 18px; height: 18px; image-rendering: pixelated; }
+.recipe .ins .miss { color: #b3261e; }
+.recipe .need { font-size: 11px; color: #6b4b00; font-weight: 800; }
+.filters { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.filters input { flex: 1; min-width: 120px; padding: 6px 8px; border-radius: 6px; border: 2px solid #555; }
+.chip-btn { border: 2px solid #555; background: #e2e2e2; border-radius: 6px; padding: 5px 8px; font-weight: 800; cursor: pointer; font-size: 13px; }
+.chip-btn[aria-pressed=true] { background: #4f9a33; color: #fff; border-color: #2f6b1e; }
+.furnace { display: grid; grid-template-columns: auto auto auto; gap: 10px 16px; align-items: center; justify-content: center; margin: 6px 0 12px; }
+.furnace .label { font-size: 12px; font-weight: 800; text-align: center; }
+.arrow { width: 70px; height: 16px; background: #8b8b8b; border-radius: 3px; overflow: hidden; }
+.arrow i { display: block; height: 100%; width: 0; background: #fff; }
+.flame { width: 20px; height: 24px; margin: 0 auto; background: #8b8b8b; border-radius: 4px; position: relative; overflow: hidden; }
+.flame i { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(#ffd34d, #ff7a1a); }
+.palette { display: grid; grid-template-columns: repeat(9, 48px); gap: 3px; max-height: 300px; overflow-y: auto; }
+.trash { background: #c97b72 !important; display: grid !important; place-items: center; font-size: 22px; }
+#cursorItem { position: fixed; z-index: 40; width: 40px; height: 40px; pointer-events: none; transform: translate(-50%, -50%); }
+#cursorItem img { width: 40px; height: 40px; image-rendering: pixelated; }
+#cursorItem b { position: absolute; right: -2px; bottom: -4px; font: 800 14px var(--body); color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; }
+#tooltip { position: fixed; z-index: 41; pointer-events: none; background: #1b0e2b; color: #fff; border: 2px solid #4a2a8a; border-radius: 6px; padding: 4px 8px; font-weight: 800; font-size: 14px; }
+#tooltip small { display: block; color: #bbb; font-weight: 400; }
+#confirm { z-index: 50; background: rgba(0,0,0,.6); }
+@media (max-width: 860px) {
+  .inv-wrap { grid-template-columns: 1fr; }
+  .recipes { max-height: 30vh; }
+}
+@media (max-width: 520px) {
+  .grid9, .palette { grid-template-columns: repeat(9, 34px); }
+  .slot { width: 34px; height: 34px; } .slot img { inset: 3px; width: 26px; height: 26px; }
+  .modes { grid-template-columns: 1fr; }
+  .set { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body class="bh menu-bg">
+<canvas id="view" aria-label="Blockhaven game view"></canvas>
+
+<div id="hud" hidden>
+  <div id="crosshair"></div>
+  <div id="flash"></div>
+  <div id="waterTint" hidden></div>
+  <div id="tip" hidden></div>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="saveDot">💾 Saved</div>
+  <div id="itemName"></div>
+  <div id="bottom">
+    <div id="stats"><div class="icons" id="hearts"></div><div class="icons" id="air"></div><div class="icons" id="food"></div></div>
+    <div id="hotbar"></div>
+  </div>
+  <div id="modeTag"></div>
+  <div id="clickToPlay" hidden>Click here to play</div>
+  <div id="debug" hidden></div>
+</div>
+
+<!-- Title -->
+<section class="screen" id="title">
+  <canvas id="titleScene" width="320" height="160" aria-hidden="true"></canvas>
+  <div class="menu">
+    <h1 class="logo">BLOCKHAVEN</h1>
+    <p class="tagline">Explore • Mine • Craft • Build</p>
+    <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
+    <button class="btn primary" id="btnPlay">Play</button>
+    <button class="btn" id="btnNew">New World</button>
+    <div class="row"><button class="btn" id="btnSettings">Settings</button><button class="btn" id="btnControls">Controls</button></div>
+    <a class="back-link" href="../../index.html">← Back to Mr. Watford's Games</a>
+    <p class="foot">Lighthouse Baptist Academy • Mr. Watford</p>
+  </div>
+</section>
+
+<!-- World list -->
+<section class="screen dim" id="worlds" hidden>
+  <div class="menu wide card">
+    <h2>Your worlds</h2>
+    <div id="storageWarn" class="warn" hidden>This browser isn't letting the game save. Worlds last until you close the page, so use <b>Download</b> to keep a copy.</div>
+    <div class="world-list" id="worldList"></div>
+    <div class="row">
+      <button class="btn primary" id="btnNew2">New World</button>
+      <label class="btn" for="importFile" tabindex="0">Load a world file…</label>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+      <button class="btn" data-back>Back</button>
+    </div>
+    <p class="note">Worlds are saved only on this device. To move a world to another computer, use <b>Download</b>, then <b>Load a world file</b> there.</p>
+  </div>
+</section>
+
+<!-- New world -->
+<section class="screen dim" id="newWorld" hidden>
+  <form class="menu wide card" id="newForm" autocomplete="off">
+    <h2>Create a new world</h2>
+    <label class="field">World name <input class="text-in" id="nwName" maxlength="32" value="My World"></label>
+    <label class="field">World seed <small>Leave blank for a random world. The same seed always makes the same land.</small><input class="text-in" id="nwSeed" maxlength="40" placeholder="Random"></label>
+    <div class="modes" role="radiogroup" aria-label="Game mode">
+      <label class="mode-opt"><input type="radio" name="mode" value="survival" checked><b>⛏️ Survival</b><span>Gather resources, craft tools, keep your health and food up.</span></label>
+      <label class="mode-opt"><input type="radio" name="mode" value="creative"><b>🏗️ Creative</b><span>Every block, unlimited supplies, flying, and no damage.</span></label>
+    </div>
+    <div class="row"><button class="btn primary" type="submit">Create World</button><button class="btn" type="button" data-back>Cancel</button></div>
+  </form>
+</section>
+
+<!-- Loading -->
+<section class="screen dim" id="loading" hidden>
+  <div class="menu card">
+    <h2 id="loadTitle">Building your world…</h2>
+    <div class="progress"><i id="loadBar"></i></div>
+    <p class="note" id="loadText">Shaping hills and valleys</p>
+  </div>
+</section>
+
+<!-- Pause -->
+<section class="screen dim" id="pause" hidden>
+  <div class="menu card">
+    <h2>Paused</h2>
+    <button class="btn primary" id="btnResume">Resume</button>
+    <div class="row"><button class="btn" id="btnSave">Save</button><button class="btn" id="btnExport">Download world</button></div>
+    <div class="row"><button class="btn" id="btnSettings2">Settings</button><button class="btn" id="btnControls2">Controls</button></div>
+    <button class="btn" id="btnTitle">Save &amp; return to title</button>
+    <a class="btn" href="../../index.html" id="btnLeave">Back to Mr. Watford's Games</a>
+  </div>
+</section>
+
+<!-- Settings -->
+<section class="screen dim" id="settings" hidden>
+  <div class="menu wide card">
+    <h2>Settings</h2>
+    <div class="settings-grid">
+      <label class="set"><span>Mouse sensitivity<output id="oSens"></output></span><input type="range" id="sSens" min="0.2" max="3" step="0.1"></label>
+      <label class="set"><span>Sound volume<output id="oVol"></output></span><input type="range" id="sVol" min="0" max="1" step="0.05"></label>
+      <label class="set"><span>Mute sounds</span><input type="checkbox" id="sMute"></label>
+      <label class="set"><span>View distance<output id="oDist"></output></span><input type="range" id="sDist" min="2" max="8" step="1"></label>
+      <label class="set"><span>Graphics</span><select id="sQuality" class="text-in"><option value="fast">Fast (best for Chromebooks)</option><option value="fancy">Fancy (sharper, fuller leaves)</option></select></label>
+      <label class="set"><span>Field of view<output id="oFov"></output></span><input type="range" id="sFov" min="55" max="100" step="1"></label>
+      <label class="set"><span>Reduce camera motion</span><input type="checkbox" id="sMotion"></label>
+      <div class="set" id="fsRow"><span>Full screen</span><button class="btn small" id="btnFull" type="button">Toggle full screen</button></div>
+    </div>
+    <p class="note">Settings are saved on this device. A shorter view distance runs smoother on Chromebooks.</p>
+    <div class="row"><button class="btn primary" data-back>Done</button></div>
+  </div>
+</section>
+
+<!-- Controls -->
+<section class="screen dim" id="controls" hidden>
+  <div class="menu wide card">
+    <h2>Controls</h2>
+    <table class="keys">
+      <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Walk</td></tr>
+      <tr><td>Mouse</td><td>Look around (click the game first)</td></tr>
+      <tr><td><kbd>Space</kbd></td><td>Jump, swim up. In Creative, tap twice to fly, hold to rise</td></tr>
+      <tr><td><kbd>Shift</kbd></td><td>Sprint</td></tr>
+      <tr><td><kbd>C</kbd></td><td>Crouch (you won't walk off edges). In Creative flight: go down</td></tr>
+      <tr><td>Left click (hold)</td><td>Mine a block</td></tr>
+      <tr><td>Right click</td><td>Place a block, open workbenches, furnaces, chests, and doors, or eat food</td></tr>
+      <tr><td>Wheel or <kbd>1</kbd>–<kbd>9</kbd></td><td>Pick a hotbar slot</td></tr>
+      <tr><td><kbd>E</kbd></td><td>Inventory and crafting</td></tr>
+      <tr><td><kbd>Q</kbd></td><td>Drop the item in your hand</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Pause and free the mouse</td></tr>
+      <tr><td><kbd>F3</kbd></td><td>Show position and speed info</td></tr>
+    </table>
+    <p class="note"><b>Inventory:</b> click a stack to pick it up and click a slot to put it down. Right-click picks up half or drops one. Shift-click moves a stack across. Point at a slot and press 1–9 to swap it into the hotbar.</p>
+    <p class="note"><b>Survival:</b> keep your hearts and apples full. Eat by holding food and right-clicking. If you faint, you wake up at your starting spot and keep everything you were carrying.</p>
+    <div class="row"><button class="btn primary" data-back>Done</button></div>
+  </div>
+</section>
+
+<!-- Faint (death) -->
+<section class="screen dim" id="death" hidden>
+  <div class="menu card" style="text-align:center">
+    <h2>You fainted!</h2>
+    <p id="deathWhy">Ouch.</p>
+    <p>You'll wake up back at your starting spot, and you keep everything you were carrying.</p>
+    <button class="btn primary" id="btnRespawn">Wake up</button>
+  </div>
+</section>
+
+<!-- Inventory / crafting / chest / furnace (filled in by the game) -->
+<section class="screen" id="panel" hidden></section>
+
+<section class="screen" id="confirm" hidden>
+  <div class="menu card">
+    <h2 id="confirmTitle">Are you sure?</h2>
+    <p id="confirmText"></p>
+    <div class="row"><button class="btn danger" id="confirmYes">Delete</button><button class="btn" id="confirmNo">Cancel</button></div>
+  </div>
+</section>
+
+<div id="cursorItem" hidden></div>
+<div id="tooltip" hidden></div>
+<noscript><p style="padding:20px">Blockhaven needs JavaScript turned on.</p></noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
