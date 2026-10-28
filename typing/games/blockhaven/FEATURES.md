@@ -43,10 +43,30 @@ Tech: static site on GitHub Pages, no build step. Plain ES modules in `js/`, Thr
 | World options: difficulty, monsters break blocks, keep items | Done | Set at creation, changeable in pause menu |
 | Save format v2 | Done | Per-dimension sections. Old saves upgrade automatically, keep their land shapes (gen 1), and get a backup copy |
 
+## Milestone 3: the Ember Depths [Nether] and portals (published 2026-10-28)
+| Feature | Status | Notes |
+|---|---|---|
+| Separate dimension with its own saved blocks, containers, creatures, portals | Done | `dims.nether` in the save. Only the current dimension is simulated |
+| Terrain | Done | Enclosed caverns, bedrock floor and roof, lava sea (y ≤ 22), lavafalls, fire, Shinestone [glowstone] ceilings, ash/ember particles, red fog, rumble sound |
+| Regions | Done | Wastes, Wailing Sand valleys [soul sand], Crimson and Warped fungus forests (giant fungi, Shroomlight), Basalt deltas (basalt, blackstone, magma) |
+| Materials | Done | Emberrack, Ember Quartz, Ember Gold Ore (nuggets), Ancient Scrap → Duskmetal [netherite] upgrades, crimson/warped wood, Ember Bricks, Blackstone Bricks, Ember Wart (plantable), Flare Rods/Powder, Wailer Tears, Magma Cream, Blight Skulls |
+| Structures | Done | Ember Brick fortresses (corridors, pillars, wart garden rooms, loot), Boarkin bastions (blackstone, gold blocks, loot), surface ruined portals (land v3+) |
+| Portals | Done | Obsidian frames 2×3 to 21×21 inside (corners optional), Flint and Steel, 2.5 s entry (0.6 s Creative), purple overlay + sound, 8:1 coordinate mapping, links saved both ways, existing-portal search (16 / 128 blocks), safe-spot search, obsidian platform fallback, cooldown until you step out, fall-back to the old dimension if loading fails, breaking the frame turns it off |
+| Rules | Done | Water boils away, beds explode, fainting returns you to the Surface, Wailing Sand slows, magma burns unless crouching, lava and fire burn |
+| Flare [blaze] | Done | Hovers, 3-fireball volleys that set you on fire, fireproof, fortress spawns |
+| Wailer [ghast] | Done | Large floater, exploding fireballs you can hit back to kill it |
+| Boarkin [piglin] + Brute | Done | Hostile unless you wear gold; trade 1 gold ingot for random goods (obsidian, pearls, string, quartz…); defend each other. Brutes guard bastions and are always hostile |
+| Rotboar [zombified piglin] | Done | Neutral; the whole group retaliates |
+| Hogbeast [hoglin] | Done | Charges and tosses you upward |
+| Blight Rattler [wither skeleton] | Done | Fortress melee, applies Blight (damage over time that can faint you), may drop a Blight Skull |
+| Magma Gloop [magma cube] | Done | Hops high, splits, fireproof |
+| Lavastrider [strider] | Partial | Walks on lava, fireproof, wanders. Riding comes with the mounts milestone |
+| Old worlds | Done | Places the player already changed keep their original land. Untouched places get new features (`newGen` per dimension, land version `CURRENT_GEN = 3`) |
+| Creatures traveling through portals, Hogbeast → rotten variant [zoglin] | Missing | |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
-| Nether-style dimension + portals (Milestone 3) | Missing |
 | End-style dimension, dragon boss, wither boss | Missing |
 | Pets (wolf/cat/parrot), mounts, aquatic life, wildlife roster | Missing |
 | Villagers, trading, golems, villages and other structures | Missing |
