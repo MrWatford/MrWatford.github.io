@@ -250,7 +250,7 @@ footer b { color: var(--chalk); }
                   <button class="choice" data-value="easy">Easy<small>short words</small></button>
                   <button class="choice" data-value="medium">Medium<small>up to 7 letters</small></button>
                   <button class="choice" data-value="hard">Hard<small>long words, fast racers</small></button>
-                  <button class="choice boss" data-value="boss">👑 Boss Race<small>vs. Mr. Watford (50 WPM!)</small></button>
+                  <button class="choice boss" data-value="boss">👑 Boss Race<small>1 on 1 vs. Mr. Watford (50 WPM!)</small></button>
                 </div>
                 <p class="boss-note" id="bossNote" hidden></p>
               </div>
@@ -393,7 +393,7 @@ footer b { color: var(--chalk); }
     easy:   { name: "Easy",       words: WORDS.easy,                         rivals: [0.40, 0.46, 0.52] },
     medium: { name: "Medium",     words: WORDS.easy.concat(WORDS.medium),    rivals: [0.56, 0.63, 0.70] },
     hard:   { name: "Hard",       words: WORDS.medium.concat(WORDS.hard),    rivals: [0.72, 0.80, 0.88] },
-    boss:   { name: "Boss Race",  words: WORDS.easy.concat(WORDS.medium),    rivals: [0.56, 0.63, 0.70], boss: true },
+    boss:   { name: "Boss Race",  words: WORDS.easy.concat(WORDS.medium),    rivals: [], boss: true },   // 1 on 1: just you and Mr. Watford
     home:   { name: "Home row",   words: WORDS.home,   rowPractice: true,    rivals: [0.36, 0.42, 0.48] },
     top:    { name: "Top row",    words: WORDS.top,    rowPractice: true,    rivals: [0.34, 0.40, 0.46] },
     bottom: { name: "Bottom row", words: WORDS.bottom, rowPractice: true,    rivals: [0.34, 0.40, 0.46] }
@@ -703,7 +703,7 @@ footer b { color: var(--chalk); }
     kb.focus();
   }
 
-  // Three random racers with random looks, names, and kart colors (plus Mr. Watford in a Boss Race)
+  // Three random racers with random looks, names, and kart colors (a Boss Race is just you and Mr. Watford)
   function makeRivals(lvl) {
     const names = RACER_NAMES.slice().sort(() => Math.random() - 0.5);
     const colors = RIVAL_COLORS.filter(c => c !== KART_COLORS[settings.kart].body).sort(() => Math.random() - 0.5);
