@@ -713,8 +713,7 @@ footer b { color: var(--chalk); }
     }));
     if (lvl.boss) rivals.push({
       name: "Mr. Watford", boss: true, body: "#1d1d1d",
-      dist: segmentLength * 20, lane: 0.3, pace: speedForWpm(BOSS_WPM), speed: 0, spin: 0, turbo: 0, finish: null,
-      nextTurbo: trackLength * (0.3 + Math.random() * 0.3)
+      dist: segmentLength * 20, lane: 0.3, pace: speedForWpm(BOSS_WPM), speed: 0, spin: 0, turbo: 0, finish: null
     });
     return rivals;
   }
@@ -950,14 +949,8 @@ footer b { color: var(--chalk); }
       r.turbo = Math.max(0, r.turbo - dt);
       let pace;
       if (r.boss) {
-        // Mr. Watford: a steady pace that never goes over 50 WPM, never slows down when ahead, and fires off turbos
+        // Mr. Watford: a steady pace that never goes over 50 WPM (no turbos) and never slows down when ahead
         pace = r.pace * (0.97 + 0.03 * Math.sin(clock * 0.5));
-        if (r.dist >= r.nextTurbo) {
-          r.turbo = 2.2;
-          r.nextTurbo += trackLength * (0.4 + Math.random() * 0.25);
-          if (Math.abs(gap) < trackLength * 0.3) toast("👑 Mr. Watford used TURBO!", "#ffb347");
-        }
-        if (r.turbo > 0) pace = 1.35;
         if (S.freeze > 0) pace *= 0.75;               // only half-frozen
       } else {
         pace = r.pace * (1 + 0.05 * Math.sin(clock * 0.6 + i * 2));
