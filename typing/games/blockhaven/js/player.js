@@ -1,5 +1,6 @@
 // Player body: walking, jumping, crouching, swimming, flying, and bumping into blocks.
 import { B, SOLID, idOf, metaOf, TOP } from "./blocks.js";
+const LOW = { [B.BED]: 9 / 16, [B.FARMLAND]: 15 / 16 };   // blocks shorter than a full cube
 import { doorBox } from "./mesher.js";
 
 export const GRAVITY = 26, JUMP = 8.2, REACH = 5;
@@ -9,7 +10,7 @@ const EPS = 1e-4;
 export function blockBoxes(v, x, y, z, out) {
   const id = idOf(v);
   if (id === B.DOOR) { const b = doorBox(metaOf(v)); out.push([x + b[0], y + b[1], z + b[2], x + b[3], y + b[4], z + b[5]]); return; }
-  if (SOLID[id]) out.push([x, y, z, x + 1, y + 1, z + 1]);
+  if (SOLID[id]) out.push([x, y, z, x + 1, y + (LOW[id] || 1), z + 1]);
 }
 
 export class Player {
@@ -41,7 +42,8 @@ export class Player {
   step(world, input, dt, creative) {
     const p = this.pos, v = this.vel;
     const feet = world.id(Math.floor(p.x), Math.floor(p.y + 0.1), Math.floor(p.z)), body = world.id(Math.floor(p.x), Math.floor(p.y + 0.9), Math.floor(p.z));
-    this.inWater = feet === B.WATER || body === B.WATER;
+    this.inLava = feet === B.LAVA || body === B.LAVA;
+    this.inWater = feet === B.WATER || body === B.WATER || this.inLava;   // lava is swum through like (very slow) water
     this.headInWater = world.id(Math.floor(p.x), Math.floor(p.y + this.eye), Math.floor(p.z)) === B.WATER;
     // crouching: only stand back up if there is head room
     const wantCrouch = !!input.crouch && !this.flying;
@@ -49,7 +51,7 @@ export class Player {
     else this.crouch = wantCrouch;
 
     let speed = this.flying ? (input.sprint ? 16 : 9) : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
-    if (this.inWater && !this.flying) speed *= 0.55;
+    if (this.inWater && !this.flying) speed *= this.inLava ? 0.3 : 0.55;
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     let mx = -sin * input.f + cos * input.r, mz = -cos * input.f - sin * input.r;
     const len = Math.hypot(mx, mz); if (len > 1) { mx /= len; mz /= len; }

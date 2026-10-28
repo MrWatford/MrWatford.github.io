@@ -1,7 +1,8 @@
 // Blockhaven: the game loop, 3D drawing, controls, mining and building, survival rules, and saving.
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
-  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT } from "./blocks.js";
+  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET } from "./blocks.js";
+import { Entities, SPECIES } from "./entities.js";
 import { Generator, LOOT } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
@@ -153,9 +154,176 @@ const G = {
   world: null, gen: null, player: new Player(), inv: new Inventory(), meta: null, mode: "survival",
   time: 0.02, selected: 0, swing: 0, walkPhase: 0, stepDist: 0, drops: [], tips: {}, hudDirty: true,
   mining: null, useCooldown: 0, lastSpace: 0, playedSince: 0, autosaveT: 0, debug: false,
+  xp: 0, effects: {}, bowT: -1, attackCd: 0, orbs: [], worlds: {}, dim: "overworld", dimData: {},
+  wset: { difficulty: "easy", griefing: true, keepInv: true },
   get creative() { return this.mode === "creative"; }
 };
 window.__bh = G;   // handy for testing in the browser console
+
+// ---------- creatures ----------
+const ents = new Entities(scene, {
+  world: () => G.world, player: () => G.player, settings: () => G.wset, creative: () => G.creative, alive: () => G.state !== "dead",
+  hurtPlayer: (n, why, src) => hurt(n, why, src), effect: (k, t) => addEffect(k, t),
+  explode: (x, y, z, power, src) => explode(x, y, z, power, src),
+  drop: (id, n, x, y, z) => spawnDrop(id, n, x, y, z), xp: (n, x, y, z) => spawnOrbs(n, x, y, z),
+  particles: (x, y, z, kind) => puff(x, y, z, kind), heldId: () => (G.inv.slots[G.selected] || {}).id || 0, lookDir: () => lookDir(),
+  consume: () => { const s = G.inv.slots[G.selected]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.selected] = null; } G.hudDirty = true; heldId = -1; },
+  wear: () => { const s = G.inv.slots[G.selected]; if (s) wearTool(s, 1); },
+  swapHeld: id => swapHeld(id), give: (id, n) => G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
+  pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
+});
+G.ents = ents;
+const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3] };
+function puff(x, y, z, kind) {
+  const c = PUFF_COLORS[kind] || [1, 1, 1], n = kind === "heart" ? 6 : 14;
+  for (let i = 0; i < n; i++) { if (parts.length >= PMAX) parts.shift(); parts.push({ x: x + (Math.random() - 0.5) * 0.8, y: y + Math.random() * 0.6, z: z + (Math.random() - 0.5) * 0.8, vx: (Math.random() - 0.5) * 2, vy: kind === "heart" ? 1.5 : Math.random() * 2, vz: (Math.random() - 0.5) * 2, life: 0.6 + Math.random() * 0.4, c, floaty: true }); }
+}
+function swapHeld(id) {
+  const s = G.inv.slots[G.selected];
+  if (s && s.n > 1) { s.n--; if (G.inv.add(id, 1)) G.dropItem(id, 1); }
+  else G.inv.slots[G.selected] = newStack(id, 1);
+  G.hudDirty = true; heldId = -1;
+}
+
+// ---------- status effects (poison, queasy, burning) ----------
+const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire" };
+function addEffect(k, t) { if (G.creative) return; G.effects[k] = Math.max(G.effects[k] || 0, t); G.hudDirty = true; }
+let effT = 0;
+function tickEffects(dt) {
+  const p = G.player;
+  effT += dt;
+  const tick = effT >= 1; if (tick) effT = 0;
+  for (const k of Object.keys(G.effects)) {
+    G.effects[k] -= dt;
+    if (G.effects[k] <= 0) { delete G.effects[k]; G.hudDirty = true; continue; }
+    if (k === "poison" && tick && p.health > 1) hurt(1, "Poison wore you down.", null, true);
+    if (k === "queasy") p.exhaust += dt * 0.6;
+    if (k === "fire") { if (p.inWater) { delete G.effects.fire; G.hudDirty = true; } else if (tick) hurt(1, "You were burned. Jump in water to put out flames!", null, true); }
+  }
+}
+
+// ---------- experience ----------
+const XP_FOR = lvl => 2 * lvl + 7;   // points to go from this level to the next
+function levelInfo(total) { let lvl = 0, left = total; while (left >= XP_FOR(lvl)) { left -= XP_FOR(lvl); lvl++; } return { level: lvl, frac: left / XP_FOR(lvl) }; }
+G.levelInfo = () => levelInfo(G.xp);
+const orbGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+function spawnOrbs(n, x, y, z) {
+  while (n > 0 && G.orbs.length < 60) {
+    const v = Math.min(n, n > 10 ? 5 : n > 3 ? 3 : 1); n -= v;
+    const mesh = new THREE.Mesh(orbGeo, new THREE.MeshBasicMaterial({ color: 0x9dff4a, fog: false }));
+    mesh.position.set(x, y, z); scene.add(mesh);
+    G.orbs.push({ v, x, y, z, vx: (Math.random() - 0.5) * 2, vy: 3, vz: (Math.random() - 0.5) * 2, age: 0, mesh });
+  }
+}
+function updateOrbs(dt) {
+  const p = G.player;
+  for (const o of G.orbs) {
+    o.age += dt;
+    const dx = p.pos.x - o.x, dy = p.pos.y + 0.8 - o.y, dz = p.pos.z - o.z, d = Math.hypot(dx, dy, dz);
+    if (d < 6 && o.age > 0.4 && G.state !== "dead") { o.vx = dx / d * 8; o.vy = dy / d * 8; o.vz = dz / d * 8; }
+    else { o.vy -= 10 * dt; o.vx *= 0.95; o.vz *= 0.95; if (SOLID[G.world.id(Math.floor(o.x), Math.floor(o.y - 0.1), Math.floor(o.z))] && o.vy < 0) o.vy = 0; }
+    o.x += o.vx * dt; o.y += o.vy * dt; o.z += o.vz * dt;
+    o.mesh.position.set(o.x, o.y, o.z); o.mesh.rotation.y += dt * 4;
+    o.mesh.material.color.setHSL(0.25 + Math.sin(o.age * 6) * 0.05, 1, 0.6);
+    if (d < 0.9 && o.age > 0.4) {
+      const before = levelInfo(G.xp).level;
+      G.xp += o.v; o.gone = true; Sound.xp(); G.hudDirty = true;
+      if (levelInfo(G.xp).level > before) { Sound.levelUp(); UI.toast(`Level ${levelInfo(G.xp).level}!`, "good"); }
+    }
+    if (o.age > 300) o.gone = true;
+  }
+  G.orbs = G.orbs.filter(o => { if (o.gone) { scene.remove(o.mesh); o.mesh.material.dispose(); return false; } return true; });
+}
+
+// ---------- explosions ----------
+function explode(x, y, z, power, src) {
+  const w = G.world, p = G.player, dist = Math.hypot(p.pos.x - x, p.pos.y + 0.9 - y, p.pos.z - z);
+  Sound.explode(dist);
+  for (let i = 0; i < 5; i++) puff(x + (Math.random() - 0.5) * power, y + (Math.random() - 0.5) * power, z + (Math.random() - 0.5) * power, "poof");
+  // blocks
+  const griefing = G.wset.griefing || !(src && src.def);   // Blast Blocks always break things; creatures only if allowed
+  if (griefing) {
+    const r = Math.ceil(power);
+    for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) {
+      const bx = Math.floor(x) + dx, by = Math.floor(y) + dy, bz = Math.floor(z) + dz, d = Math.hypot(dx, dy, dz);
+      if (d > power * (0.7 + Math.random() * 0.5)) continue;
+      const v = w.get(bx, by, bz), id = idOf(v), def = blockDef(v);
+      if (!id || id === B.WATER || id === B.LAVA || def.hardness >= 15) continue;
+      if (id === B.TNT) { w.set(bx, by, bz, B.AIR); primeTNT(bx, by, bz, 0.4 + Math.random() * 0.6); continue; }
+      breakBlock(bx, by, bz, Math.random() < 0.3, true);
+    }
+  }
+  // creatures and the player
+  const reach = power * 2;
+  for (const e of ents.near(x, y, z, reach)) {
+    const d = Math.hypot(e.pos.x - x, e.pos.y + e.h / 2 - y, e.pos.z - z), k = 1 - d / reach;
+    const l = Math.hypot(e.pos.x - x, e.pos.z - z) || 1;
+    ents.damage(e, Math.round(k * power * 5), "explosion", { x: (e.pos.x - x) / l * k * 1.5, z: (e.pos.z - z) / l * k * 1.5 });
+  }
+  if (dist < reach) {
+    const k = 1 - dist / reach, mul = { peaceful: 0.4, easy: 0.6, normal: 1, hard: 1.4 }[G.wset.difficulty] || 1;
+    const l = Math.hypot(p.pos.x - x, p.pos.z - z) || 1;
+    p.vel.x += (p.pos.x - x) / l * k * 12; p.vel.z += (p.pos.z - z) / l * k * 12; p.vel.y += k * 8;
+    hurt(Math.round(k * power * 4.5 * mul), src && src.def ? `A ${src.def.name} exploded next to you!` : "You were caught in an explosion!", null);
+  }
+}
+const primed = [];
+function primeTNT(x, y, z, fuse = 4) {
+  const mesh = new THREE.Mesh(blockGeometry(B.TNT, 1), new THREE.MeshBasicMaterial({ map: atlasTex }));
+  mesh.position.set(x + 0.5, y + 0.5, z + 0.5); scene.add(mesh);
+  primed.push({ x: x + 0.5, y: y + 0.5, z: z + 0.5, vy: 0, fuse, mesh });
+  Sound.mob("fuse", Math.hypot(G.player.pos.x - x, G.player.pos.z - z));
+}
+function updateTNT(dt) {
+  for (const t of primed) {
+    t.fuse -= dt; t.vy -= 18 * dt;
+    const ny = t.y + t.vy * dt;
+    if (SOLID[G.world.id(Math.floor(t.x), Math.floor(ny - 0.5), Math.floor(t.z))]) t.vy = 0; else t.y = ny;
+    t.mesh.position.set(t.x, t.y, t.z);
+    const flash = Math.sin(t.fuse * 18) > 0; t.mesh.material.color.setScalar(flash ? 1.6 : 1); t.mesh.scale.setScalar(1 + Math.max(0, 0.4 - t.fuse) * 0.4);
+    if (t.fuse <= 0) { t.gone = true; scene.remove(t.mesh); t.mesh.material.dispose(); explode(t.x, t.y, t.z, 4, null); }
+  }
+  for (let i = primed.length - 1; i >= 0; i--) if (primed[i].gone) primed.splice(i, 1);
+}
+
+// ---------- farming: crops and saplings grow while you play ----------
+let cropT = 0;
+function tickCrops(dt) {
+  cropT += dt; if (cropT < 1) return; cropT = 0;
+  const w = G.world;
+  for (const key of [...w.crops]) {
+    const [x, y, z] = key.split(",").map(Number);
+    if (!w.isLoaded(x, z)) continue;
+    const v = w.get(x, y, z), id = idOf(v);
+    if (id === B.WHEAT || id === B.CARROTS) {
+      const stage = metaOf(v) & 7;
+      if (stage >= 7) { w.crops.delete(key); continue; }
+      const soil = w.get(x, y - 1, z), wet = idOf(soil) === B.FARMLAND && (metaOf(soil) & WET);
+      if (Math.random() < (wet ? 1 / 12 : 1 / 30)) w.set(x, y, z, make(id, stage + 1));
+    } else if (id === B.SAPLING) { if (Math.random() < 1 / 90) growTree(x, y, z, metaOf(v) & 1); }
+    else w.crops.delete(key);
+  }
+}
+function hydrate(x, y, z) {   // farmland near water stays wet
+  const w = G.world;
+  for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if (w.id(x + dx, y, z + dz) === B.WATER || w.id(x + dx, y + 1, z + dz) === B.WATER) return true;
+  return false;
+}
+function growTree(x, y, z, birch) {
+  const w = G.world, h = 5 + Math.floor(Math.random() * 2);
+  for (let k = 1; k <= h + 1; k++) if (SOLID[w.id(x, y + k, z)]) return false;
+  const log = birch ? B.BIRCH_LOG : B.LOG, leaf = birch ? B.BIRCH_LEAVES : B.LEAVES, top = y + h;
+  for (let ly = top - 3; ly <= top; ly++) {
+    const r = ly >= top - 1 ? 1 : 2;
+    for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.abs(dx) === r && Math.abs(dz) === r && (ly === top || Math.random() < 0.5)) continue;
+      if (!w.id(x + dx, ly, z + dz) || BLOCKS[w.id(x + dx, ly, z + dz)].replaceable) w.set(x + dx, ly, z + dz, leaf);
+    }
+  }
+  for (let ly = y; ly < top; ly++) w.set(x, ly, z, log);
+  w.crops.delete(x + "," + y + "," + z);
+  return true;
+}
 
 const keys = new Set();
 let locked = false, wantLock = false, mouseL = false, mouseR = false;
@@ -215,6 +383,28 @@ function clearWorldMeshes() {
   for (const c of G.world.chunks.values()) disposeMesh(c);
   for (const d of G.drops) removeDrop(d);
   G.drops = []; parts.length = 0;
+  ents.clear();
+  for (const o of G.orbs) { scene.remove(o.mesh); o.mesh.material.dispose(); } G.orbs = [];
+  for (const t of primed) { scene.remove(t.mesh); t.mesh.material.dispose(); } primed.length = 0;
+}
+
+// ---------- dimensions: each has its own generator, block changes, containers, and creatures ----------
+function makeWorld(dim) {
+  const data = G.dimData[dim] || (G.dimData[dim] = {});
+  const gen = new Generator(G.meta.seed, G.meta.gen || 1);
+  const w = new World(gen);
+  w.dim = dim;
+  w.modsFromJSON(data.mods);
+  for (const [k, c] of data.containers || []) w.containers.set(k, c);
+  for (const k of Object.keys(data.entities || {})) w.entityStore.set(k, data.entities[k]);
+  for (const k of data.visited || []) w.visited.add(k);
+  for (const k of data.crops || []) w.crops.add(k);
+  w.onLoad = c => ents.loadChunk(c);
+  w.onUnload = c => ents.unloadChunk(c);
+  return w;
+}
+function dimSnapshot(w) {
+  return { mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops] };
 }
 
 // ---------- starting, loading, saving ----------
@@ -222,10 +412,11 @@ async function startWorld(save) {
   clearWorldMeshes();
   G.state = "loading"; UI.show("loading"); UI.setLoading(0, "Shaping hills and valleys");
   G.meta = save; G.mode = save.mode;
-  G.gen = new Generator(save.seed);
-  G.world = new World(G.gen);
-  G.world.modsFromJSON(save.mods);
-  for (const [k, c] of save.containers || []) G.world.containers.set(k, c);
+  G.dimData = save.dims || { overworld: { mods: save.mods || {}, containers: save.containers || [] } };
+  G.dim = (save.player && save.player.dim) || "overworld";
+  G.wset = { difficulty: "easy", griefing: true, keepInv: true, ...(save.settings || {}) };
+  G.xp = save.xp || 0; G.effects = {};
+  G.world = makeWorld(G.dim); G.gen = G.world.gen;
   G.inv = new Inventory(); G.inv.load(save.inventory);
   G.time = save.time ?? 0.02; G.tips = save.tips || {};
   const p = G.player = new Player();
@@ -280,10 +471,11 @@ function placeSafely(p, x, z) {
 
 function snapshot() {
   const p = G.player;
+  G.dimData[G.dim] = dimSnapshot(G.world);
   return {
-    ...G.meta, played: Date.now(), time: G.time, day: G.meta.day || 1, tips: G.tips,
-    player: { pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, health: p.health, hunger: p.hunger, spawn: p.spawn, flying: p.flying },
-    inventory: G.inv.toJSON(), mods: G.world.modsToJSON(), containers: [...G.world.containers]
+    ...G.meta, version: 2, played: Date.now(), time: G.time, day: G.meta.day || 1, tips: G.tips, mods: undefined, containers: undefined,
+    player: { pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, health: p.health, hunger: p.hunger, spawn: p.spawn, flying: p.flying, dim: G.dim },
+    inventory: G.inv.toJSON(), dims: G.dimData, xp: G.xp, settings: G.wset, gen: G.meta.gen || 1
   };
 }
 async function saveNow(show) {
@@ -372,10 +564,18 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) { key
 canvas.addEventListener("mousedown", e => {
   if (G.state !== "play") return;
   if (!locked) { requestLock(); return; }
-  if (e.button === 0) { mouseL = true; G.mining = null; if (G.creative) creativeBreak(); }
-  if (e.button === 2) { mouseR = true; useItem(); G.useCooldown = 0.28; }
+  if (e.button === 0) { mouseL = true; G.mining = null; if (!attack() && G.creative) creativeBreak(); }
+  if (e.button === 2) {
+    mouseR = true;
+    const s = G.inv.slots[G.selected];
+    if (s && s.id === I.BOW && !entityTarget()) { if (G.creative || G.inv.count(I.ARROW) > 0) G.bowT = 0; else { UI.toast("You need arrows to shoot. Make them from flint, a stick, and a feather.", "bad"); Sound.error(); } }
+    else { useItem(); G.useCooldown = 0.28; }
+  }
 });
-window.addEventListener("mouseup", e => { if (e.button === 0) { mouseL = false; G.mining = null; } if (e.button === 2) mouseR = false; });
+window.addEventListener("mouseup", e => {
+  if (e.button === 0) { mouseL = false; G.mining = null; }
+  if (e.button === 2) { mouseR = false; if (G.bowT >= 0) releaseBow(); }
+});
 canvas.addEventListener("contextmenu", e => e.preventDefault());
 document.addEventListener("mousemove", e => {
   if (!locked || G.state !== "play") return;
@@ -457,22 +657,37 @@ function wearTool(stack, n) {
   G.hudDirty = true;
 }
 const water = (x, y, z) => G.world.id(x, y, z) === B.WATER;
-function breakBlock(x, y, z, drops) {
+function breakBlock(x, y, z, drops, quiet) {
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
-  if (!id || id === B.WATER) return;
+  if (!id || id === B.WATER || id === B.LAVA) return;
+  w.crops.delete(x + "," + y + "," + z);
   if (id === B.DOOR) {   // doors are two blocks tall: remove both halves
     if (metaOf(v) & TOP) y -= 1;
     w.set(x, y, z, B.AIR);
     if (w.id(x, y + 1, z) === B.DOOR) w.set(x, y + 1, z, B.AIR);
+  } else if (id === B.BED) {   // beds are two blocks long
+    const [dx, dz] = DIR[metaOf(v) & 3], s = metaOf(v) & HEAD ? -1 : 1;
+    w.set(x, y, z, B.AIR);
+    if (w.id(x + dx * s, y, z + dz * s) === B.BED) w.set(x + dx * s, y, z + dz * s, B.AIR);
+    if (metaOf(v) & HEAD) drops = drops && true; else drops = drops && true;
   } else {
     // simple water rule: a hole next to water fills with water
     const wet = water(x, y + 1, z) || water(x + 1, y, z) || water(x - 1, y, z) || water(x, y, z + 1) || water(x, y, z - 1);
     w.set(x, y, z, wet ? B.WATER : B.AIR);
   }
-  Sound.breakBlock(MATERIAL(id)); burst(x, y, z, v, 16);
+  if (!quiet) { Sound.breakBlock(MATERIAL(id)); burst(x, y, z, v, 16); }
   if (!G.creative && drops) {
     let drop = d.drops;
-    if (drop === "leaves") drop = Math.random() < 0.08 ? I.APPLE : 0;
+    const r = Math.random();
+    if (drop === "leaves") drop = r < 0.06 ? B.SAPLING : r < 0.13 && id === B.LEAVES ? I.APPLE : 0;
+    if (heldTool() && heldTool().type === "shears" && (id === B.LEAVES || id === B.BIRCH_LEAVES)) drop = id;
+    if (id === B.TALL_GRASS) drop = r < 0.12 ? I.SEEDS : r < 0.14 ? I.CARROT : 0;
+    if (id === B.GRAVEL && r < 0.1) drop = I.FLINT;
+    if (drop === "crop") {
+      const ripe = (metaOf(v) & 7) >= 7;
+      if (id === B.WHEAT) { if (ripe) spawnDrop(I.WHEAT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
+      else drop = [I.CARROT, ripe ? 2 + Math.floor(Math.random() * 3) : 1];
+    }
     if (Array.isArray(drop)) spawnDrop(drop[0], drop[1], x + 0.5, y + 0.5, z + 0.5);
     else if (drop) spawnDrop(drop, 1, x + 0.5, y + 0.5, z + 0.5);
   }
@@ -481,9 +696,52 @@ function breakBlock(x, y, z, drops) {
   if (box) { for (const s of box.slots) if (s) spawnDrop(s.id, s.n, x + 0.5, y + 0.5, z + 0.5, s); w.containers.delete(key); }
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
-  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH].includes(aid) || (aid === B.DOOR && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true);
+  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING].includes(aid) || (aid === B.DOOR && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
   if (id === B.LOG || id === B.BIRCH_LOG) tipDone("chop");
   G.hudDirty = true;
+}
+
+// ---------- fighting ----------
+function entityTarget() {
+  const p = G.player, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z }, dir = lookDir();
+  const eh = ents.raycast(eye, dir, G.creative ? 5 : 3.5);
+  if (!eh) return null;
+  const bh = target();
+  if (bh && bh.dist < eh.dist) return null;   // a block is in the way
+  return eh.ent;
+}
+// Hit whatever creature is in front of you. Returns true if something was hit.
+function attack() {
+  const e = entityTarget();
+  if (!e) return false;
+  if (G.attackCd > 0) return true;
+  const s = G.inv.slots[G.selected], d = s ? itemDef(s.id) : null;
+  let dmg = d && d.tool ? d.tool.damage : 1;
+  const p = G.player, crit = !p.onGround && p.vel.y < 0 && !p.inWater;
+  if (crit) dmg *= 1.5;
+  const dir = lookDir(), l = Math.hypot(dir.x, dir.z) || 1, sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
+  if (ents.damage(e, dmg, "player", { x: dir.x / l * (sprint ? 1.4 : 1), z: dir.z / l * (sprint ? 1.4 : 1) })) {
+    if (crit) puff(e.pos.x, e.pos.y + e.h, e.pos.z, "poof");
+    if (s && d.tool) wearTool(s, d.tool.type === "sword" ? 1 : 2);
+  }
+  G.attackCd = d && d.tool && d.tool.type === "sword" ? 0.45 : 0.6; G.swing = 0.01;
+  return true;
+}
+function releaseBow() {
+  const charge = Math.min(1, G.bowT), s = G.inv.slots[G.selected];
+  G.bowT = -1;
+  if (charge < 0.15 || !s || s.id !== I.BOW) return;
+  if (!G.creative) { if (!G.inv.remove(I.ARROW, 1)) return; wearTool(s, 1); }
+  const p = G.player, dir = lookDir(), speed = 8 + 26 * charge;
+  ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, { fromPlayer: true, dmg: 1 + 7 * charge });
+  Sound.mob("bow", 0); G.hudDirty = true; G.swing = 0.01;
+}
+function throwItem(kind) {
+  const p = G.player, dir = lookDir();
+  ents.addProjectile(kind, p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * 18, dir.y * 18 + 2, dir.z * 18, { fromPlayer: true });
+  const s = G.inv.slots[G.selected]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.selected] = null; }
+  G.swing = 0.01; G.hudDirty = true; heldId = -1;
 }
 
 // ---------- placing and using ----------
@@ -496,19 +754,66 @@ function lookDir() { const p = G.player, cp = Math.cos(p.pitch); return { x: -Ma
 function facingFromYaw() { const a = ((G.player.yaw % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2); return [0, 1, 2, 3][Math.round(a / (Math.PI / 2)) % 4]; }
 
 function useItem() {
-  const hit = target(), w = G.world, slot = G.inv.slots[G.selected], crouch = keys.has("KeyC");
+  const hit = target(), w = G.world, slot = G.inv.slots[G.selected], crouch = keys.has("KeyC"), sd = slot ? itemDef(slot.id) : null;
+  // creatures first
+  const ent = entityTarget();
+  if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; } return; }
   if (hit && !crouch) {
     const id = idOf(hit.v), d = BLOCKS[id];
-    if (d.interact) { G.swing = 0.01; interact(hit, d.interact); return; }
+    if (d.interact && d.interact !== "tnt") { G.swing = 0.01; interact(hit, d.interact); return; }
   }
-  if (slot && itemDef(slot.id).food) {
+  if (sd && sd.kind === "spawn" && hit) {
+    const x = hit.x + hit.nx + 0.5, y = hit.y + hit.ny, z = hit.z + hit.nz + 0.5;
+    ents.add(sd.species, x, y, z); puff(x, y + 0.5, z, "poof");
+    if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+    G.hudDirty = true; return;
+  }
+  if (sd && sd.kind === "armor") {   // put it on
+    const at = 36 + sd.armor.slot, old = G.inv.slots[at];
+    G.inv.slots[at] = slot; G.inv.slots[G.selected] = old;
+    Sound.place("soft"); UI.toast(`Wearing ${sd.name}`); G.hudDirty = true; heldId = -1; return;
+  }
+  if (slot && slot.id === I.VOID_PEARL) { throwItem("pearl"); return; }
+  if (slot && slot.id === I.EGG) { throwItem("egg"); return; }
+  if (sd && (sd.food !== undefined) && sd.kind === "food") {
     if (G.creative) return;
-    if (G.player.hunger >= 20) { UI.toast("You're not hungry right now."); return; }
-    G.player.hunger = Math.min(20, G.player.hunger + itemDef(slot.id).food); G.player.exhaust = 0;
+    if (G.player.hunger >= 20 && sd.food > 0) { UI.toast("You're not hungry right now."); return; }
+    G.player.hunger = Math.min(20, G.player.hunger + sd.food); G.player.exhaust = 0;
+    if (sd.sideEffect === "poison" || (sd.raw && slot.id === I.RAW_CHICKEN && Math.random() < 0.3)) { addEffect("poison", 4); UI.toast("That made you feel sick!", "bad"); }
+    if (sd.sideEffect === "queasy" && Math.random() < 0.8) { addEffect("queasy", 30); UI.toast("Yuck! You feel queasy (you'll get hungry faster for a bit).", "bad"); }
+    if (sd.sideEffect === "cure") { G.effects = {}; UI.toast("Milk cleared your effects.", "good"); }
     slot.n--; if (!slot.n) G.inv.slots[G.selected] = null;
-    Sound.eat(); G.swing = 0.01; G.hudDirty = true; return;
+    if (sd.sideEffect === "cure") swapHeld(I.BUCKET);
+    Sound.eat(); G.swing = 0.01; G.hudDirty = true; heldId = -1; return;
   }
-  if (!hit || !slot || !isBlockItem(slot.id)) return;
+  if (slot && [I.BUCKET, I.WATER_BUCKET, I.LAVA_BUCKET].includes(slot.id)) { useBucket(slot); return; }
+  if (!hit || !slot) return;
+  const hitId = idOf(hit.v);
+  // hoe: turn grass or dirt into farmland
+  if (sd.tool && sd.tool.type === "hoe") {
+    if ((hitId === B.GRASS || hitId === B.DIRT) && hit.ny === 1 && !SOLID[w.id(hit.x, hit.y + 1, hit.z)]) {
+      if (w.id(hit.x, hit.y + 1, hit.z)) breakBlock(hit.x, hit.y + 1, hit.z, true);
+      w.set(hit.x, hit.y, hit.z, make(B.FARMLAND, hydrate(hit.x, hit.y, hit.z) ? WET : 0)); Sound.place("soft"); wearTool(slot, 1); G.swing = 0.01;
+    }
+    return;
+  }
+  // seeds and carrots: plant on farmland
+  if (sd.plants) {
+    if (hitId === B.FARMLAND && hit.ny === 1 && !w.id(hit.x, hit.y + 1, hit.z)) {
+      w.set(hit.x, hit.y + 1, hit.z, make(sd.plants, 0)); w.crops.add(hit.x + "," + (hit.y + 1) + "," + hit.z);
+      if (hydrate(hit.x, hit.y, hit.z)) w.set(hit.x, hit.y, hit.z, make(B.FARMLAND, WET));
+      if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+      Sound.place("leaf"); G.hudDirty = true; heldId = -1; return;
+    }
+    if (sd.kind !== "food") { UI.toast("Plant seeds on farmland. Use a hoe on grass or dirt first.", "bad"); return; }
+  }
+  if (slot.id === I.BONE_MEAL) { useBoneMeal(hit, slot); return; }
+  if (slot.id === I.FLINT_STEEL) {
+    if (hitId === B.TNT) { w.set(hit.x, hit.y, hit.z, B.AIR); primeTNT(hit.x, hit.y, hit.z); wearTool(slot, 1); }
+    return;
+  }
+  if (slot.id === B.BED) { placeBed(hit, slot); return; }
+  if (!isBlockItem(slot.id)) return;
   let x = hit.x, y = hit.y, z = hit.z;
   const hitDef = blockDef(hit.v);
   if (!hitDef.replaceable) { x += hit.nx; y += hit.ny; z += hit.nz; }
@@ -518,7 +823,9 @@ function useItem() {
   const id = slot.id, d = BLOCKS[id];
   let v = make(id);
   if (d.front) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces and chests face you
-  if (d.shape === "cross" && ![B.GRASS, B.DIRT].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return; }
+  if (d.shape === "cross" && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return; }
+  if (id === B.SAPLING) w.crops.add(x + "," + y + "," + z);
+  if (id === B.LAVA || id === B.WATER) { placeLiquid(id, x, y, z); if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; } G.hudDirty = true; return; }
   if (id === B.TORCH && !OPAQUE[idOf(hit.v)]) { Sound.error(); return; }
   if (id === B.DOOR) {
     if (!SOLID[w.id(x, y - 1, z)] || (w.id(x, y + 1, z) && !BLOCKS[w.id(x, y + 1, z)].replaceable)) { UI.toast("A door needs two empty blocks of space on solid ground.", "bad"); Sound.error(); return; }
@@ -533,6 +840,74 @@ function useItem() {
   if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
   Sound.place(MATERIAL(id)); G.swing = 0.01; G.hudDirty = true; heldId = G.inv.slots[G.selected] ? heldId : -1;
   tipDone("place");
+}
+// Water next to lava turns the lava into obsidian
+function placeLiquid(id, x, y, z) {
+  const w = G.world;
+  w.set(x, y, z, id);
+  const other = id === B.WATER ? B.LAVA : B.WATER;
+  let made = false;
+  for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]]) {
+    if (w.id(x + dx, y + dy, z + dz) !== other) continue;
+    if (id === B.WATER) w.set(x + dx, y + dy, z + dz, B.OBSIDIAN); else w.set(x, y, z, B.OBSIDIAN);
+    made = true;
+  }
+  if (made) { Sound.mob("hiss", 3); puff(x + 0.5, y + 1, z + 0.5, "poof"); UI.toast("Water and lava made Obsidian!", "good"); }
+}
+function useBucket(slot) {
+  const p = G.player, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
+  const hit = raycast(G.world, eye, lookDir(), REACH, false), w = G.world;
+  if (!hit) return;
+  if (slot.id === I.BUCKET) {
+    const id = idOf(hit.v);
+    if (id === B.WATER || id === B.LAVA) { w.set(hit.x, hit.y, hit.z, B.AIR); swapHeld(id === B.WATER ? I.WATER_BUCKET : I.LAVA_BUCKET); Sound.splash(); }
+    return;
+  }
+  const liquid = slot.id === I.WATER_BUCKET ? B.WATER : B.LAVA;
+  let x = hit.x, y = hit.y, z = hit.z;
+  if (!blockDef(hit.v).replaceable && idOf(hit.v) !== B.WATER) { x += hit.nx; y += hit.ny; z += hit.nz; }
+  const here = w.id(x, y, z);
+  if (here && here !== B.WATER && !BLOCKS[here].replaceable) return;
+  placeLiquid(liquid, x, y, z);
+  if (!G.creative) { G.inv.slots[G.selected] = newStack(I.BUCKET, 1); heldId = -1; }
+  Sound.splash(); G.hudDirty = true;
+}
+function useBoneMeal(hit, slot) {
+  const w = G.world, id = idOf(hit.v);
+  let used = false;
+  if (id === B.WHEAT || id === B.CARROTS) { const st = metaOf(hit.v) & 7; if (st < 7) { w.set(hit.x, hit.y, hit.z, make(id, Math.min(7, st + 2 + Math.floor(Math.random() * 3)))); used = true; } }
+  else if (id === B.SAPLING) { used = true; if (Math.random() < 0.45) growTree(hit.x, hit.y, hit.z, metaOf(hit.v) & 1); }
+  else if (id === B.GRASS && hit.ny === 1) {
+    used = true;
+    for (let i = 0; i < 12; i++) { const x = hit.x + Math.floor(Math.random() * 7) - 3, z = hit.z + Math.floor(Math.random() * 7) - 3; if (w.id(x, hit.y, z) === B.GRASS && !w.id(x, hit.y + 1, z)) w.set(x, hit.y + 1, z, Math.random() < 0.8 ? B.TALL_GRASS : Math.random() < 0.5 ? B.FLOWER_RED : B.FLOWER_YELLOW); }
+  }
+  if (!used) return;
+  puff(hit.x + 0.5, hit.y + 1, hit.z + 0.5, "xp");
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+  G.hudDirty = true; heldId = -1;
+}
+const DIR = [[0, 1], [1, 0], [0, -1], [-1, 0]];   // facing 0..3 → (dx, dz)
+function placeBed(hit, slot) {
+  const w = G.world, x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
+  const f = (facingFromYaw() + 2) % 4, [hx, hz] = DIR[(f + 2) % 4];   // head points away from you
+  const ok = (bx, bz) => (!w.id(bx, y, bz) || BLOCKS[w.id(bx, y, bz)].replaceable) && SOLID[w.id(bx, y - 1, bz)];
+  if (!ok(x, z) || !ok(x + hx, z + hz)) { UI.toast("A bed needs two empty blocks side by side on solid ground.", "bad"); Sound.error(); return; }
+  const fv = make(B.BED, (f + 2) % 4), hv = make(B.BED, ((f + 2) % 4) | HEAD);
+  if (blocksPlayer(fv, x, y, z) || blocksPlayer(hv, x + hx, y, z + hz)) return;
+  w.set(x, y, z, fv); w.set(x + hx, y, z + hz, hv);
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+  Sound.place("soft"); G.hudDirty = true; heldId = -1;
+}
+function useBed(hit) {
+  const meta = metaOf(hit.v), [dx, dz] = DIR[meta & 3];
+  const head = meta & HEAD ? { x: hit.x, z: hit.z } : { x: hit.x + dx, z: hit.z + dz };
+  G.player.spawn = { x: head.x + 0.5, y: hit.y + 1, z: head.z + 0.5, bed: [hit.x, hit.y, hit.z] };
+  const night = G.time > 0.53 && G.time < 0.97;
+  if (!night) { UI.toast("Respawn point set. You can only sleep at night."); return; }
+  if (G.creative === false && ents.near(G.player.pos.x, G.player.pos.y, G.player.pos.z, 10, e => e.def.hostile).length) { UI.toast("You can't rest now. There are monsters nearby!", "bad"); return; }
+  const shade = document.getElementById("flash");
+  shade.style.background = "#000"; shade.classList.add("on");
+  setTimeout(() => { G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; shade.classList.remove("on"); setTimeout(() => shade.style.background = "", 400); UI.toast("Good morning! Respawn point set.", "good"); }, 1200);
 }
 function blocksPlayer(v, x, y, z) {
   const boxes = []; blockBoxes(v, x, y, z, boxes);
@@ -549,6 +924,7 @@ function interact(hit, kind) {
     Sound.door(open); return;
   }
   if (kind === "table") { openPanel("table"); return; }
+  if (kind === "bed") { useBed(hit); return; }
   if (kind === "chest") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
     if (metaOf(hit.v) & LOOT) { fillLoot(w.containers.get(key), hit); w.set(hit.x, hit.y, hit.z, make(B.CHEST, metaOf(hit.v) & 3)); }
@@ -665,14 +1041,32 @@ function updateFurnaces(dt) {
 }
 
 // ---------- survival ----------
-function hurt(n, why) {
+// armor points worn (each point blocks 4% of damage)
+function armorPoints() { let a = 0; for (let i = 36; i < 40; i++) { const s = G.inv.slots[i]; if (s && itemDef(s.id).armor) a += itemDef(s.id).armor.points; } return a; }
+let iframes = 0;
+function hurt(n, why, src, bypassArmor) {
   const p = G.player;
   if (G.creative || G.state === "dead" || n <= 0) return;
+  if (iframes > 0 && !bypassArmor) return;
+  if (!bypassArmor) {
+    const a = armorPoints();
+    n = n * (1 - Math.min(20, a) * 0.04);
+    for (let i = 36; i < 40; i++) { const s = G.inv.slots[i]; if (s && itemDef(s.id).armor) { s.dur = (s.dur ?? itemDef(s.id).armor.dur) - 1; if (s.dur <= 0) { G.inv.slots[i] = null; UI.toast(`Your ${itemDef(s.id).name} broke!`, "bad"); } } }
+    iframes = 0.5;
+  }
+  n = Math.max(0.5, Math.round(n * 2) / 2);
   p.health = Math.max(0, p.health - n); p.hurtT = 0.4;
+  if (src && src.pos) { const dx = p.pos.x - src.pos.x, dz = p.pos.z - src.pos.z, l = Math.hypot(dx, dz) || 1; p.vel.x += dx / l * 6; p.vel.z += dz / l * 6; p.vel.y = Math.max(p.vel.y, 4); }
   Sound.hurt(); UI.flash(); G.hudDirty = true;
   if (p.health <= 0) die(why);
 }
 function die(why) {
+  if (!G.wset.keepInv && !G.creative) {   // drop everything where you fell
+    const p = G.player;
+    for (let i = 0; i < G.inv.slots.length; i++) { const s = G.inv.slots[i]; if (s) spawnDrop(s.id, s.n, p.pos.x, p.pos.y + 1, p.pos.z, s); G.inv.slots[i] = null; }
+    if (G.xp) { spawnOrbs(Math.min(100, Math.floor(G.xp / 2)), p.pos.x, p.pos.y + 1, p.pos.z); G.xp = 0; }
+  }
+  G.effects = {};
   G.state = "dead"; keys.clear(); mouseL = mouseR = false;
   document.getElementById("deathWhy").textContent = why;
   if (document.pointerLockElement) document.exitPointerLock();
@@ -682,12 +1076,17 @@ G.respawn = () => {
   const p = G.player;
   p.health = 20; p.hunger = 20; p.air = 10; p.exhaust = 0; p.flying = false;
   placeSafely(p, p.spawn.x, p.spawn.z);
+  if (p.spawn.bed && G.world.id(...p.spawn.bed) !== B.BED) { UI.toast("Your bed was missing, so you woke up at the world's starting spot.", "bad"); delete p.spawn.bed; }
   G.state = "pause"; G.resume();
 };
 let survT = 0, regenT = 0, starveT = 0, drownT = 0;
 function survival(dt) {
   const p = G.player;
-  if (G.creative) { p.health = 20; p.hunger = 20; p.air = 10; return; }
+  if (G.creative) { p.health = 20; p.hunger = 20; p.air = 10; G.effects = {}; return; }
+  if (iframes > 0) iframes -= dt;
+  tickEffects(dt);
+  if (p.inLava) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true); } }
+  if (G.wset.difficulty === "peaceful" && p.health < 20 && (G.peaceT = (G.peaceT || 0) + dt) > 2) { G.peaceT = 0; p.health++; G.hudDirty = true; }
   survT += dt;
   if (survT > 50) { survT = 0; p.exhaust += 4; }         // slowly get hungry over time
   if (p.exhaust >= 4) { p.exhaust -= 4; p.hunger = Math.max(0, p.hunger - 1); G.hudDirty = true; }
@@ -766,8 +1165,8 @@ window.addEventListener("resize", resize);
 // ---------- world list actions (called from the menus) ----------
 G.listWorlds = () => Saves.list();
 G.storageOK = () => Saves.persistent();
-G.newWorld = ({ name, seed, mode }) => {
-  const save = { id: newId(), name, seed, mode, created: Date.now(), played: Date.now(), day: 1, mods: {}, containers: [], inventory: [], tips: {} };
+G.newWorld = ({ name, seed, mode, settings }) => {
+  const save = { id: newId(), name, seed, mode, created: Date.now(), played: Date.now(), day: 1, version: 2, gen: 2, dims: {}, inventory: [], tips: {}, settings };
   startWorld(save);
 };
 G.loadWorld = async id => {
@@ -826,6 +1225,10 @@ function loop(now) {
     }
     survival(dt);
     updateFurnaces(dt);
+    tickCrops(dt);
+    updateTNT(dt);
+    if (G.attackCd > 0) G.attackCd -= dt;
+    if (G.bowT >= 0) G.bowT += dt;
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
   }
 
@@ -838,6 +1241,8 @@ function loop(now) {
   stream(G.state === "play" ? 7 : 4);
   const daylight = updateSky();
   applyView();
+  if (running) { ents.update(dt, daylight, camera); updateOrbs(dt); }
+  if (G.state === "play" && mouseL && !G.creative && G.attackCd <= 0 && entityTarget()) attack();
   document.getElementById("waterTint").hidden = !p.headInWater;
 
   // what am I pointing at?
@@ -852,7 +1257,7 @@ function loop(now) {
     outline.position.set(hit.x + (box[0] + box[3]) / 2, hit.y + (box[1] + box[4]) / 2, hit.z + (box[2] + box[5]) / 2);
   } else outline.visible = false;
   if (G.state === "play") {
-    updateMining(dt, hit);
+    updateMining(dt, entityTarget() ? null : hit);
     G.useCooldown -= dt;
     if (mouseR && G.useCooldown <= 0) { useItem(); G.useCooldown = 0.25; }
     if (mouseL && G.creative && G.useCooldown <= 0) creativeBreak();
@@ -870,7 +1275,7 @@ function loop(now) {
   for (let i = parts.length - 1; i >= 0; i--) {
     const q = parts[i]; q.life -= dt;
     if (q.life <= 0) { parts.splice(i, 1); continue; }
-    q.vy -= 12 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
+    q.vy -= (q.floaty ? 1 : 12) * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
     if (SOLID[G.world.id(Math.floor(q.x), Math.floor(q.y), Math.floor(q.z))]) { q.vy = 0; q.vx *= 0.5; q.vz *= 0.5; q.y = Math.floor(q.y) + 1.01; }
   }
   for (const q of parts) { pPos[n * 3] = q.x; pPos[n * 3 + 1] = q.y; pPos[n * 3 + 2] = q.z; pCol[n * 3] = q.c[0] * daylight; pCol[n * 3 + 1] = q.c[1] * daylight; pCol[n * 3 + 2] = q.c[2] * daylight; n++; }
@@ -892,4 +1297,4 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { hand, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };
+G._test = { hand, ents, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };

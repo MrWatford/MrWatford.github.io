@@ -9,14 +9,24 @@ export const B = {
   GLASS: 10, WATER: 11, COAL_ORE: 12, IRON_ORE: 13, SKY_ORE: 14, TABLE: 15, FURNACE: 16, CHEST: 17,
   TORCH: 18, BEDROCK: 19, TALL_GRASS: 20, FLOWER_RED: 21, FLOWER_YELLOW: 22, BRICKS: 23, STONE_BRICKS: 24,
   SANDSTONE: 25, MOSSY: 26, IRON_BLOCK: 27, BIRCH_LOG: 28, BIRCH_LEAVES: 29, BIRCH_PLANKS: 30, SNOW: 31,
-  CLAY: 32, DOOR: 33
+  CLAY: 32, DOOR: 33, FARMLAND: 34, WHEAT: 35, SAPLING: 36, BED: 37, WOOL: 38, LAVA: 39, OBSIDIAN: 40, CARROTS: 41, TNT: 42
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
   WOOD_PICK: 270, WOOD_AXE: 271, WOOD_SHOVEL: 272, WOOD_SWORD: 273,
   STONE_PICK: 274, STONE_AXE: 275, STONE_SHOVEL: 276, STONE_SWORD: 277,
   IRON_PICK: 278, IRON_AXE: 279, IRON_SHOVEL: 280, IRON_SWORD: 281,
-  SKY_PICK: 282, SKY_AXE: 283, SKY_SHOVEL: 284, SKY_SWORD: 285
+  SKY_PICK: 282, SKY_AXE: 283, SKY_SHOVEL: 284, SKY_SWORD: 285,
+  WOOD_HOE: 286, STONE_HOE: 287, IRON_HOE: 288, SKY_HOE: 289,
+  SEEDS: 300, WHEAT: 301, BREAD: 302, CARROT: 303, RAW_BEEF: 304, STEAK: 305, RAW_PORK: 306, COOKED_PORK: 307,
+  RAW_CHICKEN: 308, COOKED_CHICKEN: 309, RAW_MUTTON: 310, COOKED_MUTTON: 311, RAW_RABBIT: 312, COOKED_RABBIT: 313,
+  ROTTEN_FLESH: 314, BONE: 315, BONE_MEAL: 316, ARROW: 317, STRING: 318, FEATHER: 319, FLINT: 320, BOOM_POWDER: 321,
+  GLOOP_BALL: 322, VOID_PEARL: 323, LEATHER: 324, EGG: 325, BUCKET: 326, WATER_BUCKET: 327, LAVA_BUCKET: 328, MILK_BUCKET: 329,
+  BOW: 330, SHEARS: 331, FLINT_STEEL: 336, SPIDER_EYE: 337,
+  LEATHER_HELMET: 340, LEATHER_CHEST: 341, LEATHER_LEGS: 342, LEATHER_BOOTS: 343,
+  IRON_HELMET: 344, IRON_CHEST: 345, IRON_LEGS: 346, IRON_BOOTS: 347,
+  SKY_HELMET: 348, SKY_CHEST: 349, SKY_LEGS: 350, SKY_BOOTS: 351,
+  SPAWN: 400   // spawn eggs: 400 + index in SPAWN_EGGS
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -24,7 +34,7 @@ export const idOf = v => v & 255;
 export const metaOf = v => v >> 8;
 export const make = (id, meta = 0) => id | (meta << 8);
 // Meta bits: facing 0-3 (0 = +z, 1 = +x, 2 = -z, 3 = -x), OPEN for doors, TOP for door tops, LIT for furnaces
-export const OPEN = 4, TOP = 8, LIT = 4;
+export const OPEN = 4, TOP = 8, LIT = 4, HEAD = 8, WET = 1;
 
 // ---------- Block definitions ----------
 // shape: cube | cross | torch | water | door      render: opaque | cutout | water
@@ -67,6 +77,15 @@ block(B.BIRCH_PLANKS, "Birch Planks", { hardness: 2, tool: "axe", tex: "birch_pl
 block(B.SNOW, "Snow", { hardness: 0.3, tool: "shovel", tex: "snow", category: "Nature" });
 block(B.CLAY, "Clay", { hardness: 0.6, tool: "shovel", drops: [I.CLAY_BALL, 4], tex: "clay", category: "Nature" });
 block(B.DOOR, "Wooden Door", { shape: "door", render: "cutout", hardness: 3, tool: "axe", interact: "door", tex: "door_bottom", category: "Useful" });
+block(B.FARMLAND, "Farmland", { shape: "farmland", hardness: 0.6, tool: "shovel", drops: B.DIRT, tex: ["farmland_dry", "dirt", "dirt"], category: "Nature" });
+block(B.WHEAT, "Wheat Crop", { shape: "crop", render: "cutout", solid: false, hardness: 0, drops: "crop", tex: "wheat0", category: "Nature", noItem: true });
+block(B.CARROTS, "Carrot Crop", { shape: "crop", render: "cutout", solid: false, hardness: 0, drops: "crop", tex: "carrots0", category: "Nature", noItem: true });
+block(B.SAPLING, "Oak Sapling", { shape: "cross", render: "cutout", solid: false, hardness: 0, tex: "sapling_oak", category: "Nature" });
+block(B.BED, "Bed", { shape: "bed", render: "cutout", hardness: 0.4, tool: "axe", interact: "bed", tex: "bed_foot", category: "Useful" });
+block(B.WOOL, "Wool", { hardness: 0.8, tool: "shears", tex: "wool" });
+block(B.LAVA, "Lava", { shape: "liquid", render: "opaque", solid: false, hardness: 0, drops: 0, light: 15, tex: "lava", category: "Nature" });
+block(B.OBSIDIAN, "Obsidian", { hardness: 15, tool: "pick", tier: 4, tex: "obsidian" });
+block(B.TNT, "Blast Block", { hardness: 0, interact: "tnt", tex: ["tnt_top", "tnt_side", "tnt_bottom"], category: "Useful" });
 export const BLOCKS = defs;
 export const blockDef = v => defs[v & 255] || defs[0];
 
@@ -83,7 +102,7 @@ export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : 
 
 // ---------- Items ----------
 const items = {};
-for (const d of Object.values(defs)) if (d.id) items[d.id] = { id: d.id, name: d.name, kind: "block", stack: 64, category: d.category };
+for (const d of Object.values(defs)) if (d.id && !d.noItem) items[d.id] = { id: d.id, name: d.name, kind: "block", stack: d.id === B.BED ? 1 : 64, category: d.category };
 function item(id, name, o) { items[id] = Object.assign({ id, name, kind: "item", stack: 64, category: "Items" }, o); }
 item(I.STICK, "Stick", { icon: "stick" });
 item(I.COAL, "Coal", { icon: "coal" });
@@ -92,19 +111,62 @@ item(I.SKYSHARD, "Skyshard", { icon: "skyshard" });
 item(I.APPLE, "Apple", { icon: "apple", kind: "food", food: 4 });
 item(I.CLAY_BALL, "Clay Ball", { icon: "clay_ball" });
 item(I.BRICK, "Brick", { icon: "brick" });
+// farming and food (food = hunger points restored)
+item(I.SEEDS, "Wheat Seeds", { icon: "seeds", plants: B.WHEAT, category: "Food" });
+item(I.WHEAT, "Wheat", { icon: "wheat", category: "Food" });
+item(I.BREAD, "Bread", { icon: "bread", kind: "food", food: 5, category: "Food" });
+item(I.CARROT, "Carrot", { icon: "carrot", kind: "food", food: 3, plants: B.CARROTS, category: "Food" });
+const MEAT = [["RAW_BEEF", "Raw Beef", 3, "#c0443c"], ["STEAK", "Steak", 8, "#7a4424"], ["RAW_PORK", "Raw Porkchop", 3, "#e89a9a"], ["COOKED_PORK", "Cooked Porkchop", 8, "#b8784a"],
+  ["RAW_CHICKEN", "Raw Chicken", 2, "#f0c8b0"], ["COOKED_CHICKEN", "Cooked Chicken", 6, "#c88a4a"], ["RAW_MUTTON", "Raw Mutton", 2, "#c8504a"], ["COOKED_MUTTON", "Cooked Mutton", 6, "#8a5030"],
+  ["RAW_RABBIT", "Raw Rabbit", 3, "#e0a0a0"], ["COOKED_RABBIT", "Cooked Rabbit", 5, "#b07040"]];
+for (const [k, name, food, color] of MEAT) item(I[k], name, { icon: "meat", colors: [color, "#f4e6d0"], kind: "food", food, category: "Food", raw: k.startsWith("RAW") });
+item(I.ROTTEN_FLESH, "Rotten Flesh", { icon: "meat", colors: ["#6a8a3a", "#4a5a2a"], kind: "food", food: 4, category: "Food", sideEffect: "queasy" });
+item(I.SPIDER_EYE, "Skitter Eye", { icon: "eye", kind: "food", food: 2, category: "Food", sideEffect: "poison" });
+item(I.EGG, "Egg", { icon: "egg", stack: 16, category: "Food" });
+item(I.MILK_BUCKET, "Milk Bucket", { icon: "bucket", colors: ["#ffffff"], kind: "food", food: 0, stack: 1, category: "Food", sideEffect: "cure" });
+// creature drops and materials
+item(I.BONE, "Bone", { icon: "bone" });
+item(I.BONE_MEAL, "Bone Meal", { icon: "bonemeal" });
+item(I.ARROW, "Arrow", { icon: "arrow", category: "Tools" });
+item(I.STRING, "String", { icon: "string" });
+item(I.FEATHER, "Feather", { icon: "feather" });
+item(I.FLINT, "Flint", { icon: "flint" });
+item(I.BOOM_POWDER, "Boom Powder", { icon: "powder" });
+item(I.GLOOP_BALL, "Gloop Ball", { icon: "gloop" });
+item(I.VOID_PEARL, "Void Pearl", { icon: "pearl", stack: 16, category: "Tools" });
+item(I.LEATHER, "Leather", { icon: "leather" });
+// tools without tiers
+item(I.BUCKET, "Bucket", { icon: "bucket", colors: [null], stack: 16, category: "Tools" });
+item(I.WATER_BUCKET, "Water Bucket", { icon: "bucket", colors: ["#3a6fd8"], stack: 1, category: "Tools" });
+item(I.LAVA_BUCKET, "Lava Bucket", { icon: "bucket", colors: ["#ff7a1a"], stack: 1, category: "Tools" });
+item(I.BOW, "Bow", { icon: "bow", kind: "tool", stack: 1, category: "Tools", tool: { type: "bow", tier: 0, speed: 1, dur: 384, damage: 1 } });
+item(I.SHEARS, "Shears", { icon: "shears", kind: "tool", stack: 1, category: "Tools", tool: { type: "shears", tier: 2, speed: 5, dur: 238, damage: 1 } });
+item(I.FLINT_STEEL, "Flint and Steel", { icon: "flintsteel", kind: "tool", stack: 1, category: "Tools", tool: { type: "igniter", tier: 0, speed: 1, dur: 64, damage: 1 } });
 const TIERS = [
   { key: "WOOD", label: "Wooden", tier: 1, speed: 2, dur: 60, color: "#b48a52", dark: "#7d5a30" },
   { key: "STONE", label: "Stone", tier: 2, speed: 4, dur: 132, color: "#8d8d8d", dark: "#5b5b5b" },
   { key: "IRON", label: "Iron", tier: 3, speed: 6, dur: 250, color: "#e4e4e4", dark: "#a8a8a8" },
   { key: "SKY", label: "Skyshard", tier: 4, speed: 9, dur: 1200, color: "#62e6ee", dark: "#2a9fb0" }
 ];
-const KINDS = [["PICK", "Pickaxe", "pick"], ["AXE", "Axe", "axe"], ["SHOVEL", "Shovel", "shovel"], ["SWORD", "Sword", "sword"]];
+const KINDS = [["PICK", "Pickaxe", "pick"], ["AXE", "Axe", "axe"], ["SHOVEL", "Shovel", "shovel"], ["SWORD", "Sword", "sword"], ["HOE", "Hoe", "hoe"]];
 for (const t of TIERS) for (const [k, label, type] of KINDS) {
   item(I[t.key + "_" + k], t.label + " " + label, {
     kind: "tool", stack: 1, category: "Tools", icon: "tool_" + type, colors: [t.color, t.dark],
     tool: { type, tier: t.tier, speed: t.speed, dur: t.dur, damage: type === "sword" ? 3 + t.tier : 1 + t.tier * 0.5 }
   });
 }
+// armor: slot 0 helmet, 1 chestplate, 2 leggings, 3 boots. points = protection
+const ARMOR = [["LEATHER", "Leather", [1, 3, 2, 1], 60, "#9a5a32"], ["IRON", "Iron", [2, 6, 5, 2], 180, "#dcdcdc"], ["SKY", "Skyshard", [3, 8, 6, 3], 500, "#62e6ee"]];
+const PIECES = [["HELMET", "Cap", "helmet"], ["CHEST", "Tunic", "chest"], ["LEGS", "Pants", "legs"], ["BOOTS", "Boots", "boots"]];
+for (const [k, label, pts, dur, color] of ARMOR) PIECES.forEach(([p, pname, icon], slot) => {
+  const nice = k === "LEATHER" ? label + " " + pname : label + " " + { HELMET: "Helmet", CHEST: "Chestplate", LEGS: "Leggings", BOOTS: "Boots" }[p];
+  item(I[k + "_" + p], nice, { icon: "armor_" + icon, colors: [color], kind: "armor", stack: 1, category: "Tools", armor: { slot, points: pts[slot], dur } });
+});
+// spawn eggs (Creative only): key, name, two colors
+export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skeleton", "Rattler", "#d8d8d0", "#6a6a6a"], ["creeper", "Hisser", "#4caf3a", "#1d1d1d"],
+  ["spider", "Skitter", "#3a302a", "#c0202a"], ["cave_spider", "Cave Skitter", "#1d4a5a", "#c0202a"], ["slime", "Gloop", "#6ac85a", "#3a8a3a"], ["voidwalker", "Voidwalker", "#161616", "#b050e0"],
+  ["cow", "Cow", "#4a3424", "#e8e8e8"], ["sheep", "Sheep", "#eeeeee", "#f0c0b0"], ["pig", "Pig", "#f0a0a0", "#d07070"], ["chicken", "Chicken", "#f4f4f4", "#e03a2a"], ["rabbit", "Rabbit", "#9a7a5a", "#e8dcc8"]];
+SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
 export const ITEMS = items;
 export const itemDef = id => items[id];
 export const isBlockItem = id => id > 0 && id < 256;
@@ -142,9 +204,28 @@ export const RECIPES = [
   { out: [I.SKY_PICK, 1], ins: [[I.SKYSHARD, 3], [I.STICK, 2]], table: true },
   { out: [I.SKY_AXE, 1], ins: [[I.SKYSHARD, 3], [I.STICK, 2]], table: true },
   { out: [I.SKY_SHOVEL, 1], ins: [[I.SKYSHARD, 1], [I.STICK, 2]], table: true },
-  { out: [I.SKY_SWORD, 1], ins: [[I.SKYSHARD, 2], [I.STICK, 1]], table: true }
+  { out: [I.SKY_SWORD, 1], ins: [[I.SKYSHARD, 2], [I.STICK, 1]], table: true },
+  { out: [I.WOOD_HOE, 1], ins: [["planks", 2], [I.STICK, 2]], table: true },
+  { out: [I.STONE_HOE, 1], ins: [[B.COBBLE, 2], [I.STICK, 2]], table: true },
+  { out: [I.IRON_HOE, 1], ins: [[I.IRON_INGOT, 2], [I.STICK, 2]], table: true },
+  { out: [I.SKY_HOE, 1], ins: [[I.SKYSHARD, 2], [I.STICK, 2]], table: true },
+  { out: [I.BREAD, 1], ins: [[I.WHEAT, 3]] },
+  { out: [I.BONE_MEAL, 3], ins: [[I.BONE, 1]] },
+  { out: [B.WOOL, 1], ins: [[I.STRING, 4]] },
+  { out: [I.ARROW, 4], ins: [[I.FLINT, 1], [I.STICK, 1], [I.FEATHER, 1]], table: true },
+  { out: [I.BOW, 1], ins: [[I.STICK, 3], [I.STRING, 3]], table: true },
+  { out: [I.SHEARS, 1], ins: [[I.IRON_INGOT, 2]], table: true },
+  { out: [I.BUCKET, 1], ins: [[I.IRON_INGOT, 3]], table: true },
+  { out: [I.FLINT_STEEL, 1], ins: [[I.IRON_INGOT, 1], [I.FLINT, 1]] },
+  { out: [B.BED, 1], ins: [[B.WOOL, 3], ["planks", 3]], table: true },
+  { out: [B.TNT, 1], ins: [[I.BOOM_POWDER, 5], [B.SAND, 4]], table: true },
+  ...["LEATHER", "IRON", "SKY"].flatMap(k => {
+    const mat = { LEATHER: I.LEATHER, IRON: I.IRON_INGOT, SKY: I.SKYSHARD }[k];
+    return [["HELMET", 5], ["CHEST", 8], ["LEGS", 7], ["BOOTS", 4]].map(([p, n]) => ({ out: [I[k + "_" + p], 1], ins: [[mat, n]], table: true }));
+  })
 ];
-export const SMELT = { [B.IRON_ORE]: I.IRON_INGOT, [B.SAND]: B.GLASS, [B.COBBLE]: B.STONE, [I.CLAY_BALL]: I.BRICK, [B.LOG]: I.COAL, [B.BIRCH_LOG]: I.COAL };
+export const SMELT = { [B.IRON_ORE]: I.IRON_INGOT, [B.SAND]: B.GLASS, [B.COBBLE]: B.STONE, [I.CLAY_BALL]: I.BRICK, [B.LOG]: I.COAL, [B.BIRCH_LOG]: I.COAL,
+  [I.RAW_BEEF]: I.STEAK, [I.RAW_PORK]: I.COOKED_PORK, [I.RAW_CHICKEN]: I.COOKED_CHICKEN, [I.RAW_MUTTON]: I.COOKED_MUTTON, [I.RAW_RABBIT]: I.COOKED_RABBIT };
 export const FUEL = { [I.COAL]: 40, [B.LOG]: 8, [B.BIRCH_LOG]: 8, [B.PLANKS]: 7, [B.BIRCH_PLANKS]: 7, [I.STICK]: 2.5, [B.TABLE]: 7, [B.CHEST]: 7 };
 export const SMELT_TIME = 5;
 
@@ -154,7 +235,9 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "coal_ore", "iron_ore", "sky_ore", "table_top", "table_side", "furnace_top", "furnace_side", "furnace_front", "furnace_front_lit", "chest_top", "chest_side",
   "chest_front", "torch", "bedrock", "tall_grass", "flower_red", "flower_yellow", "bricks", "stone_bricks", "sandstone_top", "sandstone_side", "mossy",
   "iron_block", "birch_top", "birch_side", "birch_leaves", "birch_planks", "snow", "clay", "door_bottom", "door_top",
-  "crack0", "crack1", "crack2", "crack3", "crack4", "crack5", "crack6", "crack7"];
+  "crack0", "crack1", "crack2", "crack3", "crack4", "crack5", "crack6", "crack7",
+  "farmland_dry", "farmland_wet", "wheat0", "wheat1", "wheat2", "wheat3", "carrots0", "carrots1", "carrots2", "carrots3", "sapling_oak", "sapling_birch",
+  "bed_head", "bed_foot", "bed_side", "wool", "lava", "obsidian", "tnt_top", "tnt_side", "tnt_bottom"];
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
 
@@ -163,6 +246,10 @@ export function faceTile(v, dir, front) {
   const d = blockDef(v), t = d.tex;
   if (front && d.front) return TILE[idOf(v) === B.FURNACE && (metaOf(v) & LIT) ? "furnace_front_lit" : d.front];
   if (idOf(v) === B.DOOR) return TILE[metaOf(v) & TOP ? "door_top" : "door_bottom"];
+  if (idOf(v) === B.WHEAT || idOf(v) === B.CARROTS) return TILE[(idOf(v) === B.WHEAT ? "wheat" : "carrots") + Math.min(3, (metaOf(v) & 7) >> 1)];
+  if (idOf(v) === B.FARMLAND && dir === 0) return TILE[metaOf(v) & WET ? "farmland_wet" : "farmland_dry"];
+  if (idOf(v) === B.BED) return TILE[dir === 0 ? (metaOf(v) & HEAD ? "bed_head" : "bed_foot") : "bed_side"];
+  if (idOf(v) === B.SAPLING && (metaOf(v) & 1)) return TILE.sapling_birch;
   if (Array.isArray(t)) return TILE[t[dir]];
   return TILE[t];
 }
@@ -280,6 +367,26 @@ const PAINT = {
   door_bottom(P) { PAINT.planks(P); P.rect(0, 0, 1, 16, "#6e4b26"); P.rect(15, 0, 1, 16, "#6e4b26"); P.rect(0, 15, 16, 1, "#6e4b26"); P.rect(12, 1, 2, 2, "#3a3a3a"); },
   door_top(P) { PAINT.planks(P); P.rect(0, 0, 1, 16, "#6e4b26"); P.rect(15, 0, 1, 16, "#6e4b26"); P.rect(0, 0, 16, 1, "#6e4b26"); for (const [x, y] of [[3, 3], [9, 3], [3, 8], [9, 8]]) { P.clear(x, y); for (let yy = 0; yy < 4; yy++) for (let xx = 0; xx < 4; xx++) P.clear(x + xx, y + yy); } }
 };
+Object.assign(PAINT, {
+  farmland_dry(P) { P.fill(["#7a5232", "#6e482b", "#845a38"]); for (let y = 1; y < 16; y += 3) P.rect(0, y, 16, 1, "#5a3a20"); },
+  farmland_wet(P) { P.fill(["#4e321c", "#462c18", "#553820"]); for (let y = 1; y < 16; y += 3) P.rect(0, y, 16, 1, "#36210f"); },
+  wheat0(P) { crop(P, 4, ["#4f9a33", "#6bb544"]); }, wheat1(P) { crop(P, 8, ["#6aa33e", "#88b24a"]); },
+  wheat2(P) { crop(P, 12, ["#a8a83a", "#c0b04a"]); }, wheat3(P) { crop(P, 15, ["#c9a640", "#e0c060"]); for (let x = 1; x < 16; x += 3) { P.rect(x, 1, 2, 4, "#d8b04a"); P.px(x, 0, "#f0d070"); } },
+  carrots0(P) { crop(P, 3, ["#4f9a33"]); }, carrots1(P) { crop(P, 6, ["#4f9a33", "#5ea83b"]); }, carrots2(P) { crop(P, 9, ["#4f9a33", "#5ea83b"]); },
+  carrots3(P) { crop(P, 10, ["#4f9a33", "#5ea83b"]); for (let x = 2; x < 16; x += 4) P.rect(x, 12, 2, 4, "#f08a1a"); },
+  sapling_oak(P) { P.rect(7, 9, 2, 7, "#6b4f2e"); for (const [x, y] of [[6, 4], [4, 6], [9, 5], [7, 2], [10, 7], [5, 8]]) P.rect(x, y, 3, 3, P.pick(["#3f8a2c", "#4a9a33"])); },
+  sapling_birch(P) { P.rect(7, 9, 2, 7, "#e8e4d8"); for (const [x, y] of [[6, 4], [4, 6], [9, 5], [7, 2], [10, 7], [5, 8]]) P.rect(x, y, 3, 3, P.pick(["#7ab449", "#86c052"])); },
+  bed_head(P) { P.fill(["#c8302a", "#b82a24"]); P.rect(1, 1, 14, 6, "#f2f2f2"); P.rect(1, 6, 14, 1, "#d8d8d8"); },
+  bed_foot(P) { P.fill(["#c8302a", "#b82a24", "#d23a32"]); P.rect(0, 0, 16, 1, "#a82018"); },
+  bed_side(P) { P.fill(["#c8302a"]); P.rect(0, 8, 16, 8, "#9a6a3a"); P.rect(0, 13, 2, 3, "#7a5028"); P.rect(14, 13, 2, 3, "#7a5028"); },
+  wool(P) { P.fill(["#ececec", "#e2e2e2", "#f6f6f6", "#dadada"]); },
+  lava(P) { P.fill(["#ff7a1a", "#ff9a2a", "#e85a10", "#ffb03a"]); for (let i = 0; i < 6; i++) P.rect(Math.floor(P.r() * 12), Math.floor(P.r() * 16), 4, 1, "#ffd860"); },
+  obsidian(P) { P.fill(["#1a1426", "#120e1c", "#221a32"]); P.specks(8, ["#3a2a5a", "#4a3a6a"], 2); },
+  tnt_side(P) { P.fill(["#d8402a", "#c8382a"]); P.rect(0, 5, 16, 6, "#f2f2e8"); P.rect(3, 7, 10, 2, "#1d1d1d"); },
+  tnt_top(P) { P.fill(["#d8402a"]); P.rect(5, 5, 6, 6, "#f2f2e8"); P.rect(7, 7, 2, 2, "#3a3a3a"); },
+  tnt_bottom(P) { P.fill(["#c8382a", "#b8302a"]); }
+});
+function crop(P, h, pal) { for (let x = 1; x < 16; x += 2) { const hh = Math.max(2, h - Math.floor(P.r() * 3)); for (let y = 15; y > 15 - hh; y--) P.px(x + (y % 3 === 0 ? 0 : 0), y, P.pick(pal)); } }
 function oreSpots(P, pal) { for (let i = 0; i < 5; i++) { const x = 1 + Math.floor(P.r() * 12), y = 1 + Math.floor(P.r() * 12); P.px(x, y, pal[0]); P.px(x + 1, y, pal[1]); P.px(x, y + 1, pal[1]); if (P.r() < 0.7) P.px(x + 1, y + 1, pal[2]); } }
 function stem(P) { P.rect(7, 6, 2, 10, "#3f8a2c"); P.px(6, 11, "#4f9a33"); P.px(9, 9, "#4f9a33"); P.px(5, 10, "#4f9a33"); }
 for (let s = 0; s < 8; s++) {
@@ -314,6 +421,35 @@ const ICON_PAINT = {
   tool_shovel(P, c) { handle(P); for (let y = 1; y < 6; y++) for (let x = 9; x < 14; x++) if ((x - 11.5) ** 2 + (y - 3.5) ** 2 < 6.5) P.px(x, y, x === 9 ? c[1] : c[0]); },
   tool_sword(P, c) { for (let i = 0; i < 9; i++) { P.px(5 + i, 10 - i, c[0]); P.px(6 + i, 10 - i, c[1]); } P.px(14, 1, c[0]); P.rect(3, 10, 4, 1, "#5a3d20"); P.rect(5, 8, 1, 4, "#5a3d20"); P.px(3, 12, "#8a6235"); P.px(2, 13, "#8a6235"); }
 };
+Object.assign(ICON_PAINT, {
+  seeds(P) { for (const [x, y] of [[4, 6], [8, 4], [11, 8], [6, 10], [9, 12], [3, 12]]) { P.px(x, y, "#5a9a2a"); P.px(x + 1, y, "#3a7a1a"); } },
+  wheat(P) { for (let i = 0; i < 4; i++) { const x = 4 + i * 2; P.rect(x, 7, 1, 8, "#8a7a2a"); P.rect(x - 1, 2, 3, 6, i % 2 ? "#e0c060" : "#c9a640"); } },
+  bread(P) { for (let y = 6; y < 12; y++) for (let x = 2; x < 14; x++) if ((x - 8) ** 2 / 36 + (y - 9) ** 2 / 9 < 1) P.px(x, y, y < 8 ? "#d8a050" : "#b07830"); P.rect(5, 7, 1, 2, "#8a5a20"); P.rect(8, 7, 1, 2, "#8a5a20"); P.rect(11, 7, 1, 2, "#8a5a20"); },
+  carrot(P) { for (let i = 0; i < 9; i++) { P.px(4 + i, 12 - i, "#f08a1a"); P.px(5 + i, 12 - i, "#d86a10"); } P.rect(12, 1, 2, 3, "#4f9a33"); P.rect(13, 3, 2, 1, "#6bb544"); },
+  meat(P, c) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 8) ** 2 / 25 + (y - 8.5) ** 2 / 18 < 1) P.px(x, y, c[0]); P.rect(10, 9, 3, 2, c[1]); P.rect(12, 10, 2, 3, c[1]); },
+  eye(P) { for (let y = 5; y < 12; y++) for (let x = 4; x < 12; x++) if ((x - 8) ** 2 + (y - 8.5) ** 2 < 12) P.px(x, y, "#b02030"); P.rect(7, 7, 2, 2, "#1a1a1a"); },
+  egg(P) { for (let y = 3; y < 14; y++) for (let x = 4; x < 12; x++) if ((x - 8) ** 2 / 14 + (y - 8.5) ** 2 / 28 < 1) P.px(x, y, x < 7 && y < 8 ? "#ffffff" : "#e8dcc0"); },
+  bucket(P, c) { for (let y = 5; y < 14; y++) { const w = 5 - Math.floor((y - 5) / 3); P.rect(8 - w, y, w * 2, 1, y === 13 ? "#8a8a8a" : "#c8c8c8"); } P.rect(3, 4, 10, 1, "#8a8a8a"); if (c && c[0]) P.rect(4, 5, 8, 2, c[0]); P.rect(3, 2, 1, 2, "#8a8a8a"); P.rect(12, 2, 1, 2, "#8a8a8a"); P.rect(4, 1, 8, 1, "#8a8a8a"); },
+  bone(P) { for (let i = 0; i < 9; i++) P.px(4 + i, 11 - i, "#eeeadc"); for (const [x, y] of [[3, 11], [4, 12], [3, 12], [12, 3], [13, 2], [13, 3]]) P.px(x, y, "#ffffff"); },
+  bonemeal(P) { for (let i = 0; i < 18; i++) P.px(4 + Math.floor(P.r() * 8), 5 + Math.floor(P.r() * 8), P.pick(["#ffffff", "#e8e4d8"])); },
+  arrow(P) { for (let i = 0; i < 10; i++) P.px(3 + i, 12 - i, "#8a6235"); P.rect(12, 2, 2, 2, "#8a8a8a"); P.px(11, 2, "#6a6a6a"); P.px(13, 4, "#6a6a6a"); P.rect(2, 12, 2, 2, "#ffffff"); P.px(4, 13, "#e8e8e8"); },
+  string(P) { let x = 3, y = 3; for (let i = 0; i < 14; i++) { P.px(x, y, "#f0f0f0"); x += i % 3 ? 1 : 0; y += i % 2 ? 1 : 0; } },
+  feather(P) { for (let i = 0; i < 10; i++) { P.px(4 + i, 13 - i, "#c8c8c8"); P.px(5 + i, 13 - i, "#ffffff"); P.px(4 + i, 12 - i, "#f0f0f0"); } },
+  flint(P) { blob(P, ["#3a3a3a", "#2a2a2a", "#4a4a4a"]); P.px(6, 6, "#6a6a6a"); },
+  powder(P) { for (let i = 0; i < 24; i++) P.px(4 + Math.floor(P.r() * 9), 6 + Math.floor(P.r() * 7), P.pick(["#5a5a5a", "#7a7a7a", "#3a3a3a"])); },
+  gloop(P) { blob(P, ["#6ac85a", "#7ad86a", "#5ab84a"]); P.rect(6, 6, 2, 2, "#b8f0a8"); },
+  pearl(P) { for (let y = 4; y < 13; y++) for (let x = 4; x < 13; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 16) P.px(x, y, x + y < 14 ? "#3ad0a0" : "#1a7a6a"); P.rect(7, 7, 3, 3, "#0a3a3a"); },
+  leather(P) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x + y) % 7 !== 0) P.px(x, y, P.pick(["#9a5a32", "#8a4e2a"])); },
+  bow(P) { for (let i = 0; i < 11; i++) { const t = i / 10, x = 2 + Math.round(t * 11), y = 13 - Math.round(t * 11) - Math.round(Math.sin(t * Math.PI) * 3); P.px(x, y, "#8a6235"); P.px(x, y - 1, "#6a4825"); } for (let i = 0; i < 11; i++) P.px(3 + i, 12 - i, "#e8e8e8"); },
+  shears(P) { P.rect(5, 3, 2, 6, "#dcdcdc"); P.rect(9, 3, 2, 6, "#c0c0c0"); P.rect(4, 9, 3, 4, "#b03a2a"); P.rect(9, 9, 3, 4, "#b03a2a"); },
+  flintsteel(P) { P.rect(3, 4, 6, 3, "#c8c8c8"); P.rect(3, 4, 2, 8, "#c8c8c8"); blob(P, ["#3a3a3a"]); },
+  armor_helmet(P, c) { P.rect(3, 4, 10, 6, c[0]); P.rect(5, 8, 6, 2, "rgba(0,0,0,0)"); P.clear(5, 8); for (let x = 5; x < 11; x++) for (let y = 8; y < 10; y++) P.clear(x, y); P.rect(3, 4, 10, 1, "rgba(255,255,255,.4)"); },
+  armor_chest(P, c) { P.rect(3, 3, 10, 10, c[0]); for (let y = 3; y < 6; y++) for (let x = 6; x < 10; x++) P.clear(x, y); P.rect(1, 3, 2, 5, c[0]); P.rect(13, 3, 2, 5, c[0]); P.rect(3, 12, 10, 1, "rgba(0,0,0,.25)"); },
+  armor_legs(P, c) { P.rect(4, 3, 8, 3, c[0]); P.rect(4, 6, 3, 8, c[0]); P.rect(9, 6, 3, 8, c[0]); P.rect(4, 3, 8, 1, "rgba(255,255,255,.4)"); },
+  armor_boots(P, c) { P.rect(3, 8, 3, 4, c[0]); P.rect(10, 8, 3, 4, c[0]); P.rect(2, 12, 5, 2, c[0]); P.rect(9, 12, 5, 2, c[0]); },
+  spawn_egg(P, c) { for (let y = 2; y < 15; y++) for (let x = 3; x < 13; x++) if ((x - 8) ** 2 / 20 + (y - 8.5) ** 2 / 38 < 1) P.px(x, y, c[0]); for (let i = 0; i < 7; i++) P.rect(4 + Math.floor(P.r() * 7), 4 + Math.floor(P.r() * 9), 2, 2, c[1]); },
+  tool_hoe(P, c) { handle(P); P.rect(7, 2, 6, 2, c[0]); P.rect(7, 4, 2, 2, c[1]); }
+});
 function blob(P, pal) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) { const dx = x - 8, dy = y - 8.5; if (dx * dx + dy * dy < 16 + P.r() * 6) P.px(x, y, P.pick(pal)); } }
 function handle(P) { for (let i = 0; i < 10; i++) P.px(3 + i, 14 - i, i % 2 ? "#6a4825" : "#8a6235"); }
 

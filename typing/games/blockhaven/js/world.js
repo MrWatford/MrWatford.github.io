@@ -11,6 +11,20 @@ export class World {
     this.mods = new Map();         // player changes: key → Map(index → block value). Saved with the world.
     this.containers = new Map();   // chests and furnaces: "x,y,z" → contents
     this.dirtyQueue = new Set();   // chunks that need their 3D shape rebuilt
+    this.entityStore = new Map();  // creatures waiting in unloaded chunks: key → [saved creature]
+    this.visited = new Set();      // chunks that already got their starting animals
+    this.crops = new Set();        // "x,y,z" of crops and saplings that grow over time
+    this.editCount = 0;            // bumps on every block change (creatures re-plan their paths)
+    this.onLoad = null; this.onUnload = null;
+  }
+  // [sky light, torch light] at a block, if that chunk has been drawn
+  lightAt(x, y, z) {
+    if (y >= HEIGHT) return [15, 0];
+    if (y < 0) return [0, 0];
+    const cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK), c = this.chunks.get(chunkKey(cx, cz));
+    if (!c || !c.sky) return null;
+    const i = idx(x - cx * CHUNK, y, z - cz * CHUNK);
+    return [c.sky[i], c.blk[i]];
   }
 
   chunkAt(x, z) { return this.chunks.get(chunkKey(Math.floor(x / CHUNK), Math.floor(z / CHUNK))); }
@@ -25,9 +39,10 @@ export class World {
     if (m) for (const [i, v] of m) data[i] = v;
     c = { cx, cz, key, data, dirty: true, mesh: null };
     this.chunks.set(key, c);
+    if (this.onLoad) this.onLoad(c);
     return c;
   }
-  unload(c) { this.chunks.delete(c.key); this.dirtyQueue.delete(c); }
+  unload(c) { if (this.onUnload) this.onUnload(c); this.chunks.delete(c.key); this.dirtyQueue.delete(c); }
 
   get(x, y, z) {
     if (y < 0) return B.BEDROCK;
@@ -50,6 +65,7 @@ export class World {
     let m = this.mods.get(key);
     if (!m) { m = new Map(); this.mods.set(key, m); }
     m.set(i, v);
+    this.editCount++;
     // this chunk and the neighbors whose light could change need new shapes
     c.dirty = true; c.urgent = true; this.dirtyQueue.add(c);
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {

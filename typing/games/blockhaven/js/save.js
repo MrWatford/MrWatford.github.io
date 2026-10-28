@@ -1,6 +1,6 @@
 // Saves worlds on this device only (IndexedDB), with a fallback when the browser blocks storage.
 // Nothing is ever sent anywhere. Worlds can also be downloaded as a file and loaded back.
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
 
@@ -33,6 +33,12 @@ export const Saves = {
     const meta = db ? await tx(db, META, "readonly", s => s.get(id)) : memory.meta.get(id);
     const data = db ? await tx(db, DATA, "readonly", s => s.get(id)) : memory.data.get(id);
     if (!meta || !data) throw new Error("This world could not be found.");
+    // keep an untouched copy of an older save before it is converted to the new format
+    if ((meta.version || 1) < SAVE_VERSION && db) {
+      const backupId = "backup-v" + (meta.version || 1) + "-" + id;
+      const has = await tx(db, DATA, "readonly", s => s.get(backupId));
+      if (!has) await tx(db, DATA, "readwrite", s => s.put({ ...data, id: backupId, meta: { ...meta } }));
+    }
     return upgrade({ ...data, ...meta });
   },
   async save(world) {
@@ -49,7 +55,7 @@ export const Saves = {
   async remove(id) {
     const db = await openDB();
     if (!db) { memory.meta.delete(id); memory.data.delete(id); return; }
-    await new Promise((resolve) => { const t = db.transaction([META, DATA], "readwrite"); t.objectStore(META).delete(id); t.objectStore(DATA).delete(id); t.oncomplete = t.onerror = resolve; });
+    await new Promise((resolve) => { const t = db.transaction([META, DATA], "readwrite"); t.objectStore(META).delete(id); t.objectStore(DATA).delete(id); t.objectStore(DATA).delete("backup-v1-" + id); t.oncomplete = t.onerror = resolve; });
   },
   exportFile(world) {
     const blob = new Blob([JSON.stringify({ blockhaven: SAVE_VERSION, ...world })], { type: "application/json" });
@@ -72,15 +78,19 @@ export const Saves = {
 
 export const newId = () => "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 function split(w) {
-  const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1 };
-  const data = { id: w.id, player: w.player, inventory: w.inventory, mods: w.mods, containers: w.containers, time: w.time, tips: w.tips };
+  const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1, gen: w.gen || 1 };
+  const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips };
   return { meta, data };
 }
 // Older save versions get converted here when the game is updated
 function upgrade(w) {
+  // version 1 → 2: block changes and containers move into the "overworld" dimension; land shapes stay the same (gen 1)
+  if (!w.dims) { w.dims = { overworld: { mods: w.mods || {}, containers: w.containers || [] } }; w.gen = w.gen || 1; }
+  delete w.mods; delete w.containers;
   w.version = SAVE_VERSION;
-  w.mods = w.mods || {}; w.containers = w.containers || []; w.inventory = w.inventory || [];
+  w.inventory = Array.isArray(w.inventory) ? w.inventory : [];
   w.mode = w.mode === "creative" ? "creative" : "survival";
+  w.settings = { difficulty: "easy", griefing: true, keepInv: true, ...(w.settings || {}) };
   return w;
 }
 

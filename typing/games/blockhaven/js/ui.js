@@ -24,7 +24,8 @@ export const UI = {
     $("newForm").onsubmit = e => {
       e.preventDefault(); Sound.start();
       const mode = document.querySelector("input[name=mode]:checked").value;
-      G.newWorld({ name: $("nwName").value.trim() || "My World", seed: $("nwSeed").value.trim() || String(Math.floor(Math.random() * 1e9)), mode });
+      const settings = { difficulty: $("nwDiff").value, griefing: $("nwGrief").checked, keepInv: $("nwKeep").checked };
+      G.newWorld({ name: $("nwName").value.trim() || "My World", seed: $("nwSeed").value.trim() || String(Math.floor(Math.random() * 1e9)), mode, settings });
     };
     $("btnResume").onclick = () => G.resume();
     $("btnSave").onclick = () => G.saveNow(true);
@@ -40,6 +41,9 @@ export const UI = {
     };
     $("importFile").previousElementSibling.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("importFile").click(); } };
     this.bindSettings();
+    $("pDiff").onchange = e => { G.wset.difficulty = e.target.value; this.toast("Difficulty: " + e.target.value); };
+    $("pGrief").onchange = e => { G.wset.griefing = e.target.checked; };
+    $("pKeep").onchange = e => { G.wset.keepInv = e.target.checked; };
     // inventory screen mouse handling
     const panel = $("panel");
     panel.addEventListener("mousedown", e => this.slotMouse(e));
@@ -54,6 +58,7 @@ export const UI = {
     for (const s of screens) $(s).hidden = s !== name;
     $("hud").hidden = !(name === "none" || name === "panel" || name === "pause" || name === "death");
     if (name === "title") paintTitleScene();
+    if (name === "pause" && G.wset) { $("pDiff").value = G.wset.difficulty; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; }
   },
   get current() { return current; },
 
@@ -117,6 +122,12 @@ export const UI = {
     $("hearts").innerHTML = icons(p.health, "heart");
     $("food").innerHTML = icons(p.hunger, "food", true);
     $("air").innerHTML = survival && p.air < 10 ? icons(Math.ceil(p.air) * 2, "bubble") : "";
+    let armor = 0; for (let i = 36; i < 40; i++) { const s = inv.slots[i]; if (s && itemDef(s.id).armor) armor += itemDef(s.id).armor.points; }
+    $("armor").innerHTML = survival && armor ? icons(armor, "shield") : "";
+    const lv = G.levelInfo(); $("xpbar").style.visibility = survival ? "visible" : "hidden";
+    $("xpbar").querySelector("i").style.width = Math.round(lv.frac * 100) + "%"; $("xpbar").querySelector("b").textContent = lv.level ? lv.level : "";
+    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire" };
+    $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${names[k] || k}</span>`).join("");
     $("modeTag").textContent = survival ? "" : "CREATIVE" + (p.flying ? " • FLYING" : "");
   },
   itemName(text) { const el = $("itemName"); el.textContent = text; el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = 0, 1600); },
@@ -148,8 +159,9 @@ export const UI = {
     const scroll = p.querySelector(".recipes, .palette");
     const keep = scroll ? scroll.scrollTop : 0;
     const focusId = document.activeElement && document.activeElement.id;
-    const inv = `<div class="inv-card"><h3>Inventory</h3><div class="grid9">${slots("inv", 9, 36)}</div><div class="grid9 hotrow">${slots("inv", 0, 9)}</div>
-      <p class="help">Click: pick up / put down • Right-click: half / one • Shift-click: move across • Point + 1–9: swap to hotbar</p></div>`;
+    const armorCol = panelKind === "inventory" ? `<div class="armor-col" title="Armor">${[36, 37, 38, 39].map(i => { const s = G.inv.slots[i]; return `<div class="slot ${s ? "" : "empty-armor"}" data-ref="inv:${i}">${s ? stackInner(s) : `<span class="ghost">${["🪖", "👕", "👖", "👢"][i - 36]}</span>`}</div>`; }).join("")}</div>` : "";
+    const inv = `<div class="inv-card"><h3>Inventory${G.mode === "survival" ? ` <span class="note" style="color:#444">Level ${G.levelInfo().level}</span>` : ""}</h3><div class="inv-row">${armorCol}<div><div class="grid9">${slots("inv", 9, 36)}</div><div class="grid9 hotrow">${slots("inv", 0, 9)}</div></div></div>
+      <p class="help">Click: pick up / put down • Right-click: half / one • Shift-click: move across • Point + 1–9: swap to hotbar${armorCol ? " • Armor goes in the left column" : ""}</p></div>`;
     let left = "";
     if (panelKind === "chest") {
       left = `<div class="inv-card"><h3>Chest</h3><div class="grid9">${slots("box", 0, 27)}</div><p class="help">Things in a chest stay saved. Breaking the chest drops everything inside.</p></div>`;
@@ -167,7 +179,7 @@ export const UI = {
         <p class="help">Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore.</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (G.mode === "creative") {
-      const cats = ["All", "Building", "Nature", "Useful", "Tools", "Items"];
+      const cats = ["All", "Building", "Nature", "Useful", "Tools", "Food", "Items", "Creatures"];
       const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || d.category === creativeCat) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
       left = `<div class="inv-card"><h3>Every block <span class="note" style="color:#444">Click to grab a stack</span></h3>
         <div class="filters"><input id="cSearch" placeholder="Search blocks…" value="${escapeAttr(creativeSearch)}">${cats.map(c => `<button class="chip-btn" data-cat="${c}" aria-pressed="${c === creativeCat}">${c}</button>`).join("")}</div>
@@ -268,6 +280,7 @@ function setSlot(ref, s) {
   else { const c = G.world.containers.get(panelCtx); if (c) c.slots[n] = s; }
 }
 function accepts(ref, s) {
+  if (/^inv:3[6-9]$/.test(ref)) { const d = itemDef(s.id); return !!(d && d.armor && d.armor.slot === +ref.slice(4) - 36); }
   if (ref === "fur:0") return SMELT[s.id] !== undefined;
   if (ref === "fur:1") return FUEL[s.id] !== undefined;
   if (ref === "fur:2") return false;
@@ -286,6 +299,8 @@ function quickMove(ref) {
   if (kind === "inv") {
     if (panelKind === "chest") targets = range("box", 0, 27);
     else if (panelKind === "furnace") targets = SMELT[s.id] !== undefined ? ["fur:0"] : FUEL[s.id] !== undefined ? ["fur:1"] : [];
+    else if (n >= 36) targets = [...range("inv", 9, 36), ...range("inv", 0, 9)];
+    else if (itemDef(s.id).armor && panelKind === "inventory" && !G.inv.slots[36 + itemDef(s.id).armor.slot]) targets = ["inv:" + (36 + itemDef(s.id).armor.slot)];
     else targets = n < 9 ? range("inv", 9, 36) : range("inv", 0, 9);
   } else targets = [...range("inv", 0, 9), ...range("inv", 9, 36)];
   if (!targets.length) { bad("fur:0"); return; }
@@ -347,9 +362,10 @@ function iconImg(kind, part) {
   const shapes = {
     heart: ["011000110", "111101111", "111111111", "111111111", "011111110", "001111100", "000111000", "000010000"],
     food: ["000001100", "000011110", "000111110", "001111110", "011111100", "111111000", "011110000", "001000000"],
-    bubble: ["001111100", "010000010", "100100001", "100000001", "100000001", "010000010", "001111100"]
+    bubble: ["001111100", "010000010", "100100001", "100000001", "100000001", "010000010", "001111100"],
+    shield: ["111111111", "111111111", "111111111", "111111111", "011111110", "001111100", "000111000", "000010000"]
   };
-  const color = { heart: ["#e0302a", "#ff8a80"], food: ["#c47a3a", "#f0b070"], bubble: ["#7fd0ff", "#ffffff"] }[kind];
+  const color = { heart: ["#e0302a", "#ff8a80"], food: ["#c47a3a", "#f0b070"], bubble: ["#7fd0ff", "#ffffff"], shield: ["#b8c0c8", "#ffffff"] }[kind];
   shapes[kind].forEach((row, y) => [...row].forEach((ch, xx) => {
     if (ch !== "1") return;
     const empty = part === 0 || (part === 1 && xx > 4);

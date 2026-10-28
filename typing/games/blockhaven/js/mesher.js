@@ -1,7 +1,7 @@
 // Turns a chunk's blocks into triangles the graphics card can draw.
 // Only faces that touch air (or see-through blocks) are drawn, and each corner gets
 // sunlight, torchlight, and soft corner shadows.
-import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP } from "./blocks.js";
+import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD } from "./blocks.js";
 import { chunkKey } from "./world.js";
 
 const M = 8, RW = CHUNK + 2 * M, AREA = RW * RW, SIZE = AREA * HEIGHT;
@@ -106,6 +106,12 @@ export function buildChunk(world, chunk, fancy) {
   for (let i = 0; i < SIZE; i++) { const v = vals[i]; if (v && lightOf(v)) { blk[i] = lightOf(v); queue[tail++] = i; } }
   flood(blk, 0, tail);
 
+  // keep this chunk's light levels so creatures can check how dark a spot is
+  if (!chunk.sky) { chunk.sky = new Uint8Array(CHUNK * CHUNK * HEIGHT); chunk.blk = new Uint8Array(CHUNK * CHUNK * HEIGHT); }
+  for (let y = 0; y < HEIGHT; y++) for (let z = 0; z < CHUNK; z++) {
+    const r0 = ri(0, y, z), c0 = z * CHUNK + y * CHUNK * CHUNK;
+    chunk.sky.set(sky.subarray(r0, r0 + CHUNK), c0); chunk.blk.set(blk.subarray(r0, r0 + CHUNK), c0);
+  }
   // 4) build faces for the blocks inside this chunk
   solidBuf.n = 0; waterBuf.n = 0;
   const lights = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
@@ -147,6 +153,36 @@ export function buildChunk(world, chunk, fancy) {
         const l = [sky[ni] / 15, blk[ni] / 15, F.shade];
         const pts = F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]);
         quad(waterBuf, pts, faceTile(v, F.tex), UV, [l, l, l, l]);
+      }
+    } else if (def.shape === "liquid") {   // lava: like water but glowing and solid-looking
+      const topY = (vals[i + AREA] & 255) === id ? 1 : 0.88;
+      for (let f = 0; f < 6; f++) {
+        const F = FACES[f], ni = i + F.front, nv = vals[ni];
+        if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
+        if ((nv & 255) === id || OPAQUE[nv & 255]) continue;
+        const l = [1, 1, F.shade];
+        quad(solidBuf, F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]), faceTile(v, F.tex), UV, [l, l, l, l]);
+      }
+    } else if (def.shape === "farmland" || def.shape === "bed") {
+      const top = def.shape === "bed" ? 9 / 16 : 15 / 16;
+      const facing = metaOf(v) & 3;
+      for (let f = 0; f < 6; f++) {
+        const F = FACES[f], ni = i + F.front;
+        if (f === 3 && OPAQUE[vals[ni] & 255]) continue;
+        if (f !== 2 && f !== 3 && OPAQUE[vals[ni] & 255] && def.shape === "farmland") continue;
+        const lc = f === 2 ? i : ni, l = [sky[lc] / 15, blk[lc] / 15, F.shade];
+        const pts = F.c.map(p => [x + p[0], y + (p[1] ? top : 0), z + p[2]]);
+        let uv = UV;
+        if (f === 2 && def.shape === "bed") uv = [[[0, 0], [1, 0], [1, 1], [0, 1]], [[1, 0], [1, 1], [0, 1], [0, 0]], [[1, 1], [0, 1], [0, 0], [1, 0]], [[0, 1], [0, 0], [1, 0], [1, 1]]][facing];
+        else if (f !== 2 && f !== 3) uv = [[0, 0], [1, 0], [1, top], [0, top]];
+        quad(solidBuf, pts, faceTile(v, F.tex), uv, [l, l, l, l]);
+      }
+    } else if (def.shape === "crop") {   // four upright planes in a # pattern
+      const l = [sky[i] / 15, blk[i] / 15, 0.9], L = [l, l, l, l], tile = faceTile(v, 1), yy = y - 1 / 16;
+      for (const o of [0.25, 0.75]) {
+        const qa = [[x + o, yy, z], [x + o, yy, z + 1], [x + o, yy + 1, z + 1], [x + o, yy + 1, z]];
+        const qb = [[x, yy, z + o], [x + 1, yy, z + o], [x + 1, yy + 1, z + o], [x, yy + 1, z + o]];
+        for (const q of [qa, qb]) { quad(solidBuf, q, tile, UV, L); quad(solidBuf, [q[1], q[0], q[3], q[2]], tile, [UV[1], UV[0], UV[3], UV[2]], L); }
       }
     } else if (def.shape === "cross" || def.shape === "torch") {
       const l = [sky[i] / 15, blk[i] / 15, def.shape === "torch" ? 1 : 0.9], L = [l, l, l, l], tile = faceTile(v, 1);

@@ -45,5 +45,32 @@ export const Sound = {
   hurt() { this.tone(300, 0.2, "sawtooth", 0.12, -180); this.noise(500, 0.15, 0.25); },
   eat() { for (let i = 0; i < 3; i++) setTimeout(() => this.noise(900, 0.06, 0.3, 3), i * 110); },
   splash() { this.noise(700, 0.35, 0.4, 0.6, "lowpass"); },
-  door(open) { this.tone(open ? 220 : 180, 0.12, "triangle", 0.12, open ? 60 : -40); this.noise(500, 0.1, 0.2); }
+  door(open) { this.tone(open ? 220 : 180, 0.12, "triangle", 0.12, open ? 60 : -40); this.noise(500, 0.1, 0.2); },
+  // creature sounds, quieter the farther away they are
+  mob(kind, dist = 0) {
+    const k = Math.max(0, 1 - dist / 28);
+    if (k <= 0.02 || !ctx || ctx.state !== "running") return;
+    const g = (x) => x * k, r = () => 0.85 + Math.random() * 0.3;
+    switch (kind) {
+      case "groan": this.tone(110 * r(), 0.6, "sawtooth", g(0.08), -40); break;
+      case "rattle": for (let i = 0; i < 4; i++) setTimeout(() => this.noise(2400, 0.04, g(0.25), 6), i * 60); break;
+      case "hiss": case "fuse": this.noise(5000, kind === "fuse" ? 1.4 : 0.5, g(0.3), 0.7, "highpass"); break;
+      case "chitter": for (let i = 0; i < 3; i++) setTimeout(() => this.tone(900 * r(), 0.05, "square", g(0.05), 300), i * 50); break;
+      case "squish": this.tone(160 * r(), 0.18, "sine", g(0.2), 120); this.noise(600, 0.12, g(0.2), 2); break;
+      case "warble": this.tone(300, 0.5, "sine", g(0.06), -200); break;
+      case "scream": this.tone(700, 0.6, "sawtooth", g(0.08), -400); this.tone(740, 0.6, "square", g(0.04), -420); break;
+      case "teleport": this.tone(500, 0.25, "sine", g(0.1), 900); break;
+      case "moo": this.tone(130 * r(), 0.7, "sawtooth", g(0.07), 30); break;
+      case "baa": this.tone(380 * r(), 0.45, "square", g(0.05), -60); break;
+      case "oink": this.tone(220 * r(), 0.18, "square", g(0.07), -80); setTimeout(() => this.tone(200, 0.14, "square", g(0.06), -60), 140); break;
+      case "cluck": this.tone(700 * r(), 0.08, "square", g(0.05), -200); break;
+      case "squeak": this.tone(1500 * r(), 0.08, "sine", g(0.06), 300); break;
+      case "hurt": this.tone(240 * r(), 0.18, "sawtooth", g(0.1), -100); break;
+      case "bow": this.noise(1400, 0.15, g(0.3), 1.5); this.tone(300, 0.1, "triangle", g(0.08), 200); break;
+      case "arrowhit": this.noise(800, 0.08, g(0.25), 2); break;
+    }
+  },
+  explode(dist = 0) { const k = Math.max(0.15, 1 - dist / 60); this.noise(120, 1.2, 0.9 * k, 0.6, "lowpass"); this.noise(500, 0.5, 0.5 * k, 0.8); this.tone(60, 0.8, "sine", 0.4 * k, -30); },
+  levelUp() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, "triangle", 0.1), i * 80)); },
+  xp() { this.tone(1200 + Math.random() * 600, 0.06, "sine", 0.05); }
 };

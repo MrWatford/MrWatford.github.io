@@ -7,7 +7,9 @@ const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a
 export const idx = (x, y, z) => x + z * CHUNK + y * CHUNK * CHUNK;
 
 export class Generator {
-  constructor(seedText) {
+  // version: worlds made before an update keep the old land shapes (1 = original release, 2 = adds deep lava)
+  constructor(seedText, version = 2) {
+    this.version = version;
     this.seed = hashSeed(seedText);
     this.n = new Noise(this.seed);
     this.c = new Noise(this.seed ^ 0x5bd1e995);   // caves
@@ -76,7 +78,7 @@ export class Generator {
       for (let y = 3; y < roof; y++) {
         let carve = Math.abs(cave(0, lx, y, lz)) < 0.085 && Math.abs(cave(1, lx, y, lz)) < 0.085;
         if (!carve && y < 34) carve = cave(2, lx, y, lz) > 0.6;
-        if (carve) data[idx(lx, y, lz)] = B.AIR;
+        if (carve) data[idx(lx, y, lz)] = this.version >= 2 && y <= 9 ? B.LAVA : B.AIR;
       }
       // a grassy cave roof would leave floating grass: fix the top block if what's under it was carved
       if (data[idx(lx, h, lz)] === B.GRASS && data[idx(lx, h - 1, lz)] === B.AIR) data[idx(lx, h, lz)] = B.DIRT;
