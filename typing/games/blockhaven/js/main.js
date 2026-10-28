@@ -413,16 +413,20 @@ function fillFrame(hit) {
   w.set(hit.x, hit.y, hit.z, make(B.END_FRAME, metaOf(hit.v) | EYE_IN));
   if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
   Sound.mob("teleport", 0); puff(hit.x + 0.5, hit.y + 1, hit.z + 0.5, "portal"); G.hudDirty = true; heldId = -1;
-  const gen = G.gen;
-  for (const s of gen.strongholds || []) {
-    if (Math.abs(s.x - hit.x) > 3 || Math.abs(s.z - hit.z) > 3) continue;
-    const spots = frameSpots(s), filled = spots.filter(([x, y, z]) => w.id(x, y, z) === B.END_FRAME && (metaOf(w.get(x, y, z)) & EYE_IN)).length;
-    if (filled === spots.length) {
-      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) w.set(s.x + dx, s.y, s.z + dz, B.END_PORTAL);
-      Sound.mob("portal", 0); Sound.levelUp();
-      UI.toast("The Hollow Portal is open! Jump in when you're ready. Bring armor, a bow, lots of arrows, and blocks.", "good");
-    } else UI.toast(`${filled} of ${spots.length} eyes placed.`);
+  // any ring works (a stronghold's or one you built): 12 frames, 3 on each side of a 3×3 space, all at the same height
+  let best = null;
+  for (const [ox, , oz] of frameSpots({ x: 0, y: 0, z: 0 })) {
+    const c = { x: hit.x - ox, y: hit.y, z: hit.z - oz }, spots = frameSpots(c);
+    const frames = spots.filter(([x, y, z]) => w.id(x, y, z) === B.END_FRAME).length;
+    const filled = spots.filter(([x, y, z]) => w.id(x, y, z) === B.END_FRAME && (metaOf(w.get(x, y, z)) & EYE_IN)).length;
+    if (!best || frames > best.frames || (frames === best.frames && filled > best.filled)) best = { c, frames, filled };
   }
+  const { c, frames, filled } = best;
+  if (frames < 12) { UI.toast(`${filled} of 12 eyes placed. A portal needs 12 frames in a ring, 3 on each side of a 3×3 space (no corners). This ring has ${frames}.`); return; }
+  if (filled < 12) { UI.toast(`${filled} of 12 eyes placed.`); return; }
+  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) w.set(c.x + dx, c.y, c.z + dz, B.END_PORTAL);
+  Sound.mob("portal", 0); Sound.levelUp();
+  UI.toast("The Hollow Portal is open! Jump in when you're ready. Bring armor, a bow, lots of arrows, and blocks.", "good");
 }
 function throwEye() {
   if (G.dim !== "overworld") { UI.toast("The eye just spins in place. Strongholds are on the Surface.", "bad"); return; }
