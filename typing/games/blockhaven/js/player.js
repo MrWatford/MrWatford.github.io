@@ -50,6 +50,17 @@ export class Player {
     if (this.crouch && !wantCrouch) { if (!this.collides(world, this.aabb(p.x, p.y, p.z, 1.8))) this.crouch = false; }
     else this.crouch = wantCrouch;
 
+    if (this.gliding && (this.onGround || this.inWater || this.flying)) this.gliding = false;
+    if (this.gliding) {
+      // Glider Wings: look down to dive and speed up, look up to climb and slow down
+      const cp = Math.cos(this.pitch), dx = -Math.sin(this.yaw) * cp, dy = Math.sin(this.pitch), dz = -Math.cos(this.yaw) * cp;
+      let sp = Math.hypot(v.x, v.y, v.z);
+      sp += -dy * 14 * dt - 0.8 * dt;
+      sp = Math.max(3, Math.min(30, sp));
+      v.x += (dx * sp - v.x) * 0.06; v.z += (dz * sp - v.z) * 0.06; v.y += (dy * sp - v.y) * 0.06;
+      v.y -= 4 * dt;
+      this.airTop = p.y;   // gliding never builds up fall damage
+    } else {
     let speed = this.flying ? (input.sprint ? 16 : 9) : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
     if (this.inWater && !this.flying) speed *= this.inLava ? 0.3 : 0.55;
     if (this.onGround && !this.flying && world.id(Math.floor(p.x), Math.floor(p.y - 0.1), Math.floor(p.z)) === B.SOUL_SAND) speed *= 0.5;   // Wailing Sand slows you down
@@ -72,11 +83,13 @@ export class Player {
       if (input.jump && this.onGround) { v.y = JUMP; this.exhaust += 0.05 * (input.sprint ? 4 : 1); }
     }
     if (input.sprint && (mx || mz) && this.onGround) this.exhaust += 0.1 * dt;
+    }
+    if (this.levitate && !this.flying) { v.y += (1.8 - v.y) * 0.25; this.airTop = null; }   // a Sheller's bullet makes you float up
 
     // move one axis at a time and stop at blocks
     const wasGround = this.onGround;
     this.onGround = false;
-    let landed = 0;
+    let landed = 0, crash = 0;
     p.y += v.y * dt;
     let hit = null;
     { const a = this.aabb();
@@ -91,7 +104,7 @@ export class Player {
       if (!d) continue;
       const before = p[axis];
       p[axis] += d;
-      if (this.collides(world, this.aabb())) { p[axis] = before; v[axis] = 0; continue; }
+      if (this.collides(world, this.aabb())) { if (this.gliding) crash = Math.max(crash, Math.abs(v[axis])); p[axis] = before; v[axis] = 0; continue; }
       // crouching keeps you from walking off edges
       if (this.crouch && wasGround && !this.flying) {
         const a = this.aabb(); a[1] -= 0.6; a[4] = p.y;
@@ -109,7 +122,7 @@ export class Player {
       if (this.airTop !== null && (this.onGround && landed) && !this.inWater && !this.flying && !creative) fall = this.airTop - p.y;
       this.airTop = null;
     } else this.airTop = this.airTop === null ? p.y : Math.max(this.airTop, p.y);
-    return { fall };
+    return { fall, crash };
   }
 }
 

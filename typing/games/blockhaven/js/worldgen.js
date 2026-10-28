@@ -1,10 +1,21 @@
 // Builds the natural world from a seed. The same seed always makes the same land.
 import { Noise, hashSeed, rng, hash3 } from "./noise.js";
-import { B, CHUNK, HEIGHT, SEA, make } from "./blocks.js";
+import { B, CHUNK, HEIGHT, SEA, make, EYE_IN } from "./blocks.js";
 
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
-// Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals. Raise this when generation changes.
-export const CURRENT_GEN = 3;
+// Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds. Raise this when generation changes.
+export const CURRENT_GEN = 4;
+// Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
+export function strongholdSpots(seed) {
+  const r = rng(seed ^ 0x51ed27), base = r() * Math.PI * 2;
+  return [0, 1, 2].map(k => { const a = base + k * Math.PI * 2 / 3, d = 260 + r() * 200; return { x: Math.round(Math.cos(a) * d), y: 22, z: Math.round(Math.sin(a) * d) }; });
+}
+// The 12 portal-frame spots around a stronghold's 3×3 portal
+export function frameSpots(s) {
+  const out = [];
+  for (let d = -1; d <= 1; d++) out.push([s.x + d, s.y, s.z - 2], [s.x + d, s.y, s.z + 2], [s.x - 2, s.y, s.z + d], [s.x + 2, s.y, s.z + d]);
+  return out;
+}
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 export const idx = (x, y, z) => x + z * CHUNK + y * CHUNK * CHUNK;
 
@@ -15,6 +26,7 @@ export class Generator {
     this.seed = hashSeed(seedText);
     this.n = new Noise(this.seed);
     this.c = new Noise(this.seed ^ 0x5bd1e995);   // caves
+    this.strongholds = strongholdSpots(this.seed);
   }
 
   // Ground height and land type for one column of the world
@@ -127,7 +139,35 @@ export class Generator {
     // a rare landmark: a crumbling watchtower with a treasure chest
     if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
     else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
+    if (ver >= 4) for (const s of this.strongholds) if (Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
     return data;
+  }
+
+  // An underground fort of stone bricks: a portal room with four halls leading to treasure rooms
+  stronghold(data, x0, z0, s) {
+    const SY = s.y, L = 30, boxes = [[s.x - 7, SY - 1, s.z - 8, s.x + 7, SY + 7, s.z + 8]], chests = [];
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const a = 7, b = 7 + L, ex = s.x + dx * (b + 3), ez = s.z + dz * (b + 3);
+      if (dx) boxes.push([Math.min(s.x + dx * a, s.x + dx * b), SY - 1, s.z - 2, Math.max(s.x + dx * a, s.x + dx * b), SY + 4, s.z + 2]);
+      else boxes.push([s.x - 2, SY - 1, Math.min(s.z + dz * a, s.z + dz * b), s.x + 2, SY + 4, Math.max(s.z + dz * a, s.z + dz * b)]);
+      boxes.push([ex - 3, SY - 1, ez - 3, ex + 3, SY + 5, ez + 3]);
+      chests.push([ex, SY, ez]);
+    }
+    const put = (x, y, z, v) => { const lx = x - x0, lz = z - z0; if (lx >= 0 && lx < 16 && lz >= 0 && lz < 16 && y > 0 && y < HEIGHT) data[idx(lx, y, lz)] = v; };
+    const inChunk = bx => bx[3] >= x0 && bx[0] < x0 + 16 && bx[5] >= z0 && bx[2] < z0 + 16;
+    for (const pass of [0, 1]) for (const bx of boxes) {
+      if (!inChunk(bx)) continue;
+      for (let x = Math.max(bx[0], x0); x <= Math.min(bx[3], x0 + 15); x++) for (let z = Math.max(bx[2], z0); z <= Math.min(bx[5], z0 + 15); z++) for (let y = bx[1]; y <= bx[4]; y++) {
+        const edge = x === bx[0] || x === bx[3] || y === bx[1] || y === bx[4] || z === bx[2] || z === bx[5];
+        if (pass === 0 && edge) put(x, y, z, hash3(this.seed, x, y, z) < 0.2 ? B.MOSSY : B.STONE_BRICKS);
+        if (pass === 1 && !edge) put(x, y, z, B.AIR);
+      }
+    }
+    // the portal: a ring of 12 frames around a 3×3 hole, a few already holding eyes, on a raised dais
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) put(s.x + dx, SY - 1, s.z + dz, B.STONE_BRICKS);
+    for (const [x, y, z] of frameSpots(s)) put(x, y, z, make(B.END_FRAME, hash3(this.seed, x, 31, z) < 0.1 ? EYE_IN : 0));
+    put(s.x, SY + 6, s.z + 7, B.TORCH); put(s.x, SY + 6, s.z - 7, B.TORCH);
+    for (const [x, y, z] of chests) { put(x, y, z, make(B.CHEST, LOOT)); put(x + 2, y, z + 2, B.TORCH); }
   }
 
   // A broken obsidian portal frame with some Ember Depths blocks around it and a chest
@@ -382,5 +422,77 @@ export class NetherGen {
     for (let x = 4; x <= 11; x++) for (let z = 4; z <= 11; z++) if (x === 4 || x === 11 || z === 4 || z === 11) put(x, by + 4, z, B.BLACKSTONE_BRICKS);   // inner balcony
     for (let i = 0; i < 4; i++) put(3 + Math.floor(r() * 10), by + 1, 3 + Math.floor(r() * 10), B.GOLD_BLOCK);
     put(6, by + 1, 6, make(B.CHEST, LOOT | 0)); put(9, by + 5, 9, make(B.CHEST, LOOT | 2));
+  }
+}
+
+// ---------- the Hollow: floating pale islands over an endless void ----------
+export const END_TOP = 48;
+export class EndGen {
+  constructor(seedText) {
+    this.version = CURRENT_GEN;
+    this.seed = (hashSeed(seedText) ^ 0x7f4a7c15) >>> 0;
+    this.n = new Noise(this.seed);
+    // ten obsidian pillars ring the central island; each holds a healing crystal
+    this.pillars = Array.from({ length: 10 }, (_, i) => { const a = i / 10 * Math.PI * 2; return { i, x: Math.round(Math.cos(a) * 30), z: Math.round(Math.sin(a) * 30), r: 2 + (i % 3), top: 58 + (i * 7) % 16 }; });
+  }
+  isNether() { return false; }
+  isEnd() { return true; }
+  biome() { return "hollow"; }
+  column() { return { h: END_TOP, biome: "hollow" }; }
+  findSpawn() { return { x: 100.5, z: 0.5 }; }
+  // top and bottom of the land in a column (or null for open void)
+  land(x, z) {
+    const d = Math.hypot(x, z);
+    if (d < 58) {
+      const top = END_TOP + Math.round(this.n.n2(x / 22, z / 22) * 2);
+      return { top, bottom: top - Math.round(3 + (58 - d) * 0.32 + this.n.n2(x / 9, z / 9) * 2), outer: false };
+    }
+    if (d > 380) {
+      const v = this.n.fbm2(x / 120, z / 120, 3) - Math.max(0, (420 - d) / 40) * 0.5;
+      if (v > 0.2) { const top = 46 + Math.round(this.n.n2(x / 50, z / 50) * 5); return { top, bottom: top - Math.round((v - 0.2) * 45 + 2), outer: true }; }
+    }
+    return null;
+  }
+  // a Hollow tower stands in some 5×5-chunk areas far from the middle
+  city(cx, cz) {
+    const m = (v, k) => ((v % k) + k) % k;
+    if (m(cx, 5) !== 2 || m(cz, 5) !== 2) return null;
+    const x = cx * 16 + 8, z = cz * 16 + 8;
+    if (Math.hypot(x, z) < 420 || hash3(this.seed, Math.floor(cx / 5), 901, Math.floor(cz / 5)) > 0.45) return null;
+    const l = this.land(x, z);
+    return l ? { x, z, y: l.top + 1 } : null;
+  }
+  generate(cx, cz) {
+    const data = new Uint16Array(CHUNK * CHUNK * HEIGHT), x0 = cx * CHUNK, z0 = cz * CHUNK;
+    for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
+      const x = x0 + lx, z = z0 + lz, l = this.land(x, z);
+      if (l) for (let y = Math.max(1, l.bottom); y <= l.top; y++) data[idx(lx, y, lz)] = B.HOLLOWSTONE;
+      if (l && l.outer && hash3(this.seed, x, 5, z) < 0.006) {   // chorus plants
+        const h = 2 + Math.floor(hash3(this.seed, x, 6, z) * 4);
+        for (let k = 1; k <= h && l.top + k < HEIGHT - 1; k++) data[idx(lx, l.top + k, lz)] = k === h ? B.CHORUS_FLOWER : B.CHORUS_PLANT;
+      }
+      for (const p of this.pillars) {
+        if ((x - p.x) ** 2 + (z - p.z) ** 2 > p.r * p.r) continue;
+        for (let y = END_TOP - 8; y <= p.top; y++) data[idx(lx, y, lz)] = B.OBSIDIAN;
+      }
+    }
+    const c = this.city(cx, cz);
+    if (c) this.tower(data, c);
+    return data;
+  }
+  tower(data, c) {
+    const base = c.y, top = Math.min(HEIGHT - 3, base + 24), put = (lx, y, lz, v) => { if (lx >= 0 && lx < 16 && lz >= 0 && lz < 16 && y > 0 && y < HEIGHT) data[idx(lx, y, lz)] = v; };
+    for (let lx = 3; lx <= 12; lx++) for (let lz = 3; lz <= 12; lz++) {
+      const wall = lx === 3 || lx === 12 || lz === 3 || lz === 12, corner = (lx === 3 || lx === 12) && (lz === 3 || lz === 12);
+      for (let y = base - 1; y <= top; y++) {
+        const floor = (y - base + 1) % 6 === 0 || y === base - 1 || y === top;
+        if (corner) put(lx, y, lz, B.VIOLET_PILLAR);
+        else if (wall) put(lx, y, lz, (y - base) % 6 === 2 && (lx === 7 || lx === 8 || lz === 7 || lz === 8) ? B.AIR : B.VIOLET_BRICKS);
+        else put(lx, y, lz, floor && !(lx >= 7 && lx <= 8 && lz >= 7 && lz <= 8 && y !== top && y !== base - 1) ? B.VIOLET_BRICKS : B.AIR);
+      }
+    }
+    for (let y = base; y < top; y++) put(7, y, 7, B.VIOLET_PILLAR);   // a column in the stairwell to climb beside
+    put(5, top - 5, 5, make(B.CHEST, LOOT | 1)); put(10, base + 5, 10, make(B.CHEST, LOOT | 3));
+    put(3, base, 7, B.AIR); put(3, base + 1, 7, B.AIR);   // doorway
   }
 }

@@ -186,6 +186,35 @@ Object.assign(SPECIES, {
       { name: "legR", size: [4, 16, 4], pivot: [-4, 11, 0], off: [0, -8, 0], paint: { all: solid(["#5a4a5a", "#4e404e"]) } },
       { name: "legL", size: [4, 16, 4], pivot: [4, 11, 0], off: [0, -8, 0], paint: { all: solid(["#5a4a5a", "#4e404e"]) } }] } }
 });
+// ----- the Hollow -----
+const SCALES = ["#1a1220", "#22182a", "#140e1a"], MEMBRANE = ["#2a2234", "#322a3e"], SHELLC = ["#9a6aa8", "#8e609c", "#a676b4"];
+Object.assign(SPECIES, {
+  dragon: { name: "Hollow Wyrm", boss: true, noSave: true, hostile: true, hp: 200, speed: 10, w: 5, h: 3, ai: "dragon", flies: true, noclip: true, fireproof: true, dmg: 8, knockUp: true, xp: 0, sound: "roar",
+    drops: () => [],
+    model: { type: "dragon", parts: [
+      { name: "body", size: [40, 24, 56], pivot: [0, 48, 0], off: [0, 0, 0], paint: { all: solid(SCALES), top: P => { P.fill(SCALES); for (let y = 0; y < 16; y += 3) P.rect(7, y, 2, 2, "#4a3a5a"); } } },
+      { name: "neck", size: [16, 16, 36], pivot: [0, 52, 26], off: [0, 0, 18], paint: { all: solid(SCALES) } },
+      { name: "head", parent: "neck", size: [24, 18, 30], pivot: [0, 2, 18], off: [0, 0, 14], paint: { all: solid(SCALES), front: face(SCALES, P => { P.rect(1, 3, 4, 2, "#d070ff"); P.rect(11, 3, 4, 2, "#d070ff"); P.rect(4, 10, 2, 2, "#0a0a0a"); P.rect(10, 10, 2, 2, "#0a0a0a"); }), top: P => { P.fill(SCALES); P.rect(2, 2, 2, 5, "#5a4a6a"); P.rect(12, 2, 2, 5, "#5a4a6a"); } } },
+      { name: "jaw", parent: "head", size: [20, 6, 26], pivot: [0, -9, 0], off: [0, -3, 12], paint: { all: solid(SCALES) } },
+      { name: "wingL", size: [80, 4, 44], pivot: [20, 58, 10], off: [40, 0, 0], paint: { all: solid(MEMBRANE), top: P => { P.fill(MEMBRANE); for (let x = 0; x < 16; x += 4) P.rect(x, 0, 1, 16, "#1a1220"); } } },
+      { name: "wingTipL", parent: "wingL", size: [72, 2, 36], pivot: [40, 0, 0], off: [36, 0, -2], paint: { all: solid(MEMBRANE) } },
+      { name: "wingR", size: [80, 4, 44], pivot: [-20, 58, 10], off: [-40, 0, 0], paint: { all: solid(MEMBRANE), top: P => { P.fill(MEMBRANE); for (let x = 0; x < 16; x += 4) P.rect(x, 0, 1, 16, "#1a1220"); } } },
+      { name: "wingTipR", parent: "wingR", size: [72, 2, 36], pivot: [-40, 0, 0], off: [-36, 0, -2], paint: { all: solid(MEMBRANE) } },
+      { name: "tail", size: [12, 12, 48], pivot: [0, 48, -28], off: [0, 0, -24], paint: { all: solid(SCALES) } },
+      { name: "tail2", parent: "tail", size: [8, 8, 40], pivot: [0, 0, -24], off: [0, 0, -20], paint: { all: solid(SCALES) } },
+      ...[[-14, 18, "legFR"], [14, 18, "legFL"], [-14, -18, "legBR"], [14, -18, "legBL"]].map(([x, z, name]) => ({ name, size: [10, 24, 10], pivot: [x, 38, z], off: [0, -12, 0], paint: { all: solid(SCALES) } }))] } },
+  crystal: { name: "Void Crystal", noSave: true, hp: 1, w: 1.6, h: 2, ai: "crystal", static: true, fireproof: true, xp: 0, sound: "crystal", drops: () => [],
+    model: { type: "crystal", parts: [
+      { name: "cage", size: [14, 14, 14], pivot: [0, 16, 0], off: [0, 0, 0], paint: { all: P => { P.clear(); P.rect(0, 0, 16, 2, "#e8d8ff"); P.rect(0, 14, 16, 2, "#e8d8ff"); P.rect(0, 0, 2, 16, "#e8d8ff"); P.rect(14, 0, 2, 16, "#e8d8ff"); } } },
+      { name: "core", size: [8, 8, 8], pivot: [0, 16, 0], off: [0, 0, 0], paint: { all: solid(["#ff7ae0", "#ffa8f0", "#e050c8"]) } },
+      { name: "base", size: [16, 4, 16], pivot: [0, 0, 0], off: [0, 2, 0], paint: { all: solid(["#3a3a3a", "#2a2a2a"]) } }] } },
+  sheller: { name: "Sheller", hostile: true, persist: true, hp: 30, w: 1, h: 1, ai: "sheller", static: true, fireproof: true, xp: 5, sound: "shell",
+    drops: () => [Math.random() < 0.6 ? [I.SHELL, 1] : null],
+    model: { type: "sheller", parts: [
+      { name: "base", size: [16, 8, 16], pivot: [0, 0, 0], off: [0, 4, 0], paint: { all: solid(SHELLC) } },
+      { name: "head", size: [8, 8, 8], pivot: [0, 6, 0], off: [0, 0, 0], paint: { all: solid(["#f0e8b0"]), front: face(["#f0e8b0"], P => { P.rect(3, 5, 3, 3, "#2a1a2a"); P.rect(10, 5, 3, 3, "#2a1a2a"); }) } },
+      { name: "lid", size: [16, 10, 16], pivot: [0, 8, 0], off: [0, 5, 0], paint: { all: solid(SHELLC), top: P => { P.fill(SHELLC); P.rect(3, 3, 10, 10, "#b088c0"); } } }] } }
+});
 function spiderModel(pal) {
   const legs = [];
   for (let i = 0; i < 4; i++) for (const s of [-1, 1]) legs.push({ name: "leg" + i + (s > 0 ? "L" : "R"), size: [16, 2, 2], pivot: [s * 3, 5, 3 - i * 2], off: [s * 8, 0, 0], paint: { all: solid(["#2a2220"]) }, side: s, index: i });
@@ -261,7 +290,8 @@ export class Entity {
     this.size = opts.size || (SPECIES[sp].ai === "slime" ? [1, 2, 4][randi(0, 2)] : 1);
     this.hp = opts.hp ?? this.maxHp;
     this.breedCd = opts.breedCd || 0; this.love = 0; this.sheared = !!opts.sheared; this.eggT = opts.eggT ?? rand(300, 600);
-    this.name = opts.name || null; this.persist = !!(this.def.animal || this.name);
+    this.name = opts.name || null; this.persist = !!(this.def.animal || this.def.persist || this.name);
+    this.cid = opts.cid ?? null; this.phase = "circle"; this.phaseT = 8; this.ang = 0; this.open = 0;
     this.barterT = 0;
     this.onGround = false; this.inWater = false; this.inLava = false; this.walkPhase = 0; this.hurtT = 0; this.iframes = 0;
     this.attackCd = 0; this.thinkT = Math.random() * 0.3; this.state = "idle"; this.target = null; this.goal = null; this.path = null; this.pathT = 0;
@@ -336,7 +366,7 @@ export class Entities {
     e.mesh = holder; e.root = root; e.parts = parts; e.mat = mat;
     this.scene.add(holder);
   }
-  remove(e) { this.scene.remove(e.mesh); e.mat.dispose(); e.mesh = null; }
+  remove(e) { this.scene.remove(e.mesh); e.mat.dispose(); e.mesh = null; if (e.beam) { this.scene.remove(e.beam); e.beam.geometry.dispose(); e.beam.material.dispose(); e.beam = null; } }
   clear() { for (const e of this.list) this.remove(e); this.list = []; for (const p of this.projectiles) this.scene.remove(p.mesh); this.projectiles = []; }
 
   // ----- saving -----
@@ -345,7 +375,8 @@ export class Entities {
     const w = this.world, keep = [];
     for (const e of this.list) {
       if (Math.floor(e.pos.x / CHUNK) !== c.cx || Math.floor(e.pos.z / CHUNK) !== c.cz) continue;
-      if (e.persist) keep.push(e.toJSON());
+      if (e.def.boss) { this.ctx.bossLeft(e); }
+      if (e.persist && !e.def.noSave) keep.push(e.toJSON());
       e.gone = true;
     }
     if (keep.length) w.entityStore.set(c.key, keep);
@@ -361,7 +392,7 @@ export class Entities {
     const w = this.world, store = {};
     for (const [k, v] of w.entityStore) store[k] = v;
     for (const e of this.list) {
-      if (!e.persist || e.dead) continue;
+      if (!e.persist || e.dead || e.def.noSave) continue;
       const k = Math.floor(e.pos.x / CHUNK) + "," + Math.floor(e.pos.z / CHUNK);
       (store[k] = store[k] || []).push(e.toJSON());
     }
@@ -370,8 +401,13 @@ export class Entities {
 
   // ----- first visit: a few animals live here -----
   populate(c) {
-    if (Math.random() > 0.3) return;
     const w = this.world, x0 = c.cx * CHUNK, z0 = c.cz * CHUNK;
+    if (w.gen.isEnd && w.gen.isEnd()) {   // Shellers guard each Hollow tower
+      const city = w.gen.city(c.cx, c.cz);
+      if (city) for (const [dx, dy, dz] of [[-3, 0, -3], [3, 6, 3], [-3, 12, 3], [3, 18, -3]]) if (city.y + dy < HEIGHT - 4) this.add("sheller", city.x + dx + 0.5, city.y + dy, city.z + dz + 0.5);
+      return;
+    }
+    if (Math.random() > 0.3) return;
     if (w.gen.isNether()) return;   // the Ember Depths fill up through the spawner instead
     const biome = w.gen.column(x0 + 8, z0 + 8).biome;
     if (biome === "peak") return;
@@ -398,6 +434,16 @@ export class Entities {
     if (hostiles >= cap) return;
     this.tmpM.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); this.frustum.setFromProjectionMatrix(this.tmpM);
     if (w.gen.isNether()) { this.netherSpawn(w, p, camera); return; }
+    if (w.gen.isEnd && w.gen.isEnd()) {   // Voidwalkers wander the Hollow's islands
+      if (this.list.filter(e => e.sp === "voidwalker").length >= 8) return;
+      const ang = Math.random() * Math.PI * 2, dist = rand(20, 40), x = Math.floor(p.pos.x + Math.cos(ang) * dist), z = Math.floor(p.pos.z + Math.sin(ang) * dist);
+      if (!w.isLoaded(x, z)) return;
+      const y = w.surfaceY(x, z) + 1;
+      if (w.id(x, y - 1, z) !== B.HOLLOWSTONE || solidCell(w, x, y, z) || solidCell(w, x, y + 1, z) || solidCell(w, x, y + 2, z)) return;
+      if (dist < 30 && this.frustum.containsPoint(new THREE.Vector3(x + 0.5, y + 1, z + 0.5))) return;
+      this.add("voidwalker", x + 0.5, y, z + 0.5);
+      return;
+    }
     for (let tries = 0; tries < 4; tries++) {
       const ang = Math.random() * Math.PI * 2, dist = rand(22, 44);
       const x = Math.floor(p.pos.x + Math.cos(ang) * dist), z = Math.floor(p.pos.z + Math.sin(ang) * dist);
@@ -477,17 +523,18 @@ export class Entities {
     for (const e of this.list) {
       const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d2 = dx * dx + dz * dz;
       // far-away monsters wander off (despawn); animals and named creatures stay
-      if (!e.persist && (d2 > 72 * 72 || (d2 > 36 * 36 && Math.random() < dt / 30))) { e.gone = true; continue; }
+      if (!e.persist && !e.def.noSave && (d2 > 72 * 72 || (d2 > 36 * 36 && Math.random() < dt / 30))) { e.gone = true; continue; }
+      if (e.def.boss && d2 > 200 * 200) { e.gone = true; continue; }
       if (!w.isLoaded(e.pos.x, e.pos.z)) continue;
       if (e.dead) { this.dying(e, dt); continue; }
       e.age += dt;
-      if (d2 < 48 * 48) {
+      if (d2 < 48 * 48 || e.def.boss) {
         e.thinkT -= dt;
         if (e.thinkT <= 0) { e.thinkT = d2 < 24 * 24 ? 0.15 : 0.6; this.think(e, daylight); }
         this.physics(e, dt);
       }
-      if (d2 < 64 * 64) this.animate(e, dt, d2, daylight);
-      e.mesh.visible = d2 < 64 * 64;
+      if (d2 < 64 * 64 || e.def.boss) this.animate(e, dt, d2, daylight);
+      e.mesh.visible = d2 < 64 * 64 || !!e.def.boss;
     }
     this.sweep();
     this.updateProjectiles(dt);
@@ -495,6 +542,20 @@ export class Entities {
 
   physics(e, dt) {
     const w = this.world, def = e.def, ctx = this.ctx;
+    if (def.static || def.noclip) {   // crystals and shellers stay put; the wyrm flies straight through anything
+      if (e.iframes > 0) e.iframes -= dt; if (e.hurtT > 0) e.hurtT -= dt; if (e.attackCd > 0) e.attackCd -= dt;
+      if (def.noclip) {
+        if (e.goal) {
+          const gx = e.goal.x - e.pos.x, gy = (e.goal.y ?? e.pos.y) - e.pos.y, gz = e.goal.z - e.pos.z, gl = Math.hypot(gx, gy, gz) || 1, sp = e.goal.speed || def.speed;
+          e.vel.x += (gx / gl * sp - e.vel.x) * 0.04; e.vel.y += (gy / gl * sp - e.vel.y) * 0.04; e.vel.z += (gz / gl * sp - e.vel.z) * 0.04;
+        } else { e.vel.x *= 0.95; e.vel.y *= 0.95; e.vel.z *= 0.95; }
+        e.pos.x += e.vel.x * dt; e.pos.y += e.vel.y * dt; e.pos.z += e.vel.z * dt;
+        const hs = Math.hypot(e.vel.x, e.vel.z);
+        if (hs > 0.5 && !e.perched) e.yaw = turn(e.yaw, Math.atan2(-e.vel.x, -e.vel.z), dt * 3);
+        e.walkPhase += dt * 2;
+      }
+      return;
+    }
     e.inWater = liquidAt(w, e.pos.x, e.pos.y + 0.3, e.pos.z) === "water";
     e.inLava = liquidAt(w, e.pos.x, e.pos.y + 0.3, e.pos.z) === "lava";
     // steering toward the current goal
@@ -577,6 +638,9 @@ export class Entities {
     if (def.animal) return this.thinkAnimal(e, d);
     if (e.sp === "voidwalker") return this.thinkVoidwalker(e, d, dmgMul);
     if (def.ai === "flare" || def.ai === "wailer") return this.thinkFlyer(e, d, dmgMul);
+    if (def.ai === "crystal") return;
+    if (def.ai === "sheller") return this.thinkSheller(e, d, dmgMul);
+    if (def.ai === "dragon") return this.thinkDragon(e, d, dmgMul);
     if (def.ai === "rotboar" && !(e.angry > 0)) { this.wander(e); return; }
     if (def.ai === "boarkin" && !(e.angry > 0) && (ctx.wearingGold() || d > 12)) {
       if (ctx.heldId() === I.GOLD_INGOT && d < 8) { e.goal = d > 2.2 ? { x: p.pos.x, z: p.pos.z, speed: def.speed * 0.6 } : null; return; }   // admires your gold
@@ -672,6 +736,73 @@ export class Entities {
     this.addProjectile(kind, sx + dx / l * from.w * 0.7, sy, sz + dz / l * from.w * 0.7, dx / l * speed, dy / l * speed, dz / l * speed, { owner: from, noGrav: true, ...opts });
     Sound.mob("fireshoot", this.dist(from));
   }
+  // Shellers hide in their shells, peek out, and fire slow homing bullets that make you float
+  thinkSheller(e, d, dmgMul) {
+    const sees = this.targetable() && d < 16 && this.canSeePlayer(e);
+    e.open = sees ? Math.min(1, e.open + 0.3) : Math.max(0, e.open - 0.1);
+    if (sees && e.attackCd <= 0 && e.open >= 1) {
+      e.attackCd = rand(2, 4);
+      const p = this.ctx.player();
+      this.addProjectile("bullet", e.pos.x, e.pos.y + 0.6, e.pos.z, 0, 4, 0, { owner: e, noGrav: true, dmg: 4 * dmgMul, homing: p });
+      Sound.mob("shell", d);
+    }
+  }
+  // The Hollow Wyrm: circles the pillars, swoops to breathe, charges, and lands on the center to rest
+  thinkDragon(e, d, dmgMul) {
+    const ctx = this.ctx, p = ctx.player(), groundY = ctx.endTop();
+    const crystals = this.list.filter(o => o.sp === "crystal" && !o.dead);
+    // crystals heal the wyrm while it's close to them
+    const near = crystals.map(c => ({ c, d: Math.hypot(c.pos.x - e.pos.x, c.pos.y - e.pos.y, c.pos.z - e.pos.z) })).filter(o => o.d < 48).sort((a, b) => a.d - b.d)[0];
+    e.healFrom = near && e.hp < e.maxHp ? near.c : null;
+    if (e.healFrom) e.hp = Math.min(e.maxHp, e.hp + 0.25);
+    e.phaseT -= 0.15;
+    if (Math.random() < 0.01) Sound.mob("roar", d);
+    const toCircle = () => { e.phase = "circle"; e.phaseT = rand(4, 7); e.perched = false; e.shot = false; e.windT = 0; };
+    const can = this.targetable();
+    switch (e.phase) {
+      case "circle": {
+        e.ang += 0.15 * 0.3;
+        e.goal = { x: Math.cos(e.ang) * 40, z: Math.sin(e.ang) * 40, y: groundY + 16 + Math.sin(e.ang * 3) * 4, speed: 11 };
+        if (e.phaseT <= 0 && can) {
+          const r = Math.random(), perch = (crystals.length === 0 ? 0.35 : 0.12) + (e.hp < 100 ? 0.1 : 0);
+          if (r < perch) { e.phase = "perch"; e.phaseT = 20; }
+          else if (r < perch + 0.3) { e.phase = "charge"; e.phaseT = 8; e.windT = 1.2; Sound.mob("roar", d); }
+          else { e.phase = "strafe"; e.phaseT = 9; e.shot = false; }
+        } else if (e.phaseT <= 0) e.phaseT = 5;
+        break;
+      }
+      case "strafe": {   // swoop toward the player and spit a ball of void breath
+        e.goal = { x: p.pos.x, z: p.pos.z, y: p.pos.y + 10, speed: 13 };
+        if (!e.shot && d < 30 && this.lineToPlayer(e)) { e.shot = true; e.mouthT = 0.8; this.shootFire(e, p, "breath", 12, {}); Sound.mob("roar", d); }
+        if ((e.shot && d < 12) || e.phaseT <= 0) toCircle();
+        break;
+      }
+      case "charge": {   // a readable wind-up (hover, roar, flap), then a dive straight at you
+        if (e.windT > 0) { e.windT -= 0.15; e.goal = null; e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)); e.flapFast = true; break; }
+        e.flapFast = false;
+        e.goal = { x: p.pos.x, z: p.pos.z, y: p.pos.y + 1, speed: 17 };
+        if (d < 4.5 && e.attackCd <= 0) { ctx.hurtPlayer(e.def.dmg * dmgMul, "The Hollow Wyrm slammed into you!", e); e.attackCd = 2; toCircle(); }
+        if (e.phaseT <= 0) toCircle();
+        break;
+      }
+      case "perch": {   // land on the middle of the island, breathe on anyone nearby, then fly off
+        const px = 0, py = groundY + 1.5, pz = 0;
+        if (!e.perched) {
+          const dist = Math.hypot(e.pos.x - px, e.pos.y - py, e.pos.z - pz);
+          e.goal = { x: px, z: pz, y: py, speed: Math.max(2, Math.min(9, dist * 0.8)) };   // slow down while coming in to land
+          if (dist < 3.5) { e.perched = true; e.phaseT = 10; e.goal = null; e.vel.x = e.vel.y = e.vel.z = 0; e.pos.x = px; e.pos.y = py; e.pos.z = pz; }
+          else if (e.phaseT <= 0) toCircle();
+        } else {
+          e.yaw = turn(e.yaw, Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)), 0.3);
+          if (d < 16 && e.attackCd <= 0 && can) { e.attackCd = 3; e.mouthT = 0.8; ctx.cloud(p.pos.x, p.pos.y, p.pos.z); Sound.mob("roar", d); }
+          if (e.phaseT <= 0) { e.perched = false; e.phase = "takeoff"; e.phaseT = 4; }
+        }
+        break;
+      }
+      case "takeoff": e.goal = { x: e.pos.x + 10, z: e.pos.z, y: groundY + 20, speed: 9 }; if (e.phaseT <= 0) toCircle(); break;
+    }
+  }
+  lineToPlayer(e) { const p = this.ctx.player(); return lineOfSight(this.world, { x: e.pos.x, y: e.pos.y + 1.5, z: e.pos.z }, { x: p.pos.x, y: p.pos.y + 1.5, z: p.pos.z }); }
   // Boarkin trade: give one gold ingot, get something useful back after they look it over
   barter(e) {
     const pool = [[B.OBSIDIAN, 1, 1, 9], [I.FLINT_STEEL, 1, 1, 4], [I.VOID_PEARL, 2, 4, 6], [I.STRING, 3, 9, 12], [I.QUARTZ, 5, 12, 10], [I.LEATHER, 2, 4, 8],
@@ -760,6 +891,9 @@ export class Entities {
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
     if (e.dead || e.iframes > 0 || n <= 0) return false;
+    if (e.def.boss) { n *= e.perched ? 1 : 0.6; knock = null; if (attacker === "explosion") n *= 0.3; }
+    if (e.sp === "sheller" && e.open < 1) n *= 0.25;   // the shell protects it when closed
+    if (e.def.static) knock = null;
     if (e.sp === "voidwalker" && attacker && attacker.projectile) { this.teleport(e); return false; }   // dodges arrows
     e.hp -= n; e.hurtT = 0.3; e.iframes = 0.5;
     if (knock) { e.vel.x = knock.x * 7; e.vel.z = knock.z * 7; e.vel.y = 4.5; e.knock = 0.25; }
@@ -774,8 +908,10 @@ export class Entities {
     return true;
   }
   kill(e, attacker) {
-    e.dead = 0.6; e.goal = null; e.path = null;
+    e.dead = e.def.boss ? 4 : 0.6; e.goal = null; e.path = null;
     const ctx = this.ctx;
+    if (e.sp === "crystal") { e.gone = true; ctx.crystalGone(e.cid); ctx.explode(e.pos.x, e.pos.y + 1, e.pos.z, 3, null); return; }
+    if (e.def.boss) { Sound.mob("roar", 0); return; }
     if (attacker === "player" || e.burning || attacker === "explosion") {
       for (const d of e.def.drops(e)) if (d && d[1] > 0) ctx.drop(d[0], d[1], e.pos.x, e.pos.y + 0.4, e.pos.z);
       if (!e.baby) ctx.xp(e.def.xp * (e.def.ai === "slime" ? e.size : 1), e.pos.x, e.pos.y + 0.4, e.pos.z);
@@ -786,6 +922,14 @@ export class Entities {
     }
   }
   dying(e, dt) {
+    if (e.def.boss) {   // the wyrm rises, shudders, and bursts into light
+      e.dead -= dt; e.pos.y += dt * 2; e.root.rotation.z = Math.sin(e.dead * 20) * 0.08;
+      e.mat.color.setRGB(1, 0.7 + Math.sin(e.dead * 30) * 0.3, 1);
+      if (Math.random() < 0.6) this.ctx.particles(e.pos.x + rand(-4, 4), e.pos.y + rand(0, 3), e.pos.z + rand(-4, 4), "void");
+      if (e.dead <= 0) { e.gone = true; this.ctx.bossDefeated(e); }
+      e.mesh.position.set(e.pos.x, e.pos.y, e.pos.z);
+      return;
+    }
     e.dead -= dt;
     e.root.rotation.z = Math.min(Math.PI / 2, (0.6 - e.dead) * 4);
     e.mat.color.setRGB(1, 0.4, 0.4);
@@ -825,8 +969,8 @@ export class Entities {
       const fl = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.01, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff })); fl.position.z = 0.22;
       mesh.add(shaft, tip, fl);
     } else {
-      const color = { pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, fireball: 0xff7a1a, bigfire: 0xffb030 }[kind] || 0xffffff;
-      const s = kind === "bigfire" ? 0.6 : kind === "fireball" ? 0.3 : 0.2;
+      const color = { pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, fireball: 0xff7a1a, bigfire: 0xffb030, breath: 0xb050ff, bullet: 0xf0e8b0, eye: 0x3ad0a0 }[kind] || 0xffffff;
+      const s = kind === "bigfire" || kind === "breath" ? 0.6 : kind === "fireball" || kind === "bullet" ? 0.3 : 0.2;
       mesh = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), new THREE.MeshBasicMaterial({ color, fog: false }));
     }
     mesh.position.set(x, y, z); this.scene.add(mesh);
@@ -837,6 +981,13 @@ export class Entities {
     for (const pr of this.projectiles) {
       pr.age += dt;
       if (pr.stuck) { if (pr.age > 30) pr.gone = true; if (pr.fromPlayer && !ctx.creative() && Math.hypot(pr.x - p.pos.x, pr.y - p.pos.y - 0.8, pr.z - p.pos.z) < 1.4 && pr.age > 0.5) { if (ctx.give(I.ARROW, 1)) pr.gone = true; } continue; }
+      if (pr.kind === "eye") { this.flyEye(pr, dt); continue; }
+      if (pr.homing) {   // Sheller bullets slowly steer toward you
+        const t = pr.homing, dx = t.pos.x - pr.x, dy = t.pos.y + 1 - pr.y, dz = t.pos.z - pr.z, l = Math.hypot(dx, dy, dz) || 1;
+        pr.vx += (dx / l * 6 - pr.vx) * 0.04; pr.vy += (dy / l * 6 - pr.vy) * 0.04; pr.vz += (dz / l * 6 - pr.vz) * 0.04;
+        if (pr.age > 10) pr.gone = true;
+      }
+      if (pr.kind === "breath" && Math.random() < 0.5) ctx.particles(pr.x, pr.y, pr.z, "void");
       if (!pr.noGrav) pr.vy -= 20 * dt;
       if (pr.kind === "fireball" || pr.kind === "bigfire") { pr.mesh.rotation.x += dt * 5; pr.mesh.rotation.y += dt * 7; if (Math.random() < 0.3) ctx.particles(pr.x, pr.y, pr.z, "ember"); }
       const steps = Math.ceil(Math.hypot(pr.vx, pr.vy, pr.vz) * dt / 0.25);
@@ -855,6 +1006,8 @@ export class Entities {
           if (pr.kind === "arrow") ctx.hurtPlayer(pr.dmg, "A Rattler's arrow hit you!", { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } });
           if (pr.kind === "fireball") { ctx.hurtPlayer(pr.dmg || 5, "A Flare's fireball got you!", { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } }); ctx.effect("fire", 4); }
           if (pr.kind === "bigfire") ctx.explode(nx, ny, nz, pr.power || 1.3, pr.owner);
+          if (pr.kind === "breath") ctx.cloud(nx, ny, nz);
+          if (pr.kind === "bullet") { ctx.hurtPlayer(pr.dmg || 4, "A Sheller's bullet got you!", null); ctx.effect("levitation", 6); }
           pr.gone = true; break;
         }
         // hit a block?
@@ -864,6 +1017,8 @@ export class Entities {
           if (pr.kind === "arrow") { pr.stuck = true; pr.age = 0; Sound.mob("arrowhit", Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z)); }
           else if (pr.kind === "bigfire") { ctx.explode(pr.x, pr.y, pr.z, pr.power || 1.3, pr.owner); pr.gone = true; }
           else if (pr.kind === "fireball") { ctx.ignite(Math.floor(pr.x), Math.floor(pr.y), Math.floor(pr.z)); pr.gone = true; }
+          else if (pr.kind === "breath") { ctx.cloud(pr.x, pr.y + 0.5, pr.z); pr.gone = true; }
+          else if (pr.kind === "bullet") { ctx.particles(pr.x, pr.y, pr.z, "poof"); pr.gone = true; }
           else this.landThrown(pr);
           break;
         }
@@ -884,9 +1039,27 @@ export class Entities {
     pr.gone = true;
   }
 
+  // The Eye of the Void flies toward the nearest stronghold, hovers, then drops (or shatters)
+  flyEye(pr, dt) {
+    const ctx = this.ctx;
+    if (pr.age < 1.6) {
+      const dx = pr.tx - pr.x, dz = pr.tz - pr.z, l = Math.hypot(dx, dz) || 1, down = l < 12;
+      pr.x += dx / l * 7 * dt * (down ? 0.3 : 1); pr.z += dz / l * 7 * dt * (down ? 0.3 : 1); pr.y += (down ? -2.5 : 1.8) * dt;
+    } else if (pr.age > 2.4) {
+      pr.gone = true;
+      if (Math.random() < 0.8) ctx.drop(I.EYE, 1, pr.x, pr.y, pr.z); else { ctx.particles(pr.x, pr.y, pr.z, "void"); Sound.mob("crystal", 0); }
+    }
+    if (Math.random() < 0.6) ctx.particles(pr.x, pr.y, pr.z, "portal");
+    pr.mesh.position.set(pr.x, pr.y, pr.z); pr.mesh.rotation.y += dt * 6;
+  }
   // Hitting a Wailer's fireball sends it back where you're looking
   deflect(o, d, reach) {
     for (const pr of this.projectiles) {
+      if (pr.kind === "bullet") {   // Sheller bullets can be swatted away
+        const tx = pr.x - o.x, ty = pr.y - o.y, tz = pr.z - o.z, t = tx * d.x + ty * d.y + tz * d.z;
+        if (t > 0 && t < reach && (o.x + d.x * t - pr.x) ** 2 + (o.y + d.y * t - pr.y) ** 2 + (o.z + d.z * t - pr.z) ** 2 < 0.8) { pr.gone = true; this.ctx.particles(pr.x, pr.y, pr.z, "poof"); return true; }
+        continue;
+      }
       if (pr.kind !== "bigfire" && pr.kind !== "fireball") continue;
       const tx = pr.x - o.x, ty = pr.y - o.y, tz = pr.z - o.z, t = tx * d.x + ty * d.y + tz * d.z;
       if (t < 0 || t > reach) continue;
@@ -950,6 +1123,21 @@ export class Entities {
       P.head.position.z = 4 / 16 + Math.sin(e.walkPhase * 4) * 0.02 * Math.min(1, sp);
     } else if (t === "rabbit") {
       const air = e.onGround ? 0 : 0.6; P.legR.rotation.x = P.legL.rotation.x = air; e.root.rotation.x = e.onGround ? 0 : -0.2;
+    } else if (t === "dragon") {
+      const flap = e.perched ? Math.sin(e.age * 1.5) * 0.08 : Math.sin(e.age * (e.flapFast ? 9 : 3.2)) * 0.55;
+      P.wingL.rotation.z = flap; P.wingR.rotation.z = -flap; P.wingTipL.rotation.z = flap * 0.6; P.wingTipR.rotation.z = -flap * 0.6;
+      P.tail.rotation.y = Math.sin(e.age * 1.3) * 0.25; P.tail2.rotation.y = Math.sin(e.age * 1.3 - 0.8) * 0.35;
+      P.neck.rotation.x = e.perched ? 0.35 : Math.max(-0.4, Math.min(0.4, -e.vel.y * 0.05));
+      if (e.mouthT > 0) { e.mouthT -= dt; P.jaw.rotation.x = 0.5; } else P.jaw.rotation.x = 0.05;
+      e.root.rotation.x = e.perched ? 0 : Math.max(-0.35, Math.min(0.35, -e.vel.y * 0.04));
+      if (!e.beam) { e.beam = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xff8af0 })); this.scene.add(e.beam); e.beam.frustumCulled = false; }
+      e.beam.visible = !!e.healFrom;
+      if (e.healFrom) { const a = e.beam.geometry.attributes.position; a.setXYZ(0, e.healFrom.pos.x, e.healFrom.pos.y + 1, e.healFrom.pos.z); a.setXYZ(1, e.pos.x, e.pos.y + 2, e.pos.z); a.needsUpdate = true; }
+    } else if (t === "crystal") {
+      P.cage.rotation.set(e.age * 1.2, e.age * 1.7, 0); P.core.rotation.set(-e.age * 2, e.age, e.age * 1.4);
+      P.cage.position.y = P.core.position.y = 16 / 16 + Math.sin(e.age * 2) * 0.15;
+    } else if (t === "sheller") {
+      P.lid.position.y = (8 + e.open * 6) / 16; P.head.visible = e.open > 0.2;
     } else if (t === "flare") {
       for (let i = 0; i < 10; i++) { const a = e.age * (i < 5 ? 2 : -1.6) + (i % 5) * Math.PI * 2 / 5, r = i < 5 ? 0.45 : 0.3; P["rod" + i].position.set(Math.cos(a) * r, (i < 5 ? 16 : 8) / 16 + Math.sin(e.age * 3 + i) * 0.05, Math.sin(a) * r); }
       e.root.position.y = Math.sin(e.age * 2) * 0.1;

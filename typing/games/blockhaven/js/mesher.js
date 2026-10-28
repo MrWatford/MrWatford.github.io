@@ -154,6 +154,13 @@ export function buildChunk(world, chunk, fancy) {
         const pts = F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]);
         quad(waterBuf, pts, faceTile(v, F.tex), UV, [l, l, l, l]);
       }
+    } else if (def.shape === "endportal") {   // a flat starry surface
+      const l = [1, 1, 1], L = [l, l, l, l], tile = faceTile(v, 0), h = y + 0.75;
+      const q = [[x, h, z + 1], [x + 1, h, z + 1], [x + 1, h, z], [x, h, z]];
+      quad(waterBuf, q, tile, UV, L); quad(waterBuf, [q[1], q[0], q[3], q[2]], tile, [UV[1], UV[0], UV[3], UV[2]], L);
+    } else if (def.shape === "glow") {   // a glowing see-through cube
+      const l = [1, 1, 1], tile = faceTile(v, 1);
+      for (const F of FACES) quad(waterBuf, F.c.map(p => [x + p[0], y + p[1], z + p[2]]), tile, UV, [l, l, l, l]);
     } else if (def.shape === "portal") {   // a thin glowing sheet in the middle of the block
       const l = [1, 1, 1], L = [l, l, l, l], tile = faceTile(v, 1), alongX = !(metaOf(v) & 1);
       const q = alongX ? [[x, y, z + 0.5], [x + 1, y, z + 0.5], [x + 1, y + 1, z + 0.5], [x, y + 1, z + 0.5]] : [[x + 0.5, y, z + 1], [x + 0.5, y, z], [x + 0.5, y + 1, z], [x + 0.5, y + 1, z + 1]];

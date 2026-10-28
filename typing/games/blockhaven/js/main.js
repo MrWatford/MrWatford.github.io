@@ -1,9 +1,9 @@
 // Blockhaven: the game loop, 3D drawing, controls, mining and building, survival rules, and saving.
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
-  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET } from "./blocks.js";
+  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN } from "./blocks.js";
 import { Entities, SPECIES } from "./entities.js";
-import { Generator, NetherGen, LOOT, LAVA_LEVEL, CURRENT_GEN } from "./worldgen.js";
+import { Generator, NetherGen, EndGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
 import { Player, raycast, blockBoxes, REACH } from "./player.js";
@@ -172,6 +172,11 @@ const ents = new Entities(scene, {
   swapHeld: id => swapHeld(id), give: (id, n) => G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
   wearingGold: () => [36, 37, 38, 39].some(i => G.inv.slots[i] && [I.GOLD_HELMET, I.GOLD_CHEST, I.GOLD_LEGS, I.GOLD_BOOTS].includes(G.inv.slots[i].id)),
   ignite: (x, y, z) => ignite(x, y, z),
+  endTop: () => (G.gen.land ? (G.gen.land(0, 0) || { top: END_TOP }).top : END_TOP),
+  cloud: (x, y, z) => addCloud(x, y, z),
+  crystalGone: i => { const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
+  bossLeft: e => { (G.dimData.end || (G.dimData.end = {})).wyrmHp = e.hp; },
+  bossDefeated: e => wyrmDefeated(e),
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
@@ -188,7 +193,7 @@ function swapHeld(id) {
 }
 
 // ---------- status effects (poison, queasy, burning) ----------
-const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted" };
+const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating" };
 function addEffect(k, t) { if (G.creative) return; G.effects[k] = Math.max(G.effects[k] || 0, t); G.hudDirty = true; }
 let effT = 0;
 function tickEffects(dt) {
@@ -223,8 +228,168 @@ function updateFires(dt) {
   }
 }
 
+// ---------- the Hollow: travel, the Wyrm fight, and its rewards ----------
+const clouds = [];
+function addCloud(x, y, z) { clouds.push({ x, y, z, t: 6, tick: 0 }); }
+function updateClouds(dt) {
+  const p = G.player;
+  for (let i = clouds.length - 1; i >= 0; i--) {
+    const c = clouds[i]; c.t -= dt; c.tick -= dt;
+    if (Math.random() < 0.7) puff(c.x + (Math.random() - 0.5) * 4, c.y, c.z + (Math.random() - 0.5) * 4, "void");
+    if (c.tick <= 0) { c.tick = 0.5; if (Math.hypot(p.pos.x - c.x, p.pos.z - c.z) < 2.6 && Math.abs(p.pos.y - c.y) < 2) hurt(2, "The Wyrm's breath burned you! Step out of the purple clouds.", null, true); }
+    if (c.t <= 0) clouds.splice(i, 1);
+  }
+}
+const endData = () => G.dimData.end || (G.dimData.end = {});
+// Make sure the Wyrm and its crystals are there while it's undefeated
+function ensureBoss() {
+  const d = endData(), p = G.player;
+  if (d.wyrmDefeated || Math.hypot(p.pos.x, p.pos.z) > 160) return;
+  const gone = d.crystalsGone || [];
+  for (const pl of G.gen.pillars) {
+    if (gone.includes(pl.i) || ents.list.some(e => e.sp === "crystal" && e.cid === pl.i)) continue;
+    if (!G.world.isLoaded(pl.x, pl.z)) continue;
+    ents.add("crystal", pl.x + 0.5, pl.top + 1, pl.z + 0.5, { cid: pl.i });
+  }
+  if (!ents.list.some(e => e.sp === "dragon")) {
+    const top = (G.gen.land(0, 0) || { top: END_TOP }).top;
+    const w = ents.add("dragon", 0.5, top + 20, 40.5, { hp: d.wyrmHp ?? 200 });
+    w.ang = Math.PI / 2;
+  }
+}
+function wyrmDefeated(e) {
+  const d = endData(); d.wyrmDefeated = true; delete d.wyrmHp;
+  const w = G.world, top = (G.gen.land(0, 0) || { top: END_TOP }).top;
+  // exit fountain: a bedrock ring holding a portal home, with the egg on a pillar
+  for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+    w.set(dx, top, dz, B.BEDROCK);
+    const ring = Math.abs(dx) === 2 || Math.abs(dz) === 2;
+    w.set(dx, top + 1, dz, ring ? B.BEDROCK : (dx || dz) ? B.END_PORTAL : B.BEDROCK);
+    for (let y = top + 2; y < top + 6; y++) if (!(dx === 0 && dz === 0)) { if (w.id(dx, y, dz)) w.set(dx, y, dz, B.AIR); }
+  }
+  for (let y = top + 2; y <= top + 4; y++) w.set(0, y, 0, B.BEDROCK);
+  w.set(0, top + 5, 0, B.WYRM_EGG);
+  buildGateway(40, (G.gen.land(40, 0) || { top }).top + 4, 0);
+  spawnOrbs(400, G.player.pos.x, G.player.pos.y + 2, G.player.pos.z);
+  spawnDrop(I.WYRM_SCALE, 3, 0.5, top + 2, 2.5);
+  Sound.levelUp(); setTimeout(() => Sound.levelUp(), 400);
+  UI.toast("You defeated the Hollow Wyrm! A portal home opened in the middle of the island.", "good");
+  setTimeout(() => UI.toast("A Gateway appeared nearby. Step into it to reach the outer islands and the Hollow towers.", "good"), 3000);
+  saveNow(true);
+}
+function buildGateway(x, y, z) {
+  const w = G.world;
+  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { w.set(x + dx, y - 1, z + dz, B.BEDROCK); w.set(x + dx, y + 1, z + dz, B.BEDROCK); }
+  w.set(x, y, z, B.GATEWAY);
+}
+async function changeDim(toDim, cx, cz, label, place) {
+  const p = G.player, fromDim = G.dim, back = { ...p.pos };
+  G.traveling = true;
+  try {
+    G.state = "loading"; UI.show("loading"); UI.setLoading(0, label);
+    document.getElementById("portalTint").style.opacity = 0;
+    await saveNow(false);
+    clearWorldMeshes(); G.world.chunks.clear(); G.world.dirtyQueue.clear(); fires.length = 0; clouds.length = 0;
+    G.dim = toDim; G.world = makeWorld(toDim); G.gen = G.world.gen;
+    p.pos.x = cx + 0.5; p.pos.z = cz + 0.5; p.pos.y = 60;
+    await loadArea(cx, cz, label);
+    place();
+    p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; p.gliding = false;
+    portalCooldown = true; portalT = 0;
+    await saveNow(false);
+    G.state = "pause"; UI.show("none"); UI.hud(); G.resume();
+  } catch (err) {
+    console.error(err);
+    clearWorldMeshes(); if (G.world) G.world.chunks.clear();
+    G.dim = fromDim; G.world = makeWorld(fromDim); G.gen = G.world.gen;
+    Object.assign(p.pos, back);
+    await loadArea(back.x, back.z, "Returning…");
+    portalCooldown = true;
+    G.state = "pause"; UI.show("none"); G.resume();
+    UI.toast("The portal fizzled. Try again.", "bad");
+  }
+  G.traveling = false;
+}
+function enterHollow() {
+  return changeDim("end", 100, 0, "Falling into the Hollow…", () => {
+    const w = G.world, y = 48;
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { w.set(100 + dx, y, dz, B.OBSIDIAN); for (let k = 1; k <= 4; k++) w.set(100 + dx, y + k, dz, B.AIR); }
+    const p = G.player; p.pos.x = 100.5; p.pos.y = y + 1; p.pos.z = 0.5;
+    UI.toast(endData().wyrmDefeated ? "Back in the Hollow." : "The Hollow! Destroy the crystals on the pillars, then defeat the Wyrm. Don't fall into the void!", "bad");
+  });
+}
+function leaveHollow() {
+  const s = G.player.spawn;
+  return changeDim("overworld", s.x, s.z, "Returning to the Surface…", () => { placeSafely(G.player, s.x, s.z); UI.toast("Home again!", "good"); });
+}
+async function gatewayJump() {
+  const p = G.player, outward = Math.hypot(p.pos.x, p.pos.z) < 200;
+  G.state = "loading"; UI.show("loading"); clouds.length = 0;
+  if (outward) {
+    // find the nearest outer island around x = 1000
+    const tx = 1000, tz = 0;
+    p.pos.x = tx + 0.5; p.pos.z = tz + 0.5;
+    await loadArea(tx, tz, "Flying through the gateway…");
+    let spot = null;
+    for (let r = 0; r < 60 && !spot; r += 3) for (let a = 0; a < 12 && !spot; a++) { const x = Math.round(tx + Math.cos(a / 12 * Math.PI * 2) * r), z = Math.round(tz + Math.sin(a / 12 * Math.PI * 2) * r), l = G.gen.land(x, z); if (l && G.world.isLoaded(x, z)) spot = { x, z, y: l.top + 1 }; }
+    if (!spot) { spot = { x: tx, z: tz, y: 50 }; for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) G.world.set(tx + dx, 49, tz + dz, B.HOLLOWSTONE); }
+    for (let k = 0; k < 3; k++) if (SOLID[G.world.id(spot.x, spot.y + k, spot.z)]) G.world.set(spot.x, spot.y + k, spot.z, B.AIR);
+    p.pos.x = spot.x + 0.5; p.pos.y = spot.y; p.pos.z = spot.z + 0.5;
+    if (G.world.id(spot.x + 4, spot.y + 3, spot.z) !== B.GATEWAY) buildGateway(spot.x + 4, spot.y + 3, spot.z);
+  } else {
+    p.pos.x = 36.5; p.pos.z = 0.5;
+    await loadArea(36, 0, "Flying through the gateway…");
+    p.pos.y = (G.gen.land(36, 0) || { top: END_TOP }).top + 1;
+  }
+  p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; portalCooldown = true;
+  G.state = "pause"; UI.show("none"); G.resume();
+}
+// Put an Eye of the Void into a portal frame; when all 12 have eyes, the portal opens
+function fillFrame(hit) {
+  const w = G.world, slot = G.inv.slots[G.selected];
+  hit.v = w.get(hit.x, hit.y, hit.z);
+  if (idOf(hit.v) !== B.END_FRAME) return;
+  if (metaOf(hit.v) & EYE_IN) { UI.toast("That frame already has an eye."); return; }
+  if (!slot || slot.id !== I.EYE) { UI.toast("This frame needs an Eye of the Void.", ""); return; }
+  w.set(hit.x, hit.y, hit.z, make(B.END_FRAME, metaOf(hit.v) | EYE_IN));
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+  Sound.mob("teleport", 0); puff(hit.x + 0.5, hit.y + 1, hit.z + 0.5, "portal"); G.hudDirty = true; heldId = -1;
+  const gen = G.gen;
+  for (const s of gen.strongholds || []) {
+    if (Math.abs(s.x - hit.x) > 3 || Math.abs(s.z - hit.z) > 3) continue;
+    const spots = frameSpots(s), filled = spots.filter(([x, y, z]) => w.id(x, y, z) === B.END_FRAME && (metaOf(w.get(x, y, z)) & EYE_IN)).length;
+    if (filled === spots.length) {
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) w.set(s.x + dx, s.y, s.z + dz, B.END_PORTAL);
+      Sound.mob("portal", 0); Sound.levelUp();
+      UI.toast("The Hollow Portal is open! Jump in when you're ready. Bring armor, a bow, lots of arrows, and blocks.", "good");
+    } else UI.toast(`${filled} of ${spots.length} eyes placed.`);
+  }
+}
+function throwEye() {
+  if (G.dim !== "overworld") { UI.toast("The eye just spins in place. Strongholds are on the Surface.", "bad"); return; }
+  const p = G.player, s = [...G.gen.strongholds].sort((a, b) => Math.hypot(a.x - p.pos.x, a.z - p.pos.z) - Math.hypot(b.x - p.pos.x, b.z - p.pos.z))[0];
+  ents.addProjectile("eye", p.pos.x, p.pos.y + 1.5, p.pos.z, 0, 0, 0, { tx: s.x + 0.5, tz: s.z + 0.5, noGrav: true, fromPlayer: true });
+  const sl = G.inv.slots[G.selected]; if (sl && !G.creative) { sl.n--; if (!sl.n) G.inv.slots[G.selected] = null; }
+  G.hudDirty = true; heldId = -1; Sound.mob("teleport", 0);
+  const dist = Math.hypot(s.x - p.pos.x, s.z - p.pos.z);
+  if (dist < 14) UI.toast("The eye dove into the ground. The stronghold is right below you!", "good");
+}
+// Chorus Fruit: blink to a random safe spot nearby
+function chorusBlink() {
+  const p = G.player, w = G.world;
+  for (let k = 0; k < 24; k++) {
+    const x = Math.floor(p.pos.x + (Math.random() - 0.5) * 16), z = Math.floor(p.pos.z + (Math.random() - 0.5) * 16);
+    for (let y = Math.floor(p.pos.y) + 6; y > Math.floor(p.pos.y) - 8; y--) {
+      if (SOLID[w.id(x, y - 1, z)] && !SOLID[w.id(x, y, z)] && !SOLID[w.id(x, y + 1, z)] && w.id(x, y, z) !== B.LAVA) {
+        puff(p.pos.x, p.pos.y + 1, p.pos.z, "void"); p.pos.x = x + 0.5; p.pos.y = y; p.pos.z = z + 0.5; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null;
+        puff(p.pos.x, p.pos.y + 1, p.pos.z, "void"); Sound.mob("teleport", 0); return;
+      }
+    }
+  }
+}
+
 // ---------- portals between the Surface and the Ember Depths ----------
-const DIM_NAMES = { overworld: "the Surface", nether: "the Ember Depths" };
+const DIM_NAMES = { overworld: "the Surface", nether: "the Ember Depths", end: "the Hollow" };
 // Light a portal inside an obsidian frame. (x, y, z) is an empty spot inside the frame.
 function lightPortal(x, y, z) {
   const w = G.world;
@@ -282,10 +447,16 @@ let portalT = 0, portalCooldown = false;
 function checkPortal(dt) {
   const p = G.player, w = G.world, a = p.aabb();
   let inside = null;
-  for (let yy = Math.floor(a[1]); yy <= Math.floor(a[4] - 0.01) && !inside; yy++) for (let xx = Math.floor(a[0]); xx <= Math.floor(a[3]) && !inside; xx++) for (let zz = Math.floor(a[2]); zz <= Math.floor(a[5]) && !inside; zz++) if (w.id(xx, yy, zz) === B.PORTAL) inside = [xx, yy, zz];
+  let kind = 0;
+  for (let yy = Math.floor(a[1]); yy <= Math.floor(a[4] - 0.01) && !inside; yy++) for (let xx = Math.floor(a[0]); xx <= Math.floor(a[3]) && !inside; xx++) for (let zz = Math.floor(a[2]); zz <= Math.floor(a[5]) && !inside; zz++) {
+    const id = w.id(xx, yy, zz);
+    if (id === B.PORTAL || id === B.END_PORTAL || id === B.GATEWAY) { inside = [xx, yy, zz]; kind = id; }
+  }
   const tint = document.getElementById("portalTint");
   if (!inside) { portalT = 0; portalCooldown = false; tint.style.opacity = 0; return; }
-  if (portalCooldown) { tint.style.opacity = 0.15; return; }
+  if (portalCooldown) { tint.style.opacity = kind === B.PORTAL ? 0.15 : 0; return; }
+  if (kind === B.END_PORTAL && !G.traveling) { if (G.dim === "end") leaveHollow(); else enterHollow(); return; }
+  if (kind === B.GATEWAY && !G.traveling) { gatewayJump(); return; }
   if (portalT === 0) Sound.mob("portal", 0);
   portalT += dt;
   const need = G.creative ? 0.6 : 2.5;
@@ -568,7 +739,7 @@ function clearWorldMeshes() {
 // ---------- dimensions: each has its own generator, block changes, containers, and creatures ----------
 function makeWorld(dim) {
   const data = G.dimData[dim] || (G.dimData[dim] = {});
-  const gen = dim === "nether" ? new NetherGen(G.meta.seed) : new Generator(G.meta.seed, G.meta.gen || 1);
+  const gen = dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : new Generator(G.meta.seed, G.meta.gen || 1);
   const w = new World(gen);
   w.dim = dim;
   w.modsFromJSON(data.mods);
@@ -583,7 +754,8 @@ function makeWorld(dim) {
 }
 function dimSnapshot(w) {
   const old = G.dimData[w.dim] || {};
-  return { mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], portals: old.portals || [], links: old.links || {} };
+  if (w.dim === "end") { const dr = ents.list.find(e => e.sp === "dragon" && !e.dead); if (dr) old.wyrmHp = dr.hp; }
+  return { ...old, mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], portals: old.portals || [], links: old.links || {} };
 }
 // Build (and draw) the land around a spot, with a progress bar
 async function loadArea(x, z, label) {
@@ -746,6 +918,10 @@ window.addEventListener("keydown", e => {
   else if (e.code === "KeyE") openPanel("inventory");
   else if (e.code === "KeyQ") dropSelected(e.ctrlKey);
   else if (e.code === "F3") { G.debug = !G.debug; document.getElementById("debug").hidden = !G.debug; }
+  else if (e.code === "Space" && !G.player.onGround && !G.player.inWater && !G.player.flying && !G.player.gliding && G.player.vel.y < -1 && G.inv.slots[37] && G.inv.slots[37].id === I.GLIDER) {
+    G.player.gliding = true;
+    if (!G.tips.glide) { G.tips.glide = true; UI.toast("Gliding! Look down to speed up and up to slow down. Land gently!", "good"); }
+  }
   else if (e.code === "Space" && G.creative) {
     const now = performance.now();
     if (now - G.lastSpace < 300) { G.player.flying = !G.player.flying; G.player.vel.y = 0; UI.toast(G.player.flying ? "Flying! Space to rise, C to go down" : "Stopped flying"); G.hudDirty = true; G.lastSpace = 0; }
@@ -881,6 +1057,7 @@ function breakBlock(x, y, z, drops, quiet) {
     if (drop === "shine") drop = [I.SHINE_DUST, 2 + Math.floor(Math.random() * 3)];
     if (drop === "goldnuggets") drop = [I.GOLD_NUGGET, 2 + Math.floor(Math.random() * 4)];
     if (drop === "wart") drop = [I.WART, (metaOf(v) & 7) >= 7 ? 2 + Math.floor(Math.random() * 3) : 1];
+    if (drop === "chorus") drop = Math.random() < 0.6 ? I.CHORUS_FRUIT : 0;
     if (drop === "crop") {
       const ripe = (metaOf(v) & 7) >= 7;
       if (id === B.WHEAT) { if (ripe) spawnDrop(I.WHEAT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
@@ -889,9 +1066,10 @@ function breakBlock(x, y, z, drops, quiet) {
     if (Array.isArray(drop)) spawnDrop(drop[0], drop[1], x + 0.5, y + 0.5, z + 0.5);
     else if (drop) spawnDrop(drop, 1, x + 0.5, y + 0.5, z + 0.5);
   }
-  // spill container contents
+  // spill container contents (a Shell Box keeps them inside and drops as one item)
   const key = x + "," + y + "," + z, box = w.containers.get(key);
-  if (box) { for (const s of box.slots) if (s) spawnDrop(s.id, s.n, x + 0.5, y + 0.5, z + 0.5, s); w.containers.delete(key); }
+  if (id === B.SHELL_BOX) { spawnDrop(B.SHELL_BOX, 1, x + 0.5, y + 0.5, z + 0.5, { id: B.SHELL_BOX, n: 1, contents: box ? box.slots.map(s => s && { ...s }) : null }); w.containers.delete(key); }
+  else if (box) { for (const s of box.slots) if (s) spawnDrop(s.id, s.n, x + 0.5, y + 0.5, z + 0.5, s); w.containers.delete(key); }
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
   if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART].includes(aid) || (aid === B.DOOR && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
@@ -974,6 +1152,7 @@ function useItem() {
     Sound.place("soft"); UI.toast(`Wearing ${sd.name}`); G.hudDirty = true; heldId = -1; return;
   }
   if (slot && slot.id === I.VOID_PEARL) { throwItem("pearl"); return; }
+  if (slot && slot.id === I.EYE) { throwEye(); return; }
   if (slot && slot.id === I.EGG) { throwItem("egg"); return; }
   if (sd && (sd.food !== undefined) && sd.kind === "food") {
     if (G.creative) return;
@@ -982,6 +1161,7 @@ function useItem() {
     if (sd.sideEffect === "poison" || (sd.raw && slot.id === I.RAW_CHICKEN && Math.random() < 0.3)) { addEffect("poison", 4); UI.toast("That made you feel sick!", "bad"); }
     if (sd.sideEffect === "queasy" && Math.random() < 0.8) { addEffect("queasy", 30); UI.toast("Yuck! You feel queasy (you'll get hungry faster for a bit).", "bad"); }
     if (sd.sideEffect === "cure") { G.effects = {}; UI.toast("Milk cleared your effects.", "good"); }
+    if (sd.sideEffect === "blink") chorusBlink();
     slot.n--; if (!slot.n) G.inv.slots[G.selected] = null;
     if (sd.sideEffect === "cure") swapHeld(I.BUCKET);
     Sound.eat(); G.swing = 0.01; G.hudDirty = true; heldId = -1; return;
@@ -1040,6 +1220,7 @@ function useItem() {
   } else {
     if (blocksPlayer(v, x, y, z)) return;
     w.set(x, y, z, v);
+    if (id === B.SHELL_BOX) w.containers.set(x + "," + y + "," + z, { type: "chest", slots: slot.contents ? slot.contents.map(s => s && { ...s }) : new Array(27).fill(null) });
   }
   if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
   Sound.place(MATERIAL(id)); G.swing = 0.01; G.hudDirty = true; heldId = G.inv.slots[G.selected] ? heldId : -1;
@@ -1131,6 +1312,11 @@ function interact(hit, kind) {
   }
   if (kind === "table") { openPanel("table"); return; }
   if (kind === "bed") { useBed(hit); return; }
+  if (kind === "frame") { fillFrame(hit); return; }
+  if (kind === "shellbox") {
+    if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
+    Sound.door(true); openPanel("chest", key); return;
+  }
   if (kind === "chest") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
     if (metaOf(hit.v) & LOOT) { fillLoot(w.containers.get(key), hit); w.set(hit.x, hit.y, hit.z, make(B.CHEST, metaOf(hit.v) & 3)); }
@@ -1144,6 +1330,15 @@ function interact(hit, kind) {
 function fillLoot(box, hit) {
   const r = rng(hashSeed(G.meta.seed) ^ (hit.x * 73856093) ^ (hit.z * 19349663));
   const put = (id, n) => { const i = box.slots.findIndex(s => !s); if (i >= 0 && n > 0) box.slots[i] = newStack(id, n); };
+  if (G.dim === "end") {   // Hollow tower treasure: the top chest always holds Glider Wings
+    if ((metaOf(hit.v) & 3) === 1) put(I.GLIDER, 1);
+    put(I.IRON_INGOT, 3 + Math.floor(r() * 6)); put(I.GOLD_INGOT, 2 + Math.floor(r() * 5)); put(I.VOID_PEARL, 1 + Math.floor(r() * 3));
+    if (r() < 0.5) put(I.SKYSHARD, 1 + Math.floor(r() * 3));
+    if (r() < 0.3) put(I.SKY_CHEST, 1);
+    if (r() < 0.3) put(I.DUSK_SCRAP, 1);
+    for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
+    UI.toast("You found a Hollow treasure chest!", "good"); return;
+  }
   if (G.world.gen.isNether()) {   // fortress and bastion treasure
     put(I.GOLD_INGOT, 2 + Math.floor(r() * 5)); put(I.GOLD_NUGGET, 4 + Math.floor(r() * 10));
     if (r() < 0.6) put(B.OBSIDIAN, 2 + Math.floor(r() * 5));
@@ -1159,6 +1354,7 @@ function fillLoot(box, hit) {
   if (r() < 0.55) put(B.OBSIDIAN, 1 + Math.floor(r() * 4));
   if (r() < 0.35) put(I.FLINT_STEEL, 1);
   if (r() < 0.45) put(I.GOLD_NUGGET, 3 + Math.floor(r() * 9));
+  if (r() < 0.3) put(I.VOID_PEARL, 1 + Math.floor(r() * 2));
   if (r() < 0.7) put(I.IRON_INGOT, 2 + Math.floor(r() * 4));
   if (r() < 0.35) put(I.SKYSHARD, 1 + Math.floor(r() * 2));
   if (r() < 0.5) put(I.STONE_PICK, 1);
@@ -1311,9 +1507,11 @@ G.respawn = async () => {
 let survT = 0, regenT = 0, starveT = 0, drownT = 0;
 function survival(dt) {
   const p = G.player;
-  if (G.creative) { p.health = 20; p.hunger = 20; p.air = 10; G.effects = {}; return; }
+  if (G.creative) { p.health = 20; p.hunger = 20; p.air = 10; G.effects = {}; p.levitate = false; return; }
   if (iframes > 0) iframes -= dt;
   tickEffects(dt);
+  p.levitate = !!G.effects.levitation;
+  if (p.gliding && (G.glideT = (G.glideT || 0) + dt) >= 1) { G.glideT = 0; const wings = G.inv.slots[37]; if (wings && wings.id === I.GLIDER) { wings.dur = (wings.dur ?? 432) - 1; if (wings.dur <= 0) { G.inv.slots[37] = null; p.gliding = false; UI.toast("Your Glider Wings wore out!", "bad"); } G.hudDirty = true; } }
   if (p.inLava) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true); } }
   const w = G.world, fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y), fz = Math.floor(p.pos.z);
   if (w.id(fx, fy, fz) === B.FIRE || w.id(fx, fy + 1, fz) === B.FIRE) addEffect("fire", 4);
@@ -1353,9 +1551,17 @@ function tipDone(k) { if (!G.tips[k]) { G.tips[k] = true; updateTips(); } }
 const SKY_DAY = new THREE.Color(0x8fd0f5), SKY_SET = new THREE.Color(0xf2a66a), SKY_NIGHT = new THREE.Color(0x0b1430), skyCol = new THREE.Color();
 const NETHER_SKY = new THREE.Color(0x3a0c0c);
 let ashT = 0, rumbleT = 8;
+const END_SKY = new THREE.Color(0x140a1e);
 function updateSky() {
   const nether = G.world && G.world.gen.isNether();
-  sun.visible = moon.visible = !nether;
+  const hollow = G.world && G.world.gen.isEnd && G.world.gen.isEnd();
+  sun.visible = moon.visible = !nether && !hollow;
+  if (hollow) {
+    uniforms.daylight.value = 0.55; uniforms.ambient.value = 0.22;
+    skyCol.copy(END_SKY); scene.background = skyCol; uniforms.fogColor.value.copy(skyCol);
+    stars.visible = true; stars.material.opacity = 0.9; stars.position.copy(camera.position);
+    return 0.6;
+  }
   if (nether) {
     uniforms.daylight.value = 0; uniforms.ambient.value = 0.3;
     skyCol.copy(NETHER_SKY);
@@ -1463,8 +1669,12 @@ function loop(now) {
       const wasWater = p.inWater;
       const res = p.step(G.world, p.flying ? { ...input, crouch: false } : input, 1 / 60, G.creative);
       if (res.fall > 3.5) hurt(Math.floor(res.fall - 3), "That was a long fall! Build stairs or use water to land safely.");
+      if (res.crash > 10) hurt(Math.round((res.crash - 10) * 0.7), "You glided into a wall! Slow down by looking up before you land.", null, true);
       if (!wasWater && p.inWater && p.vel.y < -4) Sound.splash();
-      if (p.pos.y < -20) { placeSafely(p, p.spawn.x, p.spawn.z); }
+      if (G.dim === "end" && p.pos.y < -4) {   // the void below the Hollow
+        if (G.creative) { p.pos.x = 100.5; p.pos.z = 0.5; p.pos.y = 60; p.vel.y = 0; }
+        else if ((G.voidT = (G.voidT || 0) - 1 / 60) <= 0) { G.voidT = 0.5; hurt(4, "You fell into the void.", null, true); }
+      } else if (p.pos.y < -20) { placeSafely(p, p.spawn.x, p.spawn.z); }
     }
     const moved = Math.hypot(p.pos.x - startX, p.pos.z - startZ);
     if (moved > 0.001 && p.onGround) {
@@ -1477,6 +1687,8 @@ function loop(now) {
     tickCrops(dt);
     updateTNT(dt);
     updateFires(dt);
+    updateClouds(dt);
+    if (G.dim === "end") ensureBoss();
     if (G.state === "play") checkPortal(dt);
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
@@ -1532,6 +1744,10 @@ function loop(now) {
   for (const q of parts) { pPos[n * 3] = q.x; pPos[n * 3 + 1] = q.y; pPos[n * 3 + 2] = q.z; pCol[n * 3] = q.c[0] * daylight; pCol[n * 3 + 1] = q.c[1] * daylight; pCol[n * 3 + 2] = q.c[2] * daylight; n++; }
   pGeo.setDrawRange(0, n); pGeo.attributes.position.needsUpdate = true; pGeo.attributes.color.needsUpdate = true;
 
+  // the boss health bar
+  const boss = G.dim === "end" ? ents.list.find(e => e.def.boss && !e.gone) : null, bar = document.getElementById("bossbar");
+  bar.hidden = !boss || Math.hypot(boss.pos.x - p.pos.x, boss.pos.z - p.pos.z) > 160;
+  if (!bar.hidden) bar.querySelector("i").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%";
   if (G.hudDirty) { G.hudDirty = false; UI.hud(); }
   if (running) { G.autosaveT += dt; if (G.autosaveT > AUTOSAVE) { G.autosaveT = 0; saveNow(true); } }
   if (G.debug) {
@@ -1548,4 +1764,4 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { hand, ents, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };
+G._test = { hand, ents, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };

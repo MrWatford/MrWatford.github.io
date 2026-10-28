@@ -13,7 +13,10 @@ export const B = {
   // Ember Depths (the underworld)
   EMBERRACK: 43, SOUL_SAND: 44, SHINESTONE: 45, QUARTZ_ORE: 46, NETHER_GOLD_ORE: 47, ANCIENT_SCRAP: 48, BASALT: 49, BLACKSTONE: 50,
   MAGMA: 51, CRIMSON_NYLIUM: 52, WARPED_NYLIUM: 53, CRIMSON_STEM: 54, WARPED_STEM: 55, CRIMSON_WART: 56, WARPED_WART: 57, SHROOMLIGHT: 58,
-  EMBER_BRICKS: 59, BLACKSTONE_BRICKS: 60, GOLD_BLOCK: 61, PORTAL: 62, FIRE: 63, EMBER_WART: 64, CRIMSON_PLANKS: 65, WARPED_PLANKS: 66, QUARTZ_BLOCK: 67
+  EMBER_BRICKS: 59, BLACKSTONE_BRICKS: 60, GOLD_BLOCK: 61, PORTAL: 62, FIRE: 63, EMBER_WART: 64, CRIMSON_PLANKS: 65, WARPED_PLANKS: 66, QUARTZ_BLOCK: 67,
+  // the Hollow (the end realm) and strongholds
+  HOLLOWSTONE: 68, VIOLET_BRICKS: 69, END_FRAME: 70, END_PORTAL: 71, GATEWAY: 72, WYRM_EGG: 73, CHORUS_PLANT: 74, CHORUS_FLOWER: 75, SHELL_BOX: 76,
+  HOLLOW_BRICKS: 77, VIOLET_PILLAR: 78
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -35,6 +38,7 @@ export const I = {
   GOLD_HELMET: 372, GOLD_CHEST: 373, GOLD_LEGS: 374, GOLD_BOOTS: 375,
   DUSK_HELMET: 376, DUSK_CHEST: 377, DUSK_LEGS: 378, DUSK_BOOTS: 379,
   DUSK_PICK: 380, DUSK_AXE: 381, DUSK_SHOVEL: 382, DUSK_SWORD: 383, DUSK_HOE: 384,
+  EYE: 385, GLIDER: 386, SHELL: 387, CHORUS_FRUIT: 388, WYRM_SCALE: 389,
   SPAWN: 400   // spawn eggs: 400 + index in SPAWN_EGGS
 };
 
@@ -43,7 +47,7 @@ export const idOf = v => v & 255;
 export const metaOf = v => v >> 8;
 export const make = (id, meta = 0) => id | (meta << 8);
 // Meta bits: facing 0-3 (0 = +z, 1 = +x, 2 = -z, 3 = -x), OPEN for doors, TOP for door tops, LIT for furnaces
-export const OPEN = 4, TOP = 8, LIT = 4, HEAD = 8, WET = 1;
+export const OPEN = 4, TOP = 8, LIT = 4, HEAD = 8, WET = 1, EYE_IN = 4;
 
 // ---------- Block definitions ----------
 // shape: cube | cross | torch | water | door      render: opaque | cutout | water
@@ -121,6 +125,18 @@ block(B.EMBER_WART, "Ember Wart Crop", { shape: "crop", render: "cutout", solid:
 block(B.CRIMSON_PLANKS, "Crimson Planks", { hardness: 2, tool: "axe", tex: "crimson_planks" });
 block(B.WARPED_PLANKS, "Warped Planks", { hardness: 2, tool: "axe", tex: "warped_planks" });
 block(B.QUARTZ_BLOCK, "Quartz Block", { hardness: 0.8, tool: "pick", tier: 1, tex: "quartz_block" });
+const HOLLOW = "The Hollow";
+block(B.HOLLOWSTONE, "Hollowstone", { hardness: 3, tool: "pick", tier: 1, tex: "hollowstone", category: HOLLOW });
+block(B.HOLLOW_BRICKS, "Hollowstone Bricks", { hardness: 3, tool: "pick", tier: 1, tex: "hollow_bricks", category: HOLLOW });
+block(B.VIOLET_BRICKS, "Violet Bricks", { hardness: 1.5, tool: "pick", tier: 1, tex: "violet_bricks", category: HOLLOW });
+block(B.VIOLET_PILLAR, "Violet Pillar", { hardness: 1.5, tool: "pick", tier: 1, tex: ["violet_pillar_top", "violet_pillar", "violet_pillar_top"], category: HOLLOW });
+block(B.END_FRAME, "Hollow Portal Frame", { hardness: Infinity, drops: 0, interact: "frame", tex: ["frame_top", "frame_side", "hollowstone"], category: HOLLOW });
+block(B.END_PORTAL, "Hollow Portal", { shape: "endportal", render: "water", solid: false, hardness: Infinity, drops: 0, light: 15, tex: "end_portal", noItem: true, category: HOLLOW });
+block(B.GATEWAY, "Hollow Gateway", { shape: "glow", render: "water", solid: false, hardness: Infinity, drops: 0, light: 15, tex: "gateway", noItem: true, category: HOLLOW });
+block(B.WYRM_EGG, "Wyrm Egg", { hardness: 3, tool: "pick", light: 1, tex: "wyrm_egg", category: HOLLOW });
+block(B.CHORUS_PLANT, "Chorus Plant", { render: "cutout", hardness: 0.4, tool: "axe", drops: "chorus", tex: "chorus_plant", category: HOLLOW });
+block(B.CHORUS_FLOWER, "Chorus Flower", { render: "cutout", hardness: 0.4, tool: "axe", drops: "chorus", tex: "chorus_flower", category: HOLLOW });
+block(B.SHELL_BOX, "Shell Box", { hardness: 2, tool: "pick", interact: "shellbox", drops: 0, tex: ["shellbox_top", "shellbox_side", "shellbox_top"], category: "Useful" });
 export const BLOCKS = defs;
 export const blockDef = v => defs[v & 255] || defs[0];
 
@@ -137,7 +153,7 @@ export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : 
 
 // ---------- Items ----------
 const items = {};
-for (const d of Object.values(defs)) if (d.id && !d.noItem) items[d.id] = { id: d.id, name: d.name, kind: "block", stack: d.id === B.BED ? 1 : 64, category: d.category };
+for (const d of Object.values(defs)) if (d.id && !d.noItem) items[d.id] = { id: d.id, name: d.name, kind: "block", stack: d.id === B.BED || d.id === B.SHELL_BOX ? 1 : 64, category: d.category };
 function item(id, name, o) { items[id] = Object.assign({ id, name, kind: "item", stack: 64, category: "Items" }, o); }
 item(I.STICK, "Stick", { icon: "stick" });
 item(I.COAL, "Coal", { icon: "coal" });
@@ -190,6 +206,10 @@ item(I.WART, "Ember Wart", { icon: "wart", plants: B.EMBER_WART, category: "Embe
 item(I.DUSK_SCRAP, "Duskmetal Scrap", { icon: "scrap" });
 item(I.DUSK_INGOT, "Duskmetal Ingot", { icon: "ingot", colors: ["#4a3e4e", "#2a2230", "#7a6a80"] });
 item(I.BLIGHT_SKULL, "Blight Skull", { icon: "skull", stack: 64 });
+item(I.EYE, "Eye of the Void", { icon: "eye_void", stack: 64, category: "Tools" });
+item(I.SHELL, "Sheller Shell", { icon: "shell" });
+item(I.CHORUS_FRUIT, "Chorus Fruit", { icon: "chorus", kind: "food", food: 4, category: "Food", sideEffect: "blink" });
+item(I.WYRM_SCALE, "Wyrm Scale", { icon: "scale" });
 const TIERS = [
   { key: "WOOD", label: "Wooden", tier: 1, speed: 2, dur: 60, color: "#b48a52", dark: "#7d5a30" },
   { key: "STONE", label: "Stone", tier: 2, speed: 4, dur: 132, color: "#8d8d8d", dark: "#5b5b5b" },
@@ -217,7 +237,10 @@ export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skelet
   ["spider", "Skitter", "#3a302a", "#c0202a"], ["cave_spider", "Cave Skitter", "#1d4a5a", "#c0202a"], ["slime", "Gloop", "#6ac85a", "#3a8a3a"], ["voidwalker", "Voidwalker", "#161616", "#b050e0"],
   ["cow", "Cow", "#4a3424", "#e8e8e8"], ["sheep", "Sheep", "#eeeeee", "#f0c0b0"], ["pig", "Pig", "#f0a0a0", "#d07070"], ["chicken", "Chicken", "#f4f4f4", "#e03a2a"], ["rabbit", "Rabbit", "#9a7a5a", "#e8dcc8"],
   ["flare", "Flare", "#f0b030", "#fff07a"], ["wailer", "Wailer", "#f0f0f0", "#b0b0b0"], ["boarkin", "Boarkin", "#e8a090", "#ffd84a"], ["brute", "Boarkin Brute", "#c08070", "#3a3a3a"],
-  ["rotboar", "Rotboar", "#e8a090", "#5a8a4a"], ["hogbeast", "Hogbeast", "#c07850", "#f0e0c0"], ["blight", "Blight Rattler", "#2a2a2a", "#5a5a5a"], ["magma", "Magma Gloop", "#4a1a10", "#ff8a1a"], ["strider", "Lavastrider", "#a02a2a", "#5a5a5a"]];
+  ["rotboar", "Rotboar", "#e8a090", "#5a8a4a"], ["hogbeast", "Hogbeast", "#c07850", "#f0e0c0"], ["blight", "Blight Rattler", "#2a2a2a", "#5a5a5a"], ["magma", "Magma Gloop", "#4a1a10", "#ff8a1a"], ["strider", "Lavastrider", "#a02a2a", "#5a5a5a"],
+  ["sheller", "Sheller", "#9a6aa8", "#e8d0f0"]];
+// Glider Wings go in the chest armor slot: jump while falling to glide
+item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
 export const ITEMS = items;
 export const itemDef = id => items[id];
@@ -284,6 +307,10 @@ export const RECIPES = [
   { out: [B.EMBER_BRICKS, 1], ins: [[B.EMBERRACK, 4]], table: true },
   { out: [B.BLACKSTONE_BRICKS, 4], ins: [[B.BLACKSTONE, 4]], table: true },
   { out: [I.DUSK_INGOT, 1], ins: [[I.DUSK_SCRAP, 4], [I.GOLD_INGOT, 4]], table: true },
+  { out: [I.EYE, 1], ins: [[I.VOID_PEARL, 1], [I.FLARE_POWDER, 1]] },
+  { out: [B.SHELL_BOX, 1], ins: [[I.SHELL, 2], [B.CHEST, 1]], table: true },
+  { out: [B.HOLLOW_BRICKS, 4], ins: [[B.HOLLOWSTONE, 4]], table: true },
+  { out: [B.VIOLET_PILLAR, 1], ins: [[B.VIOLET_BRICKS, 2]], table: true },
   // upgrade Skyshard gear to Duskmetal (the best tier)
   ...["PICK", "AXE", "SHOVEL", "SWORD", "HOE", "HELMET", "CHEST", "LEGS", "BOOTS"].map(k => ({ out: [I["DUSK_" + k], 1], ins: [[I["SKY_" + k], 1], [I.DUSK_INGOT, 1]], table: true, upgrade: true })),
   ...["LEATHER", "GOLD", "IRON", "SKY"].flatMap(k => {
@@ -293,7 +320,7 @@ export const RECIPES = [
 ];
 export const SMELT = { [B.IRON_ORE]: I.IRON_INGOT, [B.SAND]: B.GLASS, [B.COBBLE]: B.STONE, [I.CLAY_BALL]: I.BRICK, [B.LOG]: I.COAL, [B.BIRCH_LOG]: I.COAL,
   [I.RAW_BEEF]: I.STEAK, [I.RAW_PORK]: I.COOKED_PORK, [I.RAW_CHICKEN]: I.COOKED_CHICKEN, [I.RAW_MUTTON]: I.COOKED_MUTTON, [I.RAW_RABBIT]: I.COOKED_RABBIT,
-  [B.NETHER_GOLD_ORE]: I.GOLD_INGOT, [B.QUARTZ_ORE]: I.QUARTZ, [B.ANCIENT_SCRAP]: I.DUSK_SCRAP, [B.EMBERRACK]: B.EMBER_BRICKS };
+  [B.NETHER_GOLD_ORE]: I.GOLD_INGOT, [B.QUARTZ_ORE]: I.QUARTZ, [B.ANCIENT_SCRAP]: I.DUSK_SCRAP, [B.EMBERRACK]: B.EMBER_BRICKS, [I.CHORUS_FRUIT]: B.VIOLET_BRICKS };
 export const FUEL = { [I.COAL]: 40, [B.LOG]: 8, [B.BIRCH_LOG]: 8, [B.PLANKS]: 7, [B.BIRCH_PLANKS]: 7, [I.STICK]: 2.5, [B.TABLE]: 7, [B.CHEST]: 7,
   [I.FLARE_ROD]: 60, [I.LAVA_BUCKET]: 100, [B.CRIMSON_PLANKS]: 7, [B.WARPED_PLANKS]: 7 };
 export const SMELT_TIME = 5;
@@ -310,7 +337,9 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "emberrack", "soul_sand", "shinestone", "quartz_ore", "nether_gold_ore", "scrap_top", "scrap_side", "basalt_top", "basalt_side", "blackstone", "magma",
   "crimson_nylium", "crimson_nylium_side", "warped_nylium", "warped_nylium_side", "crimson_stem", "crimson_stem_top", "warped_stem", "warped_stem_top",
   "crimson_wart", "warped_wart", "shroomlight", "ember_bricks", "blackstone_bricks", "gold_block", "portal", "fire", "wart0", "wart1", "wart2",
-  "crimson_planks", "warped_planks", "quartz_block"];
+  "crimson_planks", "warped_planks", "quartz_block",
+  "hollowstone", "hollow_bricks", "violet_bricks", "violet_pillar", "violet_pillar_top", "frame_top", "frame_top_eye", "frame_side", "end_portal", "gateway",
+  "wyrm_egg", "chorus_plant", "chorus_flower", "shellbox_top", "shellbox_side"];
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
 
@@ -324,6 +353,7 @@ export function faceTile(v, dir, front) {
   if (idOf(v) === B.BED) return TILE[dir === 0 ? (metaOf(v) & HEAD ? "bed_head" : "bed_foot") : "bed_side"];
   if (idOf(v) === B.SAPLING && (metaOf(v) & 1)) return TILE.sapling_birch;
   if (idOf(v) === B.EMBER_WART) return TILE["wart" + Math.min(2, (metaOf(v) & 7) >> 1)];
+  if (idOf(v) === B.END_FRAME && dir === 0 && (metaOf(v) & EYE_IN)) return TILE.frame_top_eye;
   if (Array.isArray(t)) return TILE[t[dir]];
   return TILE[t];
 }
@@ -502,6 +532,24 @@ Object.assign(PAINT, {
   warped_planks(P) { PAINT.planks(P, ["#2a6a64", "#245e58", "#30766e"], "#164440"); },
   quartz_block(P) { P.fill(["#ece6da", "#e4ded2", "#f2ece2"]); P.rect(0, 0, 16, 1, "#ffffff"); P.rect(0, 15, 16, 1, "#c8c0b0"); }
 });
+const HSTONE = ["#e8e4b0", "#dcd8a2", "#f0ecbc", "#d2ce96"], VIOLET = ["#a77aa8", "#9c6e9e", "#b088b2"];
+Object.assign(PAINT, {
+  hollowstone(P) { P.fill(HSTONE); P.specks(10, ["#c4c088", "#f8f4cc"]); },
+  hollow_bricks(P) { P.fill(["#bcb884"]); for (let row = 0; row < 2; row++) { const off = row % 2 ? 4 : 0; for (let b = -1; b < 2; b++) { const x = b * 8 + off; for (let yy = 0; yy < 7; yy++) for (let xx = 0; xx < 7; xx++) P.px(x + xx, row * 8 + yy, P.pick(HSTONE)); } } },
+  violet_bricks(P) { P.fill(["#7a5a7c"]); for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) for (let yy = 0; yy < 3; yy++) for (let xx = 0; xx < 3; xx++) P.px(c * 4 + xx, r * 4 + yy, P.pick(VIOLET)); },
+  violet_pillar(P) { for (let x = 0; x < 16; x++) { const c = x % 4 === 0 ? "#7a5a7c" : P.pick(VIOLET); for (let y = 0; y < 16; y++) P.px(x, y, c); } },
+  violet_pillar_top(P) { P.fill(VIOLET); P.rect(2, 2, 12, 12, "#8c6890"); P.rect(5, 5, 6, 6, "#b088b2"); },
+  frame_side(P) { P.fill(["#3a6a5a", "#346050"]); P.rect(0, 0, 16, 4, "#e8e4b0"); P.rect(0, 12, 16, 4, "#dcd8a2"); },
+  frame_top(P) { P.fill(["#3a6a5a"]); P.rect(0, 0, 16, 2, "#e8e4b0"); P.rect(0, 14, 16, 2, "#e8e4b0"); P.rect(4, 4, 8, 8, "#1e3a32"); },
+  frame_top_eye(P) { PAINT.frame_top(P); P.rect(5, 5, 6, 6, "#3ad0a0"); P.rect(7, 6, 2, 4, "#0a2a2a"); },
+  end_portal(P) { P.fill(["#060614", "#0a0a1e", "#04040c"]); for (let i = 0; i < 9; i++) P.px(Math.floor(P.r() * 16), Math.floor(P.r() * 16), P.pick(["#5ae0d0", "#9a7aff", "#ffffff"])); },
+  gateway(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, P.r() < 0.08 ? "rgba(255,255,255,.9)" : "rgba(30,20,60,.8)"); },
+  wyrm_egg(P) { P.fill(["#1a1020", "#141018", "#221828"]); P.specks(8, ["#5a2a7a", "#7a3aa0"]); },
+  chorus_plant(P) { P.fill(["#6a4a7a", "#5e4270", "#7a5a8a"]); P.rect(2, 2, 12, 12, "#8a6a9a"); P.rect(5, 5, 6, 6, "#5e4270"); },
+  chorus_flower(P) { P.fill(["#c8a8d8", "#d8b8e8", "#b898c8"]); P.rect(4, 4, 8, 8, "#e8d0f0"); },
+  shellbox_side(P) { P.fill(["#9a6aa8", "#8e609c"]); P.rect(0, 7, 16, 2, "#5a3a68"); },
+  shellbox_top(P) { P.fill(["#9a6aa8", "#a676b4"]); P.rect(3, 3, 10, 10, "#b088c0"); }
+});
 function crop(P, h, pal) { for (let x = 1; x < 16; x += 2) { const hh = Math.max(2, h - Math.floor(P.r() * 3)); for (let y = 15; y > 15 - hh; y--) P.px(x + (y % 3 === 0 ? 0 : 0), y, P.pick(pal)); } }
 function oreSpots(P, pal) { for (let i = 0; i < 5; i++) { const x = 1 + Math.floor(P.r() * 12), y = 1 + Math.floor(P.r() * 12); P.px(x, y, pal[0]); P.px(x + 1, y, pal[1]); P.px(x, y + 1, pal[1]); if (P.r() < 0.7) P.px(x + 1, y + 1, pal[2]); } }
 function stem(P) { P.rect(7, 6, 2, 10, "#3f8a2c"); P.px(6, 11, "#4f9a33"); P.px(9, 9, "#4f9a33"); P.px(5, 10, "#4f9a33"); }
@@ -572,6 +620,11 @@ Object.assign(ICON_PAINT, {
   tear(P) { for (let y = 3; y < 14; y++) { const w = y < 8 ? (y - 3) / 2 : 3 - (y - 8) * 0.4; for (let x = Math.round(8 - w); x <= Math.round(8 + w); x++) P.px(x, y, x < 8 ? "#d8f4ff" : "#a8d8f0"); } },
   wart(P) { for (const [x, y] of [[5, 6], [9, 5], [7, 9]]) { P.rect(x, y, 3, 3, "#a01e1e"); P.px(x, y, "#d83a3a"); } },
   scrap(P) { blob(P, ["#4a3a34", "#56443c", "#3e302a"]); P.rect(6, 6, 4, 1, "#7a6a60"); },
+  eye_void(P) { for (let y = 3; y < 14; y++) for (let x = 3; x < 14; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 25) P.px(x, y, x + y < 15 ? "#5af0c0" : "#2a9a7a"); P.rect(7, 5, 3, 7, "#0a2a22"); P.rect(6, 7, 1, 3, "#0a2a22"); P.rect(10, 7, 1, 3, "#0a2a22"); },
+  shell(P) { for (let y = 3; y < 14; y++) for (let x = 2; x < 14; x++) if ((x - 8) ** 2 / 36 + (y - 8.5) ** 2 / 30 < 1) P.px(x, y, y < 8 ? "#b088c0" : "#9a6aa8"); P.rect(2, 8, 12, 1, "#5a3a68"); },
+  chorus(P) { for (let y = 4; y < 13; y++) for (let x = 4; x < 13; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 18) P.px(x, y, P.pick(["#9a6aa8", "#b088c0", "#7a5a8a"])); P.rect(8, 2, 1, 3, "#5a3a68"); },
+  scale(P) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 8) ** 2 + (y - 8.5) ** 2 < 20) P.px(x, y, (x + y) % 3 ? "#2a1a3a" : "#5a2a7a"); },
+  glider(P) { for (let x = 1; x < 15; x++) { const h = Math.round(6 - Math.abs(x - 7.5) * 0.6); for (let y = 4; y < 4 + h + 4; y++) if (Math.abs(x - 7.5) > 1) P.px(x, y + Math.abs(x - 7.5) * 0.3, y === 4 ? "#9a8aa8" : "#6a5a7a"); } P.rect(7, 4, 2, 8, "#4a3a5a"); },
   skull(P) { P.rect(4, 3, 8, 8, "#2a2a2a"); P.rect(5, 11, 6, 3, "#2a2a2a"); P.rect(5, 6, 2, 2, "#0a0a0a"); P.rect(9, 6, 2, 2, "#0a0a0a"); P.rect(6, 12, 1, 2, "#5a5a5a"); P.rect(9, 12, 1, 2, "#5a5a5a"); }
 });
 function blob(P, pal) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) { const dx = x - 8, dy = y - 8.5; if (dx * dx + dy * dy < 16 + P.r() * 6) P.px(x, y, P.pick(pal)); } }

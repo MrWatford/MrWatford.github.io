@@ -126,7 +126,7 @@ export const UI = {
     $("armor").innerHTML = survival && armor ? icons(armor, "shield") : "";
     const lv = G.levelInfo(); $("xpbar").style.visibility = survival ? "visible" : "hidden";
     $("xpbar").querySelector("i").style.width = Math.round(lv.frac * 100) + "%"; $("xpbar").querySelector("b").textContent = lv.level ? lv.level : "";
-    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted" };
+    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating" };
     $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${names[k] || k}</span>`).join("");
     $("modeTag").textContent = survival ? "" : "CREATIVE" + (p.flying ? " • FLYING" : "");
   },
@@ -179,7 +179,7 @@ export const UI = {
         <p class="help">Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore.</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (G.mode === "creative") {
-      const cats = ["All", "Building", "Nature", "Useful", "Tools", "Food", "Items", "Ember Depths", "Creatures"];
+      const cats = ["All", "Building", "Nature", "Useful", "Tools", "Food", "Items", "Ember Depths", "The Hollow", "Creatures"];
       const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || d.category === creativeCat) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
       left = `<div class="inv-card"><h3>Every block <span class="note" style="color:#444">Click to grab a stack</span></h3>
         <div class="filters"><input id="cSearch" placeholder="Search blocks…" value="${escapeAttr(creativeSearch)}">${cats.map(c => `<button class="chip-btn" data-cat="${c}" aria-pressed="${c === creativeCat}">${c}</button>`).join("")}</div>
@@ -252,6 +252,8 @@ export const UI = {
     tip.innerHTML = ""; tip.append(d.name);
     if (d.tool) { const sm = document.createElement("small"); sm.textContent = `Uses left: ${s.dur ?? d.tool.dur} / ${d.tool.dur}`; tip.append(sm); }
     if (d.food) { const sm = document.createElement("small"); sm.textContent = "Right-click while holding it to eat"; tip.append(sm); }
+    if (s.contents) { const sm = document.createElement("small"); sm.textContent = `Holds ${s.contents.filter(Boolean).length} stacks`; tip.append(sm); }
+    if (d.glider) { const sm = document.createElement("small"); sm.textContent = "Wear as a chestplate. Press Space while falling to glide"; tip.append(sm); }
     tip.hidden = false; tip.style.left = e.clientX + 16 + "px"; tip.style.top = e.clientY + 12 + "px";
   },
   // number keys while pointing at a slot swap it with that hotbar slot
