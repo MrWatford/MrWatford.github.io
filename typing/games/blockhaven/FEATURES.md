@@ -80,12 +80,25 @@ Tech: static site on GitHub Pages, no build step. Plain ES modules in `js/`, Thr
 | Glider Wings [elytra] | Done | Worn as a chestplate; press Space while falling. Look down to dive and speed up, up to slow; no fall damage while gliding; crashing into walls hurts; loses durability while gliding. No rocket boosts yet |
 | Resummoning the Wyrm | Missing | |
 
+## Milestone 5: the Blightking [Wither], villagers, and villages (published 2026-10-28)
+| Feature | Status | Notes |
+|---|---|---|
+| Blight Skulls as blocks | Done | Blight Skulls (from Blight Rattlers) can be set on top of a block |
+| Blightking boss [Wither] | Done | Build a T of 4 Wailing Sand and place 3 Blight Skulls on top. 10-second charge (can't be hurt, health fills), then a big blast. Flies in circles around you and fires exploding skulls; slowly heals. Below half health it gets armor (arrows bounce off, swords still work), shoots faster, and dives at you. Causes the Blight. Works in any dimension. Boss bar shows its name and armor |
+| Radiant Star [nether star] and Beacon | Done | The Blightking drops a Radiant Star and lots of XP. Beacon = Radiant Star + 5 glass + 3 obsidian. Glows; anyone within 24 blocks gets Regeneration and Swiftness (25% faster). No pyramid levels or power choices yet |
+| Villages | Done | Land v5. Villages appear on low, fairly flat grassland, forest, or sandy land (a 40% chance in each 6×6-chunk area; sandy villages use sandstone): a plaza with a well, houses (bed, workstation, door), wheat/carrot/potato farms with water and a composter, gravel paths. Older worlds only get them in places the player hasn't changed |
+| Villagers and jobs | Done | Farmer (Composter), Fletcher (Fletching Table), Shepherd (Loom), Cleric (Healing Altar), Smith (Smithing Anvil). They wander by day, work at their workstation, go to bed at night, open doors, and run from monsters or when hurt. A spawn egg makes a random-job villager. Saved with the world |
+| Trading | Done | Click a villager to trade with Jade (new ore in mountains; also in loot). 4–5 trades per job, both buying and selling. Each trade sells out after a few uses; villagers restock by working at their workstation (up to twice a day) |
+| Ironwarden [iron golem] | Done | One per village. Guards villagers, attacks monsters in 16 blocks, throws them in the air. Gets angry at you if you hurt a villager or it |
+| Wanderer [wandering trader] | Done | Sometimes arrives during the day on the Surface (any difficulty). Sells rare items for Jade, leaves after 5 minutes |
+| New blocks | Done | Jade Ore, Block of Jade, Composter, Fletching Table, Loom, Healing Altar, Smithing Anvil, Hay Bale (all craftable; new "Village" creative tab) |
+| Villager breeding, villager levels, zombie villagers, raids | Missing | |
+| Other structures (temples, outposts, shipwrecks…) | Missing | |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
-| Wither-style summoned boss | Missing (Blight Skulls already drop from Blight Rattlers) |
 | Pets (wolf/cat/parrot), mounts, aquatic life, wildlife roster | Missing |
-| Villagers, trading, golems, villages and other structures | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
 | Redstone-style mechanisms, minecarts, boats | Missing |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
