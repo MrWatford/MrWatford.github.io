@@ -235,7 +235,7 @@ footer b { color: var(--chalk); }
                 <summary>Power-ups</summary>
                 <ul class="howto">
                   <li>🚀 <b>Turbo</b>: a big burst of speed.</li>
-                  <li>🛡️ <b>Shield</b>: blocks the next oil slick.</li>
+                  <li>🛡️ <b>Shield</b>: blocks the next oil slick, banana, or shell.</li>
                   <li>❄️ <b>Freeze Ray</b>: slows down every other racer.</li>
                   <li>🍌 <b>Banana Peel</b>: drops behind you. Racers who hit it spin out!</li>
                   <li>🧲 <b>Magnet</b>: pulls you toward the leader.</li>
@@ -243,6 +243,7 @@ footer b { color: var(--chalk); }
                   <li>🔴 <b>Red Seeker</b>: chases down the racer right in front of you.</li>
                   <li>🔵 <b>Blue Zapper</b>: flies all the way to whoever is in 1st place.</li>
                   <li>☄️ <b>Rocket Cannon</b>: only for last place! Blasts you forward and bumps everyone you pass.</li>
+                  <li>⚠️ <b>Watch out!</b> The other racers (and Mr. Watford) use items too. A Shield blocks anything, and a banana you're <i>holding</i> blocks a Green or Red shell from behind. Hop their bananas like oil.</li>
                 </ul>
               </details>
               <button class="go start-side" data-start>Start race</button>
@@ -693,7 +694,7 @@ footer b { color: var(--chalk); }
       lvl, pool: lvl.words, powerPool: powerWordsFor(lvl), dodgePool: dodgeWordsFor(lvl),
       drive: null, next: null, power: null, dodge: null, target: null,
       item: null, turbo: 0, shield: false, freeze: 0, magnet: 0, spin: 0, hop: 0, rocket: 0,
-      shots: [],
+      shots: [], rivalBananas: [],
       streak: 0, wordHadError: false,
       keys: 0, correct: 0, words: 0,
       rivals: makeRivals(lvl),
@@ -759,7 +760,7 @@ footer b { color: var(--chalk); }
     show("driveChip", S.drive);
     $("driveChip").querySelector(".next").textContent = S.next ? "next: " + S.next : "";
     show("powerChip", S.power, S.item ? S.item.icon + " Use " + S.item.name : "");
-    show("dodgeChip", S.dodge);
+    show("dodgeChip", S.dodge, S.activeOil && S.activeOil.banana ? "⚠️ Hop the banana!" : "⚠️ Dodge the oil!");
   }
 
   function oops(w) {
@@ -898,13 +899,44 @@ footer b { color: var(--chalk); }
     toast((ITEMS[kind] ? ITEMS[kind].icon : "💥") + " " + (kind === "blue" ? "ZAP! " : "Bonk! ") + who + " spun out!", "#ff9ec7");
     Sound.spin();
   }
+  // The other racers (and Mr. Watford) use items too: shells at you when you're ahead, bananas when you're behind
+  function rivalUseItem(r) {
+    const gap = S.dist - r.dist, L = trackLength, who = r.boss ? "Mr. Watford" : r.name;
+    const youFirst = place() === 1, rivalLast = S.rivals.every(o => o === r || o.dist > r.dist);
+    let kind = null;
+    if (gap > L * 0.2 && youFirst && rivalLast && Math.random() < 0.5) kind = "blue";
+    else if (gap > 0 && gap < L * 0.25) kind = gap < L * 0.06 && Math.random() < 0.5 ? "green" : "red";
+    if (kind) {
+      S.shots.push({ kind, dist: r.dist + segmentLength, offset: r.offset || 0, age: 0, atYou: true, who });
+      toast(ITEMS[kind].icon + " " + who + " fired a " + ITEMS[kind].name + " at you!" + (S.shield ? "" : " Shield up!"), "#ff6b5b");
+      Sound.drop();
+      if (r.boss) say(pick(["Incoming! 😄", "Catch this!", "Watch your back!"]), 2);
+    } else if (gap < 0 && -gap < L * 0.2) {
+      S.rivalBananas.push({ dist: r.dist - segmentLength * 3, who, banana: true });
+      if (r.boss) say(pick(["Careful, it's slippery!", "Oops, I dropped something!"]), 2);
+    }
+  }
+  function hitYou(kind, who) {
+    const what = ITEMS[kind].name;
+    if (S.rocket > 0) { toast("☄️ Too fast! The " + what + " missed you.", "#93e6b8"); return; }
+    if (S.shield) { S.shield = false; toast("🛡️ Your shield blocked the " + what + "!", "#8fd3ff"); Sound.shield(); return; }
+    if (S.item && S.item.id === "banana" && kind !== "blue") {   // a banana you're holding guards your back
+      S.item = null; if (S.target === S.power) S.target = null; S.power = null;
+      toast("🍌 Your banana blocked the " + what + "!", "#f7d659"); Sound.splat(); renderWords(); return;
+    }
+    S.spin = kind === "blue" ? 1.6 : 1.1; S.gas *= 0.5; S.streak = 0;
+    toast(ITEMS[kind].icon + " " + who + "'s " + what + " got you! Keep typing!", "#ff6b5b"); Sound.spin();
+  }
   function updateShots(dt) {
     S.shots.forEach(s => {
       s.age += dt;
       const speed = maxSpeed * (s.kind === "blue" ? 2.6 : s.kind === "red" ? 2.1 : 1.9);
       const prev = s.dist;
       s.dist += speed * dt;
-      if (s.target) {
+      if (s.atYou) {
+        s.offset += (0 - s.offset) * Math.min(1, dt * 4);
+        if (s.dist >= S.dist) { s.done = true; if (S.mode === "race") hitYou(s.kind, s.who); }
+      } else if (s.target) {
         s.offset += ((s.target.offset || 0) - s.offset) * Math.min(1, dt * 4);   // steer toward its target's lane
         if (s.dist >= s.target.dist) { s.done = true; if (s.target.finish === null) hitRival(s.target, s.kind); }
       } else {
@@ -986,6 +1018,25 @@ footer b { color: var(--chalk); }
       }
     });
 
+    // Bananas the other racers dropped: hop them like oil
+    S.rivalBananas.forEach(b => {
+      const ahead = b.dist - S.dist, warnAt = Math.max(segmentLength * 60, S.speed * 4 + segmentLength * 20);
+      if (!S.dodge && !S.dodged && ahead < warnAt && ahead > segmentLength * 2 && S.activeOil !== b) {
+        S.activeOil = b;
+        S.dodge = makeWord(pickWord(S.dodgePool), "dodge");
+        renderWords();
+      }
+      if (prevDist < b.dist && S.dist >= b.dist) {
+        b.hit = true;
+        const mine = S.activeOil === b;
+        if ((mine && S.dodged) || S.rocket > 0) { S.hop = 0.55; Sound.hop(); }
+        else if (S.shield) { S.shield = false; toast("🛡️ Shield blocked " + b.who + "'s banana!", "#8fd3ff"); Sound.shield(); }
+        else { S.spin = 1.1; S.gas *= 0.5; S.streak = 0; toast("🍌 You slipped on " + b.who + "'s banana!", "#ff6b5b"); Sound.spin(); }
+        if (mine) { if (S.target === S.dodge) S.target = null; S.dodge = null; S.dodged = false; S.activeOil = null; renderWords(); }
+      }
+    });
+    S.rivalBananas = S.rivalBananas.filter(b => !b.hit && b.dist > S.dist - trackLength * 0.1);
+
     // Laps
     if (lapNow > S.lap && lapNow <= LAPS) {
       S.lap = lapNow;
@@ -1013,6 +1064,11 @@ footer b { color: var(--chalk); }
       const prev = r.dist;
       r.speed += (maxSpeed * pace - r.speed) * Math.min(1, dt * (r.turbo > 0 ? 2.5 : 0.8));
       r.dist += r.speed * dt;
+      // every so often each racer uses an item (less often on Easy and row practice)
+      if (r.finish === null && S.time > 6 && (r.itemT = (r.itemT ?? 6 + Math.random() * 8) - dt) <= 0) {
+        r.itemT = S.lvl.rowPractice || S.lvl.name === "Easy" ? 18 + Math.random() * 10 : 11 + Math.random() * 8;
+        rivalUseItem(r);
+      }
       // the Rocket Cannon bumps anyone you blast past
       if (S.rocket > 0 && r.finish === null && prev >= prevDist && r.dist < S.dist && !(r.spin > 0)) hitRival(r, "rocket");
       r.offset = r.lane + 0.12 * Math.sin(clock * 0.7 + i);
@@ -1502,6 +1558,7 @@ footer b { color: var(--chalk); }
     oils.forEach(o => { if (o.lap !== lapNow) addExtra(o.seg, { type: "oil", offset: 0, percent: 0 }); });
     if (S) {
       S.bananas.forEach(b => { const bp = mod(b.dist, trackLength); addExtra(findSegment(bp).index, { type: "banana", offset: 0, percent: (bp % segmentLength) / segmentLength }); });
+      S.rivalBananas.forEach(b => { const bp = mod(b.dist, trackLength); addExtra(findSegment(bp).index, { type: "banana", offset: 0, percent: (bp % segmentLength) / segmentLength }); });
       S.shots.forEach(s => { const sp = mod(s.dist, trackLength); addExtra(findSegment(sp).index, { type: "shot_" + s.kind, offset: s.offset, percent: (sp % segmentLength) / segmentLength }); });
       S.rivals.forEach(r => {
         const rp = mod(r.dist, trackLength), seg = findSegment(rp);
