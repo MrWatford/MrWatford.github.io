@@ -22,8 +22,8 @@ export class Player {
     this.health = 20; this.hunger = 20; this.exhaust = 0; this.airTop = null;
     this.spawn = null; this.hurtT = 0;
   }
-  get height() { return this.crouch && !this.flying ? 1.5 : 1.8; }
-  get eye() { return this.crouch && !this.flying ? 1.27 : 1.62; }
+  get height() { return this.mount ? 2.6 : this.crouch && !this.flying ? 1.5 : 1.8; }
+  get eye() { return this.mount ? 2.45 : this.crouch && !this.flying ? 1.27 : 1.62; }   // riding a Trotter puts you up high
   aabb(px = this.pos.x, py = this.pos.y, pz = this.pos.z, h = this.height) { return [px - 0.3, py, pz - 0.3, px + 0.3, py + h, pz + 0.3]; }
 
   boxesNear(world, a) {
@@ -61,7 +61,7 @@ export class Player {
       v.y -= 4 * dt;
       this.airTop = p.y;   // gliding never builds up fall damage
     } else {
-    let speed = this.flying ? (input.sprint ? 16 : 9) : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
+    let speed = this.flying ? (input.sprint ? 16 : 9) : this.mount ? (input.sprint ? 11 : 7.5) : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
     if (this.inWater && !this.flying) speed *= this.inLava ? 0.3 : 0.55;
     speed *= this.speedMul || 1;
     if (this.onGround && !this.flying && world.id(Math.floor(p.x), Math.floor(p.y - 0.1), Math.floor(p.z)) === B.SOUL_SAND) speed *= 0.5;   // Wailing Sand slows you down
@@ -81,9 +81,9 @@ export class Player {
     } else {
       v.y -= GRAVITY * dt;
       if (v.y < -40) v.y = -40;
-      if (input.jump && this.onGround) { v.y = JUMP; this.exhaust += 0.05 * (input.sprint ? 4 : 1); }
+      if (input.jump && this.onGround) { v.y = this.mount ? JUMP * 1.4 : JUMP; this.exhaust += this.mount ? 0 : 0.05 * (input.sprint ? 4 : 1); }
     }
-    if (input.sprint && (mx || mz) && this.onGround) this.exhaust += 0.1 * dt;
+    if (input.sprint && (mx || mz) && this.onGround && !this.mount) this.exhaust += 0.1 * dt;
     }
     if (this.levitate && !this.flying) { v.y += (1.8 - v.y) * 0.25; this.airTop = null; }   // a Sheller's bullet makes you float up
 

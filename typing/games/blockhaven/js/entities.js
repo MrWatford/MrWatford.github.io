@@ -258,6 +258,42 @@ Object.assign(SPECIES, {
       { name: "ribs", size: [10, 12, 5], pivot: [0, 42, 0], off: [0, -6, 0], paint: { all: P => { P.clear(); P.rect(7, 0, 2, 16, "#2a2a2a"); for (let y = 1; y < 16; y += 3) P.rect(1, y, 14, 2, "#2a2a2a"); } } },
       { name: "spine", size: [3, 14, 3], pivot: [0, 30, 0], off: [0, -7, 0], paint: { all: solid(BLIGHT) } }] } }
 });
+// ----- pets and mounts -----
+const WOLF = ["#a8a8a4", "#9a9a96", "#b4b4b0"], GINGER = ["#e0902a", "#d4841f", "#e89c38"], CHESTNUT = ["#8a5a32", "#7e522c", "#946238"];
+const MEATS = [I.RAW_BEEF, I.STEAK, I.RAW_PORK, I.COOKED_PORK, I.RAW_CHICKEN, I.COOKED_CHICKEN, I.RAW_MUTTON, I.COOKED_MUTTON, I.RAW_RABBIT, I.COOKED_RABBIT, I.ROTTEN_FLESH];
+const collarPart = (size, pivot) => ({ name: "collar", parent: "head", size, pivot, off: [0, 0, 0], paint: { all: P => { P.fill(["#c8302a"]); P.rect(6, 4, 4, 6, "#f0c020"); } } });
+Object.assign(SPECIES, {
+  scout: { name: "Scout", pet: true, persist: true, neutral: true, hp: 8, tameHp: 20, speed: 2.6, w: 0.6, h: 0.85, ai: "scout", dmg: 3, reach: 1.5, xp: 1, sound: "bark",
+    tameWith: [I.BONE], tameChance: 0.34, healWith: MEATS, drops: () => [],
+    model: { type: "quad", parts: [...quadParts({ body: [6, 6, 10], head: [6, 6, 4], leg: 2, legH: 8, headUp: 2,
+      bodyPaint: { all: solid(WOLF), top: P => { P.fill(WOLF); P.rect(0, 0, 16, 5, "#8a8a86"); } }, legPaint: { all: solid(WOLF) },
+      headPaint: { all: solid(WOLF), front: face(WOLF, P => { P.rect(2, 5, 3, 2, "#1a1a1a"); P.rect(11, 5, 3, 2, "#1a1a1a"); }) } }),
+      { name: "snout", parent: "head", size: [3, 3, 3], pivot: [0, -1.5, 3.5], off: [0, 0, 0], paint: { all: solid(["#d8d4cc"]), front: P => { P.fill(["#d8d4cc"]); P.rect(5, 2, 6, 4, "#1a1a1a"); } } },
+      { name: "earR", parent: "head", size: [2, 2, 1], pivot: [-2, 4, 0], off: [0, 0, 0], paint: { all: solid(["#8a8a86"]) } },
+      { name: "earL", parent: "head", size: [2, 2, 1], pivot: [2, 4, 0], off: [0, 0, 0], paint: { all: solid(["#8a8a86"]) } },
+      { name: "tail", size: [2, 2, 8], pivot: [0, 13, -5], off: [0, 0, -4], paint: { all: solid(WOLF) } },
+      collarPart([7, 2, 2], [0, -2.5, -2])] } },
+  whisker: { name: "Whisker", pet: true, animal: true, hp: 10, speed: 2.4, w: 0.5, h: 0.7, ai: "animal", food: [I.RAW_CHICKEN, I.RAW_RABBIT], xp: 1, sound: "meow", skittish: true,
+    tameWith: [I.RAW_CHICKEN, I.RAW_RABBIT], tameChance: 0.34, drops: () => [],
+    model: { type: "quad", parts: [...quadParts({ body: [5, 5, 12], head: [5, 4, 5], leg: 2, legH: 6, headUp: 2,
+      bodyPaint: { all: P => { P.fill(GINGER); for (let y = 1; y < 16; y += 4) P.rect(0, y, 16, 1, "#b86a14"); } }, legPaint: { all: solid(GINGER) },
+      headPaint: { all: solid(GINGER), front: face(GINGER, P => { P.rect(2, 5, 3, 3, "#3ab04a"); P.rect(3, 5, 1, 3, "#111"); P.rect(11, 5, 3, 3, "#3ab04a"); P.rect(12, 5, 1, 3, "#111"); P.rect(6, 10, 4, 3, "#f0d0c0"); P.rect(7, 10, 2, 1, "#e07a8a"); }) } }),
+      { name: "earR", parent: "head", size: [1, 2, 2], pivot: [-1.5, 3, 0], off: [0, 0, 0], paint: { all: solid(["#b86a14"]) } },
+      { name: "earL", parent: "head", size: [1, 2, 2], pivot: [1.5, 3, 0], off: [0, 0, 0], paint: { all: solid(["#b86a14"]) } },
+      { name: "tail", size: [1, 1, 10], pivot: [0, 10, -6], off: [0, 0, -5], paint: { all: P => { P.fill(GINGER); P.rect(0, 12, 16, 4, "#f4e8d8"); } } },
+      collarPart([6, 1, 1], [0, -2.3, -1.5])] } },
+  trotter: { name: "Trotter", animal: true, mount: true, hp: 22, speed: 2.0, w: 1.3, h: 1.6, ai: "animal", food: [I.WHEAT, I.APPLE], xp: 3, sound: "neigh",
+    tameWith: [I.WHEAT, I.APPLE], drops: e => e.baby ? [] : [[I.LEATHER, randi(0, 2)], e.saddled ? [I.SADDLE, 1] : null],
+    model: { type: "quad", parts: [...quadParts({ body: [10, 10, 22], head: [6, 14, 7], leg: 4, legH: 16, headUp: 7,
+      bodyPaint: { all: solid(CHESTNUT) }, legPaint: { all: P => { P.fill(CHESTNUT); P.rect(0, 12, 16, 4, "#3a2a1a"); } },
+      headPaint: { all: solid(CHESTNUT) } }),
+      { name: "muzzle", parent: "head", size: [5, 5, 9], pivot: [0, 4.5, 4], off: [0, 0, 1], paint: { all: solid(CHESTNUT), front: P => { P.fill(["#6a4226"]); P.rect(3, 9, 3, 2, "#2a1a10"); P.rect(10, 9, 3, 2, "#2a1a10"); }, right: P => { P.fill(CHESTNUT); P.rect(10, 3, 2, 2, "#111"); }, left: P => { P.fill(CHESTNUT); P.rect(4, 3, 2, 2, "#111"); } } },
+      { name: "earR", parent: "head", size: [2, 3, 1], pivot: [-2, 8, 0], off: [0, 0, 0], paint: { all: solid(["#6a4226"]) } },
+      { name: "earL", parent: "head", size: [2, 3, 1], pivot: [2, 8, 0], off: [0, 0, 0], paint: { all: solid(["#6a4226"]) } },
+      { name: "mane", parent: "head", size: [2, 15, 2], pivot: [0, 0, -4.2], off: [0, 0, 0], paint: { all: solid(["#2a1a10", "#3a2414"]) } },
+      { name: "tail", size: [3, 12, 3], pivot: [0, 25, -11], off: [0, -5, -1], paint: { all: solid(["#2a1a10", "#3a2414"]) } },
+      { name: "saddle", size: [11, 2, 10], pivot: [0, 27, 1], off: [0, 0, 0], paint: { all: solid(["#5a3418", "#4e2c14"]), top: P => { P.fill(["#5a3418"]); P.rect(2, 2, 12, 12, "#6e4422"); } } }] } }
+});
 function spiderModel(pal) {
   const legs = [];
   for (let i = 0; i < 4; i++) for (const s of [-1, 1]) legs.push({ name: "leg" + i + (s > 0 ? "L" : "R"), size: [16, 2, 2], pivot: [s * 3, 5, 3 - i * 2], off: [s * 8, 0, 0], paint: { all: solid(["#2a2220"]) }, side: s, index: i });
@@ -332,6 +368,7 @@ export class Entity {
     this.yaw = opts.yaw ?? Math.random() * Math.PI * 2; this.headYaw = 0; this.headPitch = 0;
     this.baby = !!opts.baby; this.growT = opts.growT ?? (this.baby ? 300 : 0);
     this.size = opts.size || (SPECIES[sp].ai === "slime" ? [1, 2, 4][randi(0, 2)] : 1);
+    this.tame = !!opts.tame;   // set before health, since tame pets have more
     this.hp = opts.hp ?? this.maxHp;
     this.breedCd = opts.breedCd || 0; this.love = 0; this.sheared = !!opts.sheared; this.eggT = opts.eggT ?? rand(300, 600);
     this.name = opts.name || null; this.persist = !!(this.def.animal || this.def.persist || this.name);
@@ -339,6 +376,8 @@ export class Entity {
     // villagers: home, job site, trades used, restocks
     this.home = opts.home || null; this.job = opts.job || null; this.uses = opts.uses || null; this.restockT = opts.restockT || 0; this.restockDay = opts.restockDay || 0; this.restocks = opts.restocks || 0;
     this.taskT = 0; this.task = "wander"; this.summonT = opts.summonT || 0;
+    // pets and mounts
+    this.tame = !!opts.tame; this.sitting = !!opts.sitting; this.saddled = !!opts.saddled; this.temper = opts.temper || 0; this.ridden = false;
     if (this.def.villager && !this.uses) this.uses = (TRADES[this.def.prof] || []).map(() => 0);
     this.barterT = 0;
     this.onGround = false; this.inWater = false; this.inLava = false; this.walkPhase = 0; this.hurtT = 0; this.iframes = 0;
@@ -346,7 +385,7 @@ export class Entity {
     this.fuse = 0; this.burnT = 0; this.angry = opts.angry || 0; this.dead = 0; this.age = 0; this.fleeT = 0; this.wantJump = false; this.drawT = 0;
     this.stuckT = 0; this.lastX = x; this.lastZ = z; this.hopT = rand(0.5, 2);
   }
-  get maxHp() { return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
+  get maxHp() { if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
   get scale() { return (this.def.scale || 1) * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
   get w() { return this.def.w * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
   get h() { return this.def.h * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
@@ -355,7 +394,8 @@ export class Entity {
   toJSON() {
     return { uid: this.uid, sp: this.sp, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), yaw: +this.yaw.toFixed(2), hp: this.hp,
       baby: this.baby, growT: Math.round(this.growT), breedCd: Math.round(this.breedCd), sheared: this.sheared, eggT: Math.round(this.eggT), size: this.size, name: this.name,
-      home: this.home, job: this.job, uses: this.uses, restockT: this.restockT, restockDay: this.restockDay, restocks: this.restocks, summonT: this.summonT };
+      home: this.home, job: this.job, uses: this.uses, restockT: this.restockT, restockDay: this.restockDay, restocks: this.restocks, summonT: this.summonT,
+      tame: this.tame, sitting: this.sitting, saddled: this.saddled, temper: this.temper };
   }
 }
 
@@ -454,7 +494,7 @@ export class Entities {
     const vp = w.gen.villagePiece && (w.gen.version >= 5 || w.newGen.has(c.key)) ? w.gen.villagePiece(c.cx, c.cz) : null;
     if (vp) {   // villagers move into the village (and an Ironwarden guards the plaza)
       const [hx, hy, hz] = vp.home;
-      if (vp.type === "plaza") { this.add("golem", hx, hy, hz, { home: vp.home }); this.add(vp.prof, hx + 2, hy, hz, { home: vp.home }); }
+      if (vp.type === "plaza") { this.add("golem", hx, hy, hz, { home: vp.home }); this.add(vp.prof, hx + 2, hy, hz, { home: vp.home }); if (Math.random() < 0.6) this.add("whisker", hx - 2, hy, hz); }
       else this.add(vp.prof, hx, hy, hz, { home: vp.type === "house" ? [vp.bed[0] + 0.5, vp.bed[1], vp.bed[2] + 2.5] : vp.home, job: vp.job });
       if (vp.type === "farm") for (let lx = 4; lx <= 11; lx++) for (let lz = 4; lz <= 11; lz++) if (lz !== 7) w.crops.add((x0 + lx) + "," + (vp.y + 1) + "," + (z0 + lz));
       return;
@@ -468,10 +508,11 @@ export class Entities {
     if (w.gen.isNether()) return;   // the Ember Depths fill up through the spawner instead
     const biome = w.gen.column(x0 + 8, z0 + 8).biome;
     if (biome === "peak") return;
-    const pool = biome === "sandy" ? [["rabbit", 1]] : [["cow", 25], ["sheep", 25], ["pig", 20], ["chicken", 20], ["rabbit", 10]];
+    const pool = biome === "sandy" ? [["rabbit", 1]] : [["cow", 25], ["sheep", 25], ["pig", 20], ["chicken", 20], ["rabbit", 10], ["whisker", 4],
+      ...(biome === "forest" || biome === "birch" ? [["scout", 14]] : []), ...(biome === "plains" ? [["trotter", 14]] : [])];
     let t = Math.random() * pool.reduce((s, p) => s + p[1], 0), sp = pool[0][0];
     for (const [k, wgt] of pool) { t -= wgt; if (t <= 0) { sp = k; break; } }
-    const n = randi(2, 4);
+    const n = sp === "whisker" ? 1 : randi(2, 4);
     for (let i = 0; i < n; i++) {
       const x = x0 + randi(1, 14), z = z0 + randi(1, 14), y = w.surfaceY(x, z), top = w.id(x, y, z);
       if (![B.GRASS, B.SAND, B.SNOW].includes(top) || solidCell(w, x, y + 1, z)) continue;
@@ -593,6 +634,11 @@ export class Entities {
       if (e.sp === "wanderer" && e.age > 300) { this.ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "poof"); e.gone = true; continue; }   // the Wanderer moves on
       if (!w.isLoaded(e.pos.x, e.pos.z)) continue;
       if (e.dead) { this.dying(e, dt); continue; }
+      if (e.ridden) {   // a Trotter you're riding moves with you (main.js steers it)
+        e.age += dt; e.walkPhase += Math.hypot(e.vel.x, e.vel.z) * dt * 1.5;
+        if (e.iframes > 0) e.iframes -= dt; if (e.hurtT > 0) e.hurtT -= dt;
+        this.animate(e, dt, d2, daylight); e.mesh.visible = true; continue;
+      }
       e.age += dt;
       if (d2 < 48 * 48 || e.def.boss) {
         e.thinkT -= dt;
@@ -702,6 +748,8 @@ export class Entities {
       if (L && L[0] >= 15) e.burning = Math.max(e.burning || 0, 3);
     }
     if (def.hostile && def.hostile && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
+    if (def.pet && e.tame) return this.thinkPet(e, d, dmgMul);
+    if (def.ai === "scout" && !(e.angry > 0)) { this.wander(e); return; }   // wild Scouts leave you alone unless you hit one
     if (def.animal) return this.thinkAnimal(e, d);
     if (e.sp === "voidwalker") return this.thinkVoidwalker(e, d, dmgMul);
     if (def.ai === "flare" || def.ai === "wailer") return this.thinkFlyer(e, d, dmgMul);
@@ -739,6 +787,9 @@ export class Entities {
       return;
     }
     if (def.ai === "creeper") {
+      // Hissers are afraid of tame Whiskers
+      const cat = this.list.find(o => o.sp === "whisker" && o.tame && !o.dead && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 6);
+      if (cat) { const ax = e.pos.x - cat.pos.x, az = e.pos.z - cat.pos.z, l = Math.hypot(ax, az) || 1; e.goal = { x: e.pos.x + ax / l * 5, z: e.pos.z + az / l * 5, speed: def.speed * 1.3 }; e.path = null; e.fuse = 0; return; }
       if (d < 2.8 && sees) { if (e.fuse === 0) Sound.mob("fuse", d); e.fuse += 0.15; e.goal = null; }
       else { e.fuse = Math.max(0, e.fuse - 0.15); this.chase(e, tp); }
       if (d > 6) e.fuse = 0;
@@ -993,6 +1044,48 @@ export class Entities {
     }
     if (e.def.hops && e.goal && e.onGround && Math.random() < 0.4) e.wantJump = true;
   }
+  // Tame pets: follow you (or sit and stay); Scouts also fight monsters near you and whatever you attack
+  thinkPet(e, d, dmgMul) {
+    const ctx = this.ctx, p = ctx.player(), def = e.def;
+    if (Math.random() < 0.008) Sound.mob(def.sound, d);
+    if (e.sitting) { e.goal = null; e.path = null; return; }
+    if (e.sp === "scout") {
+      let foe = this.petFoe;
+      if (foe && (foe.dead || foe.gone || foe.tame || !this.list.includes(foe) || Math.hypot(foe.pos.x - e.pos.x, foe.pos.z - e.pos.z) > 20)) foe = this.petFoe = null;
+      if (!foe) foe = this.list.filter(o => o.def.hostile && !o.dead && !o.def.boss && o.def.ai !== "creeper" && Math.hypot(o.pos.x - p.pos.x, o.pos.z - p.pos.z) < 10 && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 16)
+        .sort((a, b) => Math.hypot(a.pos.x - e.pos.x, a.pos.z - e.pos.z) - Math.hypot(b.pos.x - e.pos.x, b.pos.z - e.pos.z))[0];
+      if (foe) {
+        const dd = Math.hypot(foe.pos.x - e.pos.x, foe.pos.z - e.pos.z);
+        this.moveTo(e, foe.pos, def.speed * 1.5, 0.9);
+        e.yaw = Math.atan2(-(foe.pos.x - e.pos.x), -(foe.pos.z - e.pos.z));
+        if (dd < 1.4 + foe.w / 2 && Math.abs(foe.pos.y - e.pos.y) < 1.5 && e.attackCd <= 0) {
+          e.attackCd = 0.8; const l = dd || 1;
+          this.damage(foe, 4, e, { x: (foe.pos.x - e.pos.x) / l * 0.6, z: (foe.pos.z - e.pos.z) / l * 0.6 });
+          Sound.mob("bark", d);
+        }
+        return;
+      }
+    }
+    if (d > 24) this.petTeleport(e, p);
+    else if (d > 5) this.moveTo(e, p.pos, def.speed * (d > 10 ? 1.7 : 1.2), 2.5);
+    else { e.goal = null; e.path = null; }
+  }
+  // a pet that falls far behind pops back next to you
+  petTeleport(e, p) {
+    const w = this.world;
+    for (let k = 0; k < 20; k++) {
+      const x = Math.floor(p.pos.x + rand(-3, 3)), z = Math.floor(p.pos.z + rand(-3, 3));
+      if (!w.isLoaded(x, z)) continue;
+      for (let y = Math.floor(p.pos.y) + 2; y >= Math.floor(p.pos.y) - 3; y--) {
+        const here = w.id(x, y, z);
+        if (SOLID[w.id(x, y - 1, z)] && !solidCell(w, x, y, z) && !solidCell(w, x, y + 1, z) && here !== B.LAVA && here !== B.WATER) {
+          e.pos.x = x + 0.5; e.pos.y = y; e.pos.z = z + 0.5; e.vel.x = e.vel.y = e.vel.z = 0; e.path = null; e.goal = null;
+          return true;
+        }
+      }
+    }
+    return false;
+  }
   thinkAnimal(e, d) {
     const ctx = this.ctx, p = ctx.player(), def = e.def;
     if (Math.random() < 0.02) Sound.mob(def.sound, d);
@@ -1063,6 +1156,8 @@ export class Entities {
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
     if (e.dead || e.iframes > 0 || n <= 0) return false;
+    if (e.tame && attacker === "player") return false;   // you can't hurt your own pets by accident
+    if (attacker === "player" && !e.def.villager) this.petFoe = e;   // your Scouts join in
     if (e.summonT > 0) return false;   // can't be hurt while it's being summoned
     if (e.sp === "dragon") { n *= e.perched ? 1 : 0.6; knock = null; if (attacker === "explosion") n *= 0.3; }
     if (e.sp === "blightking") { knock = null; if (attacker === "explosion") n *= 0.2; }
@@ -1077,7 +1172,7 @@ export class Entities {
     if (attacker === "player") {
       e.angry = 40; if (e.def.animal) e.fleeT = 5;
       // Rotboars and Boarkin defend each other
-      if (e.def.ai === "rotboar" || e.def.ai === "boarkin" || e.sp === "brute") for (const o of this.near(e.pos.x, e.pos.y, e.pos.z, 20, o => o.sp === e.sp)) o.angry = 40;
+      if (e.def.ai === "rotboar" || e.def.ai === "boarkin" || e.sp === "brute" || e.sp === "scout") for (const o of this.near(e.pos.x, e.pos.y, e.pos.z, 20, o => o.sp === e.sp && !o.tame)) o.angry = 40;
     }
     Sound.mob(e.def.animal ? e.def.sound : "hurt", this.dist(e));
     if (e.sp === "voidwalker" && attacker === "player" && Math.random() < 0.3) this.teleport(e, this.ctx.player().pos);
@@ -1089,7 +1184,7 @@ export class Entities {
     const ctx = this.ctx;
     if (e.sp === "crystal") { e.gone = true; ctx.crystalGone(e.cid); ctx.explode(e.pos.x, e.pos.y + 1, e.pos.z, 3, null); return; }
     if (e.def.boss) { Sound.mob("roar", 0); return; }
-    if (attacker === "player" || e.burning || attacker === "explosion") {
+    if (attacker === "player" || e.burning || attacker === "explosion" || (attacker && attacker.tame)) {
       for (const d of e.def.drops(e)) if (d && d[1] > 0) ctx.drop(d[0], d[1], e.pos.x, e.pos.y + 0.4, e.pos.z);
       if (!e.baby) ctx.xp(e.def.xp * (e.def.ai === "slime" ? e.size : 1), e.pos.x, e.pos.y + 0.4, e.pos.z);
     }
@@ -1116,6 +1211,31 @@ export class Entities {
   // ----- interacting (right-click) -----
   interact(e, slot) {
     const ctx = this.ctx, def = e.def, id = slot ? slot.id : 0;
+    if (def.tameWith) {   // pets and Trotters
+      const hearts = () => { for (let k = 0; k < 3; k++) ctx.particles(e.pos.x + rand(-0.4, 0.4), e.pos.y + e.h + rand(0, 0.4), e.pos.z + rand(-0.4, 0.4), "heart"); };
+      if (!e.tame && def.tameWith.includes(id)) {
+        ctx.consume();
+        if (def.mount) {   // treats calm a wild Trotter, so riding tames it sooner
+          e.temper = Math.min(100, (e.temper || 0) + 15); e.hp = Math.min(e.maxHp, e.hp + 2); hearts(); Sound.mob(def.sound, 2);
+          ctx.toast("The Trotter liked that! It's calmer now, so it will be easier to tame by riding it.");
+          return true;
+        }
+        if (Math.random() < def.tameChance) {
+          e.tame = true; e.angry = 0; e.fleeT = 0; e.sitting = false; e.hp = e.maxHp; e.goal = null; hearts(); Sound.mob(def.sound, 2);
+          ctx.toast(`You tamed a ${def.name}! It will follow you. Right-click it to make it sit or follow.`, "good");
+        } else ctx.particles(e.pos.x, e.pos.y + e.h, e.pos.z, "poof");
+        return true;
+      }
+      if (e.tame && (def.healWith || def.tameWith).includes(id) && e.hp < e.maxHp) { e.hp = Math.min(e.maxHp, e.hp + 4); ctx.consume(); hearts(); return true; }
+      if (def.mount) {
+        if (id === I.SADDLE && e.tame && !e.saddled && !e.baby) { e.saddled = true; ctx.consume(); Sound.mob(def.sound, 2); ctx.toast("Saddled! Right-click it to ride. Press C to get off.", "good"); return true; }
+        if (!e.baby && !def.food.includes(id)) return ctx.mount(e);
+      } else if (e.tame && !e.baby) {
+        e.sitting = !e.sitting; e.goal = null; e.path = null;
+        ctx.toast(e.sitting ? `Your ${def.name} is sitting. It will stay here.` : `Your ${def.name} is following you.`);
+        return true;
+      }
+    }
     if (def.animal && def.food.includes(id)) {
       if (e.baby) { e.growT -= 60; ctx.consume(); ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); return true; }
       if (e.breedCd <= 0 && e.love <= 0) { e.love = 30; ctx.consume(); ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); Sound.mob(def.sound, 2); return true; }
@@ -1258,7 +1378,7 @@ export class Entities {
   raycast(o, d, max) {
     let best = null;
     for (const e of this.list) {
-      if (e.dead) continue;
+      if (e.dead || e.ridden) continue;
       const a = e.aabb(); let t0 = 0, t1 = max, ok = true;
       for (const [k, lo, hi] of [["x", a[0] - 0.05, a[3] + 0.05], ["y", a[1], a[4]], ["z", a[2] - 0.05, a[5] + 0.05]]) {
         if (Math.abs(d[k]) < 1e-9) { if (o[k] < lo || o[k] > hi) { ok = false; break; } continue; }
@@ -1280,7 +1400,7 @@ export class Entities {
     if (e.baby && P.head) P.head.scale.setScalar(1.45);
     else if (P.head) P.head.scale.setScalar(1);
     // head follows the player when close
-    if (P.head && d2 < 100 && !e.dead) {
+    if (P.head && d2 < 100 && !e.dead && !e.ridden) {
       const p = this.ctx.player(), rel = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)) - e.yaw;
       const r = Math.atan2(Math.sin(rel), Math.cos(rel));
       P.head.rotation.y = Math.max(-1, Math.min(1, r)) * (def.model.type === "spider" ? 0.3 : 0.8);
@@ -1296,6 +1416,14 @@ export class Entities {
       if (P.legFR) { P.legFR.rotation.x = swing; P.legBL.rotation.x = swing; P.legFL.rotation.x = -swing; P.legBR.rotation.x = -swing; }
       if (e.grazeT > 0) { e.grazeT -= dt; P.head.rotation.x = 0.9; } else if (P.head && t === "quad") P.head.rotation.x = 0;
       if (P.wool) P.wool.visible = !e.sheared;
+      if (P.collar) P.collar.visible = !!e.tame;
+      if (P.saddle) P.saddle.visible = !!e.saddled;
+      if (def.mount && !(e.grazeT > 0)) P.head.rotation.x = e.ridden ? 1.05 : 0.45;   // the neck leans forward (further while ridden, so you can see past it)
+      if (P.tail) P.tail.rotation.x = def.mount ? 0.2 + Math.sin(e.age * 2) * 0.06 : (e.tame ? 0.9 : 0.3) + Math.sin(e.age * (e.tame ? 8 : 2)) * 0.12;
+      if (def.pet) {   // sitting pets sit back on their haunches
+        e.root.rotation.x = e.sitting ? -0.45 : 0;
+        if (e.sitting) { P.legBR.rotation.x = P.legBL.rotation.x = 1.3; P.legFR.rotation.x = P.legFL.rotation.x = 0.45; e.mesh.position.y -= 0.12 * s; }
+      }
       if (t === "creeper" && e.fuse > 0) { const k = 1 + e.fuse * 0.12 + Math.sin(e.age * 30) * 0.02; e.root.scale.set(s * k, s * k, s * k); }
     } else if (t === "spider") {
       for (const p of def.model.parts.filter(q => q.side)) { const g = P[p.name], ph = e.walkPhase * 3 + p.index * 1.6 + (p.side > 0 ? Math.PI : 0); g.rotation.y = g.userData.base.y + Math.sin(ph) * 0.35 * Math.min(1, sp); g.rotation.z = g.userData.base.z + Math.max(0, Math.cos(ph)) * 0.25 * Math.min(1, sp) * p.side; }

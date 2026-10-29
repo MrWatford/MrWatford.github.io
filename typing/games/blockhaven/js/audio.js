@@ -73,6 +73,9 @@ export const Sound = {
       case "snort": this.noise(700, 0.15, g(0.3), 3); this.tone(150, 0.12, "square", g(0.05), -40); break;
       case "grunt": this.tone(120 * r(), 0.3, "sawtooth", g(0.07), -30); break;
       case "chirp": this.tone(1100 * r(), 0.1, "triangle", g(0.05), 400); break;
+      case "bark": this.tone(330 * r(), 0.09, "square", g(0.07), -120); setTimeout(() => this.tone(300 * r(), 0.08, "square", g(0.06), -100), 120); break;
+      case "meow": this.tone(600 * r(), 0.35, "triangle", g(0.06), 250); break;
+      case "neigh": this.tone(500 * r(), 0.6, "sawtooth", g(0.05), -250); this.noise(900, 0.3, g(0.12), 2); break;
       case "fireshoot": this.noise(900, 0.3, g(0.35), 0.8); break;
       case "portal": this.tone(200, 2.5, "sine", g(0.08), 300); this.noise(1200, 2, g(0.06), 0.5); break;
       case "rumble": this.noise(80, 3, g(0.18), 0.5, "lowpass"); break;

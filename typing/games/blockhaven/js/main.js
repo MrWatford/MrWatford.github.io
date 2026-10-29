@@ -179,6 +179,7 @@ const ents = new Entities(scene, {
   bossDefeated: e => e.sp === "dragon" ? wyrmDefeated(e) : blightDefeated(e),
   time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m),
   openTrade: e => openPanel("trade", e.uid),
+  mount: e => mount(e),
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
@@ -228,6 +229,55 @@ function updateFires(dt) {
   for (let i = fires.length - 1; i >= 0; i--) {
     const f = fires[i]; f.t -= dt;
     if (f.t <= 0) { if (G.world.id(f.x, f.y, f.z) === B.FIRE) G.world.set(f.x, f.y, f.z, B.AIR); fires.splice(i, 1); }
+  }
+}
+
+// ---------- riding Trotters ----------
+function mount(e) {
+  const p = G.player;
+  if (G.riding) return false;
+  if (e.tame && !e.saddled) { UI.toast("Put a Saddle on your Trotter first: hold it and right-click the Trotter."); return true; }
+  G.riding = e; e.ridden = true; e.rideT = 0; e.goal = null; e.path = null;
+  p.mount = true; p.flying = false; p.gliding = false; p.crouch = false;
+  p.pos.x = e.pos.x; p.pos.y = e.pos.y; p.pos.z = e.pos.z; p.vel.x = p.vel.y = p.vel.z = 0;
+  Sound.mob("neigh", 0);
+  UI.toast(e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : "Hold on! This Trotter is wild, so it may buck you off. Keep trying to tame it.");
+  return true;
+}
+function dismount(quiet) {
+  const p = G.player, e = G.riding;
+  if (!e) return;
+  G.riding = null; p.mount = false; e.ridden = false; e.vel.x = e.vel.y = e.vel.z = 0;
+  // step off to the side if there is room
+  for (const s of [1, -1]) {
+    const x = p.pos.x + Math.cos(p.yaw) * 1.2 * s, z = p.pos.z - Math.sin(p.yaw) * 1.2 * s;
+    if (!p.collides(G.world, p.aabb(x, p.pos.y + 0.05, z))) { p.pos.x = x; p.pos.z = z; p.pos.y += 0.05; break; }
+  }
+  if (!quiet) Sound.place("wood");
+}
+// keep the Trotter under you; a wild one bucks you off unless it decides to trust you
+function tickRiding(dt) {
+  const p = G.player, e = G.riding;
+  if (!e) return;
+  if (e.dead || e.gone || !ents.list.includes(e)) { dismount(true); return; }
+  e.pos.x = p.pos.x; e.pos.y = p.pos.y; e.pos.z = p.pos.z;
+  e.vel.x = p.vel.x; e.vel.y = p.vel.y; e.vel.z = p.vel.z; e.yaw = p.yaw; e.onGround = p.onGround;
+  if (e.tame) return;
+  e.rideT += dt;
+  if ((e.rideCheck = (e.rideCheck || 0) + dt) >= 1) {
+    e.rideCheck = 0;
+    if (Math.random() < 0.08 + (e.temper || 0) / 100 * 0.5) {
+      e.tame = true;
+      for (let k = 0; k < 4; k++) puff(e.pos.x + (Math.random() - 0.5), e.pos.y + 2, e.pos.z + (Math.random() - 0.5), "heart");
+      Sound.mob("neigh", 0); dismount(true);
+      UI.toast("You tamed the Trotter! Craft a Saddle (5 leather + 1 iron ingot), then right-click the Trotter with it to ride.", "good");
+      return;
+    }
+  }
+  if (e.rideT > 4) {   // bucked off!
+    e.temper = Math.min(100, (e.temper || 0) + 8);
+    dismount(true); p.vel.y = 6; Sound.mob("neigh", 0);
+    UI.toast("The Trotter bucked you off! Try again. Feeding it wheat or apples calms it down.", "bad");
   }
 }
 
@@ -342,6 +392,7 @@ function buildGateway(x, y, z) {
   w.set(x, y, z, B.GATEWAY);
 }
 async function changeDim(toDim, cx, cz, label, place) {
+  dismount(true);   // Trotters stay behind in their own world
   const p = G.player, fromDim = G.dim, back = { ...p.pos };
   G.traveling = true;
   try {
@@ -981,6 +1032,7 @@ window.addEventListener("keydown", e => {
   if (/^Digit[1-9]$/.test(e.code)) selectSlot(+e.code.slice(5) - 1);
   else if (e.code === "KeyE") openPanel("inventory");
   else if (e.code === "KeyQ") dropSelected(e.ctrlKey);
+  else if (e.code === "KeyC" && G.riding) dismount();
   else if (e.code === "F3") { G.debug = !G.debug; document.getElementById("debug").hidden = !G.debug; }
   else if (e.code === "Space" && !G.player.onGround && !G.player.inWater && !G.player.flying && !G.player.gliding && G.player.vel.y < -1 && G.inv.slots[37] && G.inv.slots[37].id === I.GLIDER) {
     G.player.gliding = true;
@@ -1567,10 +1619,12 @@ function hurt(n, why, src, bypassArmor) {
   p.health = Math.max(0, p.health - n); p.hurtT = 0.4;
   if (src && src.pos) { const dx = p.pos.x - src.pos.x, dz = p.pos.z - src.pos.z, l = Math.hypot(dx, dz) || 1; p.vel.x += dx / l * 6; p.vel.z += dz / l * 6; p.vel.y = Math.max(p.vel.y, 4); }
   if (src && src.def && src.def.knockUp) p.vel.y = 9;   // Hogbeasts toss you into the air
+  if (src && src.def && !src.tame) ents.petFoe = src;   // your Scouts go after whatever hurt you
   Sound.hurt(); UI.flash(); G.hudDirty = true;
   if (p.health <= 0) die(why);
 }
 function die(why) {
+  dismount(true);
   if (!G.wset.keepInv && !G.creative) {   // drop everything where you fell
     const p = G.player;
     for (let i = 0; i < G.inv.slots.length; i++) { const s = G.inv.slots[i]; if (s) spawnDrop(s.id, s.n, p.pos.x, p.pos.y + 1, p.pos.z, s); G.inv.slots[i] = null; }
@@ -1728,6 +1782,7 @@ G.exportWorld = async id => { try { Saves.exportFile(await Saves.load(id)); } ca
 G.exportCurrent = () => { Saves.exportFile(snapshot()); UI.toast("World file downloaded.", "good"); };
 G.importWorld = file => Saves.importFile(file);
 G.toTitle = async () => {
+  dismount(true);
   await saveNow(false);
   clearWorldMeshes();
   if (G.world) { G.world.chunks.clear(); G.world.dirtyQueue.clear(); }
@@ -1756,6 +1811,7 @@ function loop(now) {
       jump: keys.has("Space"), sprint: keys.has("ShiftLeft") || keys.has("ShiftRight"), crouch: keys.has("KeyC"),
       flyUp: keys.has("Space"), flyDown: keys.has("KeyC")
     } : { f: 0, r: 0 };
+    if (G.riding) { input.crouch = false; if (!G.riding.tame) { input.f = input.r = 0; input.jump = false; } }   // a wild Trotter won't go where you steer
     if (!G.creative) p.flying = false;
     acc += dt;
     const startX = p.pos.x, startZ = p.pos.z;
@@ -1763,7 +1819,8 @@ function loop(now) {
       acc -= 1 / 60;
       const wasWater = p.inWater;
       const res = p.step(G.world, p.flying ? { ...input, crouch: false } : input, 1 / 60, G.creative);
-      if (res.fall > 3.5) hurt(Math.floor(res.fall - 3), "That was a long fall! Build stairs or use water to land safely.");
+      const fall = G.riding ? res.fall - 3 : res.fall;   // a Trotter's legs soak up some of a fall
+      if (fall > 3.5) hurt(Math.floor(fall - 3), "That was a long fall! Build stairs or use water to land safely.");
       if (res.crash > 10) hurt(Math.round((res.crash - 10) * 0.7), "You glided into a wall! Slow down by looking up before you land.", null, true);
       if (!wasWater && p.inWater && p.vel.y < -4) Sound.splash();
       if (G.dim === "end" && p.pos.y < -4) {   // the void below the Hollow
@@ -1777,6 +1834,7 @@ function loop(now) {
       if (G.stepDist > 2.2) { G.stepDist = 0; Sound.step(MATERIAL(G.world.id(Math.floor(p.pos.x), Math.floor(p.pos.y - 0.2), Math.floor(p.pos.z)))); }
       G.moveTotal = (G.moveTotal || 0) + moved; if (G.moveTotal > 6) tipDone("move");
     }
+    tickRiding(dt);
     survival(dt);
     updateFurnaces(dt);
     tickCrops(dt);
@@ -1859,4 +1917,4 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { hand, ents, checkBlightSummon, tickBeacons, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };
+G._test = { hand, ents, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };

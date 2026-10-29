@@ -40,7 +40,7 @@ export const I = {
   GOLD_HELMET: 372, GOLD_CHEST: 373, GOLD_LEGS: 374, GOLD_BOOTS: 375,
   DUSK_HELMET: 376, DUSK_CHEST: 377, DUSK_LEGS: 378, DUSK_BOOTS: 379,
   DUSK_PICK: 380, DUSK_AXE: 381, DUSK_SHOVEL: 382, DUSK_SWORD: 383, DUSK_HOE: 384,
-  EYE: 385, GLIDER: 386, SHELL: 387, CHORUS_FRUIT: 388, WYRM_SCALE: 389, JADE: 390, RADIANT_STAR: 391,
+  EYE: 385, GLIDER: 386, SHELL: 387, CHORUS_FRUIT: 388, WYRM_SCALE: 389, JADE: 390, RADIANT_STAR: 391, SADDLE: 392,
   SPAWN: 400   // spawn eggs: 400 + index in SPAWN_EGGS
 };
 
@@ -224,6 +224,7 @@ item(I.CHORUS_FRUIT, "Chorus Fruit", { icon: "chorus", kind: "food", food: 4, ca
 item(I.WYRM_SCALE, "Wyrm Scale", { icon: "scale" });
 item(I.JADE, "Jade", { icon: "jade" });
 item(I.RADIANT_STAR, "Radiant Star", { icon: "star" });
+item(I.SADDLE, "Saddle", { icon: "saddle" });
 items[I.BLIGHT_SKULL].places = B.SKULL;   // skulls can be set down as blocks (three on Wailing Sand summon the Blightking)
 const TIERS = [
   { key: "WOOD", label: "Wooden", tier: 1, speed: 2, dur: 60, color: "#b48a52", dark: "#7d5a30" },
@@ -253,7 +254,8 @@ export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skelet
   ["cow", "Cow", "#4a3424", "#e8e8e8"], ["sheep", "Sheep", "#eeeeee", "#f0c0b0"], ["pig", "Pig", "#f0a0a0", "#d07070"], ["chicken", "Chicken", "#f4f4f4", "#e03a2a"], ["rabbit", "Rabbit", "#9a7a5a", "#e8dcc8"],
   ["flare", "Flare", "#f0b030", "#fff07a"], ["wailer", "Wailer", "#f0f0f0", "#b0b0b0"], ["boarkin", "Boarkin", "#e8a090", "#ffd84a"], ["brute", "Boarkin Brute", "#c08070", "#3a3a3a"],
   ["rotboar", "Rotboar", "#e8a090", "#5a8a4a"], ["hogbeast", "Hogbeast", "#c07850", "#f0e0c0"], ["blight", "Blight Rattler", "#2a2a2a", "#5a5a5a"], ["magma", "Magma Gloop", "#4a1a10", "#ff8a1a"], ["strider", "Lavastrider", "#a02a2a", "#5a5a5a"],
-  ["sheller", "Sheller", "#9a6aa8", "#e8d0f0"], ["villager", "Villager", "#8a5a3a", "#e8b890"], ["golem", "Ironwarden", "#d8d4cc", "#6a8a4a"], ["blightking", "Blightking", "#1a1a1a", "#5a5a5a"]];
+  ["sheller", "Sheller", "#9a6aa8", "#e8d0f0"], ["villager", "Villager", "#8a5a3a", "#e8b890"], ["golem", "Ironwarden", "#d8d4cc", "#6a8a4a"], ["blightking", "Blightking", "#1a1a1a", "#5a5a5a"],
+  ["scout", "Scout", "#a8a8a4", "#6a6a66"], ["whisker", "Whisker", "#e0902a", "#f4e8d8"], ["trotter", "Trotter", "#8a5a32", "#2a1a10"]];
 // Glider Wings go in the chest armor slot: jump while falling to glide
 item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
@@ -332,6 +334,7 @@ export const RECIPES = [
   { out: [B.ALTAR, 1], ins: [[B.COBBLE, 4], [I.SHINE_DUST, 1]], table: true },
   { out: [B.SMITH_TABLE, 1], ins: [[I.IRON_INGOT, 2], ["planks", 4]], table: true },
   { out: [B.HAY, 1], ins: [[I.WHEAT, 9]] },
+  { out: [I.SADDLE, 1], ins: [[I.LEATHER, 5], [I.IRON_INGOT, 1]], table: true },
   { out: [I.WHEAT, 9], ins: [[B.HAY, 1]] },
   { out: [B.SHELL_BOX, 1], ins: [[I.SHELL, 2], [B.CHEST, 1]], table: true },
   { out: [B.HOLLOW_BRICKS, 4], ins: [[B.HOLLOWSTONE, 4]], table: true },
@@ -670,6 +673,7 @@ Object.assign(ICON_PAINT, {
   chorus(P) { for (let y = 4; y < 13; y++) for (let x = 4; x < 13; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 18) P.px(x, y, P.pick(["#9a6aa8", "#b088c0", "#7a5a8a"])); P.rect(8, 2, 1, 3, "#5a3a68"); },
   scale(P) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 8) ** 2 + (y - 8.5) ** 2 < 20) P.px(x, y, (x + y) % 3 ? "#2a1a3a" : "#5a2a7a"); },
   glider(P) { for (let x = 1; x < 15; x++) { const h = Math.round(6 - Math.abs(x - 7.5) * 0.6); for (let y = 4; y < 4 + h + 4; y++) if (Math.abs(x - 7.5) > 1) P.px(x, y + Math.abs(x - 7.5) * 0.3, y === 4 ? "#9a8aa8" : "#6a5a7a"); } P.rect(7, 4, 2, 8, "#4a3a5a"); },
+  saddle(P) { P.rect(2, 5, 12, 6, "#6e4422"); P.rect(3, 4, 4, 2, "#8a5a32"); P.rect(10, 3, 3, 3, "#8a5a32"); P.rect(4, 6, 8, 3, "#8a5a32"); P.rect(7, 11, 2, 3, "#3a2414"); P.rect(6, 13, 4, 2, "#b8b8b8"); },
   jade(P) { for (let y = 3; y < 14; y++) { const w = y < 8 ? y - 3 : 13 - y; for (let x = 8 - w; x <= 8 + w; x++) P.px(x, y, x < 8 ? "#2ac86a" : "#18a050"); } P.rect(7, 5, 2, 2, "#a8f8c0"); },
   star(P) { for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? 3 : 7; P.rect(Math.round(8 + Math.cos(a) * r) - 1, Math.round(8 + Math.sin(a) * r) - 1, 2, 2, "#fff6c0"); } P.rect(5, 5, 6, 6, "#fffbe0"); P.rect(7, 7, 2, 2, "#ffffff"); },
   skull(P) { P.rect(4, 3, 8, 8, "#2a2a2a"); P.rect(5, 11, 6, 3, "#2a2a2a"); P.rect(5, 6, 2, 2, "#0a0a0a"); P.rect(9, 6, 2, 2, "#0a0a0a"); P.rect(6, 12, 1, 2, "#5a5a5a"); P.rect(9, 12, 1, 2, "#5a5a5a"); }
