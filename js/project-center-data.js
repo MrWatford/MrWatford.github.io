@@ -2506,5 +2506,1417 @@ const PROJECTS = [
     ],
     extension: "With your teacher's approval, add a third matched bulb and compare series and parallel again.",
     note: "Brightness ratings depend on the person rating them. Have a partner rate brightness without knowing which arrangement is connected."
+  },
+
+  /* ===================== MORE PROJECTS (37–56) =====================
+     Fun, eye-catching projects. Each one turns a classic "wow" demo
+     into a real experiment: change one thing, measure one result. */
+
+  {
+    id: "elephant-toothpaste-yeast",
+    title: "Elephant Toothpaste: Fantastic Foam",
+    difficulty: "Medium",
+    category: "Chemistry / Chemical Reactions",
+    themes: ["chemistry"],
+    keywords: ["elephant toothpaste", "foam", "hydrogen peroxide", "peroxide", "yeast", "catalyst", "oxygen", "reaction", "bubbles"],
+    summary: "Make a tower of foam with yeast and household hydrogen peroxide, then test how the amount of yeast changes how high the foam climbs.",
+    time: { active: "About 2 hours", waiting: "5 minutes of yeast soaking per trial" },
+    supplies: "3% hydrogen peroxide, dry yeast, dish soap, tall clear plastic containers, ruler",
+    question: "How does the amount of yeast affect the maximum height of the foam?",
+    investigating: "Yeast speeds up the breakdown of hydrogen peroxide into water and oxygen gas. Dish soap traps the oxygen in bubbles, making foam. Making foam once is a demonstration. In this experiment you change only the amount of yeast and measure how high the foam climbs in identical containers.",
+    materials: [
+      "2 bottles (16 oz / 473 mL each) of household 3% hydrogen peroxide — never a stronger kind",
+      "Active dry yeast (3 packets, or a small jar)",
+      "Liquid dish soap (about 60 mL)",
+      "Lukewarm tap water",
+      "1 tall, clear, straight-sided plastic container at least 25 cm tall and open at the top, such as a 1 L plastic graduated cylinder (use the same one for every trial)",
+      "Measuring spoons (1/4, 1/2, and 1 tsp), or a kitchen scale in grams",
+      "Small cups and a spoon for mixing the yeast",
+      "Graduated cylinder or measuring cup (mL)",
+      "Ruler or meter stick and masking tape",
+      "Large plastic tray or baking pan to catch overflow",
+      "Splash goggles for everyone, and gloves for cleanup",
+      "Timer, and a phone or tablet to record video (very helpful)",
+      "Food coloring (optional)"
+    ],
+    safety: [
+      "An adult must supervise. Everyone nearby wears splash goggles.",
+      "Use only 3% household hydrogen peroxide. Never use a stronger peroxide, and never put a lid on the container.",
+      "The mixture and foam can get warm. Do not touch, play with, or taste the foam.",
+      "If peroxide gets on skin or in eyes, rinse with plenty of water and tell an adult."
+    ],
+    independent: "Amount of dry yeast mixed into 20 mL of lukewarm water: 0, 1/4, 1/2, and 1 teaspoon",
+    dependent: "Maximum foam height (cm), measured from the bottom of the container to the highest point the foam reaches",
+    controlled: [
+      "Peroxide volume (60 mL) and strength (3%)",
+      "Dish soap (5 mL, which is 1 tsp)",
+      "Water for the yeast (20 mL, lukewarm)",
+      "Yeast soaking time (5 minutes) and stirring (30 seconds)",
+      "Same container, rinsed and at room temperature",
+      "Yeast mixture poured in all at once"
+    ],
+    comparison: "The 0 tsp trial (water only, no yeast) is the control. It shows what peroxide and soap do without yeast.",
+    repeat: "Run at least 3 trials of each yeast amount, with fresh peroxide each time.",
+    procedure: [
+      "Tape a ruler or meter stick upright on the outside of the container with 0 cm at the inside bottom. Set the container in the middle of the tray.",
+      "Put on goggles. Pour 60 mL of 3% hydrogen peroxide into the container. Add 5 mL (1 tsp) of dish soap and, if you like, 2 drops of food coloring. Swirl gently.",
+      "In a small cup, mix this trial's yeast with 20 mL of lukewarm water. Stir for 30 seconds, then start a 5-minute timer. (For the control, use 20 mL of water with no yeast.)",
+      "When the timer ends, start recording video. Pour the whole yeast mixture into the container at once and step back.",
+      "Record the highest point the top of the foam reaches, to the nearest 0.5 cm. Replay the video to check the peak.",
+      "If foam spills over the top, write ‘overflowed.’ If that happens often, switch to a taller container (or a smaller amount of peroxide used in every trial) and start the data over.",
+      "Let the foam sit for 10 minutes. Wearing gloves, an adult rinses it down the sink with plenty of water. Rinse and dry the container.",
+      "Repeat until each yeast amount has 3 trials. Mix up the order (for example, 1/2, 0, 1, 1/4…) instead of doing one amount many times in a row.",
+      "Find the average maximum height for each yeast amount."
+    ],
+    tables: [
+      {
+        title: "Maximum foam height",
+        cols: ["Yeast amount", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Average (cm)", "Notes (speed, warmth, color)"],
+        rows: ["0 tsp (control)", "1/4 tsp", "1/2 tsp", "1 tsp"]
+      }
+    ],
+    graph: "Line graph: yeast amount (tsp) on the x-axis and average maximum foam height (cm) on the y-axis.",
+    questions: [
+      "How did the maximum foam height change as you used more yeast? Describe the pattern, including any place where it changed more or less.",
+      "What happened in the control with no yeast? What does that tell you about the yeast's job?",
+      "Besides height, did you notice differences in how fast the foam rose? How could you measure speed?",
+      "How close together were your 3 trials for each amount? Which amount varied most, and why might that be?",
+      "Foam height depends on bubble size and soap, not only on how much oxygen is made. How does that limit what you can conclude?"
+    ],
+    extension: "Keep the yeast amount the same and change the temperature of the water you mix the yeast with (cool, lukewarm, warm — never hot). Or time how long the foam takes to reach its peak.",
+    note: "Reading the exact peak by eye is hard because foam moves fast. A video with the ruler in view makes the measurement much more reliable."
+  },
+
+  {
+    id: "lava-lamp-tablet",
+    title: "DIY Lava Lamp",
+    difficulty: "Easy",
+    category: "Chemistry / Density and Gas",
+    themes: ["chemistry", "water"],
+    keywords: ["lava lamp", "oil", "water", "density", "fizz", "effervescent", "tablet", "bubbles", "gas", "carbon dioxide", "blobs"],
+    summary: "Watch colored water blobs float up through oil, then time how long the bubbling lasts with different amounts of fizzing tablet.",
+    time: { active: "About 1.5 hours", waiting: "None" },
+    supplies: "Vegetable oil, clear cups, food coloring, fizzing tablets, stopwatch",
+    question: "How does the amount of tablet affect how long the bubbling lasts?",
+    investigating: "Oil floats on water because it is less dense, and the two do not mix. A fizzing tablet makes carbon dioxide gas in the water. Gas bubbles cling to water blobs and carry them up; when the gas escapes at the top, the blobs sink again. Watching the blobs is a demonstration. In the experiment you change only the amount of tablet and time how long the bubbling lasts.",
+    materials: [
+      "Vegetable oil (one 48 oz / 1.4 L bottle — 150 mL per trial)",
+      "Water at room temperature (about 500 mL)",
+      "Food coloring",
+      "1 clear plastic cup or jar that holds about 300 mL (use the same one each time)",
+      "One package of effervescent (fizzing) tablets, such as antacid fizz tablets — at least 6 tablets from the same package",
+      "Butter knife and cutting board (for an adult to split tablets into halves and quarters)",
+      "Graduated cylinder or measuring cup (mL)",
+      "Stopwatch",
+      "Tray and paper towels",
+      "A jar with a lid for used oil"
+    ],
+    safety: [
+      "Fizzing tablets may be medicine. An adult keeps the package and cuts the tablets. Never put a tablet or the mixture in your mouth.",
+      "Keep the cup open; never put a lid on while it fizzes.",
+      "Wipe up oil spills right away, since oil makes floors slippery. Put used oil in the waste jar, not down the drain."
+    ],
+    independent: "Amount of tablet: 1/4 tablet, 1/2 tablet, and 1 whole tablet",
+    dependent: "Bubbling time (seconds): from when the tablet drops in until the last blob leaves the bottom (bubbling counts as stopped when no new blob rises for 10 seconds)",
+    controlled: [
+      "Water volume (50 mL) and oil volume (150 mL)",
+      "Water and oil at room temperature",
+      "Same cup",
+      "Same brand of tablet, from the same package",
+      "Same amount of food coloring (3 drops)",
+      "A fresh oil-and-water mixture for each trial"
+    ],
+    comparison: "No control group is needed; you compare tablet amounts to each other. Before you start, watch one cup with no tablet for a minute to see that the blobs do not move on their own.",
+    repeat: "Test each tablet amount at least 3 times, each in a fresh mixture.",
+    procedure: [
+      "Measure 50 mL of water into the cup and add 3 drops of food coloring.",
+      "Slowly pour 150 mL of oil on top. Wait 1 minute for the two layers to separate.",
+      "Have an adult cut tablets into halves and quarters on the cutting board. Keep the pieces dry until you use them.",
+      "Drop the tablet piece into the cup and start the stopwatch at the same moment.",
+      "Watch from the side at eye level. When no new blob has left the bottom for 10 seconds, stop the watch. Subtract 10 seconds and record the bubbling time.",
+      "Write observations, such as blob size and how fast the blobs rose.",
+      "Pour the oil into the waste jar, rinse the cup, and set up a fresh mixture.",
+      "Repeat until each amount has 3 trials, mixing up the order. Find the average bubbling time for each amount."
+    ],
+    tables: [
+      {
+        title: "Bubbling time",
+        cols: ["Tablet amount", "Trial 1 (s)", "Trial 2 (s)", "Trial 3 (s)", "Average (s)", "Observations"],
+        rows: ["1/4 tablet", "1/2 tablet", "1 tablet"]
+      }
+    ],
+    graph: "Bar graph: tablet amount on the x-axis and average bubbling time (s) on the y-axis.",
+    questions: [
+      "How did the bubbling time change with more tablet? Describe the pattern.",
+      "Did the amount of tablet change anything else, such as how many blobs rose at once or how big they were?",
+      "Deciding exactly when bubbling ‘stops’ takes judgment. How did the 10-second rule help? Could two people still disagree?",
+      "Why did the colored water sink back down after it reached the top?",
+      "Why was it important to use tablet pieces from the same package?"
+    ],
+    extension: "Keep the tablet amount the same and change the water temperature (cool, room temperature, and warm tap water poured by an adult).",
+    note: "Hand-cut quarters are not perfectly equal. Weighing each piece on a scale that reads 0.1 g would make the amounts more exact."
+  },
+
+  {
+    id: "slime-stretch",
+    title: "Slime Stretch Challenge",
+    difficulty: "Medium",
+    category: "Chemistry / Polymers",
+    themes: ["chemistry", "materials"],
+    keywords: ["slime", "polymer", "glue", "activator", "stretch", "saline", "contact solution", "gooey"],
+    summary: "Make small batches of glue slime with different amounts of activator and measure how far each one stretches before it breaks.",
+    time: { active: "About 2 hours", waiting: "10 minutes of resting per batch" },
+    supplies: "White school glue, baking soda, contact lens saline, meter stick, scale",
+    question: "How does the amount of activator affect how far slime stretches before it breaks?",
+    investigating: "School glue contains long, chain-shaped molecules called polymers. The activator links those chains together, turning runny glue into stretchy slime. Making one batch of slime is a demonstration. In the experiment, you make batches that differ only in the amount of activator and measure how long a piece stretches before it snaps.",
+    materials: [
+      "White PVA school glue (one 8 oz / 237 mL bottle — 60 mL per batch)",
+      "Baking soda (about 1 tsp)",
+      "Contact lens saline solution whose label lists boric acid and sodium borate (the activator — about 30 mL)",
+      "Water",
+      "A 10 mL medicine syringe (no needle) or measuring spoons for the activator",
+      "3 small bowls and craft sticks for stirring",
+      "Kitchen scale (grams)",
+      "Meter stick taped flat to a table",
+      "Metronome app or stopwatch",
+      "Zip-top bags and a marker for labels",
+      "Safety goggles; gloves for anyone with sensitive skin"
+    ],
+    safety: [
+      "Use only this teacher-approved recipe. An adult measures the activator for each batch.",
+      "Wear goggles while mixing. Keep hands away from eyes and mouth, and wash hands when you finish.",
+      "Never use powdered borax directly, and never eat or taste slime.",
+      "If your skin itches or turns red, stop and wash with water."
+    ],
+    independent: "Amount of activator (contact lens saline) per batch: 5 mL, 7.5 mL, and 10 mL",
+    dependent: "Stretch length when the slime breaks (cm)",
+    controlled: [
+      "Glue brand and amount (60 mL)",
+      "Water (30 mL) and baking soda (1/4 tsp)",
+      "Stirring time (2 minutes) and kneading time (1 minute)",
+      "Resting time (10 minutes in a sealed bag)",
+      "Mass of each test piece (20 g) and starting length (about 5 cm)",
+      "Pulling speed (about 2 cm per second) and the person pulling",
+      "Room temperature"
+    ],
+    comparison: "No untreated group is needed. You are comparing activator amounts to each other.",
+    repeat: "Test 3 fresh 20 g pieces from each batch. If you have time, make a second batch of each amount to see whether batches turn out the same.",
+    procedure: [
+      "Before you start, your teacher or an adult tries the recipe once and approves it.",
+      "In a bowl, stir together 60 mL of glue, 30 mL of water, and 1/4 tsp of baking soda until smooth.",
+      "An adult adds this batch's activator (5 mL, 7.5 mL, or 10 mL). Stir for 2 minutes, then knead with your hands for 1 minute.",
+      "Seal the slime in a labeled bag and let it rest for 10 minutes. Make the other two batches the same way.",
+      "Weigh out a 20 g piece and roll it into a log about 5 cm long.",
+      "Hold the left end at the 0 cm mark of the meter stick. Practice pulling the right end along the stick at about 2 cm per second (with a metronome at 60 beats per minute, move 2 cm each beat).",
+      "Pull until the slime breaks. A partner reads where your right hand was at the moment it broke. A video makes this easier to check.",
+      "Use a new 20 g piece for each trial. Test 3 pieces from each batch, mixing up the order of the batches.",
+      "Find the average stretch length for each amount. Seal leftover slime in bags for the trash, then wash hands and wipe the tables."
+    ],
+    tables: [
+      {
+        title: "Stretch length at breaking",
+        cols: ["Activator amount", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Average (cm)", "Texture notes"],
+        rows: ["5 mL", "7.5 mL", "10 mL"]
+      }
+    ],
+    graph: "Line graph: activator amount (mL) on the x-axis and average stretch length (cm) on the y-axis.",
+    questions: [
+      "How did the stretch length change as the amount of activator increased?",
+      "How did the slimes feel different (sticky, stretchy, firm)? Do your texture notes match your measurements?",
+      "Pulling at an exact speed by hand is hard. How might small speed changes have affected your results?",
+      "How might the linked polymer chains explain your pattern? What evidence supports your idea?",
+      "Would you trust your results more if you made a second batch of each amount? Why?"
+    ],
+    extension: "Hold a 20 g piece at the top of an upright meter stick and let it stretch down under its own weight. Time how long it takes to reach 30 cm for each activator amount.",
+    note: "Glue and saline brands behave differently, so use one brand of each for the whole project. If a slime is too sticky to roll or too stiff to stretch, record that as a result instead of changing the recipe."
+  },
+
+  {
+    id: "balloon-race-car",
+    title: "Balloon-Powered Race Cars",
+    difficulty: "Medium",
+    category: "Engineering / Forces and Motion",
+    themes: ["engineering", "motion"],
+    keywords: ["balloon car", "race car", "wheels", "axles", "distance", "thrust", "newton", "air", "engineering"],
+    summary: "Build a lightweight car powered by air rushing out of a balloon and test how inflation size changes how far it travels.",
+    time: { active: "2–3 hours (including building)", waiting: "None" },
+    supplies: "Cardboard, straws, skewers, bottle caps, balloons, tape measure",
+    question: "How does balloon inflation affect the distance the car travels?",
+    investigating: "When air rushes backward out of the balloon, the car is pushed forward. Racing the car once is a demonstration. In the experiment, you use the same car and the same type of balloon, change only how big the balloon is blown up (its circumference), and measure how far the car travels.",
+    materials: [
+      "Stiff cardboard rectangle, 10 cm × 20 cm (the car body)",
+      "2 wooden skewers for axles (an adult snips off the sharp points)",
+      "2 plastic drinking straws for axle holders, wide enough for the skewers to spin inside",
+      "4 matching plastic bottle caps for wheels (an adult pokes a hole in the center of each)",
+      "1 bendable straw (the nozzle)",
+      "Several identical 12-inch round balloons (latex-free if anyone has a latex allergy)",
+      "Balloon hand pump",
+      "Masking tape and clear tape",
+      "String and a ruler (or a sewing tape measure)",
+      "Tape measure (at least 5 m)",
+      "A long, smooth floor, used with permission (hallway or gym)"
+    ],
+    safety: [
+      "An adult cuts the skewer tips and makes the holes in the caps.",
+      "Inflate with a pump (or only your own mouth on your own car) and do not overinflate. Wear goggles in case a balloon pops.",
+      "Clear the track of people before releasing the car."
+    ],
+    independent: "Balloon circumference before release: 40 cm, 55 cm, and 70 cm",
+    dependent: "Distance traveled (cm), from the starting line to the front of the car where it stops",
+    controlled: [
+      "Same car, nozzle, and balloon type",
+      "Same floor surface and starting line",
+      "Car pointed the same direction",
+      "Release method (let go without pushing)",
+      "Balloon inflated the same way each time"
+    ],
+    comparison: "No control group is needed. You are comparing inflation sizes to each other.",
+    repeat: "Run at least 3 trials at each size (5 is better). Rotate the sizes (40, 55, 70, 40, 55, 70…) so balloon wear affects every size equally.",
+    procedure: [
+      "Tape the two axle-holder straws across the underside of the cardboard, one near each end, so they are parallel. Trim them about 1 cm longer than the cardboard is wide.",
+      "Slide a skewer through each straw. Press a bottle-cap wheel onto each end, leaving a small gap between each wheel and the straw.",
+      "Tape the balloon's neck tightly around the short end of the bendable straw so no air leaks. Tape the straw on top of the car so the nozzle sticks out past the back.",
+      "Give the car a gentle test push. Troubleshooting: if a wheel rubs the cardboard, slide it outward or move the straw. If the axles don't turn freely, make sure each skewer is loose inside its straw and the wheels are centered. If the car curves, line up the axles so they are parallel. If the balloon drags, raise the nozzle.",
+      "Cut strings 40 cm, 55 cm, and 70 cm long and tie each into a loop guide, or use a sewing tape. Inflate the balloon through the nozzle, pinching it closed, until the guide just fits around its widest part.",
+      "Set the car's back wheels on the starting line. Let go of the nozzle without pushing.",
+      "Measure from the starting line to the front of the car where it stopped. Record the distance in centimeters.",
+      "Repeat, rotating the sizes, until each size has at least 3 trials. Find the averages."
+    ],
+    tables: [
+      {
+        title: "Distance traveled",
+        cols: ["Circumference", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Trial 4 (cm)", "Trial 5 (cm)", "Average (cm)"],
+        rows: ["40 cm", "55 cm", "70 cm"]
+      }
+    ],
+    graph: "Line graph: balloon circumference (cm) on the x-axis and average distance (cm) on the y-axis.",
+    questions: [
+      "How did the distance change as the balloon circumference increased?",
+      "Were some trials very different from the others? What might have caused that (a curve, a bump, a slow release)?",
+      "How did the car's motion look at each size, such as its speed at the start or how it slowed down?",
+      "Measuring circumference with a string takes care. How exact do you think your inflation sizes were?",
+      "What design change might help your car go farther? How would you test it fairly?"
+    ],
+    extension: "Keep the inflation the same and test a design change instead, such as wheel size, nozzle length, or pennies taped on as cargo.",
+    note: "Balloons stretch a little with each use, which can change results. Rotating the sizes spreads this out evenly. If a balloon gets weak or leaks, replace it and note it in your data."
+  },
+
+  {
+    id: "fizzy-volcano",
+    title: "Fizzy Volcano Investigation",
+    difficulty: "Easy",
+    category: "Chemistry / Acids and Bases",
+    themes: ["chemistry", "earth"],
+    keywords: ["volcano", "baking soda", "vinegar", "foam", "eruption", "acid", "base", "fizz", "carbon dioxide"],
+    summary: "Build a model volcano around a clear reaction cup and measure how high the foam rises with different amounts of baking soda.",
+    time: { active: "About 2 hours (including building the volcano)", waiting: "Paint or clay drying, if used" },
+    supplies: "Baking soda, vinegar, dish soap, clear straight-sided cup, ruler, tray",
+    question: "How does the amount of baking soda affect the maximum foam height?",
+    investigating: "Baking soda (a base) reacts with vinegar (an acid) to make carbon dioxide gas. A little dish soap traps the gas in foam that rises up the cup. One eruption is a demonstration. In the experiment, you change only the amount of baking soda and measure how high the foam rises inside the same straight-sided cup.",
+    materials: [
+      "White vinegar, 5% acidity (about 1 L)",
+      "Baking soda (one 1 lb / 454 g box)",
+      "Liquid dish soap",
+      "Food coloring (optional)",
+      "1 clear, straight-sided plastic container at least 15 cm tall, such as a plastic bottle with the top cut off by an adult",
+      "Measuring spoons (1/4, 1/2, and 1 tsp) and a flat edge for leveling",
+      "Graduated cylinder or measuring cup (mL) and a second cup for mixing",
+      "Ruler and clear tape",
+      "Cardboard, paper, and tape (or modeling clay) for the volcano shape",
+      "Large tray or baking pan, safety goggles, paper towels",
+      "Phone or tablet to record video (optional)"
+    ],
+    safety: [
+      "Wear goggles and do every trial on a tray.",
+      "Never put a lid, cork, or balloon on the reaction cup.",
+      "If vinegar gets in your eyes, rinse with water and tell an adult."
+    ],
+    independent: "Amount of baking soda: 1/4, 1/2, 1, and 2 level teaspoons",
+    dependent: "Maximum foam height (cm) inside the cup, measured from the cup's bottom",
+    controlled: [
+      "Vinegar volume (60 mL) and strength (5%)",
+      "Dish soap (2 drops) and food coloring (2 drops)",
+      "Same cup, rinsed and dried between trials",
+      "Room-temperature vinegar",
+      "Vinegar poured in all at once"
+    ],
+    comparison: "No control group is needed; you compare amounts of baking soda to each other.",
+    repeat: "Run at least 3 trials of each amount.",
+    procedure: [
+      "Tape a ruler upright on the outside of the cup with 0 cm at the inside bottom.",
+      "Build a volcano shape around the cup out of cardboard or clay, but leave an open window on the ruler side so you can see the foam. (Or take measurements with the cup alone, and add the volcano only for display.)",
+      "Set the volcano on the tray and put on goggles.",
+      "Measure this trial's baking soda with a level spoon (scrape off the extra with a flat edge) and pour it into the bottom of the cup.",
+      "In a separate cup, mix 60 mL of vinegar with 2 drops of dish soap and 2 drops of food coloring.",
+      "Start recording. Pour all of the vinegar mixture into the reaction cup at once.",
+      "Record the highest point the top of the foam reaches, to the nearest 0.5 cm. If foam spills over, write ‘overflowed.’ Check for leftover powder at the bottom when the fizzing stops.",
+      "Rinse and dry the cup. Repeat until each amount has 3 trials, mixing up the order.",
+      "Find the average maximum foam height for each amount."
+    ],
+    tables: [
+      {
+        title: "Maximum foam height",
+        cols: ["Baking soda", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Average (cm)", "Leftover powder? Other notes"],
+        rows: ["1/4 tsp", "1/2 tsp", "1 tsp", "2 tsp"]
+      }
+    ],
+    graph: "Line graph: baking soda amount (tsp) on the x-axis and average maximum foam height (cm) on the y-axis.",
+    questions: [
+      "Describe the pattern in your graph. Did the foam height change by the same amount each time you added more baking soda?",
+      "Did you see baking soda left at the bottom after the fizzing stopped? What could that tell you about the vinegar?",
+      "Foam height is an indirect measurement. Besides the amount of gas, what else could affect how high the foam rises?",
+      "How consistent were your trials? What could make them more consistent?",
+      "How is your model like a real volcano, and how is it different?"
+    ],
+    extension: "Keep the baking soda the same (1 tsp) and change the volume of vinegar instead.",
+    note: "Foam height is influenced by bubble size and soap, so it is not an exact measurement of how much gas was made. Also, once all the vinegar has reacted, extra baking soda has nothing left to react with."
+  },
+
+  {
+    id: "bubble-glycerin",
+    title: "Giant Bubble Lab",
+    difficulty: "Easy",
+    category: "Physics / Surface Tension",
+    themes: ["materials", "water"],
+    keywords: ["bubbles", "giant bubble", "glycerin", "soap", "surface tension", "bubble solution", "pop", "lifetime"],
+    summary: "Mix bubble solutions with different amounts of glycerin and time how long a bubble dome lasts before it pops.",
+    time: { active: "About 1.5 hours", waiting: "Solutions rest 24 hours" },
+    supplies: "Dish soap, glycerin, water, drinking straws, smooth plate, stopwatch",
+    question: "How does glycerin concentration affect bubble lifetime?",
+    investigating: "A bubble is a thin skin of soapy water wrapped around air. It pops when part of the skin gets too thin, often because water drains down or evaporates. Glycerin is a common bubble-recipe ingredient. Blowing bubbles is a demonstration. In the experiment, you change only the glycerin concentration and time how long same-sized bubbles last.",
+    materials: [
+      "Liquid dish soap (about 150 mL)",
+      "Glycerin from a pharmacy (one 6 fl oz / 180 mL bottle)",
+      "Water (about 1.5 L; distilled water works best)",
+      "4 containers with lids that hold at least 300 mL, plus labels",
+      "Graduated cylinder or measuring cup (mL)",
+      "A clear, smooth plastic plate or lid with a 10 cm circle drawn on paper underneath",
+      "A drinking straw for each person (your bubble wand)",
+      "Stopwatch",
+      "Paper towels"
+    ],
+    safety: [
+      "Bubble solution stings eyes. If it gets in them, rinse with water.",
+      "Blow out through the straw only, never suck in. Use your own straw.",
+      "Wipe up spills right away; soapy floors are very slippery."
+    ],
+    independent: "Glycerin concentration: 0%, 2.5%, 5%, and 10% (0, 7.5, 15, and 30 mL of glycerin in 300 mL of solution)",
+    dependent: "Bubble lifetime (seconds), from when the bubble dome is finished until it pops",
+    controlled: [
+      "Total solution volume (300 mL) and dish soap (30 mL)",
+      "Same type of water",
+      "Resting time (24 hours, covered)",
+      "Same straw, plate, and bubble size (10 cm circle)",
+      "Same indoor spot, away from fans, vents, and sunny windows",
+      "Plate re-wet the same way before each bubble"
+    ],
+    comparison: "The 0% glycerin solution is the control.",
+    repeat: "Make at least 5 bubbles with each solution. Bubble lifetimes vary a lot, so more trials help.",
+    procedure: [
+      "Label four containers 0%, 2.5%, 5%, and 10%.",
+      "Measure 30 mL of dish soap into each container. Add glycerin: 0 mL, 7.5 mL, 15 mL, or 30 mL.",
+      "Add water to bring each container to a total of 300 mL (270 mL, about 262 mL, 255 mL, and 240 mL). Stir gently so you don't make foam.",
+      "Cover the containers and let them rest for 24 hours in the same place.",
+      "Pour a little solution on the plate and spread it over the whole circle with your fingers.",
+      "Dip the end of your straw about 1 cm into the same solution. Touch the straw to the center of the plate and blow gently until the dome's edge reaches the 10 cm circle. Pull the straw away and start the stopwatch.",
+      "Stop the watch when the bubble pops. If it lasts 5 minutes, stop and record ‘300+ s.’",
+      "Wipe the plate dry, re-wet it with the next solution, and repeat. Rotate solutions (0%, 2.5%, 5%, 10%, 0%…) until each has at least 5 bubbles.",
+      "Find the average lifetime for each solution. Note any bubble that popped right away and what you think caused it."
+    ],
+    tables: [
+      {
+        title: "Bubble lifetime",
+        cols: ["Glycerin", "Trial 1 (s)", "Trial 2 (s)", "Trial 3 (s)", "Trial 4 (s)", "Trial 5 (s)", "Average (s)"],
+        rows: ["0%", "2.5%", "5%", "10%"]
+      }
+    ],
+    graph: "Line graph: glycerin concentration (%) on the x-axis and average bubble lifetime (s) on the y-axis.",
+    questions: [
+      "How did the average bubble lifetime change as the glycerin concentration changed?",
+      "Some bubbles pop early because of dust or a dry spot. How did you handle trials like that? Should any be left out? Explain your rule.",
+      "How much did the lifetimes vary within one solution? Is the difference between solutions bigger than that variation?",
+      "What might glycerin be doing to the bubble's skin? How could you test your idea?",
+      "Would your results be the same outdoors on a windy or dry day? Why or why not?"
+    ],
+    extension: "Take your solutions outside on a calm day and make giant bubbles with a wand made of two sticks and a loop of cotton string. Compare how long they last.",
+    note: "Air movement and humidity change bubble lifetimes, so test all solutions in the same place during the same session. Decide before you start what to do with bubbles that are bumped or pop while you are still blowing them."
+  },
+
+  {
+    id: "oobleck-flow",
+    title: "Oobleck Flow Test",
+    difficulty: "Medium",
+    category: "Materials Science / Fluids",
+    themes: ["materials"],
+    keywords: ["oobleck", "cornstarch", "non-newtonian", "fluid", "ramp", "flow", "viscosity", "goo"],
+    summary: "Mix cornstarch and water in different ratios and measure how far each mixture flows down a ramp in one minute.",
+    time: { active: "About 2 hours", waiting: "None" },
+    supplies: "Cornstarch, water, kitchen scale, smooth board, protractor, ruler",
+    question: "How does the cornstarch-to-water ratio affect how far the mixture flows down a ramp?",
+    investigating: "Oobleck is tiny cornstarch grains spread through water. How much it resists flowing depends on how it is pushed: pressed or struck quickly, it resists strongly; moved slowly and gently, it flows. Squeezing oobleck in your hand is a demonstration. In the experiment, you change only the ratio of cornstarch to water and measure how far equal amounts flow down the same ramp in the same time.",
+    materials: [
+      "Cornstarch (one 16 oz / 454 g box)",
+      "Water at room temperature",
+      "Kitchen scale (grams) and a graduated cylinder (mL)",
+      "3 bowls, spoons, and labels",
+      "A 30 mL medicine cup (or 2 tablespoons)",
+      "A smooth, waterproof ramp at least 40 cm long, such as a baking sheet or plastic cutting board",
+      "Books to prop up the ramp, and a protractor or phone level app",
+      "Masking tape, a marker, and a ruler",
+      "Stopwatch",
+      "Paper towels and a tray under the ramp"
+    ],
+    safety: [
+      "Work over a tray and wipe spills quickly. Wet cornstarch is slippery, and dried powder makes dust.",
+      "Throw used oobleck in the trash. Never pour it down a sink, where it can clog the drain.",
+      "Do not eat the mixture."
+    ],
+    independent: "Ratio of cornstarch to water: 100 g of cornstarch mixed with 70 mL, 85 mL, or 100 mL of water",
+    dependent: "Distance flowed (cm) from the start line to the front edge of the mixture after 60 seconds",
+    controlled: [
+      "Ramp surface, length, and angle (20°)",
+      "Amount poured (30 mL) and how it is poured",
+      "Stirring time (2 minutes) and waiting time (1 minute) before each pour",
+      "Water temperature",
+      "Ramp wiped clean and dry between trials"
+    ],
+    comparison: "No control group is needed; you compare the three ratios to each other.",
+    repeat: "Pour at least 3 times from each mixture, stirring before each pour.",
+    procedure: [
+      "Prop the ramp on books at 20°. Check the angle with a protractor or phone level, and set a tray at the bottom to catch drips.",
+      "Stick a strip of tape across the top of the ramp as the start line. Mark centimeters down the side of the ramp with tape and a ruler.",
+      "Make three mixtures, each with 100 g of cornstarch: add 70 mL, 85 mL, or 100 mL of water. Stir each one for 2 minutes until there are no dry lumps. Label the bowls.",
+      "Let a mixture sit for 1 minute, then stir it slowly for 10 seconds (cornstarch settles to the bottom).",
+      "Fill the 30 mL cup level and pour it onto the ramp just below the start line, holding the cup 2 cm above the ramp. Scrape out the cup with a spoon if needed. Start the stopwatch when the cup is empty.",
+      "After 60 seconds, mark the front edge of the mixture and measure its distance from the start line in centimeters.",
+      "Scrape the mixture into the trash, wipe the ramp clean and dry, and repeat. Rotate the mixtures until each has 3 trials.",
+      "Find the average distance for each ratio."
+    ],
+    tables: [
+      {
+        title: "Flow distance after 60 seconds",
+        cols: ["Water per 100 g cornstarch", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Average (cm)", "How it looked and felt"],
+        rows: ["70 mL", "85 mL", "100 mL"]
+      }
+    ],
+    graph: "Line graph: water added per 100 g of cornstarch (mL) on the x-axis and average flow distance (cm) on the y-axis.",
+    questions: [
+      "How did the flow distance change as the ratio changed?",
+      "Did any mixture behave differently when you stirred it fast compared with slowly? Describe what you felt.",
+      "On the ramp, gravity pushes the mixture only gently. Would you expect the same pattern if you struck it with a spoon? How could you test that?",
+      "Why was it important to stir each mixture right before pouring?",
+      "What was hardest to keep the same? How might that have affected your data?"
+    ],
+    extension: "Drop a marble into a cup of each mixture from the same height (10 cm) and describe whether it bounces, sinks quickly, or sinks slowly. Or keep one ratio and change the ramp angle.",
+    note: "Describe oobleck carefully: it resists flow more when pushed hard or fast and flows when moved gently. Saying it ‘turns from a liquid into a solid’ is not accurate. Because cornstarch settles, the time between stirring and pouring matters."
+  },
+
+  {
+    id: "shell-free-egg-osmosis",
+    title: "Bouncing Egg Investigation",
+    difficulty: "Medium",
+    category: "Chemistry / Osmosis",
+    themes: ["chemistry", "water"],
+    keywords: ["bouncing egg", "naked egg", "egg", "vinegar", "membrane", "osmosis", "sugar", "mass", "shell"],
+    summary: "Dissolve an egg's shell in vinegar, then measure how the shell-free egg's mass changes in water and in sugar solution.",
+    time: { active: "About 2 hours over 4 days", waiting: "2–3 days to remove shells + 1 day of soaking" },
+    supplies: "Raw eggs, white vinegar, sugar, jars with lids, kitchen scale",
+    question: "How does the surrounding liquid affect the mass of a shell-free egg?",
+    investigating: "Vinegar slowly dissolves an eggshell, leaving the egg held together by a thin membrane that water can pass through. Making a shell-free egg is a demonstration. In the experiment, you soak shell-free eggs in different liquids for the same time and measure the percent change in their mass. (‘Bouncing egg’ is just the activity's nickname. You do not need to drop or bounce the eggs.)",
+    materials: [
+      "1 dozen raw eggs from the same carton (6 to test, plus spares in case some break)",
+      "White vinegar (about 1 gallon / 3.8 L)",
+      "Granulated sugar (2 cups / about 400 g)",
+      "Water",
+      "8 clear jars with lids, about 500 mL (16 oz) each, plus labels",
+      "Kitchen scale that reads to 0.1 g (a 1 g scale works but is less exact)",
+      "Large spoon for lifting eggs, and a bowl of water",
+      "Paper towels",
+      "Soap, disinfecting wipes, and disposable gloves (optional)"
+    ],
+    safety: [
+      "An adult supervises. Raw eggs can carry germs: wash hands with soap after touching eggs and clean all surfaces.",
+      "Never eat the eggs or taste the liquids.",
+      "Handle eggs gently over a tray; they stay raw and fragile. Throw them away in a sealed bag when you finish."
+    ],
+    independent: "Soaking liquid: plain water or sugar solution",
+    dependent: "Percent change in egg mass after 24 hours of soaking",
+    controlled: [
+      "Same shell-removal method and time",
+      "Same rinsing and blotting before every weighing",
+      "Liquid volume (250 mL) and jar size",
+      "Soaking time (24 hours)",
+      "Same location and temperature (for example, all jars in a refrigerator)",
+      "Eggs from the same carton"
+    ],
+    comparison: "The eggs in plain water are the comparison group for the eggs in sugar solution.",
+    repeat: "Use at least 3 eggs in each liquid, each in its own labeled jar.",
+    procedure: [
+      "Day 1: Gently place each egg in its own labeled jar and cover it with vinegar. Put the lids on loosely. Bubbles will form on the shells.",
+      "Day 2: Carefully pour off the old vinegar and add fresh vinegar.",
+      "Day 3: Lift each egg out with a spoon. Over a bowl of water, gently rub off any leftover shell with your fingertips and rinse the egg. If a lot of shell remains, soak it one more day in fresh vinegar.",
+      "Blot each egg the same way every time: set it on a paper towel, gently pat the top with another towel, and roll it once. Weigh it and record the starting mass.",
+      "Make the sugar solution: stir 2 cups of sugar into 2 cups of warm water until dissolved, then let it cool to room temperature.",
+      "Rinse the jars. Fill 3 jars with 250 mL of plain water and 3 jars with 250 mL of sugar solution. Put one egg in each and label the jars. Note whether any egg floats.",
+      "Cover the jars and keep them in the same place for 24 hours.",
+      "Day 4: Lift out each egg, blot it the same way, and weigh it. Record the final mass and how the egg looks and feels.",
+      "Calculate the percent change: (final mass − starting mass) ÷ starting mass × 100. A loss is a negative number. Find the average for each liquid, then clean up as described in the safety notes."
+    ],
+    tables: [
+      {
+        title: "Egg mass",
+        cols: ["Egg", "Starting mass (g)", "Final mass (g)", "Change (g)", "Percent change (%)", "Appearance"],
+        rows: ["1 – water", "2 – water", "3 – water", "4 – sugar", "5 – sugar", "6 – sugar"]
+      },
+      {
+        title: "Averages",
+        cols: ["Liquid", "Average percent change (%)"],
+        rows: ["Plain water", "Sugar solution"]
+      }
+    ],
+    graph: "Bar graph: soaking liquid on the x-axis and average percent change in mass (%) on the y-axis. Your y-axis may need to include values below zero.",
+    questions: [
+      "How did the average percent change compare between the two liquids?",
+      "Why is percent change a fairer way to compare eggs than change in grams?",
+      "How did each egg's size and firmness change in each liquid?",
+      "Where do you think water moved in each jar? Use the idea of a membrane in your explanation.",
+      "Blotting by hand is not perfectly consistent. How much could leftover liquid on an egg affect your masses?"
+    ],
+    extension: "Add a third liquid, such as salt water (2 tbsp of salt in 250 mL of water) or corn syrup, or weigh the eggs every 4 hours to see how the mass changes over time.",
+    note: "Eggs also gain mass while sitting in vinegar, so record the starting mass only after the shells are removed. Eggs differ in size, which is why several eggs per liquid matter."
+  },
+
+  {
+    id: "invisible-ink-cabbage",
+    title: "Invisible Ink Investigation",
+    difficulty: "Easy",
+    category: "Chemistry / Acids and Bases",
+    themes: ["chemistry"],
+    keywords: ["invisible ink", "secret message", "baking soda", "red cabbage", "indicator", "acid", "base", "color change", "spy"],
+    summary: "Write secret messages with baking-soda solutions of different strengths and reveal them with red-cabbage indicator.",
+    time: { active: "About 1.5 hours", waiting: "30 minutes of drying" },
+    supplies: "Baking soda, red cabbage (indicator made by an adult), cotton swabs, white paper",
+    question: "How does baking-soda concentration affect how visible the revealed message is?",
+    investigating: "Red-cabbage juice is an indicator: it changes color when it touches an acid or a base. Baking soda is a base, so wherever you wrote with it, the juice turns a different color. Revealing one message is a demonstration. In the experiment, you change only the baking-soda concentration and rate how clearly each message shows up.",
+    materials: [
+      "Baking soda (about 2 tsp)",
+      "Warm tap water",
+      "4 small cups, measuring spoons, and a graduated cylinder or measuring cup (mL)",
+      "Red-cabbage indicator, prepared by an adult (about 250 mL)",
+      "Cotton swabs (a new one for each solution)",
+      "White printer paper from one pack, cut into 12 half-sheets",
+      "Pencil",
+      "A paintbrush about 2–3 cm wide",
+      "Phone or tablet for photos",
+      "Paper towels and an apron (cabbage juice stains)"
+    ],
+    safety: [
+      "An adult prepares the cabbage indicator, because it uses boiling water.",
+      "Never use a flame, iron, or any other heat to reveal a message.",
+      "Keep solutions away from eyes; rinse with water if any splashes."
+    ],
+    independent: "Baking-soda concentration: 0 tsp (water only), 1/4 tsp, 1/2 tsp, and 1 tsp, each in 50 mL of warm water",
+    dependent: "Visibility of the revealed message, rated on a 0–4 scale and photographed",
+    controlled: [
+      "Paper type and size",
+      "Same message, letter size, and writing method (one swab dip per letter)",
+      "Drying time (30 minutes)",
+      "Same indicator batch, applied with 3 brush strokes",
+      "Same lighting for rating and photos",
+      "Rating done 1 minute after painting"
+    ],
+    comparison: "The water-only message is the control.",
+    repeat: "Make at least 3 messages with each solution.",
+    procedure: [
+      "An adult prepares the indicator: chop about 1/4 of a red cabbage, cover it with 500 mL of boiling water, let it sit 20 minutes, strain out the cabbage, and cool the purple liquid.",
+      "Label 4 cups. Put 50 mL of warm water in each and stir in 0, 1/4, 1/2, or 1 tsp of baking soda. If some powder will not dissolve, write that down.",
+      "On the back of each half-sheet, write the solution and trial number in pencil (for example, 1/2 tsp – 2).",
+      "On the front, write SCIENCE in block letters about 3 cm tall with a cotton swab, dipping the swab once for each letter. Use a fresh swab for each solution.",
+      "Let all sheets dry flat for 30 minutes.",
+      "Have a partner shuffle the sheets so you can't tell which is which.",
+      "Dip the brush in the indicator and paint over the whole message with 3 even strokes.",
+      "After 1 minute, rate the message: 0 = nothing visible, 1 = only a few marks visible, 2 = some letters readable, 3 = all letters readable up close, 4 = all letters readable from 2 m away. Photograph each sheet in the same spot and light.",
+      "Turn the sheets over to see the labels and record the ratings. Find the average rating for each concentration."
+    ],
+    tables: [
+      {
+        title: "Message visibility (0–4 scale)",
+        cols: ["Baking soda in 50 mL", "Trial 1", "Trial 2", "Trial 3", "Average rating", "Color of the letters"],
+        rows: ["0 tsp (water only)", "1/4 tsp", "1/2 tsp", "1 tsp"]
+      }
+    ],
+    graph: "Bar graph: baking-soda amount on the x-axis and average visibility rating (0–4) on the y-axis.",
+    questions: [
+      "How did the average rating change as the concentration increased?",
+      "What color did the letters turn compared with the background? What does that color tell you?",
+      "What did the water-only message look like? Why was it useful to include?",
+      "Ratings depend on human judgment. Did shuffling the sheets help? Would another person give the same ratings?",
+      "How could you compare the messages without opinions? (Think about your photos.)"
+    ],
+    extension: "Try other ‘inks,’ such as lemon juice, and compare their colors with the indicator, or test one concentration on different kinds of paper.",
+    note: "Visibility ratings are judgments, so use the written scale every time and ask a second person to rate the sheets without knowing their labels. Colors can change as the paper dries, so rate every sheet at the same time after painting."
+  },
+
+  {
+    id: "marker-chromatography",
+    title: "Marker Color Detective",
+    difficulty: "Easy",
+    category: "Chemistry / Chromatography",
+    themes: ["chemistry"],
+    keywords: ["chromatography", "marker", "ink", "colors", "coffee filter", "separate", "detective", "black marker", "dye"],
+    summary: "Separate black marker ink into hidden colors and compare different brands like a detective.",
+    time: { active: "About 1.5 hours", waiting: "10 minutes per run, plus drying" },
+    supplies: "3–4 washable black markers, coffee filters, clear cups, pencil, ruler",
+    question: "How do different water-soluble black markers compare when their inks separate on paper?",
+    investigating: "Many inks are mixtures of colored dyes. As water climbs up the paper, it carries each dye a different distance, so the colors spread apart. Separating one marker is a demonstration. In the experiment, you change only the marker and measure the number of color bands and how far each one travels.",
+    materials: [
+      "3 or 4 washable (water-soluble) black markers of different brands, labeled A, B, C, D",
+      "White basket-style coffee filters (or chromatography paper) cut into 12 or more strips, 2.5 cm × 12 cm",
+      "Pencil (not pen) and ruler",
+      "4 clear cups taller than 10 cm",
+      "Water",
+      "4 pencils or craft sticks and tape to hang the strips",
+      "Timer",
+      "Paper towels"
+    ],
+    safety: [
+      "Use only washable, water-soluble markers and plain water.",
+      "Wipe spills and keep wet strips off clothes; marker dyes can stain."
+    ],
+    independent: "Marker brand or type (A, B, C, D)",
+    dependent: "Number of visible color bands, and the distance each band travels from the start line (cm)",
+    controlled: [
+      "Paper type and strip size",
+      "Starting dot size (about 3 mm) and position (on a line 2 cm from the bottom)",
+      "Water depth (1 cm)",
+      "Development time (10 minutes)",
+      "Same cups and room"
+    ],
+    comparison: "No control group is needed; you are comparing markers. Decide your rule for what counts as a band before you start.",
+    repeat: "Run at least 3 strips for each marker.",
+    procedure: [
+      "Draw a pencil line across each strip 2 cm from the bottom. Write the marker letter and trial number at the top in pencil.",
+      "Make one ink dot in the middle of the line by touching the marker tip to the paper for 2 seconds. Aim for dots about 3 mm wide.",
+      "Pour water into each cup to a depth of exactly 1 cm.",
+      "Tape the top of a strip to a pencil and lay the pencil across a cup so the bottom of the strip just touches the water. The ink dot must stay above the water.",
+      "Start the timer. Don't bump the cups while the water climbs.",
+      "After 10 minutes, lift the strip out and immediately mark the highest point the water reached with pencil.",
+      "Lay the strips flat on a paper towel to dry.",
+      "Count the color bands. For each band, measure from the pencil start line to the middle of the band in cm. Also measure how far the water traveled.",
+      "Repeat until each marker has 3 strips, then compare."
+    ],
+    tables: [
+      {
+        title: "Marker separations",
+        cols: ["Marker & trial", "Number of bands", "Colors (bottom to top)", "Distance of each band (cm)", "Water distance (cm)"],
+        rows: ["A – 1", "A – 2", "A – 3", "B – 1", "B – 2", "B – 3", "C – 1", "C – 2", "C – 3", "D – 1", "D – 2", "D – 3"]
+      }
+    ],
+    graph: "Bar graph: marker on the x-axis and average number of bands on the y-axis. You can also draw each marker's strip to scale, showing where each colored band ended up.",
+    questions: [
+      "Which markers separated into the most colors? Did any show only one color?",
+      "Did the same color appear in more than one marker? Did it travel the same distance each time?",
+      "Were the 3 strips for each marker alike? What might cause differences?",
+      "Some colors blur together. How did you decide what counted as a separate band?",
+      "How could chromatography help a detective figure out which marker wrote a note?"
+    ],
+    extension: "Calculate each band's Rf value (band distance ÷ water distance). Then write a ‘mystery note’ with one marker and challenge a partner to identify it.",
+    note: "Counting bands takes judgment when colors are faint or overlap. A clear rule (for example, a band must be at least 2 mm wide and a different color from its neighbors) makes counts more consistent. Permanent markers will not separate in water."
+  },
+  {
+    id: "dancing-raisins",
+    title: "Dancing Raisins",
+    difficulty: "Easy",
+    category: "Physics / Buoyancy",
+    themes: ["water", "motion"],
+    keywords: ["raisins", "dancing", "carbonation", "sparkling water", "soda", "bubbles", "buoyancy", "float", "sink"],
+    summary: "Drop raisins into sparkling water and count how many times they rise and fall in fresh and flat water.",
+    time: { active: "About 1 hour", waiting: "Flat water is poured 24 hours and 2 hours ahead" },
+    supplies: "Plain sparkling water, raisins, clear plastic cups, stopwatch",
+    question: "How does the amount of carbonation affect the number of raisin trips?",
+    investigating: "A raisin is a little denser than water, so it sinks. In sparkling water, gas bubbles stick to its wrinkly surface and act like tiny floats; at the surface, bubbles pop and the raisin sinks again. Watching raisins dance is a demonstration. In the experiment, you change how flat the water is and count complete trips.",
+    materials: [
+      "3 bottles (1 L each) of plain, unflavored sparkling water, all the same brand",
+      "Tap water",
+      "1 small box of raisins",
+      "12 identical clear plastic cups (about 300 mL)",
+      "Graduated cylinder or measuring cup (mL)",
+      "Stopwatch, and a phone to record video (very helpful)",
+      "Paper towels to cover cups loosely",
+      "Masking tape and a marker for labels"
+    ],
+    safety: [
+      "Use plastic cups so nothing breaks.",
+      "Treat raisins and drinks as lab materials. Do not eat or drink them.",
+      "Wipe up spills right away."
+    ],
+    independent: "Carbonation level, set by how the water is prepared: freshly poured, partly flat (poured 2 hours earlier), fully flat (poured 24 hours earlier), and plain tap water",
+    dependent: "Number of complete trips (a raisin rises to the surface and sinks back to the bottom) made by 5 raisins in 5 minutes",
+    controlled: [
+      "Liquid volume (250 mL)",
+      "All liquids at room temperature",
+      "Same cup shape",
+      "5 raisins of about the same size in each cup",
+      "Same brand of sparkling water",
+      "Same observation time (5 minutes)"
+    ],
+    comparison: "The plain tap water cups are the control. They show what raisins do with no carbonation.",
+    repeat: "Test 3 cups of each condition.",
+    procedure: [
+      "The day before, set all of the unopened bottles on the counter so they reach room temperature.",
+      "24 hours before testing: open one bottle and pour 250 mL into each of 3 labeled cups (‘fully flat’). Cover them loosely with paper towels.",
+      "2 hours before testing: open a second bottle and pour 3 more cups (‘partly flat’). Cover them loosely.",
+      "Sort the raisins and choose ones about the same size. Pull apart any that are stuck together.",
+      "At test time, pour 3 cups of room-temperature tap water. Pour each ‘fresh’ cup from the third bottle only right before you test it, and recap the bottle tightly between pours.",
+      "Drop 5 raisins into a cup and start the stopwatch. Count one trip each time a raisin reaches the surface and then returns to the bottom. Record video so you can recount.",
+      "Stop counting at 5 minutes and record the total trips for that cup.",
+      "Test all 12 cups, then find the average number of trips for each condition."
+    ],
+    tables: [
+      {
+        title: "Raisin trips in 5 minutes",
+        cols: ["Condition", "Cup 1 (trips)", "Cup 2 (trips)", "Cup 3 (trips)", "Average (trips)", "Observations"],
+        rows: ["Fresh", "Partly flat (2 hr)", "Fully flat (24 hr)", "Tap water (control)"]
+      }
+    ],
+    graph: "Bar graph: water condition on the x-axis and average number of trips on the y-axis.",
+    questions: [
+      "How did the number of trips compare across the four conditions?",
+      "Did you notice a pattern during the 5 minutes, such as more movement at the start or later on?",
+      "You did not measure the gas in each cup directly. How sure can you be about which cups had more? Why?",
+      "Counting trips for 5 raisins at once is tricky. How did video help, and what counting errors could still happen?",
+      "Why do bubbles lift a raisin, and why does it sink again at the surface?"
+    ],
+    extension: "Try other small objects, such as popcorn kernels or uncooked pasta pieces, or compare small and large raisins in fresh sparkling water.",
+    note: "Carbonation is compared by how the water was prepared, not measured exactly. Warm liquid holds less gas, so keep every cup at room temperature."
+  },
+
+  {
+    id: "walking-water-bridges",
+    title: "Walking Water Rainbow",
+    difficulty: "Easy",
+    category: "Plant and Water Science / Capillary Action",
+    themes: ["water", "plants"],
+    keywords: ["walking water", "rainbow", "paper towel", "capillary action", "wicking", "colors", "plants"],
+    summary: "Make colored water ‘walk’ between cups on paper-towel bridges and measure how bridge width changes how much water moves.",
+    time: { active: "About 1 hour", waiting: "2 hours" },
+    supplies: "Paper towels, clear cups, food coloring, scissors, measuring cup",
+    question: "How does bridge width affect the rate of water transfer?",
+    investigating: "Water can climb up and along paper fibers because water sticks to the fibers and to itself. This is called capillary action. Watching colors travel and mix is a demonstration. In the experiment, you change only the width of the paper-towel bridge and measure how much water reaches the empty cup in a set time.",
+    materials: [
+      "Paper towels from one roll",
+      "18 identical clear plastic cups (about 300 mL / 10 oz)",
+      "Water (about 2 L) and food coloring",
+      "Ruler, pencil, and scissors",
+      "Graduated cylinder or measuring cup marked in mL (or a kitchen scale; 1 g of water ≈ 1 mL)",
+      "Timer",
+      "Tray or towels to protect the table",
+      "Masking tape and a marker"
+    ],
+    safety: [
+      "Food coloring stains clothes and skin; protect the table.",
+      "Wipe up spills right away."
+    ],
+    independent: "Width of the paper-towel bridge: 2 cm, 4 cm, and 6 cm",
+    dependent: "Volume of water collected in the receiving cup after 2 hours (mL)",
+    controlled: [
+      "Strip length (25 cm) and paper type, cut in the same direction",
+      "Cups touching side by side",
+      "Starting water: 200 mL in the giving cup, 0 mL in the receiving cup",
+      "Both ends of each strip touching the cup bottoms",
+      "Food coloring (5 drops per cup)",
+      "Same room and same time period"
+    ],
+    comparison: "No control group is needed; you compare widths. You can add one pair of cups with no bridge to check that water doesn't move without one.",
+    repeat: "Set up 3 separate pairs of cups for each width (9 setups in all).",
+    procedure: [
+      "Cut paper-towel strips 25 cm long, all in the same direction on the sheet: 3 strips 2 cm wide, 3 strips 4 cm wide, and 3 strips 6 cm wide.",
+      "Label 9 pairs of cups with the width and trial number. In each pair, mark one cup ‘giving’ and one ‘receiving.’",
+      "Pour 200 mL of water into each giving cup and add 5 drops of food coloring. Leave the receiving cups empty.",
+      "Set each pair side by side, touching.",
+      "Start the timer. Bend each strip into an upside-down U and place it so one end touches the bottom of the giving cup and the other touches the bottom of the receiving cup. Place all 9 strips within 2 minutes.",
+      "Don't move the cups. Check every 30 minutes and write what you see.",
+      "After 2 hours, lift each strip out without squeezing it. Pour the water from each receiving cup into the graduated cylinder and record the volume.",
+      "Find the average volume collected for each width, then divide by 2 to find the average rate in mL per hour."
+    ],
+    tables: [
+      {
+        title: "Water collected after 2 hours",
+        cols: ["Bridge width", "Trial 1 (mL)", "Trial 2 (mL)", "Trial 3 (mL)", "Average (mL)", "Rate (mL per hour)"],
+        rows: ["2 cm", "4 cm", "6 cm"]
+      }
+    ],
+    graph: "Bar graph or line graph: bridge width (cm) on the x-axis and average transfer rate (mL per hour) on the y-axis.",
+    questions: [
+      "How did the transfer rate change as the bridge got wider?",
+      "Some water stays soaked in the paper towel instead of reaching the cup. How might that affect your results for wide and narrow strips?",
+      "Did the water keep moving the whole time? What did you notice about the water levels in the two cups?",
+      "Were your 3 setups for each width similar? What might explain any differences?",
+      "Plants also move water upward. How is this model like a plant, and how is it different?"
+    ],
+    extension: "Keep the width the same and test different papers (paper towel, napkin, coffee filter), or set one empty cup between two colored cups to make a rainbow of mixed colors.",
+    note: "This models capillary movement through narrow spaces; it does not recreate every process that moves water through a plant. Run a quick practice setup first: if very little water moves in 2 hours, choose a longer fixed time (such as 4 hours) and use it for every setup."
+  },
+
+  {
+    id: "gummy-bear-salt",
+    title: "Grow a Gummy Bear",
+    difficulty: "Easy",
+    category: "Chemistry / Water Movement in Gels",
+    themes: ["chemistry", "water"],
+    keywords: ["gummy bear", "candy", "gel", "gelatin", "salt", "water", "grow", "osmosis", "soak", "mass"],
+    summary: "Soak gummy bears in water with different amounts of salt and measure how much their mass changes.",
+    time: { active: "About 1 hour over 2 days", waiting: "18 hours of soaking" },
+    supplies: "Gummy bears, salt, clear cups, kitchen scale",
+    question: "How does salt concentration affect the mass of a gummy bear?",
+    investigating: "A gummy bear is a gel: a mesh of gelatin holding sugar and a little water. In a liquid, water can move into the gel, and some sugar can dissolve out. Watching one bear swell is a demonstration. In the experiment, you change only the amount of salt in the soaking water and measure the percent change in mass.",
+    materials: [
+      "1 bag of gummy bears (36 bears of the same color, if possible)",
+      "Table salt (about 3 tbsp)",
+      "Water",
+      "12 identical clear plastic cups and labels",
+      "Graduated cylinder or measuring cup (mL)",
+      "Kitchen scale (one that reads 0.1 g is best)",
+      "Plastic spoon and paper towels",
+      "Ruler with millimeters (optional)",
+      "Plastic wrap or paper towels to cover the cups"
+    ],
+    safety: [
+      "Do not eat the experiment candy or drink the liquids.",
+      "Wash hands and wipe the tables when finished."
+    ],
+    independent: "Salt concentration: 0 g, 2 g, 5 g, and 10 g of salt in 100 mL of water",
+    dependent: "Percent change in mass of the 3 bears in each cup after 18 hours",
+    controlled: [
+      "Bears from the same package (same color if possible)",
+      "Liquid volume (100 mL) at room temperature",
+      "Soaking time (18 hours)",
+      "Same blotting method before weighing",
+      "Cups covered and kept in the same place"
+    ],
+    comparison: "Plain water (0 g of salt) is the control.",
+    repeat: "Use 3 cups for each concentration with 3 bears in each cup (12 cups in all). Each cup counts as one trial.",
+    procedure: [
+      "Label 12 cups: 0 g, 2 g, 5 g, and 10 g, three of each.",
+      "Measure 100 mL of room-temperature water into each cup. Weigh the salt for each cup and stir until it dissolves.",
+      "Choose 3 bears for each cup. Weigh the 3 bears together and record their starting mass. (Optional: measure each bear's length from head to foot in mm.)",
+      "Drop the bears into their cup. Cover the cups and leave them in the same place for 18 hours (for example, 3 p.m. to 9 a.m.).",
+      "Gently lift the bears out with a spoon; they may be soft and fragile.",
+      "Blot the same way every time: lay the bears on a paper towel, touch another paper towel on top once, then move them to the scale.",
+      "Weigh the 3 bears together and record the final mass. Write down their size, shape, and color.",
+      "Calculate the percent change: (final mass − starting mass) ÷ starting mass × 100.",
+      "Find the average percent change for each concentration."
+    ],
+    tables: [
+      {
+        title: "Gummy bear mass (3 bears per cup)",
+        cols: ["Cup", "Starting mass (g)", "Final mass (g)", "Change (g)", "Percent change (%)", "Observations"],
+        rows: ["0 g – 1", "0 g – 2", "0 g – 3", "2 g – 1", "2 g – 2", "2 g – 3", "5 g – 1", "5 g – 2", "5 g – 3", "10 g – 1", "10 g – 2", "10 g – 3"]
+      },
+      {
+        title: "Averages",
+        cols: ["Salt per 100 mL", "Average percent change (%)"],
+        rows: ["0 g", "2 g", "5 g", "10 g"]
+      }
+    ],
+    graph: "Line graph: salt concentration (g per 100 mL) on the x-axis and average percent change in mass (%) on the y-axis.",
+    questions: [
+      "How did the percent change in mass change as the salt concentration increased?",
+      "Did the soaking water look or feel different afterward (color, cloudiness, stickiness)? What might have come out of the bears?",
+      "Mass can change because water moves in and because sugar dissolves out. How does that make your results harder to explain?",
+      "Soft bears are hard to blot the same way every time. How might that affect your data?",
+      "A gummy bear is not a living cell. Which parts of your results might be similar to what happens in cells, and which might not?"
+    ],
+    extension: "Weigh the bears at 2, 6, and 18 hours to see how mass changes over time, or compare sugar water with salt water.",
+    note: "Gummy candy is a gel, not a living cell, and both water movement and dissolving affect its mass. If bears fall apart in a cup, note it and leave that cup out of the averages rather than guessing."
+  },
+
+  {
+    id: "ice-cream-salt",
+    title: "Homemade Ice Cream Lab",
+    difficulty: "Medium",
+    category: "Thermal Science / Freezing",
+    themes: ["heat"],
+    keywords: ["ice cream", "salt", "ice", "freezing", "temperature", "melting", "cold", "bag", "shake"],
+    summary: "Shake a bag of ice and salt around a smaller bag of ice-cream mix and track how the amount of salt changes the temperature.",
+    time: { active: "About 2 hours", waiting: "None" },
+    supplies: "Ice, salt, zip-top freezer bags, half-and-half, sugar, digital thermometer",
+    question: "How does the amount of salt added to the ice affect cooling?",
+    investigating: "Salt makes ice melt at a lower temperature, so an ice-and-salt mixture can get colder than plain ice. That can pull enough heat out of a cream mixture to freeze it. Making ice cream once is a demonstration. In the experiment, you change only the mass of salt in the ice and track the ice bath's temperature over time.",
+    materials: [
+      "Ice cubes (about 8 kg / 18 lb in all — 600 g per trial)",
+      "Table salt or rock salt (about 750 g; one 26 oz container)",
+      "Half-and-half (about 1.5 L) and sugar (12 tbsp); vanilla optional",
+      "12 gallon-size and 24 quart-size zip-top freezer bags",
+      "Kitchen scale (grams) and measuring cups",
+      "Digital thermometer with a probe that reads below −10 °C (14 °F)",
+      "Winter gloves or a thick towel",
+      "Timer",
+      "Tray and paper towels"
+    ],
+    safety: [
+      "Hold the bag with gloves or a towel; it gets cold enough to hurt skin.",
+      "Work over a tray. Salty water can leak and sting cuts.",
+      "Experimental batches are lab materials, not snacks. Any tasting must be a separate activity with clean, food-safe supplies that follows classroom allergy rules."
+    ],
+    independent: "Mass of salt added to 600 g of ice: 0 g, 40 g, 80 g, and 120 g",
+    dependent: "Ice-bath temperature (°C) every 2 minutes for 10 minutes; optional: the inner mixture's consistency (liquid, slushy, soft, or firm)",
+    controlled: [
+      "Ice mass (600 g), all from the same freezer",
+      "Inner mixture: 120 mL of half-and-half + 1 tbsp sugar, straight from the refrigerator",
+      "Same bag sizes",
+      "Shaking method (about 1 shake per second, wrapped in a towel)",
+      "Thermometer placed the same way for each reading",
+      "Same room"
+    ],
+    comparison: "The 0 g bag (ice with no salt) is the control.",
+    repeat: "Run at least 3 bags for each salt amount. Working in groups lets several bags run at the same time.",
+    procedure: [
+      "Make an inner bag: pour 120 mL of cold half-and-half and 1 tbsp of sugar into a quart bag, squeeze out the air, and seal it. Seal it inside a second quart bag.",
+      "Weigh 600 g of ice into a gallon bag. Add this trial's salt, seal the bag, and turn it over 3 times to spread the salt.",
+      "Open the gallon bag, set the inner bag in the middle of the ice, and seal it again.",
+      "Open one corner, push the thermometer probe into the ice (not touching the inner bag), wait 20 seconds, and record the 0-minute temperature. Close the corner.",
+      "Wrap the bag in a towel and shake it about once per second for 2 minutes. Read the temperature the same way and record it. Gently squeeze the inner bag and record its consistency.",
+      "Repeat step 5 until you reach 10 minutes.",
+      "Take out the inner bag, rinse the salt water off the outside, and set it aside as a lab sample to throw away. Pour the salty water down a sink with plenty of water.",
+      "Repeat for each salt amount until each has 3 trials, mixing up the order. Average the temperatures at each time for each salt amount."
+    ],
+    tables: [
+      {
+        title: "Ice-bath temperature (°C) — copy this table for trials 1, 2, and 3",
+        cols: ["Time (min)", "0 g salt", "40 g salt", "80 g salt", "120 g salt"],
+        rows: ["0", "2", "4", "6", "8", "10"]
+      },
+      {
+        title: "Inner mixture at 10 minutes",
+        cols: ["Salt amount", "Trial 1 consistency", "Trial 2 consistency", "Trial 3 consistency", "Average lowest temperature (°C)"],
+        rows: ["0 g", "40 g", "80 g", "120 g"]
+      }
+    ],
+    graph: "Line graph: time (min) on the x-axis and average ice-bath temperature (°C) on the y-axis, with one line for each salt amount. Your y-axis may need to include temperatures below 0 °C.",
+    questions: [
+      "How did the temperature change over time for each salt amount?",
+      "Compare the lowest temperatures reached. Describe any pattern as the salt increased.",
+      "Did the inner mixtures' consistency match what the temperatures showed?",
+      "A reading depends on where the probe sits in the ice. How might that have affected your data?",
+      "Road crews spread salt on icy roads in winter. How does that connect to your results?"
+    ],
+    extension: "Keep the salt mass the same and compare table salt with rock salt, or compare salt with the same mass of sugar.",
+    note: "Shaking by hand varies from person to person, so have the same person shake every bag or switch people in a planned way. Check bag seams before shaking, because a leak changes the ice bath."
+  },
+
+  {
+    id: "straw-rocket-fins",
+    title: "Straw Rocket Launch",
+    difficulty: "Easy",
+    category: "Physics / Aerodynamics",
+    themes: ["motion"],
+    keywords: ["straw rocket", "paper rocket", "rocket", "fins", "flight", "distance", "launch", "aerodynamics"],
+    summary: "Build small paper rockets, launch them from a straw, and measure how fin size changes flight distance.",
+    time: { active: "About 1.5 hours", waiting: "None" },
+    supplies: "Paper, tape, pencil, drinking straws, protractor, tape measure",
+    question: "How does fin size affect flight distance?",
+    investigating: "Fins help a rocket fly straight by keeping its nose pointed forward, but they also add mass and drag. Launching one rocket is a demonstration. In the experiment, you build rockets that are the same except for fin size, launch them the same way, and measure how far each one flies.",
+    materials: [
+      "Printer paper and clear tape",
+      "A pencil slightly thicker than your straw (to roll the rocket bodies on)",
+      "Your own plastic drinking straw (one per person; never share)",
+      "Ruler and scissors",
+      "Protractor, plus a small box or stack of books to build a launch guide",
+      "Tape measure (at least 5 m) and masking tape",
+      "Sticky notes to mark landing spots",
+      "A partner"
+    ],
+    safety: [
+      "Use only soft paper rockets, with no pins, clips, or hard tips.",
+      "Never aim at people or animals. Call ‘clear!’ and check the path before each launch.",
+      "Use your own straw and do not share it."
+    ],
+    independent: "Fin size: right-triangle fins with two 2 cm, 3 cm, or 4 cm sides (small, medium, large)",
+    dependent: "Horizontal flight distance (cm) from the launch line to where the rocket first touches the floor",
+    controlled: [
+      "Rocket body: same paper, 10 cm × 8 cm, rolled the same way",
+      "Same number of fins (3), evenly spaced",
+      "Launch angle (30°) and launch height",
+      "Same person launching, with one short, strong puff",
+      "Same indoor space with no fans"
+    ],
+    comparison: "No control group is required. You may add a rocket with no fins to see how fins change the flight.",
+    repeat: "Launch each rocket at least 5 times, rotating between rockets. Breath-powered launches vary, so more trials help.",
+    procedure: [
+      "Cut a piece of paper 10 cm × 8 cm. Roll it tightly around the pencil to make a tube 10 cm long, and tape the seam.",
+      "Fold the top 1 cm of the tube over and tape it closed to make the nose. Slide the tube off the pencil and check that it slides easily on and off your straw.",
+      "Make 2 more bodies the same way. Label them S, M, and L.",
+      "Cut 3 right-triangle fins for each rocket (2 cm sides for S, 3 cm for M, 4 cm for L) and tape them evenly around the bottom of each tube. If you have a scale that reads 0.1 g, weigh each rocket.",
+      "Tape a launch line on the floor. Set up the launch guide so the straw rests at 30°, checked with a protractor, at the same height every time.",
+      "Slide a rocket onto the straw. Check that the path is clear, then blow one short, strong puff.",
+      "Your partner puts a sticky note where the rocket first touches the floor. Measure the horizontal distance from the launch line in centimeters.",
+      "Rotate rockets (S, M, L, S, M, L…) until each has at least 5 launches. Find the averages."
+    ],
+    tables: [
+      {
+        title: "Flight distance",
+        cols: ["Fin size", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Trial 4 (cm)", "Trial 5 (cm)", "Average (cm)"],
+        rows: ["Small (2 cm)", "Medium (3 cm)", "Large (4 cm)"]
+      }
+    ],
+    graph: "Bar graph: fin size on the x-axis and average flight distance (cm) on the y-axis. Mark the shortest and longest trial on each bar to show the spread.",
+    questions: [
+      "How did the average distance compare for the three fin sizes?",
+      "How much did distances vary for the same rocket? Was that spread bigger or smaller than the differences between rockets?",
+      "Breath power is hard to keep the same. How does that limit your conclusion?",
+      "Did the rockets fly differently (straight, wobbling, curving)? How might fins explain that?",
+      "Bigger fins also add mass. How could you test fin size without changing mass?"
+    ],
+    extension: "Build a more consistent launcher: seal a straw into the cap of an empty plastic bottle with modeling clay, lay the bottle on the floor, and drop the same book onto it from the same height for each launch. Compare its spread of distances with your breath launches.",
+    note: "Breath-powered launches vary from puff to puff, so expect some spread in your data. That is why rotating the rockets and launching each one 5 or more times matters."
+  },
+
+  {
+    id: "marble-coaster-loop",
+    title: "Marble Roller Coaster",
+    difficulty: "Hard",
+    category: "Engineering / Energy and Motion",
+    themes: ["engineering", "motion"],
+    keywords: ["marble", "roller coaster", "loop", "energy", "height", "track", "pipe insulation", "potential energy", "kinetic energy"],
+    summary: "Build a foam roller-coaster track with a loop and find the lowest starting height that sends a marble around it every time.",
+    time: { active: "3–4 hours (including building)", waiting: "None" },
+    supplies: "Foam pipe insulation, masking tape, marble, meter stick, catch tray",
+    question: "What minimum starting height allows a marble to complete a particular loop reliably?",
+    investigating: "A marble released higher up starts with more stored (potential) energy, which turns into motion as it rolls down. To stay on the track at the top of a loop, it has to be moving fast enough. Sending a marble through a loop once is a demonstration. In the experiment, you change only the release height and count how many of 5 tries complete the loop.",
+    materials: [
+      "2 pieces of foam pipe insulation, about 1.8 m (6 ft) each, sized for 3/4-inch pipe — an adult cuts them in half the long way to make 4 U-shaped tracks",
+      "Masking tape (a full roll) and painter's tape for walls",
+      "One glass marble (about 16 mm)",
+      "Meter stick and a tape measure",
+      "Supports: a wall or door (with permission), a tall cardboard box, chairs, or books",
+      "A shoebox lid or tray to catch the marble",
+      "An index card to use as a starting gate",
+      "Marker"
+    ],
+    safety: [
+      "An adult cuts the foam with a sharp knife or scissors.",
+      "Use a catch tray so marbles don't roll underfoot, and pick up loose marbles right away. Keep marbles away from small children.",
+      "Tape to walls only with painter's tape and permission."
+    ],
+    independent: "Release height (cm): the height of the bottom of the marble at the start, measured straight up from the bottom of the loop, in 10 cm steps",
+    dependent: "Number of successful loop completions out of 5 tries at each height",
+    controlled: [
+      "Loop size (about 30 cm across) and shape",
+      "Track pieces, joints, and supports, with no rebuilding between heights",
+      "Same marble",
+      "Release method (lift the gate; never push)",
+      "Same catch tray position"
+    ],
+    comparison: "No control group is needed; you compare release heights. A success means the marble goes all the way around the loop without falling and reaches the catch tray.",
+    repeat: "Make at least 5 releases at each height.",
+    procedure: [
+      "Decide what ‘reliable’ means before you test (for example, 5 out of 5 successes) and write it down.",
+      "Tape track pieces end to end with smooth joints. Run a finger along each joint to make sure the marble won't bump.",
+      "Make a loop about 30 cm across near the bottom of the track. Shift the exit slightly to one side so the track passes beside itself, and tape the loop firmly to its support so it cannot move. Measure and record the loop's diameter.",
+      "Run the ramp up from the loop and tape it to the support. Place the catch tray at the end of the track.",
+      "Mark starting heights on the ramp every 10 cm, measured straight up from the bottom of the loop. Start at the height of the top of the loop and work upward.",
+      "Hold the index card across the track just below a mark, rest the marble against it, and lift the card straight up. Never push the marble.",
+      "Record ✓ if the marble goes all the way around and reaches the tray, or ✗ if it falls or rolls back. Do 5 releases at each height.",
+      "Check the track after each try. If tape comes loose, fix it and write a note.",
+      "Keep going until all 5 tries succeed, then test the next 2 heights to see if the result holds. Optional: test heights 5 cm apart near the point where success became reliable."
+    ],
+    tables: [
+      {
+        title: "Track details",
+        cols: ["Measurement", "Value"],
+        rows: ["Loop diameter (cm)", "Height of loop top (cm)", "Marble diameter (mm)", "Total track length (cm)"]
+      },
+      {
+        title: "Loop results (✓ = success, ✗ = miss)",
+        cols: ["Release height (cm)", "Try 1", "Try 2", "Try 3", "Try 4", "Try 5", "Successes out of 5"],
+        rows: ["", "", "", "", "", "", "", ""]
+      }
+    ],
+    graph: "Bar graph: release height (cm) on the x-axis and number of successful loops (out of 5) on the y-axis.",
+    questions: [
+      "At what height did the marble first complete the loop? At what height did it complete the loop every time?",
+      "Compare your minimum reliable height with the height of the top of the loop. How many times higher was it?",
+      "Where along the track did the marble lose energy? What evidence did you see?",
+      "How might the joints, the foam, and the supports have affected your results?",
+      "If you made the loop bigger, how might the minimum height change? How would you test it?"
+    ],
+    extension: "Build a second loop of a different size and find its minimum reliable height, or add a hill after the loop.",
+    note: "Friction, bumpy joints, and a track that bends all take energy from the marble, so your minimum height depends on how your track was built. Another group's track may give a different answer."
+  },
+
+  {
+    id: "mini-hovercraft",
+    title: "Mini Hovercraft",
+    difficulty: "Medium",
+    category: "Engineering / Air Pressure and Friction",
+    themes: ["engineering", "motion"],
+    keywords: ["hovercraft", "balloon", "air cushion", "friction", "glide", "air pressure", "engineering"],
+    summary: "Build a balloon-powered hovercraft with swap-in air holes and test how the hole size changes how long it glides.",
+    time: { active: "2–3 hours (including building)", waiting: "Glue drying (about 15 minutes)" },
+    supplies: "Plastic lid, plastic bottle top, bottle caps, balloons, stopwatch",
+    question: "How does the air-opening size affect how long the hovercraft glides?",
+    investigating: "Air escaping from the balloon flows under the base and lifts it on a thin cushion of air, which greatly reduces friction with the table. Watching it float is a demonstration. In the experiment, you change only the size of the air opening using swap-in caps, launch the same way each time, and time how long it glides.",
+    materials: [
+      "A stiff, smooth plastic lid about 12–15 cm across, such as from a large food container (the base; rim facing down)",
+      "The top of an empty plastic water bottle (the neck with its threads), cut off by an adult",
+      "3 matching flat caps that screw onto that bottle — an adult drills a center hole in each: 3 mm, 5 mm, and 7 mm",
+      "Hot glue (used only by an adult) or strong waterproof tape",
+      "Several identical 12-inch round balloons and a balloon pump",
+      "String and a ruler for measuring balloon size",
+      "Kitchen scale (grams)",
+      "A ruler for launching",
+      "A smooth table or tile floor at least 2 m long",
+      "Stopwatch"
+    ],
+    safety: [
+      "An adult does all cutting, drilling, and hot gluing. Students do not cut or drill.",
+      "Smooth or tape any rough plastic edges. Do not use CDs or other brittle discs, which can crack into sharp pieces.",
+      "Use a pump and do not overinflate. Wear goggles in case a balloon pops."
+    ],
+    independent: "Air-opening diameter: 3 mm, 5 mm, and 7 mm (swap-in caps)",
+    dependent: "Glide time (seconds), from the end of the push until the hovercraft stops moving",
+    controlled: [
+      "Same base and bottle neck",
+      "Balloon type and inflation (50 cm around)",
+      "Same surface, clean and dry",
+      "Same push: a ruler slid 10 cm forward in about 1 second",
+      "Total mass of the hovercraft with each cap (see step 3)"
+    ],
+    comparison: "No control group is required. You may also test a cap with no hole to see how the craft slides with no air cushion.",
+    repeat: "Run at least 3 glides with each cap (5 is better), rotating between caps.",
+    procedure: [
+      "Adult step: cut a 1.5 cm hole in the center of the lid and smooth the edges. Glue the bottle neck over the hole, threads up, so no air leaks around it. Let it dry.",
+      "Adult step: drill a 3 mm, 5 mm, and 7 mm hole in the center of three matching caps. Label each cap.",
+      "Weigh the hovercraft with each cap screwed on. If the masses differ by more than 1 g, add small pieces of tape to the lighter setups until they match. Record the masses.",
+      "Mark a start line on the surface and lay the ruler behind it.",
+      "Screw on a cap. Pump up the balloon until a 50 cm string loop just fits around it, twist the neck to hold the air in, and stretch the balloon's mouth over the cap and bottle neck (a partner helps).",
+      "Set the hovercraft against the ruler at the start line. Untwist the balloon and wait 2 seconds. Then slide the ruler forward 10 cm in about 1 second and stop it.",
+      "Start the stopwatch when the ruler stops, and stop it when the hovercraft stops moving. If it reaches the edge of your test area first, record that time and write ‘reached edge.’",
+      "Rotate caps until each has at least 3 trials. Find the average glide time for each opening."
+    ],
+    tables: [
+      {
+        title: "Glide time",
+        cols: ["Opening size", "Trial 1 (s)", "Trial 2 (s)", "Trial 3 (s)", "Average (s)", "Craft mass (g)", "Notes"],
+        rows: ["3 mm", "5 mm", "7 mm"]
+      }
+    ],
+    graph: "Bar graph: opening diameter (mm) on the x-axis and average glide time (s) on the y-axis.",
+    questions: [
+      "How did the glide time change as the opening got bigger?",
+      "The opening controls both how strong the air cushion is and how long the balloon's air lasts. How might each affect glide time?",
+      "Did the hovercraft glide straight or spin? How might that affect your measurements?",
+      "Deciding exactly when the craft stops takes judgment. How could video help?",
+      "What design change would you test next, and how would you keep it a fair test?"
+    ],
+    extension: "Keep the opening the same and test base size, or add equal coins taped evenly around the edge to test mass.",
+    note: "Hand pushes and balloon inflation are never perfectly equal, so expect some spread in your times. If the craft hits an edge or wall, note that trial instead of guessing how long it would have glided."
+  },
+
+  {
+    id: "crayon-water-resistance",
+    title: "Water-Repellent Coating Challenge",
+    difficulty: "Easy",
+    category: "Materials Science",
+    themes: ["materials", "water"],
+    keywords: ["waterproof", "water resistant", "water repellent", "crayon", "wax", "coating", "paper", "soak", "drop"],
+    summary: "Rub crayon wax onto paper in different numbers of coats and time how long a water drop takes to soak through.",
+    time: { active: "About 1.5 hours", waiting: "None" },
+    supplies: "Printer paper, one crayon, clear cups, dropper, food coloring, stopwatch",
+    question: "How does the amount of crayon wax applied to paper affect the time water takes to soak through?",
+    investigating: "Paper soaks up water through tiny spaces between its fibers. Wax repels water and can cover or fill some of those spaces. Dripping water on waxy paper is a demonstration. In the experiment, you change only the number of crayon coats and time how long a standard drop takes to show through on the back. This is a water-resistance investigation, not a test of whether paper becomes completely waterproof.",
+    materials: [
+      "White printer paper from one pack, cut into 8 cm × 8 cm squares (12 or more)",
+      "One light-colored wax crayon (white or yellow), used for every square",
+      "Ruler and pencil",
+      "A clear plastic cup to hold each square up so you can see its underside",
+      "Tape",
+      "Dropper or a 1 mL medicine syringe (no needle)",
+      "Water with 1 drop of blue food coloring per 50 mL (so damp spots are easy to see)",
+      "Stopwatch",
+      "Flashlight (optional) and paper towels"
+    ],
+    safety: [
+      "Do not melt crayons or use any heat.",
+      "Food coloring stains; protect the table and clothes."
+    ],
+    independent: "Number of crayon coats on a 4 cm × 4 cm area: 0, 2, 4, and 8 coats",
+    dependent: "Time (seconds) until a damp spot appears on the underside, up to a maximum of 10 minutes",
+    controlled: [
+      "Paper type and square size",
+      "Same crayon and coated area (4 cm × 4 cm)",
+      "How a coat is applied: full coverage, firm even pressure, strokes in one direction, switching direction each coat",
+      "Drop volume (0.2 mL) and drop height (about 1 cm)",
+      "Same water and room"
+    ],
+    comparison: "The uncoated (0 coats) squares are the control.",
+    repeat: "Test at least 3 squares for each number of coats.",
+    procedure: [
+      "Draw a 4 cm × 4 cm box in the center of each paper square. In a corner, write the number of coats and the trial number in pencil.",
+      "Color the box so it is completely covered once; that is one coat. Use firm, even pressure with strokes in one direction. Switch direction for each new coat (side to side, then up and down). Leave 3 squares uncoated.",
+      "Tape a square flat over the mouth of the clear cup, coated side up.",
+      "From about 1 cm above, place 0.2 mL of blue water in the center of the box and start the stopwatch.",
+      "Watch the underside through the side of the cup (a flashlight helps). Stop the watch the moment a blue or damp spot appears underneath.",
+      "If nothing shows after 10 minutes, record ‘600+ s’ and stop.",
+      "Test every square once, rotating between coat numbers, until each has at least 3 trials.",
+      "Find the average time for each number of coats. Count ‘600+’ as 600 and mark it in your table."
+    ],
+    tables: [
+      {
+        title: "Time to soak through",
+        cols: ["Coats", "Trial 1 (s)", "Trial 2 (s)", "Trial 3 (s)", "Average (s)", "Drop shape and spreading"],
+        rows: ["0 (uncoated)", "2", "4", "8"]
+      }
+    ],
+    graph: "Line graph: number of coats on the x-axis and average soak-through time (s) on the y-axis. Mark any ‘600+’ results with an upward arrow.",
+    questions: [
+      "How did the soak-through time change as the number of coats increased?",
+      "How did the drop's shape look on each kind of square? What might that tell you?",
+      "Counting coats does not measure exactly how much wax is on the paper. How could differences in pressure affect your results?",
+      "Deciding when a damp spot first ‘appears’ takes judgment. How did you keep that consistent?",
+      "Would you call any of your squares waterproof? Why is ‘water-resistant’ a more careful word?"
+    ],
+    extension: "Compare other coatings applied the same way, such as a glue stick or a candle rubbed on the paper (never lit), or test different paper types with 4 coats.",
+    note: "Coated paper may hold water off for a while, but that does not prove it is completely waterproof. Because pressure varies, the same person should coat every square."
+  },
+
+  {
+    id: "crater-drop-height",
+    title: "Crater Creator",
+    difficulty: "Medium",
+    category: "Earth and Space Science / Impact Modeling",
+    themes: ["earth"],
+    keywords: ["crater", "impact", "meteorite", "moon", "space", "sand", "drop height", "diameter"],
+    summary: "Drop a ball into a tray of fine sand from different heights and measure the craters it makes.",
+    time: { active: "About 1.5 hours", waiting: "None" },
+    supplies: "Play sand, deep baking pan, golf ball, meter stick, ruler",
+    question: "How does drop height affect crater diameter?",
+    investigating: "Impact craters form when a fast-moving object strikes a surface. In this model, a ball dropped from higher up is moving faster when it hits the sand. Dropping one ball is a demonstration. In the experiment, you change only the drop height and measure the crater's diameter.",
+    materials: [
+      "Fine, washed play sand (about 5 kg / 10 lb)",
+      "A deep baking pan or plastic tub, at least 23 cm × 33 cm (9 × 13 in) and 6 cm deep",
+      "One golf ball (or another heavy ball about 4 cm across)",
+      "Meter stick and a 30 cm ruler",
+      "A long, straight piece of stiff cardboard for leveling",
+      "A fork for loosening the sand",
+      "Safety goggles",
+      "Newspaper or a larger tray under the pan"
+    ],
+    safety: [
+      "Wear goggles. Drop the ball gently from no higher than 1 m, and keep other people back from the tray.",
+      "Pour and smooth the sand slowly to avoid dust. Use washed play sand, not flour or powders.",
+      "Sweep up spilled sand so no one slips."
+    ],
+    independent: "Drop height: 25 cm, 50 cm, 75 cm, and 100 cm, measured from the sand surface to the bottom of the ball",
+    dependent: "Crater diameter (cm): the average of two rim-to-rim measurements taken at right angles",
+    controlled: [
+      "Same ball",
+      "Same sand, sand depth (5 cm), and tray",
+      "Same loosening and leveling steps before every drop",
+      "Drop spot (the center of the tray)",
+      "Release method (let go without pushing or spinning)"
+    ],
+    comparison: "No control group is required; you compare drop heights.",
+    repeat: "Make at least 3 drops at each height, re-leveling the sand each time.",
+    procedure: [
+      "Fill the pan with sand about 5 cm deep and set it on newspaper on the floor or a low table.",
+      "Before every drop, loosen the sand by stirring it with a fork, then drag the straight edge across the top of the pan to make it flat.",
+      "Hold the meter stick upright beside the center of the pan. Hold the ball so its bottom is at the drop height.",
+      "Let go without pushing. Lift the ball out carefully with your fingertips, touching the sand as little as possible.",
+      "Lay the ruler across the top of the pan (not touching the sand) and measure the crater from rim to rim. Measure again at a right angle to the first.",
+      "Average the two measurements and record it. Note any sand thrown out of the crater (ejecta) or streaks (rays).",
+      "Loosen and level the sand again, then drop again. Rotate heights until each has at least 3 drops.",
+      "Find the average crater diameter for each height."
+    ],
+    tables: [
+      {
+        title: "Crater diameter",
+        cols: ["Drop height & trial", "Diameter 1 (cm)", "Diameter 2 (cm)", "Average diameter (cm)", "Notes"],
+        rows: ["25 cm – 1", "25 cm – 2", "25 cm – 3", "50 cm – 1", "50 cm – 2", "50 cm – 3", "75 cm – 1", "75 cm – 2", "75 cm – 3", "100 cm – 1", "100 cm – 2", "100 cm – 3"]
+      },
+      {
+        title: "Averages",
+        cols: ["Drop height", "Average crater diameter (cm)"],
+        rows: ["25 cm", "50 cm", "75 cm", "100 cm"]
+      }
+    ],
+    graph: "Line graph: drop height (cm) on the x-axis and average crater diameter (cm) on the y-axis.",
+    questions: [
+      "How did the crater diameter change as the drop height increased? Did it grow by the same amount each time?",
+      "A crater's rim is not always sharp. How did you decide where to measure?",
+      "Why did you loosen and level the sand before every drop? What might happen if you skipped that?",
+      "Besides diameter, what other differences did you notice between craters (depth, ejecta, rays)?",
+      "How is this model like a real impact crater on the Moon, and how is it different?"
+    ],
+    extension: "Keep the height the same and compare balls of the same size but different masses, or measure crater depth with a toothpick and ruler.",
+    note: "This is a simplified model. Real objects from space hit at far higher speeds and release much more energy, so real craters form differently from a ball landing in sand."
+  },
+
+  {
+    id: "magnetic-maze",
+    title: "Magnetic Maze Challenge",
+    difficulty: "Medium",
+    category: "Physics / Magnetism",
+    themes: ["electricity"],
+    keywords: ["magnet", "magnetic", "maze", "paper clip", "magnetism", "cardboard", "distance", "force"],
+    summary: "Guide a paper clip through a maze with a magnet underneath, then add cardboard layers to find when the magnet can no longer move it reliably.",
+    time: { active: "About 1.5 hours", waiting: "None" },
+    supplies: "Large classroom magnet, steel paper clip, cardboard pieces, books, stopwatch",
+    question: "How does the thickness of a nonmagnetic barrier affect the magnet's ability to move the paper clip?",
+    investigating: "A magnet pulls on steel, and the pull gets weaker as the distance grows. Cardboard is not magnetic, so adding layers mainly moves the magnet farther from the clip; it does not ‘block’ magnetism. Steering a clip once is a demonstration. In the experiment, you change only the number of cardboard layers and test whether the clip can still be guided through the maze.",
+    materials: [
+      "One large classroom bar magnet or ceramic block magnet (not small, high-powered magnets)",
+      "One standard steel paper clip (uncoated, about 3 cm long)",
+      "8 identical pieces of corrugated cardboard, about 25 cm × 25 cm, cut from the same box",
+      "A sheet of paper with the maze path drawn on it",
+      "Two equal stacks of books to hold the board up",
+      "Ruler with millimeters",
+      "Stopwatch",
+      "Tape and marker"
+    ],
+    safety: [
+      "Keep the magnet away from phones, Chromebooks, and cards.",
+      "Do not use small high-powered magnets; they can pinch skin and are dangerous if swallowed.",
+      "Keep fingers clear when the magnet is near steel objects."
+    ],
+    independent: "Number of identical cardboard layers between the magnet and the clip: 1 to 8 (also record the total thickness in mm)",
+    dependent: "Whether the clip completes the maze within 60 seconds (success or fail), and the greatest thickness at which every trial succeeds",
+    controlled: [
+      "Same magnet, held the same way with the same end up",
+      "Same paper clip and maze path",
+      "Magnet kept touching the underside of the board",
+      "Moving speed (slow and steady) and time limit (60 seconds)",
+      "Same person guiding the magnet"
+    ],
+    comparison: "One layer (just the maze board) is the starting condition. Each thicker barrier is compared with it.",
+    repeat: "Run 3 trials at each thickness.",
+    procedure: [
+      "Draw a maze path on paper: a lane 2 cm wide with 3 turns, about 40 cm long, marked START and FINISH. Tape it to one cardboard piece.",
+      "Stack all 8 cardboard pieces, measure the stack's thickness in mm, and divide by 8 to find the thickness of one layer.",
+      "Lay the maze board across the two book stacks so you can reach underneath. The maze board is layer 1.",
+      "Write your rules for success before testing: the clip must reach FINISH within 60 seconds without leaving the lane or being touched.",
+      "Set the clip on START. Hold the magnet against the underside of the board below it.",
+      "Start the stopwatch and slowly guide the clip along the lane. Record ✓ or ✗ and the time.",
+      "Do 3 trials. Then tape one more cardboard layer under the maze board and repeat.",
+      "Keep adding layers until all 3 trials fail or you have tested all 8 layers. Record the greatest thickness where all 3 trials succeeded."
+    ],
+    tables: [
+      {
+        title: "Maze results",
+        cols: ["Layers", "Total thickness (mm)", "Trial 1 (✓/✗, s)", "Trial 2 (✓/✗, s)", "Trial 3 (✓/✗, s)", "Successes out of 3"],
+        rows: ["1", "2", "3", "4", "5", "6", "7", "8"]
+      }
+    ],
+    graph: "Bar graph: barrier thickness (mm) on the x-axis and number of successes (out of 3) on the y-axis.",
+    questions: [
+      "At what thickness did the clip first have trouble following the magnet? What did the clip do?",
+      "What was the greatest thickness where every trial succeeded?",
+      "Cardboard is not magnetic. Why did adding layers change your results?",
+      "Moving speed and the way you hold the magnet can vary. How might that affect trials near the limit?",
+      "How could you test whether the barrier's material matters, not just its thickness?"
+    ],
+    extension: "Replace the cardboard with equal thicknesses of other nonmagnetic materials, such as plastic or wood, or compare two different magnets.",
+    note: "Near the limit, success depends partly on how carefully the magnet is moved, so the ‘greatest reliable thickness’ involves some judgment. That is why the rules for success are written down before testing."
   }
 ];

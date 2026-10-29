@@ -550,6 +550,235 @@ const PROJECT_ART = (function () {
           '<rect x="178" y="78" width="16" height="30" rx="2" fill="#2b2f33"/><rect x="180" y="80" width="12" height="12" fill="#c98a1b"/>' +
           '<circle cx="208" cy="62" r="8" fill="#f5c431" stroke="#2b2f33" stroke-width="1.5"/>' + t(208, 65, "A", 8);
       }
+    },
+
+    /* ----- Projects 37–56 ----- */
+    "elephant-toothpaste-yeast": {
+      alt: "A tall clear container on a tray fills with pink foam. A ruler stands beside it, and a small cup of yeast mixture waits nearby.",
+      draw: function () {
+        return WALL + TABLE + '<rect x="60" y="132" width="190" height="8" rx="3" fill="#9aa3ad"/>' +
+          anim("a-fill", '<path d="M136 132V70q6-10 13-4q7-10 14-2q7-8 13 2v66z" fill="#f7c6d9"/><circle cx="146" cy="96" r="3" fill="#fff"/><circle cx="160" cy="82" r="2.5" fill="#fff"/><circle cx="166" cy="112" r="3" fill="#fff"/><circle cx="150" cy="120" r="2" fill="#fff"/>') +
+          '<rect x="134" y="40" width="44" height="92" rx="3" fill="#fff" fill-opacity=".3" stroke="#8fb6cf" stroke-width="2"/>' +
+          ruler(186, 132, 90, true) + cup(96, 132, 26, 24, 0.5, "#e8d3a8") +
+          t(96, 160, "yeast", 8, "#fff") + t(156, 160, "3% peroxide", 8, "#fff") + timer(270, 112);
+      }
+    },
+    "lava-lamp-tablet": {
+      alt: "A clear jar holds a red water layer under yellow oil. Red blobs float up through the oil. Whole, half, and quarter tablets lie beside it.",
+      draw: function () {
+        return WALL + TABLE +
+          '<rect x="122" y="52" width="56" height="58" fill="#f6d77a" opacity=".85"/><rect x="122" y="110" width="56" height="30" fill="#e0524a"/>' +
+          anim("a-lift", '<circle cx="138" cy="104" r="5" fill="#e0524a"/><circle cx="140" cy="111" r="1.5" fill="#fff"/>') +
+          anim("a-lift", '<circle cx="160" cy="102" r="6" fill="#e0524a"/><circle cx="158" cy="110" r="1.5" fill="#fff"/>', "animation-delay:.8s") +
+          anim("a-lift", '<circle cx="150" cy="96" r="4" fill="#e0524a"/>', "animation-delay:1.6s") +
+          '<rect x="120" y="42" width="60" height="98" rx="4" fill="#fff" fill-opacity=".2" stroke="#8fb6cf" stroke-width="2"/>' +
+          t(150, 80, "oil", 8, "#7a5a12") + t(150, 128, "water", 8, "#fff") +
+          '<circle cx="222" cy="130" r="9" fill="#fff" stroke="#9aa3ad"/><path d="M244 130a9 9 0 0 1 18 0z" fill="#fff" stroke="#9aa3ad"/><path d="M278 130v-9a9 9 0 0 1 9 9z" fill="#fff" stroke="#9aa3ad"/>' +
+          t(222, 156, "1", 8, "#fff") + t(253, 156, "1/2", 8, "#fff") + t(282, 156, "1/4", 8, "#fff") + timer(60, 112);
+      }
+    },
+    "slime-stretch": {
+      alt: "Green slime stretches into a long strand above a meter stick. A glue bottle and a saline bottle stand in the back.",
+      draw: function () {
+        return WALL + TABLE +
+          '<rect x="20" y="58" width="24" height="46" rx="4" fill="#fff" stroke="#c9d3cc"/><path d="M26 58l6-12 6 12z" fill="#f28c28"/>' + t(32, 86, "glue", 7) +
+          '<rect x="276" y="60" width="22" height="44" rx="4" fill="#dff1fb" stroke="#8fb6cf"/><rect x="282" y="52" width="10" height="9" fill="#2f6fc4"/>' + t(287, 86, "saline", 6) +
+          ruler(30, 140, 260) + '<ellipse cx="60" cy="116" rx="18" ry="12" fill="#5cc87a"/>' +
+          anim("a-bend", '<path d="M72 110C120 114 180 116 228 112v8C180 122 120 122 72 122z" fill="#5cc87a"/><ellipse cx="240" cy="116" rx="14" ry="10" fill="#5cc87a"/>');
+      }
+    },
+    "balloon-race-car": {
+      alt: "A cardboard car with bottle-cap wheels and a red balloon on top rolls away from a tape starting line across the floor.",
+      draw: function () {
+        return WALL + FLOOR + '<rect x="20" y="140" width="6" height="40" fill="#5aa6dd"/>' + t(23, 136, "start", 7) +
+          '<rect x="30" y="162" width="270" height="8" fill="#f5d76e"/>' +
+          anim("a-roll",
+            '<rect x="28" y="116" width="62" height="8" rx="2" fill="#c8a06a"/><circle cx="40" cy="131" r="9" fill="#2f6fc4"/><circle cx="78" cy="131" r="9" fill="#2f6fc4"/><circle cx="40" cy="131" r="3" fill="#fff"/><circle cx="78" cy="131" r="3" fill="#fff"/>' +
+            '<path d="M30 112h36" stroke="#9aa3ad" stroke-width="3"/><ellipse cx="74" cy="96" rx="18" ry="15" fill="#e0524a"/><path d="M62 106l-6 6" stroke="#e0524a" stroke-width="4"/>', "--dx:190px");
+      }
+    },
+    "fizzy-volcano": {
+      alt: "A cardboard volcano on a tray has a window cut in its side, showing a clear cup where foam rises beside a ruler. A vinegar bottle and baking soda box sit nearby.",
+      draw: function () {
+        return WALL + TABLE + '<rect x="40" y="132" width="230" height="8" rx="3" fill="#9aa3ad"/>' +
+          '<path d="M60 132L128 50h44l68 82z" fill="#8a6440"/><path d="M128 50h44l-6 8h-32z" fill="#6b4c30"/>' +
+          '<rect x="134" y="62" width="34" height="70" fill="#eef5ef"/>' +
+          anim("a-fill", '<path d="M136 132V96q5-7 10-2q5-7 10 0q5-6 10 2v36z" fill="#f2a65a"/><circle cx="146" cy="110" r="2.5" fill="#fff"/><circle cx="158" cy="120" r="2" fill="#fff"/>') +
+          '<rect x="134" y="62" width="34" height="70" fill="none" stroke="#8fb6cf" stroke-width="2"/>' + ruler(170, 132, 70, true) +
+          '<rect x="268" y="70" width="24" height="62" rx="4" fill="#fff" stroke="#c9d3cc"/><rect x="274" y="62" width="12" height="9" fill="#d6372e"/>' + t(280, 104, "vinegar", 6) +
+          '<rect x="14" y="98" width="34" height="34" fill="#f5c431"/>' + t(31, 114, "baking", 6) + t(31, 122, "soda", 6);
+      }
+    },
+    "bubble-glycerin": {
+      alt: "A shimmering bubble dome sits on a wet plate inside a drawn circle, with a straw nearby. Four labeled bottles of bubble solution stand behind it.",
+      draw: function () {
+        let s = WALL + TABLE + '<ellipse cx="110" cy="136" rx="66" ry="7" fill="#dfe6ea" stroke="#9aa3ad"/>' +
+          anim("a-pulse", '<path d="M62 136a48 48 0 0 1 96 0z" fill="#cfe9f7" fill-opacity=".45" stroke="#8fb6cf" stroke-width="2"/><path d="M80 110a30 30 0 0 1 22-14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>') +
+          '<path d="M168 112l38-34" stroke="#e8462e" stroke-width="5" stroke-linecap="round"/>';
+        ["0%", "2.5%", "5%", "10%"].forEach(function (lab, i) {
+          const x = 222 + i * 24;
+          s += '<rect x="' + (x - 9) + '" y="98" width="18" height="40" rx="3" fill="#e6f6ff" stroke="#8fb6cf"/><rect x="' + (x - 5) + '" y="92" width="10" height="7" fill="#7a4b9a"/>' + t(x, 156, lab, 7, "#fff");
+        });
+        return s;
+      }
+    },
+    "oobleck-flow": {
+      alt: "A smooth board is propped on books to make a ramp. A white blob of cornstarch mixture slides down from a tape start line. A bowl of mixture and a stopwatch sit nearby.",
+      draw: function () {
+        return WALL + TABLE + books(52, 140, 4) +
+          '<path d="M30 98L250 136v4L30 102z" fill="#9aa3ad"/><path d="M48 96l4 10" stroke="#5aa6dd" stroke-width="4"/>' +
+          anim("a-roll", '<ellipse cx="70" cy="104" rx="14" ry="4" fill="#f4f1e8" stroke="#d8d2bf" transform="rotate(10 70 104)"/>', "--dx:40px") +
+          '<path d="M250 120h50a25 14 0 0 1-50 0z" fill="#f4f1e8" stroke="#c9c2ab" stroke-width="2"/>' + timer(282, 70);
+      }
+    },
+    "shell-free-egg-osmosis": {
+      alt: "Two clear jars each hold one shell-free egg, one labeled water and one labeled sugar. A third egg rests on a kitchen scale.",
+      draw: function () {
+        function jar(x, label, liquid) {
+          return '<rect x="' + (x - 24) + '" y="72" width="48" height="68" rx="6" fill="' + liquid + '" fill-opacity=".5" stroke="#8fb6cf" stroke-width="2"/><rect x="' + (x - 26) + '" y="64" width="52" height="9" rx="2" fill="#5c6a60"/>' +
+            '<ellipse cx="' + x + '" cy="114" rx="13" ry="17" fill="#f7e7c6" fill-opacity=".9" stroke="#e2c58f"/><circle cx="' + x + '" cy="118" r="6" fill="#f5c431" opacity=".55"/>' + t(x, 158, label, 8, "#fff");
+        }
+        return WALL + TABLE + jar(70, "water", "#dff1fb") + jar(150, "sugar", "#f6efd9") +
+          scale(250, 140, "g") + '<ellipse cx="250" cy="112" rx="12" ry="15" fill="#f7e7c6" stroke="#e2c58f"/>';
+      }
+    },
+    "invisible-ink-cabbage": {
+      alt: "A brush paints purple cabbage juice over a sheet of paper, and a hidden word, SCIENCE, appears. A cup of purple indicator sits beside it.",
+      draw: function () {
+        return WALL + TABLE + '<rect x="40" y="40" width="160" height="96" fill="#fff" stroke="#c9d3cc"/>' +
+          anim("a-fill", '<rect x="42" y="42" width="156" height="92" fill="#a77fc4" opacity=".75"/>') +
+          anim("a-pulse", '<text x="120" y="96" class="pa-t" text-anchor="middle" style="font-size:22px;fill:#3f8f5a">SCIENCE</text>') +
+          '<path d="M210 40l40-22" stroke="#8a5a2b" stroke-width="6" stroke-linecap="round"/><path d="M204 44l10-6 4 6-10 6z" fill="#7a4b9a"/>' +
+          cup(262, 140, 40, 40, 0.6, "#7a4b9a") + t(262, 158, "indicator", 7, "#fff");
+      }
+    },
+    "marker-chromatography": {
+      alt: "Four cups each hold a paper strip hanging from a pencil, with a black ink dot just above the water. Water creeps up each strip. Four black markers lie on the table.",
+      draw: function () {
+        let s = WALL + TABLE;
+        ["A", "B", "C", "D"].forEach(function (lab, i) {
+          const x = 50 + i * 70;
+          s += '<path d="M' + (x - 26) + ' 46h52" stroke="#f5c431" stroke-width="5" stroke-linecap="round"/>' +
+            '<rect x="' + (x - 7) + '" y="48" width="14" height="86" fill="#fff" stroke="#c9d3cc"/>' +
+            anim("a-grow", '<rect x="' + (x - 6) + '" y="70" width="12" height="62" fill="#cfe9f7"/>', "animation-delay:" + i * 0.3 + "s") +
+            '<circle cx="' + x + '" cy="118" r="2.5" fill="#26292b"/>' + cup(x, 140, 40, 60, 0.18) + t(x, 40, lab, 9);
+        });
+        return s + '<rect x="70" y="150" width="40" height="7" rx="3" fill="#26292b"/><rect x="200" y="150" width="40" height="7" rx="3" fill="#26292b"/>';
+      }
+    },
+    "dancing-raisins": {
+      alt: "Four clear cups of water labeled fresh, 2 hours, 24 hours, and tap. In each cup, raisins sit at the bottom while one rises with bubbles.",
+      draw: function () {
+        let s = WALL + TABLE;
+        ["fresh", "2 hr", "24 hr", "tap"].forEach(function (lab, i) {
+          const x = 50 + i * 72;
+          s += cup(x, 140, 52, 74, 0.85, "#dff1fb") +
+            '<ellipse cx="' + (x - 6) + '" cy="135" rx="4" ry="3" fill="#5a2f4a"/><ellipse cx="' + (x + 6) + '" cy="135" rx="4" ry="3" fill="#5a2f4a"/>' +
+            anim("a-lift", '<ellipse cx="' + x + '" cy="126" rx="4" ry="3" fill="#5a2f4a"/><circle cx="' + (x - 4) + '" cy="122" r="1.5" fill="#fff"/><circle cx="' + (x + 4) + '" cy="123" r="1.5" fill="#fff"/>', "animation-delay:" + i * 0.4 + "s") +
+            t(x, 158, lab, 8, "#fff");
+        });
+        return s;
+      }
+    },
+    "walking-water-bridges": {
+      alt: "Three pairs of cups are joined by paper-towel bridges of three widths. Colored water travels from each full cup into the empty cup beside it.",
+      draw: function () {
+        let s = WALL + TABLE;
+        [[56, 3, "2 cm"], [160, 6, "4 cm"], [264, 9, "6 cm"]].forEach(function (p) {
+          const x = p[0];
+          s += cup(x - 22, 140, 40, 56, 0.75, "#5aa6dd") +
+            anim("a-fill", '<path d="M' + (x + 12) + ' 132h20l-2 8h-16z" fill="#5aa6dd"/>') + cup(x + 22, 140, 40, 56, 0) +
+            '<path d="M' + (x - 22) + " 136V76q22-14 44 0V136" + '" fill="none" stroke="#f2f2f2" stroke-width="' + p[1] + '" stroke-linejoin="round"/>' +
+            '<path d="M' + (x - 22) + " 136V96" + '" fill="none" stroke="#5aa6dd" stroke-opacity=".5" stroke-width="' + p[1] + '"/>' + t(x, 158, p[2], 8, "#fff");
+        });
+        return s;
+      }
+    },
+    "gummy-bear-salt": {
+      alt: "Four clear cups labeled 0 grams, 2 grams, 5 grams, and 10 grams of salt each hold three identical gummy bears. A salt shaker and a scale sit nearby.",
+      draw: function () {
+        function bear(x, y, color) {
+          return '<g fill="' + color + '" opacity=".9"><circle cx="' + (x - 3) + '" cy="' + (y - 11) + '" r="1.8"/><circle cx="' + (x + 3) + '" cy="' + (y - 11) + '" r="1.8"/><circle cx="' + x + '" cy="' + (y - 8) + '" r="3.6"/><ellipse cx="' + x + '" cy="' + (y - 1) + '" rx="4" ry="5"/></g>';
+        }
+        let s = WALL + TABLE;
+        ["0 g", "2 g", "5 g", "10 g"].forEach(function (lab, i) {
+          const x = 40 + i * 58;
+          s += cup(x, 140, 46, 56, 0.7, "#e6f6ff") + bear(x - 9, 136, "#e0524a") + bear(x, 136, "#e0524a") + bear(x + 9, 136, "#e0524a") + t(x, 158, lab, 8, "#fff");
+        });
+        return s + '<path d="M262 132v-26q0-8 8-8h4q8 0 8 8v26z" fill="#fff" stroke="#9aa3ad"/><path d="M264 98q8-10 16 0" fill="#9aa3ad"/>' + t(272, 120, "salt", 7) + scale(292, 140, "g");
+      }
+    },
+    "ice-cream-salt": {
+      alt: "A big zip-top bag full of ice cubes and salt surrounds a smaller bag of cream. It shakes back and forth while a thermometer and a salt container wait nearby.",
+      draw: function () {
+        let ice = "";
+        [[96, 70], [118, 66], [176, 70], [196, 76], [92, 104], [196, 106], [110, 118], [182, 118], [140, 120]].forEach(function (c) { ice += iceCube(c[0], c[1], 14); });
+        return WALL + TABLE +
+          anim("a-shake", '<rect x="80" y="54" width="140" height="84" rx="12" fill="#eef8fd" fill-opacity=".7" stroke="#8fb6cf" stroke-width="2"/><path d="M80 64h140" stroke="#2f6fc4" stroke-width="3"/>' + ice +
+            '<rect x="126" y="84" width="50" height="34" rx="6" fill="#fbf3dc" stroke="#d9c79a"/>' + t(151, 104, "cream", 7, "#7a5a12")) +
+          thermo(250, 132, 70, 0.25) + '<rect x="272" y="94" width="28" height="44" rx="4" fill="#2f6fc4"/>' + t(286, 120, "salt", 8, "#fff") + t(150, 160, "ice + salt", 8, "#fff");
+      }
+    },
+    "straw-rocket-fins": {
+      alt: "A straw rests on a launch box at an angle, and a small paper rocket with fins flies off it across the room toward a sticky note on the floor.",
+      draw: function () {
+        return WALL + FLOOR + '<rect x="20" y="104" width="44" height="36" fill="#c8a06a"/><path d="M40 104l36-22" stroke="#5aa6dd" stroke-width="5" stroke-linecap="round"/>' +
+          '<rect x="30" y="162" width="270" height="8" fill="#f5d76e"/><rect x="262" y="146" width="14" height="10" fill="#ffe27a" stroke="#d9a90f"/>' +
+          '<path d="M78 80Q170 20 268 140" fill="none" stroke="#9aa3ad" stroke-width="1.5" stroke-dasharray="4 4"/>' +
+          anim("a-fly", '<g transform="rotate(-30 80 80)"><rect x="70" y="76" width="24" height="8" rx="2" fill="#fff" stroke="#5c6a60" stroke-width="1.5"/><path d="M94 76l6 4-6 4z" fill="#e8462e"/><path d="M70 76l-6-5v5zM70 84l-6 5v-5z" fill="#2f6fc4"/></g>', "--dx:190px;--dy:60px");
+      }
+    },
+    "marble-coaster-loop": {
+      alt: "An orange foam track drops from high on a wall into a loop and runs out to a catch tray. A marble waits at the top, and a dashed arrow shows the release height.",
+      draw: function () {
+        return WALL + FLOOR +
+          '<path d="M24 34C80 40 130 134 200 134" fill="none" stroke="#f28c28" stroke-width="7" stroke-linecap="round"/>' +
+          '<circle cx="204" cy="100" r="34" fill="none" stroke="#f28c28" stroke-width="7"/><path d="M208 134H286" stroke="#f28c28" stroke-width="7" stroke-linecap="round"/>' +
+          '<rect x="280" y="128" width="34" height="12" rx="2" fill="#c8a06a"/>' +
+          anim("a-pulse", '<circle cx="30" cy="28" r="6" fill="#2f6fc4" stroke="#fff" stroke-width="1.5"/>') +
+          '<path d="M12 30V134" stroke="#26292b" stroke-dasharray="4 3"/><path d="M8 36l4-6 4 6M8 128l4 6 4-6" fill="none" stroke="#26292b"/>' + t(70, 160, "release height", 8, "#5c4a12");
+      }
+    },
+    "mini-hovercraft": {
+      alt: "A hovercraft made of a plastic lid with a bottle cap and a balloon on top glides across a table on a cushion of air, pushed off from a ruler.",
+      draw: function () {
+        return WALL + TABLE + '<rect x="14" y="124" width="10" height="16" fill="#f5d76e"/>' +
+          anim("a-roll",
+            '<path d="M36 132q40-10 80 0v4H36z" fill="#2f6fc4"/><rect x="70" y="118" width="12" height="12" fill="#e6f6ff" stroke="#8fb6cf"/><rect x="68" y="112" width="16" height="7" rx="2" fill="#2e7d4a"/>' +
+            '<ellipse cx="76" cy="92" rx="20" ry="20" fill="#f5c431"/><path d="M70 110l6 4 6-4" fill="#f5c431"/>' +
+            anim("a-blow", '<path d="M118 136h10M118 132h8" stroke="#8fb6cf" stroke-width="2" stroke-linecap="round"/>'), "--dx:170px");
+      }
+    },
+    "crayon-water-resistance": {
+      alt: "A paper square with a crayon-colored box is taped over a clear cup. A dropper lets a blue drop fall onto it. Uncoated and coated squares and a crayon lie beside it.",
+      draw: function () {
+        let squares = "";
+        [0, 2, 4, 8].forEach(function (n, i) {
+          const x = 196 + i * 30;
+          squares += '<rect x="' + x + '" y="112" width="24" height="24" fill="#fff" stroke="#c9d3cc"/><rect x="' + (x + 6) + '" y="118" width="12" height="12" fill="#f5c431" opacity="' + (n ? 0.2 + n * 0.09 : 0) + '"/>' + t(x + 12, 152, n, 8, "#fff");
+        });
+        return WALL + TABLE + cup(100, 140, 64, 64, 0) + '<rect x="62" y="72" width="76" height="4" fill="#fff" stroke="#c9d3cc"/><rect x="84" y="70" width="32" height="3" fill="#f5c431"/>' +
+          '<path d="M96 22h8v20l-4 6-4-6z" fill="#e6f6ff" stroke="#8fb6cf"/><rect x="94" y="12" width="12" height="10" rx="3" fill="#d6372e"/>' +
+          drop(100, 54, 0, 14, "#2f6fc4") + squares + '<rect x="20" y="132" width="36" height="7" rx="3" fill="#f5c431"/><path d="M56 132l6 3.5-6 3.5z" fill="#e2b72a"/>';
+      }
+    },
+    "crater-drop-height": {
+      alt: "A golf ball falls from beside an upright meter stick toward a pan of smooth sand on the floor.",
+      draw: function () {
+        return WALL + FLOOR + '<rect x="60" y="114" width="190" height="26" rx="3" fill="#7a7f86"/><rect x="64" y="116" width="182" height="8" fill="#e8d3a1"/>' +
+          '<ellipse cx="150" cy="119" rx="16" ry="3.5" fill="#cdb684"/>' + ruler(262, 140, 120, true) +
+          anim("a-fall", '<circle cx="150" cy="34" r="8" fill="#fff" stroke="#9aa3ad" stroke-width="1.5"/><circle cx="147" cy="31" r="1" fill="#c9d3cc"/><circle cx="152" cy="36" r="1" fill="#c9d3cc"/>', "--dy:76px") +
+          '<path d="M164 34h96" stroke="#26292b" stroke-dasharray="3 3"/>';
+      }
+    },
+    "magnetic-maze": {
+      alt: "A cardboard maze board rests on two stacks of books. A magnet held underneath drags a paper clip along the maze path on top.",
+      draw: function () {
+        return WALL + TABLE + books(44, 140, 3) + books(276, 140, 3) +
+          '<path d="M40 86h240l20 22H20z" fill="#d9b98a"/><rect x="20" y="108" width="280" height="6" fill="#b8925e"/><path d="M20 111h280" stroke="#9c7748" stroke-width=".8"/>' +
+          '<path d="M60 92h70l10 10h60l-10-10h50" fill="none" stroke="#2f6fc4" stroke-width="2" stroke-dasharray="5 3"/>' +
+          anim("a-roll", '<path d="M96 95h14a2 2 0 0 0 0-4H98a2 2 0 0 0 0 3h10" fill="none" stroke="#5c6a60" stroke-width="1.5"/><rect x="92" y="117" width="22" height="16" rx="2" fill="#d6372e"/><rect x="92" y="117" width="11" height="16" rx="2" fill="#2f6fc4"/>', "--dx:90px");
+      }
     }
   };
 })();
