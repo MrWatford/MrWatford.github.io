@@ -258,12 +258,13 @@
     return holder.innerHTML;
   }
 
+  // The short 2-page assignment sheet (the full directions stay on the web page)
+  function sheetHTML() {
+    return document.getElementById("sheet-template").innerHTML;
+  }
+
   const PARTS = {
-    directions: function () {
-      return '<h1 class="print-title">Plant &amp; Tree Research Poster Project</h1>' +
-        '<p class="print-sub">Choose a plant. Discover its features. Create a poster that teaches others!</p>' +
-        cloneAll(".pp-print-directions");
-    },
+    directions: sheetHTML,
     organizer: organizerHTML,
     checklist: function () {
       return '<p class="print-name">Name: ______________________________ &nbsp; Class: __________ &nbsp; Plant: ________________</p>' +
