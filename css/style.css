@@ -1563,6 +1563,20 @@ body.dialog-open { overflow: hidden; }
   #print-area .org-sketch { height: 6.2in; border: 2px dashed #555; break-inside: avoid; }
   #print-area .pp-checks { grid-template-columns: 1fr; gap: 2px; }
   #print-area .pp-checks label { padding: 5px 0; font-size: 12pt; }
+  /* short 2-page assignment sheet */
+  #print-area .sheet { font-size: 11pt; line-height: 1.35; }
+  #print-area .sheet p { margin: 0 0 6px; }
+  #print-area .sheet-top { font-weight: 700; margin-bottom: 10px !important; }
+  #print-area .sheet h2 { font-size: 13pt; margin: 14px 0 5px; padding-bottom: 2px; border-bottom: 1.5px solid #333; break-after: avoid; }
+  #print-area .sheet h2 small { font-size: 9.5pt; font-weight: 400; }
+  #print-area .sheet ul, #print-area .sheet ol { margin: 0 0 6px; padding-left: 1.4em; }
+  #print-area .sheet li { margin-bottom: 3px; break-inside: avoid; }
+  #print-area .sheet-boxes { list-style: none; padding-left: 0 !important; columns: 2; column-gap: 24px; }
+  #print-area .sheet-boxes li::before { content: "☐ "; font-weight: 800; }
+  #print-area .sheet-facts, #print-area .sheet-steps { columns: 2; column-gap: 32px; }
+  #print-area .sheet-note { font-size: 10pt; }
+  #print-area .sheet .sheet-page2 { break-before: page; margin-top: 0; }
+  #print-area .sheet-more { margin-top: 14px !important; padding: 6px 10px; border: 1.5px solid #555; border-radius: 6px; font-size: 10pt; }
 }
 .project-feature .panel-body h3 { margin-bottom: 0.3em; }
 
