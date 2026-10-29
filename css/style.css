@@ -1302,3 +1302,266 @@ body.dialog-open { overflow: hidden; }
   #print-area .panel-head, #print-area .vocab h4 { background: none; color: #000 !important; border-bottom: 2px solid #333; }
 }
 .project-center-link { margin: 24px 0 0; }
+
+/* =========================================================
+   Planet Research Poster Project (science/planet-poster-project.html)
+   pp- = page pieces, pm- = the poster-board mockups
+   ========================================================= */
+.pp-jump .chapter-jump { justify-content: center; }
+.pp-intro { font-size: 1.15rem; }
+.pp-basics { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 20px; }
+.pp-due { display: inline-block; background: var(--yellow-50); border: 2px solid #f2dc94; border-radius: 12px; padding: 8px 16px; margin: 0; }
+
+/* Planet choices */
+.pp-planets { list-style: none; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.pp-planets li { margin: 0; text-align: center; background: #101a33; color: var(--white); border-radius: 16px; padding: 12px 10px 14px; }
+.pp-planet-art svg { display: block; width: 100%; max-width: 120px; height: auto; margin: 0 auto 6px; }
+.pp-planets strong { display: block; font-family: "Fredoka", sans-serif; font-size: 1.3rem; font-weight: 600; letter-spacing: 0.02em; }
+.pp-planets small { display: block; color: #cfd8ea; font-weight: 700; font-size: 0.85rem; }
+.pp-req li { font-size: 1.08rem; }
+
+/* Research guide cards */
+.pp-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.pp-fact { border: 2px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--white); }
+.pp-fact h3 { display: flex; align-items: center; gap: 10px; font-size: 1.18rem; }
+.pp-fact > :last-child { margin-bottom: 0; }
+.pp-fact ul { margin: 0 0 0.8em; }
+.pp-letter {
+  display: inline-grid; place-items: center; flex-shrink: 0;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--yellow); color: #1d1d1d; border: 2.5px solid #1d1d1d;
+  font: 600 1rem "Fredoka", sans-serif;
+}
+.pp-unit { background: var(--green-50); border-left: 4px solid var(--green-600); border-radius: 8px; padding: 8px 12px; font-size: 0.97rem; font-weight: 700; color: var(--green-900); }
+.pp-types { list-style: none; padding: 0; }
+.pp-types li { margin: 0 0 4px; }
+.pp-missions { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0 0 0.8em; }
+.pp-missions dt { font-weight: 800; color: var(--green-900); }
+.pp-missions dd { margin: 0; }
+.pp-support { background: var(--yellow-50); border: 1px solid #f2dc94; border-radius: 12px; padding: 10px 14px; }
+.pp-paras .card { display: flex; flex-direction: column; }
+.pp-paras .badge { align-self: flex-start; margin-bottom: 8px; }
+.pp-paras .m-frame { margin-top: auto; }
+.pp-questions li { margin-bottom: 6px; }
+.pp-two-col { columns: 2; column-gap: 24px; }
+.pp-two-col li { break-inside: avoid; }
+
+/* Design section */
+.pp-design { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 12px; }
+.pp-design-item { border: 2px solid var(--line); border-radius: 14px; padding: 14px 18px; }
+.pp-design-item h3 { font-size: 1.15rem; }
+.pp-design-item ul { margin: 0; }
+.pp-order-sample { max-width: 320px; margin-top: 10px; background: #fdfbf4; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+.pp-order-sample svg, .pm-order svg { display: block; width: 100%; height: auto; }
+.o-lbl { font: 800 9px "Nunito Sans", sans-serif; fill: #222; }
+.o-pick { fill: #b5452c; }
+.o-note { font: italic 700 8px "Nunito Sans", sans-serif; fill: #555; }
+
+/* Poster mockups */
+.pp-examples-note { font-size: 1.08rem; }
+.pp-scroll-hint { display: none; font-weight: 800; color: var(--muted); }
+.pm-example { margin: 0 0 34px; }
+.pm-label { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-family: "Fredoka", sans-serif; font-size: 1.35rem; color: var(--green-900); margin-bottom: 10px; }
+.pm-label small { font-family: "Nunito Sans", sans-serif; font-size: 0.95rem; color: var(--muted); }
+.pm-scroll {
+  overflow-x: auto;
+  padding: 18px;
+  border-radius: 14px;
+  background-color: var(--wall);
+  background-image: repeating-linear-gradient(90deg, transparent 0 36px, var(--wall-stripe) 36px 42px);
+}
+.pm-board {
+  container-type: inline-size;
+  position: relative;
+  margin: 0 auto;
+  display: grid;
+  gap: 1.8%;
+  padding: 2.4%;
+  color: var(--white);
+  background-color: #0d1530;
+  background-image:
+    radial-gradient(circle at 12% 18%, #fff 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 78% 9%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 46% 62%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 90% 70%, #fff 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 25% 88%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 63% 30%, #dfe8ff 0 1px, transparent 2px);
+  border-radius: 6px;
+  box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.55);
+}
+.pm-landscape { aspect-ratio: 28 / 22; width: 100%; min-width: 720px; }
+.pm-portrait { aspect-ratio: 22 / 28; width: min(100%, 620px); min-width: 470px; }
+.pm-landscape > * { font-size: 1.32cqw; }
+.pm-portrait > * { font-size: 1.85cqw; }
+.pm-board .pm-title {
+  grid-area: title;
+  font-family: "Fredoka", sans-serif; font-weight: 600;
+  font-size: 6.5cqw; line-height: 1; letter-spacing: 0.08em;
+  text-align: center; color: #ffe27a;
+  text-shadow: 0 0.06em 0 rgba(0, 0, 0, 0.5);
+}
+.pm-portrait .pm-title { font-size: 10cqw; }
+.pm-title small { display: block; font-size: 0.32em; letter-spacing: 0.04em; color: var(--white); margin-top: 0.15em; }
+.pm-card {
+  background: #fdfbf4; color: #222;
+  border-radius: 0.5em;
+  padding: 0.6em 0.8em;
+  box-shadow: 0 0 0 0.35em #5aa6dd;
+  line-height: 1.3;
+  min-width: 0;
+}
+.pm-facts, .pm-factcards .pm-card, .pm-ring .pm-card { box-shadow: 0 0 0 0.35em #f5c431; }
+.pm-dyk { box-shadow: 0 0 0 0.35em #43a267; }
+.pm-sources { box-shadow: 0 0 0 0.35em #b9b9b9; }
+.pm-board .pm-card h4 { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.25em; color: #163d24; letter-spacing: 0; text-transform: none; margin: 0 0 0.3em; }
+.pm-card p { margin: 0 0 0.4em; }
+.pm-card p:last-child { margin-bottom: 0; }
+.pm-card b { display: block; font-weight: 800; }
+.pm-factlist { list-style: none; padding: 0; margin: 0; }
+.pm-factlist li { display: flex; align-items: baseline; gap: 0.4em; margin: 0 0 0.3em; }
+.pm-factlist b { display: inline; }
+.pm-factlist i { flex: 1; border-bottom: 1px solid #b5b5b5; min-width: 2em; height: 0.9em; }
+.pm-line { display: block; height: 1.15em; border-bottom: 1px solid #c4c4c4; }
+.pm-art { grid-area: art; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6em; min-width: 0; }
+.pm-planet { display: block; width: 100%; }
+.pm-planet svg { display: block; width: 100%; height: auto; }
+.pm-tag { font-weight: 800; font-size: 0.9em; color: #ffe27a; border: 1.5px dashed rgba(255, 226, 122, 0.8); border-radius: 999px; padding: 0.15em 0.8em; text-align: center; }
+.pm-raised .pm-planet svg { filter: drop-shadow(0.5em 0.7em 0.5em rgba(0, 0, 0, 0.7)); }
+.pm-three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9em; }
+
+/* Example A: landscape */
+.pm-a { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.1fr); grid-template-rows: auto 1fr auto; grid-template-areas: "title title title" "facts art about" "dyk order sources"; }
+.pm-a .pm-facts { grid-area: facts; }
+.pm-a .pm-about { grid-area: about; }
+.pm-a .pm-dyk { grid-area: dyk; }
+.pm-a .pm-orderbox { grid-area: order; align-self: center; }
+.pm-a .pm-sources { grid-area: sources; }
+.pm-a .pm-planet { max-width: 92%; }
+.pm-b .pm-planet { max-width: 85%; }
+/* Example B: portrait gallery */
+.pm-b { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto 1fr; grid-template-areas: "title title title" "art art cards" "about about about" "dyk order sources"; }
+.pm-b .pm-factcards { grid-area: cards; display: grid; gap: 0.9em; align-content: center; }
+.pm-b .pm-about { grid-area: about; }
+.pm-b .pm-dyk { grid-area: dyk; }
+.pm-b .pm-orderbox { grid-area: order; align-self: center; }
+.pm-b .pm-sources { grid-area: sources; align-self: start; }
+/* Example C: raised planet with fact cards around it */
+.pm-c { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto auto; grid-template-areas: "title" "ring" "about" "bottom"; }
+.pm-c .pm-ring { grid-area: ring; }
+.pm-c .pm-about { grid-area: about; }
+.pm-c .pm-bottom3 { grid-area: bottom; }
+.pm-ring { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr); grid-template-areas: "c1 art c3" "c2 art c4"; gap: 1em; align-items: center; }
+.pm-ring > :nth-child(1) { grid-area: c1; }
+.pm-ring > :nth-child(2) { grid-area: c2; }
+.pm-ring > :nth-child(4) { grid-area: c3; }
+.pm-ring > :nth-child(5) { grid-area: c4; }
+.pm-bottom3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1em; align-items: center; }
+.pm-why { background: var(--white); border: 2px solid var(--green-200); border-radius: 12px; padding: 10px 14px; margin: 12px 0 0; }
+.pp-raised-how { display: flex; align-items: center; gap: 18px; background: var(--green-50); border: 2px solid var(--green-200); border-radius: 14px; padding: 12px 16px; }
+.pp-raised-how svg { width: 230px; flex-shrink: 0; height: auto; }
+.pp-raised-how p { margin: 0; }
+
+/* Artwork ideas */
+.pp-art-ideas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.pp-art-ideas details { border: 2px solid var(--line); border-radius: 12px; background: var(--white); }
+.pp-art-ideas details[open] { border-color: var(--green-600); }
+.pp-art-ideas summary { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; font-family: "Fredoka", sans-serif; font-size: 1.15rem; color: var(--green-900); }
+.pp-art-ideas summary:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.pp-art-ideas details p { margin: 0; padding: 0 14px 12px 60px; }
+.pp-mini svg { display: block; width: 38px; height: auto; }
+
+/* Sources */
+.pp-cite-format { font-weight: 800; color: var(--green-900); background: var(--green-50); border: 2px dashed var(--green-600); border-radius: 12px; padding: 10px 14px; }
+.pp-cite-examples p { margin: 0 0 8px; }
+.pp-cite-label { display: inline-block; min-width: 76px; margin-right: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.pp-links { margin-bottom: 12px; }
+.pp-small { font-size: 0.95rem; color: var(--muted); }
+
+/* Strong project */
+.pp-strong { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.pp-strong li { margin: 0; display: flex; gap: 10px; align-items: center; font-weight: 700; border: 2px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+
+/* Checklist */
+.pp-save-note { background: var(--yellow-50); border: 1px solid #f2dc94; border-radius: 12px; padding: 10px 14px; font-weight: 700; }
+.pp-checks { list-style: none; padding: 0; margin: 0 0 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; }
+.pp-checks li { margin: 0; }
+.pp-checks label { display: flex; align-items: flex-start; gap: 12px; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
+.pp-checks label:hover { background: var(--green-50); }
+.pp-checks input { width: 22px; height: 22px; margin: 2px 0 0; flex-shrink: 0; accent-color: var(--green-700); }
+.pp-checks li.done label { color: var(--green-800); font-weight: 700; }
+.pp-check-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.pp-progress { font-weight: 800; color: var(--green-900); }
+
+/* Printables */
+.pp-print-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.pp-print-btn {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  font: inherit; color: var(--green-900);
+  background: var(--white); border: 3px solid var(--green-700); border-radius: 16px;
+  padding: 12px 14px; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.pp-print-btn:hover { background: var(--green-50); }
+.pp-print-btn .ic { font-size: 1.6rem; }
+.pp-print-btn strong { display: block; line-height: 1.2; }
+.pp-print-btn small { display: block; color: var(--muted); font-weight: 700; }
+
+@media (max-width: 960px) {
+  .pp-print-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .pp-facts, .pp-design, .pp-art-ideas, .pp-checks, .pp-basics { grid-template-columns: 1fr; }
+  .pp-planets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .pp-scroll-hint { display: block; }
+}
+@media (max-width: 700px) {
+  .pp-two-col { columns: 1; }
+  .pp-print-grid { grid-template-columns: 1fr; }
+  .pm-scroll { padding: 12px; }
+  .pp-raised-how { flex-direction: column; align-items: flex-start; }
+}
+
+/* Printing (the Printables buttons copy one part into #print-area) */
+@media print {
+  .pp-jump, .pp-check-bar, .pp-scroll-hint, .pp-save-note, #printables { display: none !important; }
+  #print-area .print-sub { font-weight: 800; margin-bottom: 12px; }
+  #print-area .panel { break-inside: auto; }
+  #print-area .pp-fact, #print-area .pp-design-item, #print-area .card, #print-area .steps li, #print-area .callout,
+  #print-area .pp-planets li, #print-area .pp-art-ideas details { break-inside: avoid; }
+  #print-area .pp-planets li { background: none; color: #000; border: 1.5px solid #555; }
+  #print-area .pp-planets small { color: #333; }
+  #print-area .pp-facts, #print-area .pp-design, #print-area .pp-art-ideas { grid-template-columns: 1fr 1fr; }
+  #print-area .grid-3 { grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  #print-area .caption { background: none; color: #000; border: 1.5px solid #555; }
+  #print-area .caption-tag { background: none; color: #000; border: 1px solid #555; }
+  #print-area .pp-links a, #print-area .pp-links .soon { border-color: #888; }
+  /* poster examples: white boards with dark outlines */
+  #print-area .pm-example { break-inside: avoid; }
+  #print-area .pm-example + .pm-example { break-before: page; }
+  #print-area .pm-scroll { overflow: visible; padding: 0; background: none; }
+  #print-area .pm-board { background: #fff !important; color: #000; border: 2px solid #000; box-shadow: none; min-width: 0; }
+  #print-area .pm-portrait { width: 5.1in; }
+  #print-area .pm-title, #print-area .pm-title small { color: #000; text-shadow: none; }
+  #print-area .pm-card { box-shadow: none; border: 1.5px solid #444; background: #fff; }
+  #print-area .pm-tag { color: #000; border-color: #000; }
+  #print-area .pm-why, #print-area .pp-raised-how { background: none; border-color: #555; }
+  /* blank research organizer */
+  #print-area .org h2 { font-size: 13pt; margin: 14px 0 4px; break-after: avoid; }
+  #print-area .org-top { font-weight: 700; margin-bottom: 8px; }
+  #print-area .org-hint { font-size: 9.5pt; color: #333; margin: 0 0 6px; }
+  #print-area .org-table { width: 100%; border-collapse: collapse; }
+  #print-area .org-table th, #print-area .org-table td { border: 1px solid #333; vertical-align: top; padding: 4px 8px; }
+  #print-area .org-table tr { break-inside: avoid; }
+  #print-area .org-table th { width: 2.4in; text-align: left; font-size: 10.5pt; }
+  #print-area .org-table th small { display: block; font-weight: 400; font-size: 8.5pt; color: #333; }
+  #print-area .w-line { display: block; height: 0.33in; border-bottom: 1px solid #999; }
+  #print-area .org-box { border: 1px solid #333; padding: 4px 8px 6px; margin-bottom: 6px; break-inside: avoid; }
+  #print-area .org-box h3 { font-size: 10.5pt; margin: 0; }
+  #print-area .org-box h3 small { font-weight: 400; font-size: 8.5pt; }
+  #print-area .org-sketch { height: 6.2in; border: 2px dashed #555; break-inside: avoid; }
+  #print-area .pp-checks { grid-template-columns: 1fr; gap: 2px; }
+  #print-area .pp-checks label { padding: 5px 0; font-size: 12pt; }
+}
+.project-feature .panel-body h3 { margin-bottom: 0.3em; }
