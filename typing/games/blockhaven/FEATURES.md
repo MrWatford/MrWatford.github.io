@@ -95,10 +95,23 @@ Tech: static site on GitHub Pages, no build step. Plain ES modules in `js/`, Thr
 | Villager breeding, villager levels, zombie villagers, raids | Missing | |
 | Other structures (temples, outposts, shipwrecks…) | Missing | |
 
+## Milestone 6: pets and mounts (published 2026-10-28)
+| Feature | Status | Notes |
+|---|---|---|
+| Scout [wolf] | Done | Grey packs in forest and birch land. Neutral: hit one and the pack bites back. Tame with Bones (about 1 in 3 per bone). Tame Scouts get a red collar, 20 health, and a raised wagging tail. They follow you, pop back beside you if you get more than 24 blocks away, attack monsters within 10 blocks of you (not Hissers or bosses), and attack whatever you hit or whatever hurts you. Heal them with any meat |
+| Whisker [cat/ocelot] | Done | Ginger tabby. One at a time in grassland and forests, plus a stray in most village plazas. Skittish until you hold raw chicken or raw rabbit; feed it to tame it (about 1 in 3). Tame Whiskers follow you, and Hissers run away from them instead of exploding |
+| Sit / follow | Done | Right-click a tame pet with an empty hand (or anything that isn't its food) to make it sit and stay, or follow again. Sitting pets are saved where they sit |
+| Pet safety | Done | You can't hurt your own pets by accident. Pets stay in the world where you left them when you take a portal |
+| Trotter [horse] | Done | Herds in grassland. Feed wheat or apples to calm it (and to heal or breed tame ones). Right-click with an empty hand to climb on: a wild Trotter won't go where you steer, and it either accepts you or bucks you off after a few seconds (calmer Trotters accept you sooner) |
+| Saddle [saddle] | Done | 5 leather + 1 iron ingot at a workbench. Right-click a tame Trotter with it. Dropped again if a saddled Trotter is defeated |
+| Riding | Done | You sit high up. W A S D steers (7.5 blocks/s), Shift gallops (11 blocks/s), Space jumps about 2.5 blocks high, C gets off. Falls hurt less. You get off automatically when you take a portal, faint, or leave the world |
+| New spawn eggs | Done | Scout, Whisker, Trotter (Creative) |
+| Pet breeding, parrots, more horse colors, donkeys/mules, horse armor, leads, name tags | Missing | |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
-| Pets (wolf/cat/parrot), mounts, aquatic life, wildlife roster | Missing |
+| Aquatic life, wildlife roster (parrots, foxes, bees…) | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
 | Redstone-style mechanisms, minecarts, boats | Missing |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
