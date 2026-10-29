@@ -1619,3 +1619,164 @@ body.dialog-open { overflow: hidden; }
 @keyframes pa-fade { 0%, 20% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes pa-wave { 0% { transform: scale(0.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
 @media print { .pc-art { display: none; } .pd-art { break-inside: avoid; max-width: 4.5in; } }
+
+/* =========================================================
+   Plant & Tree Research Poster Project (science/plant-poster-project.html)
+   Reuses the Planet Poster pieces (pp- and pm-); tp- = plant-only pieces
+   ========================================================= */
+[data-tp-art] svg, [data-tp-map] svg { display: block; width: 100%; height: auto; }
+.tp-instead { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+.tp-instead li { margin: 0; background: var(--green-50); border: 2px solid var(--green-200); border-radius: 16px; padding: 6px 16px; }
+.tp-instead span { color: var(--muted); font-weight: 700; }
+
+/* Plant choices */
+.tp-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+.tp-choice-group { border: 2px solid var(--green-200); border-radius: 16px; overflow: hidden; background: var(--white); }
+.tp-choice-group h4 { margin: 0; padding: 8px 16px; background: var(--green-100); color: var(--green-900); font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.2rem; letter-spacing: 0; text-transform: none; }
+.tp-choice-group ul { list-style: none; padding: 6px 16px 10px; margin: 0; }
+.tp-choice-group li { margin: 0; padding: 7px 0; border-bottom: 1px dashed var(--line); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.tp-choice-group li:last-child { border-bottom: 0; }
+.tp-choice-group li > i { color: var(--green-700); font-weight: 700; }
+.tp-choice-group li > small { flex-basis: 100%; color: var(--muted); font-weight: 700; }
+
+/* Requirements */
+.tp-req { list-style: none; counter-reset: req; padding: 0; margin: 0 0 22px; columns: 2; column-gap: 28px; }
+.tp-req li { counter-increment: req; position: relative; break-inside: avoid; padding: 6px 0 6px 46px; margin: 0; font-size: 1.08rem; }
+.tp-req li::before {
+  content: counter(req);
+  position: absolute; left: 0; top: 3px;
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--yellow); color: #1d1d1d; border: 2.5px solid #1d1d1d;
+  font: 600 1rem "Fredoka", sans-serif;
+}
+.tp-rules3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Research guide extras */
+.tp-name-sample { font-size: 1.08rem; background: #fdfbf4; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.tp-hand { font-family: "Patrick Hand SC", cursive; font-size: 1.15rem; }
+.tp-leaf-types { margin: 0 0 12px; max-width: 360px; }
+.tp-leaf-types svg { display: block; width: 100%; height: auto; }
+
+/* Close-up visuals */
+.tp-feature-list { list-style: none; padding: 0; margin: 0 0 20px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.tp-feature-list li { margin: 0; text-align: center; font-weight: 800; color: var(--green-900); background: var(--green-50); border: 2px solid var(--green-200); border-radius: 14px; padding: 10px 8px; }
+.tp-feature-list svg { width: 64px; margin: 0 auto 6px; }
+.tp-caption-ex { font-family: "Patrick Hand SC", cursive; font-size: 1.2rem; line-height: 1.5; background: var(--white); border-radius: 10px; padding: 8px 12px; }
+
+/* Optional nature samples */
+.tp-optional { display: inline-block; background: var(--yellow-50); border: 2px solid #f2dc94; border-radius: 12px; padding: 8px 16px; }
+.tp-how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+.tp-how-card { border: 2px solid var(--line); border-radius: 14px; padding: 14px 18px; background: var(--white); }
+.tp-how-card ol { padding-left: 1.3em; margin: 0 0 0.6em; }
+.tp-how-card li { margin-bottom: 4px; }
+.tp-how-art svg { width: 84px; margin-bottom: 6px; }
+.tp-safety { background: #fff4ef; border-color: #f2c7b4; border-left-color: #c8553d; }
+.tp-safety ul { margin: 0 0 0.6em; }
+
+/* Native-range map */
+.tp-map-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.tp-map-sample { margin: 0; background: var(--white); border: 2px solid var(--line); border-radius: 14px; padding: 12px; }
+.tp-map-sample figcaption { font-size: 0.92rem; font-weight: 700; color: var(--muted); margin-top: 6px; }
+.tp-map-title { font: 600 17px "Fredoka", sans-serif; fill: #163d24; }
+.tp-map-key { font: 800 12.5px "Nunito Sans", sans-serif; fill: #333; }
+
+/* Poster mockups: natural-colored boards */
+.pm-board.tp-board { color: #222; background-image: none; }
+.tp-board .pm-title { color: #1f3d17; text-shadow: none; letter-spacing: 0.05em; }
+.tp-board .pm-title small { font-family: "Nunito Sans", sans-serif; font-weight: 700; font-size: 0.36em; letter-spacing: 0.02em; color: inherit; }
+.tp-board .pm-card { box-shadow: 0 0 0 0.35em #7a9a4a; }
+.tp-board .pm-facts { box-shadow: 0 0 0 0.35em #3d7f34; }
+.tp-board .pm-dyk { box-shadow: 0 0 0 0.35em #d99a16; }
+.tp-board .pm-sources { box-shadow: 0 0 0 0.35em #9b8a73; }
+.tp-board .pm-tag { color: #1f3d17; border-color: rgba(31, 61, 23, 0.55); background: rgba(255, 255, 255, 0.65); }
+.tp-photo { display: block; width: 100%; background: #fff; padding: 0.5em 0.5em 0.5em; box-shadow: 0 0.3em 0.7em rgba(0, 0, 0, 0.3); transform: rotate(-1deg); }
+.tp-plant { display: block; width: 78%; }
+.tp-board .pm-factlist li { margin-bottom: 0.85em; }
+.tp-b .pm-factlist li { margin-bottom: 1.15em; }
+.tp-close { display: flex; gap: 0.6em; align-items: center; }
+.tp-close > span:first-child { flex: 0 0 34%; }
+.tp-close > div { flex: 1; min-width: 0; }
+.tp-mapcard { display: flex; align-items: center; justify-content: center; padding: 0.4em; }
+.tp-mapcard > div { width: 100%; }
+
+/* Example A: Tree Field Guide (landscape, kraft-paper board) */
+.tp-a { background-color: #c9a878; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.1fr); grid-template-rows: auto 1fr auto auto; grid-template-areas: "title title title" "facts art about" "close close close" "map dyk sources"; }
+.tp-a .pm-title { font-size: 5.2cqw; }
+.tp-a .pm-facts { grid-area: facts; }
+.tp-a .pm-about { grid-area: about; }
+.tp-a .tp-closeups { grid-area: close; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4em; }
+.tp-a .tp-mapcard { grid-area: map; }
+.tp-a .tp-mapcard > div { width: 62%; }
+.tp-a .pm-dyk { grid-area: dyk; }
+.tp-a .pm-sources { grid-area: sources; }
+.tp-a .tp-close > span:first-child { flex-basis: 24%; }
+
+/* Example B: Botanical Display (portrait, yellow-green board) */
+.tp-b { background-color: #d4e77f; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); grid-template-rows: auto repeat(3, auto) auto auto; grid-template-areas: "title title title" "c1 art f1" "c2 art f2" "c3 art f3" "about about about" "map dyk sources"; }
+.tp-b .pm-title { font-size: 8.4cqw; }
+.tp-b .pm-art { grid-area: art; justify-content: flex-end; }
+.tp-b .tp-c1 { grid-area: c1; }
+.tp-b .tp-c2 { grid-area: c2; }
+.tp-b .tp-c3 { grid-area: c3; }
+.tp-b .tp-f1 { grid-area: f1; }
+.tp-b .tp-f2 { grid-area: f2; }
+.tp-b .tp-f3 { grid-area: f3; }
+.tp-b .pm-about { grid-area: about; }
+.tp-b .tp-mapcard { grid-area: map; }
+.tp-b .pm-dyk { grid-area: dyk; }
+.tp-b .pm-sources { grid-area: sources; }
+.tp-b .tp-close { flex-direction: column; align-items: stretch; text-align: center; }
+.tp-b .tp-close > span:first-child { flex: none; width: 46%; margin: 0 auto; }
+
+/* Example C: Nature Collection (portrait, white board with a leafy border) */
+.tp-c { background-color: #fffdf6; border: 1.4cqw solid #3d7f34; outline: 0.5cqw dashed #8cc46a; outline-offset: -2.6cqw; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto auto auto; grid-template-areas: "title title title" "art art facts" "spec spec spec" "about about about" "map dyk sources"; }
+.tp-c .pm-title { font-size: 9cqw; color: #2e6b2a; }
+.tp-c .pm-art { grid-area: art; }
+.tp-c .pm-facts { grid-area: facts; }
+.tp-c .tp-specimens { grid-area: spec; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2em; }
+.tp-c .pm-about { grid-area: about; background: #e3efd2; box-shadow: 0 0 0 0.35em #b5653a; }
+.tp-c .tp-mapcard { grid-area: map; }
+.tp-c .pm-dyk { grid-area: dyk; }
+.tp-c .pm-sources { grid-area: sources; }
+.tp-spec { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.2em; }
+.tp-spec > span:first-child { width: 58%; }
+.tp-spec h4 { margin: 0 !important; }
+.tp-spec .pm-lines { align-self: stretch; }
+.tp-opt { font-size: 0.82em; font-weight: 800; color: #7a4a14; background: #fff1cf; border: 1px dashed #d99a16; border-radius: 999px; padding: 0.05em 0.7em; }
+
+@media (max-width: 960px) {
+  .tp-feature-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .tp-choices, .tp-how, .tp-map-grid, .tp-rules3 { grid-template-columns: 1fr; }
+  .tp-map-sample { max-width: 380px; }
+}
+@media (max-width: 700px) {
+  .tp-req { columns: 1; }
+  .tp-feature-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Printing (the Printables buttons copy one part into #print-area) */
+@media print {
+  #print-area .tp-choice-group, #print-area .tp-map-grid, #print-area .tp-feature-list li, #print-area .caption, #print-area .pp-links li { break-inside: avoid; }
+  #print-area .org-hint { break-after: avoid; }
+  #print-area .tp-choices, #print-area .tp-how { gap: 10px; }
+  #print-area .tp-how { grid-template-columns: 1fr 1fr 1fr; }
+  #print-area .tp-map-grid { grid-template-columns: 1.4fr 1fr; }
+  #print-area .tp-feature-list { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  #print-area .tp-feature-list li, #print-area .tp-instead li, #print-area .tp-choice-group h4, #print-area .tp-optional,
+  #print-area .tp-safety { background: none; border-color: #555; }
+  #print-area .tp-board { background: #fff !important; outline: none; }
+  #print-area .tp-c { border: 2px solid #000; }
+  #print-area .tp-board .pm-title { color: #000; }
+  #print-area .tp-c .pm-about { background: #fff; }
+  #print-area .tp-photo { box-shadow: none; border: 1px solid #555; transform: none; }
+  #print-area .tp-opt { background: none; border-color: #555; color: #000; }
+  #print-area .tp-board .pm-tag { background: none; }
+  #print-area .org-label { font-weight: 700; font-size: 9.5pt; }
+  #print-area .org-pics thead th { font-size: 9.5pt; background: #eee; }
+  #print-area .org-pics th { width: auto; }
+  #print-area .org-pics th:first-child { width: 1.1in; }
+  #print-area .org-pics td:nth-child(2) { width: 1.2in; }
+  #print-area .org-pics td:last-child { width: 1.4in; }
+}
