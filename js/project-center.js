@@ -87,6 +87,7 @@
           '<span class="pc-card-icon" aria-hidden="true">' + theme.icon + "</span>" +
           levelLabel(p.difficulty) +
         "</div>" +
+        (typeof projectArt === "function" && PROJECT_ART[p.id] ? '<div class="pc-art">' + projectArt(p.id) + "</div>" : "") +
         '<h3 id="card-' + esc(p.id) + '">' + esc(p.title) + "</h3>" +
         '<p class="pc-cat"><span class="sr-only">Category: </span>' + esc(p.category) + "</p>" +
         '<p class="pc-summary">' + esc(p.summary) + "</p>" +
@@ -172,6 +173,10 @@
         '<h2 id="pd-title">' + esc(p.title) + "</h2>" +
         '<div class="pd-tags">' + levelLabel(p.difficulty) + '<span class="tag">' + esc(theme.label) + "</span></div>" +
       "</header>" +
+
+      (typeof projectArt === "function" && PROJECT_ART[p.id]
+        ? '<figure class="pd-art">' + projectArt(p.id) + "<figcaption>A drawing of what your setup might look like. Yours may look different.</figcaption></figure>"
+        : "") +
 
       '<section class="pd-question"><h3><span class="pd-num">1</span> Project question</h3><p>' + esc(p.question) + "</p></section>" +
 
