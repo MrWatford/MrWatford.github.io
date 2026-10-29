@@ -1565,3 +1565,57 @@ body.dialog-open { overflow: hidden; }
   #print-area .pp-checks label { padding: 5px 0; font-size: 12pt; }
 }
 .project-feature .panel-body h3 { margin-bottom: 0.3em; }
+
+/* ---------- Project Center setup drawings (js/project-center-art.js) ----------
+   Moving parts only move on hover/focus on a card, and always inside the project window. */
+.pa { display: block; width: 100%; height: auto; }
+.pa-t { font: 800 9px "Nunito Sans", sans-serif; fill: #163d24; }
+.pc-art { margin: 0 0 12px; border-radius: 12px; overflow: hidden; border: 2px solid var(--green-200); background: #eef5ef; }
+.pd-art { margin: 0 0 22px; border-radius: 16px; overflow: hidden; border: 3px solid var(--green-200); background: #eef5ef; max-width: 640px; }
+.pd-art figcaption { font-size: 0.88rem; font-weight: 700; color: var(--muted); padding: 6px 12px; background: var(--white); border-top: 1px solid var(--green-200); }
+.pa [class^="a-"] { transform-box: fill-box; animation-duration: 2.4s; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+.pc-card .pa [class^="a-"] { animation-play-state: paused; }
+.pc-card:hover .pa [class^="a-"], .pc-card:focus-within .pa [class^="a-"] { animation-play-state: running; }
+.a-drip { animation-name: pa-drip; animation-timing-function: ease-in !important; animation-duration: 1.4s !important; }
+.a-fly { animation-name: pa-fly; animation-duration: 3.2s !important; animation-timing-function: linear !important; }
+.a-grow { animation-name: pa-grow; transform-origin: 50% 100%; animation-duration: 4s !important; animation-direction: alternate; }
+.a-swing { animation-name: pa-swing; transform-origin: 50% 0; animation-duration: 1.2s !important; animation-direction: alternate; }
+.a-roll { animation-name: pa-roll; animation-duration: 3s !important; animation-timing-function: ease-out !important; }
+.a-melt { animation-name: pa-melt; transform-origin: 50% 100%; animation-duration: 4s !important; animation-direction: alternate; }
+.a-spin { animation-name: pa-spin; transform-origin: 50% 50%; animation-duration: 0.9s !important; animation-timing-function: linear !important; }
+.a-spin-slow { animation-name: pa-spin; transform-origin: 50% 50%; animation-duration: 3s !important; animation-timing-function: linear !important; }
+.a-tick { animation-name: pa-spin; transform-origin: 50% 100%; animation-duration: 4s !important; animation-timing-function: steps(12) !important; }
+.a-shake { animation-name: pa-shake; animation-duration: 0.22s !important; animation-direction: alternate; }
+.a-fall { animation-name: pa-fall; animation-duration: 4s !important; animation-timing-function: linear !important; }
+.a-pulse { animation-name: pa-pulse; animation-duration: 1.4s !important; animation-direction: alternate; }
+.a-fill { animation-name: pa-fill; transform-origin: 50% 100%; animation-duration: 4s !important; }
+.a-rise { animation-name: pa-rise; }
+.a-vib { animation-name: pa-vib; transform-origin: 50% 50%; animation-duration: 0.09s !important; animation-direction: alternate; }
+.a-tilt { animation-name: pa-tilt; transform-origin: 0% 100%; animation-duration: 4s !important; animation-direction: alternate; }
+.a-lift { animation-name: pa-lift; animation-duration: 4s !important; animation-direction: alternate; }
+.a-bend { animation-name: pa-bend; transform-origin: 0% 50%; animation-duration: 2.4s !important; animation-direction: alternate; }
+.a-blow { animation-name: pa-blow; animation-duration: 2s !important; }
+.a-stir { animation-name: pa-stir; transform-origin: 50% 0; animation-duration: 0.6s !important; animation-direction: alternate; }
+.a-fade { animation-name: pa-fade; animation-duration: 3s !important; }
+.a-wave { animation-name: pa-wave; transform-origin: 0% 50%; animation-duration: 1.6s !important; }
+@keyframes pa-drip { 0% { transform: translateY(0); opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(var(--dy, 30px)); opacity: 0; } }
+@keyframes pa-fly { 0% { transform: translate(0, 0); opacity: 1; } 90% { opacity: 1; } 100% { transform: translate(var(--dx, 200px), var(--dy, 40px)) rotate(18deg); opacity: 0; } }
+@keyframes pa-grow { from { transform: scaleY(0.45); } to { transform: scaleY(1); } }
+@keyframes pa-swing { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
+@keyframes pa-roll { 0% { transform: translateX(0); opacity: 1; } 90% { opacity: 1; } 100% { transform: translateX(var(--dx, 120px)); opacity: 0; } }
+@keyframes pa-melt { from { transform: scaleY(1); } to { transform: scaleY(0.45); } }
+@keyframes pa-spin { to { transform: rotate(360deg); } }
+@keyframes pa-shake { from { transform: translateX(-4px); } to { transform: translateX(4px); } }
+@keyframes pa-fall { 0% { transform: translateY(0); opacity: 1; } 92% { opacity: 1; } 100% { transform: translateY(var(--dy, 60px)); opacity: 0; } }
+@keyframes pa-pulse { from { opacity: 0.35; } to { opacity: 1; } }
+@keyframes pa-fill { from { transform: scaleY(0.1); } to { transform: scaleY(1); } }
+@keyframes pa-rise { 0% { transform: translateY(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-20px); opacity: 0; } }
+@keyframes pa-vib { from { transform: scaleY(1); } to { transform: scaleY(-0.6); } }
+@keyframes pa-tilt { from { transform: rotate(0deg); } to { transform: rotate(-50deg); } }
+@keyframes pa-lift { from { transform: translateY(0); } to { transform: translateY(-34px); } }
+@keyframes pa-bend { from { transform: rotate(0deg); } to { transform: rotate(5deg); } }
+@keyframes pa-blow { 0% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(34px); opacity: 0; } }
+@keyframes pa-stir { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+@keyframes pa-fade { 0%, 20% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes pa-wave { 0% { transform: scale(0.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+@media print { .pc-art { display: none; } .pd-art { break-inside: avoid; max-width: 4.5in; } }
