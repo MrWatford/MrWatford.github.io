@@ -32,7 +32,9 @@ const PROJECT_THEMES = {
   earth:       { label: "Earth & Environment", icon: "🌍" },
   water:       { label: "Water & Weather", icon: "💧" },
   sound:       { label: "Sound", icon: "🔊" },
-  materials:   { label: "Materials", icon: "🧻" }
+  materials:   { label: "Materials", icon: "🧻" },
+  light:       { label: "Light & Optics", icon: "🔦" },
+  biology:     { label: "Biology & Food Science", icon: "🔬" }
 };
 
 const PROJECTS = [
@@ -3918,5 +3920,1406 @@ const PROJECTS = [
     ],
     extension: "Replace the cardboard with equal thicknesses of other nonmagnetic materials, such as plastic or wood, or compare two different magnets.",
     note: "Near the limit, success depends partly on how carefully the magnet is moved, so the ‘greatest reliable thickness’ involves some judgment. That is why the rules for success are written down before testing."
+  },
+
+  /* ===== Projects 57–75 (added 2026-10-29) ===== */
+
+  {
+    id: "bath-bomb-fizz",
+    title: "Fizzing Bath Bomb Lab",
+    difficulty: "Medium",
+    category: "Chemistry / Chemical Reactions",
+    themes: ["chemistry", "heat"],
+    keywords: ["bath bomb", "fizz", "fizzing", "tablet", "baking soda", "citric acid", "temperature", "reaction rate", "dissolve", "carbon dioxide", "bubbles"],
+    summary: "Press small fizzing tablets from baking soda and citric acid, then time how long identical tablets fizz in cool, room-temperature, and warm water.",
+    time: { active: "About 1 hour to make tablets + 1 hour to test", waiting: "24 hours for the tablets to dry" },
+    supplies: "Baking soda, citric acid, cornstarch, spray bottle, ice-cube tray, thermometer, clear cups, stopwatch",
+    question: "How does water temperature affect how long an identical tablet fizzes?",
+    investigating: "When baking soda and citric acid are dry, they do not react. Once they dissolve in water, they react and give off carbon dioxide gas, which makes the bubbles. Two things happen at once: the tablet has to dissolve, and the dissolved chemicals have to react. Water temperature can affect both. Watching a tablet fizz is the demonstration. In the experiment, you change only the water temperature and time how long identical tablets keep bubbling.",
+    materials: [
+      "Baking soda (sodium bicarbonate), about 200 g",
+      "Citric acid powder (sold with canning supplies), about 100 g",
+      "Cornstarch, about 50 g",
+      "Small spray bottle of water",
+      "Kitchen scale that measures in grams (0.1 g is best)",
+      "Large mixing bowl and a spoon",
+      "Silicone ice-cube tray, or a 1-tablespoon measuring spoon for packing",
+      "Wax paper and a tray for drying",
+      "9 identical clear cups (about 400 mL each)",
+      "Graduated cylinder or measuring cup (mL)",
+      "Ice, room-temperature tap water, and warm tap water (no hotter than 40 °C)",
+      "Thermometer (°C)",
+      "Stopwatch, and a phone to record video (helpful)",
+      "Dust mask (optional, for mixing), goggles for everyone",
+      "Masking tape and marker for labels"
+    ],
+    safety: [
+      "Wear goggles while mixing and testing. Citric acid stings if it gets in your eyes; rinse with water and tell an adult.",
+      "Pour and stir the powders slowly so they do not puff into the air. Do not blow on or sniff the powders.",
+      "Use warm tap water only, never boiling or stove-heated water.",
+      "These tablets are experiment materials, not food and not bath or skin products. Do not taste them or use them in a bath."
+    ],
+    independent: "Starting water temperature: cool (about 10 °C), room temperature (about 22 °C), and warm (about 40 °C)",
+    dependent: "Fizzing time (s): from the moment the tablet touches the water until no new bubbles rise from the tablet for 5 seconds in a row",
+    controlled: [
+      "Tablets from one batch, made the same way and the same age",
+      "Tablet mass (each within 1 g of the others)",
+      "Water volume (250 mL) and cup type",
+      "Tablet dropped in the same way, not stirred",
+      "Same 5-second rule for deciding when bubbling has stopped",
+      "Same observer and same lighting"
+    ],
+    comparison: "Room-temperature water is the reference. Compare the cool and warm water results with it.",
+    repeat: "Test 3 tablets at each temperature (9 tablets total). Make a few extra tablets in case some crumble.",
+    procedure: [
+      "Make the tablets (classroom recipe): with goggles on, weigh 200 g baking soda, 100 g citric acid, and 50 g cornstarch into the dry bowl. Stir gently for 1 minute until evenly mixed. Do not add any fragrance, oil, or color.",
+      "Spray the mixture lightly with water, 1–2 sprays at a time, stirring after each spray. Stop when a pinch holds its shape when you squeeze it, like damp sand. If it starts to fizz, you added too much water; stir quickly and stop spraying.",
+      "Pack the mixture firmly into the ice-cube tray compartments (or pack a level tablespoon, press it hard, and tap it out onto wax paper). Make at least 12 tablets.",
+      "Let the tablets dry for 24 hours in a dry place. Then weigh each one, write its mass in pencil on the wax paper beside it, and choose 9 tablets that are within 1 g of each other.",
+      "Prepare the water: cool water (tap water with ice, ice removed before testing), room-temperature water, and warm tap water. Pour 250 mL into a labeled cup and measure its temperature right before each trial.",
+      "Gently drop one tablet into the center of the cup and start the stopwatch the moment it touches the water. Do not stir or touch the cup.",
+      "Watch the tablet. When no new bubbles rise from it for 5 seconds in a row, stop the stopwatch and subtract 5 seconds. Record the fizzing time and the water temperature at the end.",
+      "Use fresh water and a fresh cup for each trial. Test in a mixed order (cool, warm, room, warm, room, cool…) so that tablet age or room changes do not all fall on one group.",
+      "Find the average fizzing time for each temperature."
+    ],
+    tables: [
+      {
+        title: "Fizzing times",
+        cols: ["Water & trial", "Tablet mass (g)", "Start temp (°C)", "End temp (°C)", "Fizzing time (s)"],
+        rows: ["Cool – trial 1", "Cool – trial 2", "Cool – trial 3", "Room – trial 1", "Room – trial 2", "Room – trial 3", "Warm – trial 1", "Warm – trial 2", "Warm – trial 3"]
+      },
+      {
+        title: "Averages",
+        cols: ["Water", "Average start temp (°C)", "Average fizzing time (s)"],
+        rows: ["Cool", "Room", "Warm"]
+      }
+    ],
+    graph: "Scatter plot or line graph: average starting water temperature (°C) on the x-axis and average fizzing time (s) on the y-axis. You can also plot all 9 trials as separate points.",
+    questions: [
+      "How did the average fizzing time compare across the three temperatures?",
+      "How much did the 3 trials at the same temperature differ? Were the differences between temperatures larger than that?",
+      "Did the water temperature change during a trial? Could that have affected the results?",
+      "Your measurement includes both dissolving and reacting. Which part do you think temperature affected more, and how could you design a test to find out?",
+      "Deciding when bubbling ‘stops’ takes judgment. How did the 5-second rule help? What could still make it uncertain?"
+    ],
+    extension: "Keep the water at room temperature and test tablet size instead (packed half-tablespoon vs. full tablespoon), or crush a tablet to see how breaking it into small pieces changes the fizzing time.",
+    note: "Home-made tablets are never perfectly identical; some are packed tighter or are slightly damper than others. Weighing them and using several tablets per temperature helps. If your tablets crumble, pack them harder or spray a little more water next time."
+  },
+
+  {
+    id: "static-butterfly",
+    title: "Static Electricity Butterfly",
+    difficulty: "Easy",
+    category: "Electrical / Static Electricity",
+    themes: ["electricity"],
+    keywords: ["static", "static electricity", "balloon", "charge", "butterfly", "tissue paper", "electric charge", "attract", "humidity"],
+    summary: "Make tissue-paper butterfly wings flap up toward a charged balloon, then measure how high the wing lifts at different distances.",
+    time: { active: "About 1 hour", waiting: "None" },
+    supplies: "Tissue paper, cardboard, round balloons, wool cloth, two rulers, tape",
+    question: "How does the distance from a charged balloon affect how high a tissue-paper wing lifts?",
+    investigating: "Rubbing a balloon with wool moves tiny electric charges onto the balloon. A charged balloon can pull on light, uncharged objects like tissue paper. Making the wings flutter is the demonstration. In the experiment, you change only how far the balloon is held above the wing and measure how high the wing tip rises.",
+    materials: [
+      "1 piece of stiff cardboard, about 30 cm × 30 cm (the ‘board’)",
+      "Colored tissue paper (1 sheet is plenty)",
+      "Construction paper or cardstock for the butterfly body",
+      "2 round latex-free balloons, same size and brand (one stays uncharged)",
+      "Wool cloth, wool sock, or wool scarf",
+      "2 rulers with centimeters (one taped standing up as a height guide)",
+      "A small box or block to tape the upright ruler to",
+      "Clear tape and scissors",
+      "Phone camera (helpful for reading the wing height)",
+      "Weather app or hygrometer for humidity (optional)"
+    ],
+    safety: [
+      "If anyone is allergic to latex, use latex-free balloons.",
+      "Do not over-inflate the balloon. If one pops, pick up every piece right away; balloon pieces are a choking hazard.",
+      "Rub the balloon on the wool cloth, not on another person.",
+      "Keep balloons and charged objects away from Chromebook screens and phones."
+    ],
+    independent: "Distance from the board to the bottom of the balloon: 3, 5, 7, and 9 cm",
+    dependent: "Highest wing-tip height above the board (cm) while the balloon is held in place for 5 seconds",
+    controlled: [
+      "Same tissue wing size (8 cm × 5 cm) and the same tape attachment",
+      "Same balloon, inflated to the same size",
+      "Same charging: 10 strokes in one direction on the same wool cloth",
+      "Balloon held directly above the wing tip for 5 seconds",
+      "Same room and same time of day (humidity matters)"
+    ],
+    comparison: "An uncharged balloon held at 3 cm is the control. It shows whether the wing moves just from air currents or your hand.",
+    repeat: "Do 3 trials at each distance, recharging the balloon before every trial.",
+    procedure: [
+      "Cut a butterfly body about 8 cm long from cardstock and tape it flat in the center of the board.",
+      "Cut two tissue wings, each 8 cm × 5 cm. Tape only the short inner edge of each wing to the body with a 1 cm strip of tape, so the rest of the wing can lift freely. Lay the wings flat.",
+      "Tape one ruler standing straight up on the block beside the right wing tip. Mark lines at 3, 5, 7, and 9 cm with tape flags. This is your positioning guide.",
+      "Inflate both balloons to the same size (measure around the middle with string). Label one ‘uncharged’ and keep it away from the cloth.",
+      "Control: hold the uncharged balloon with its bottom level with the 3 cm flag, directly over the wing tip, for 5 seconds. Record the wing-tip height (0 cm if it does not lift).",
+      "Charge the other balloon by rubbing it 10 times in one direction on the wool cloth.",
+      "Within 3 seconds, hold the balloon with its bottom level with the 3 cm flag, directly over the wing tip, for 5 seconds. A partner reads the highest wing-tip height on the upright ruler (or takes a photo from the side). If the wing touches the balloon, record ‘touched.’",
+      "Move the balloon away, let the wing settle, and recharge with 10 new strokes before the next trial.",
+      "Repeat for 5, 7, and 9 cm, 3 trials each, in a mixed order. Write the humidity at the start and end if you can."
+    ],
+    tables: [
+      {
+        title: "Wing-tip height",
+        cols: ["Balloon distance (cm)", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Average (cm)"],
+        rows: ["Uncharged at 3", "3", "5", "7", "9"]
+      },
+      {
+        title: "Conditions",
+        cols: ["Item", "Value"],
+        rows: ["Humidity at start (%)", "Humidity at end (%)", "Balloon circumference (cm)"]
+      }
+    ],
+    graph: "Line graph: balloon distance (cm) on the x-axis and average wing-tip height (cm) on the y-axis. Show the uncharged balloon as a separate point or a dashed line.",
+    questions: [
+      "What happened to the wing with the uncharged balloon? What does that tell you about your other results?",
+      "How did the average wing-tip height change as the balloon distance changed?",
+      "Was there a distance where the wing stopped lifting at all?",
+      "Did later trials seem weaker than earlier ones? How might charge leaking away during a trial affect your data?",
+      "Static experiments often work differently on humid days. How could you test whether humidity mattered?"
+    ],
+    extension: "Keep the distance the same and change the number of rubbing strokes (5, 10, 20), or compare wings made of tissue paper, printer paper, and aluminum foil of the same size.",
+    note: "Charge slowly leaks off the balloon into the air, especially on humid days, so results can change from one day to the next. Hands, sleeves, and drafts can also move the wing. Record the humidity and compare results collected on the same day."
+  },
+
+  {
+    id: "balloon-in-bottle",
+    title: "Balloon in a Bottle",
+    difficulty: "Easy",
+    category: "Physics / Air Pressure",
+    themes: ["motion", "materials"],
+    keywords: ["balloon", "bottle", "air pressure", "vent", "hole", "pump", "inflate", "air takes up space"],
+    summary: "Try to inflate a balloon inside a plastic bottle, then measure how the size of an air vent in the bottle changes how big the balloon gets.",
+    time: { active: "About 1 hour", waiting: "None" },
+    supplies: "Clear plastic bottle, balloons, small hand balloon pump, tape, hole punch, ruler",
+    question: "How does the size of a bottle's air vent affect balloon inflation using the same number of pump strokes?",
+    investigating: "A ‘closed’ bottle is not empty; it is full of air. When a balloon inside it starts to grow, that air has to go somewhere. With no way out, the trapped air is squeezed and pushes back on the balloon. Struggling to inflate the balloon is the demonstration. In the experiment, you change only the size of the vent opening and measure how wide the balloon gets after the same number of pump strokes.",
+    materials: [
+      "1 clear, smooth-sided plastic bottle, 1 to 2 liters (use this same bottle for every trial)",
+      "6 identical round balloons (one is used at a time; extras are spares)",
+      "1 small hand balloon pump (the kind sold for party balloons)",
+      "Strong clear packing tape or duct tape",
+      "Single-hole paper punch (about 6 mm) and a pushpin",
+      "Ruler with centimeters and a paper strip (to make width marks on the bottle)",
+      "Permanent marker",
+      "Sandpaper or an emery board (for the adult)"
+    ],
+    safety: [
+      "An adult makes the vent hole in the bottle and smooths the edges so there are no sharp points.",
+      "Use only the hand pump and gentle strokes. Do not use compressed air, an electric pump, or force extra air in.",
+      "Stop pumping if the balloon presses against the bottle walls or the pump becomes hard to push.",
+      "Use latex-free balloons if anyone is allergic. Pick up any popped balloon pieces right away."
+    ],
+    independent: "Vent opening size: closed (solid tape), pinhole (about 1 mm), small (about 6 mm), and fully open (about 12 mm)",
+    dependent: "Balloon width (cm) inside the bottle after 3 full pump strokes",
+    controlled: [
+      "Same bottle, balloon type, and pump",
+      "Same number of pump strokes (3) and full, steady strokes",
+      "Balloon pre-stretched the same way and fully emptied before each trial",
+      "Same starting position: balloon pushed inside, its mouth stretched over the bottle opening",
+      "Width measured at the widest part, at eye level"
+    ],
+    comparison: "The closed vent is the control. Every open vent size is compared with it.",
+    repeat: "Do 3 trials for each vent size.",
+    procedure: [
+      "Adult step: make one round hole about 12 mm across in the side of the bottle, about 4 cm above the bottom. Smooth the edges with sandpaper.",
+      "Make vent covers from pieces of tape, each 4 cm × 4 cm: one solid (closed), one with a pushpin hole (pinhole), and one with a hole-punch hole (small). ‘Fully open’ means no tape.",
+      "Tape a paper ruler strip, or draw marks every 1 cm, across the outside of the bottle at its widest part so you can read the balloon width.",
+      "Pre-stretch a balloon by pulling it gently 5 times. Push the balloon into the bottle and stretch its mouth back over the bottle opening.",
+      "Put the solid tape cover over the vent and press it flat so it seals.",
+      "Fit the pump nozzle into the balloon's mouth. Give exactly 3 full, steady strokes. Hold the nozzle in place so no air escapes.",
+      "Read the balloon's widest width against the marks (eye level with the bottle) and record it.",
+      "Remove the pump, let all the air out of the balloon, and replace the cover with the next vent size.",
+      "Test all 4 vent sizes, then repeat the whole set 2 more times so each size has 3 trials. Try a pretest first: if 3 strokes makes the balloon touch the bottle walls with the vent fully open, use 2 strokes for every trial instead."
+    ],
+    tables: [
+      {
+        title: "Balloon width after 3 strokes",
+        cols: ["Vent size", "Opening (mm)", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Average (cm)"],
+        rows: ["Closed", "Pinhole", "Small", "Fully open"]
+      }
+    ],
+    graph: "Bar graph: vent size (closed, pinhole, small, fully open) on the x-axis and average balloon width (cm) on the y-axis.",
+    questions: [
+      "How did the balloon width with a closed vent compare with the open vents?",
+      "Did the pinhole behave more like the closed vent or more like the fully open vent? What might explain that?",
+      "Hold your hand near the vent while pumping. What did you feel, and what does it tell you about the air inside?",
+      "Pump strokes are never exactly the same. How might that have affected your trials?",
+      "Why might measuring width give a different picture than measuring the balloon's volume?"
+    ],
+    extension: "Keep the vent fully open and test the number of pump strokes (1 to 4), or try the same vent sizes with a larger bottle.",
+    note: "A tape cover may not seal perfectly, so a little air can leak even in the ‘closed’ test. The balloon also gets harder to stretch as it grows, which affects every trial."
+  },
+
+  {
+    id: "cartesian-diver",
+    title: "Cartesian Diver Challenge",
+    difficulty: "Medium",
+    category: "Physics / Buoyancy and Pressure",
+    themes: ["water", "motion"],
+    keywords: ["cartesian diver", "diver", "buoyancy", "density", "pressure", "pipette", "dropper", "float", "sink", "ballast", "squeeze"],
+    summary: "Build a dropper diver that sinks when you squeeze the bottle and rises when you let go, then time how fast it rises with different amounts of ballast.",
+    time: { active: "About 1.5 hours", waiting: "None" },
+    supplies: "Plastic transfer pipettes, 1 L plastic bottle with cap, thin copper wire, scale, stopwatch",
+    question: "How does the diver's attached ballast affect its rise time?",
+    investigating: "The diver floats because of the bubble of air trapped inside it. Squeezing the bottle pushes on the water, which squeezes that air bubble into a smaller space. The diver's average density goes up and it sinks. Making the diver sink is the demonstration. In the experiment, you change only the amount of ballast (wire) on the diver and time how long it takes to rise between two marks.",
+    materials: [
+      "3 plastic transfer pipettes (droppers), about 3 mL size",
+      "1 clear 1-liter plastic bottle with a screw cap, labels removed",
+      "Thin bare copper wire (about 0.5 mm thick), about 1 m",
+      "Scale that measures to 0.01 g if available (or measure wire by length)",
+      "Scissors and wire cutters",
+      "Permanent marker and masking tape",
+      "Tall glass or jar of water for testing the diver",
+      "Water at room temperature, thermometer",
+      "Stopwatch, and a phone camera (slow-motion video is very helpful)"
+    ],
+    safety: [
+      "Use a plastic bottle only, never glass, and squeeze with gentle hand pressure.",
+      "Cut wire ends carefully and bend them flat so they cannot poke anyone.",
+      "Wipe up spilled water right away."
+    ],
+    independent: "Ballast on the diver: 4 levels of copper wire wrapped tightly around the stem (for example 10, 15, 20, and 25 cm of wire; record the mass in g)",
+    dependent: "Rise time (s) for the diver's top to travel from the lower line to the upper line after the squeeze is released",
+    controlled: [
+      "Same pipette and the same trapped air (bulb filled to the same marked line)",
+      "Same bottle, filled to the top, with the cap tight",
+      "Water temperature (record it each time)",
+      "Same release depth: diver squeezed down to the bottom and held for 2 seconds",
+      "Release done the same way: let go all at once"
+    ],
+    comparison: "The lightest ballast that still lets the diver work is the starting condition. Each heavier level is compared with it.",
+    repeat: "Do at least 3 trials at each ballast level (5 is better because rise times are short).",
+    procedure: [
+      "Cut the pipette stem so about 2 cm is left below the bulb.",
+      "Cut 4 pieces of wire: 10, 15, 20, and 25 cm. Weigh each and record the mass. Wrap the 10 cm piece tightly around the stem near its tip and bend the end flat.",
+      "Squeeze the bulb in a jar of water and let it suck up water until the bulb is about half full. Draw a line on the bulb at the water level; this line marks your trapped-air amount for every test.",
+      "Float the diver in the jar. It should float with just the top of the bulb above water. If it sinks, let out a little water; if it floats too high, add a little water. Then redraw the line. Do not change it again.",
+      "Pretest the heaviest wire (25 cm) with the same air amount. If the diver sinks without a squeeze, use shorter wire pieces so that every level still floats on its own.",
+      "Fill the bottle to the very top with room-temperature water. Tape two lines on the outside: one 5 cm above the bottom and one 5 cm below the water surface. Measure the distance between them.",
+      "Put the diver in, check the water is still filled to the top, and screw the cap on tight.",
+      "Squeeze the bottle until the diver reaches the bottom. Hold it there for 2 seconds, then let go all at once. Time how long the top of the diver takes to go from the lower line to the upper line (or film it and read the time from the video).",
+      "Do the trials for this ballast level, then take the diver out, check the water is still at the marked line inside the bulb, and replace the wire with the next length. Test all 4 levels."
+    ],
+    tables: [
+      {
+        title: "Rise times",
+        cols: ["Wire length (cm)", "Wire mass (g)", "Trial 1 (s)", "Trial 2 (s)", "Trial 3 (s)", "Average (s)"],
+        rows: ["10", "15", "20", "25"]
+      },
+      {
+        title: "Setup",
+        cols: ["Item", "Value"],
+        rows: ["Distance between lines (cm)", "Water temperature (°C)"]
+      }
+    ],
+    graph: "Line graph: wire (ballast) mass in grams on the x-axis and average rise time (s) on the y-axis.",
+    questions: [
+      "How did the average rise time change as the ballast increased?",
+      "Did any ballast level make the diver hard to control or slow to start rising? Why might that be?",
+      "Your diver needs a squeeze to sink. Explain what happens to the trapped air when you squeeze and when you let go.",
+      "Wire adds a little volume as well as mass. Would that matter much? Why or why not?",
+      "Why did the water temperature and the line on the bulb need to stay the same?"
+    ],
+    extension: "Keep the ballast the same and change the amount of trapped air instead, or measure how hard you must squeeze by finding the smallest squeeze that sinks the diver.",
+    note: "Rise times can be under 2 seconds, and a stopwatch adds error from reaction time. Video with a timer, or a longer bottle, gives more reliable numbers. A little water can sneak into the bulb over time, so check the line before each set."
+  },
+
+  {
+    id: "candy-color-race",
+    title: "Candy-Coating Color Race",
+    difficulty: "Easy",
+    category: "Chemistry / Dissolving and Color Movement",
+    themes: ["chemistry", "heat"],
+    keywords: ["candy", "skittles", "coating", "color", "dissolve", "dissolving", "temperature", "water", "rainbow", "diffusion", "sugar"],
+    summary: "Watch the colored coating dissolve off a candy into water, then time how fast the color spreads in cool, room-temperature, and warm water.",
+    time: { active: "About 1 hour", waiting: "None" },
+    supplies: "Hard-coated candies of one color, clear flat dishes, white paper, thermometer, stopwatch",
+    question: "How does water temperature affect the speed at which color spreads from a candy?",
+    investigating: "The colored coating on many candies is mostly sugar plus food coloring. In water, the coating dissolves, and the colored, sugary water spreads out. Several things move the color: dissolving, tiny particles mixing on their own (diffusion), and slow currents as the heavier sugary water slides along the bottom. Watching the rainbow form is the demonstration. In the experiment, you change only the water temperature and time how long the color takes to reach a ring.",
+    materials: [
+      "1 bag of small hard-coated candies; use only one color (for example, all red)",
+      "3 identical clear, flat-bottomed dishes (glass pie plates or clear plastic containers)",
+      "White paper with a target ring drawn on it",
+      "Compass or a cup to trace the ring, ruler",
+      "Graduated cylinder or measuring cup (mL)",
+      "Ice water, room-temperature water, and warm tap water (no hotter than 40 °C)",
+      "Thermometer (°C)",
+      "Stopwatch and a phone camera (filming from above helps)",
+      "Tweezers or a spoon for placing candy"
+    ],
+    safety: [
+      "Do not eat any candy that has been tested or handled during the lab.",
+      "Use warm tap water only, not hot or boiling water.",
+      "Wipe up spills right away so no one slips."
+    ],
+    independent: "Starting water temperature: cool (about 10 °C), room temperature (about 22 °C), and warm (about 40 °C)",
+    dependent: "Time (s) for visible color to first reach the 3 cm ring",
+    controlled: [
+      "Same candy color and type, one candy per trial",
+      "Same dish and water volume (enough for 5 mm depth)",
+      "Dish on a level surface (check with a marble or level app)",
+      "Candy placed at the exact center with tweezers, not dropped",
+      "Same lighting and same observer"
+    ],
+    comparison: "Room-temperature water is the reference. Compare the cool and warm water results with it.",
+    repeat: "Do 3 trials at each temperature with a fresh candy and fresh water each time.",
+    procedure: [
+      "On white paper, draw a small dot for the center and a circle with a 3 cm radius around it. Put the paper under the clear dish so the dot is in the center.",
+      "Find the water volume that makes the water 5 mm deep in your dish. Use that same volume every time.",
+      "Check that the dish sits level. Do not bump the table during a trial.",
+      "Prepare the water for the first trial, pour it in, and wait 20 seconds for the water to stop moving. Record the temperature.",
+      "Use tweezers to set one candy gently on the center dot. Start the stopwatch at that moment.",
+      "Watch from above. Stop the stopwatch when any visible color first touches the 3 cm ring. Record the time and sketch or photograph the pattern.",
+      "If no color reaches the ring within 5 minutes, record ‘more than 300 s.’",
+      "Empty, rinse, and dry the dish. Repeat with a fresh candy for each temperature, in a mixed order, until each temperature has 3 trials.",
+      "Find the average time for each temperature."
+    ],
+    tables: [
+      {
+        title: "Color spreading times",
+        cols: ["Water & trial", "Water temp (°C)", "Time to reach 3 cm ring (s)", "Notes (pattern shape)"],
+        rows: ["Cool – trial 1", "Cool – trial 2", "Cool – trial 3", "Room – trial 1", "Room – trial 2", "Room – trial 3", "Warm – trial 1", "Warm – trial 2", "Warm – trial 3"]
+      },
+      {
+        title: "Averages",
+        cols: ["Water", "Average temp (°C)", "Average time (s)"],
+        rows: ["Cool", "Room", "Warm"]
+      }
+    ],
+    graph: "Scatter plot: water temperature (°C) on the x-axis and time to reach the ring (s) on the y-axis, with one point for each trial.",
+    questions: [
+      "How did the average time to reach the ring compare at the three temperatures?",
+      "Did the color spread evenly in all directions, or did it reach one side first? What might cause that?",
+      "Which steps happen between the candy touching the water and the color reaching the ring? Which might temperature change?",
+      "Why was it important to place the candy gently and keep the table still?",
+      "How confident are you in your results? What would make them more reliable?"
+    ],
+    extension: "Keep the temperature the same and test candy color, or put candies of two colors on opposite sides and see what happens where the colors meet.",
+    note: "A tiny tilt in the dish or a bump on the table can push the color one way, so check that the dish is level and test without touching it. Warm water also cools toward room temperature during a long trial."
+  },
+
+  {
+    id: "milk-color-soap",
+    title: "Milk Color Explosion",
+    difficulty: "Easy",
+    category: "Chemistry / Surface Tension",
+    themes: ["chemistry", "materials"],
+    keywords: ["milk", "food coloring", "dish soap", "soap", "surface tension", "color", "swirl", "fat", "concentration"],
+    summary: "Make food coloring race across milk with a drop of dish soap, then film how far the color moves using soap of different strengths.",
+    time: { active: "About 1.5 hours", waiting: "None" },
+    supplies: "Whole milk, food coloring, dish soap, dropper, shallow dishes, ruler, phone camera",
+    question: "How does dish-soap concentration affect the initial movement of food coloring?",
+    investigating: "The surface of milk acts a little like a stretched skin because of surface tension. A drop of soap lowers the surface tension where it lands, so the surrounding surface pulls away and carries the food coloring with it. Soap also mixes with the fat and proteins in milk, which keeps the colors moving. No gas is produced; this is not a fizzing reaction. Watching the colors swirl is the demonstration. In the experiment, you change only the soap concentration and measure how far a color front moves in the first 5 seconds.",
+    materials: [
+      "About 1 liter of whole milk (same carton or same brand and date)",
+      "Food coloring (one color is enough)",
+      "Liquid dish soap, about 20 mL",
+      "4 small labeled cups for soap mixtures",
+      "Measuring spoons or a 10 mL graduated cylinder",
+      "1 plastic dropper (pipette) for soap and 1 for food coloring",
+      "Several identical shallow dishes (saucers or petri dishes), about 15 cm across",
+      "Ruler with millimeters",
+      "Phone or tablet to film from above, held steady on a stack of books",
+      "Thermometer, paper towels, and a tub of rinse water"
+    ],
+    safety: [
+      "Do not drink the milk or taste the mixtures. Pour everything down the sink when finished.",
+      "Check for milk allergies in your group; anyone with a milk allergy should use gloves or record data instead.",
+      "Keep soap away from your eyes. If soap gets in your eyes, rinse with water and tell an adult.",
+      "Keep the phone away from the milk and wipe spills right away."
+    ],
+    independent: "Soap concentration in water: 0% (water only), 25%, 50%, and 100% soap",
+    dependent: "Distance (mm) the color front moves away from its starting edge in the first 5 seconds after the soap drop lands",
+    controlled: [
+      "Milk type, depth (50 mL per dish), and temperature",
+      "Same dish size and a clean dish (no soap left over)",
+      "One drop of food coloring placed at the center",
+      "Soap drop size (same dropper, one drop, from 2 cm above)",
+      "Camera height, ruler beside the dish, and same lighting"
+    ],
+    comparison: "The 0% (water only) drop is the control. It shows how much the color moves just from adding a drop of liquid.",
+    repeat: "Do 3 trials at each concentration, each with fresh milk.",
+    procedure: [
+      "Mix the soap solutions in labeled cups: 0% = 4 mL water; 25% = 1 mL soap + 3 mL water; 50% = 2 mL soap + 2 mL water; 100% = 4 mL soap. Stir gently so they do not foam.",
+      "Let the milk sit out for 20 minutes so it is all the same temperature. Record that temperature.",
+      "Set up the camera directly above the dish, with the ruler lying beside the dish in the picture.",
+      "Pour 50 mL of milk into a clean dish and let it settle for 15 seconds.",
+      "Add one drop of food coloring to the center. Wait 10 seconds and start recording video.",
+      "Hold the soap dropper 2 cm above the center of the color drop and release one drop.",
+      "Stop recording after 15 seconds. Later, pause the video at the moment the soap lands and again 5 seconds later. Using the ruler in the video, measure how far the color's edge moved in mm (measure the edge that moved farthest).",
+      "Pour out the milk. Wash the dish with water only and rinse it several times, or use a separate dish for each concentration, because leftover soap will affect the next trial.",
+      "Test the concentrations in this order: 0%, 25%, 50%, 100%. Then repeat the set 2 more times."
+    ],
+    tables: [
+      {
+        title: "Color movement in the first 5 seconds",
+        cols: ["Soap concentration", "Trial 1 (mm)", "Trial 2 (mm)", "Trial 3 (mm)", "Average (mm)"],
+        rows: ["0% (water)", "25%", "50%", "100%"]
+      },
+      {
+        title: "Setup",
+        cols: ["Item", "Value"],
+        rows: ["Milk type", "Milk temperature (°C)", "Dish diameter (cm)"]
+      }
+    ],
+    graph: "Line graph: soap concentration (%) on the x-axis and average distance the color moved in 5 seconds (mm) on the y-axis.",
+    questions: [
+      "What happened when the plain-water drop landed? How does that compare with the soap drops?",
+      "How did the average distance change with soap concentration? Was the change steady, or did it level off?",
+      "Which trials were most different from each other? What could have caused it (drop size, leftover soap, milk depth)?",
+      "Why did the milk need to be fresh for each trial instead of adding more soap to the same dish?",
+      "Explain in your own words why the colors moved, using the words surface tension and soap."
+    ],
+    extension: "Keep the soap concentration the same and compare whole milk, 2% milk, and skim milk, or compare cold milk with room-temperature milk.",
+    note: "The first few seconds happen fast and the pattern is not perfectly even, so measuring from video is much more reliable than watching. Expect your trials to vary; that is why this experiment needs repeated trials."
+  },
+
+  {
+    id: "water-xylophone",
+    title: "Build a Water Xylophone",
+    difficulty: "Easy",
+    category: "Physics / Sound",
+    themes: ["sound", "water"],
+    keywords: ["xylophone", "glass", "water", "pitch", "frequency", "sound", "music", "tap", "vibration", "tuner", "hertz"],
+    summary: "Tap a row of identical glasses holding different amounts of water and use a tuner app to measure the pitch of each one.",
+    time: { active: "About 1 hour", waiting: "None" },
+    supplies: "5 identical sturdy glasses, measuring cup, wooden spoon, tray, tuner app",
+    question: "How does water volume affect the pitch of a tapped glass?",
+    investigating: "When you tap a glass, the glass itself vibrates and makes the sound. The water inside touches the glass and moves with it, which can change how the glass vibrates. This is different from blowing across a bottle opening, where the air inside the bottle vibrates. Playing a tune is the demonstration. In the experiment, you change only the water volume and measure the frequency (pitch) in hertz (Hz).",
+    materials: [
+      "5 identical sturdy drinking glasses or glass jars (about 300 mL), with no chips or cracks",
+      "Measuring cup or graduated cylinder (mL)",
+      "Wooden spoon, chopstick, or pencil (wood or eraser end)",
+      "Large tray or towel for the glasses to sit on",
+      "Phone, tablet, or Chromebook with a teacher-approved tuner app that shows frequency in Hz",
+      "Ruler and masking tape",
+      "Food coloring (optional, to see the water levels)"
+    ],
+    safety: [
+      "Use sturdy, undamaged glasses. Stop and tell an adult if a glass chips or cracks.",
+      "Tap gently. A gentle tap is loud enough for the tuner.",
+      "Keep the glasses on a stable tray away from the table edge, and keep electronics away from the water."
+    ],
+    independent: "Water volume in the glass: 0, 50, 100, 150, and 200 mL",
+    dependent: "Frequency of the tapped glass (Hz) shown by the tuner",
+    controlled: [
+      "Same type of glass and the same tapping tool",
+      "Tapping spot: the outside of the glass, 1 cm below the rim",
+      "Tap strength (a gentle tap from the same small height)",
+      "Microphone 20 cm from the glass, in the same position",
+      "Quiet room and same water temperature"
+    ],
+    comparison: "The empty glass (0 mL) is the starting point. Compare each water level with it.",
+    repeat: "Tap and record 3 times for each water volume.",
+    procedure: [
+      "Place the glasses on the tray in a row. Label them 0, 50, 100, 150, and 200 mL.",
+      "Measure the water into each glass. Add food coloring if you like. Check that no water is on the outside of the rim.",
+      "Put a tape mark on the outside of each glass, 1 cm below the rim, to show the tapping spot.",
+      "Place the device with the tuner 20 cm away from the glass you are testing, at the same height every time.",
+      "Tap the glass once, gently, on the tape mark with the wooden spoon. Let it ring.",
+      "Read the steady frequency in Hz (not the note name) and record it. If the reading jumps between two values, record the one it settles on and write a note.",
+      "Repeat for 3 taps on that glass, then test each of the other glasses.",
+      "Find the average frequency for each water volume."
+    ],
+    tables: [
+      {
+        title: "Frequency of each glass",
+        cols: ["Water volume (mL)", "Tap 1 (Hz)", "Tap 2 (Hz)", "Tap 3 (Hz)", "Average (Hz)"],
+        rows: ["0", "50", "100", "150", "200"]
+      }
+    ],
+    graph: "Line graph: water volume (mL) on the x-axis and average frequency (Hz) on the y-axis.",
+    questions: [
+      "How did the frequency change as the water volume changed? Was the change steady?",
+      "Did the 3 taps on the same glass give the same reading? What might cause small differences?",
+      "Blow across the top of a bottle with water in it. How is that sound made differently from tapping a glass?",
+      "Why did you tap at the same spot each time?",
+      "If you wanted to tune a glass to a certain note, how could you use your graph?"
+    ],
+    extension: "Keep the water volume the same and compare glass, metal, and plastic cups, or compare tapping with a wooden spoon vs. a metal spoon (gently).",
+    note: "Tuner apps sometimes pick up a higher overtone instead of the main tone. If a reading looks far off from the others, tap again and watch for the value it settles on. Background noise can also confuse the app, so test in a quiet room."
+  },
+
+  {
+    id: "straw-oboe",
+    title: "Straw Oboe Orchestra",
+    difficulty: "Medium",
+    category: "Physics / Sound",
+    themes: ["sound"],
+    keywords: ["straw", "oboe", "reed", "instrument", "pitch", "frequency", "sound", "length", "music", "tuner", "hertz"],
+    summary: "Turn drinking straws into buzzing reed instruments, then measure how straw length changes the frequency of the sound.",
+    time: { active: "About 1.5 hours", waiting: "None" },
+    supplies: "Plastic drinking straws (one box), scissors, ruler, marker, tuner app",
+    question: "How does straw length affect sound frequency?",
+    investigating: "Flattening and cutting one end of a straw makes two flaps, called a reed. When you blow, the flaps vibrate open and closed very quickly, and this makes the air inside the straw vibrate. Getting the straw to buzz is the demonstration. In the experiment, you change only the straw length and measure the frequency (Hz) of the steady tone.",
+    materials: [
+      "1 box of identical plastic drinking straws (straight, not bendy, all the same diameter)",
+      "Scissors",
+      "Ruler with centimeters and a fine marker",
+      "Phone, tablet, or Chromebook with a teacher-approved tuner app that shows Hz",
+      "Labels or masking tape",
+      "Zip bag for each person's own straws"
+    ],
+    safety: [
+      "Each person plays only their own straws. Never share a straw that has been in someone's mouth.",
+      "Use scissors carefully and cut away from your hands.",
+      "Take a break if you feel dizzy from blowing. Breathe normally between trials.",
+      "Throw away used straws at the end."
+    ],
+    independent: "Straw length: 20, 16, 12, and 8 cm (measured from the tip of the reed to the open end)",
+    dependent: "Frequency of the steady tone (Hz) shown by the tuner",
+    controlled: [
+      "Same box of straws (same diameter and material)",
+      "Same reed shape: flattened 2 cm, cut to a point with the same angle",
+      "Same player for every straw in a set",
+      "Reed placed 1 cm into the mouth, lips relaxed",
+      "Microphone 20 cm from the end of the straw, in a quiet room"
+    ],
+    comparison: "No control group is needed. You are comparing the lengths to each other.",
+    repeat: "Make 3 straws at each length (12 straws per player) and play each straw at least once. If straws are limited, take 3 straws through a shortening sequence instead (see step 8).",
+    procedure: [
+      "Measure and cut the straws to length first: 3 straws each of 20, 16, 12, and 8 cm. Label each one.",
+      "Make the reed: flatten the last 2 cm of one end by pressing it firmly between your fingers or along the edge of a ruler. Do not use your teeth.",
+      "Cut the flattened end into a point: snip from each side at the same angle so the tip is about 4 mm wide. Use your first straw as a pattern for the others.",
+      "Put the reed about 1 cm into your mouth, close your lips gently, and blow steadily. It may take some practice to get a buzzing tone.",
+      "Hold the open end of the straw 20 cm from the tuner. Blow a steady tone for about 2 seconds and record the frequency once the reading settles.",
+      "Play each of the 12 straws in a mixed order, not shortest to longest. Record each frequency.",
+      "If a straw will not play, use the troubleshooting tips below, or make a replacement with the same shape.",
+      "Shortening sequence (if straws are limited): play a 20 cm straw, cut 4 cm off the open end, play again, and continue to 8 cm. Do this with 3 straws."
+    ],
+    tables: [
+      {
+        title: "Frequency for each straw",
+        cols: ["Length (cm)", "Straw 1 (Hz)", "Straw 2 (Hz)", "Straw 3 (Hz)", "Average (Hz)"],
+        rows: ["20", "16", "12", "8"]
+      }
+    ],
+    graph: "Line graph: straw length (cm) on the x-axis and average frequency (Hz) on the y-axis.",
+    questions: [
+      "How did the average frequency change as the straws got shorter? Was the change steady?",
+      "Did straws of the same length give the same frequency? What might cause differences (reed shape, how hard you blew)?",
+      "Sometimes blowing harder makes the pitch jump suddenly. Did that happen? How did you handle it?",
+      "Why should each person play their own set of straws instead of sharing?",
+      "Real oboes and clarinets are made in different lengths. How does your data help explain that?"
+    ],
+    extension: "Keep the length the same and test straw diameter (thin coffee straws vs. wide smoothie straws), or cut finger holes in a long straw to see how they change the note.",
+    note: "Troubleshooting: if there is no sound, flatten the reed again so the flaps nearly touch, and put a little more of the reed in your mouth. If the straw only squeaks, the flaps may be stuck shut; open them slightly with a fingernail. If the reed gets soggy, make a new straw. Blowing harder can push the tone up to a higher overtone, so keep your airflow steady and gentle."
+  },
+
+  {
+    id: "spinning-sprinkler",
+    title: "Spinning Sprinkler",
+    difficulty: "Medium",
+    category: "Engineering / Forces and Motion",
+    themes: ["engineering", "water", "motion"],
+    keywords: ["sprinkler", "spin", "rotation", "nozzle", "water", "reaction force", "newton's third law", "action reaction", "jet", "angle"],
+    summary: "Build a hanging cup sprinkler that spins as water pours out of two bent straws, then count its turns with the nozzles pointed at different angles.",
+    time: { active: "About 2 hours", waiting: "None" },
+    supplies: "Wide plastic deli container, 2 bendable straws, clay, string, fishing swivel, plastic tub, protractor",
+    question: "How does nozzle direction affect rotation speed?",
+    investigating: "When water shoots out of a nozzle, the water is pushed one way and the nozzle is pushed the opposite way. This push is called a reaction force. If the nozzles point sideways, the pushes can turn the container. Getting it to spin is the demonstration. In the experiment, you change only the nozzle angle and count how many turns the sprinkler makes in 10 seconds.",
+    materials: [
+      "1 wide, round plastic deli container, about 1 liter (no lid used)",
+      "2 bendable plastic straws",
+      "Modeling clay or reusable putty (to seal around straws)",
+      "Strong string, about 60 cm, and a small fishing swivel",
+      "A broom handle or meter stick laid across two chairs, or a sturdy hook",
+      "Large plastic tub or basin to catch water (or test outside)",
+      "Pitcher of water and a measuring cup",
+      "Protractor, paper, and a marker (for an angle guide)",
+      "Ruler and masking tape",
+      "Stopwatch, and a phone camera (helpful for counting turns)",
+      "Pushpin and a pencil (for the adult to make holes)"
+    ],
+    safety: [
+      "An adult makes the holes in the container and helps assemble the sprinkler.",
+      "This sprinkler uses gravity only. Never close it with a lid, squeeze it, or attach it to a hose or any pressurized container.",
+      "Test over a large tub or outside. Keep water away from outlets, cords, and electronics.",
+      "Wipe up any spilled water on the floor right away."
+    ],
+    independent: "Nozzle angle compared with the line of the arm: 0° (pointing straight out), 30°, 60°, and 90° (pointing fully sideways)",
+    dependent: "Number of full turns in 10 seconds (turns per 10 s)",
+    controlled: [
+      "Same container, straws, and hole positions",
+      "Arm length: each straw sticks out 5 cm from the container before its bend",
+      "Nozzle opening (same straw ends, uncut)",
+      "Water level at the start (filled to the same line) and same water temperature",
+      "Same string length and swivel",
+      "Both nozzles set to the same angle and in the same turning direction"
+    ],
+    comparison: "The 0° setting (nozzles pointing straight out, no sideways direction) is the control.",
+    repeat: "Do 3 trials at each nozzle angle.",
+    procedure: [
+      "Adult step: use a pushpin and then a pencil tip to make two holes the size of a straw on opposite sides of the container, about 1 cm above the bottom.",
+      "Push a straw through each hole so its bend is 5 cm outside the container. Seal around each straw inside and out with clay. Pour in a little water to check for leaks.",
+      "Make 3 equally spaced holes near the rim and tie short strings to them, then tie the strings together to the swivel and the main string. Hang the container over the tub so it hangs level and turns freely.",
+      "Draw an angle guide on paper: a straight line (the arm) with lines at 0°, 30°, 60°, and 90°. Use it to bend both straw tips to the same angle, pointing in opposite directions so they turn the cup the same way. Tape the bends so they hold.",
+      "Draw a ‘fill line’ inside the container 6 cm above the straws. Put a piece of tape on the side of the container as a flag for counting turns.",
+      "Hold the container still and quickly pour water up to the fill line. Let go and start the stopwatch at the same moment.",
+      "Count the full turns of the tape flag in 10 seconds (or film it and count later). Also mark how far the water level dropped in those 10 seconds.",
+      "Let the container stop spinning and untwist. Repeat for 3 trials, then change the nozzle angle and test again.",
+      "Find the average turns in 10 seconds for each angle."
+    ],
+    tables: [
+      {
+        title: "Turns in 10 seconds",
+        cols: ["Nozzle angle (°)", "Trial 1 (turns)", "Trial 2 (turns)", "Trial 3 (turns)", "Average (turns)", "Water level drop (cm)"],
+        rows: ["0", "30", "60", "90"]
+      }
+    ],
+    graph: "Line graph: nozzle angle (°) on the x-axis and average turns in 10 seconds on the y-axis.",
+    questions: [
+      "What happened at 0°? Why is that a useful control?",
+      "How did the average number of turns change as the angle changed?",
+      "The water level drops during a trial, so the water flow slows a little. How large was the drop, and how might it affect your results?",
+      "Which way did the container turn compared with the direction the water shot out? Explain using the idea of a reaction force.",
+      "Twisting string and friction in the swivel can slow the sprinkler. How did you try to keep those the same?"
+    ],
+    extension: "Keep the angle the same and test the arm length (straws sticking out 3, 5, and 8 cm), or the starting water height.",
+    note: "A wide container keeps the water level, and the push of the water, nearly the same during a short 10-second test. The level still drops a little, so filling to the same line and timing the same 10 seconds keeps the trials fair. Counting partial turns is hard, so count only full turns or use video."
+  },
+
+  {
+    id: "hydraulic-lift",
+    title: "Hydraulic Lifting Machine",
+    difficulty: "Hard",
+    category: "Engineering / Hydraulics",
+    themes: ["engineering", "water", "motion"],
+    keywords: ["hydraulic", "hydraulics", "syringe", "lift", "platform", "pressure", "force", "fluid", "tubing", "pascal", "machine"],
+    summary: "Connect needle-free syringes with water-filled tubing to lift a small platform, then measure how output syringe size changes how far it moves.",
+    time: { active: "About 2.5 hours", waiting: "None" },
+    supplies: "Needle-free syringes (10, 20, and 60 mL), clear plastic tubing, cardboard platform, coins, ruler",
+    question: "How does the output syringe's barrel size affect the distance it moves?",
+    investigating: "Water is very hard to squeeze into a smaller space. When you push the input syringe, the water pushes on the plunger of the output syringe. The same volume of water moves from one syringe to the other, but syringes of different widths turn that volume into different distances. A wider syringe can push with more force but moves a shorter distance, so the machine trades distance for force; it never makes extra energy. Lifting the platform is the demonstration. In the experiment, you change only the output syringe size and measure how far its plunger moves.",
+    materials: [
+      "Needle-free plastic syringes: two 10 mL, one 20 mL, and one 60 mL (from a pharmacy or science supplier)",
+      "Clear vinyl tubing that fits snugly on the syringe tips (about 4–5 mm inside diameter), one 30 cm piece",
+      "Water with a drop of food coloring",
+      "Bowl or small tub of water for filling",
+      "Cardboard square (6 cm × 6 cm) for a platform and tape",
+      "Small load: 5 identical coins",
+      "Ruler with millimeters, taped upright next to the output syringe",
+      "Modeling clay or a block and rubber bands to hold the output syringe upright",
+      "Calipers or ruler for measuring barrel width",
+      "Paper towels and splash goggles"
+    ],
+    safety: [
+      "Use only needle-free syringes.",
+      "Wear goggles. Push gently; pushing hard can pop the tubing off and spray water.",
+      "Use only light loads like coins. Do not stand on, sit on, or press down on the platform.",
+      "Wipe up spills and keep water away from electronics."
+    ],
+    independent: "Output syringe size: 10 mL, 20 mL, and 60 mL (record the inside barrel width of each in mm)",
+    dependent: "Distance the output plunger (platform) moves up (mm) when the input plunger moves a fixed distance",
+    controlled: [
+      "Same 10 mL input syringe, pushed in by the same amount (from the 8 mL mark to the 4 mL mark)",
+      "Same 30 cm tubing",
+      "Same platform and load (5 coins)",
+      "Output plunger starting at the same position (resting at the bottom of its travel)",
+      "No air bubbles in the system, and no leaks"
+    ],
+    comparison: "The 10 mL output syringe (the same size as the input) is the reference. Compare the 20 mL and 60 mL results with it.",
+    repeat: "Do 3 trials with each output syringe, refilling and removing air between syringe changes.",
+    procedure: [
+      "Measure the inside width of each syringe barrel with calipers or a ruler and record it.",
+      "Fill the system without air: hold the input syringe, tubing, and output syringe under water in the bowl. Draw water into the input syringe to the 8 mL mark, attach the tubing, and push water through the tubing until no bubbles come out. Attach the output syringe with its plunger pushed all the way in.",
+      "Lift the system out of the water. Push the input plunger gently and watch for drips at the connections. Fix any leaks before testing.",
+      "Stand the output syringe upright with clay or a block and rubber bands. Tape the cardboard platform to the top of its plunger and put the 5 coins on it.",
+      "Tape the upright ruler beside the output syringe so you can read the platform height.",
+      "Start with the input plunger at the 8 mL mark and the output plunger all the way down. Record the platform's starting height.",
+      "Slowly push the input plunger from the 8 mL mark to the 4 mL mark. Read the new platform height. Subtract to find how far the output moved in mm.",
+      "Pull the input plunger back to 8 mL so the platform returns. Repeat for 3 trials.",
+      "Take the system apart, then repeat steps 2–8 with the 20 mL and then the 60 mL output syringe. Check the 60 mL syringe test with a pretest: if the platform barely moves, use a ruler with a finer scale or film it close up."
+    ],
+    tables: [
+      {
+        title: "Output movement",
+        cols: ["Output syringe", "Inside width (mm)", "Trial 1 (mm)", "Trial 2 (mm)", "Trial 3 (mm)", "Average (mm)"],
+        rows: ["10 mL", "20 mL", "60 mL"]
+      },
+      {
+        title: "Input setup",
+        cols: ["Item", "Value"],
+        rows: ["Input plunger movement (mL)", "Input plunger movement (mm)"]
+      }
+    ],
+    graph: "Bar graph: output syringe size on the x-axis and average output movement (mm) on the y-axis. Advanced: a scatter plot of inside barrel width (mm) vs. output movement (mm).",
+    questions: [
+      "How did the output movement compare for the three syringe sizes?",
+      "Compare each output movement with the input movement. Which syringes moved farther than the input, and which moved less?",
+      "If the same volume of water moved each time, why would different syringes move different distances?",
+      "Which setup do you think would make lifting a heavier load easiest? Why does that setup move a shorter distance?",
+      "How could an air bubble or a leak change your results?"
+    ],
+    extension: "Keep the output syringe the same and swap the input syringe instead, or build a scissor-lift platform from craft sticks and compare how many coins each setup can lift.",
+    note: "Air bubbles squish when pushed, so a system with bubbles moves less than expected. Friction between the plunger and barrel also uses up some of your push, and it can be different for each syringe size."
+  },
+
+  {
+    id: "mini-catapult",
+    title: "Mini Catapult Accuracy Lab",
+    difficulty: "Medium",
+    category: "Engineering / Projectile Motion",
+    themes: ["engineering", "motion"],
+    keywords: ["catapult", "launcher", "craft stick", "popsicle stick", "pom-pom", "projectile", "launch", "distance", "pullback", "rubber band", "energy"],
+    summary: "Build a craft-stick catapult that launches soft pom-poms, then measure how pulling the arm back farther changes how far they fly.",
+    time: { active: "About 2 hours", waiting: "None" },
+    supplies: "Jumbo craft sticks, rubber bands, plastic spoon or bottle cap, pom-poms, tape measure, ruler",
+    question: "How does pullback distance affect launch distance?",
+    investigating: "Pushing the launch arm down bends the sticks and stretches the rubber bands, storing energy. When you let go, that energy is turned into motion of the arm and the pom-pom. Launching a pom-pom is the demonstration. In the experiment, you change only how far the arm is pulled back and measure where the pom-pom first lands.",
+    materials: [
+      "9 jumbo craft sticks",
+      "6 rubber bands of the same size",
+      "1 plastic spoon or bottle cap (as the launch cup) and tape or glue dots",
+      "5 identical soft pom-poms, about 2.5 cm across",
+      "Ruler with centimeters and a small box or block (for the pullback guide)",
+      "Tape measure or meter sticks (at least 5 m)",
+      "Masking tape for the launch line and landing marks",
+      "Goggles",
+      "Phone camera for slow-motion video (helpful for spotting first landing)"
+    ],
+    safety: [
+      "Launch only soft pom-poms. Never launch anything hard, sharp, or heavy.",
+      "Never aim the catapult toward people, animals, or faces. Keep the landing area clear before every launch.",
+      "Wear goggles; a rubber band or stick can snap.",
+      "Pick up pom-poms only after the launcher has been released and set down."
+    ],
+    independent: "Pullback distance: how far the tip of the launch arm is pushed down, 1, 2, 3, and 4 cm",
+    dependent: "Horizontal landing distance (cm) from the launch line to where the pom-pom first touches the floor",
+    controlled: [
+      "Same catapult, rubber bands, and launch cup",
+      "Same pom-pom size and type",
+      "Catapult taped in the same spot at the same angle",
+      "Same release method: let go of the arm with one quick finger lift",
+      "Same floor surface and no fans or drafts"
+    ],
+    comparison: "No control group is needed. You are comparing the pullback distances to each other.",
+    repeat: "Do at least 3 launches at each pullback distance (5 is better).",
+    procedure: [
+      "Stack 7 craft sticks and wrap a rubber band tightly around each end.",
+      "Put the other 2 sticks together and wrap one end with a rubber band. Spread the open end apart and slide the stack of 7 between them, near the banded end. Wrap a rubber band in an X over the joint to hold it.",
+      "Tape or glue the spoon or bottle cap to the top stick near its free end. This is the launch arm.",
+      "Tape the catapult to the floor behind a tape launch line, in a hallway or open area with nothing breakable nearby.",
+      "Make a pullback guide: tape a ruler upright beside the launch arm's tip. Mark 1, 2, 3, and 4 cm below the arm's resting height.",
+      "Put a pom-pom in the cup. Push the arm tip down to the first mark, check the area is clear, and release with one quick finger lift.",
+      "A partner watches where the pom-pom first touches the floor (not where it rolls to) and puts a small tape mark there. Measure from the launch line in cm.",
+      "Do 3–5 launches at each pullback distance, in a mixed order. Check the rubber bands now and then; replace one if it looks loose and note it in your data.",
+      "Find the average landing distance for each pullback distance."
+    ],
+    tables: [
+      {
+        title: "Landing distances",
+        cols: ["Pullback (cm)", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Trial 4 (cm)", "Trial 5 (cm)", "Average (cm)"],
+        rows: ["1", "2", "3", "4"]
+      }
+    ],
+    graph: "Line graph: pullback distance (cm) on the x-axis and average landing distance (cm) on the y-axis. Add a dot for each trial to show how spread out the landings were.",
+    questions: [
+      "How did the average landing distance change as the pullback distance increased?",
+      "Which pullback distance gave the most consistent (least spread out) landings?",
+      "Look at your graph. Did doubling the pullback double the landing distance? What does that tell you?",
+      "Where does the energy that launches the pom-pom come from? Where does it go after landing?",
+      "If you wanted to hit a target 1.5 m away, which pullback would you choose based on your data?"
+    ],
+    extension: "Keep the pullback the same and change the number of sticks in the stack (which changes the launch angle), or test pom-poms of different sizes.",
+    note: "Pom-poms are light, so air pushes on them a lot, and small differences in release make them land in different spots. That is why each pullback needs several launches. Spotting the first touch is easier with slow-motion video."
+  },
+
+  {
+    id: "paper-helicopter",
+    title: "Paper Helicopter Drop",
+    difficulty: "Easy",
+    category: "Physics / Aerodynamics",
+    themes: ["motion"],
+    keywords: ["helicopter", "paper helicopter", "rotor", "spin", "fall", "drop", "air resistance", "descent", "whirligig"],
+    summary: "Fold paper helicopters that spin as they fall, then time how rotor length changes how long they take to reach the floor.",
+    time: { active: "About 1 hour", waiting: "None" },
+    supplies: "Printer paper, scissors, ruler, small paper clips, tape measure, stopwatch",
+    question: "How does rotor length affect descent time?",
+    investigating: "As the helicopter falls, air pushes up on the two rotor blades. The blades are bent in opposite directions, so the push makes the helicopter spin, and the air slows its fall. Watching it spin is the demonstration. In the experiment, you change only the rotor length and time how long the helicopter takes to fall from the same height.",
+    materials: [
+      "4 sheets of the same printer paper",
+      "Scissors and a ruler with centimeters",
+      "Pencil",
+      "4 identical small paper clips",
+      "Tape measure and masking tape",
+      "Stopwatch, and a phone for video (helpful)",
+      "Kitchen scale that measures to 0.1 g or better (optional)"
+    ],
+    safety: [
+      "Drop from a standing position on the floor. Never climb on chairs, desks, or ladders to get more height.",
+      "Choose a spot away from doors and walkways so no one walks into you while you are looking up.",
+      "Use scissors carefully."
+    ],
+    independent: "Rotor (blade) length: 5, 7, 9, and 11 cm",
+    dependent: "Descent time (s) from release to touching the floor",
+    controlled: [
+      "Same paper type",
+      "Rotor width (2.5 cm each blade)",
+      "Body: 5 cm wide and 8 cm long, folded the same way",
+      "Same paper-clip mass at the bottom",
+      "Drop height (the same marked height on the wall)",
+      "Release method: held by the body, blades flat, let go without throwing",
+      "No fans or drafts"
+    ],
+    comparison: "No control group is needed. You are comparing rotor lengths to each other.",
+    repeat: "Drop each helicopter at least 5 times. Better still, make 2 copies of each length.",
+    procedure: [
+      "For each helicopter, cut a strip of paper 5 cm wide. Its length is the rotor length plus 8 cm (so 13, 15, 17, and 19 cm).",
+      "From the top of the strip, cut down the middle as far as the rotor length (5, 7, 9, or 11 cm). These are the two blades.",
+      "On the body (the uncut 8 cm), cut 1.5 cm in from each side at the top of the body, fold both sides in to overlap, then fold the bottom up 1 cm and clip it with one paper clip.",
+      "Fold one blade forward and the other backward so they make a T shape. Label each helicopter with its rotor length.",
+      "If you have a scale, weigh each helicopter and record its mass.",
+      "Put a tape mark on a wall at the highest height the shortest person in your group can reach while standing flat on the floor (about 1.8 m). Measure and record it.",
+      "Hold the helicopter by the body with the blade tops level with the tape mark. Say ‘3, 2, 1, go,’ let go, and start the stopwatch. Stop it when the helicopter touches the floor.",
+      "Repeat 5 times for each helicopter, taking turns among the lengths. If a helicopter does not spin or hits a wall, redo that trial.",
+      "Find the average descent time for each rotor length."
+    ],
+    tables: [
+      {
+        title: "Descent times",
+        cols: ["Rotor length (cm)", "Mass (g)", "Trial 1 (s)", "Trial 2 (s)", "Trial 3 (s)", "Trial 4 (s)", "Trial 5 (s)", "Average (s)"],
+        rows: ["5", "7", "9", "11"]
+      }
+    ],
+    graph: "Line graph: rotor length (cm) on the x-axis and average descent time (s) on the y-axis.",
+    questions: [
+      "How did the average descent time change as the rotor length increased?",
+      "Did every helicopter spin right away? How did that affect your times?",
+      "Longer rotors also use more paper, so those helicopters are a little heavier. How might that extra mass affect your results?",
+      "Your times are short, so a fraction of a second matters. How could you make your timing more accurate?",
+      "Seeds such as maple ‘helicopters’ spin as they fall. Why might a slower fall help a seed?"
+    ],
+    extension: "Keep the rotor length the same and test the number of paper clips (1, 2, 3), or compare rotor widths.",
+    note: "Changing rotor length also changes the paper mass a little, so rotor length is not the only difference between your helicopters. Reaction time with a stopwatch can add about 0.2 seconds of error, which is why each helicopter is dropped several times. Filming the drop beside a timer gives better times."
+  },
+
+  {
+    id: "green-roof-model",
+    title: "Mini Green Roof Challenge",
+    difficulty: "Hard",
+    category: "Environmental Science / Engineering",
+    themes: ["earth", "engineering", "water", "plants"],
+    keywords: ["green roof", "roof", "runoff", "stormwater", "rain", "soil", "growing medium", "drainage", "flooding", "model", "city"],
+    summary: "Build tabletop model roofs with different depths of soil, ‘rain’ on them the same way, and measure how much water runs off and how fast.",
+    time: { active: "About 3 hours", waiting: "None (optional: several weeks if growing plants)" },
+    supplies: "12 identical foil pans, potting mix, window screen, rain cup with pinholes, measuring cups, stopwatch",
+    question: "How does growing-medium depth affect runoff from a model green roof?",
+    investigating: "When rain falls on an ordinary roof, most of it runs off into gutters and storm drains. A green roof has a layer of soil-like growing medium (and often plants) that can soak up and slow down some of the rain. Watching the water drain is the demonstration. In the experiment, you change only the depth of the growing medium, use the same simulated rain on every model, and measure how much water runs off and how long it takes for runoff to begin.",
+    materials: [
+      "12 identical disposable aluminum loaf or baking pans, about 20 cm × 15 cm",
+      "Potting mix from one bag (about 12 liters), mixed well before starting",
+      "Plastic window screen (enough to line 9 pans), cut to fit the pan bottoms",
+      "Landscape fabric or paper towels (a filter layer) cut to fit 9 pans",
+      "Pencil (for the adult to poke drain holes)",
+      "Wooden block or books 3 cm tall (to set the slope)",
+      "1 plastic cup with 10 pinholes in the bottom (the ‘rain cup’) and a ring stand or helper to hold it 15 cm high",
+      "Measuring cup or graduated cylinder (mL) and a pitcher of water",
+      "Clear container to collect runoff, placed below the drain hole",
+      "Ruler, stopwatch, masking tape, marker",
+      "Gloves and a large tray to work on"
+    ],
+    safety: [
+      "Wear gloves when handling potting mix and wash hands afterward. Pour it gently and dampen it slightly so dust does not puff up.",
+      "An adult pokes the drain holes in the pans.",
+      "This is a tabletop model. Use only small, shallow pans on a sturdy table; never work on a real roof.",
+      "Wipe up spilled water and soil right away."
+    ],
+    independent: "Depth of growing medium: 0 cm (bare roof), 2 cm, 4 cm, and 6 cm",
+    dependent: "Runoff volume (mL) collected in 10 minutes, and time (s) from the start of the rain until the first drip of runoff",
+    controlled: [
+      "Same pan size and slope (3 cm block under the high end)",
+      "Same drainage layers (screen + filter) in every green roof",
+      "Potting mix from the same bag, mixed and used at the same time (same starting moisture)",
+      "Same ‘rain’: 500 mL poured into the same rain cup held 15 cm above the center",
+      "Same collection time (10 minutes)",
+      "No plants, or identical plant coverage in every green roof"
+    ],
+    comparison: "The bare roof (an empty pan with no layers) is the control. It shows what happens without a green roof.",
+    repeat: "Build 3 identical models for each depth (12 pans total) so each condition has 3 trials.",
+    procedure: [
+      "Adult step: poke one pencil-sized drain hole in each pan at the center of one short end, right at the bottom edge.",
+      "Label pans: Bare A, B, C; 2 cm A, B, C; 4 cm A, B, C; 6 cm A, B, C.",
+      "For each green roof, lay window screen on the bottom, then the filter layer on top of the screen.",
+      "Mix the potting mix well. Fill each green roof pan to its depth, measuring at 3 spots with a ruler. Smooth the top without pressing it down. Leave the bare pans empty.",
+      "Set the first pan on the tray with the 3 cm block under the end without the drain hole, so water flows toward the hole. Put the collection container under the hole.",
+      "Hold the rain cup 15 cm above the center of the pan (a helper or ring stand). Pour 500 mL of water into the cup and start the stopwatch at the same moment.",
+      "Record the time when the first drip of runoff falls from the drain hole. If no runoff comes out in 10 minutes, write ‘none.’",
+      "At 10 minutes, measure the volume of water in the collection container.",
+      "Test all 12 pans in a mixed order (for example 4 cm A, bare A, 6 cm A, 2 cm A, …) so each depth is tested early and late.",
+      "Find the average runoff volume and average start time for each depth."
+    ],
+    tables: [
+      {
+        title: "Runoff results",
+        cols: ["Model", "Time until runoff begins (s)", "Runoff in 10 min (mL)", "Runoff as % of 500 mL"],
+        rows: ["Bare – A", "Bare – B", "Bare – C", "2 cm – A", "2 cm – B", "2 cm – C", "4 cm – A", "4 cm – B", "4 cm – C", "6 cm – A", "6 cm – B", "6 cm – C"]
+      },
+      {
+        title: "Averages",
+        cols: ["Depth (cm)", "Average time until runoff (s)", "Average runoff (mL)"],
+        rows: ["0 (bare)", "2", "4", "6"]
+      }
+    ],
+    graph: "Two line graphs: depth of growing medium (cm) on the x-axis, with average runoff volume (mL) on the y-axis of one, and average time until runoff begins (s) on the y-axis of the other.",
+    questions: [
+      "How did the bare roof compare with the green roofs for runoff volume and start time?",
+      "How did runoff change as the medium got deeper? Did each extra 2 cm make the same difference?",
+      "Where did the water that did not run off go? How could you measure it (hint: weigh the pans)?",
+      "Your rain was 500 mL in about a minute. How might a longer or gentler rain change your results?",
+      "A real roof has to hold up the weight of wet soil. Why might engineers not always choose the deepest layer?"
+    ],
+    extension: "Keep the depth the same and compare growing media (potting mix vs. sand vs. a mix with perlite), or plant identical grass seed in each pan and repeat the test after 3 weeks.",
+    note: "A small model cannot copy everything about a real building, such as wind, sunlight drying the roof, real rain patterns, or roof size. Your rain cup also drips faster in the first seconds while it is full. The results show how depth affects runoff in your model, which is a good starting point for thinking about real roofs."
+  },
+
+  {
+    id: "seed-dispersal-flyers",
+    title: "Seed-Dispersal Flyers",
+    difficulty: "Medium",
+    category: "Plant Science / Engineering",
+    themes: ["plants", "engineering", "motion"],
+    keywords: ["seed", "dispersal", "wind", "wing", "flyer", "maple", "dandelion", "fan", "breeze", "shape", "glide"],
+    summary: "Design paper ‘seeds’ with differently shaped wings and measure how far each one drifts in a steady breeze from a fan.",
+    time: { active: "About 2 hours", waiting: "None" },
+    supplies: "Cardstock or printer paper, small paper clips, box fan, tape measure, scale",
+    question: "How does wing shape affect how far a model seed travels in a steady breeze?",
+    investigating: "Many plants spread their seeds by wind. Wings, fluff, and flat shapes let air push on a seed longer as it falls, which can carry it farther from the parent plant. Your paper models explore how shape influences wind transport; they are not exact copies of real seeds. Flying the models is the demonstration. In the experiment, you change only the wing shape (keeping area and mass the same) and measure how far each model travels.",
+    materials: [
+      "Printer paper (same type for every model)",
+      "Ruler, pencil, and scissors",
+      "Compass or a round lid for tracing circles",
+      "Small identical paper clips (1 per model) to act as the ‘seed’",
+      "Box fan with a safety grille",
+      "Tape measure (at least 5 m) and masking tape",
+      "Kitchen scale that measures to 0.1 g or better"
+    ],
+    safety: [
+      "An adult sets up and plugs in the fan and tapes down its cord so no one trips.",
+      "Keep hands, hair, and paper models away from the fan blades. Never poke anything through the grille.",
+      "Release models from a standing position on the floor; do not climb on furniture.",
+      "Keep the walkway in front of the fan clear while models are flying."
+    ],
+    independent: "Wing shape (all with the same paper area of 32 cm²): rectangle (8 × 4 cm), triangle (base 8 cm, height 8 cm), circle (6.4 cm across), and two small squares (two 4 × 4 cm wings)",
+    dependent: "Horizontal travel distance (cm) from the point directly below the release spot to where the model first lands",
+    controlled: [
+      "Paper area of each wing (32 cm²) and the same paper",
+      "Total mass: one paper clip attached at the same spot (center of the wing edge closest to the floor)",
+      "Release height (the same tape mark on the wall)",
+      "Fan position (1 m behind the release point), fan height, and the same fan setting (low)",
+      "Release method: hold by the clip, wing flat, let go without pushing"
+    ],
+    comparison: "Drop each model once with the fan off. This shows how far it travels without wind, so you can see what the breeze adds.",
+    repeat: "Fly each shape at least 5 times with the fan on. Making 2 copies of each shape is even better.",
+    procedure: [
+      "Draw and cut out the four wing shapes, each with an area of 32 cm². Label each one lightly in pencil.",
+      "Attach one paper clip to the edge of each wing at the same relative spot: the middle of the edge that will point toward the floor (for the two-square model, clip the two squares together at one corner).",
+      "Weigh each model. If any model is more than 0.1 g different, trim or remake it so they match.",
+      "Adult step: place the fan on the floor, set it to low, and tape its position. Mark a release spot 1 m in front of the fan on the floor, and a release height on a wall or upright meter stick (about 1.5 m).",
+      "Lay the tape measure on the floor starting under the release spot and running away from the fan.",
+      "Fan-off control: hold one model by the clip at the release height and let go. Mark and measure where it first lands. Do this once for each shape.",
+      "Turn the fan on and wait 30 seconds for the air to settle into a steady flow.",
+      "Release a model the same way. A partner marks where it first touches the floor. Measure the distance in cm.",
+      "Fly each shape 5 times, in a mixed order (rectangle, circle, triangle, squares, …).",
+      "Find the average travel distance for each shape."
+    ],
+    tables: [
+      {
+        title: "Travel distance with the fan on",
+        cols: ["Wing shape", "Mass (g)", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Trial 4 (cm)", "Trial 5 (cm)", "Average (cm)"],
+        rows: ["Rectangle", "Triangle", "Circle", "Two squares"]
+      },
+      {
+        title: "Fan-off control",
+        cols: ["Wing shape", "Distance with fan off (cm)"],
+        rows: ["Rectangle", "Triangle", "Circle", "Two squares"]
+      }
+    ],
+    graph: "Bar graph: wing shape on the x-axis and average travel distance (cm) on the y-axis. You can show the fan-off distances as a second, lighter bar beside each shape.",
+    questions: [
+      "Which wing shape traveled the farthest on average? Which traveled the shortest?",
+      "Did any shape spin, flip, or glide in a special way? How might that motion have affected its distance?",
+      "How much did trials of the same shape vary? Were the differences between shapes larger than that?",
+      "A fan's breeze is not perfectly steady. How might gusts or uneven air have affected your results?",
+      "Real seeds are much smaller and lighter. Why can't your results be applied directly to real seeds?"
+    ],
+    extension: "Pick your best shape and test one more change: the release height, the fan setting, or where the paper clip is attached.",
+    note: "Air from a box fan is uneven: it is stronger in some spots and swirls in others. Keeping the fan and release spot exactly the same, and flying each model several times, makes your comparison fairer."
+  },
+
+  {
+    id: "potato-osmosis",
+    title: "Potato Water-Balance Lab",
+    difficulty: "Medium",
+    category: "Plant Science / Osmosis",
+    themes: ["plants", "water", "chemistry"],
+    keywords: ["potato", "osmosis", "salt", "salt water", "mass", "water movement", "cells", "concentration", "plant cells"],
+    summary: "Soak equal potato pieces in salt solutions of different strengths and measure the percentage change in their mass.",
+    time: { active: "About 1.5 hours", waiting: "2 hours of soaking" },
+    supplies: "2 large potatoes, table salt, 15 clear cups, scale (0.01 g best), paper towels, ruler",
+    question: "How does salt concentration affect the mass of potato pieces?",
+    investigating: "Potato tissue is made of cells that hold water. Water can move in and out of the cells through their thin outer layers, a process called osmosis. The amount of salt in the water outside the cells affects which way more water moves. In this experiment, you change only the salt concentration and measure how much the mass of each potato piece changes after soaking.",
+    materials: [
+      "2 large raw potatoes (same kind)",
+      "Table salt, about 40 g",
+      "Distilled or tap water (use the same kind for all cups)",
+      "15 clear plastic cups (about 250 mL), labeled",
+      "Kitchen scale that measures to 0.01 g (0.1 g works if pieces are larger)",
+      "Graduated cylinder or measuring cup (mL)",
+      "Knife and cutting board (adult only), ruler with millimeters",
+      "Paper towels",
+      "Timer",
+      "Thermometer (optional)"
+    ],
+    safety: [
+      "An adult cuts all potato samples.",
+      "Do not eat the potato pieces or drink the solutions. Throw everything away when finished.",
+      "Wash your hands after the lab. If salt water gets in your eyes, rinse with water."
+    ],
+    independent: "Salt concentration: 0, 1, 2, 5, and 10 g of salt per 100 mL of water",
+    dependent: "Percentage change in mass of each potato piece after 2 hours: (final − starting) ÷ starting × 100",
+    controlled: [
+      "Piece size (1 cm × 1 cm × 5 cm), without skin",
+      "Pieces from the same potatoes, shared out evenly among the concentrations",
+      "Solution volume (100 mL per cup)",
+      "Water type and temperature (all cups in the same spot)",
+      "Soaking time (2 hours)",
+      "Blotting method before weighing (same paper towel roll for 5 seconds each side)"
+    ],
+    comparison: "Plain water (0 g salt) is the control.",
+    repeat: "Use 3 pieces for each concentration, each in its own cup (15 cups total).",
+    procedure: [
+      "Make the solutions: for each concentration, stir salt into 300 mL of water until dissolved (0, 3, 6, 15, and 30 g of salt in 300 mL). Label each container.",
+      "Pour 100 mL of each solution into 3 labeled cups (for example ‘5 g – A, B, C’).",
+      "Adult step: peel the potatoes and cut 15 sticks, each 1 cm × 1 cm × 5 cm. Use a ruler as a guide so all pieces match. Keep the pieces covered with a damp paper towel until weighing.",
+      "Mix up the pieces so that pieces from both potatoes and from different parts of each potato are spread across every concentration.",
+      "Blot each piece lightly by rolling it on a dry paper towel for 5 seconds. Weigh it and record its starting mass. Put it straight into its cup.",
+      "Start the timer once all pieces are in. Leave the cups in the same spot for 2 hours.",
+      "After 2 hours, remove each piece, blot it the same way (5 seconds on a dry paper towel), and weigh it. Record the final mass.",
+      "Calculate the percent change in mass for each piece. A gain is a positive number; a loss is negative.",
+      "Gently bend one piece from each concentration and describe whether it feels stiff or floppy.",
+      "Find the average percent change for each concentration."
+    ],
+    tables: [
+      {
+        title: "Potato mass",
+        cols: ["Salt (g per 100 mL) & piece", "Starting mass (g)", "Final mass (g)", "Change (g)", "% change"],
+        rows: ["0 – A", "0 – B", "0 – C", "1 – A", "1 – B", "1 – C", "2 – A", "2 – B", "2 – C", "5 – A", "5 – B", "5 – C", "10 – A", "10 – B", "10 – C"]
+      },
+      {
+        title: "Averages",
+        cols: ["Salt (g per 100 mL)", "Average % change", "Stiff or floppy?"],
+        rows: ["0", "1", "2", "5", "10"]
+      }
+    ],
+    graph: "Line graph: salt concentration (g per 100 mL) on the x-axis and average percent change in mass on the y-axis. Draw a line across at 0% so you can see gains and losses.",
+    questions: [
+      "Which concentrations led to gains in mass, and which led to losses?",
+      "Use your graph to estimate the concentration where the pieces would neither gain nor lose mass. What does that point tell you about the potato cells?",
+      "Why did you use percent change instead of just the change in grams?",
+      "How might blotting too hard or too little change your results?",
+      "How does the feel of the pieces (stiff or floppy) connect to the movement of water?"
+    ],
+    extension: "Keep the concentration the same and test soaking time (30 minutes, 1, 2, and 4 hours), or test sugar solutions instead of salt.",
+    note: "Pieces from different potatoes, or different parts of one potato, can start with slightly different amounts of water. Sharing pieces out evenly helps. Blotting is never perfectly the same, so careful, matching blotting matters as much as careful weighing."
+  },
+
+  {
+    id: "apple-browning",
+    title: "Apple Browning Battle",
+    difficulty: "Easy",
+    category: "Food Science / Chemical Changes",
+    themes: ["chemistry", "biology", "plants"],
+    keywords: ["apple", "browning", "lemon juice", "lemon", "oxidation", "enzyme", "food science", "color", "acid", "fruit"],
+    summary: "Dip apple slices in lemon-juice mixtures of different strengths and rate how brown they turn over two hours using a clear color scale.",
+    time: { active: "About 1 hour", waiting: "2 hours of observations" },
+    supplies: "2 apples of one variety, bottled lemon juice, measuring cups, plates, white index card, camera",
+    question: "How does lemon-juice concentration affect apple browning?",
+    investigating: "When an apple is cut, substances inside its cells mix with oxygen from the air, and the cut surface can turn brown. Lemon juice is an acid and may slow this change. In this experiment, you change only the lemon-juice concentration and rate the browning at set times using a clear scale.",
+    materials: [
+      "2 apples of the same variety (a variety that browns easily, such as Red Delicious or Gala)",
+      "Bottled lemon juice, about 150 mL (one bottle)",
+      "Water",
+      "5 small bowls or cups, labeled",
+      "Measuring cup or graduated cylinder (mL)",
+      "Knife and cutting board (adult only), ruler",
+      "15 small paper plates or one large tray, and paper towels",
+      "Timer",
+      "White index card with a black marker line and the words of the browning scale (your reference card)",
+      "Phone or tablet camera"
+    ],
+    safety: [
+      "An adult cuts the apples.",
+      "Do not eat any tested apple slices. Throw them away when finished.",
+      "Lemon juice stings in eyes and small cuts. Rinse with water if it splashes.",
+      "Check for apple allergies in your group."
+    ],
+    independent: "Lemon-juice concentration of the dip: 0% (water only), 25%, 50%, and 100% lemon juice, plus an untreated group that is not dipped at all",
+    dependent: "Browning score (0–4) at 0, 15, 30, 60, and 120 minutes",
+    controlled: [
+      "Apple variety, and slices shared evenly from both apples",
+      "Slice thickness (1 cm)",
+      "Dip time (1 minute) and draining (10 seconds on a paper towel)",
+      "Same room, same lighting, and same distance from windows",
+      "Photos taken from the same height beside the same reference card"
+    ],
+    comparison: "There are two comparison groups: untreated slices (not dipped) and water-dipped slices (0%). The water group shows how much just getting the slice wet matters.",
+    repeat: "Use 3 slices per group (15 slices total).",
+    procedure: [
+      "Write your browning scale on the reference card before starting: 0 = same color as freshly cut; 1 = a few small tan spots or tan edges only; 2 = light tan over less than half the surface; 3 = tan or light brown over more than half; 4 = brown over most of the surface.",
+      "Mix the dips in labeled bowls (100 mL each): 0% = 100 mL water; 25% = 25 mL lemon juice + 75 mL water; 50% = 50 mL + 50 mL; 100% = 100 mL lemon juice.",
+      "Label 15 plates: Untreated A–C, 0% A–C, 25% A–C, 50% A–C, 100% A–C.",
+      "Adult step: cut the apples crosswise into 1 cm slices, removing the seeds. Share the slices among the groups so each group gets slices from both apples and from both the top and bottom of the fruit.",
+      "Work quickly: place the untreated slices on their plates right away. Dip each of the other slices in its bowl for 1 minute, drain for 10 seconds on a paper towel, and place it on its plate.",
+      "Start the timer when the last slice is placed. Right away (0 minutes), photograph each group beside the reference card and score each slice.",
+      "Score and photograph again at 15, 30, 60, and 120 minutes, always from the same height and in the same light.",
+      "For a fairer score, have a partner who does not know which plate is which score the photos too. Use the average of the two scores.",
+      "Find the average score for each group at each time."
+    ],
+    tables: [
+      {
+        title: "Browning scores (0–4)",
+        cols: ["Group & slice", "0 min", "15 min", "30 min", "60 min", "120 min"],
+        rows: ["Untreated – A", "Untreated – B", "Untreated – C", "0% – A", "0% – B", "0% – C", "25% – A", "25% – B", "25% – C", "50% – A", "50% – B", "50% – C", "100% – A", "100% – B", "100% – C"]
+      },
+      {
+        title: "Average scores",
+        cols: ["Group", "0 min", "15 min", "30 min", "60 min", "120 min"],
+        rows: ["Untreated", "0% (water)", "25%", "50%", "100%"]
+      }
+    ],
+    graph: "Line graph: time (minutes) on the x-axis and average browning score on the y-axis, with one line for each group.",
+    questions: [
+      "How did the untreated and water-dipped slices compare? What does that tell you about getting the slice wet?",
+      "How did browning change as the lemon-juice concentration changed? Was there a point where more lemon juice made little difference?",
+      "Did you and your partner always agree on the scores? Why are visual ratings only approximate?",
+      "Why were slices from both apples shared out among every group?",
+      "Lemon juice changes the taste. If you were packing apple slices for lunch, how could you use your results?"
+    ],
+    extension: "Keep the concentration the same and compare different apple varieties, or test other dips such as salt water or pineapple juice.",
+    note: "Visual scores depend on judgment and on lighting. Writing the scale down first, using the same reference card in every photo, and having a second person score the photos make the ratings more consistent, but they are still approximate."
+  },
+
+  {
+    id: "yeast-balloon",
+    title: "Yeast Balloon Bakery",
+    difficulty: "Medium",
+    category: "Biology / Fermentation",
+    themes: ["biology", "chemistry"],
+    keywords: ["yeast", "balloon", "fermentation", "sugar", "carbon dioxide", "gas", "bread", "fungus", "living things", "microorganism"],
+    summary: "Feed yeast different amounts of sugar in bottles with balloons on top, and measure how the balloons grow over an hour.",
+    time: { active: "About 1.5 hours", waiting: "1 hour of measurements" },
+    supplies: "Active dry yeast, sugar, 12 small plastic bottles, balloons, string, thermometer, funnel",
+    question: "How does sugar concentration affect balloon inflation over time?",
+    investigating: "Yeast is a tiny living fungus. When it has sugar and warm water, it breaks down the sugar and gives off carbon dioxide gas. This is fermentation, the same process that makes bread dough rise. The balloon catches the gas, so its size gives clues about how much gas was made. In this experiment, you change only the amount of sugar and measure the balloon's circumference every 10 minutes.",
+    materials: [
+      "12 identical small plastic bottles (about 500 mL) with narrow necks",
+      "12 identical round balloons (latex-free if needed), pre-stretched",
+      "Active dry yeast, about 36 g (about 5 packets)",
+      "Granulated sugar, about 120 g",
+      "Lukewarm tap water, about 35–40 °C",
+      "Thermometer (°C)",
+      "Measuring spoons, kitchen scale (g), and a graduated cylinder (mL)",
+      "Small funnel (a paper funnel works)",
+      "String and a ruler, or a flexible tape measure",
+      "Masking tape and marker",
+      "Timer",
+      "Large tray to keep bottles together in one spot"
+    ],
+    safety: [
+      "Never put a cap or lid on a bottle with an active mixture. Use only a stretchy balloon, which lets the bottle stay safe if a lot of gas is made.",
+      "Do not eat or drink any mixture. Pour it down the sink with plenty of water when finished.",
+      "Use lukewarm tap water only; check it with a thermometer.",
+      "Use latex-free balloons if anyone is allergic. Remove balloons carefully, pointing the bottle away from faces."
+    ],
+    independent: "Amount of sugar in 100 mL of water: 0 g (no added sugar), 5 g, 10 g, and 20 g",
+    dependent: "Balloon circumference (cm) at its widest point, measured every 10 minutes for 60 minutes",
+    controlled: [
+      "Yeast amount (3 g, about 1 teaspoon, per bottle)",
+      "Water volume (100 mL) and starting temperature (35–40 °C)",
+      "Same bottle shape and size",
+      "Same balloon type, pre-stretched the same way",
+      "Same spot in the room for all bottles",
+      "Same swirling: 10 seconds right after adding the yeast"
+    ],
+    comparison: "The bottles with no added sugar (0 g) are the control. They show what the yeast does without sugar added.",
+    repeat: "Set up 3 bottles for each sugar amount (12 bottles total).",
+    procedure: [
+      "Label the bottles: 0 g A–C, 5 g A–C, 10 g A–C, 20 g A–C.",
+      "Pre-stretch every balloon by pulling it gently 5 times and blowing it up halfway once, then letting the air out.",
+      "Using the funnel, add the right amount of sugar to each bottle.",
+      "Check that the water is between 35 and 40 °C. Add 100 mL of water to each bottle and swirl until the sugar dissolves.",
+      "Working quickly, add 3 g of yeast to one bottle, swirl for 10 seconds, and stretch a balloon over its neck. Do the same for each bottle. Write down the time each balloon goes on.",
+      "Set all bottles together on the tray in the same spot.",
+      "Every 10 minutes for 60 minutes, wrap the string around the widest part of each balloon, mark it, and measure the string length with the ruler. If a balloon is still flat, record 0.",
+      "Write observations too, such as foam in the bottle.",
+      "Find the average circumference for each sugar amount at each time."
+    ],
+    tables: [
+      {
+        title: "Balloon circumference (cm)",
+        cols: ["Bottle", "0 min", "10 min", "20 min", "30 min", "40 min", "50 min", "60 min"],
+        rows: ["0 g – A", "0 g – B", "0 g – C", "5 g – A", "5 g – B", "5 g – C", "10 g – A", "10 g – B", "10 g – C", "20 g – A", "20 g – B", "20 g – C"]
+      },
+      {
+        title: "Average circumference (cm)",
+        cols: ["Sugar (g)", "0 min", "10 min", "20 min", "30 min", "40 min", "50 min", "60 min"],
+        rows: ["0", "5", "10", "20"]
+      }
+    ],
+    graph: "Line graph: time (minutes) on the x-axis and average balloon circumference (cm) on the y-axis, with one line for each sugar amount.",
+    questions: [
+      "What happened in the no-sugar bottles? Why is that group useful?",
+      "Which sugar amount had the largest balloons at 60 minutes? Did the same group lead the whole time?",
+      "Did more sugar always mean bigger balloons? If not, what might explain it?",
+      "A balloon has to stretch before it can grow, and circumference is not the same as volume. Why is circumference only an indirect measure of the gas?",
+      "The water cooled during the hour. How might that have affected all of your bottles?"
+    ],
+    extension: "Keep the sugar the same and test water temperature (cool, lukewarm, and warm), or compare sugar with honey or flour.",
+    note: "Balloon size is an indirect clue, not an exact measurement of gas volume: a balloon resists stretching at first, and some gas stays dissolved in the water. More sugar does not necessarily produce faster fermentation; very sugary water can make it harder for yeast to work. Let your data show what happened."
+  },
+
+  {
+    id: "diy-periscope",
+    title: "DIY Periscope Investigation",
+    difficulty: "Medium",
+    category: "Physics / Light and Reflection",
+    themes: ["light", "engineering"],
+    keywords: ["periscope", "mirror", "reflection", "light", "angle", "optics", "cardboard", "see over", "submarine"],
+    summary: "Build a cardboard periscope with two small mirrors, then measure how tilting the top mirror changes where a target appears in your view.",
+    time: { active: "About 2.5 hours", waiting: "None" },
+    supplies: "Long cardboard box or carton, 2 small acrylic mirrors, protractor, skewer, tape, grid poster",
+    question: "How does the angle of the upper mirror affect the position of a visible target?",
+    investigating: "Light bounces off a mirror at the same angle that it hits it. A periscope uses two mirrors, each usually tilted at 45°, to send light down a tube and into your eye, letting you see over things. Seeing over a wall is the demonstration. In the experiment, you keep the lower mirror fixed, change only the upper mirror's angle, and measure which part of a target grid appears in the center of your view.",
+    materials: [
+      "1 long cardboard box or a clean, empty half-gallon milk or juice carton (about 30 cm tall)",
+      "2 small acrylic (plastic) mirrors, about 5 cm × 7 cm, or glass mirrors with all edges covered in duct tape",
+      "1 wooden skewer or pencil (pivot for the upper mirror)",
+      "Protractor and a paper copy of a 30°–60° angle scale",
+      "Duct tape, clear tape, and a hot-glue gun or strong double-sided tape (adult)",
+      "Craft knife or scissors (adult)",
+      "Thread or thin string (for crosshairs)",
+      "Tall grid poster: 4 sheets of paper taped end to end (about 1 m tall), with a line every 2 cm labeled in cm from the bottom",
+      "Tape measure, books or a box to hold the periscope steady"
+    ],
+    safety: [
+      "Use acrylic mirrors, or cover every edge of a glass mirror with duct tape before handling.",
+      "An adult cuts the windows and the pivot holes.",
+      "Never point the periscope at the Sun or any bright light. Looking at the Sun through mirrors can damage your eyes.",
+      "Do not walk around while looking through the periscope."
+    ],
+    independent: "Upper mirror angle (measured from the tube's long side): 35°, 40°, 45°, 50°, and 55°",
+    dependent: "The grid line (height in cm) that appears at the center of the crosshairs, and whether the whole target can still be seen",
+    controlled: [
+      "Lower mirror fixed at 45°",
+      "Same periscope tube size and window sizes",
+      "Periscope held in the same spot by books, with the eye at the same viewing hole",
+      "Target poster at the same distance (2 m) and height",
+      "Same lighting"
+    ],
+    comparison: "45° (the usual periscope angle) is the reference setting. Compare the other angles with it.",
+    repeat: "Do 3 trials at each angle. Between trials, move the mirror away and set the angle again.",
+    procedure: [
+      "Adult step: cut a square window about 5 cm wide near the top on one side of the box, and another near the bottom on the opposite side.",
+      "Fix the lower mirror inside the bottom of the box at 45°, facing the bottom window, using the protractor and tape or glue. Look in the bottom window: you should see straight up the tube.",
+      "Adult step: poke a hole through both sides of the box near the top window and push the skewer through. Tape the back of the upper mirror to the skewer so the mirror can tilt when the skewer is turned.",
+      "Tape the angle scale on the outside of the box next to the skewer, and tape a paper pointer to the skewer end so you can set the angle.",
+      "Tape two threads across the bottom window in a + shape to make crosshairs. Cover the window with a card that has a small eye hole in the center so your eye is always in the same spot.",
+      "Tape the grid poster to a wall 2 m away, with its middle level with the top window. Set the periscope upright between books so it cannot move.",
+      "Set the upper mirror to 45°. Look through the eye hole and record which grid line is at the center of the crosshairs. Put a target sticker on the poster at window height and note whether the whole sticker is visible. If the crosshairs land off the poster, record ‘off grid.’",
+      "Set the mirror to each of the other angles and record the same things.",
+      "Repeat the whole set 2 more times, resetting the angle each time. Have a partner check your readings if possible."
+    ],
+    tables: [
+      {
+        title: "Grid line at the crosshairs",
+        cols: ["Upper mirror angle (°)", "Trial 1 (cm)", "Trial 2 (cm)", "Trial 3 (cm)", "Average (cm)", "Whole target visible? (Y/N)"],
+        rows: ["35", "40", "45", "50", "55"]
+      }
+    ],
+    graph: "Line graph: upper mirror angle (°) on the x-axis and average grid height at the crosshairs (cm) on the y-axis.",
+    questions: [
+      "At 45°, where was the target in your view? How did that change at the other angles?",
+      "Did the grid height change by about the same amount for each 5° step?",
+      "At which angles could you still see the whole target? Why might part of it disappear?",
+      "How did keeping your eye at the same hole make the measurements fairer?",
+      "Why do you think most periscopes are built with both mirrors at 45°?"
+    ],
+    extension: "Keep both mirrors at 45° and change the length of the tube, or measure how wide an area you can see (the field of view) for tubes of different widths.",
+    note: "Small mistakes in setting the angle or placing your eye can shift what you see, especially at the far end of the room. Using an eye hole, a fixed stand, and repeated settings reduces that error. Cardboard can bend, so check the lower mirror is still at 45° before each set."
+  },
+
+  {
+    id: "domino-chain",
+    title: "Domino Chain-Reaction Challenge",
+    difficulty: "Easy",
+    category: "Physics / Energy Transfer",
+    themes: ["motion"],
+    keywords: ["domino", "dominoes", "chain reaction", "spacing", "energy", "energy transfer", "speed", "falling", "toppling"],
+    summary: "Line up a row of dominoes, knock over the first one, and measure how spacing between dominoes changes how long the chain takes to fall.",
+    time: { active: "About 1.5 hours", waiting: "None" },
+    supplies: "28 identical dominoes, paper strip spacing templates, ruler, tape measure, phone with slow-motion video",
+    question: "How does domino spacing affect the time for a chain to fall?",
+    investigating: "Each domino has stored energy because it stands up tall. When one tips, it falls into the next one and starts it falling, passing the motion down the line. Watching the chain fall is the demonstration. In the experiment, you change only the spacing between dominoes, using the same number of dominoes each time, and measure how long the whole chain takes to fall and whether it finishes.",
+    materials: [
+      "28 identical dominoes (one standard double-six set)",
+      "Ruler with millimeters and a tape measure",
+      "Long strips of paper (adding-machine tape or taped-together paper) for spacing templates",
+      "Masking tape",
+      "Pencil",
+      "Phone or tablet that can record slow-motion video (strongly recommended), or a stopwatch",
+      "A smooth, flat table or floor area"
+    ],
+    safety: [
+      "Set up the chain away from table edges so dominoes do not fall on the floor or on toes.",
+      "Keep dominoes out of your mouth and pick them all up when finished.",
+      "Keep the work area clear of drinks and electronics."
+    ],
+    independent: "Spacing between dominoes (front face to front face): 1.5, 2.0, 2.5, 3.0, 3.5, and 4.0 cm",
+    dependent: "Time (s) from when the first domino starts to tip until the last domino hits the table, and whether the chain finishes (how many dominoes fell)",
+    controlled: [
+      "Same 28 dominoes, all standing on their short ends",
+      "Same surface (same table, same spot)",
+      "Straight line, dominoes centered on the template marks",
+      "Same starting push: a pencil eraser pressed slowly against the top of the first domino until it tips",
+      "Same camera position and timing method"
+    ],
+    comparison: "No control group is needed. You are comparing spacings to each other.",
+    repeat: "Do 3 trials at each spacing, setting the chain up fresh each time.",
+    procedure: [
+      "Measure a domino's height, width, and thickness and record them.",
+      "Make a spacing template for each spacing: on a paper strip, draw a line every 1.5 cm (28 lines), and label it. Make templates for 2.0, 2.5, 3.0, 3.5, and 4.0 cm too.",
+      "Tape the first template down on the table at least 10 cm from any edge.",
+      "Stand one domino on each line, with its front face on the line. Check that the line of dominoes is straight.",
+      "Measure the actual chain length from the front face of the first domino to the front face of the last domino and record it.",
+      "Set the phone to slow-motion video, positioned to see the whole chain from the side. Start recording.",
+      "Slowly push the top of the first domino with a pencil eraser until it tips.",
+      "Use the video to find the time from when the first domino starts to tip to when the last one hits the table. (In many video apps you can step frame by frame and read the time.) If the chain stops, count how many dominoes fell.",
+      "Repeat for 3 trials at this spacing, then test the other spacings in a mixed order."
+    ],
+    tables: [
+      {
+        title: "Chain results",
+        cols: ["Spacing (cm)", "Chain length (cm)", "Trial 1 time (s)", "Trial 2 time (s)", "Trial 3 time (s)", "Average time (s)", "Dominoes fallen (out of 28) in each trial"],
+        rows: ["1.5", "2.0", "2.5", "3.0", "3.5", "4.0"]
+      },
+      {
+        title: "Optional: speed",
+        cols: ["Spacing (cm)", "Chain length (cm)", "Average time (s)", "Speed (cm/s) = length ÷ time"],
+        rows: ["1.5", "2.0", "2.5", "3.0", "3.5", "4.0"]
+      }
+    ],
+    graph: "Line graph: spacing (cm) on the x-axis and average fall time (s) on the y-axis. Mark any spacing where the chain did not finish. Optional: a second graph of speed (cm/s) vs. spacing.",
+    questions: [
+      "How did the time for the chain to fall change as the spacing changed?",
+      "Was there a spacing where the chain stopped before the end? How did that compare with the domino's height?",
+      "Wider spacing also makes the whole chain longer. Why is time alone not the same as speed? Use your chain lengths to compare speeds.",
+      "How did slow-motion video help compared with a stopwatch?",
+      "Where does the energy that knocks over each domino come from?"
+    ],
+    extension: "Keep the spacing the same and compare surfaces (wood table, carpet, paper), or test a chain where each domino is a little larger than the one before.",
+    note: "With only 28 dominoes, the whole chain may fall in about a second, which is too fast for accurate stopwatch timing. Use slow-motion video and read times from it. Calculate speed only if you measured the actual chain length, since small placement errors add up."
   }
+
 ];
