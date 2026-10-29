@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Science Project Center | Science | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<!-- Mr. Watford's corner tips for this page, separated by | -->
+<body class="project-center" data-tips="Pick a question you really want to answer. Curiosity makes the work fun!|Change only one thing at a time so your test is fair.|Growing projects take weeks. Start early!|An unexpected result is still good science. Report what really happened.">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../index.html">
+        <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../typing/index.html">Typing</a></li>
+          <li><a href="index.html" aria-current="page">Science</a></li>
+          <li><a href="../math/index.html">Pre-Algebra</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ===== SCENE: Mr. Watford with a seedling, a beaker, and a light bulb idea ===== -->
+    <section class="scene-hero wall">
+      <div class="container scene-grid">
+        <div class="panel title-card">
+          <p class="panel-head"><span class="ic" aria-hidden="true">🧪</span> Grades 6–8 • Science Projects</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="index.html">← Science Lab</a></p>
+            <h1>Middle School Science Project Center</h1>
+            <p class="lead">Great science projects begin with a question! Explore the ideas below, choose something that interests you, and use the scientific method to investigate. You do not need the most expensive supplies or the most complicated project to do great science.</p>
+            <ul class="facts">
+              <li><small>Project ideas</small><strong>36</strong></li>
+              <li><small>Levels</small><strong>Easy • Medium • Hard</strong></li>
+              <li><small>Guide</small><strong>9 steps</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="stage" aria-hidden="true">
+          <svg viewBox="0 0 600 420">
+            <image class="stage-teacher" href="../images/mr-watford/explaining.png" x="170" y="71" width="430" height="349"/>
+            <!-- idea light bulb -->
+            <g transform="translate(70 70)">
+              <circle cx="40" cy="40" r="34" fill="#fff3c4" stroke="#f5c431" stroke-width="5"/>
+              <path d="M28 76h24v12a4 4 0 0 1-4 4H32a4 4 0 0 1-4-4z" fill="#9aa3ad"/>
+              <path d="M30 46l10-12 10 12" fill="none" stroke="#e0a400" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              <g stroke="#f5c431" stroke-width="5" stroke-linecap="round"><path d="M40 -14v-10M-12 40h-10M92 40h10M4 4l-8-8M76 4l8-8"/></g>
+            </g>
+            <!-- seedling in a pot -->
+            <g transform="translate(18 300)">
+              <path d="M10 60h70l-8 56H18z" fill="#c98a4b"/>
+              <rect x="4" y="52" width="82" height="14" rx="4" fill="#a86f38"/>
+              <path d="M45 52V18" stroke="#2e7d4a" stroke-width="5" stroke-linecap="round"/>
+              <path d="M45 30c-20 0-30-12-30-24 18 0 30 8 30 24zM45 22c18 0 28-10 28-22-16 0-28 8-28 22z" fill="#43a267"/>
+            </g>
+            <!-- beaker -->
+            <g transform="translate(120 318)">
+              <path d="M8 0h52v8h-4v28l20 52a8 8 0 0 1-7 11H-1a8 8 0 0 1-7-11l20-52V8H8z" fill="#eaf6fd" stroke="#9cc7e0" stroke-width="3"/>
+              <path d="M2 64h64l9 24a5 5 0 0 1-5 7H-2a5 5 0 0 1-5-7z" fill="#7cc4e8"/>
+              <circle class="lava-bubble" cx="26" cy="70" r="5" fill="#fff"/>
+              <circle class="lava-bubble" cx="40" cy="74" r="4" fill="#fff"/>
+              <circle class="lava-bubble" cx="33" cy="80" r="3" fill="#fff"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container">
+
+        <!-- The two big buttons that switch between the two sections -->
+        <div class="pc-tabs" role="tablist" aria-label="Project Center sections">
+          <button type="button" class="pc-tab" role="tab" id="tab-ideas" aria-controls="ideas" aria-selected="true">
+            <span class="ic" aria-hidden="true">💡</span>
+            <span><strong>Explore Science Project Ideas</strong><small>Browse 36 projects</small></span>
+          </button>
+          <button type="button" class="pc-tab" role="tab" id="tab-method" aria-controls="method" aria-selected="false" tabindex="-1">
+            <span class="ic" aria-hidden="true">🔬</span>
+            <span><strong>Learn the Scientific Method</strong><small>A step-by-step guide</small></span>
+          </button>
+        </div>
+
+        <!-- =========================================================
+             SECTION 1: PROJECT IDEAS
+             The project cards are built from js/project-center-data.js
+             ========================================================= -->
+        <section id="ideas" class="pc-section" role="tabpanel" aria-labelledby="tab-ideas" tabindex="-1">
+          <h2 class="pc-section-title"><span class="ic" aria-hidden="true">💡</span> Explore Science Project Ideas</h2>
+
+          <div class="panel">
+            <h3 class="panel-head"><span class="ic" aria-hidden="true">📶</span> How difficulty works</h3>
+            <div class="panel-body">
+              <ul class="level-key">
+                <li class="level-card easy">
+                  <span class="level-label easy"><span class="stars" aria-hidden="true">★☆☆</span> Easy</span>
+                  <p>Simple setup, common supplies, and straightforward measurements. Some still require several days of observations.</p>
+                </li>
+                <li class="level-card medium">
+                  <span class="level-label medium"><span class="stars" aria-hidden="true">★★☆</span> Medium</span>
+                  <p>More planning, more careful measurements, or a longer observation period.</p>
+                </li>
+                <li class="level-card hard">
+                  <span class="level-label hard"><span class="stars" aria-hidden="true">★★★</span> Hard</span>
+                  <p>More complicated construction, equipment, or data analysis. Hard does not mean dangerous.</p>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-tag">Mr. Watford</span>Difficulty is a guide, not a grade requirement. Pick a project that interests you, and confirm your choice with your teacher before you begin.</p>
+            </div>
+          </div>
+
+          <!-- Search and filters -->
+          <form class="pc-filters" id="pc-filters" role="search" aria-label="Find a project" onsubmit="return false">
+            <div class="pc-field pc-search">
+              <label for="pc-search">Search projects</label>
+              <input type="search" id="pc-search" placeholder="Try “plants,” “magnet,” or “ice”" autocomplete="off">
+            </div>
+            <fieldset class="pc-field pc-levels">
+              <legend>Difficulty</legend>
+              <div class="seg">
+                <label><input type="radio" name="level" value="All" checked><span>All</span></label>
+                <label><input type="radio" name="level" value="Easy"><span><span aria-hidden="true">★ </span>Easy</span></label>
+                <label><input type="radio" name="level" value="Medium"><span><span aria-hidden="true">★★ </span>Medium</span></label>
+                <label><input type="radio" name="level" value="Hard"><span><span aria-hidden="true">★★★ </span>Hard</span></label>
+              </div>
+            </fieldset>
+            <div class="pc-field pc-theme">
+              <label for="pc-theme">Theme</label>
+              <select id="pc-theme">
+                <option value="">All themes</option>
+              </select>
+            </div>
+            <div class="pc-field pc-reset">
+              <button type="button" class="btn ghost" id="pc-reset">↺ Reset filters</button>
+            </div>
+          </form>
+
+          <p class="pc-count" id="pc-count" aria-live="polite"></p>
+
+          <div class="pc-grid" id="pc-grid">
+            <noscript><p>Turn on JavaScript to browse the project ideas.</p></noscript>
+          </div>
+
+          <div class="pc-empty callout" id="pc-empty" hidden>
+            <h3>No projects match your search.</h3>
+            <p>Try a different word, choose “All” for difficulty or theme, or reset the filters to see every project.</p>
+            <button type="button" class="btn small" id="pc-empty-reset">↺ Reset filters</button>
+          </div>
+        </section>
+
+        <!-- =========================================================
+             SECTION 2: THE SCIENTIFIC METHOD
+             ========================================================= -->
+        <section id="method" class="pc-section" role="tabpanel" aria-labelledby="tab-method" tabindex="-1">
+          <div class="pc-section-top">
+            <h2 class="pc-section-title"><span class="ic" aria-hidden="true">🔬</span> The Scientific Method: A Step-by-Step Guide</h2>
+            <button type="button" class="btn ghost small" id="print-guide">🖨️ Print This Guide</button>
+          </div>
+
+          <div class="method-guide" id="method-guide">
+            <p class="method-intro">The scientific method is a process scientists use to investigate questions using observations, fair tests, and evidence. It helps you explain what happened and how you know. You may repeat steps or change your experiment as you learn.</p>
+
+            <ol class="method-steps">
+              <li class="method-step">
+                <span class="badge">STEP 1</span>
+                <h3>Make an observation</h3>
+                <p>Notice something interesting about the world.</p>
+                <p class="m-example"><strong>Example:</strong> “Some paper towels seem to soak up spills better than others.”</p>
+              </li>
+
+              <li class="method-step">
+                <span class="badge">STEP 2</span>
+                <h3>Ask a testable question</h3>
+                <p>Ask a question you can answer by collecting measurements or observations. Make the question specific.</p>
+                <p class="m-example"><strong>Example:</strong> “Which of three paper towel types absorbs the most water when the pieces are the same size?”</p>
+                <p class="m-tip">“Which paper towel is best?” is too vague until you decide what “best” means. Best at soaking up water? Strongest when wet? Cheapest?</p>
+              </li>
+
+              <li class="method-step">
+                <span class="badge">STEP 3</span>
+                <h3>Do background research</h3>
+                <p>Learn about your topic before testing it. Use trustworthy books, classroom resources, and teacher-approved websites. Write down where your information came from.</p>
+                <p class="m-example"><strong>Example:</strong> “Research how paper fibers absorb and hold water.”</p>
+              </li>
+
+              <li class="method-step">
+                <span class="badge">STEP 4</span>
+                <h3>Form a hypothesis</h3>
+                <p>A hypothesis is a possible explanation that you can test. Use it to make a prediction about your experiment.</p>
+                <p class="m-frame"><span class="m-frame-label">Sentence frame</span>“If I change _____, then I predict _____ will happen because _____.”</p>
+                <p class="m-example"><strong>Example:</strong> “If I test equal-sized pieces of three paper towel types, then I predict the thicker type will absorb more water because it may have more material available to hold water.”</p>
+                <p class="m-tip">A hypothesis does not have to turn out to be correct. Testing it is how you learn.</p>
+              </li>
+
+              <li class="method-step">
+                <span class="badge">STEP 5</span>
+                <h3>Plan a fair test</h3>
+                <p>Decide what you will change, what you will measure, and what you will keep the same.</p>
+                <div class="vocab">
+                  <h4>Words to know</h4>
+                  <dl>
+                    <dt>Independent variable</dt><dd>The one factor you intentionally change.</dd>
+                    <dt>Dependent variable</dt><dd>The result you measure.</dd>
+                    <dt>Controlled variables (constants)</dt><dd>Conditions you keep the same so the comparison is fair.</dd>
+                    <dt>Control group</dt><dd>A baseline group used for comparison when appropriate. Not every experiment needs a separate untreated group.</dd>
+                    <dt>Trial</dt><dd>One repetition of a test.</dd>
+                  </dl>
+                </div>
+                <div class="m-example">
+                  <p><strong>Paper towel example:</strong></p>
+                  <ul>
+                    <li><strong>Change:</strong> Paper towel type.</li>
+                    <li><strong>Measure:</strong> Water absorbed in milliliters or grams.</li>
+                    <li><strong>Keep the same:</strong> Sample area, soaking time, draining time, and measuring procedure.</li>
+                  </ul>
+                </div>
+                <p>Before you start, plan repeated trials, list your materials, identify safety needs, and prepare a data table.</p>
+              </li>
+
+              <li class="method-step">
+                <span class="badge">STEP 6</span>
+                <h3>Conduct the experiment and collect data</h3>
+                <p>Follow your procedure carefully. Record measurements as you take them, including units. Write down observations and anything unexpected that happens.</p>
+                <p class="m-tip">Do not change or remove results just because they do not match your prediction.</p>
+                <p class="m-example"><strong>Example:</strong> “Test several fresh pieces of each towel type and record how much water each one absorbs.”</p>
+              </li>
+
+              <li class="method-step">
+                <span class="badge">STEP 7</span>
+                <h3>Analyze the results</h3>
+                <p>Organize your measurements. Calculate averages when appropriate and create a graph.</p>
+                <p class="m-frame"><span class="m-frame-label">Finding an average</span>To find an average, add the measurements together and divide by the number of measurements.<br><span class="m-frame-math">Example: (12 + 15 + 13) ÷ 3 = 13.3 g</span></p>
+                <p>Look for patterns and differences. Consider how much your repeated measurements vary. If trials of the same test are far apart, your results are less certain.</p>
+                <div class="graph-types">
+                  <div><strong>📊 Bar graph</strong><span>Compare categories, such as paper towel types.</span></div>
+                  <div><strong>📈 Line graph</strong><span>Show change over time.</span></div>
+                  <div><strong>⚬ Scatterplot</strong><span>Explore the relationship between two number variables when appropriate.</span></div>
+                </div>
+                <p>Label the graph, both axes, and the units.</p>
+              </li>
+
+              <li class="method-step">
+                <span class="badge">STEP 8</span>
+                <h3>Draw a conclusion</h3>
+                <p>Answer your original question using your actual results. Include:</p>
+                <ul class="checklist">
+                  <li>What you found.</li>
+                  <li>Specific measurements that support your answer.</li>
+                  <li>Whether the results supported your hypothesis.</li>
+                  <li>Limitations or possible sources of error.</li>
+                  <li>What you would improve or test next.</li>
+                </ul>
+                <p class="m-frame"><span class="m-frame-label">Sentence frame</span>“My results showed _____. The evidence was _____. This supported / did not support my hypothesis because _____. One limitation was _____. Next time, I would _____.”</p>
+                <p class="m-tip">One experiment does not prove a claim forever. An unexpected result can still be useful science.</p>
+              </li>
+
+              <li class="method-step">
+                <span class="badge">STEP 9</span>
+                <h3>Communicate your findings</h3>
+                <p>Share your project through a report, display board, slideshow, or classroom presentation. Include:</p>
+                <ul class="checklist two-col">
+                  <li>Title and question</li>
+                  <li>Background research and sources</li>
+                  <li>Hypothesis</li>
+                  <li>Variables</li>
+                  <li>Materials and procedure</li>
+                  <li>Data table and graph</li>
+                  <li>Conclusion</li>
+                  <li>Improvements or future questions</li>
+                </ul>
+                <p>Use your own words and explain what you actually did.</p>
+              </li>
+            </ol>
+
+            <!-- Helpful reference boxes -->
+            <h2 class="pc-section-title small"><span class="ic" aria-hidden="true">📌</span> Helpful reminders</h2>
+            <div class="ref-grid">
+              <section class="panel ref-box">
+                <h3 class="panel-head"><span class="ic" aria-hidden="true">🌋</span> Experiment or Demonstration?</h3>
+                <div class="panel-body">
+                  <p>A <strong>demonstration</strong> shows how something works. An <strong>experiment</strong> tests a question by changing something and measuring the result.</p>
+                  <ul class="plain">
+                    <li><strong>Demonstration:</strong> Making a baking soda and vinegar volcano erupt.</li>
+                    <li><strong>Experiment:</strong> Changing the amount of baking soda while keeping the vinegar amount the same, and measuring the gas produced with an appropriate, teacher-approved setup.</li>
+                  </ul>
+                  <p class="small-note">Never seal a gas-producing reaction inside a closed bottle or rigid container.</p>
+                </div>
+              </section>
+
+              <section class="panel ref-box">
+                <h3 class="panel-head"><span class="ic" aria-hidden="true">🏆</span> What Makes a Strong Science Project?</h3>
+                <div class="panel-body">
+                  <ul class="checklist">
+                    <li>A clear, testable question</li>
+                    <li>One main factor changed at a time</li>
+                    <li>Careful measurements with units</li>
+                    <li>Fair comparisons</li>
+                    <li>Repeated trials or multiple samples</li>
+                    <li>Honest records</li>
+                    <li>A conclusion supported by data</li>
+                  </ul>
+                </div>
+              </section>
+
+              <section class="panel ref-box warn">
+                <h3 class="panel-head"><span class="ic" aria-hidden="true">🚧</span> Common Mistakes to Avoid</h3>
+                <div class="panel-body dont">
+                  <ul class="checklist">
+                    <li>Changing several things at once</li>
+                    <li>Testing only once</li>
+                    <li>Forgetting units</li>
+                    <li>Measuring different groups in different ways</li>
+                    <li>Waiting until the last minute for a growing project</li>
+                    <li>Writing a conclusion before collecting results</li>
+                    <li>Copying someone else's results</li>
+                    <li>Assuming an unsupported hypothesis means the project failed</li>
+                  </ul>
+                </div>
+              </section>
+
+              <section class="panel ref-box">
+                <h3 class="panel-head"><span class="ic" aria-hidden="true">✅</span> Before You Begin</h3>
+                <div class="panel-body">
+                  <ul class="checkboxes">
+                    <li>My teacher approved my project.</li>
+                    <li>I have the supplies and enough time.</li>
+                    <li>I know what I will change and measure.</li>
+                    <li>I have planned repeated trials or multiple samples.</li>
+                    <li>I have a blank data table.</li>
+                    <li>I understand the safety directions.</li>
+                  </ul>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- Safety rules: always shown, no matter which section is open -->
+        <section class="panel safety" id="safety">
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🥽</span> Science Project Safety</h2>
+          <div class="panel-body">
+            <p>Every project page has its own safety notes. These rules apply to every project:</p>
+            <ul class="checklist safety-list">
+              <li>Get teacher approval before beginning.</li>
+              <li>Use adult help for cutting tools, heated water, and electrical construction.</li>
+              <li>Electrical projects must use approved low-voltage batteries or educational kits.</li>
+              <li>Never connect experiment wires, batteries, or homemade circuits to household outlets, and never short-circuit a battery on purpose.</li>
+              <li>Do not taste experiment materials.</li>
+              <li>Do not grow unknown bacteria or mold.</li>
+              <li>Do not use flames, hazardous chemicals, or pressurized sealed containers.</li>
+              <li>Do not do experiments that harm people or animals.</li>
+            </ul>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Full project details open in this pop-up window -->
+  <dialog class="pd-dialog" id="project-dialog" aria-labelledby="pd-title">
+    <div class="pd-bar">
+      <button type="button" class="btn small" id="pd-print">🖨️ Print This Project</button>
+      <button type="button" class="pd-close" id="pd-close" aria-label="Close project details">×</button>
+    </div>
+    <div class="pd-content" id="pd-content"></div>
+  </dialog>
+
+  <!-- Holds a copy of whatever is being printed -->
+  <div id="print-area" aria-hidden="true"></div>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand" href="../index.html">
+          <span class="brand-avatar"><img src="../images/mr-watford/face.png" alt=""></span>
+          <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+        </a>
+        <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+      </div>
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="../typing/index.html">Typing Games</a></li>
+          <li><a href="../science/index.html">Science Experiments</a></li>
+          <li><a href="../math/index.html">Pre-Algebra Help</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2>Good to know</h2>
+        <p>No logins, no forms, and no student information collected. Ever.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+  </footer>
+
+  <script src="../js/site.js"></script>
+  <script src="../js/project-center-data.js"></script>
+  <script src="../js/project-center.js"></script>
+</body>
+</html>
