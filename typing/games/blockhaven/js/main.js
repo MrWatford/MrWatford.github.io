@@ -890,6 +890,7 @@ async function loadArea(x, z, label) {
 
 // ---------- starting, loading, saving ----------
 async function startWorld(save) {
+  if (window.PlayCount) PlayCount.hit("blockhaven");
   clearWorldMeshes();
   G.state = "loading"; UI.show("loading"); UI.setLoading(0, "Shaping hills and valleys");
   G.meta = save; G.mode = save.mode;
