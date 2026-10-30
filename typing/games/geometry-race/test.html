@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Geometry Race — automated checks</title>
+<meta name="robots" content="noindex">
+<style>body{font:14px/1.4 monospace;background:#111;color:#ddd;padding:16px} .ok{color:#7f7} .bad{color:#f77}</style>
+</head>
+<body>
+<h1>Geometry Race checks</h1>
+<p>Proves each level can be beaten (and each token collected) by searching for a working set of inputs, then checks physics and checkpoint rules. Add <code>?level=first-flight</code> to check one level.</p>
+<pre id="out">running…</pre>
+<script src="js/physics.js"></script>
+<script src="js/levels.js"></script>
+<script>
+(function () {
+  "use strict";
+  const P = GR.Physics, out = [], results = { pass: 0, fail: 0 };
+  const q = new URLSearchParams(location.search);
+  function log(ok, msg) { out.push((ok ? "PASS  " : "FAIL  ") + msg); results[ok ? "pass" : "fail"]++; }
+  function note(msg) { out.push("      " + msg); }
+
+  // ---- physics: same result no matter how the frames are chopped up ----
+  (function () {
+    const L = P.compile(GR.LEVELS[0]);
+    function run(frameMs) {
+      // The game loop steps whole ticks as real time passes; inputs carry their own timestamps.
+      const s = P.newState(L); let tick = 0, f = 0; const presses = [0.31, 0.95, 1.57];
+      let held = false; const evs = [];
+      presses.forEach(function (p) { evs.push([p, 1]); evs.push([p + 0.12, 0]); });
+      while (tick < 600) {
+        const now = ++f * frameMs / 1000;
+        while ((tick + 1) * P.TICK <= now && tick < 600) {
+          tick++;
+          let press = false;
+          while (evs.length && evs[0][0] <= tick * P.TICK) { const e = evs.shift(); if (e[1]) { press = true; held = true; } else held = false; }
+          P.step(s, L, press, held);
+        }
+      }
+      return s.x.toFixed(6) + "," + s.y.toFixed(6) + "," + s.vy.toFixed(6);
+    }
+    const a = run(1000 / 30), b = run(1000 / 60), c = run(1000 / 144), d = run(7.3);
+    log(a === b && b === c && c === d, "Fixed timestep: 30/60/144 fps and uneven frames give identical results (" + b + ")");
+  })();
+
+  // ---- cube jump numbers ----
+  (function () {
+    const L = P.compile({ objects: [], zones: [], pits: [], endX: 1000, speedMarks: [] });
+    const s = P.newState(L); let maxY = 0, air = 0;
+    P.step(s, L, true, true);
+    while (!s.grounded) { P.step(s, L, false, false); air++; maxY = Math.max(maxY, s.y - 0.5); }
+    log(Math.abs(maxY - 2.14) < 0.05, "Cube jump height " + maxY.toFixed(2) + " blocks, air time " + ((air + 1) * P.TICK).toFixed(3) + " s");
+    // Holding: lands then jumps again right away, never in midair.
+    const h = P.newState(L); let jumps = 0, midair = 0;
+    for (let i = 0; i < 480; i++) { const wasG = h.grounded; P.step(h, L, i === 0, true); if (h.ev & P.EV.JUMP) { jumps++; if (!wasG) midair++; } }
+    log(jumps >= 4 && midair === 0, "Holding jump: " + jumps + " jumps in 2 s, " + midair + " midair jumps");
+    // Robot: tap vs hold heights differ and the hold is capped.
+    function robot(holdTicks) {
+      const r = P.newState(L); r.mode = "robot"; let top = 0;
+      for (let i = 0; i < 240; i++) { P.step(r, L, i === 0, i < holdTicks); top = Math.max(top, r.y - 0.5); }
+      return top;
+    }
+    const tap = robot(1), mid = robot(30), long = robot(200);
+    log(tap < 1.1 && mid > tap + 0.8 && long < 3.6 && long > mid, "Robot jump: tap " + tap.toFixed(2) + ", medium " + mid.toFixed(2) + ", max " + long.toFixed(2) + " blocks");
+  })();
+
+  // ---- checkpoint snapshot: restoring gives the exact same future ----
+  (function () {
+    const L = P.compile(GR.LEVELS[GR.LEVELS.length - 1]);
+    const sol = P.solve(L, null, { D: 8, budget: 1e7 });
+    if (!sol.ok) { log(false, "Snapshot test needs a solvable last level"); return; }
+    const s = P.newState(L); let snap = null, i = 0, prev = 0;
+    const mid = Math.floor(sol.decisions.length / 2);
+    for (; i < sol.decisions.length; i++) {
+      if (i === mid) snap = P.clone(s);
+      const h = sol.decisions[i];
+      for (let j = 0; j < 8 && !s.dead && !s.won; j++) P.step(s, L, j === 0 && h && !prev, !!h);
+      prev = h;
+    }
+    const r = P.replay(L, sol.decisions.slice(mid), 8, snap);
+    log(r.won && Math.abs(r.x - s.x) < 1e-9 && Math.abs(r.y - s.y) < 1e-9 && r.mode === s.mode && r.gs === s.gs,
+      "Checkpoint restore replays identically (mode " + snap.mode + ", gravity " + snap.gs + ", t=" + snap.t.toFixed(2) + "s)");
+  })();
+
+  // ---- strip view: ?view=<level id>&from=<x>  draws the level with the winning path ----
+  if (q.get("view")) {
+    const def = GR.LEVELS.find(function (d) { return d.id === q.get("view"); });
+    const L = P.compile(def), sc = +(q.get("scale") || 7), per = +(q.get("per") || 110), from = +(q.get("from") || 0);
+    const rowsN = Math.ceil((def.endX + 4 - from) / per), rowH = 13 * sc;
+    const cv = document.createElement("canvas");
+    cv.width = per * sc + 40; cv.height = rowsN * (rowH + 14);
+    document.body.innerHTML = ""; document.body.style.padding = "0"; document.body.appendChild(cv);
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, cv.width, cv.height);
+    const sol = P.solve(L, null, { D: 8, budget: 6e6 });
+    const path = [];
+    if (sol.ok) P.replay(L, sol.decisions, 8, null, { onTick: function (s) { if (s.tick % 4 === 0) path.push([s.x, s.y, s.mode, s.held]); } });
+    for (let r = 0; r < rowsN; r++) {
+      const x0 = from + r * per, oy = r * (rowH + 14) + rowH;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, oy - rowH, per * sc + 40, rowH + 12); ctx.clip();
+      ctx.translate(20 - x0 * sc, oy - 1.5 * sc); ctx.scale(sc, -sc);
+      // grid every 5 blocks
+      ctx.fillStyle = "rgba(255,255,255,.05)";
+      for (let gx = Math.floor(x0 / 5) * 5; gx < x0 + per; gx += 5) ctx.fillRect(gx, -2, 0.08, 14);
+      def.zones.forEach(function (z) { ctx.fillStyle = "rgba(80,120,255,.12)"; ctx.fillRect(z.x0, z.lo, z.x1 - z.x0, z.hi - z.lo); });
+      L.solids.forEach(function (o) { ctx.fillStyle = o.k === "b" ? "#3b62c4" : o.k === "z" ? "#253a7a" : "#1d2f66"; ctx.fillRect(o.x0, Math.max(o.y0, -2), o.x1 - o.x0, Math.min(o.y1, 14) - Math.max(o.y0, -2)); });
+      L.hazards.forEach(function (h) {
+        ctx.fillStyle = "#ff4d5e";
+        if (h.type === "spike") { const t = h.tri; ctx.beginPath(); ctx.moveTo(t[0], t[1]); ctx.lineTo(t[2], t[3]); ctx.lineTo(t[4], t[5]); ctx.fill(); }
+        else if (h.type === "saw") { ctx.beginPath(); ctx.arc(h.cx, h.cy, h.r, 0, 7); ctx.fill(); if (h.mv) { ctx.strokeStyle = "#ff4d5e"; ctx.lineWidth = 0.1; ctx.beginPath(); ctx.moveTo(h.cx - h.mv.ax, h.cy - h.mv.ay); ctx.lineTo(h.cx + h.mv.ax, h.cy + h.mv.ay); ctx.stroke(); } }
+        else ctx.fillRect(h.x0, h.y0, h.x1 - h.x0, h.y1 - h.y0);
+      });
+      L.triggers.forEach(function (t) {
+        const col = { pad: "#ffd23f", orb: "#ffd23f", portal: "#39ff88", token: "#fff" }[t.t];
+        ctx.fillStyle = t.kind === "pink" ? "#ff5fd2" : t.kind === "blue" ? "#3fb6ff" : col;
+        if (t.t === "portal") ctx.fillRect(t.x - 0.2, t.k === "speed" ? t.y - 1 : t.y0, 0.4, t.k === "speed" ? 2 : 3);
+        else if (t.t === "orb" || t.t === "token") { ctx.beginPath(); ctx.arc(t.x, t.y, t.t === "token" ? 0.5 : 0.4, 0, 7); ctx.fill(); }
+        else ctx.fillRect(t.x0, t.y0, t.x1 - t.x0, t.y1 - t.y0);
+      });
+      ctx.lineWidth = 0.15;
+      for (let i = 1; i < path.length; i++) {
+        ctx.strokeStyle = path[i][3] ? "#39ff88" : "#c9ffe0";
+        ctx.beginPath(); ctx.moveTo(path[i - 1][0], path[i - 1][1]); ctx.lineTo(path[i][0], path[i][1]); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle = "#fff"; ctx.font = "11px monospace";
+      ctx.fillText("x " + x0 + " (beat " + (x0 / (def.endX) * def.endBeat).toFixed(0) + "~)" + (sol.ok ? "" : "  UNSOLVED"), 4, oy - rowH + 11);
+    }
+    window.__done = true;
+    return;
+  }
+
+  // ---- levels ----
+  const only = q.get("level");
+  window.__solutions = {};
+  GR.LEVELS.forEach(function (def) {
+    if (only && def.id !== only) return;
+    const L = P.compile(def);
+    note("");
+    note(def.name + " — " + def.duration.toFixed(1) + " s, " + def.objects.length + " objects, end x " + def.endX.toFixed(1));
+    const t0 = performance.now();
+    const sol = P.solve(L, null, { D: 8, budget: 6e6 });
+    if (sol.ok) {
+      window.__solutions[def.id] = sol.decisions.join("");
+      log(true, def.name + ": beatable (search took " + Math.round(performance.now() - t0) + " ms)");
+    } else {
+      const f = P.furthest(L, { D: 4, budget: 4e6 });
+      log(false, def.name + ": NOT beatable" + (sol.budget ? " (search budget ran out)" : "") + " — furthest x " + f.x.toFixed(1) + " (" + Math.round(f.x / def.endX * 100) + "%)");
+    }
+    // Fairness: still beatable with inputs only every 1/20 s AND a 20%-bigger hitbox.
+    const strict = P.solve(L, null, { D: 12, hz: 0.84, budget: 6e6 });
+    if (strict.ok) log(true, def.name + ": beatable with 50 ms input steps and a bigger hitbox (timing margin)");
+    else {
+      const f = P.furthest(L, { D: 12, hz: 0.84, budget: 4e6 });
+      log(false, def.name + ": strict check stuck at x " + f.x.toFixed(1) + " (" + Math.round(f.x / def.endX * 100) + "%)");
+    }
+    L.tokens.forEach(function (t, i) {
+      const r = P.solve(L, null, { D: 8, needTokens: 1 << i, budget: 6e6 });
+      log(r.ok, def.name + ": token " + (i + 1) + " at x " + t.x.toFixed(1) + " can be collected AND the level finished");
+    });
+    if (sol.ok) {
+      const e = P.replay(L, sol.decisions, 8);
+      note("the plain winning run happens to collect tokens: " + [0, 1, 2].map(function (i) { return (e.tk >> i) & 1 ? "yes" : "no"; }).join(", "));
+    }
+    // Fairness lint: nothing dangerous right after a portal (about a third of a second of travel).
+    const issues = [];
+    def.objects.forEach(function (p) {
+      if (p.t !== "portal" || p.k === "speed") return;
+      const sp = P.SPEEDS[(function () { let v = def.startSpeed == null ? 1 : def.startSpeed; def.speedMarks.forEach(function (m) { if (m.x <= p.x) v = m.v; }); return v; })()];
+      const reach = p.x + sp * 0.3;
+      L.hazards.forEach(function (h) {
+        const hx = h.type === "spike" ? Math.min(h.tri[0], h.tri[2], h.tri[4]) : h.type === "saw" ? h.cx - h.r : h.x0;
+        const hy = h.type === "spike" ? h.tri[1] : h.type === "saw" ? h.cy : h.y0;
+        if (hx > p.x && hx < reach && Math.abs(hy - p.y) < 4) issues.push("hazard at x " + hx.toFixed(1) + " right after " + p.k + " portal at x " + p.x.toFixed(1));
+      });
+    });
+    // Hazards buried inside blocks (would look wrong), and tokens inside solid blocks.
+    L.tokens.forEach(function (t) {
+      L.solids.forEach(function (r) { if (r.k === "b" && t.x > r.x0 && t.x < r.x1 && t.y > r.y0 && t.y < r.y1) issues.push("token inside a block at x " + t.x.toFixed(1)); });
+    });
+    log(issues.length === 0, def.name + ": fairness lint" + (issues.length ? " — " + issues.slice(0, 4).join("; ") : " (no hazards right after portals)"));
+    // Tokens must be optional: the level can be finished while avoiding each one.
+    L.tokens.forEach(function (t, i) {
+      const r = P.solve(L, null, { D: 8, budget: 6e6, avoidToken: i });
+      log(r.ok, def.name + ": token " + (i + 1) + " is optional (level can be finished without it)");
+    });
+    log(L.tokens.length === 3, def.name + ": has 3 tokens");
+    log(def.duration >= 40 && def.duration <= 92, def.name + ": length " + def.duration.toFixed(1) + " s");
+  });
+
+  out.unshift(results.pass + " passed, " + results.fail + " failed");
+  document.getElementById("out").textContent = out.join("\n");
+  window.__done = results;
+})();
+</script>
+</body>
+</html>

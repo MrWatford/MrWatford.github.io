@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Geometry Race | Mr. Watford's Free-Time Games</title>
+<meta name="description" content="Geometry Race: a rhythm obstacle runner with six levels, six movement modes, practice mode, and custom cubes. Progress saves on your own device.">
+<meta name="theme-color" content="#070b1a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Nunito+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+/* All styles are scoped to this game page (it does not load the site's style sheet). */
+:root {
+  --bg: #070b1a; --panel: #10162e; --panel-2: #172045; --line: #2a3770; --text: #eef3ff; --dim: #a9b4d8;
+  --green: #39ff88; --cyan: #2de2ff; --pink: #ff4fd8; --yellow: #ffe14d; --orange: #ff9a2e; --red: #ff4d5e;
+  --display: "Russo One", "Fredoka", system-ui, sans-serif; --body: "Nunito Sans", system-ui, sans-serif;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--body); }
+body { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+button, input { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+a { color: var(--cyan); }
+
+#stage { position: fixed; inset: 0; touch-action: none; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ---------- screens ---------- */
+.screen { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top)) 16px 16px;
+  overflow-y: auto; background: radial-gradient(ellipse at 50% 30%, rgba(7, 11, 26, .55), rgba(7, 11, 26, .9));
+  opacity: 0; visibility: hidden; transform: scale(1.02); transition: opacity .22s var(--ease), transform .22s var(--ease), visibility 0s linear .22s; }
+.screen.show { opacity: 1; visibility: visible; transform: none; transition: opacity .22s var(--ease), transform .22s var(--ease), visibility 0s; }
+.screen.dim { background: rgba(5, 8, 20, .72); }
+body.reduce-motion .screen, body.reduce-motion .screen.show { transition: none; transform: none; }
+.inner { width: min(560px, 100%); margin: auto; display: flex; flex-direction: column; gap: 12px; }
+.inner.wide { width: min(1040px, 100%); }
+.card { background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 2px solid var(--line); border-radius: 16px; padding: 18px; box-shadow: 0 18px 50px rgba(0, 0, 0, .45); }
+h2.title { font: 400 clamp(24px, 4.2vw, 34px)/1.1 var(--display); margin: 0; letter-spacing: .5px; }
+.sub { color: var(--dim); margin: 0; line-height: 1.45; }
+.head-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
+
+.btn { appearance: none; border: 2px solid rgba(255, 255, 255, .14); border-radius: 12px; padding: 12px 18px; cursor: pointer; text-decoration: none; text-align: center;
+  background: linear-gradient(180deg, #24306a, #1a2350); color: #fff; font: 400 18px/1.1 var(--display); letter-spacing: .4px;
+  box-shadow: 0 4px 0 #0a0f26, inset 0 1px 0 rgba(255, 255, 255, .15); transition: transform .08s, filter .15s; display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.btn:hover { filter: brightness(1.18); }
+.btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #0a0f26; }
+.btn:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.btn.go { background: linear-gradient(180deg, #2fe07a, #17a957); color: #04210f; border-color: rgba(255, 255, 255, .3); box-shadow: 0 4px 0 #0b5a2c, inset 0 1px 0 rgba(255, 255, 255, .4); }
+.btn.alt { background: linear-gradient(180deg, #2bc6e8, #1688b5); color: #03202b; box-shadow: 0 4px 0 #0b4a63, inset 0 1px 0 rgba(255, 255, 255, .4); }
+.btn.warn { background: linear-gradient(180deg, #ff6b7a, #d8384a); box-shadow: 0 4px 0 #6b1420; }
+.btn.small { padding: 8px 12px; font-size: 15px; border-radius: 10px; }
+.btn.big { padding: 16px 22px; font-size: 22px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > .btn { flex: 1 1 140px; }
+.back-row { display: flex; justify-content: flex-start; }
+
+/* ---------- title ---------- */
+.logo { margin: 0 auto 6px; text-align: center; line-height: .9; transform: skew(-8deg); position: relative; }
+.logo .top { display: block; font: 400 clamp(22px, 6vw, 46px)/1 var(--display); letter-spacing: clamp(6px, 1.6vw, 14px); color: #dff8ff;
+  text-shadow: 0 0 18px rgba(45, 226, 255, .6), 0 3px 0 #0d3a6b; }
+.logo .main { display: inline-flex; align-items: center; gap: .08em; font: 400 clamp(64px, 17vw, 140px)/1 var(--display); letter-spacing: 2px;
+  background: linear-gradient(180deg, #fff9b0 0%, #ffe14d 35%, #ff9a2e 65%, #ff4fd8 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 6px 0 #3a0f4f) drop-shadow(0 0 22px rgba(255, 79, 216, .45)); }
+.logo .cube { display: inline-block; width: .62em; height: .62em; margin: 0 .04em; background: linear-gradient(135deg, #39ff88, #2de2ff); border: .07em solid #04210f;
+  border-radius: .06em; box-shadow: inset 0 0 0 .1em #0b3b25, 0 0 22px rgba(57, 255, 136, .6); transform: rotate(12deg) translateY(.02em); -webkit-text-fill-color: initial; position: relative; }
+.logo .cube::after { content: ""; position: absolute; inset: 28%; background: #04210f; border-radius: .02em; }
+.tag-line { text-align: center; color: var(--dim); margin: 0 0 10px; font-weight: 700; }
+#scrMain .inner { width: min(460px, 100%); }
+.menu-buttons .btn { width: 100%; }
+.foot { text-align: center; font-size: 13px; color: #8f9ac2; margin: 8px 0 0; }
+.foot a { color: #cfe3ff; }
+.saved-note { font-size: 13px; color: #8f9ac2; text-align: center; margin: 0; }
+
+/* ---------- level select ---------- */
+.levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+.lvl { position: relative; border-radius: 16px; padding: 16px; border: 2px solid rgba(255, 255, 255, .12); overflow: hidden; display: flex; flex-direction: column; gap: 10px;
+  background: linear-gradient(160deg, var(--a), var(--b)); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
+.lvl::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .04) 0 12px, transparent 12px 24px); pointer-events: none; }
+.lvl > * { position: relative; }
+.lvl h3 { margin: 0; font: 400 24px/1.1 var(--display); }
+.lvl .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 800; font-size: 14px; }
+.diff { padding: 3px 9px; border-radius: 99px; background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .2); }
+.stars { color: var(--yellow); letter-spacing: 1px; }
+.lvl .blurb { margin: 0; color: rgba(255, 255, 255, .82); font-size: 14px; }
+.modes-used { display: flex; gap: 4px; }
+.modes-used canvas { width: 26px; height: 26px; background: rgba(0, 0, 0, .3); border-radius: 6px; }
+.prog { display: grid; gap: 4px; font-size: 13px; font-weight: 800; }
+.prog .bar { height: 10px; border-radius: 99px; background: rgba(0, 0, 0, .4); overflow: hidden; border: 1px solid rgba(255, 255, 255, .15); }
+.prog .bar i { display: block; height: 100%; background: linear-gradient(90deg, #39ff88, #2de2ff); }
+.prog .bar.pr i { background: linear-gradient(90deg, #ff9a2e, #ffe14d); }
+.lvl .stats { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 800; gap: 8px; flex-wrap: wrap; }
+.done-badge { color: #04210f; background: var(--green); padding: 2px 8px; border-radius: 99px; }
+.tok { display: inline-flex; gap: 3px; }
+.tok i { width: 14px; height: 14px; transform: rotate(45deg) scale(.82); border: 2px solid rgba(255, 255, 255, .45); display: inline-block; }
+.tok i.on { background: #ffd23f; border-color: #fff6c9; box-shadow: 0 0 8px #ffd23f; }
+.tok i.run { background: #ffd23f; border-color: #fff; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+.hud-top { position: absolute; left: 0; right: 0; top: 0; display: grid; grid-template-columns: 1fr minmax(140px, 420px) 1fr; align-items: center; gap: 12px;
+  padding: max(8px, env(safe-area-inset-top)) 12px 8px; background: linear-gradient(180deg, rgba(0, 0, 0, .45), transparent); }
+.hud-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-shadow: 0 2px 0 rgba(0, 0, 0, .6); }
+.hud-left b { font: 400 16px/1.1 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud-left span { font-size: 13px; font-weight: 800; color: #cfd8ff; }
+.practice-tag { display: inline-block; align-self: flex-start; background: #ff9a2e; color: #2a1200; font: 400 12px/1 var(--display); padding: 4px 8px; border-radius: 6px; letter-spacing: 1px; }
+.hud-progress { display: flex; align-items: center; gap: 8px; }
+.hud-progress .bar { flex: 1; height: 12px; border-radius: 99px; background: rgba(0, 0, 0, .45); border: 2px solid rgba(255, 255, 255, .5); overflow: hidden; }
+.hud-progress .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #39ff88, #2de2ff); }
+#hud.practice .hud-progress .bar i { background: linear-gradient(90deg, #ff9a2e, #ffe14d); }
+.hud-progress b { font: 400 16px/1 var(--display); min-width: 46px; text-align: right; text-shadow: 0 2px 0 rgba(0, 0, 0, .6); }
+.hud-right { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.hud-btn { pointer-events: auto; width: 42px; height: 42px; border-radius: 12px; border: 2px solid rgba(255, 255, 255, .35); background: rgba(10, 14, 34, .7); color: #fff;
+  font: 400 16px/1 var(--display); cursor: pointer; display: grid; place-items: center; }
+.hud-btn:hover { background: rgba(40, 52, 110, .85); }
+.hud-btn:focus-visible { outline: 3px solid var(--yellow); }
+.cp-buttons { position: absolute; right: 12px; bottom: max(14px, env(safe-area-inset-bottom)); display: flex; gap: 10px; }
+.cp-buttons .btn { pointer-events: auto; padding: 12px 14px; font-size: 15px; }
+.cp-buttons .btn.add { background: linear-gradient(180deg, #2fe07a, #17a957); color: #04210f; box-shadow: 0 4px 0 #0b5a2c; }
+.toast { position: absolute; left: 50%; top: 72px; transform: translateX(-50%); background: rgba(10, 14, 34, .85); border: 2px solid rgba(255, 255, 255, .25); border-radius: 12px;
+  padding: 8px 14px; font-weight: 800; opacity: 0; transition: opacity .2s; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+.toast.show { opacity: 1; }
+.big-msg { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); font: 400 clamp(34px, 7vw, 72px)/1 var(--display); text-align: center; white-space: nowrap;
+  background: linear-gradient(180deg, #fff9b0, #ffe14d 45%, #ff9a2e); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 5px 0 #3a0f4f); opacity: 0; }
+.big-msg.show { animation: pop 1.6s var(--ease) forwards; }
+body.reduce-motion .big-msg.show { animation: none; opacity: 1; }
+@keyframes pop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 25% { transform: translate(-50%, -50%) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ---------- how to play ---------- */
+.how-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.how-item { display: flex; gap: 10px; align-items: center; background: rgba(0, 0, 0, .25); border-radius: 12px; padding: 10px; }
+.how-item canvas { flex: 0 0 auto; width: 46px; height: 46px; background: rgba(255, 255, 255, .04); border-radius: 10px; }
+.how-item p { margin: 0; font-size: 14px; color: var(--dim); }
+.how-item b { color: #fff; display: block; font-size: 15px; }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; margin: 0; }
+.keys dt { font-weight: 800; white-space: nowrap; }
+.keys dd { margin: 0; color: var(--dim); }
+kbd { display: inline-block; min-width: 26px; padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, .35); border-bottom-width: 3px; background: #1b2550;
+  font: 700 13px/1.4 var(--body); text-align: center; color: #fff; }
+h3.sec { margin: 6px 0 4px; font: 400 18px/1.2 var(--display); color: var(--cyan); }
+
+/* ---------- customize ---------- */
+.looks { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 16px; }
+@media (max-width: 720px) { .looks { grid-template-columns: 1fr; } }
+.preview { background: radial-gradient(circle at 50% 40%, #1d2a66, #0b1130); border-radius: 14px; border: 2px solid var(--line); display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+#lookPreview { width: 100%; aspect-ratio: 4 / 3; display: block; border-radius: 10px; }
+.mode-pick { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.mode-pick button { padding: 6px 9px; border-radius: 8px; border: 2px solid rgba(255, 255, 255, .2); background: rgba(0, 0, 0, .3); cursor: pointer; font-weight: 800; font-size: 13px; }
+.mode-pick button[aria-pressed="true"] { border-color: var(--yellow); background: rgba(255, 225, 77, .15); }
+.pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
+.pick { position: relative; aspect-ratio: 1; border-radius: 12px; border: 2px solid rgba(255, 255, 255, .15); background: rgba(0, 0, 0, .3); cursor: pointer; padding: 6px; display: grid; place-items: center; }
+.pick canvas { width: 100%; height: 100%; }
+.pick[aria-pressed="true"] { border-color: var(--yellow); box-shadow: 0 0 0 2px var(--yellow), 0 0 16px rgba(255, 225, 77, .35); }
+.pick.locked { cursor: not-allowed; }
+.pick.locked canvas { opacity: .25; filter: grayscale(1); }
+.pick .lock { position: absolute; inset: auto 4px 4px 4px; font-size: 10px; font-weight: 800; line-height: 1.1; color: #ffd6a0; text-align: center; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw { width: 34px; height: 34px; border-radius: 10px; border: 2px solid rgba(255, 255, 255, .25); cursor: pointer; }
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--yellow); border-color: #fff; }
+.trail-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.trail-row button { padding: 8px 12px; border-radius: 10px; border: 2px solid rgba(255, 255, 255, .2); background: rgba(0, 0, 0, .3); cursor: pointer; font-weight: 800; }
+.trail-row button[aria-pressed="true"] { border-color: var(--yellow); background: rgba(255, 225, 77, .15); }
+.trail-row button:disabled { opacity: .45; cursor: not-allowed; }
+.trail-row small { display: block; font-size: 10px; color: #ffd6a0; }
+
+/* ---------- settings ---------- */
+.set { display: grid; gap: 14px; }
+.set label.slider { display: grid; grid-template-columns: 130px 1fr 48px; gap: 10px; align-items: center; font-weight: 800; }
+.set input[type=range] { width: 100%; accent-color: var(--green); height: 28px; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(0, 0, 0, .25); cursor: pointer; }
+.toggle span b { display: block; }
+.toggle span small { color: var(--dim); }
+.toggle input { width: 24px; height: 24px; accent-color: var(--green); flex: 0 0 auto; }
+.notice { font-size: 14px; color: var(--dim); background: rgba(0, 0, 0, .25); border-radius: 12px; padding: 10px 12px; margin: 0; }
+
+/* ---------- completion ---------- */
+.done-title { text-align: center; font: 400 clamp(32px, 7vw, 54px)/1.05 var(--display); margin: 0;
+  background: linear-gradient(180deg, #fff9b0, #ffe14d 45%, #ff9a2e); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 0 #3a0f4f); }
+.done-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; }
+.done-stats div { background: rgba(0, 0, 0, .3); border-radius: 12px; padding: 10px 6px; }
+.done-stats span { display: block; font-size: 12px; color: var(--dim); font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+.done-stats b { font: 400 22px/1.3 var(--display); }
+.done-stats .tok i { width: 18px; height: 18px; }
+.tok i.new { animation: glint 1s ease-in-out 3; }
+@keyframes glint { 50% { transform: rotate(45deg) scale(1.15); box-shadow: 0 0 18px #fff; } }
+.unlocks { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(57, 255, 136, .12); border: 1px solid rgba(57, 255, 136, .4); font-weight: 800; text-align: center; }
+
+dialog { border: 2px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--text); padding: 20px; max-width: min(420px, 92vw); }
+dialog::backdrop { background: rgba(0, 0, 0, .6); }
+dialog h2 { margin: 0 0 8px; font: 400 22px/1.2 var(--display); }
+
+@media (max-width: 560px) {
+  .hud-top { grid-template-columns: 1fr auto; grid-template-areas: "left right" "prog prog"; row-gap: 6px; }
+  .hud-left { grid-area: left; } .hud-right { grid-area: right; } .hud-progress { grid-area: prog; }
+  .set label.slider { grid-template-columns: 1fr 48px; } .set label.slider span:first-child { grid-column: 1 / -1; }
+  .done-stats { grid-template-columns: 1fr; }
+  .toast { top: 112px; white-space: normal; text-align: center; width: max-content; }
+}
+@media (hover: none) { .cp-buttons .btn { padding: 14px 16px; } .cp-buttons kbd { display: none; } }
+</style>
+<script src="../../../js/play-counter.js"></script>
+</head>
+<body>
+
+<div id="stage" aria-label="Geometry Race game area">
+  <canvas id="view" aria-label="Geometry Race level"></canvas>
+
+  <div id="hud" hidden>
+    <div class="hud-top">
+      <div class="hud-left">
+        <b id="hudName">Level</b>
+        <span id="hudAttempt">Attempt 1</span>
+        <span class="practice-tag" id="hudPractice" hidden>PRACTICE MODE</span>
+      </div>
+      <div class="hud-progress" aria-label="Progress">
+        <div class="bar"><i id="hudBar"></i></div>
+        <b id="hudPct">0%</b>
+      </div>
+      <div class="hud-right">
+        <span class="tok" id="hudTokens" aria-label="Tokens"><i></i><i></i><i></i></span>
+        <button class="hud-btn" id="btnFull" type="button" title="Fullscreen (F)" aria-label="Fullscreen">⛶</button>
+        <button class="hud-btn" id="btnPause" type="button" title="Pause (Esc or P)" aria-label="Pause">❚❚</button>
+      </div>
+    </div>
+    <div class="cp-buttons" id="cpButtons" hidden>
+      <button class="btn add" id="btnCpAdd" type="button">◆ Checkpoint <kbd>Z</kbd></button>
+      <button class="btn" id="btnCpDel" type="button">✕ Remove <kbd>X</kbd></button>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="big-msg" id="bigMsg" aria-hidden="true"></div>
+  </div>
+</div>
+
+<!-- Main menu -->
+<section class="screen" id="scrMain" aria-labelledby="logoTitle">
+  <div class="inner">
+    <h1 class="logo" id="logoTitle" aria-label="Geometry Race"><span class="top">GEOMETRY</span><span class="main" aria-hidden="true">RACE<span class="cube"></span></span></h1>
+    <p class="tag-line">Jump, fly, and flip to the beat. One button. Six levels.</p>
+    <div class="col menu-buttons">
+      <button class="btn go big" data-go="levels" type="button">▶ Play</button>
+      <div class="row">
+        <button class="btn" data-go="how" type="button">How to Play</button>
+        <button class="btn" data-go="looks" type="button">Customize</button>
+      </div>
+      <button class="btn" data-go="settings" type="button">Settings</button>
+      <a class="btn small" href="../../index.html">← Return to Games</a>
+    </div>
+    <p class="foot">Progress is saved in this browser only. No accounts, no names.<br>Lighthouse Baptist Academy • Mr. Watford</p>
+  </div>
+</section>
+
+<!-- Level select -->
+<section class="screen" id="scrLevels" aria-labelledby="lvlTitle">
+  <div class="inner wide">
+    <div class="head-row">
+      <button class="btn small" data-go="main" type="button">← Back</button>
+      <h2 class="title" id="lvlTitle">Choose a Level</h2>
+      <span class="tok" title="Tokens collected"><i class="on"></i> <b id="tokenTotal">0 / 18</b></span>
+    </div>
+    <div class="levels" id="levelList"></div>
+    <p class="saved-note">Practice mode lets you place checkpoints. It never counts as finishing a level. Progress is saved in this browser.</p>
+  </div>
+</section>
+
+<!-- How to play -->
+<section class="screen" id="scrHow" aria-labelledby="howTitle">
+  <div class="inner wide">
+    <div class="head-row"><button class="btn small" data-go="back" type="button">← Back</button><h2 class="title" id="howTitle">How to Play</h2><span></span></div>
+    <div class="card col">
+      <p class="sub">Your character runs forward on its own. Use <b>one button</b> to jump, fly, and flip. Touch anything dangerous and you restart instantly. Reach the finish line to clear the level!</p>
+      <h3 class="sec">Controls</h3>
+      <dl class="keys">
+        <dt><kbd>Space</kbd> <kbd>↑</kbd> <kbd>W</kbd>, click, or tap</dt><dd>The action button (jump, fly, flip)</dd>
+        <dt><kbd>Esc</kbd> or <kbd>P</kbd></dt><dd>Pause / resume</dd>
+        <dt><kbd>R</kbd></dt><dd>Restart the level</dd>
+        <dt><kbd>M</kbd></dt><dd>Mute / unmute</dd>
+        <dt><kbd>Z</kbd> / <kbd>X</kbd></dt><dd>Practice mode: place / remove a checkpoint</dd>
+        <dt><kbd>F</kbd></dt><dd>Fullscreen</dd>
+      </dl>
+      <h3 class="sec">Movement modes</h3>
+      <div class="how-grid" id="howModes"></div>
+      <h3 class="sec">Objects</h3>
+      <div class="how-grid" id="howObjects"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Customize -->
+<section class="screen" id="scrLooks" aria-labelledby="looksTitle">
+  <div class="inner wide">
+    <div class="head-row"><button class="btn small" data-go="back" type="button">← Back</button><h2 class="title" id="looksTitle">Customize</h2><span class="sub" id="looksTokens"></span></div>
+    <div class="looks">
+      <div class="preview">
+        <canvas id="lookPreview" aria-label="Preview of your character"></canvas>
+        <div class="mode-pick" id="previewModes" aria-label="Preview mode"></div>
+        <p class="sub" style="font-size:13px;text-align:center">Looks never change your size or hitbox.</p>
+      </div>
+      <div class="card col">
+        <h3 class="sec">Cube</h3>
+        <div class="pick-grid" id="iconGrid"></div>
+        <h3 class="sec">Main color</h3>
+        <div class="swatches" id="c1Grid"></div>
+        <h3 class="sec">Second color</h3>
+        <div class="swatches" id="c2Grid"></div>
+        <h3 class="sec">Trail</h3>
+        <div class="trail-row" id="trailGrid"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Settings -->
+<section class="screen" id="scrSettings" aria-labelledby="setTitle">
+  <div class="inner">
+    <div class="head-row"><button class="btn small" data-go="back" type="button">← Back</button><h2 class="title" id="setTitle">Settings</h2><span></span></div>
+    <div class="card set">
+      <label class="slider"><span>Music</span><input type="range" id="setMusic" min="0" max="100" step="5"><output id="outMusic">70</output></label>
+      <label class="slider"><span>Sound effects</span><input type="range" id="setSfx" min="0" max="100" step="5"><output id="outSfx">80</output></label>
+      <label class="toggle"><span><b>Mute everything</b><small>Shortcut: M. The game is fully playable muted.</small></span><input type="checkbox" id="setMuted"></label>
+      <label class="toggle"><span><b>Reduced motion</b><small>No screen shake, pulsing, or spinning backgrounds.</small></span><input type="checkbox" id="setReduced"></label>
+      <label class="toggle"><span><b>Low effects</b><small>Fewer particles and no glow. Try this on slow computers.</small></span><input type="checkbox" id="setLow"></label>
+      <label class="toggle"><span><b>Automatic checkpoints</b><small>In Practice Mode, drop checkpoints for you every few seconds.</small></span><input type="checkbox" id="setAutoCp"></label>
+      <label class="toggle"><span><b>Screen shake</b><small>A small shake when you crash.</small></span><input type="checkbox" id="setShake"></label>
+      <p class="notice" id="storageNote">Progress, tokens, looks, and settings are saved in this browser only.</p>
+      <button class="btn warn" id="btnReset" type="button">Reset all progress…</button>
+    </div>
+  </div>
+</section>
+
+<!-- Pause -->
+<section class="screen dim" id="scrPause" aria-labelledby="pauseTitle">
+  <div class="inner" style="width:min(380px,100%)">
+    <h2 class="title" id="pauseTitle" style="text-align:center">Paused</h2>
+    <p class="sub" id="pauseInfo" style="text-align:center"></p>
+    <div class="col menu-buttons">
+      <button class="btn go big" id="btnResume" type="button">▶ Resume</button>
+      <button class="btn" id="btnRestart" type="button">↻ Restart</button>
+      <button class="btn" data-go="settings" type="button">Settings</button>
+      <button class="btn" id="btnExit" type="button">Exit to Level Select</button>
+    </div>
+  </div>
+</section>
+
+<!-- Level complete -->
+<section class="screen dim" id="scrDone" aria-labelledby="doneTitle">
+  <div class="inner">
+    <div class="card col">
+      <h2 class="done-title" id="doneTitle">Level Complete!</h2>
+      <p class="sub" id="doneLevel" style="text-align:center"></p>
+      <div class="done-stats">
+        <div><span>Attempts</span><b id="doneAttempts">1</b></div>
+        <div><span>Tokens</span><b class="tok" id="doneTokens"><i></i><i></i><i></i></b></div>
+        <div><span id="doneBestLabel">Best progress</span><b id="doneBest">100%</b></div>
+      </div>
+      <p class="unlocks" id="doneUnlocks" hidden></p>
+      <div class="row">
+        <button class="btn" id="btnReplay" type="button">↻ Replay</button>
+        <button class="btn go" id="btnNext" type="button">Next Level ▶</button>
+        <button class="btn alt" id="btnNormal" type="button">Try Normal Mode</button>
+      </div>
+      <button class="btn small" id="btnDoneLevels" type="button">Level Select</button>
+    </div>
+  </div>
+</section>
+
+<dialog id="dlgReset" aria-labelledby="resetTitle">
+  <h2 id="resetTitle">Reset all progress?</h2>
+  <p class="sub">This erases level progress, tokens, attempts, and unlocked looks in this browser. Settings stay. This can't be undone.</p>
+  <form method="dialog" class="row" style="margin-top:14px">
+    <button class="btn" value="cancel" type="submit">Keep my progress</button>
+    <button class="btn warn" value="reset" type="submit">Yes, reset</button>
+  </form>
+</dialog>
+
+<script src="js/physics.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/cosmetics.js"></script>
+<script src="js/save.js"></script>
+<script src="js/render.js"></script>
+<script src="js/input.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
