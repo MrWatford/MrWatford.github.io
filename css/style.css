@@ -1953,3 +1953,7 @@ body.dialog-open { overflow: hidden; }
   #print-area .tb-diagram svg { max-width: 6.2in; }
   #print-area .tb-swaps > div { background: none; border: 1px solid #555; }
 }
+
+/* ===== Game play counts (Typing page; filled in by js/play-counter.js) ===== */
+.play-count { display: block; margin: 0 0 12px; font-weight: 700; font-size: 0.95rem; color: var(--muted); }
+.play-count[hidden] { display: none; }
