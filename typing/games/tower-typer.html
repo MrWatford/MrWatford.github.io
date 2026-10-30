@@ -165,6 +165,7 @@ footer b { color: var(--chalk); }
 @media (max-width: 560px) { .spell { min-width: 0; flex: 1; } }
 @media (prefers-reduced-motion: reduce) { .typed.shake { animation: none; } }
 </style>
+  <script src="../../js/play-counter.js"></script>
 </head>
 <body>
 
@@ -601,6 +602,7 @@ footer b { color: var(--chalk); }
   let clock = 0, shake = 0;
 
   function newGame() {
+    if (window.PlayCount) PlayCount.hit("tower-typer");
     Sound.init();
     drawMap();
     G = {

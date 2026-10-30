@@ -187,6 +187,7 @@ footer b { color: var(--chalk); }
 }
 @media (prefers-reduced-motion: reduce) { .chip.dodge, .chip.oops { animation: none; } }
 </style>
+  <script src="../../js/play-counter.js"></script>
 </head>
 <body>
 
@@ -685,6 +686,7 @@ footer b { color: var(--chalk); }
   let skyOffset = 0, hillOffset = 0, clock = 0;
 
   function newRace() {
+    if (window.PlayCount) PlayCount.hit("keyboard-kart");
     Sound.init();
     buildTrack();
     const lvl = LEVELS[settings.level];

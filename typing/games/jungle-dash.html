@@ -162,6 +162,7 @@ details.howto-box summary { cursor: pointer; font-weight: 800; color: var(--yell
 }
 @media (prefers-reduced-motion: reduce) { .chip.hazard.urgent, .chip.oops { animation: none; } }
 </style>
+  <script src="../../js/play-counter.js"></script>
 </head>
 <body>
 
@@ -1493,6 +1494,7 @@ details.howto-box summary { cursor: pointer; font-weight: 800; color: var(--yell
   $("teacherToggle").addEventListener("change", e => { settings.teacher = e.target.checked; store("jungledash-teacher", settings.teacher ? "1" : "0"); syncChoices(); });
 
   function start() {
+    if (window.PlayCount) PlayCount.hit("jungle-dash");
     S = newState(); lastBar = "";
     // fill the trail with scenery before the run begins
     for (let z = -10; z < ZMAX + 20; z += 6.5 + Math.random() * 4) spawnDecor(z);

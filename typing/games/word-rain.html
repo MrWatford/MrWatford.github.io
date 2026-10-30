@@ -172,6 +172,7 @@ footer b { color: var(--chalk); }
   .word.pop, .word.splat, .toast.show, .board.oops, .typed.shake { animation-duration: .01s; }
 }
 </style>
+  <script src="../../js/play-counter.js"></script>
 </head>
 <body>
 
@@ -322,6 +323,7 @@ footer b { color: var(--chalk); }
 
   // ---- game ----
   function newGame() {
+    if (window.PlayCount) PlayCount.hit("word-rain");
     attract.forEach(w => w.el.remove()); attract = [];
     if (S) S.words.forEach(w => w.el.remove());
     const d = DIFF[diff];

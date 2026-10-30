@@ -158,6 +158,7 @@ details.howto-box summary { cursor: pointer; font-weight: 800; color: var(--yell
 }
 @media (prefers-reduced-motion: reduce) { .card.oops { animation: none; } }
 </style>
+  <script src="../../js/play-counter.js"></script>
 </head>
 <body>
 
@@ -1262,6 +1263,7 @@ details.howto-box summary { cursor: pointer; font-weight: 800; color: var(--yell
   $("deckCancel").addEventListener("click", () => { showOnly("menuPanel"); });
 
   function start() {
+    if (window.PlayCount) PlayCount.hit("keyboard-kingdoms");
     newState(); lastHand = "";
     mode = "run"; showOnly(null);
     Sound.ctx();
