@@ -100,6 +100,10 @@
             <span class="ic" aria-hidden="true">🔬</span>
             <span><strong>Learn the Scientific Method</strong><small>A step-by-step guide</small></span>
           </button>
+          <button type="button" class="pc-tab" role="tab" id="tab-board" aria-controls="board" aria-selected="false" tabindex="-1">
+            <span class="ic" aria-hidden="true">🗂️</span>
+            <span><strong>Display Your Project</strong><small>Trifold board guide</small></span>
+          </button>
         </div>
 
         <!-- =========================================================
@@ -290,6 +294,7 @@
                   <li>Improvements or future questions</li>
                 </ul>
                 <p>Use your own words and explain what you actually did.</p>
+                <p class="m-tip">Making a trifold board? See the <a href="#board">Display Your Project</a> guide for exactly what goes on each panel.</p>
               </li>
             </ol>
 
@@ -353,6 +358,322 @@
                 </div>
               </section>
             </div>
+          </div>
+        </section>
+
+        <!-- =========================================================
+             SECTION 3: DISPLAY YOUR PROJECT (trifold board)
+             ========================================================= -->
+        <section id="board" class="pc-section" role="tabpanel" aria-labelledby="tab-board" tabindex="-1">
+          <div class="pc-section-top">
+            <h2 class="pc-section-title"><span class="ic" aria-hidden="true">🗂️</span> Display Your Project: The Trifold Board</h2>
+            <button type="button" class="btn ghost small" id="print-board">🖨️ Print This Guide</button>
+          </div>
+
+          <div class="board-guide" id="board-guide">
+            <p class="method-intro">Your trifold board tells the story of your project from start to finish. A visitor should be able to walk up, read it from left to right, and understand what you asked, what you did, what you found, and what you learned, even if you are not standing there to explain it.</p>
+
+            <!-- Board at a glance -->
+            <section class="panel">
+              <h3 class="panel-head"><span class="ic" aria-hidden="true">📐</span> Your board at a glance</h3>
+              <div class="panel-body">
+                <ul class="facts tb-facts">
+                  <li><small>Board size</small><strong>36 in. tall × 48 in. wide</strong></li>
+                  <li><small>Panels</small><strong>Left • Center • Right</strong></li>
+                  <li><small>In front of the board</small><strong>Logbook • Paper • Model</strong></li>
+                </ul>
+
+                <figure class="tb-diagram">
+                  <svg viewBox="0 0 640 490" role="img" aria-labelledby="tb-diagram-title">
+                    <title id="tb-diagram-title">Suggested trifold layout. Left panel: question and purpose, background research, hypothesis, variables. Center panel: large title, materials, procedure, project pictures. Right panel: data table, graph, conclusion, sources, and student information in the bottom corner. On the table in front: logbook, research paper, and prototype or model.</title>
+                    <!-- size arrows -->
+                    <g stroke="#5c6a60" stroke-width="1.5" fill="#5c6a60">
+                      <path d="M80 16h208M352 16h208"/><path d="M80 16l8-4v8zM560 16l-8-4v8z"/>
+                      <path d="M62 30v150M62 240v150"/><path d="M62 30l-4 8h8zM62 390l-4-8h8z"/>
+                    </g>
+                    <text x="320" y="21" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="13" fill="#5c6a60">48 in.</text>
+                    <text x="66" y="210" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="13" fill="#5c6a60" transform="rotate(-90 66 210)">36 in.</text>
+
+                    <!-- board -->
+                    <rect x="80" y="30" width="480" height="360" fill="#fffdf7" stroke="#163d24" stroke-width="3"/>
+                    <path d="M200 30v360M440 30v360" stroke="#163d24" stroke-width="2" stroke-dasharray="6 5"/>
+
+                    <!-- left panel -->
+                    <g fill="#e8f0fb" stroke="#2f6fc4" stroke-width="1.5">
+                      <rect x="90" y="42" width="100" height="60" rx="5"/>
+                      <rect x="90" y="110" width="100" height="112" rx="5"/>
+                      <rect x="90" y="230" width="100" height="62" rx="5"/>
+                      <rect x="90" y="300" width="100" height="78" rx="5"/>
+                    </g>
+                    <text x="140" y="68" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Question &amp;</text>
+                    <text x="140" y="81" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Purpose</text>
+                    <text x="140" y="160" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Background</text>
+                    <text x="140" y="173" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Research</text>
+                    <text x="140" y="265" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Hypothesis</text>
+                    <text x="140" y="343" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Variables</text>
+
+                    <!-- center panel -->
+                    <rect x="212" y="40" width="216" height="50" rx="6" fill="#f5c431" stroke="#c99a12" stroke-width="2"/>
+                    <text x="320" y="72" text-anchor="middle" style="font: 600 20px Fredoka, sans-serif; fill: #163d24">PROJECT TITLE</text>
+                    <g fill="#f3f8f4" stroke="#2e7d4a" stroke-width="1.5">
+                      <rect x="212" y="100" width="100" height="96" rx="5"/>
+                      <rect x="320" y="100" width="108" height="278" rx="5"/>
+                      <rect x="212" y="204" width="100" height="174" rx="5"/>
+                    </g>
+                    <text x="262" y="152" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Materials</text>
+                    <text x="374" y="124" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Procedure</text>
+                    <g stroke="#7aa88a" stroke-width="2.5" stroke-linecap="round">
+                      <path d="M334 144h6M348 144h66M334 168h6M348 168h60M334 192h6M348 192h66M334 216h6M348 216h52M334 240h6M348 240h62M334 264h6M348 264h56"/>
+                    </g>
+                    <text x="262" y="224" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Pictures</text>
+                    <rect x="222" y="234" width="80" height="56" fill="#cfe6d6" stroke="#2e7d4a" stroke-width="1.5"/>
+                    <path d="M222 290l24-24 16 14 14-10 26 20z" fill="#7aa88a"/>
+                    <circle cx="286" cy="250" r="6" fill="#f5c431"/>
+                    <rect x="222" y="300" width="80" height="56" fill="#cfe6d6" stroke="#2e7d4a" stroke-width="1.5"/>
+                    <path d="M232 346h60M232 338l18-22 14 14 10-8 18 16" fill="none" stroke="#2e7d4a" stroke-width="2"/>
+                    <text x="262" y="372" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="700" font-size="9.5" fill="#5c6a60">captions</text>
+
+                    <!-- right panel -->
+                    <g fill="#fff8e1" stroke="#c99a12" stroke-width="1.5">
+                      <rect x="450" y="42" width="100" height="78" rx="5"/>
+                      <rect x="450" y="128" width="100" height="94" rx="5"/>
+                      <rect x="450" y="230" width="100" height="76" rx="5"/>
+                      <rect x="450" y="314" width="100" height="36" rx="5"/>
+                    </g>
+                    <text x="500" y="60" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Data Table</text>
+                    <g fill="none" stroke="#b08a1e" stroke-width="1.2"><rect x="464" y="68" width="72" height="44"/><path d="M464 79h72M464 90h72M464 101h72M488 68v44M512 68v44"/></g>
+                    <text x="500" y="146" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Graph</text>
+                    <path d="M466 154v58h70" fill="none" stroke="#163d24" stroke-width="1.5"/>
+                    <g fill="#36905a"><rect x="474" y="184" width="12" height="28"/><rect x="494" y="170" width="12" height="42"/><rect x="514" y="190" width="12" height="22"/></g>
+                    <text x="500" y="272" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Conclusion</text>
+                    <text x="500" y="336" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Sources</text>
+                    <rect x="476" y="356" width="76" height="26" rx="4" fill="#ffffff" stroke="#2f6fc4" stroke-width="2"/>
+                    <text x="514" y="373" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="700" font-size="9.5" fill="#2f6fc4">Student info</text>
+
+                    <!-- table in front -->
+                    <path d="M40 390h560l36 54H4z" fill="#c98a4b"/>
+                    <rect x="4" y="444" width="632" height="12" fill="#a86f38"/>
+                    <!-- logbook -->
+                    <g transform="translate(92 398)">
+                      <rect x="0" y="0" width="58" height="38" rx="3" fill="#2e7d4a"/>
+                      <rect x="6" y="5" width="46" height="28" rx="2" fill="#e6f2e9"/>
+                      <path d="M12 13h34M12 19h30M12 25h34" stroke="#7aa88a" stroke-width="2"/>
+                    </g>
+                    <!-- research paper -->
+                    <g transform="translate(290 396)">
+                      <rect x="6" y="4" width="50" height="38" fill="#e4e9e2"/>
+                      <rect x="0" y="0" width="50" height="38" fill="#ffffff" stroke="#5c6a60" stroke-width="1.5"/>
+                      <path d="M8 10h34M8 17h34M8 24h34M8 31h22" stroke="#9aa3ad" stroke-width="2"/>
+                      <rect x="18" y="-4" width="14" height="8" rx="2" fill="#9aa3ad"/>
+                    </g>
+                    <!-- prototype or model -->
+                    <g transform="translate(470 380)">
+                      <rect x="0" y="40" width="80" height="14" rx="3" fill="#7d8790"/>
+                      <path d="M14 40V18h52v22" fill="#cfe6d6" stroke="#2e7d4a" stroke-width="2"/>
+                      <path d="M8 18l32-18 32 18z" fill="#36905a"/>
+                      <circle cx="40" cy="28" r="6" fill="#f5c431"/>
+                    </g>
+                    <text x="121" y="476" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Logbook</text>
+                    <text x="318" y="476" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Research Paper</text>
+                    <text x="510" y="476" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-weight="800" font-size="11" fill="#163d24">Prototype / Model</text>
+                  </svg>
+                  <figcaption>A suggested layout. Read the board like a book: left panel, then center, then right.</figcaption>
+                </figure>
+              </div>
+            </section>
+
+            <!-- Suggested layout -->
+            <h3 class="pc-section-title small"><span class="ic" aria-hidden="true">🧭</span> Suggested board layout</h3>
+            <div class="tb-layout">
+              <section class="tb-panel tb-left">
+                <h4><span class="badge">LEFT PANEL</span> The beginning</h4>
+                <ul class="checklist">
+                  <li>Question and purpose</li>
+                  <li>Background research</li>
+                  <li>Hypothesis</li>
+                  <li>Variables</li>
+                </ul>
+              </section>
+              <section class="tb-panel tb-center">
+                <h4><span class="badge">CENTER PANEL</span> What you did</h4>
+                <ul class="checklist">
+                  <li>Large title at the top</li>
+                  <li>Materials</li>
+                  <li>Procedure</li>
+                  <li>Project pictures</li>
+                </ul>
+              </section>
+              <section class="tb-panel tb-right">
+                <h4><span class="badge">RIGHT PANEL</span> What you found</h4>
+                <ul class="checklist">
+                  <li>Data tables</li>
+                  <li>Graph</li>
+                  <li>Conclusion</li>
+                  <li>Sources</li>
+                </ul>
+                <p class="tb-corner"><strong>Bottom corner:</strong> student information</p>
+              </section>
+            </div>
+
+            <!-- Required sections -->
+            <h3 class="pc-section-title small"><span class="ic" aria-hidden="true">📋</span> Required board sections</h3>
+            <p>Every board needs all 13 of these sections. Give each one a clear heading so visitors can find it quickly.</p>
+            <ol class="tb-sections">
+              <li>
+                <span class="tb-where center">Center</span>
+                <h4>Project Title</h4>
+                <p>A large, easy-to-read title that tells people what your project is about. Someone should be able to read it from across the room.</p>
+              </li>
+              <li>
+                <span class="tb-where left">Left</span>
+                <h4>Question and Purpose</h4>
+                <p>What question are you investigating? What are you trying to learn or discover?</p>
+              </li>
+              <li>
+                <span class="tb-where left">Left</span>
+                <h4>Background Research</h4>
+                <p>Explain the science behind your project in one or two short paragraphs. Define the important vocabulary words a visitor needs to know.</p>
+              </li>
+              <li>
+                <span class="tb-where left">Left</span>
+                <h4>Hypothesis</h4>
+                <p>Your prediction, written <strong>before</strong> you do the experiment.</p>
+                <p class="m-frame"><span class="m-frame-label">Sentence frame</span>“If ___, then ___, because ___.”</p>
+              </li>
+              <li>
+                <span class="tb-where left">Left</span>
+                <h4>Variables</h4>
+                <p>Name what you change, what you measure, and what you keep the same to make the test fair.</p>
+              </li>
+              <li>
+                <span class="tb-where center">Center</span>
+                <h4>Materials</h4>
+                <p>List every supply you used and how much of each.</p>
+              </li>
+              <li>
+                <span class="tb-where center">Center</span>
+                <h4>Procedure</h4>
+                <p>Numbered steps that explain how you did the experiment. Include measurements, repeated trials, and any safety precautions.</p>
+              </li>
+              <li>
+                <span class="tb-where right">Right</span>
+                <h4>Data and Results</h4>
+                <p>Show your observations and measurements in a neat table. Include units and the results from every trial.</p>
+              </li>
+              <li>
+                <span class="tb-where right">Right</span>
+                <h4>Graph</h4>
+                <p>When you have numbers to compare, include a graph that fits your data. Give it a title, label both axes, and include units.</p>
+              </li>
+              <li>
+                <span class="tb-where center">Center</span>
+                <h4>Pictures or Diagrams</h4>
+                <p>Clear photos of your project or labeled drawings that show how it works. Add a short caption under each one.</p>
+              </li>
+              <li>
+                <span class="tb-where right">Right</span>
+                <h4>Conclusion</h4>
+                <p>Answer your original question. Did your results support your hypothesis? Use specific evidence from your data. Share what you learned, possible sources of error, and one improvement you would make.</p>
+              </li>
+              <li>
+                <span class="tb-where right">Right</span>
+                <h4>Sources</h4>
+                <p>List the books, articles, and websites you used. Include titles, authors when you can find them, and website links.</p>
+              </li>
+              <li>
+                <span class="tb-where corner">Bottom corner</span>
+                <h4>Student Information</h4>
+                <p>Your name, grade, class, and the project date.</p>
+              </li>
+            </ol>
+
+            <!-- In front of the board -->
+            <h3 class="pc-section-title small"><span class="ic" aria-hidden="true">📚</span> Displayed in front of the board</h3>
+            <p>Three items sit on the table in front of your board. All three are required.</p>
+            <div class="tb-front">
+              <section class="panel">
+                <h4 class="panel-head"><span class="ic" aria-hidden="true">📓</span> Project Logbook</h4>
+                <div class="panel-body">
+                  <p>Your logbook is the diary of your project. Include <strong>at least five dated entries</strong>.</p>
+                  <p>Each entry explains what you did that day: what you researched, planned, built, tested, observed, or changed.</p>
+                  <p class="m-tip">Write entries as you go. Don't try to write them all the night before!</p>
+                </div>
+              </section>
+              <section class="panel">
+                <h4 class="panel-head"><span class="ic" aria-hidden="true">📄</span> Research Paper</h4>
+                <div class="panel-body">
+                  <p>A paper that explains:</p>
+                  <ul class="checklist">
+                    <li>Your topic and background research</li>
+                    <li>Your hypothesis</li>
+                    <li>How you did the experiment</li>
+                    <li>Your results</li>
+                    <li>Your conclusion</li>
+                    <li>The sources you used</li>
+                  </ul>
+                  <p><strong>Length:</strong> Mr. Watford will tell you how long your paper needs to be.</p>
+                </div>
+              </section>
+              <section class="panel">
+                <h4 class="panel-head"><span class="ic" aria-hidden="true">🏗️</span> Prototype or Model</h4>
+                <div class="panel-body">
+                  <p>A physical prototype or model of your project. It should help explain your topic, show off your design, or show how your experiment works.</p>
+                  <p>Label the important parts when it helps visitors understand.</p>
+                </div>
+              </section>
+            </div>
+
+            <!-- Presentation expectations -->
+            <div class="ref-grid tb-expect">
+              <section class="panel">
+                <h3 class="panel-head"><span class="ic" aria-hidden="true">✨</span> Make it neat and easy to read</h3>
+                <div class="panel-body">
+                  <ul class="checklist">
+                    <li>Clear headings for every section</li>
+                    <li>Readable lettering, large enough to read standing up</li>
+                    <li>Short paragraphs with space between sections</li>
+                    <li>Pages attached securely so nothing falls off</li>
+                    <li>Color used to organize, not to crowd the board</li>
+                    <li>Logbook, paper, and model arranged neatly so they don't block any part of the board</li>
+                  </ul>
+                </div>
+              </section>
+
+              <section class="panel tb-research">
+                <h3 class="panel-head"><span class="ic" aria-hidden="true">🔎</span> No experiment? Research &amp; model projects</h3>
+                <div class="panel-body">
+                  <p>Some projects explain a topic or show how something works instead of testing a question. If your project does not have an experiment, make these swaps:</p>
+                  <dl class="tb-swaps">
+                    <div><dt>Instead of a hypothesis</dt><dd>Research questions</dd></div>
+                    <div><dt>Instead of variables</dt><dd>Labeled diagrams</dd></div>
+                    <div><dt>Instead of data and results</dt><dd>Key facts and an explanation of how your model works</dd></div>
+                  </dl>
+                  <p>Change your research paper the same way. Every other section and all three front items are still required.</p>
+                  <p class="small-note">Never make up data. If you did not do an experiment, your board should not show experiment results.</p>
+                </div>
+              </section>
+            </div>
+
+            <!-- Final checklist -->
+            <section class="panel tb-final">
+              <h3 class="panel-head"><span class="ic" aria-hidden="true">✅</span> Final check before you turn it in</h3>
+              <div class="panel-body">
+                <ul class="checkboxes two-col">
+                  <li>All 13 board sections have clear headings.</li>
+                  <li>My title is large and easy to read.</li>
+                  <li>My hypothesis uses “If…, then…, because….”</li>
+                  <li>My data table has units and every trial.</li>
+                  <li>My graph has a title, labels, and units.</li>
+                  <li>Every picture has a caption.</li>
+                  <li>My conclusion uses evidence from my data.</li>
+                  <li>My sources are listed.</li>
+                  <li>My name, grade, class, and date are in the bottom corner.</li>
+                  <li>My logbook has at least five dated entries.</li>
+                  <li>My research paper is finished.</li>
+                  <li>My prototype or model is ready and labeled.</li>
+                </ul>
+              </div>
+            </section>
           </div>
         </section>
 
