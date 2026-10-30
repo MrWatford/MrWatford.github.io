@@ -1010,7 +1010,7 @@ a.card-link p { color: var(--muted); }
 body.dialog-open { overflow: hidden; }
 
 /* Two big section buttons */
-.pc-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0 0 28px; }
+.pc-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0 0 28px; }
 .pc-tab {
   display: flex; align-items: center; gap: 14px;
   text-align: left;
@@ -1886,4 +1886,70 @@ body.dialog-open { overflow: hidden; }
   #print-area .st-blank td { height: 0.4in; border: 1px solid #333; }
   #print-area .st-blank th { border: 1px solid #333; }
   #print-area .pd-question p { font-size: 11pt; }
+}
+
+/* =========================================================
+   Trifold board guide ("Display Your Project" tab on science/project-center.html)
+   Reuses the Science Project Center's pc-/m- styles; board-only styles are tb-.
+   ========================================================= */
+.board-guide > .panel { margin-top: 20px; }
+.tb-facts { margin: 0 0 16px; }
+.tb-diagram { margin: 0; text-align: center; }
+.tb-diagram svg { width: 100%; max-width: 720px; height: auto; display: block; margin: 0 auto; }
+.tb-diagram figcaption { margin-top: 8px; font-weight: 700; color: var(--muted); }
+
+/* Left / center / right cards: same colors as the drawing */
+.tb-layout { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 16px; }
+.tb-panel { background: var(--white); border: 2px solid var(--line); border-top: 8px solid var(--green-700); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+.tb-panel h4 { font-size: 1.15rem; margin: 0 0 10px; }
+.tb-panel h4 .badge { display: block; width: max-content; font-size: 0.78rem; margin-bottom: 6px; }
+.tb-panel .checklist { margin: 0; }
+.tb-left { border-top-color: var(--blue); }
+.tb-right { border-top-color: #c99a12; }
+.tb-corner { margin: 10px 0 0; padding-top: 10px; border-top: 2px dashed var(--line); }
+
+/* The 13 required sections */
+.tb-sections { list-style: none; counter-reset: tb; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.tb-sections li { counter-increment: tb; position: relative; margin: 0; background: var(--white); border: 2px solid var(--line); border-radius: var(--radius); padding: 16px 18px 14px 64px; box-shadow: var(--shadow); }
+.tb-sections li::before { content: counter(tb); position: absolute; left: 16px; top: 14px; width: 34px; height: 34px; border-radius: 50%; background: var(--green-700); color: var(--white); display: grid; place-items: center; font: 600 1.05rem "Fredoka", sans-serif; }
+.tb-sections h4 { font-size: 1.15rem; margin: 0 0 6px; padding-right: 90px; }
+.tb-sections p { margin: 0 0 8px; }
+.tb-sections p:last-child { margin-bottom: 0; }
+.tb-where { position: absolute; right: 14px; top: 14px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; border: 2px solid; }
+.tb-where.left { color: var(--blue); background: #e8f0fb; }
+.tb-where.center { color: var(--green-700); background: var(--green-50); }
+.tb-where.right, .tb-where.corner { color: #6b4e00; background: var(--yellow-50); border-color: #c99a12; }
+
+/* Items in front of the board */
+.tb-front { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.tb-front .panel { margin: 0; }
+.tb-front .panel-head { font-size: 1.05rem; }
+.tb-front .checklist { margin-bottom: 10px; }
+.tb-expect { margin-top: 34px; }
+.tb-swaps { margin: 0 0 12px; display: grid; gap: 8px; }
+.tb-swaps > div { background: var(--green-50); border-radius: 12px; padding: 8px 12px; }
+.tb-swaps dt { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.tb-swaps dd { margin: 0; font-weight: 800; color: var(--green-900); }
+.tb-final { margin-top: 20px; }
+.checkboxes.two-col { columns: 2; column-gap: 24px; }
+.checkboxes.two-col li { break-inside: avoid; }
+
+@media (max-width: 860px) {
+  .pc-tabs { grid-template-columns: 1fr; gap: 10px; }
+  .tb-layout, .tb-front, .tb-sections { grid-template-columns: 1fr; }
+  .checkboxes.two-col { columns: 1; }
+}
+@media (max-width: 480px) {
+  .tb-sections li { padding-left: 56px; }
+  .tb-sections li::before { left: 12px; }
+  .tb-sections h4 { padding-right: 0; margin-top: 26px; }
+}
+@media print {
+  #print-area .tb-panel, #print-area .tb-sections li { box-shadow: none; border-color: #555; break-inside: avoid; }
+  #print-area .tb-layout { grid-template-columns: 1fr 1.4fr 1fr; }
+  #print-area .tb-sections { grid-template-columns: 1fr 1fr; gap: 8px; }
+  #print-area .tb-front { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  #print-area .tb-front .panel, #print-area .tb-expect .panel, #print-area .tb-final { break-inside: avoid; }
+  #print-area .tb-diagram svg { max-width: 6.2in; }
+  #print-area .tb-swaps > div { background: none; border: 1px solid #555; }
 }
