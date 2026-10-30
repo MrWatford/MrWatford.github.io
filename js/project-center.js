@@ -1,9 +1,9 @@
 /* =========================================================
    Middle School Science Project Center (science/project-center.html)
-   1. Two big tabs: Project Ideas and the Scientific Method.
+   1. Three big tabs: Project Ideas, the Scientific Method, and the trifold board guide.
    2. Project cards with search and filters.
    3. Full project details in a pop-up window.
-   4. Printing one project, or the scientific-method guide.
+   4. Printing one project, the scientific-method guide, or the board guide.
    The projects themselves live in js/project-center-data.js.
    Nothing here saves or sends any student information.
    ========================================================= */
@@ -282,14 +282,21 @@
     printOnly('<h1 class="print-title">The Scientific Method: A Step-by-Step Guide</h1>' + guide.outerHTML + safety.outerHTML);
   });
 
+  document.getElementById("print-board").addEventListener("click", function () {
+    const board = document.getElementById("board-guide").cloneNode(true);
+    board.removeAttribute("id");
+    board.querySelectorAll("[id]").forEach(function (el) { el.removeAttribute("id"); });
+    printOnly('<h1 class="print-title">Display Your Project: The Trifold Board</h1>' + board.outerHTML);
+  });
+
   /* ---------- Start: open the tab or project named in the web address ---------- */
   function fromAddress() {
     const hash = location.hash.slice(1);
     if (hash.indexOf("project-") === 0) {
       showTab("ideas");
       openDetails(hash.slice(8));
-    } else if (hash === "method") {
-      showTab("method");
+    } else if (hash === "method" || hash === "board") {
+      showTab(hash);
     } else {
       showTab("ideas");
     }
