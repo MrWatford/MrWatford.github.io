@@ -1957,3 +1957,12 @@ body.dialog-open { overflow: hidden; }
 /* ===== Game play counts (Typing page; filled in by js/play-counter.js) ===== */
 .play-count { display: block; margin: 0 0 12px; font-weight: 700; font-size: 0.95rem; color: var(--muted); }
 .play-count[hidden] { display: none; }
+
+/* ---------- Main menu on phones (5 links since the AI Helper page was added) ---------- */
+@media (max-width: 700px) {
+  .site-nav ul { flex-wrap: wrap; justify-content: center; gap: 4px; }
+  .site-nav a { white-space: nowrap; }
+}
+@media (max-width: 430px) {
+  .site-nav a { padding: 6px 8px; font-size: 0.86rem; }
+}

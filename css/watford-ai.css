@@ -1,0 +1,171 @@
+/* =========================================================
+   Watford AI — chat styles (loaded by js/watford-ai.js).
+   Uses the site's colors from style.css, with backups if missing.
+   ========================================================= */
+.wa-chat {
+  --wa-green: var(--green-700, #2e7d4a);
+  --wa-green-dark: var(--green-900, #163d24);
+  --wa-green-50: var(--green-50, #f3f8f4);
+  --wa-green-100: var(--green-100, #e6f2e9);
+  --wa-line: var(--line, #e4e9e2);
+  --wa-ink: var(--ink, #222a24);
+  --wa-muted: var(--muted, #5c6a60);
+  --wa-yellow: var(--yellow, #f5c431);
+  --wa-yellow-50: var(--yellow-50, #fff8e1);
+  --wa-red: var(--red, #c6362c);
+  --wa-red-50: var(--red-50, #fdecea);
+  --wa-blue: var(--blue, #2f6fc4);
+  display: flex; flex-direction: column; min-height: 0;
+  font-family: "Nunito Sans", system-ui, sans-serif; color: var(--wa-ink); font-size: 1rem; line-height: 1.5;
+  background: var(--white, #fff);
+}
+.wa-chat :focus-visible { outline: 3px solid var(--wa-blue); outline-offset: 2px; }
+.wa-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+[hidden].wa-chat, .wa-chat [hidden] { display: none !important; }
+
+/* header */
+.wa-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 14px; background: var(--wa-green); color: #fff; }
+.wa-title { margin: 0; font-family: "Fredoka", "Nunito Sans", sans-serif; font-weight: 600; font-size: 1.25rem; color: #fff; display: flex; align-items: center; gap: 8px; }
+.wa-badge, .wa-launcher-badge { display: inline-grid; place-items: center; min-width: 30px; height: 24px; padding: 0 6px; border-radius: 6px; background: var(--wa-yellow, #f5c431); color: #163d24; font: 800 0.8rem/1 "Nunito Sans", sans-serif; letter-spacing: .04em; }
+.wa-sub { margin: 2px 0 0; font-size: .9rem; color: #e6f2e9; }
+.wa-tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: center; }
+.wa-tool { display: inline-flex; align-items: center; min-height: 34px; padding: 4px 12px; border-radius: 999px; border: 2px solid currentColor; background: transparent; color: inherit; font: 700 .9rem "Nunito Sans", sans-serif; cursor: pointer; text-decoration: none; }
+.wa-head .wa-tool { color: #fff; }
+.wa-tool:hover { background: rgba(255,255,255,.15); }
+.wa-close { width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(0,0,0,.2); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.wa-head :focus-visible { outline-color: var(--wa-yellow); }
+
+/* subject, grade, page */
+.wa-settings { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 10px 14px 0; font-weight: 700; font-size: .92rem; }
+.wa-settings label { display: flex; align-items: center; gap: 6px; }
+.wa-chat select, .wa-chat input[type=text], .wa-chat input[type=search] { font: inherit; font-weight: 600; padding: 5px 8px; border: 2px solid var(--wa-line); border-radius: 8px; background: #fff; color: var(--wa-ink); max-width: 100%; }
+.wa-context { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 8px 14px 0; padding: 6px 10px; border-radius: 10px; background: var(--wa-green-50); font-size: .9rem; }
+.wa-context-label { font-weight: 700; }
+.wa-link { border: 0; background: none; padding: 2px 4px; color: var(--wa-blue); font: 700 .9rem "Nunito Sans", sans-serif; text-decoration: underline; cursor: pointer; }
+
+.wa-banner { margin: 10px 14px 0; padding: 10px 12px; border-radius: 10px; background: var(--wa-yellow-50); border: 2px solid var(--wa-yellow); }
+
+/* conversation */
+.wa-log { position: relative; flex: 1 1 auto; min-height: 120px; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; overscroll-behavior: contain; }
+.wa-msg { max-width: 92%; padding: 10px 14px; border-radius: 16px; overflow-wrap: anywhere; }
+.wa-msg p { margin: 0 0 8px; }
+.wa-msg > :last-child, .wa-text > :last-child { margin-bottom: 0; }
+.wa-who { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--wa-muted); margin: 0 0 4px !important; }
+.wa-user { align-self: flex-end; background: var(--wa-green); color: #fff; border-bottom-right-radius: 4px; }
+.wa-user .wa-who { color: #e6f2e9; }
+.wa-user .wa-text { white-space: pre-wrap; }
+.wa-assistant { align-self: flex-start; background: var(--wa-green-50); border: 2px solid var(--wa-line); border-bottom-left-radius: 4px; }
+.wa-safety { align-self: flex-start; background: var(--wa-yellow-50); border: 2px solid var(--wa-yellow); }
+.wa-failed { opacity: .9; }
+.wa-error { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--wa-red-50); color: #7a1e17; }
+.wa-error .wa-tool { color: #7a1e17; margin-top: 4px; }
+.wa-text ol, .wa-text ul { margin: 0 0 8px; padding-left: 1.4em; }
+.wa-text li { margin: 2px 0; }
+.wa-text code { background: #fff; border: 1px solid var(--wa-line); border-radius: 4px; padding: 0 4px; }
+.wa-h { margin-top: 6px !important; }
+.wa-pre { white-space: pre-wrap; background: #fff; border: 2px dashed var(--wa-green); border-radius: 10px; padding: 10px 12px; margin: 0 0 8px; font: 1.05rem/1.6 "Nunito Sans", sans-serif; }
+.wa-cite { font-size: .8em; font-weight: 800; vertical-align: super; color: var(--wa-blue); text-decoration: none; padding: 0 2px; }
+.wa-cite:hover { text-decoration: underline; }
+.wa-math { font-family: "Cambria Math", "STIX Two Math", serif; white-space: nowrap; }
+.wa-math-display { display: block; text-align: center; margin: 6px 0; overflow-x: auto; }
+.wa-math .katex { font-size: 1.1em; }
+.wa-meta { font-size: .86rem; color: var(--wa-muted); margin: 6px 0 0 !important; }
+.wa-warn { color: #7a4b00; }
+.wa-checks { margin-top: 8px; font-size: .88rem; }
+.wa-checks summary { cursor: pointer; font-weight: 700; color: var(--wa-green-dark); }
+.wa-checks ul { margin: 4px 0 0; padding-left: 1.2em; }
+.wa-sources { margin-top: 10px; display: grid; gap: 6px; }
+.wa-sources-title { font-size: .8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--wa-green-dark); margin: 0 !important; }
+.wa-card { display: grid; gap: 1px; padding: 8px 12px; border: 2px solid var(--wa-line); border-radius: 12px; background: #fff; color: var(--wa-ink); text-decoration: none; }
+.wa-card:hover { border-color: var(--wa-green); background: var(--wa-green-50); }
+.wa-card strong { color: var(--wa-green-dark); }
+.wa-card span, .wa-card small { font-size: .86rem; color: var(--wa-muted); }
+.wa-starters, .wa-followups { display: flex; flex-wrap: wrap; gap: 8px; }
+.wa-followups { margin-top: 10px; }
+.wa-chip { padding: 7px 14px; border-radius: 999px; border: 2px solid var(--wa-green); background: #fff; color: var(--wa-green-dark); font: 700 .92rem "Nunito Sans", sans-serif; cursor: pointer; text-align: left; }
+.wa-chip:hover { background: var(--wa-green-100); }
+.wa-thinking p:last-child { display: flex; align-items: center; gap: 8px; color: var(--wa-muted); font-weight: 700; }
+.wa-dots { display: inline-flex; gap: 4px; }
+.wa-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--wa-green); animation: wa-bounce 1s infinite ease-in-out; }
+.wa-dots i:nth-child(2) { animation-delay: .15s; }
+.wa-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes wa-bounce { 0%, 80%, 100% { transform: scale(.6); opacity: .5; } 40% { transform: scale(1); opacity: 1; } }
+.wa-code-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* search (works even when the AI is off) */
+.wa-search-wrap { margin: 0 14px; padding: 10px 0; border-top: 2px solid var(--wa-line); }
+.wa-search-title { margin: 0 0 6px; font-weight: 800; }
+.wa-search { display: flex; gap: 8px; }
+.wa-search input { flex: 1; min-width: 0; }
+.wa-search .wa-tool { color: var(--wa-green-dark); }
+.wa-search-results { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
+.wa-offline-title { font-weight: 700; font-size: .9rem; }
+
+/* message box */
+.wa-form { display: flex; gap: 8px; align-items: flex-end; padding: 10px 14px 4px; border-top: 2px solid var(--wa-line); }
+.wa-form textarea { flex: 1; min-width: 0; resize: none; min-height: 46px; max-height: 160px; padding: 10px 12px; border: 2px solid var(--wa-line); border-radius: 14px; font: inherit; color: var(--wa-ink); }
+.wa-form textarea:focus { border-color: var(--wa-green); }
+.wa-form-buttons { display: flex; gap: 6px; }
+.wa-send, .wa-cancel { min-height: 46px; padding: 8px 18px; border-radius: 999px; border: 2px solid var(--wa-green); font: 800 1rem "Nunito Sans", sans-serif; cursor: pointer; }
+.wa-send { background: var(--wa-green); color: #fff; }
+.wa-send:hover { background: var(--wa-green-dark); }
+.wa-send:disabled { opacity: .5; cursor: not-allowed; }
+.wa-cancel { background: #fff; color: var(--wa-green-dark); }
+.wa-notice { margin: 0; padding: 4px 14px 10px; font-size: .82rem; color: var(--wa-muted); }
+
+/* ---------- launcher button (bottom left, so it never covers Mr. Watford's tip button) ---------- */
+.wa-launcher {
+  position: fixed; left: 16px; bottom: 16px; z-index: 85;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px 10px 12px; border-radius: 999px;
+  border: 3px solid var(--green-900, #163d24); background: var(--green-700, #2e7d4a); color: #fff;
+  font: 800 1rem "Nunito Sans", sans-serif; cursor: pointer;
+  box-shadow: var(--shadow-lg, 0 10px 30px -10px rgba(0,0,0,.4));
+}
+.wa-launcher:hover { background: var(--green-900, #163d24); }
+.wa-launcher:focus-visible { outline: 3px solid var(--blue, #2f6fc4); outline-offset: 3px; }
+.wa-launcher.wa-hide, html.wa-open .wa-launcher { display: none; }
+/* smaller screens: a compact round button so it covers less of the page */
+@media (max-width: 900px) {
+  .wa-launcher { padding: 0; width: 56px; height: 56px; justify-content: center; bottom: 12px; left: 12px; }
+  .wa-launcher > span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .wa-launcher-badge { font-size: .95rem; height: 28px; min-width: 34px; }
+}
+@media print { .wa-launcher, .wa-panel { display: none !important; } }
+
+/* ---------- panel ---------- */
+.wa-panel { position: fixed; z-index: 120; right: 16px; bottom: 16px; width: min(440px, calc(100vw - 32px)); height: min(680px, calc(100vh - 32px)); }
+.wa-panel-inner { height: 100%; border-radius: 18px; overflow: hidden; border: 3px solid var(--green-900, #163d24); box-shadow: 0 24px 60px -16px rgba(18, 48, 30, .5); }
+.wa-panel .wa-chat { height: 100%; }
+@media (max-width: 640px) {
+  /* phones: full screen, sized to the space above the keyboard */
+  .wa-panel { inset: 0 auto auto 0; width: 100vw; height: var(--wa-vh, 100dvh); }
+  .wa-panel-inner { border-radius: 0; border: 0; }
+  .wa-settings { padding-top: 8px; }
+  html.wa-open, html.wa-open body { overflow: hidden; }
+}
+
+/* ---------- full page (ai-helper.html) ---------- */
+.wa-mode-page { height: min(78vh, 820px); min-height: 520px; border-radius: var(--radius, 18px); overflow: hidden; border: 3px solid var(--green-700, #2e7d4a); box-shadow: var(--shadow, none); }
+@media (max-width: 640px) { .wa-mode-page { height: calc(100dvh - 90px); min-height: 440px; border-radius: 12px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-dots i { animation: none; opacity: 1; transform: none; }
+}
+@media (forced-colors: active) {
+  .wa-msg, .wa-card, .wa-chip, .wa-launcher { border: 2px solid CanvasText; }
+}
+
+/* phones: a shorter header so more of the conversation fits */
+@media (max-width: 640px) {
+  .wa-head { padding: 8px 10px; align-items: center; }
+  .wa-title { font-size: 1.1rem; white-space: nowrap; }
+  .wa-sub { display: none; }
+  .wa-tools { gap: 4px; }
+  .wa-tool { min-height: 32px; padding: 2px 10px; font-size: .85rem; }
+  .wa-settings { padding: 8px 10px 0; gap: 6px 10px; }
+  .wa-context { margin: 6px 10px 0; flex-wrap: nowrap; }
+  .wa-context-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+  .wa-log { padding: 10px; }
+  .wa-form { padding: 8px 10px 2px; }
+}
