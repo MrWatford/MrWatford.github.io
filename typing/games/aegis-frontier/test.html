@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aegis Frontier Checks</title>
+<style>
+  body { font: 15px/1.45 system-ui, sans-serif; background: #0b1418; color: #eaf6f8; margin: 0; padding: 16px; }
+  h1 { font-size: 20px; } .pass { color: #7affc8; } .fail { color: #ffb38a; font-weight: 700; }
+  li { margin: 2px 0; } #sum { font-weight: 800; font-size: 18px; }
+</style>
+</head>
+<body>
+<h1>Aegis Frontier — automated checks</h1>
+<p>Checks the save system, content counts, school-content wording, and the "no reward twice" rules. Open this page in a browser; nothing here touches your real save slots.</p>
+<p id="sum">Running…</p>
+<ul id="out"></ul>
+<script type="module">
+import * as C from "./js/content.js";
+import { validate, newState, Saves, SAVE_VERSION } from "./js/save.js";
+import { Logic } from "./js/game.js";
+
+const out = document.getElementById("out");
+let pass = 0, fail = 0;
+function ok(cond, name) {
+  const li = document.createElement("li");
+  li.className = cond ? "pass" : "fail"; li.textContent = (cond ? "✔ " : "✘ ") + name;
+  out.appendChild(li); cond ? pass++ : fail++;
+}
+function throws(fn) { try { fn(); return false; } catch (e) { return true; } }
+
+// ---------- content counts (only what really exists) ----------
+ok(C.REGIONS.length === 5, "5 regions");
+ok(C.MISSIONS.length === 12 && C.MISSIONS.every((m, i) => m.num === i + 1), "12 story missions in order");
+ok(C.SITES.filter((s) => s.kind === "base").length === 8, "8 support bases");
+ok(C.STRONGHOLDS.length === 5, "5 strongholds");
+ok(C.RESCUES.length === 12, "12 rescues");
+ok(C.COMMANDER_SITES.length === 6 && new Set(C.COMMANDER_SITES.map((c) => c.cmd)).size === 6, "6 distinct commanders");
+ok(C.WEAPON_ORDER.length === 7, "7 weapons");
+ok(Object.keys(C.VEHICLES).length === 4, "4 vehicles");
+ok(Object.keys(C.EQUIPMENT).length === 4 && Object.keys(C.UPGRADES).length === 5 && Object.values(C.UPGRADES).every((u) => u.length === 4), "4 equipment + shield, 4 tiers each");
+ok(C.UPGRADE_COSTS.reduce((a, b) => a + b, 0) * 5 === 30, "upgrades cost exactly 30 cores in total");
+const missionCores = C.MISSIONS.filter((m) => m.reward.core).length;
+const coreSources = missionCores + C.STRONGHOLDS.filter((s) => s.core).length + C.COMMANDER_SITES.filter((c) => c.core).length + C.CORES_HIDDEN.length;
+ok(coreSources === C.CORE_TOTAL && C.CORE_TOTAL === 30, `30 upgrade cores obtainable (${missionCores} missions + 5 strongholds + 6 commanders + ${C.CORES_HIDDEN.length} hidden)`);
+ok(C.RECORDINGS.length === 24 && new Set(C.RECORDINGS.map((r) => r.id)).size === 24, "24 unique recordings");
+ok(C.EMBLEMS.length === 5 && new Set(C.EMBLEMS.map((e) => e.mod)).size === 5, "5 emblems with 5 different modifiers");
+const allCollect = [...C.CORES_HIDDEN, ...C.EMBLEMS, ...C.RECORDINGS].map((d) => d.id);
+ok(new Set(allCollect).size === allCollect.length, "collectible ids never repeat");
+
+// ---------- data references ----------
+const siteIds = new Set(C.SITES.map((s) => s.id));
+ok(Object.values(C.ENCOUNTERS).every((e) => siteIds.has(e.site)), "every encounter points at a real site");
+ok(Object.values(C.ENCOUNTERS).every((e) => e.units.every((u) => C.ROBOTS[u[0]])), "every encounter uses a real robot type");
+const types = new Set(["reach", "flags", "clear", "escort", "boss"]);
+ok(C.MISSIONS.every((m) => m.objectives.every((o) => types.has(o.type) && o.text)), "every objective has a known type and text");
+ok(C.MISSIONS.every((m) => m.objectives.every((o) => o.type !== "clear" || C.ENCOUNTERS[o.enc])), "every 'clear' objective names a real encounter");
+ok(C.MISSIONS.every((m) => m.objectives.every((o) => !o.marker || o.marker === "escort" || (Array.isArray(o.marker) && typeof o.marker[0] === "number") || [].concat(o.marker).every((k) => siteIds.has(k.split(".")[0])))), "every marker names a real site");
+ok(C.SITES.every((s) => Math.abs(s.x) < 550 && Math.abs(s.z) < 550), "every site is inside the safe perimeter");
+ok(C.MISSIONS.every((m) => [...m.brief, ...m.outro, ...m.objectives.flatMap((o) => o.say || [])].every(([w]) => C.CAST[w])), "every line of dialogue has a known speaker");
+
+// ---------- school-content wording ----------
+const allText = JSON.stringify([C.MISSIONS, C.RECORDINGS, C.QUIPS, C.ROBOT_LINES, C.COMMANDERS, C.RESCUES, C.ENDING, C.BOSS_LINES, C.WEAPONS, C.EQUIPMENT, C.UPGRADES, C.VEHICLES, C.EMBLEMS, C.SUITS, C.TRAINING]).toLowerCase();
+const banned = ["kill", "dead", "death", "die ", "dies", "blood", "gore", "corpse", "skull", "demon", "devil", "magic", "spell", "ritual", "gamble", "casino", "loot box", "stupid", "dumb", "shut up", "hell", "damn", "oh my god", "omg", "evolution", "millions of years", "zombie", "ghost", "haunt", "murder", "execute", "gun "];
+const hits = banned.filter((w) => allText.includes(w));
+ok(hits.length === 0, "no banned words in game text" + (hits.length ? ` (found: ${hits.join(", ")})` : ""));
+
+// ---------- save validation ----------
+const s0 = newState("standard");
+ok(!throws(() => validate(JSON.parse(JSON.stringify(s0)))), "a fresh save validates");
+ok(throws(() => validate(null)) && throws(() => validate([])) && throws(() => validate("hi")), "non-objects are rejected");
+ok(throws(() => validate({ ...s0, v: SAVE_VERSION + 1 })), "saves from a newer version are rejected");
+ok(throws(() => validate({ ...s0, v: undefined })), "saves without a version are rejected");
+const weird = validate({ ...s0, evil: "<script>", sp: 1e12, cores: 999, difficulty: "impossible", mission: "m99", weapons: ["pistol", "laserSword"], loadout: ["laserSword", "carbine"], flags: ["ok:1", "bad flag!", 5] });
+ok(!("evil" in weird), "unknown keys are dropped");
+ok(weird.sp === 99999 && weird.difficulty === "standard" && weird.mission === "m1", "numbers clamped, bad choices replaced");
+ok(weird.weapons.join() === "pistol" && weird.loadout[0] === "pistol" && weird.loadout[1] === null, "unknown weapons are removed");
+ok(weird.flags.join() === "ok:1", "malformed flags are removed");
+const cheat = validate({ ...s0, coreIds: ["m1"], upgrades: { tether: 4, beacon: 4, barrier: 0, dash: 0, shield: 0 } });
+ok(Object.values(cheat.upgrades).every((t) => t === 0) && cheat.cores === 1, "upgrades can't cost more cores than were earned");
+const far = validate({ ...s0, checkpoint: { x: 99999, y: 0, z: 0 } });
+ok(far.checkpoint === null, "out-of-world checkpoints are dropped");
+ok(throws(() => Saves.importText("x".repeat(300000))), "oversized import is rejected");
+ok(throws(() => Saves.importText(JSON.stringify(s0))), "import without the game tag is rejected");
+ok(!throws(() => Saves.importText(Saves.exportText(s0))), "export → import round trip works");
+
+// ---------- progression rules (a stand-in game with no 3D) ----------
+function fakeGame(mode = "campaign") {
+  const g = Object.create(Logic);
+  g.state = newState("standard"); g.state.mode = mode;
+  g.flagSet = new Set(); g.dirty = false;
+  const noop = () => {};
+  g.ui = { toast: noop, banner: noop, spPop: noop, objective: noop, objectiveDone: noop, saved: noop, briefing: noop, replayDone: noop };
+  g.audio = { play: noop };
+  g.world = { refreshToggles: noop };
+  g.allies = { byTag: () => [], dropship: { add: noop } };
+  g.player = { equipSel: "tether" };
+  g.say = noop; g.sayLines = noop; g.saveNow = noop; g.saveSoon = noop; g.showBriefing = noop;
+  g.discoverNear = noop; g.setCheckpoint = noop; g.spawnBaseLife = noop; g.hook = noop;
+  return g;
+}
+{
+  const g = fakeGame();
+  ok(g.giveCore("m1") && !g.giveCore("m1") && g.state.cores === 1, "a core id can only be collected once");
+  g.setFlag("x:1"); g.setFlag("x:1");
+  ok(g.state.flags.filter((f) => f === "x:1").length === 1, "setting a flag twice stores it once");
+  g.setFlag("s1:e1"); g.setFlag("s1:e2");
+  ok(!g.flag("stronghold:S1"), "stronghold S1 needs its guards cleared too");
+  g.setFlag("clear:S1");
+  ok(g.flag("stronghold:S1") && g.state.stats.strongholds === 1, "stronghold S1 completes when emitters + guards are done");
+  const sp = g.state.sp;
+  g.strongholdDone("S1");
+  ok(g.state.coreIds.filter((c) => c === "S1").length === 1, "stronghold core is never given twice");
+  g.setFlag("crossing:west"); g.setFlag("crossing:east");
+  ok(g.flag("crossing_restored") && g.flag("region:W"), "both crossing anchors open Glasswater Basin");
+}
+{
+  const g = fakeGame();
+  const m1 = C.missionById.m1;
+  g.state.mission = "m1"; g.state.obj = m1.objectives.length;
+  g.completeMission(m1);
+  const cores = g.state.cores, sp = g.state.sp;
+  g.state.mission = "m1"; g.completeMission(m1);
+  ok(g.state.completed.filter((m) => m === "m1").length === 1 && g.state.cores === cores && g.state.sp === sp, "finishing a mission twice gives its rewards once");
+  ok(g.state.mission === "m2" && g.state.obj === 0, "finishing a mission moves the story to the next one");
+}
+{
+  const g = fakeGame("replay");
+  g.state.mission = "m3";
+  g.completeMission(C.missionById.m3);
+  ok(g.state.cores === 0 && g.state.sp === 0 && !g.state.completed.includes("m3"), "replays never give permanent rewards");
+  g.state.mode = "training";
+  ok(!g.giveCore("h1"), "training never gives cores");
+}
+{
+  const g = fakeGame();
+  g.state.mission = "m3"; g.state.obj = 0;
+  const o = C.missionById.m3.objectives[0];
+  g.setFlag("relay:T1"); g.setFlag("relay:T2");
+  ok(!g.objectiveDone(o), "3-tower objective waits for all three");
+  g.setFlag("relay:T3");
+  ok(g.objectiveDone(o), "3-tower objective completes in any order");
+  ok(g.missionActive("m3") && !g.missionActive("m4"), "only the current mission counts as active");
+}
+
+document.getElementById("sum").textContent = `${pass} passed, ${fail} failed`;
+document.getElementById("sum").className = fail ? "fail" : "pass";
+document.title = `Aegis Frontier Checks: ${pass} passed, ${fail} failed`;
+</script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aegis Frontier | Mr. Watford's Free-Time Games</title>
+<meta name="description" content="Aegis Frontier: an original first-person science-fiction adventure. Explore Meridian Reach, rescue research teams, reconnect bases, and shut down a malfunctioning machine network. Saves on your own device.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;800&family=Nunito+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+/* All styles are scoped to this game page (it does not load the site's style sheet). */
+:root {
+  --ts: 1;
+  --bg: #0b1418; --panel: rgba(14, 26, 34, .92); --panel2: #18303b; --line: #2c4c58; --text: #eaf6f8; --dim: #a9c2c8;
+  --teal: #3ff0d8; --blue: #2f6fd6; --orange: #ff8a2a; --gold: #ffd34a; --violet: #b06cff;
+  --body: "Nunito Sans", system-ui, sans-serif; --display: "Exo 2", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--body); font-size: calc(16px * var(--ts)); }
+body { -webkit-user-select: none; user-select: none; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#fxc { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+button, input, select { font: inherit; }
+[hidden] { display: none !important; }
+kbd { display: inline-block; min-width: 24px; padding: 2px 7px; border-radius: 6px; background: #eaf6f8; color: #0b1418; font: 800 13px var(--body); border-bottom: 3px solid #8aa; text-align: center; margin: 1px; }
+
+/* ---------- screens ---------- */
+.screen { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: rgba(5, 12, 16, .72); backdrop-filter: blur(3px); }
+#title, #loading { background: radial-gradient(ellipse at 50% 120%, #2b5b4a 0%, #13303a 45%, #08121a 100%); }
+.card { width: min(560px, 100%); background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.card.wide { width: min(860px, 100%); }
+.card h2 { font: 800 calc(26px * var(--ts)) / 1.15 var(--display); margin: 0 0 12px; letter-spacing: .5px; }
+.card h3 { font: 800 calc(17px * var(--ts)) var(--display); color: var(--teal); margin: 18px 0 8px; }
+.card p { color: var(--dim); line-height: 1.5; margin: 0 0 10px; }
+.note { font-size: .88em; color: var(--dim); }
+.small { font-size: .88em; }
+.warn { color: #ffcf8a !important; }
+.logo { font: 800 clamp(34px, 8vw, 64px)/1 var(--display); letter-spacing: 4px; text-align: center; margin: 0; color: #fff;
+  text-shadow: 0 0 24px rgba(63,240,216,.5), 0 4px 0 #13303a; }
+.logo span { color: var(--orange); }
+.tag { text-align: center; color: var(--dim); margin: 8px 0 20px; font-weight: 700; }
+.menu { display: grid; gap: 10px; }
+.btn { appearance: none; border: 2px solid #3a6270; border-radius: 10px; padding: 11px 16px; cursor: pointer; background: linear-gradient(#21414d, #183340); color: #fff;
+  font: 800 calc(17px * var(--ts)) / 1.1 var(--display); letter-spacing: .4px; text-align: center; text-decoration: none; }
+.btn:hover, .btn:focus-visible { border-color: var(--teal); outline: none; background: linear-gradient(#2a5563, #1d4250); }
+.btn:focus-visible { box-shadow: 0 0 0 3px var(--gold); }
+.btn.primary { background: linear-gradient(#ff9a3c, #e0731e); border-color: #ffb46a; color: #1a0d02; }
+.btn.primary:hover { background: linear-gradient(#ffab5a, #ef8430); }
+.btn.danger { background: linear-gradient(#7a2f3a, #5a2029); border-color: #a5525e; }
+.btn.small { padding: 7px 11px; font-size: calc(14px * var(--ts)); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.row > .btn { flex: 1; }
+.sub { text-align: center; font-size: .85em; color: var(--dim); margin-top: 4px; }
+.foot { text-align: center; font-size: 13px; color: #9fc4c0; font-weight: 700; margin-top: 14px; }
+.slot, .item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.slot b, .item b { font: 800 calc(17px * var(--ts)) var(--display); display: block; }
+.slot small, .item small { color: var(--dim); display: block; }
+.acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.item.locked { opacity: .6; }
+.diffs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.diffs .btn { display: grid; gap: 6px; padding: 14px; text-align: left; }
+.diffs .btn span { font: 400 calc(13px * var(--ts)) var(--body); color: #cfe; }
+.diffs .btn.primary span { color: #3a1d06; }
+@media (max-width: 640px) { .diffs { grid-template-columns: 1fr; } }
+.set { display: grid; grid-template-columns: 1fr 1.1fr; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid #1f3a44; }
+.set > span:first-child { font-weight: 800; }
+.set small { display: block; font-weight: 400; color: var(--dim); font-size: .82em; }
+.set output { color: var(--gold); font-weight: 800; margin-left: 8px; }
+.set select { padding: 6px; border-radius: 8px; background: #102028; color: #fff; border: 1px solid var(--line); }
+input[type=range] { width: 70%; accent-color: var(--teal); vertical-align: middle; }
+input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--teal); }
+.keys { width: 100%; border-collapse: collapse; }
+.keys td { padding: 5px 8px; border-bottom: 1px solid #1f3a44; vertical-align: top; }
+.keys td:first-child { white-space: nowrap; width: 40%; }
+.progress { height: 14px; border-radius: 8px; background: #0c1c22; border: 1px solid var(--line); overflow: hidden; }
+.progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--teal), var(--blue)); transform-origin: left; transform: scaleX(0); transition: transform .2s; }
+.line, #subs { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: start; margin-bottom: 10px; }
+.line p, #subs p { margin: 2px 0 0; color: #eaf6f8; }
+.por { width: 52px; height: 52px; }
+.por svg { width: 100%; height: 100%; display: block; border-radius: 10px; }
+.por.big { width: 96px; height: 96px; margin: 0 auto 10px; }
+#jtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+#jtabs button.on { border-color: var(--gold); }
+#journalBody { max-height: 62vh; overflow-y: auto; padding-right: 6px; -webkit-user-select: text; user-select: text; }
+.steps { list-style: none; padding: 0; margin: 0; }
+.steps li { padding: 6px 0; color: var(--dim); }
+.steps li.done { color: #7affc8; } .steps li.cur { color: #fff; font-weight: 800; }
+.upg { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.upg h4 { margin: 0 0 4px; font: 800 calc(16px * var(--ts)) var(--display); }
+.upg ol { margin: 6px 0 0; padding-left: 4px; list-style: none; }
+.upg li { padding: 4px 0; color: var(--dim); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.upg li.own { color: #7affc8; }
+details.rec { background: var(--panel2); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; }
+details.rec summary { cursor: pointer; font-weight: 800; }
+details.rec p { color: #dfeef0; margin: 8px 0 2px; }
+table.col { width: 100%; border-collapse: collapse; }
+table.col td { padding: 5px 6px; border-bottom: 1px solid #1f3a44; }
+.bar { display: block; width: 120px; height: 8px; background: #0c1c22; border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--teal); }
+.suits { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.suit { display: flex; gap: 4px; align-items: center; background: var(--panel2); border: 2px solid var(--line); border-radius: 10px; padding: 8px; color: #fff; cursor: pointer; text-align: left; }
+.suit.on { border-color: var(--gold); }
+.suit:disabled { opacity: .5; cursor: not-allowed; }
+.suit i { width: 16px; height: 16px; border-radius: 4px; display: inline-block; border: 1px solid #000; }
+.suit span { font-size: .8em; margin-left: 4px; }
+#mapWrap { position: relative; width: min(1100px, 100%); height: min(78vh, 760px); }
+#mapCanvas { width: 100%; height: 100%; border-radius: 12px; border: 2px solid var(--line); cursor: grab; display: block; }
+#mapSide { position: absolute; top: 10px; left: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 4px; max-width: 220px; font-size: .9em; }
+#mapSide label { display: flex; gap: 6px; align-items: center; }
+#mapTop { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
+#mapInfo { position: absolute; bottom: 10px; left: 10px; right: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-height: 40px; display: flex; gap: 10px; align-items: center; }
+#mapCounts { position: absolute; bottom: 64px; right: 10px; background: var(--panel); padding: 6px 10px; border-radius: 8px; font-size: .85em; }
+.legend { font-size: .8em; color: var(--dim); margin-top: 6px; line-height: 1.5; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+.hbox { position: absolute; background: rgba(8, 18, 24, .62); border: 1px solid rgba(120, 220, 210, .25); border-radius: 10px; padding: 8px 12px; text-shadow: 0 1px 2px #000; }
+#objBox { top: 14px; left: 14px; max-width: min(420px, 46vw); transition: border-color .3s; }
+#objBox.done { border-color: var(--gold); }
+#objMission { font: 800 calc(12px * var(--ts)) var(--display); color: var(--teal); letter-spacing: 1px; text-transform: uppercase; }
+#objText { font-weight: 800; font-size: calc(15px * var(--ts)); margin-top: 2px; }
+#objDist { color: var(--gold); font-weight: 800; font-size: .85em; }
+#compass { position: absolute; top: 14px; left: 50%; width: 360px; margin-left: -180px; height: 26px; overflow: hidden; background: rgba(8,18,24,.55); border-radius: 8px; border: 1px solid rgba(120,220,210,.25); }
+#compass span { position: absolute; top: 3px; transform: translateX(-50%); font: 800 13px var(--display); }
+#compass .minor { color: #8fb; opacity: .6; font-size: 11px; top: 5px; }
+#compass .obj { color: var(--gold); font-size: 15px; top: 2px; }
+#vitals { left: 14px; bottom: 14px; width: min(320px, 40vw); }
+.vbar { display: grid; grid-template-columns: 62px 1fr 38px; gap: 8px; align-items: center; margin: 3px 0; font-weight: 800; font-size: calc(12px * var(--ts)); }
+.vbar .track { height: 12px; background: rgba(0,0,0,.5); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,.2); }
+.vbar .fill { height: 100%; transform-origin: left; }
+#shieldFill { background: linear-gradient(90deg, #5fd8ff, #b8f3ff); }
+#suitFill { background: linear-gradient(90deg, #f2f4f8, #ffd9a8); }
+#shieldBar.broken .track { border-color: #ffd9a8; animation: blink .5s infinite; }
+#suitBar.low span:first-child { color: #ffd9a8; }
+@keyframes blink { 50% { opacity: .4; } }
+#weapon { right: 14px; bottom: 14px; text-align: right; min-width: 200px; background: rgba(8,18,24,.45); }
+#wName { font: 800 calc(16px * var(--ts)) var(--display); }
+#wAmmo { font: 800 calc(22px * var(--ts)) var(--display); color: var(--teal); }
+#wOther, #throwInfo { font-size: calc(12px * var(--ts)); color: var(--dim); }
+#heatBar { height: 6px; background: rgba(0,0,0,.5); border-radius: 3px; overflow: hidden; margin: 4px 0; }
+#heatFill { height: 100%; background: linear-gradient(90deg, #ffd34a, #ff7ad9); transform-origin: left; }
+#equip { position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; display: flex; gap: 6px; }
+.eq { position: relative; width: 70px; height: 50px; background: rgba(8,18,24,.65); border: 2px solid rgba(120,220,210,.25); border-radius: 8px; overflow: hidden; text-align: center; padding-top: 4px; }
+.eq.sel { border-color: var(--gold); }
+.eq.off { opacity: .4; }
+.eq .key { display: block; font: 800 12px var(--display); color: var(--gold); }
+.eq .nm { display: block; font-size: 11px; font-weight: 800; }
+.eq .cd { position: absolute; inset: 0; background: rgba(0,0,0,.55); transform-origin: bottom; }
+.eq .chg { position: absolute; top: 2px; right: 4px; font-size: 11px; color: var(--teal); font-style: normal; }
+#vehHud { left: 50%; bottom: 14px; width: 320px; margin-left: -160px; }
+#cross { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+#cross::before, #cross::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 2px #000; }
+#cross::before { left: 10px; top: 0; width: 2px; height: 22px; clip-path: polygon(0 0,100% 0,100% 35%,0 35%,0 65%,100% 65%,100% 100%,0 100%); }
+#cross::after { top: 10px; left: 0; height: 2px; width: 22px; clip-path: polygon(0 0,35% 0,35% 100%,0 100%,0 0,65% 0,100% 0,100% 100%,65% 100%); }
+#cross.ads { transform: scale(.7); }
+.hitmark { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; opacity: 0; }
+.hitmark.on, .hitmark.kill { opacity: 1; }
+.hitmark::before, .hitmark::after { content: ""; position: absolute; left: 14px; top: 0; width: 2px; height: 30px; background: #fff; clip-path: polygon(0 0,100% 0,100% 30%,0 30%,0 70%,100% 70%,100% 100%,0 100%); }
+.hitmark::before { transform: rotate(45deg); } .hitmark::after { transform: rotate(-45deg); }
+.hitmark[data-k=weak]::before, .hitmark[data-k=weak]::after { background: var(--gold); }
+.hitmark[data-k=blocked]::before, .hitmark[data-k=blocked]::after { background: #77bbff; }
+.hitmark.kill::before, .hitmark.kill::after { background: var(--teal); height: 36px; top: -3px; }
+#tetherInd { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border: 2px dashed rgba(255,255,255,.4); transform: rotate(45deg); border-radius: 4px; }
+#tetherInd.ok { border: 2px solid var(--teal); box-shadow: 0 0 10px var(--teal); }
+#tetherInd.bad { border-color: #ffb38a; }
+#tetherInd::after { content: "TETHER"; position: absolute; left: 50%; top: 100%; transform: rotate(-45deg) translate(-30%, 20px); font: 800 10px var(--display); color: #fff; }
+#tetherInd.ok::after { content: "IN RANGE"; color: var(--teal); }
+#prompt { position: absolute; left: 50%; top: 60%; transform: translateX(-50%); background: rgba(8,18,24,.8); border: 1px solid var(--teal); padding: 8px 14px; border-radius: 10px; font-weight: 800; text-align: center; min-width: 200px; }
+#prompt.gray { border-color: #557; color: #cdd; font-weight: 700; }
+#prompt .prog { display: block; height: 5px; margin-top: 6px; background: #0c1c22; border-radius: 3px; overflow: hidden; }
+#prompt .prog i { display: block; height: 100%; background: var(--teal); transform-origin: left; }
+#subs { position: absolute; left: 50%; bottom: 130px; transform: translateX(-50%); width: min(640px, 92vw); background: rgba(8,18,24,.84); border-radius: 12px; padding: 10px 14px; border: 1px solid rgba(120,220,210,.3); }
+#subs.min p { display: none; }
+#subs b { font: 800 calc(14px * var(--ts)) var(--display); }
+#toasts { position: absolute; right: 14px; top: 60px; display: grid; gap: 6px; justify-items: end; max-width: min(380px, 60vw); }
+.toast { background: rgba(8,18,24,.85); border-left: 4px solid var(--teal); padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: calc(14px * var(--ts)); transition: opacity .5s; }
+.toast.out { opacity: 0; }
+#banner { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); text-align: center; opacity: 0; }
+#banner.show { animation: ban 4.2s forwards; }
+#banner b { display: block; font: 800 calc(32px * var(--ts)) var(--display); color: #fff; text-shadow: 0 0 16px rgba(63,240,216,.7), 0 2px 0 #000; }
+#banner span { font-weight: 800; color: var(--gold); text-shadow: 0 1px 2px #000; }
+@keyframes ban { 0% { opacity: 0; transform: translate(-50%, 10px); } 10%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+#bossBar { position: absolute; top: 50px; left: 50%; width: min(520px, 80vw); transform: translateX(-50%); text-align: center; }
+#bossBar b { font: 800 16px var(--display); letter-spacing: 3px; color: #e2c9ff; }
+#bossBar .track { height: 12px; background: rgba(0,0,0,.6); border-radius: 6px; overflow: hidden; border: 1px solid #c49bff; margin: 4px 0; }
+#bossFill { height: 100%; background: linear-gradient(90deg, #c49bff, #ff7ad9); transform-origin: left; }
+#bossPhase, #bossHint { font-weight: 800; font-size: .85em; text-shadow: 0 1px 2px #000; }
+#savedIcon { position: absolute; left: 14px; top: 104px; font-weight: 800; color: var(--teal); opacity: 0; font-size: .85em; }
+#savedIcon.show { animation: ban2 2.4s; }
+@keyframes ban2 { 10%, 70% { opacity: 1; } }
+#carry { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); font-weight: 800; color: #7af0ff; text-shadow: 0 1px 2px #000; }
+#scope { position: absolute; inset: 0; background: radial-gradient(circle at center, transparent 0 30vmin, rgba(0,0,0,.92) 30.5vmin); }
+#scope::after { content: ""; position: absolute; left: 50%; top: 50%; width: 60vmin; height: 2px; margin-left: -30vmin; background: rgba(255,255,255,.5); }
+#shieldFlash { position: absolute; inset: 0; box-shadow: inset 0 0 120px 30px rgba(140, 220, 255, .8); opacity: 0; }
+#shieldFlash.go { animation: sf .6s; }
+@keyframes sf { 0% { opacity: 1; } 100% { opacity: 0; } }
+#lowSuit { position: absolute; inset: 0; box-shadow: inset 0 0 140px 40px rgba(255, 220, 160, .55); opacity: 0; }
+#fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 40; }
+#fade.go { animation: fd 1s; }
+@keyframes fd { 0% { opacity: 1; } 100% { opacity: 0; } }
+#lockHint { position: fixed; left: 50%; top: 40%; transform: translateX(-50%); z-index: 20; background: var(--panel); padding: 12px 18px; border-radius: 10px; border: 1px solid var(--teal); font-weight: 800; }
+body.minimal #compass, body.minimal #weapon, body.minimal #equip, body.minimal #toasts { display: none; }
+#deviceNote { position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 60; background: #3a2a10; border: 2px solid var(--gold); border-radius: 10px; padding: 10px 14px; font-weight: 700; }
+#endLine { text-align: center; cursor: pointer; }
+#endLine p { font-size: 1.15em; color: #fff; }
+#endTable td { padding: 4px 10px; border-bottom: 1px solid #1f3a44; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<canvas id="fxc" hidden></canvas>
+<script src="../../../js/play-counter.js"></script>
+
+<!-- HUD -->
+<div id="hud" hidden>
+  <div id="lowSuit"></div><div id="shieldFlash"></div><div id="scope" hidden></div>
+  <div id="objBox" class="hbox"><div id="objMission"></div><div id="objText"></div><div id="objDist"></div></div>
+  <div id="compass"></div>
+  <div id="savedIcon">✔ Progress saved</div>
+  <div id="bossBar" hidden><b>ATLAS ARRAY</b><div class="track"><div id="bossFill"></div></div><div id="bossPhase"></div><div id="bossHint"></div></div>
+  <div id="vitals" class="hbox">
+    <div class="vbar" id="shieldBar"><span>◈ SHIELD</span><div class="track"><div class="fill" id="shieldFill"></div></div><span id="shieldNum"></span></div>
+    <div class="vbar" id="suitBar"><span>⬢ SUIT</span><div class="track"><div class="fill" id="suitFill"></div></div><span id="suitNum"></span></div>
+  </div>
+  <div id="equip"></div>
+  <div id="weapon" class="hbox"><div id="wName"></div><div id="wAmmo"></div><div id="heatBar" hidden><div id="heatFill"></div></div><div id="wOther"></div><div id="throwInfo"></div></div>
+  <div id="vehHud" class="hbox" hidden><b id="vehName"></b>
+    <div class="vbar"><span>HULL</span><div class="track"><div class="fill" id="vehFill" style="background:#f2f4f8"></div></div><span></span></div>
+    <div class="vbar"><span>BOOST</span><div class="track"><div class="fill" id="boostFill" style="background:#ffd34a"></div></div><span></span></div>
+  </div>
+  <div id="cross"></div><div id="hitmark" class="hitmark"></div><div id="tetherInd" hidden></div>
+  <div id="prompt" hidden></div>
+  <div id="carry" hidden>⬡ Carrying an energy cell</div>
+  <div id="subs" hidden></div>
+  <div id="toasts"></div>
+  <div id="banner"></div>
+</div>
+<div id="fade"></div>
+<div id="lockHint" hidden>Click to look around</div>
+
+<!-- Loading -->
+<div id="loading" class="screen">
+  <div class="card">
+    <h1 class="logo">AEGIS <span>FRONTIER</span></h1>
+    <p class="tag">A free-time game from Mr. Watford's website</p>
+    <div class="progress"><i id="loadFill"></i></div>
+    <p class="sub" id="loadText">Loading…</p>
+  </div>
+</div>
+
+<!-- Error -->
+<div id="errorBox" class="screen" hidden>
+  <div class="card"><h2>Something went wrong</h2><p id="errorText"></p>
+    <div class="row"><button class="btn primary" id="btnErrReload">Reload the game</button><a class="btn" href="../../index.html">Back to the website</a></div></div>
+</div>
+
+<!-- Title -->
+<div id="title" class="screen" hidden>
+  <div class="card">
+    <h1 class="logo">AEGIS <span>FRONTIER</span></h1>
+    <p class="tag">Reconnect Meridian Reach. Rescue the research teams. Bring the frontier back online.</p>
+    <div class="menu">
+      <button class="btn primary" id="btnContinue" hidden>Continue</button>
+      <p class="sub" id="continueInfo"></p>
+      <button class="btn" id="btnNew">New Campaign</button>
+      <button class="btn" id="btnSlots">Load / Manage Saves</button>
+      <button class="btn" id="btnTraining">Training</button>
+      <div class="row" style="margin-top:0"><button class="btn" id="btnSettings">Settings</button><button class="btn" id="btnControls">Controls</button></div>
+      <button class="btn" data-web>Return to Website</button>
+    </div>
+    <p class="note" style="margin-top:14px">Best with a keyboard and mouse on a laptop, Chromebook, or desktop computer. Progress saves only in this browser on this device, and clearing browser data erases it (use Export to keep a backup).</p>
+    <p class="note warn" id="storageNote" hidden>This browser is blocking saved data, so progress can't be saved here.</p>
+    <p class="foot">Lighthouse Baptist Academy • Mr. Watford</p>
+  </div>
+</div>
+
+<!-- Slots -->
+<div id="slots" class="screen" hidden>
+  <div class="card wide"><h2 id="slotTitle">Save slots</h2>
+    <p class="note">Saves live in this browser only. Export makes a backup file you can import later (on this or another computer).</p>
+    <div id="slotList"></div>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <div class="row"><button class="btn" data-back="title">Back</button></div>
+  </div>
+</div>
+
+<!-- Difficulty -->
+<div id="diff" class="screen" hidden>
+  <div class="card wide"><h2>Choose a difficulty</h2>
+    <p class="note">You can change it any time from the pause menu without losing progress.</p>
+    <div class="diffs">
+      <button class="btn" data-pick="explorer">Explorer<span>Forgiving shields, fewer robots attacking at once, aim assistance, and extra supplies.</span></button>
+      <button class="btn primary" data-pick="standard">Standard<span>Balanced exploration and a fair challenge. Recommended.</span></button>
+      <button class="btn" data-pick="veteran">Veteran<span>Smarter, better-coordinated machines and tighter supplies.</span></button>
+    </div>
+    <div class="row"><button class="btn" data-back="slots">Back</button></div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div id="settings" class="screen" hidden>
+  <div class="card wide"><h2>Settings</h2><div id="settingsBody"></div>
+    <div class="row"><button class="btn" data-back="settings">Back</button></div></div>
+</div>
+
+<!-- Controls -->
+<div id="controls" class="screen" hidden>
+  <div class="card wide"><h2>Controls</h2>
+    <table class="keys">
+      <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Move</td></tr>
+      <tr><td>Mouse</td><td>Look around</td></tr>
+      <tr><td>Left click</td><td>Fire (hold to charge the Arc Pistol)</td></tr>
+      <tr><td>Right click</td><td>Aim / scope</td></tr>
+      <tr><td><kbd>Space</kbd></td><td>Jump. Hold it while moving into a ledge to mantle up.</td></tr>
+      <tr><td><kbd>Shift</kbd></td><td>Sprint</td></tr>
+      <tr><td><kbd>C</kbd></td><td>Crouch. Press while sprinting to slide. (Ctrl can be turned on in Settings.)</td></tr>
+      <tr><td><kbd>E</kbd></td><td>Interact (hold for terminals) · enter or exit vehicles · pick up / set down energy cells</td></tr>
+      <tr><td><kbd>R</kbd></td><td>Reload (in a vehicle: reset if stuck)</td></tr>
+      <tr><td>Mouse wheel or <kbd>X</kbd></td><td>Switch between your two weapons</td></tr>
+      <tr><td><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></td><td>Select equipment: Tether, Scout Beacon, Barrier, Dash</td></tr>
+      <tr><td><kbd>Q</kbd></td><td>Use the selected equipment</td></tr>
+      <tr><td><kbd>F</kbd></td><td>Quick tether (any time; press again or jump to let go)</td></tr>
+      <tr><td><kbd>G</kbd> / <kbd>T</kbd></td><td>Throw an EMP Orb or Stasis Disc / switch which one</td></tr>
+      <tr><td><kbd>V</kbd></td><td>Energy repulse (pushes robots back)</td></tr>
+      <tr><td><kbd>M</kbd></td><td>World map (fast travel between reconnected bases)</td></tr>
+      <tr><td><kbd>Tab</kbd></td><td>Journal and upgrades</td></tr>
+      <tr><td><kbd>Enter</kbd></td><td>Skip the current dialogue line</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Pause and free the mouse</td></tr>
+      <tr><td>In vehicles</td><td>W/S drive · A/D steer (Skiff: A/D slide) · mouse looks/aims · Shift boost · Space handbrake (Skyfin: Space up, C down) · click to fire (Crawler and Skyfin)</td></tr>
+    </table>
+    <p class="note">Keyboard and mouse are required. Game controllers and touch screens are not supported yet.</p>
+    <div class="row"><button class="btn" data-back="controls">Back</button></div></div>
+</div>
+
+<!-- Pause -->
+<div id="pause" class="screen" hidden>
+  <div class="card"><h2>Paused</h2><p class="note" id="pauseInfo"></p>
+    <div class="menu">
+      <button class="btn primary" id="btnResume">Resume</button>
+      <div class="row" style="margin-top:0"><button class="btn" id="btnPMap">Map</button><button class="btn" id="btnPJournal">Journal</button><button class="btn" id="btnPUp">Upgrades</button></div>
+      <div class="row" style="margin-top:0"><button class="btn" id="btnPSettings">Settings</button><button class="btn" id="btnPControls">Controls</button></div>
+      <p class="note" style="margin:6px 0 0">Difficulty (changes right away, keeps progress):</p>
+      <div class="row" id="pauseDiff" style="margin-top:0"></div>
+      <button class="btn" id="btnPExit">Save &amp; Exit to Title</button>
+      <button class="btn" data-web>Save &amp; Return to Website</button>
+    </div></div>
+</div>
+
+<!-- Recovery -->
+<div id="recover" class="screen" hidden>
+  <div class="card"><h2>Suit power depleted</h2>
+    <p>LUMA triggered a safe recall and brought you back to your last checkpoint. Everything you've earned is kept.</p>
+    <div class="menu"><button class="btn primary" id="btnRetry">Retry from checkpoint</button>
+      <p class="note" style="margin:6px 0 0">Change difficulty:</p><div class="row" id="recDiff" style="margin-top:0"></div>
+      <button class="btn" id="btnRecExit">Exit to Title</button></div></div>
+</div>
+
+<!-- Briefing -->
+<div id="brief" class="screen" hidden>
+  <div class="card wide"><p class="note" id="briefNum"></p><h2 id="briefTitle"></h2><div id="briefLines"></div>
+    <div class="row"><button class="btn primary" id="btnBriefGo">Start mission (Enter)</button></div></div>
+</div>
+
+<!-- Info -->
+<div id="info" class="screen" hidden>
+  <div class="card"><h2 id="infoTitle"></h2><p id="infoText"></p><div class="row"><button class="btn primary" id="infoBack">Back to title</button></div></div>
+</div>
+
+<!-- In-game menus -->
+<div id="journal" class="screen" hidden>
+  <div class="card wide"><h2>Journal</h2>
+    <div id="jtabs"><button class="btn small" data-tab="obj">Objectives</button><button class="btn small" data-tab="missions">Missions</button><button class="btn small" data-tab="upg">Upgrades</button><button class="btn small" data-tab="equip">Equipment &amp; Suits</button><button class="btn small" data-tab="rec">Recordings</button><button class="btn small" data-tab="col">Collection</button></div>
+    <div id="journalBody"></div>
+    <div class="row"><button class="btn" data-close>Close (Tab)</button></div></div>
+</div>
+<div id="map" class="screen" hidden>
+  <div id="mapWrap">
+    <canvas id="mapCanvas"></canvas>
+    <div id="mapSide"><b>Show</b><div id="mapFilters"></div>
+      <div class="legend">⌂ base · ▭ stronghold · ● rescue · ★ commander · ◎ course · ◆ objective · white arrow = you<br>Drag to pan, wheel to zoom. Click a reconnected base to fast travel. Click the ground for a waypoint.</div></div>
+    <div id="mapTop"><button class="btn small" id="mapZoomIn">+</button><button class="btn small" id="mapZoomOut">−</button><button class="btn small" data-close>Close (M)</button></div>
+    <div id="mapCounts"></div>
+    <div id="mapInfo">Click something on the map for details.</div>
+  </div>
+</div>
+<div id="armory" class="screen" hidden>
+  <div class="card wide"><h2>Armory</h2><p class="note">Pick which weapons to carry. Swapping gives the weapon a full charge.</p><div id="armoryList"></div><div class="row"><button class="btn" data-close>Close</button></div></div>
+</div>
+<div id="vehicles" class="screen" hidden>
+  <div class="card wide"><h2>Vehicle pad</h2><p class="note">Pilot Rowan delivers vehicles by dropship. Stand clear of the pad.</p><div id="vehicleList"></div><div class="row"><button class="btn" data-close>Close</button></div></div>
+</div>
+
+<!-- Ending -->
+<div id="ending" class="screen" hidden style="background:rgba(5,12,16,.45)">
+  <div class="card wide">
+    <div id="endLine"></div>
+    <div id="endStats" hidden>
+      <h2>Meridian Reach is reconnected</h2>
+      <p>The transit lines are open, the research teams are home, and the lights are on across the frontier. Thank you for playing!</p>
+      <table id="endTable"></table>
+      <div class="row"><button class="btn primary" id="endExplore">Continue Exploring</button><button class="btn" id="endReplay">Replay Missions</button><button class="btn" data-web>Return to Website</button></div>
+      <p class="foot">Aegis Frontier · an original game for Mr. Watford's website · Lighthouse Baptist Academy • Mr. Watford</p>
+    </div>
+  </div>
+</div>
+
+<div id="deviceNote" hidden>Aegis Frontier needs a keyboard and mouse. On a phone or tablet, please play on a laptop, Chromebook, or desktop computer instead. <a href="../../index.html" style="color:#ffd34a">Back to the website</a></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
