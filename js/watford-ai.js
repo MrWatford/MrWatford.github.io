@@ -1,7 +1,7 @@
 /* =========================================================
-   Watford AI — the study helper chat (shared code).
+   Mr. Watford AI — the study helper chat (shared code).
    Used two ways, same assistant and same conversation:
-   1. The "Ask Watford AI" button on regular pages (opens a panel).
+   1. The "Ask Mr. Watford AI" button on regular pages (opens a panel).
    2. The full AI Study Helper page (ai-helper.html).
    Loaded by site.js, so every page that uses site.js gets the button.
    Game pages don't load site.js, so the button never covers game controls.
@@ -72,7 +72,7 @@
   var config = null, catalog = null, serverState = "loading";   // loading | ok | disabled | budget | not_configured | offline
   function api(path, opts) {
     opts = opts || {};
-    if (!API) return Promise.reject({ code: "offline", message: "Watford AI isn't connected yet." });
+    if (!API) return Promise.reject({ code: "offline", message: "Mr. Watford AI isn't connected yet." });
     var headers = {};
     if (opts.body) headers["Content-Type"] = "application/json";
     if (opts.auth && state.token) headers.Authorization = "Bearer " + state.token;
@@ -87,7 +87,7 @@
       });
     }, function (err) {
       if (err && err.name === "AbortError") throw { code: "cancelled", message: "Cancelled." };
-      throw { code: "offline", message: "Can't reach Watford AI. Check your internet connection." };
+      throw { code: "offline", message: "Can't reach Mr. Watford AI. Check your internet connection." };
     });
   }
   var configPromise = null;
@@ -240,14 +240,14 @@
 
     this.title = h("h2", { class: "wa-title", id: id + "-title" }, [
       h("span", { class: "wa-badge", "aria-hidden": "true", text: "AI" }), " ",
-      h("span", { class: "wa-name", text: "Watford AI" })
+      h("span", { class: "wa-name", text: "Mr. Watford AI" })
     ]);
     this.subtitle = h("p", { class: "wa-sub", text: "Your AI Study Helper" });
     var tools = h("div", { class: "wa-tools" }, [
       h("button", { type: "button", class: "wa-tool", text: "New chat", onclick: function () { self.newChat(); } }),
       h("button", { type: "button", class: "wa-tool", text: "Clear", onclick: function () { self.clearAll(); } }),
       this.mode === "panel" ? h("a", { class: "wa-tool", href: SITE_ROOT + "ai-helper.html", text: "Full page" }) : null,
-      this.mode === "panel" ? h("button", { type: "button", class: "wa-close", "aria-label": "Close Watford AI", text: "×", onclick: function () { closePanel(); } }) : null
+      this.mode === "panel" ? h("button", { type: "button", class: "wa-close", "aria-label": "Close Mr. Watford AI", text: "×", onclick: function () { closePanel(); } }) : null
     ]);
     var head = h("div", { class: "wa-head" }, [h("div", {}, [this.title, this.subtitle]), tools]);
 
@@ -256,7 +256,7 @@
     this.gradeSel = h("select", { id: id + "-grade", onchange: function () { state.grade = this.value; save(); } });
     [["unsure", "I'm not sure"], ["6", "6th grade"], ["7", "7th grade"], ["8", "8th grade"]].forEach(function (g) { self.gradeSel.appendChild(h("option", { value: g[0], text: g[1] })); });
     this.contextLabel = h("span", { class: "wa-context-label" });
-    this.contextSel = h("select", { class: "wa-context-select", "aria-label": "Choose a page for Watford AI to help with", hidden: true, onchange: function () { self.setContext(this.value || null); this.hidden = true; self.contextChange.hidden = false; } });
+    this.contextSel = h("select", { class: "wa-context-select", "aria-label": "Choose a page for Mr. Watford AI to help with", hidden: true, onchange: function () { self.setContext(this.value || null); this.hidden = true; self.contextChange.hidden = false; } });
     this.contextChange = h("button", { type: "button", class: "wa-link", text: "Change", onclick: function () { self.openContextPicker(); } });
     this.contextRemove = h("button", { type: "button", class: "wa-link", text: "Remove", onclick: function () { self.setContext(null); } });
     var settingsRow = h("div", { class: "wa-settings" }, [
@@ -277,7 +277,7 @@
     this.sendBtn = h("button", { type: "submit", class: "wa-send", text: "Send" });
     this.cancelBtn = h("button", { type: "button", class: "wa-cancel", text: "Cancel", hidden: true, onclick: function () { self.cancel(); } });
     var form = h("form", { class: "wa-form", onsubmit: function (e) { e.preventDefault(); self.send(); } }, [
-      h("label", { class: "wa-sr", for: id + "-input", text: "Message Watford AI" }),
+      h("label", { class: "wa-sr", for: id + "-input", text: "Message Mr. Watford AI" }),
       this.input, h("div", { class: "wa-form-buttons" }, [this.cancelBtn, this.sendBtn])
     ]);
     this.notice = h("p", { class: "wa-notice", id: id + "-hint" });
@@ -315,7 +315,7 @@
   ChatView.prototype.refresh = function () {
     var self = this;
     var c = config || {};
-    this.root.querySelector(".wa-name").textContent = c.name || "Watford AI";
+    this.root.querySelector(".wa-name").textContent = c.name || "Mr. Watford AI";
     this.subtitle.textContent = c.subtitle || "Your AI Study Helper";
     this.notice.textContent = c.notice || "AI can make mistakes. Check important answers with your teacher. Don't share personal information.";
     // On a new page, start from that page's context (the student can still change it).
@@ -346,11 +346,11 @@
     this.banner.textContent = "";
     if (down) {
       this.banner.appendChild(h("strong", { text: {
-        disabled: "Watford AI is turned off right now.",
-        budget: "Watford AI has reached its usage limit for now.",
-        not_configured: "Watford AI isn't set up yet.",
-        offline: "Can't reach Watford AI right now."
-      }[serverState] || "Watford AI isn't available right now." }));
+        disabled: "Mr. Watford AI is turned off right now.",
+        budget: "Mr. Watford AI has reached its usage limit for now.",
+        not_configured: "Mr. Watford AI isn't set up yet.",
+        offline: "Can't reach Mr. Watford AI right now."
+      }[serverState] || "Mr. Watford AI isn't available right now." }));
       this.banner.appendChild(document.createTextNode(" You can still search the website below."));
     }
     this.searchBox.hidden = !down;
@@ -418,8 +418,8 @@
     this.log.textContent = "";
     var c = config || {};
     this.log.appendChild(h("div", { class: "wa-msg wa-assistant wa-welcome" }, [
-      h("p", { class: "wa-who", text: (c.name || "Watford AI") + " (AI)" }),
-      h("p", { text: c.welcome || "Hi! I'm Watford AI, your study helper. I can explain a problem, help you practice, or find something on Mr. Watford's website. What are you working on?" })
+      h("p", { class: "wa-who", text: (c.name || "Mr. Watford AI") + " (AI)" }),
+      h("p", { text: c.welcome || "Hi! I'm Mr. Watford AI, your study helper. I can explain a problem, help you practice, or find something on Mr. Watford's website. What are you working on?" })
     ]));
     state.messages.forEach(function (m, i) { self.log.appendChild(self.renderMessage(m, i === state.messages.length - 1)); });
     this.renderStarters();
@@ -452,7 +452,7 @@
     }
     var body = h("div", { class: "wa-text" });
     body.innerHTML = renderMarkdown(m.content, m.sources || []);   // escaped + whitelisted above
-    var box = h("div", { class: "wa-msg wa-assistant" }, [h("p", { class: "wa-who", text: ((config && config.name) || "Watford AI") + " (AI)" }), body]);
+    var box = h("div", { class: "wa-msg wa-assistant" }, [h("p", { class: "wa-who", text: ((config && config.name) || "Mr. Watford AI") + " (AI)" }), body]);
     (m.passages || []).forEach(function (p) {
       box.appendChild(h("p", { class: "wa-meta" }, ["✔ Counted by the website: " + p.withSpaces + " characters with spaces, " + p.withoutSpaces + " without spaces, " + p.words + " words. Line breaks are not counted."]));
     });
@@ -498,7 +498,7 @@
 
   ChatView.prototype.pendingEl = function () {
     return h("div", { class: "wa-msg wa-assistant wa-thinking", "aria-hidden": "true" }, [
-      h("p", { class: "wa-who", text: ((config && config.name) || "Watford AI") + " (AI)" }),
+      h("p", { class: "wa-who", text: ((config && config.name) || "Mr. Watford AI") + " (AI)" }),
       h("p", {}, [h("span", { class: "wa-dots" }, [h("i"), h("i"), h("i")]), " Thinking…"])
     ]);
   };
@@ -543,7 +543,7 @@
     this.pending = controller;
     syncAll();
     this.cancelBtn.hidden = false;
-    this.say("Watford AI is thinking.");
+    this.say("Mr. Watford AI is thinking.");
     var payload = {
       requestId: uuid(),
       messages: sendableHistory().concat([{ role: "user", content: question.content }]),
@@ -556,7 +556,7 @@
         state.messages.push(r.type === "safety"
           ? { role: "assistant", kind: "safety", content: r.text }
           : { role: "assistant", content: r.text, sources: r.sources, checks: r.checks, passages: r.passages, followups: r.followups, truncated: r.truncated, notice: r.notice });
-        self.done(); self.say(r.type === "safety" ? "Automatic safety message received." : "Watford AI answered.");
+        self.done(); self.say(r.type === "safety" ? "Automatic safety message received." : "Mr. Watford AI answered.");
       })
       .catch(function (err) {
         if (err.code === "session_expired") { state.token = null; save(); }
@@ -603,10 +603,10 @@
       case "offline": return "Lost connection. Check your internet, then press Retry.";
       case "busy": return "Still working on your last message. Wait a moment, then press Retry.";
       case "session_limit": case "daily_limit": case "network_limit": return err.message;
-      case "budget": return "Watford AI has reached its usage limit for now. You can still search the website.";
-      case "ai_disabled": return "Watford AI is turned off right now. You can still search the website.";
+      case "budget": return "Mr. Watford AI has reached its usage limit for now. You can still search the website.";
+      case "ai_disabled": return "Mr. Watford AI is turned off right now. You can still search the website.";
       case "timeout": return "That took too long. Press Retry.";
-      case "provider_busy": return "Watford AI is very busy. Wait a minute, then press Retry.";
+      case "provider_busy": return "Mr. Watford AI is very busy. Wait a minute, then press Retry.";
       default: return err.message || "Something went wrong. Press Retry.";
     }
   }
@@ -623,7 +623,7 @@
     state.context = undefined;
     syncAll();
     this.say("Cleared.");
-    var note = h("p", { class: "wa-meta", role: "note", text: "Cleared from this device. Watford AI doesn't save your chat, but the AI service it uses usually keeps messages for up to 30 days (longer if flagged for a safety review)." });
+    var note = h("p", { class: "wa-meta", role: "note", text: "Cleared from this device. Mr. Watford AI doesn't save your chat, and the AI service it uses (Cloudflare) says it doesn't keep messages." });
     this.log.appendChild(note);
     this.input.focus();
   };
@@ -634,7 +634,7 @@
   var launcher = null, panel = null, lastFocus = null, panelView = null;
   function buildLauncher() {
     launcher = h("button", { type: "button", class: "wa-launcher", "aria-haspopup": "dialog", "aria-expanded": "false", onclick: openPanel }, [
-      h("span", { class: "wa-launcher-badge", "aria-hidden": "true", text: "AI" }), h("span", { text: "Ask Watford AI" })
+      h("span", { class: "wa-launcher-badge", "aria-hidden": "true", text: "AI" }), h("span", { text: "Ask Mr. Watford AI" })
     ]);
     document.body.appendChild(launcher);
     // On phones, hide the button while a practice box or other field is being typed in.
