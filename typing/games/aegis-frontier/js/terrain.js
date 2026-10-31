@@ -14,17 +14,31 @@ const passPts = PASSES.map(([a, b]) => {
   return { a: REGIONS.indexOf(A), b: REGIONS.indexOf(B), x: (A.c[0] + B.c[0]) / 2, z: (A.c[1] + B.c[1]) / 2 };
 });
 
+// Turns smooth slopes into ledges and terraces (medium-scale landforms).
+function terrace(h, step, sharp = 0.75) {
+  const f = h / step, b = Math.floor(f), t = f - b;
+  return (b + smoothstep(sharp, 1, t)) * step;
+}
+// Authored landforms for the opening showcase route (a grassy ridge above the crash site).
+const RIDGES = [{ a: [-100, 534], b: [-8, 528], h: 8, w: 26 }];
+
 function regionHeight(i, x, z) {
   switch (i) {
-    case 0: return 6 + 7 * fbm(x * 0.0055, z * 0.0055, 4, 11) + 2 * fbm(x * 0.03, z * 0.03, 2, 12);
+    case 0: {
+      let h = 6 + 7 * fbm(x * 0.0055, z * 0.0055, 4, 11) + 2 * fbm(x * 0.03, z * 0.03, 2, 12);
+      h -= 1.6 * Math.pow(ridged(x * 0.012, z * 0.012, 2, 13), 3);   // shallow gullies
+      for (const R of RIDGES) { const [d] = segDist(x, z, R.a[0], R.a[1], R.b[0], R.b[1]); const k = 1 - smoothstep(0, R.w, d); h += R.h * k * k * (3 - 2 * k) * (0.85 + 0.3 * fbm(x * 0.05, z * 0.05, 2, 14)); }
+      return h;
+    }
     case 1: {
       const n = fbm(x * 0.0075 + 40, z * 0.0075, 4, 21);
       const t = smoothstep(0.02, 0.14, n);
-      return 7 + t * 26 + 1.5 * fbm(x * 0.05, z * 0.05, 2, 22);
+      return 7 + terrace(t * 26, 6.5, 0.7) + 1.5 * fbm(x * 0.05, z * 0.05, 2, 22);
     }
     case 2: {
       const r = ridged(x * 0.0045, z * 0.0045, 5, 31);
-      return 14 + 78 * r * r + 3 * fbm(x * 0.03, z * 0.03, 2, 32);
+      const h = 14 + 78 * r * r + 3 * fbm(x * 0.03, z * 0.03, 2, 32);
+      return lerp(h, terrace(h, 7, 0.8), 0.35);
     }
     case 3: return -2.4 + 7.5 * fbm(x * 0.008 - 30, z * 0.008 + 17, 4, 41) + 1.5 * fbm(x * 0.03, z * 0.03, 2, 42);
     default: return 20 + 4 * fbm(x * 0.01, z * 0.01, 3, 51);
@@ -71,9 +85,45 @@ function baseHeight(x, z) {
     const d = Math.hypot(x - L.x, z - L.z);
     if (d < L.r) h = lerp(h, -L.depth, 1 - smoothstep(L.r * 0.5, L.r, d));
   }
+  // small-scale surface variation (stronger on rocky ground, softer on meadows)
+  h += 0.35 * fbm(x * 0.11, z * 0.11, 2, 81) * (0.5 + smoothstep(10, 60, h));
   const e = Math.max(Math.abs(x), Math.abs(z));
   h += smoothstep(555, 625, e) * (85 + 12 * fbm(x * 0.03, z * 0.03, 2, 71));
   return h;
+}
+
+// Ground material: blends grass, dirt, rock (projected from 3 sides so cliffs do not stretch) and gravel
+// textures by the per-vertex weights, mixes two texture scales to hide repetition, and adds matching bump.
+function terrainMaterial(T) {
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.93, metalness: 0, envMapIntensity: 0.55 });
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, { tGrass: { value: T.grass }, tDirt: { value: T.dirt }, tRock: { value: T.rock }, tGravel: { value: T.gravel } });
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute vec4 splat; varying vec4 vSplat; varying vec3 vWPos; varying vec3 vWNrm;")
+      .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvSplat = splat; vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz; vWNrm = objectNormal;");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", `#include <common>
+        uniform sampler2D tGrass, tDirt, tRock, tGravel; varying vec4 vSplat; varying vec3 vWPos; varying vec3 vWNrm;
+        vec3 two(sampler2D t, vec2 uv){ return mix(texture2D(t, uv).rgb, texture2D(t, uv * 0.23 + 0.31).rgb, 0.4); }`)
+      .replace("#include <map_fragment>", `
+        vec3 n3 = normalize(vWNrm); vec3 tw = pow(abs(n3), vec3(4.0)); tw /= (tw.x + tw.y + tw.z);
+        vec3 rockC = (two(tRock, vWPos.zy * 0.11) * tw.x + two(tRock, vWPos.xz * 0.11) * tw.y + two(tRock, vWPos.xy * 0.11) * tw.z) * 0.78;
+        vec3 grassC = two(tGrass, vWPos.xz * 0.2), dirtC = two(tDirt, vWPos.xz * 0.24), gravC = two(tGravel, vWPos.xz * 0.33);
+        vec4 sw = vSplat; sw = max(sw, 0.0);
+        // height-aware blending: crisper borders between surfaces
+        vec4 hb = sw * vec4(dot(grassC, vec3(0.33)) + 0.2, dot(dirtC, vec3(0.33)), dot(rockC, vec3(0.33)) + 0.1, dot(gravC, vec3(0.33)));
+        float mx = max(max(hb.x, hb.y), max(hb.z, hb.w)); hb = max(hb - (mx - 0.18), 0.0); hb /= (hb.x + hb.y + hb.z + hb.w + 1e-4);
+        vec3 surf = grassC * hb.x + dirtC * hb.y + rockC * hb.z + gravC * hb.w;
+        float dH = dot(surf, vec3(0.333));
+        diffuseColor.rgb *= surf * 1.6;`)
+      .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+        { vec3 dpx = dFdx(-vViewPosition), dpy = dFdy(-vViewPosition); float hx = dFdx(dH), hy = dFdy(dH);
+          vec3 r1 = cross(dpy, normal), r2 = cross(normal, dpx); float det = dot(dpx, r1);
+          vec3 gr = sign(det) * (hx * r1 + hy * r2) * 0.9; normal = normalize(abs(det) * normal - gr); }`)
+      .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\nroughnessFactor = mix(0.95, 0.82, hb.z);");
+  };
+  m.customProgramCacheKey = () => "terrain-v1";
+  return m;
 }
 
 export class Terrain {
@@ -167,13 +217,13 @@ export class Terrain {
 
   applyGorges() {
     for (const G of GORGES) {
-      const half = G.w / 2;
+      const half = G.w / 2, bank = G.bank || 6;
       const cx = (G.a[0] + G.b[0]) / 2, cz = (G.a[1] + G.b[1]) / 2;
-      const R = Math.hypot(G.b[0] - G.a[0], G.b[1] - G.a[1]) / 2 + half + 8;
+      const R = Math.hypot(G.b[0] - G.a[0], G.b[1] - G.a[1]) / 2 + half + bank + 2;
       this.around(cx, cz, R, (id) => {
         const i = id % N, j = (id - i) / N;
         const [d] = segDist(-HALF + i * RES, -HALF + j * RES, G.a[0], G.a[1], G.b[0], G.b[1]);
-        const f = 1 - smoothstep(half, half + 6, d);
+        const f = 1 - smoothstep(half, half + bank, d);
         if (f > 0) this.h[id] = Math.min(this.h[id], lerp(this.h[id], G.floor, f));
       });
     }
@@ -215,68 +265,80 @@ export class Terrain {
   surfaceAt(x, z) { return Math.max(this.heightAt(x, z), WATER_Y); }
 
   // ---------- drawing ----------
-  colorAt(x, z, y, ny, k, out) {
+  // Each vertex gets a tint (broad regional color, linear) and four surface weights:
+  // grass, dirt, rock, gravel. The shader blends real surface textures with them.
+  paintAt(x, z, y, ny, k, tint, splat) {
     const ds = REGIONS.map((r) => Math.hypot(x - r.c[0], z - r.c[1]));
     const dmin = Math.min(...ds);
     let r = 0, g = 0, b = 0, ws = 0;
-    const v = fbm(x * 0.05, z * 0.05, 2, 91) * 0.06;
+    const broad = fbm(x * 0.012, z * 0.012, 3, 92), v = fbm(x * 0.05, z * 0.05, 2, 91);
+    const edge = Math.max(Math.abs(x), Math.abs(z));
     for (let i = 0; i < 5; i++) {
       const w = Math.exp(-(ds[i] - dmin) / 30);
       if (w < 0.02) continue;
       let c;
-      if (i === 0) c = [0.36 + v, 0.6 + v * 1.5, 0.26];
-      else if (i === 1) c = y > 18 ? [0.78, 0.47 + v, 0.3] : [0.72, 0.56 + v, 0.38];
-      else if (i === 2) c = y > 80 && Math.max(Math.abs(x), Math.abs(z)) < 555 ? [0.92, 0.94, 0.97] : [0.36 + v, 0.53 + v, 0.36];
-      else if (i === 3) c = [0.34 + v, 0.6 + v, 0.4];
-      else c = [0.6 + v, 0.6 + v, 0.66 + v];
+      if (i === 0) c = [1.0 + broad * 0.25, 1.02, 0.95 - broad * 0.2];        // meadow: mixes fresh and dry
+      else if (i === 1) c = [1.25, 0.98, 0.72];                                // warm canyon
+      else if (i === 2) c = [0.86, 0.97, 0.98];                                // cool alpine
+      else if (i === 3) c = [0.9, 1.06, 0.95];                                 // lush basin
+      else c = [1.0, 0.97, 1.05];                                              // pale citadel plateau
       r += c[0] * w; g += c[1] * w; b += c[2] * w; ws += w;
     }
     r /= ws; g /= ws; b /= ws;
-    const rock = smoothstep(0.78, 0.6, ny);
-    const rc = y > 85 && ds[2] === dmin && Math.max(Math.abs(x), Math.abs(z)) < 555 ? [0.8, 0.82, 0.86] : ds[1] === dmin ? [0.62, 0.38, 0.26] : [0.5, 0.49, 0.48];
-    r = lerp(r, rc[0], rock); g = lerp(g, rc[1], rock); b = lerp(b, rc[2], rock);
-    const sand = 1 - smoothstep(0.6, 2.2, y);
-    r = lerp(r, 0.78, sand * 0.8); g = lerp(g, 0.72, sand * 0.8); b = lerp(b, 0.55, sand * 0.8);
-    if (y < -0.5) { r *= 0.7; g *= 0.8; b *= 0.85; }
-    const rw = this.roadW[k], pw = this.padW[k];
-    if (rw > 0) { const t = smoothstep(0.35, 0.8, rw); r = lerp(r, 0.56, t); g = lerp(g, 0.48, t); b = lerp(b, 0.37, t); }
-    if (pw > 0) { const t = pw * 0.85; r = lerp(r, 0.6, t); g = lerp(g, 0.61, t); b = lerp(b, 0.58, t); }
-    out[0] = r; out[1] = g; out[2] = b;
+    const canyon = Math.exp(-(ds[1] - dmin) / 30) / ws;
+    // weights
+    let rock = smoothstep(0.8, 0.6, ny) + smoothstep(0.25, 0.6, v) * 0.15 * (1 - ny);
+    let gravel = smoothstep(0.86, 0.74, ny) * 0.35 + this.padW[k] * 0.9;
+    let dirt = smoothstep(0.3, 0.8, this.roadW[k]) + smoothstep(0.2, 0.55, v) * 0.35 + (1 - smoothstep(0.4, 1.8, y)) * 0.9 + canyon * 0.9;
+    let grass = 1.0 - canyon * 0.55;
+    if (edge > 555) rock += 0.6;
+    const snow = y > 82 && ds[2] === dmin && edge < 555 ? smoothstep(82, 92, y) : 0;
+    rock = Math.min(1, rock); grass *= 1 - rock; dirt *= 1 - rock * 0.7; gravel *= 1 - rock * 0.5;
+    const sum = grass + dirt + rock + gravel || 1;
+    splat[0] = grass / sum; splat[1] = dirt / sum; splat[2] = rock / sum; splat[3] = gravel / sum;
+    // moss on flatter rock in wet green regions; snow tint up high; darker under water
+    if (snow) { r = lerp(r, 3.2, snow); g = lerp(g, 3.2, snow); b = lerp(b, 3.4, snow); }
+    if (y < -0.3) { r *= 0.62; g *= 0.7; b *= 0.72; }
+    const c = new THREE.Color().setRGB(r * (0.92 + v * 0.12), g * (0.92 + v * 0.12), b * (0.92 + v * 0.1), THREE.SRGBColorSpace);
+    tint[0] = c.r; tint[1] = c.g; tint[2] = c.b;
   }
+  grassAt(x, z) { return this.bilinear(this.splatG, x, z); }
 
-  buildMeshes(scene) {
-    const tmpN = new THREE.Vector3(), col = [0, 0, 0];
-    // per-vertex color & normal cache for the full grid
-    const colors = new Float32Array(N * N * 3), normals = new Float32Array(N * N * 3);
+  buildMeshes(scene, T) {
+    const tmpN = new THREE.Vector3(), tint = [0, 0, 0], sp = [0, 0, 0, 0];
+    const colors = new Float32Array(N * N * 3), normals = new Float32Array(N * N * 3), splats = new Float32Array(N * N * 4);
+    this.splatG = new Float32Array(N * N);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const k = j * N + i, x = -HALF + i * RES, z = -HALF + j * RES;
       const hx = this.g(i + 1, j) - this.g(i - 1, j), hz = this.g(i, j + 1) - this.g(i, j - 1);
       tmpN.set(-hx, 2 * RES, -hz).normalize();
       normals[k * 3] = tmpN.x; normals[k * 3 + 1] = tmpN.y; normals[k * 3 + 2] = tmpN.z;
-      this.colorAt(x, z, this.h[k], tmpN.y, k, col);
-      colors[k * 3] = col[0]; colors[k * 3 + 1] = col[1]; colors[k * 3 + 2] = col[2];
+      this.paintAt(x, z, this.h[k], tmpN.y, k, tint, sp);
+      colors[k * 3] = tint[0]; colors[k * 3 + 1] = tint[1]; colors[k * 3 + 2] = tint[2];
+      splats.set(sp, k * 4); this.splatG[k] = sp[0];
     }
-    this.mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    this.mat = terrainMaterial(T);
     this.chunks = [];
     const nc = (N - 1) / CHUNK;
     for (let cj = 0; cj < nc; cj++) for (let ci = 0; ci < nc; ci++) {
-      const near = this.chunkMesh(ci, cj, 1, colors, normals, false);
-      const far = this.chunkMesh(ci, cj, 4, colors, normals, true);
-      near.receiveShadow = true;
+      const near = this.chunkMesh(ci, cj, 1, colors, normals, splats, false);
+      const far = this.chunkMesh(ci, cj, 2, colors, normals, splats, true);
+      near.receiveShadow = true; far.receiveShadow = true;
       scene.add(near); scene.add(far);
       far.visible = false;
       this.chunks.push({ near, far, cx: -HALF + (ci + 0.5) * CHUNK * RES, cz: -HALF + (cj + 0.5) * CHUNK * RES });
     }
   }
 
-  chunkMesh(ci, cj, step, colors, normals, skirt) {
+  chunkMesh(ci, cj, step, colors, normals, splats, skirt) {
     const n = CHUNK / step + 1;
-    const pos = [], nor = [], colr = [], idx = [];
+    const pos = [], nor = [], colr = [], spl = [], idx = [];
     const push = (i, j, dy) => {
       const k = j * N + i;
       pos.push(-HALF + i * RES, this.h[k] - dy, -HALF + j * RES);
       nor.push(normals[k * 3], normals[k * 3 + 1], normals[k * 3 + 2]);
       colr.push(colors[k * 3], colors[k * 3 + 1], colors[k * 3 + 2]);
+      spl.push(splats[k * 4], splats[k * 4 + 1], splats[k * 4 + 2], splats[k * 4 + 3]);
       return pos.length / 3 - 1;
     };
     const i0 = ci * CHUNK, j0 = cj * CHUNK;
@@ -302,6 +364,7 @@ export class Terrain {
     geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
     geo.setAttribute("color", new THREE.Float32BufferAttribute(colr, 3));
+    geo.setAttribute("splat", new THREE.Float32BufferAttribute(spl, 4));
     geo.setIndex(idx);
     geo.computeBoundingSphere();
     return new THREE.Mesh(geo, this.mat);

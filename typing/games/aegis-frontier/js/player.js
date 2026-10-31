@@ -489,7 +489,8 @@ export class Player {
 
   applyCamera(cam, dt) {
     const S = this.G.settings;
-    let x = this.pos.x, y = this.pos.y + this.eyeY - this.landDip, z = this.pos.z;
+    const rp = this.renderPos || this.pos;
+    let x = rp.x, y = rp.y + this.eyeY - this.landDip, z = rp.z;
     if (S.headBob && !S.reduceMotion && this.grounded) { y += Math.sin(this.bob * 2) * 0.035 * Math.min(1, this.speed2d / 6); }
     cam.position.set(x, y, z);
     let pitch = this.pitch, yaw = this.yaw, roll = 0;

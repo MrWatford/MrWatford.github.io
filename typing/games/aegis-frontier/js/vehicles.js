@@ -5,6 +5,8 @@ import * as THREE from "../lib/three.module.min.js";
 import { VEHICLES, QUIPS, WATER_Y } from "./content.js";
 import { clamp, lerp, angleWrap, approach } from "./util.js";
 import { castShot } from "./weapons.js";
+import { buildRover, buildGuardian } from "./models.js";
+import { MAT } from "./materials.js";
 
 const TYPES = {
   rover:   { max: 27, rev: 9, accel: 15, turn: 1.9, grip: 26, drift: 5, hp: 450, len: 4.2, wid: 2.4, clear: 0.55, cam: 7.5, r: 1.3, boost: 1.35 },
@@ -13,9 +15,10 @@ const TYPES = {
   skyfin:  { max: 38, rev: 0, accel: 14, turn: 1.4, hp: 380, len: 5.5, wid: 6, clear: 0.9, cam: 11, r: 1.6, fly: true, boost: 1.4, ceiling: 140 },
 };
 
-function M(c) { return new THREE.MeshLambertMaterial({ color: c }); }
-function G0(c) { return new THREE.MeshBasicMaterial({ color: c }); }
+function M(c) { return new THREE.MeshStandardMaterial({ color: c, roughness: 0.45, metalness: 0.25 }); }
+function G0(c) { const m = new THREE.MeshBasicMaterial({ color: c }); m.color.multiplyScalar(2.2); return m; }
 function buildMesh(type) {
+  if (type === "rover") return buildRover();
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const b = (w, h, d, m, x, y, z, par = body) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = true; par.add(o); return o; };
   const wheels = [];
@@ -80,6 +83,7 @@ class Vehicle {
     if (this.dead) { this.dead += dt; this.mesh.scale.setScalar(Math.max(0.01, 1 - (this.dead - 1.5) * 0.7)); if (this.dead > 3) this.sys.remove(this); return; }
     const I = G.input, driving = this.driver && !G.paused;
     let thr = 0, steer = 0, strafe = 0, hand = false, boost = false, up = 0;
+    this.steerVis = this.steerVis || 0;
     if (driving) {
       if (I.key("KeyW")) thr += 1; if (I.key("KeyS")) thr -= 1;
       if (I.key("KeyA")) steer += 1; if (I.key("KeyD")) steer -= 1;
@@ -100,6 +104,14 @@ class Vehicle {
     if (driving && Math.abs(thr) > 0 && sp < 0.6 && !T.fly) this.stuckT += dt; else this.stuckT = Math.max(0, this.stuckT - dt * 2);
     if (this.stuckT > 3.5 || (driving && I.hit("KeyR") && !T.fly)) { this.stuckT = 0; this.recover(); }
     if (driving && sp > 3) G.audio.play("engine", Math.min(1, sp / T.max));
+    this.steerVis = lerp(this.steerVis, T.fly || T.hover ? 0 : steer * 0.42, Math.min(1, dt * 8));
+    // dust from the tires on dry ground
+    this.dustT = (this.dustT || 0) - dt;
+    if (!T.fly && !T.hover && !this.air && sp > 6 && this.dustT <= 0 && G.terrain.grassAt(this.pos.x, this.pos.z) < 0.55) {
+      this.dustT = 0.06;
+      const bx = this.pos.x + Math.sin(this.yaw) * T.len * 0.45, bz = this.pos.z + Math.cos(this.yaw) * T.len * 0.45;
+      G.fx.burst(bx, this.pos.y + 0.3, bz, 0xb8a284, 2, 1.2, 0.35, 0.9, -0.4, 0.6);
+    }
     this.sync();
   }
 
@@ -309,7 +321,19 @@ class Vehicle {
     this.body.rotation.set(this.T.fly ? this.pitch : -this.pitch * 0, 0, this.roll);
     if (!this.T.fly) this.body.rotation.x = this.pitch;
     const sp = this.vel.x * -Math.sin(this.yaw) + this.vel.z * -Math.cos(this.yaw);
-    for (const w of this.wheels) w.rotation.x -= sp * 0.03;
+    for (const w of this.wheels) {
+      const u = w.userData;
+      if (u.spin) {
+        u.spin.rotation.x -= sp * (this.G.dtFrame || 0.016) / 0.55;
+        w.rotation.y = u.front ? this.steerVis : 0;
+        // each wheel follows the ground under it (suspension)
+        const c = Math.cos(this.yaw), s2 = Math.sin(this.yaw);
+        const wx = this.pos.x + u.x * c + u.z * s2, wz = this.pos.z - u.x * s2 + u.z * c;
+        const gy = this.groundY(wx, wz) - this.pos.y;
+        w.position.y = 0.55 + clamp(gy, -0.25, 0.25);
+        u.arm.position.y = 0.62 + clamp(gy, -0.25, 0.25) * 0.5;
+      } else w.rotation.x -= sp * 0.03;
+    }
     if (this.turret && this.T.cannon && this.driver) {
       this.turret.rotation.y = angleWrap(this.sys.camYaw - this.yaw);
       this.turret.userData.barrel.rotation.x = 0;
@@ -336,6 +360,7 @@ export class Vehicles {
     const G = this.G, P = G.player;
     if (P.carry) { G.items.dropCarry(); }
     P.vehicle = v; v.driver = P; P.tether = null;
+    this.seatDriver(v);
     this.camYaw = v.yaw; this.camPitch = -0.2;
     // a following ranger hops in as gunner
     const f = G.allies.followers()[0];
@@ -346,6 +371,15 @@ export class Vehicles {
       v.type === "skiff" ? "Skiff: mouse to steer, W/S throttle, A/D slide sideways, Shift boost, E to exit." :
       v.type === "crawler" ? "Crawler: W/S drive, A/D turn, mouse aims the cannon, click to fire, E to exit." :
       "Rover: W/S drive, A/D steer, Space handbrake, Shift boost, E to exit.");
+  }
+  // show the Guardian in the seat while driving (third-person view)
+  seatDriver(v) {
+    if (v.pilot) return;
+    const m = buildGuardian(this.G.suitColors(), v.type !== "skiff");
+    const seat = { rover: [-0.45, 0.0, 0.1], skiff: [0, 0.82, 0.2], crawler: [0, 0.7, -0.5], skyfin: [0, 0.35, -1.0] }[v.type];
+    m.position.set(...seat);
+    if (v.type === "crawler" || v.type === "skyfin") m.scale.setScalar(0.85);
+    (v.body || v.mesh).add(m); v.pilot = m;
   }
   exit(force) {
     const G = this.G, P = G.player, v = P.vehicle;
@@ -364,6 +398,7 @@ export class Vehicles {
     }
     if (!spot) spot = [v.pos.x, v.pos.y + 2.6, v.pos.z];
     P.vehicle = null; v.driver = null;
+    if (v.pilot) { v.mesh.remove(v.pilot); v.pilot = null; }
     if (v.gunner) { const g = v.gunner; g.seated = false; g.pos.set(spot[0] + 1, spot[1], spot[2] + 1); v.gunner = null; }
     P.place(spot[0], spot[1], spot[2], this.camYaw);
     if (force) { P.vel.y = 9; P.invuln = 1.5; }

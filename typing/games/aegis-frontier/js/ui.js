@@ -56,7 +56,7 @@ export class UI {
   saved() { const s = $("#savedIcon"); s.classList.remove("show"); void s.offsetWidth; s.classList.add("show"); }
   fade() { const f = $("#fade"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
   takedown() { this.G.audio.play("takedown"); const h = $("#hitmark"); h.className = "hitmark kill"; clearTimeout(this.hmT); this.hmT = setTimeout(() => (h.className = "hitmark"), 260); }
-  shieldBreak() { const e = $("#shieldFlash"); e.classList.remove("go"); void e.offsetWidth; e.classList.add("go"); }
+  shieldBreak() { const e = $("#shieldFlash"); e.classList.toggle("soft", !!this.G.settings.reducedFlash); e.classList.remove("go"); void e.offsetWidth; e.classList.add("go"); }
   flashTether() { const t = $("#tetherInd"); t.classList.add("bad"); setTimeout(() => t.classList.remove("bad"), 300); }
   objective(text) { $("#objText").textContent = text; $("#objBox").classList.remove("done"); }
   objectiveDone() { const b = $("#objBox"); b.classList.add("done"); setTimeout(() => b.classList.remove("done"), 900); }
@@ -351,9 +351,12 @@ export class UI {
       row("Effects volume", rng("sfx", 0, 1, 0.05, (v) => Math.round(v * 100) + "%")) +
       row("Mute everything (classroom mode)", chk("mute")) +
       `<h3>Display & comfort</h3>` +
-      row("Graphics quality", `<select data-set="quality"><option value="low">Low (school laptops)</option><option value="medium">Medium</option><option value="high">High</option></select>`, "Draw distance, shadows, sharpness, and effects. Tree density updates the next time the game loads.") +
+      row("Graphics quality", `<select data-set="quality"><option value="low">Low (school laptops)</option><option value="medium">Medium (balanced)</option><option value="high">High (detailed)</option></select>`, "Low: 720p, short grass distance, no glow. Medium: 900p, soft glow. High: 1080p, sharper shadows, more grass, smoother edges. Tree density and texture detail update the next time the game loads.") +
+      `<div class="row"><button class="btn small" id="btnGfxReset">Reset graphics to recommended</button></div>` +
       row("Text size", rng("textScale", 0.9, 1.5, 0.05, (v) => Math.round(v * 100) + "%")) +
       row("Subtitles for all dialogue", chk("subtitles")) +
+      row("Reduce flashes", chk("reducedFlash"), "Softer glow, smaller bursts, gentler shield-break flash.") +
+      row("Show performance", chk("showPerf"), "Frame rate and frame time in the corner (for testing).") +
       row("Reduce motion", chk("reduceMotion"), "Turns off head bob, camera shake, and slide tilt.") +
       row("Head bob", chk("headBob")) +
       row("Camera shake", rng("shake", 0, 1, 0.1, (v) => Math.round(v * 100) + "%")) +

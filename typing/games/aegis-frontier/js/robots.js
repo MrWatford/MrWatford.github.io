@@ -4,6 +4,7 @@
 import * as THREE from "../lib/three.module.min.js";
 import { ROBOTS, COMMANDERS, ROBOT_LINES } from "./content.js";
 import { clamp, lerp, angleWrap, rng } from "./util.js";
+import { buildRobotModel } from "./models.js";
 
 const MAT = {
   body: new THREE.MeshLambertMaterial({ color: 0x353a44 }),
@@ -18,59 +19,8 @@ function glowMat(c) { return new THREE.MeshBasicMaterial({ color: c }); }
 function box(g, w, h, d, m, x, y, z) { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = true; g.add(o); return o; }
 function sph(g, r, m, x, y, z) { const o = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), m); o.position.set(x, y, z); g.add(o); return o; }
 
-// Builds a distinct silhouette for each role. "Front" of a robot is -z (it faces its yaw like the camera does).
-function buildRobot(type, cmd) {
-  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
-  const eye = glowMat(cmd ? 0xffd34a : 0xffb347), glow = glowMat(0xb06cff);
-  const M = cmd ? MAT.cmd : MAT.trim;
-  const P = { eye, glow, body, legs: [] };
-  if (type === "scout") {
-    box(body, 0.7, 0.35, 0.9, MAT.body, 0, 0.75, 0); box(body, 0.5, 0.12, 0.6, M, 0, 0.98, 0);
-    sph(body, 0.12, eye, 0, 0.8, -0.48); box(body, 0.05, 0.4, 0.05, MAT.light, 0.2, 1.1, 0.2); sph(body, 0.06, glow, 0.2, 1.32, 0.2);
-    for (const [x, z] of [[-0.35, -0.3], [0.35, -0.3], [-0.35, 0.3], [0.35, 0.3]]) P.legs.push(box(body, 0.08, 0.6, 0.08, MAT.light, x, 0.3, z));
-    P.weak = [0, 0.8, -0.45, 0.16];
-  } else if (type === "sentry" || type === "engineer") {
-    const eng = type === "engineer";
-    box(body, 0.75, 0.75, 0.45, MAT.body, 0, 1.25, 0); box(body, 0.5, 0.3, 0.4, MAT.light, 0, 0.82, 0);
-    box(body, 0.45, 0.32, 0.38, eng ? MAT.light : MAT.body, 0, 1.78, 0); box(body, 0.34, 0.07, 0.05, eye, 0, 1.8, -0.2);
-    box(body, 0.6, 0.06, 0.48, M, 0, 1.6, 0);
-    P.legs.push(box(body, 0.18, 0.75, 0.2, MAT.light, -0.18, 0.37, 0), box(body, 0.18, 0.75, 0.2, MAT.light, 0.18, 0.37, 0));
-    P.arm = box(body, 0.14, 0.14, 0.7, MAT.light, 0.45, 1.3, -0.3); sph(body, 0.06, glow, 0.45, 1.3, -0.66);
-    if (eng) { box(body, 0.5, 0.5, 0.3, M, 0, 1.3, 0.35); sph(body, 0.1, glowMat(0x7dffb0), -0.45, 1.3, -0.3); }
-    P.weak = [0, 1.78, 0, 0.24];
-  } else if (type === "bulwark") {
-    box(body, 1.1, 1.0, 0.8, MAT.body, 0, 1.2, 0); box(body, 0.6, 0.35, 0.5, MAT.body, 0, 1.85, 0); box(body, 0.4, 0.07, 0.05, eye, 0, 1.88, -0.26);
-    P.legs.push(box(body, 0.3, 0.75, 0.35, MAT.light, -0.3, 0.37, 0), box(body, 0.3, 0.75, 0.35, MAT.light, 0.3, 0.37, 0));
-    const shield = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.6, 0.12), new THREE.MeshBasicMaterial({ color: 0x9a7cff, transparent: true, opacity: 0.55 }));
-    shield.position.set(0, 1.15, -0.85); body.add(shield); P.shield = shield;
-    box(body, 0.5, 0.5, 0.25, M, 0, 1.3, 0.48);
-    P.core = sph(body, 0.22, glowMat(0xffb347), 0, 1.3, 0.62);
-    P.weak = [0, 1.3, 0.62, 0.3];
-  } else if (type === "warden") {
-    box(body, 1.9, 1.5, 1.3, MAT.body, 0, 2.2, 0); box(body, 0.9, 0.5, 0.8, MAT.body, 0, 3.1, 0); box(body, 0.7, 0.09, 0.05, eye, 0, 3.1, -0.42);
-    box(body, 2.1, 0.12, 1.4, M, 0, 2.9, 0);
-    P.legs.push(box(body, 0.5, 1.45, 0.6, MAT.light, -0.6, 0.72, 0), box(body, 0.5, 1.45, 0.6, MAT.light, 0.6, 0.72, 0));
-    P.arm = box(body, 0.45, 1.4, 0.45, MAT.light, -1.25, 1.8, 0); P.arm2 = box(body, 0.45, 1.4, 0.45, MAT.light, 1.25, 1.8, 0);
-    P.core = sph(body, 0.38, glowMat(0xffb347), 0, 2.2, -0.68);
-    P.weak = [0, 2.2, -0.68, 0.48];
-  } else if (type === "skimmer") {
-    box(body, 1.2, 0.25, 0.7, MAT.body, 0, 0, 0); box(body, 0.5, 0.25, 0.9, M, 0, 0.15, 0);
-    sph(body, 0.14, eye, 0, 0, -0.45);
-    for (const x of [-0.75, 0.75]) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 6, 16), glow); r.rotation.x = Math.PI / 2; r.position.set(x, 0.05, 0); body.add(r); }
-    P.weak = [0, 0, -0.45, 0.2];
-  } else if (type === "turret") {
-    box(body, 1.6, 0.6, 1.6, MAT.body, 0, 0.3, 0); const head = new THREE.Group(); head.position.y = 1.0; body.add(head);
-    box(head, 1.0, 0.7, 1.0, MAT.body, 0, 0.1, 0); box(head, 0.18, 0.18, 1.3, MAT.light, -0.22, 0.1, -0.7); box(head, 0.18, 0.18, 1.3, MAT.light, 0.22, 0.1, -0.7);
-    sph(head, 0.12, eye, 0, 0.3, -0.5); P.head = head;
-    box(body, 0.4, 0.8, 0.4, M, 0, 0.5, 1.2); P.core = sph(body, 0.28, glowMat(0xffb347), 0, 1.05, 1.2);
-    P.weak = null;
-  }
-  if (cmd) {
-    const crest = box(body, 0.1, 0.5, 0.6, MAT.cmd, 0, (type === "warden" ? 3.5 : type === "bulwark" ? 2.2 : 2.1), 0);
-    P.crest = crest;
-  }
-  return { g, P };
-}
+// Models now come from models.js (beveled armor, jointed legs, sensor lights).
+function buildRobot(type, cmd) { return buildRobotModel(type, cmd); }
 
 class Robot {
   constructor(sys, type, x, y, z, opts, enc) {
@@ -170,7 +120,7 @@ class Robot {
     this.alive = false; this.dying = 0.0; this.releaseToken();
     G.audio.play("powerdown");
     if (Math.random() < (G.mods.banter ? 0.5 : 0.12)) this.sys.robotLine("disabled", this, true);
-    this.parts.eye.color.set(0x333333);
+    this.parts.eye.emissive.set(0x111111);
     if (this.bubble) { G.scene.remove(this.bubble); this.emitterMeshes.forEach((m) => G.scene.remove(m)); }
     this.sys.onDisabled(this);
   }
@@ -539,8 +489,10 @@ class Robot {
     }
     if (P.shield) P.shield.visible = this.frontUp;
     if (P.core) P.core.scale.setScalar(this.recoverT > 0 ? 1.6 + Math.sin(G.time * 20) * 0.2 : 1);
-    if (this.slamT > 0 || this.telegraphT > 0) P.eye.color.setHSL(0.08, 1, 0.5 + Math.sin(G.time * 30) * 0.3);
-    else if (this.alive) P.eye.color.set(this.stunT > 0 ? 0x66ccff : this.cmd ? 0xffd34a : 0xffb347);
+    if (this.slamT > 0 || this.telegraphT > 0) P.eye.emissive.setHSL(0.08, 1, 0.5 + Math.sin(G.time * 30) * 0.3);
+    else if (this.alive) P.eye.emissive.set(this.stunT > 0 ? 0x66ccff : this.cmd ? 0xffd34a : 0xffb347);
+    // a little idle motion so machines never look frozen
+    if (this.alive && !this.def.fly) P.body.position.y = Math.sin(G.time * 2.2 + this.id) * 0.015;
     if (this.bubble) {
       const up = this.emittersUp;
       this.bubble.visible = up && this.alive;

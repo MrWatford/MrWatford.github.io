@@ -9,7 +9,7 @@ export const MAX_IMPORT = 200000;
 
 export const DEFAULT_SETTINGS = {
   sens: 1, invert: false, fov: 75, quality: "low", music: 0.4, sfx: 0.7, mute: false,
-  subtitles: true, textScale: 1, reduceMotion: false, headBob: true, shake: 1, aimAssist: true, ctrlCrouch: false,
+  subtitles: true, textScale: 1, reduceMotion: false, reducedFlash: false, showPerf: false, headBob: true, shake: 1, aimAssist: true, ctrlCrouch: false,
   mods: {},
 };
 

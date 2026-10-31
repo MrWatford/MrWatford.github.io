@@ -20,14 +20,19 @@ import { Boss } from "./boss.js";
 import { UI } from "./ui.js";
 import { Logic, DIFFS } from "./game.js";
 import { Saves, newState } from "./save.js";
-import { dist2 } from "./util.js";
+import { dist2, lerp } from "./util.js";
+import { makeTextures, makeEnvironment, buildMaterials, srgb } from "./materials.js";
+import { initStructureLook } from "./structures.js";
+import { PostFX } from "./postfx.js";
+import { buildGuardian } from "./models.js";
 
-THREE.ColorManagement.enabled = false;
 const STEP = 1 / 60;
+// Graphics presets change real rendering work: internal resolution, shadows, grass and tree detail
+// distance, draw distance, effects, bloom, and antialiasing. (Gameplay difficulty is separate.)
 const QUALITY = {
-  low: { pr: 0.85, view: 320, lod: 170, shadows: 0, density: 0.55, fx: 0.6 },
-  medium: { pr: 1, view: 460, lod: 220, shadows: 1024, density: 0.8, fx: 0.85 },
-  high: { pr: 1.5, view: 650, lod: 300, shadows: 2048, density: 1, fx: 1 },
+  low:    { resCap: 720,  view: 340, lod: 170, shadows: 1024, shadowR: 40, density: 0.6, fx: 0.6, grass: 16, treeNear: 90,  bushR: 60,  bloom: false, msaa: 0, tex: 512 },
+  medium: { resCap: 900,  view: 480, lod: 220, shadows: 1024, shadowR: 55, density: 0.8, fx: 0.85, grass: 28, treeNear: 130, bushR: 90,  bloom: true,  msaa: 0, tex: 512 },
+  high:   { resCap: 1080, view: 650, lod: 300, shadows: 2048, shadowR: 70, density: 1,   fx: 1,   grass: 45, treeNear: 180, bushR: 120, bloom: true,  msaa: 4, tex: 1024 },
 };
 const $ = (s) => document.querySelector(s);
 // let the loading bar repaint (falls back to a timer if the tab is in the background)
@@ -54,25 +59,37 @@ class Game {
     try {
       this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
     } catch (e) { throw new Error("This browser couldn't start 3D graphics (WebGL). Try Chrome or Edge with hardware acceleration turned on."); }
-    this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.autoClear = false;
+    this.renderer.info.autoReset = false;
     canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); this.contextLost(); });
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(this.settings.fov, 1, 0.08, 700);
     this.scene.add(this.camera);
     this.Q = QUALITY[this.settings.quality];
-    await step(0.05, "Shaping the land…");
+    await step(0.03, "Painting rock, soil, and grass…");
+    this.tex = makeTextures(this.Q.tex);
+    this.envMap = makeEnvironment(this.renderer);
+    this.scene.environment = this.envMap;
+    buildMaterials(this.tex, this.envMap); initStructureLook(this.tex);
+    this.sunDir = new THREE.Vector3(-0.42, 0.62, 0.35).normalize();
+    await step(0.1, "Shaping the land…");
     this.terrain = new Terrain(); this.terrain.build();
     await step(0.3, "Drawing valleys and canyons…");
-    this.terrain.buildMeshes(this.scene);
+    this.terrain.buildMeshes(this.scene, this.tex);
     this.col = new Colliders(this.terrain);
     await step(0.45, "Building outposts and strongholds…");
     this.audio = new Audio(); this.input = new Input(canvas); this.fx = new FX(this.scene);
     this.world = new World(this); this.world.build();
     await step(0.6, "Planting forests…");
-    this.scenery = new Scenery(this.scene, this.terrain, this.col);
+    this.scenery = new Scenery(this.scene, this.terrain, this.col, this.tex);
     this.scenery.build(this.Q.density); this.scenery.buildWater(); this.scenery.buildBirds();
-    this.sky = new Sky();
+    this.scenery.blocked = this.world.interacts.map((i) => [i.x, i.z]).concat(this.world.itemDefs.map((d) => [d.home.x, d.home.z]));
+    this.sky = new Sky(this.tex);
+    this.post = new PostFX(this.renderer);
     await step(0.75, "Mapping safe routes…");
     this.nav = new Nav(this.terrain, this.col); this.nav.build();
     await step(0.88, "Waking up LUMA…");
@@ -88,6 +105,7 @@ class Game {
     this.targets = [this.robots, this.world, this.boss];
     this.ui = new UI(this);
     this.setupLights();
+    this.buildHero();
     this.applySettings();
     this.bindInput();
     this.bindMenus();
@@ -101,36 +119,51 @@ class Game {
     window.__aegis = this;
   }
   setupLights() {
-    this.hemi = new THREE.HemisphereLight(0xcfe9ff, 0x5a6a4a, 2.3);
-    this.sun = new THREE.DirectionalLight(0xfff1d6, 2.6);
-    this.sun.position.set(-60, 120, 50);
+    // warm sun at a noticeable angle, cool sky fill, sky reflections from the environment map
+    this.hemi = new THREE.HemisphereLight(srgb(0.72, 0.82, 1), srgb(0.36, 0.33, 0.26), 0.55);
+    this.sun = new THREE.DirectionalLight(srgb(1, 0.93, 0.8), 3.4);
+    this.sun.position.copy(this.sunDir).multiplyScalar(150);
+    this.sun.shadow.bias = -0.0004; this.sun.shadow.normalBias = 0.045;
     this.scene.add(this.hemi, this.sun, this.sun.target);
-    this.scene.fog = new THREE.Fog(0xcfe9f7, 120, 320);
-    this.renderer.setClearColor(0xcfe9f7);
+    const haze = srgb(0.74, 0.84, 0.92);
+    this.scene.fog = new THREE.Fog(haze, 120, 320);
+    this.renderer.setClearColor(haze);
   }
   applySettings() {
     const S = this.settings, Q = (this.Q = QUALITY[S.quality]);
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.pr) * (S.quality === "low" ? 1 : 1));
-    if (S.quality === "low") this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1) * Q.pr);
-    this.camera.far = Q.view + 60; this.scene.fog.near = Q.view * 0.35; this.scene.fog.far = Q.view;
+    // cap the internal 3D resolution (HUD text stays sharp because it is HTML)
+    const pr = Math.min(devicePixelRatio || 1, Q.resCap / Math.max(1, innerHeight));
+    this.renderer.setPixelRatio(Math.max(0.5, pr));
+    this.camera.far = Q.view + 60; this.scene.fog.near = Q.view * 0.3; this.scene.fog.far = Q.view * 1.05;
     this.camera.updateProjectionMatrix();
-    const sh = Q.shadows > 0;
-    this.renderer.shadowMap.enabled = sh;
-    this.sun.castShadow = sh;
-    if (sh) {
-      this.sun.shadow.mapSize.set(Q.shadows, Q.shadows);
-      const c = this.sun.shadow.camera; c.left = c.bottom = -60; c.right = c.top = 60; c.near = 1; c.far = 300;
-      if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
-    }
-    this.fx.scale = Q.fx;
+    this.renderer.shadowMap.enabled = true;
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(Q.shadows, Q.shadows);
+    const c = this.sun.shadow.camera; c.left = c.bottom = -Q.shadowR; c.right = c.top = Q.shadowR; c.near = 1; c.far = 400; c.updateProjectionMatrix();
+    if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
+    this.fx.scale = Q.fx; this.fx.reducedFlash = S.reducedFlash;
+    this.post.setup(Q.bloom, Q.msaa); this.post.reducedFlash = S.reducedFlash;
+    if (this.scenery) this.scenery.refreshNow();
     this.audio.sfxVol = S.sfx; this.audio.musicVol = S.music; this.audio.muted = S.mute; this.audio.apply();
     this.input.ctrlCrouch = S.ctrlCrouch;
     document.documentElement.style.setProperty("--ts", S.textScale);
+    document.querySelector("#perf").hidden = !S.showPerf;
     this.resize();
+  }
+  // Title screen: the Guardian on the ridge above the valley, with the ring in the sky behind.
+  buildHero() {
+    this.hero = buildGuardian(this.suitColors());
+    const hx = -52, hz = 534;
+    this.hero.position.set(hx, this.terrain.heightAt(hx, hz), hz);
+    this.hero.rotation.y = 0.35;
+    this.hero.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    this.hero.visible = false;
+    this.scene.add(this.hero);
   }
   resize() {
     if (!this.renderer) return;
     this.renderer.setSize(innerWidth, innerHeight, false);
+    if (this.post) this.post.size();
     this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix();
   }
   contextLost() {
@@ -161,6 +194,8 @@ class Game {
     this.boss.reset();
     for (const b of this.capturedBases()) this.spawnBaseLife(b);
     if (this.flag("claim:crawler")) this.spawnClaimedCrawler();
+    // a Trailrunner parked on the trail below the Old Span (drivable once the rover is unlocked)
+    if (this.state.mode !== "training") { const pr = this.vehicles.spawn("rover", -10, 506, 0.9); pr.parked = true; }
     if (this.flag("camp:brief")) this.campBriefingSilent();
     this.respawnSafe();
     this.player.heal(true);
@@ -394,7 +429,7 @@ class Game {
       if (!r.no) { if (r.msg) { label = r.msg; gray = true; } else { label = r.text; hold = r.hold || 0; act = () => this.useInteract(t.it); } }
     } else if (t && t.kind === "cell") { label = "Pick up the energy cell"; act = () => this.items.carry(t.c); }
     else if (t && t.kind === "veh") {
-      if (this.state.mode !== "training" && t.v.type !== "crawler" && !this.vehicleUnlocked(t.v.type) && false) { label = "Locked"; gray = true; }
+      if (t.v.parked && this.state.mode === "campaign" && !this.vehicleUnlocked("rover")) { label = "This Trailrunner has no power yet. Reconnect Greenreach Outpost first."; gray = true; }
       else { label = `Enter the ${t.v.name}`; act = () => this.vehicles.enter(t.v); }
     } else if (t && t.kind === "ally") {
       const following = t.a.mode === "follow";
@@ -440,6 +475,7 @@ class Game {
   simulate(dt) {
     const I = this.input, P = this.player, W = this.weapons;
     this.time += dt;
+    (P.prevPos || (P.prevPos = P.pos.clone())).copy(P.pos);
     if (P.vehicle) { P.pos.copy(P.vehicle.pos); P.pos.y += 0.5; this.world.enforceBounds(P.vehicle.pos, P.vehicle); }
     else P.update(dt);
     const canFire = !P.vehicle && !P.carry && !P.mantle && !P.sprinting;
@@ -453,7 +489,6 @@ class Game {
     this.world.update(dt);
     this.tickPod(dt);
     this.tickCourses(dt);
-    this.scenery.update(dt, P.pos.x, P.pos.z, this.Q.view);
     this.tick.mission -= dt; this.tick.enc -= dt; this.tick.rescue -= dt;
     if (this.tick.mission <= 0) { this.tick.mission = 0.2; this.tickMission(0.2); this.discoverNear(P.pos.x, P.pos.z, 70); }
     if (this.tick.enc <= 0) { this.tick.enc = 0.5; this.tickEncounters(); }
@@ -462,24 +497,62 @@ class Game {
     this.audio.setCombat(this.robots.engagedCount() > 0);
   }
   render(dt, playing) {
-    const P = this.player, cam = this.camera;
-    const W = this.weapons;
+    const P = this.player, cam = this.camera, W = this.weapons, r = this.renderer;
+    this.dtFrame = dt;
     cam.fov = this.settings.fov * (P.vehicle ? 1 : W.adsFactor);
     cam.updateProjectionMatrix();
+    // smooth the camera between 60 Hz simulation steps (screens can refresh faster or slower)
+    if (playing && P.prevPos && !P.vehicle) P.renderPos = (P.renderPos || P.pos.clone()).copy(P.prevPos).lerp(P.pos, Math.min(1, (this.acc || 0) / STEP));
+    else P.renderPos = null;
     if (P.vehicle) this.vehicles.applyCamera(cam); else P.applyCamera(cam, dt);
+    const menu = this.mode === "menu" || this.mode === "loading";
+    this.hero.visible = menu;
+    if (menu) for (const c of this.world.curtains) c.mesh.visible = false;   // barrier fields come back when play starts
+    if (menu) {
+      const t = performance.now() / 1000, h = this.hero.position;
+      cam.fov = 50; cam.updateProjectionMatrix();
+      cam.position.set(h.x + 0.5 + Math.sin(t * 0.08) * 0.25, h.y + 1.45, h.z + 2.4);
+      cam.lookAt(h.x, h.y + 1.3, h.z);
+      // turn so the Guardian sits at ~70% of the screen width, clear of the menu card
+      const halfH = Math.atan(Math.tan((cam.fov * Math.PI) / 360) * cam.aspect);
+      cam.rotateY(Math.atan((innerWidth > 760 ? 0.42 : 0) * Math.tan(halfH)));
+      this.hero.rotation.y = 0.35 + Math.sin(t * 0.3) * 0.03;
+    }
     if (this.mode === "ending") { const t = performance.now() / 1000, c = siteById.citadel; cam.position.set(c.x + Math.cos(t * 0.1) * 120, c.y + 70, c.z + Math.sin(t * 0.1) * 120); cam.lookAt(c.x, c.y + 10, c.z); }
     this.terrain.updateLOD(cam.position.x, cam.position.z, this.Q.lod, this.Q.view);
-    if (this.sun.castShadow) { this.sun.position.set(cam.position.x - 60, cam.position.y + 120, cam.position.z + 50); this.sun.target.position.set(cam.position.x, cam.position.y, cam.position.z); }
+    this.scenery.update(playing ? dt : 0.016, cam.position.x, cam.position.z, this.Q.view, this.Q);
+    this.sky.update(dt);
+    // shadows follow the camera; snapping to shadow-map texels keeps edges from shimmering
+    {
+      const R = this.Q.shadowR, texel = (2 * R) / this.Q.shadows;
+      const fx = Math.round(cam.position.x / texel) * texel, fz = Math.round(cam.position.z / texel) * texel;
+      const fy = this.terrain.heightAt(cam.position.x, cam.position.z);
+      this.sun.target.position.set(fx, fy, fz); this.sun.position.set(fx, fy, fz).addScaledVector(this.sunDir, 150);
+    }
     if (playing) this.ui.updateHUD(dt);
     this.fx.update(playing ? dt : 0);
-    this.fx.clearBeams && playing && false;
-    const r = this.renderer;
+    r.info.reset();
+    this.post.begin();
     r.clear();
     this.sky.render(r, cam);
     r.clearDepth();
     r.render(this.scene, cam);
     if (playing && !P.vehicle && !(W.id === "prism" && W.adsT > 0.9)) { W.updateView(dt, cam); W.render(r); }
+    this.post.end();
     this.fx.clearBeams();
+    this.perfSample(dt);
+  }
+  // Optional performance readout (Settings: Show performance). rAF timing includes waiting for the
+  // display, so it is labeled "frame time", not GPU time.
+  perfSample(dt) {
+    if (!this.settings.showPerf) return;
+    const p = (this.perf ||= { ms: [], t: 0 });
+    p.ms.push(dt * 1000); p.t += dt;
+    if (p.t < 0.5) return;
+    const a = p.ms.slice().sort((x, y) => x - y), avg = a.reduce((s, v) => s + v, 0) / a.length, p95 = a[Math.floor(a.length * 0.95)] || avg;
+    const v = this.renderer.getDrawingBufferSize(new THREE.Vector2()), info = this.renderer.info.render;
+    document.querySelector("#perf").textContent = `${(1000 / avg).toFixed(0)} FPS · frame ${avg.toFixed(1)} ms (95%: ${p95.toFixed(1)} ms) · ${info.calls} draws · ${(info.triangles / 1000).toFixed(0)}k tris · ${v.x}×${v.y} · ${this.settings.quality}`;
+    p.ms = []; p.t = 0;
   }
 
   // ---------------- courses ----------------
@@ -604,7 +677,9 @@ class Game {
       }
       Saves.saveSettings(this.settings); this.applySettings();
     });
-    $("#settingsBody").addEventListener("click", (e) => { if (e.target.id === "btnFull") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => this.ui.toast("Fullscreen isn't available here.")); } });
+    $("#settingsBody").addEventListener("click", (e) => {
+      if (e.target.id === "btnGfxReset") { Object.assign(this.settings, { quality: "low", reducedFlash: false, showPerf: false, shake: 1, headBob: true }); Saves.saveSettings(this.settings); this.applySettings(); this.ui.settings(this.ui.settingsBack); return; }
+      if (e.target.id === "btnFull") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => this.ui.toast("Fullscreen isn't available here.")); } });
     // pause
     on("#btnResume", () => this.closePause());
     on("#btnPMap", () => { this.mode = "play"; this.ui.openMap(); });

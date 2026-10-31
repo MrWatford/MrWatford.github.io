@@ -2,16 +2,19 @@
 // Static boxes are merged into one mesh per site to keep drawing fast.
 import * as THREE from "../lib/three.module.min.js";
 import { SITES, RESCUES } from "./content.js";
+import { addDetail } from "./materials.js";
 
 export const COL = {
   wall: 0xdfe3e8, wall2: 0xc4ccd6, dark: 0x3a4250, metal: 0x8d97a4, orange: 0xff8a2a, teal: 0x2fd6c4,
   graphite: 0x2c3038, violet: 0x6a4d9a, rock: 0x857a6e, red: 0x9a5a3a, crate: 0xe0832e, wood: 0x8a6a48,
   glass: 0x9fd8ff, white: 0xf4f6f8, tent: 0xeedfb8, green: 0x4f9a5a,
 };
+// glow strips are a little brighter than white so the bloom pass picks them up
+const glowM = (c, k) => { const m = new THREE.MeshBasicMaterial({ color: c }); m.color.multiplyScalar(k); return m; };
 export const GLOW = {
-  hostile: new THREE.MeshBasicMaterial({ color: 0xb06cff }),
-  friendly: new THREE.MeshBasicMaterial({ color: 0x3ff0d8 }),
-  neutral: new THREE.MeshBasicMaterial({ color: 0xffd9a0 }),
+  hostile: glowM(0xb06cff, 2.2),
+  friendly: glowM(0x3ff0d8, 2.2),
+  neutral: glowM(0xffd9a0, 1.8),
 };
 
 // Collects many boxes/shapes into one geometry with vertex colors.
@@ -49,7 +52,13 @@ export class MeshBuilder {
   get empty() { return this.pos.length === 0; }
 }
 
-export const solidMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+export const solidMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.15 });
+export const ruinMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.05 });
+// engineered panel detail (plates, seams, bolts) projected onto every structure in world space
+export function initStructureLook(T) {
+  addDetail(solidMat, T.panel, { scale: 0.17, bump: 0.35, mix: 0.45 });
+  addDetail(ruinMat, T.rock, { scale: 0.22, bump: 1.0, mix: 0.85 });
+}
 const _m = new THREE.Matrix4();
 
 // Helper handed to each site builder; all positions are relative to the site's floor center.
@@ -500,6 +509,54 @@ const B = {
     } else {
       S.use("talk", 0, 0, 4.5, "rescueFix", { rescue: id, hold: 1, text: "Tell the team it's safe", flag: "rfix:" + id }, "none");
     }
+  },
+
+  // The Old Span: an original weathered arch, partly buried, with a broken section, a fallen block,
+  // inset panels, and a faint teal seam along its inner edge. Collision boxes follow each segment.
+  ruin(S) {
+    const T = S.w.terrain, gy = T.heightAt(S.ox, S.oz);
+    S.oy = gy; S.s.y = gy;
+    const mb = new MeshBuilder(), gb = new MeshBuilder();
+    const stone = 0x8b8f86, stoneDark = 0x6e746c, moss = 0x5d7347;
+    const arch = (cx, cz, cy, R, th, dep, a0, a1, gap, segs, rotY) => {
+      for (let i = 0; i < segs; i++) {
+        const a = a0 + ((a1 - a0) * i) / segs, b = a0 + ((a1 - a0) * (i + 1)) / segs;
+        if (gap && a > gap[0] && b < gap[1]) continue;
+        const pts = [];
+        for (const ang of [a, b]) for (const r of [R - th / 2, R + th / 2]) for (const z of [-dep / 2, dep / 2]) pts.push([Math.cos(ang) * r, Math.sin(ang) * r, z]);
+        const idx = [[0, 2, 3, 1], [4, 5, 7, 6], [0, 1, 5, 4], [2, 6, 7, 3], [0, 4, 6, 2], [1, 3, 7, 5]];
+        const pos = [];
+        const rot = (p) => { const c = Math.cos(rotY), s2 = Math.sin(rotY); return [cx + p[0] * c + p[2] * s2, cy + p[1], cz - p[0] * s2 + p[2] * c]; };
+        for (const q of idx) for (const k of [0, 1, 2, 0, 2, 3]) pos.push(...rot(pts[q[k]]));
+        const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.computeVertexNormals();
+        const top = Math.sin((a + b) / 2) > 0.55;
+        mb.addGeo(geo, new THREE.Matrix4(), i % 3 === 0 ? stoneDark : top ? moss : stone);
+        // teal seam along the inner edge (front face)
+        // a continuous seam piece, turned to follow the curve
+        const mid = (a + b) / 2, ri = R - th / 2 + 0.12, len = ri * (b - a) * 1.02;
+        const ia = rot([Math.cos(mid) * ri, Math.sin(mid) * ri, dep / 2 + 0.03]);
+        if (Math.sin(mid) * R + cy > gy + 0.3) {
+          const mm = new THREE.Matrix4().makeRotationY(rotY).multiply(new THREE.Matrix4().makeRotationZ(mid + Math.PI / 2));
+          mm.setPosition(ia[0], ia[1], ia[2]);
+          gb.addGeo(new THREE.BoxGeometry(len, 0.14, 0.06), mm, 0xffffff);
+        }
+        // collision: a box around this segment (only the part above ground)
+        const xs = pos.filter((_, k) => k % 3 === 0), ys = pos.filter((_, k) => k % 3 === 1), zs = pos.filter((_, k) => k % 3 === 2);
+        const minY = Math.max(Math.min(...ys), gy - 2), maxY = Math.max(...ys);
+        if (maxY > gy + 0.2) S.w.col.addBox(Math.min(...xs), minY, Math.min(...zs), Math.max(...xs), maxY, Math.max(...zs), { site: "ruin" });
+      }
+    };
+    // main arch: 34 m across, buried below the hill, with a broken gap near the top
+    arch(S.ox, S.oz, gy - 5, 17, 2.6, 3.4, 0.08, Math.PI - 0.08, [1.32, 1.66], 22, 0);
+    // smaller second arch fragment behind it, leaning out of the slope
+    arch(S.ox - 26, S.oz + 14, gy - 7, 11, 2.2, 3, 0.25, 1.9, null, 10, 0.5);
+    // fallen block from the broken gap, half buried
+    S.box(9, -0.9, 6, 6.5, 2.4, 3.2, stoneDark, { tag: "rock" });
+    S.box(-6, -1.2, -5, 3, 1.8, 3, stone, { tag: "rock" });
+    for (const [x, z] of [[-17, 2], [17, -1]]) S.box(x, -0.4, z, 4.2, 1.0, 4.6, stoneDark);   // buried footings
+    const m = new THREE.Mesh(mb.build(), ruinMat); m.castShadow = m.receiveShadow = true; S.w.scene.add(m);
+    const gm = new THREE.Mesh(gb.build(), GLOW.friendly); S.w.scene.add(gm);
+    S.anchor("top", 0, 12, 0);
   },
 
   spire(S) {

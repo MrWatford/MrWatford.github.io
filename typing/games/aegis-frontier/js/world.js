@@ -34,7 +34,7 @@ export class World {
     g.fillStyle = grd; g.fillRect(0, 0, 64, 256);
     g.fillStyle = "rgba(200,160,255,0.4)"; for (let y = 0; y < 256; y += 16) g.fillRect(0, y, 64, 2);
     g.fillStyle = "rgba(230,210,255,0.3)"; g.fillRect(30, 0, 4, 256);
-    const tex = new THREE.CanvasTexture(cv); tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     this.curtainTex = tex;
     const T = this.terrain;
     for (let a = 0; a < REGIONS.length; a++) for (let b = a + 1; b < REGIONS.length; b++) {

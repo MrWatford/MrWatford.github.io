@@ -39,12 +39,15 @@ export const LAKES = [
 export const GORGES = [
   { a: [-452, -115], b: [-238, -115], w: 22, floor: -5 },  // the Long Crossing
   { a: [380, 92], b: [472, 150], w: 18, floor: 2 },          // Spanbreaker's canyon bridge
+  { a: [-58, 476], b: [-80, 458], w: 5, floor: -1.1, bank: 16 },   // Greenreach creek (runs to the lake)
+  { a: [-80, 458], b: [-96, 444], w: 6, floor: -1.2, bank: 16 },
 ];
 
 // ---------------- Sites ----------------
 // kind decides which structure builder runs. r = flat pad radius. h = forced pad height.
 export const SITES = [
   { id: "crash", kind: "crash", x: 20, z: 540, r: 24, region: "G", name: "Skyfall Crash Site" },
+  { id: "ruin", kind: "ruin", x: -42, z: 517, region: "G", name: "The Old Span" },
   { id: "shelter", kind: "shelter", x: -40, z: 486, r: 14, region: "G", name: "Waystation Shelter" },
   { id: "training", kind: "training", x: -250, z: 530, r: 46, region: "G", name: "Aegis Training Grounds" },
   { id: "B1", kind: "base", x: 60, z: 380, r: 30, region: "G", name: "Greenreach Outpost" },
@@ -178,6 +181,7 @@ export const ENCOUNTERS = {
   S5: { site: "S5", until: "stronghold:S5", units: [["sentry", -20, 16], ["sentry", 20, 16], ["bulwark", -6, 6], ["bulwark", 6, 6], ["turret", -28, -10, { y: 0 }], ["turret", 28, -10, { y: 0 }], ["skimmer", 0, -10], ["engineer", 0, 20], ["sentry", -16, -20, { y: 9 }], ["sentry", 16, -20, { y: 9 }]], reinforce: { from: [0, 70], units: [["sentry", 0, 0], ["sentry", 3, 0], ["bulwark", 0, 3]] } },
   m11_gatekeeper: { site: "S5", dx: 0, dz: -30, until: "clear:m11_gatekeeper", need: { mission: "m11", obj: "gatekeeper" }, units: [["warden", 0, 0, { cmd: "gatekeeper" }], ["sentry", -10, 6], ["sentry", 10, 6]] },
   // Road patrols (come back after a reload; they give the frontier some life)
+  p_g0: { site: "ruin", dx: 0, dz: -18, patrolGroup: true, need: { flag: "clear:m1_bots" }, until: "region:C", units: [["scout", 0, 0, { patrol: [[0, 0], [24, 6], [10, -20], [-18, -10]] }], ["sentry", 3, 3, { patrol: [[0, 0], [24, 6], [10, -20], [-18, -10]] }]] },
   p_g1: { site: "B1", dx: -90, dz: 40, patrolGroup: true, need: { flag: "base:B1" }, until: "region:C", units: [["scout", 0, 0, { patrol: [[0, 0], [40, 30], [80, 0], [40, -30]] }], ["sentry", 3, 3, { patrol: [[0, 0], [40, 30], [80, 0], [40, -30]] }]] },
   p_c1: { site: "B3", dx: 70, dz: -110, patrolGroup: true, units: [["sentry", 0, 0, { patrol: [[0, 0], [30, 40], [0, 80], [-30, 40]] }], ["scout", 3, 0, { patrol: [[0, 0], [30, 40], [0, 80], [-30, 40]] }]] },
   p_r1: { site: "B5", dx: -60, dz: -170, patrolGroup: true, units: [["skimmer", 0, 0, { patrol: [[0, 0], [50, -20], [0, -60], [-40, -20]] }], ["sentry", 0, 0, { patrol: [[0, 0], [50, -20], [0, -60], [-40, -20]] }]] },

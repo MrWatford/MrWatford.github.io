@@ -6,7 +6,7 @@ const MAXP = 700, MAXL = 160, MAXR = 16, MAXF = 24;
 export class FX {
   constructor(scene) {
     this.scene = scene;
-    this.scale = 1;
+    this.scale = 1; this.reducedFlash = false;
     // particles
     const geo = new THREE.BoxGeometry(1, 1, 1);
     this.pm = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffffff }), MAXP);
@@ -57,7 +57,7 @@ export class FX {
       this.parts.push({ x, y, z, vx: Math.cos(a) * r * s, vy: b * s + up, vz: Math.sin(a) * r * s, life, max: life, size: size * (0.6 + Math.random() * 0.8), c, g: grav, rot: Math.random() * 3 });
     }
   }
-  tracer(ax, ay, az, bx, by, bz, color, life = 0.06) { this.tracers.push({ a: [ax, ay, az], b: [bx, by, bz], c: new THREE.Color(color), life, max: life }); }
+  tracer(ax, ay, az, bx, by, bz, color, life = 0.06) { this.tracers.push({ a: [ax, ay, az], b: [bx, by, bz], c: new THREE.Color(color).multiplyScalar(2), life, max: life }); }
   line(ax, ay, az, bx, by, bz, color) { this.nowLines.push({ a: [ax, ay, az], b: [bx, by, bz], c: new THREE.Color(color) }); }
   beam(ax, ay, az, bx, by, bz, color, width = 0.08) {
     if (this.beamUsed >= this.beams.length) return;
@@ -66,7 +66,7 @@ export class FX {
     m.position.set((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2);
     m.scale.set(width, width, L);
     m.lookAt(bx, by, bz);
-    m.material.color.set(color);
+    m.material.color.set(color).multiplyScalar(this.reducedFlash ? 1.4 : 2.6);   // bright enough to glow
     m.visible = true;
   }
   ring(x, y, z, color, radius, life = 0.6, vertical = false) {
@@ -77,7 +77,8 @@ export class FX {
   }
   flash(x, y, z, color, size = 1, life = 0.15) {
     const f = this.flashes.find((q) => q.life <= 0) || this.flashes[0];
-    f.m.position.set(x, y, z); f.m.material.color.set(color); f.m.visible = true;
+    f.m.position.set(x, y, z); f.m.material.color.set(color).multiplyScalar(this.reducedFlash ? 1 : 2.2); f.m.visible = true;
+    if (this.reducedFlash) size *= 0.6;
     f.life = life; f.max = life; f.size = size;
   }
 

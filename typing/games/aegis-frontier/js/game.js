@@ -480,6 +480,8 @@ export const Logic = {
     const c = this.state.checkpoint;
     const P = this.player;
     const okRegion = c && !this.world.regionLocked(regionAt(c.x, c.z).id);
+    // re-ground the saved spot, so saves from before a terrain update still land on the surface
+    if (c && okRegion) { const g = this.col.groundAt(c.x, c.z, Math.max(c.y, this.terrain.heightAt(c.x, c.z)) + 0.6); if (Math.abs(g - c.y) < 15) c.y = g; }
     if (c && okRegion && !this.col.inside(c.x, c.y + 0.9, c.z)) P.place(c.x, c.y, c.z, c.yaw);
     else { const s = siteById.crash; const a = this.world.anchors.get("crash.start"); P.place(a.x, a.y, a.z, 0); }
   },

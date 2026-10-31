@@ -11,7 +11,7 @@ function person(kind, k = 0) {
   const g = new THREE.Group();
   const [a, b, c] = SUITS[kind];
   const main = kind === "civ" ? CIV_COLORS[k % CIV_COLORS.length] : a;
-  const M = (col) => new THREE.MeshLambertMaterial({ color: col });
+  const M = (col) => new THREE.MeshStandardMaterial({ color: col, roughness: 0.6, metalness: 0.1 });
   const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; g.add(o); return o; };
   add(new THREE.BoxGeometry(0.5, 0.62, 0.3), M(main), 0, 1.15, 0);
   add(new THREE.BoxGeometry(0.52, 0.1, 0.32), M(c), 0, 1.3, 0);

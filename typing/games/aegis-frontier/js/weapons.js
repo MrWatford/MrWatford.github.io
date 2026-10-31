@@ -3,6 +3,7 @@
 import * as THREE from "../lib/three.module.min.js";
 import { WEAPONS, WEAPON_ORDER } from "./content.js";
 import { clamp, lerp } from "./util.js";
+import { buildWeapon, buildFPArm } from "./models.js";
 
 export const WDEF = {
   carbine: { auto: true, rate: 9, dmg: 8, mag: 36, reserve: 216, reload: 1.8, spread: 0.012, range: 140, fall: [45, 90, 0.65], color: 0x7ff7ff, ads: 0.8, kick: 0.012, snd: "carbine" },
@@ -31,66 +32,20 @@ export function castShot(G, ox, oy, oz, dx, dy, dz, maxT) {
   return best;
 }
 
-function part(geo, color, emissive) {
-  const m = new THREE.Mesh(geo, emissive ? new THREE.MeshBasicMaterial({ color }) : new THREE.MeshLambertMaterial({ color }));
-  return m;
-}
-function buildModel(id) {
-  const g = new THREE.Group();
-  const W = 0xf1f3f6, D = 0x39414e, O = 0xff8a2a;
-  const B = (w, h, d, c, x, y, z, e) => { const m = part(new THREE.BoxGeometry(w, h, d), c, e); m.position.set(x, y, z); g.add(m); return m; };
-  const C = (r, len, c, x, y, z, e, seg = 10) => { const m = part(new THREE.CylinderGeometry(r, r, len, seg), c, e); m.rotation.x = Math.PI / 2; m.position.set(x, y, z); g.add(m); return m; };
-  if (id === "carbine") {
-    B(0.11, 0.13, 0.55, W, 0, 0, 0); B(0.06, 0.16, 0.12, O, 0, -0.12, 0.06); B(0.04, 0.05, 0.22, D, 0, 0.09, -0.02);
-    C(0.025, 0.25, 0x7ff7ff, 0, 0.0, -0.36, true); B(0.12, 0.02, 0.3, 0x7ff7ff, 0, 0.066, -0.05, true);
-  } else if (id === "pistol") {
-    B(0.08, 0.12, 0.28, W, 0, 0, 0); B(0.06, 0.16, 0.08, D, 0, -0.12, 0.08);
-    for (const z of [-0.08, -0.15]) { const t = part(new THREE.TorusGeometry(0.05, 0.012, 6, 14), 0x9fd2ff, true); t.position.set(0, 0, z); g.add(t); }
-  } else if (id === "prism") {
-    B(0.08, 0.11, 0.9, W, 0, 0, -0.1); B(0.06, 0.15, 0.12, D, 0, -0.12, 0.15); C(0.035, 0.22, D, 0, 0.11, 0.0);
-    const p = part(new THREE.OctahedronGeometry(0.06), 0xffffff, true); p.position.set(0, 0, -0.5); g.add(p); B(0.02, 0.02, 0.5, O, 0.045, 0.03, -0.1);
-  } else if (id === "scatter") {
-    B(0.22, 0.12, 0.42, O, 0, 0, 0); B(0.14, 0.08, 0.2, W, 0, 0.09, 0.05); B(0.07, 0.15, 0.1, D, 0, -0.12, 0.1);
-    for (const x of [-0.07, 0, 0.07]) C(0.03, 0.14, 0xffa94d, x, 0, -0.27, true, 8);
-  } else if (id === "flux") {
-    C(0.08, 0.6, W, 0, 0, 0, false, 12); B(0.07, 0.16, 0.1, D, 0, -0.14, 0.1); B(0.17, 0.04, 0.3, O, 0, 0.08, 0);
-    const o = part(new THREE.SphereGeometry(0.07, 12, 8), 0x7dffb0, true); o.position.set(0, 0, -0.34); g.add(o);
-  } else if (id === "beam") {
-    B(0.1, 0.13, 0.45, D, 0, 0, 0); C(0.018, 0.4, W, 0, 0.02, -0.38);
-    for (const z of [-0.05, 0.05, 0.15]) B(0.13, 0.02, 0.03, 0xff7ad9, 0, 0.075, z, true).name = "vent";
-    B(0.06, 0.15, 0.1, W, 0, -0.12, 0.1);
-  } else if (id === "shock") {
-    B(0.12, 0.12, 0.3, W, 0, 0, 0); B(0.025, 0.025, 0.24, D, -0.04, 0.02, -0.25); B(0.025, 0.025, 0.24, D, 0.04, 0.02, -0.25);
-    C(0.05, 0.14, 0xfff27a, 0, -0.08, 0.08, true); B(0.06, 0.14, 0.08, D, 0, -0.13, 0.12);
-  }
-  return g;
-}
-function buildArm() {
-  const g = new THREE.Group();
-  const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.3), new THREE.MeshLambertMaterial({ color: 0x2f6fd6 }));
-  sleeve.position.set(0.04, -0.15, 0.24); g.add(sleeve);
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.135, 0.03, 0.2), new THREE.MeshLambertMaterial({ color: 0xff8a2a }));
-  stripe.position.set(0.04, -0.09, 0.22); g.add(stripe);
-  const hand = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.12), new THREE.MeshLambertMaterial({ color: 0xf1f3f6 }));
-  hand.position.set(0, -0.09, 0.07); g.add(hand);
-  const gaunt = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.06, 0.14), new THREE.MeshBasicMaterial({ color: 0x6ff2e0 }));
-  gaunt.position.set(0.04, -0.14, 0.12); g.add(gaunt);
-  g.userData.sleeve = sleeve; g.userData.stripe = stripe;
-  return g;
-}
-
 export class Weapons {
   constructor(G) {
     this.G = G;
     this.vmScene = new THREE.Scene();
     this.vmCam = new THREE.PerspectiveCamera(60, 1, 0.01, 10);
-    this.vmScene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 3.4));
-    const d = new THREE.DirectionalLight(0xffffff, 2.6); d.position.set(0.5, 1, 0.3); this.vmScene.add(d);
-    this.rig = new THREE.Group(); this.rig.scale.setScalar(0.85); this.vmScene.add(this.rig);
+    // lighting matched to the world: warm sun from the same side, cool sky fill, sky reflections
+    this.vmHemi = new THREE.HemisphereLight(0xbfd8ff, 0x4a5340, 0.9); this.vmScene.add(this.vmHemi);
+    this.vmSun = new THREE.DirectionalLight(0xfff0d8, 2.6); this.vmScene.add(this.vmSun); this.vmScene.add(this.vmSun.target);
+    this.vmScene.environment = G.envMap; this.shade = 1; this.shadeT = 0;
+    this.sway = new THREE.Vector2(); this.lastYaw = 0; this.lastPitch = 0;
+    this.rig = new THREE.Group(); this.rig.scale.setScalar(0.8); this.vmScene.add(this.rig);
     this.models = {};
-    for (const id of WEAPON_ORDER) { const m = buildModel(id); m.visible = false; this.rig.add(m); this.models[id] = m; }
-    this.arm = buildArm(); this.rig.add(this.arm);
-    this.leftArm = buildArm(); this.leftArm.position.set(-0.36, -0.02, -0.15); this.leftArm.visible = false; this.vmScene.add(this.leftArm);
+    for (const id of WEAPON_ORDER) { const m = buildWeapon(id); m.visible = false; this.rig.add(m); this.models[id] = m; }
+    this.buildArms();
     this.cur = 0; this.fireT = 0; this.reloadT = 0; this.switchT = 0; this.charge = 0; this.heat = 0; this.locked = 0;
     this.recoil = 0; this.ads = false; this.adsT = 0; this.adsFactor = 1; this.punchT = 0;
     this.beamOn = false; this.hitMarkT = 0;
@@ -304,38 +259,85 @@ export class Weapons {
   }
 
   // ---------- first-person model ----------
+  buildArms() {
+    const colors = this.G.suitColors ? this.G.suitColors() : ["#2f6fd6", "#f2f4f8", "#ff8a2a"];
+    this.suitKey = colors.join();
+    if (this.arm) { this.rig.remove(this.arm); this.vmScene.remove(this.leftArm); }
+    this.arm = buildFPArm(colors, false); this.arm.position.set(0.0, 0.035, -0.03); this.rig.add(this.arm);
+    // support hand on the foregrip of two-handed weapons
+    if (this.support) this.rig.remove(this.support);
+    this.support = buildFPArm(colors, true); this.support.scale.x = -1; this.support.position.set(-0.03, 0.03, -0.24); this.support.rotation.set(0.15, 0.55, 0.25); this.rig.add(this.support);
+    this.leftArm = buildFPArm(colors, true); this.leftArm.scale.x = -1; this.leftArm.visible = false; this.vmScene.add(this.leftArm);
+  }
   updateView(dt, cam) {
-    const G = this.G, p = G.player, S = G.settings;
+    const G = this.G, p = G.player, S = G.settings, d = this.def;
     this.vmCam.aspect = cam.aspect; this.vmCam.updateProjectionMatrix();
+    if (this.suitKey !== G.suitColors().join()) this.buildArms();
     for (const id in this.models) this.models[id].visible = false;
     const carrying = !!p.carry;
     const m = this.models[this.id];
     if (m && !carrying) m.visible = true;
-    // suit colors on the arm
-    const suit = G.suitColors();
-    this.arm.userData.sleeve.material.color.set(suit[0]); this.arm.userData.stripe.material.color.set(suit[2]);
-    this.leftArm.userData.sleeve.material.color.set(suit[0]); this.leftArm.userData.stripe.material.color.set(suit[2]);
+    const t = G.time;
+    // sun or shade: the hands get darker when you stand in a shadow
+    this.shadeT -= dt;
+    if (this.shadeT <= 0) {
+      this.shadeT = 0.25;
+      const e = p.eye(new THREE.Vector3()), sd = G.sunDir;
+      this.shadeTarget = G.col.raycast(e.x, e.y, e.z, sd.x, sd.y, sd.z, 80) ? 0.3 : 1;
+    }
+    this.shade = lerp(this.shade, this.shadeTarget ?? 1, Math.min(1, dt * 4));
+    this.vmSun.intensity = 2.6 * this.shade;
+    // sun direction in camera space, so lighting matches the world as you turn
+    const inv = cam.quaternion.clone().invert();
+    this.vmSun.position.copy(G.sunDir).applyQuaternion(inv).multiplyScalar(5);
+    const calm = S.reduceMotion ? 0 : 1;
+    // weapon sway lags slightly behind the camera (never moves the crosshair)
+    const dy = p.yaw - this.lastYaw, dp = p.pitch - this.lastPitch; this.lastYaw = p.yaw; this.lastPitch = p.pitch;
+    this.sway.x = lerp(this.sway.x, clamp(dy * 3, -0.06, 0.06), Math.min(1, dt * 10));
+    this.sway.y = lerp(this.sway.y, clamp(dp * 3, -0.05, 0.05), Math.min(1, dt * 10));
     const bobOn = S.headBob && !S.reduceMotion;
     const sp = p.grounded ? Math.min(1, p.speed2d / 8) : 0;
     const bx = bobOn ? Math.sin(p.bob) * 0.012 * sp : 0, by = bobOn ? Math.abs(Math.cos(p.bob)) * 0.012 * sp : 0;
+    const breathe = Math.sin(t * 1.6) * 0.003 * calm;
     const ads = this.adsT;
-    let x = lerp(0.2, 0.0, ads), y = lerp(-0.19, -0.12, ads), z = lerp(-0.42, -0.32, ads);
+    let x = lerp(0.17, 0.0, ads), y = lerp(-0.14, -0.11, ads) + breathe, z = lerp(-0.4, -0.32, ads);
     let rx = 0, ry = 0, rz = 0;
-    if (p.sprinting) { rx = -0.25; ry = 0.5; x += 0.04; }
-    if (this.reloadT > 0) { rx = -0.6; y -= 0.06; rz = 0.3; }
+    this.sprintK = lerp(this.sprintK || 0, p.sprinting ? 1 : 0, Math.min(1, dt * 8));
+    rx -= 0.25 * this.sprintK; ry += 0.5 * this.sprintK; x += 0.04 * this.sprintK;
+    // reload: tilt the weapon and pull the energy cell out and back in
+    const u = m ? m.userData : {};
+    if (this.reloadT > 0 && d.reload) {
+      const k = 1 - this.reloadT / d.reload, arc = Math.sin(Math.min(1, k) * Math.PI);
+      rx -= 0.55 * arc; y -= 0.06 * arc; rz += 0.3 * arc;
+      if (u.cell) u.cell.position.y = u.cellHome.y - 0.12 * Math.sin(Math.min(1, k * 1.4) * Math.PI);
+    } else if (u.cell) u.cell.position.copy(u.cellHome);
     if (this.switchT > 0) y -= this.switchT * 0.8;
     if (carrying) y -= 0.5;
     z += this.recoil * 0.05; rx += this.recoil * 0.4;
-    if (this.id === "prism" && ads > 0.9) { y -= 0.4; } // scoped: hide the model
-    this.rig.position.set(x + bx, y - by, z);
-    this.rig.rotation.set(rx, ry, rz);
-    this.arm.position.set(0, 0, 0);
-    // left arm: shows for tether / repulse / carrying
+    if (this.id === "prism" && ads > 0.9) y -= 0.4;           // scoped: hide the model
+    this.rig.position.set(x + bx - this.sway.x * 0.5, y - by + this.sway.y * 0.4, z);
+    this.rig.rotation.set(rx + this.sway.y, ry + this.sway.x, rz + this.sway.x * 0.6);
+    // energy indicator: brightness and length follow the charge left (or heat for the Ion Beam)
+    if (u.ind && u.glowMat) {
+      const a = this.ammo();
+      const frac = d.beam ? 1 - this.heat : d.mag ? a[0] / d.mag : 1;
+      u.glowMat.emissiveIntensity = 0.6 + 2.4 * frac + (this.charge > 0 ? Math.sin(t * 30) * 0.8 : 0);
+      if (d.beam) u.glowMat.emissive.setHSL(0.9 - this.heat * 0.85, 1, 0.55);
+    }
+    // fingers wrap the grip; the trigger finger flexes when firing
+    const F = this.arm.userData.fingers;
+    if (F) F.forEach((f, i) => (f.rotation.x = 0.9 + (i === 0 && this.fireT > 0 ? 0.25 : 0)));
+    this.arm.userData.ring.scale.setScalar(1 + (p.tether ? Math.sin(t * 20) * 0.2 : 0));
+    // left hand: tether, repulse, or carrying
     const showLeft = carrying || !!p.tether || this.punchT > 0;
     this.leftArm.visible = showLeft;
-    if (showLeft) this.leftArm.position.set(-0.3, -0.2 + (this.punchT > 0 ? 0.05 : 0), -0.3 - (this.punchT > 0 ? Math.sin(this.punchT * 10) * 0.2 : 0));
-    // heat glow on the ion beam
-    if (this.id === "beam") m.children.forEach((c) => { if (c.name === "vent") c.material.color.setHSL(0.9 - this.heat * 0.9, 1, 0.5 + this.heat * 0.2); });
+    this.support.visible = !showLeft && this.id !== "pistol" && !carrying;
+    if (showLeft) {
+      const reach = p.tether ? 0.12 : 0;
+      this.leftArm.position.set(-0.22, -0.16 + (this.punchT > 0 ? 0.05 : 0), -0.3 - reach - (this.punchT > 0 ? Math.sin(this.punchT * 10) * 0.2 : 0));
+      this.leftArm.rotation.set(p.tether ? 0.25 : 0, 0, 0);
+      this.leftArm.userData.fingers.forEach((f) => (f.rotation.x = p.tether ? 0.1 : 0.9));
+    }
   }
   render(renderer) {
     renderer.clearDepth();
