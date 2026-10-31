@@ -382,3 +382,14 @@ document.querySelectorAll(".practice-list").forEach(function (list) {
 
   updateScore();
 });
+
+/* ---------- 6. Watford AI study helper ----------
+   Adds the "Ask Watford AI" button (or fills the AI Helper page).
+   All of its code is in js/watford-ai.js. To hide the button on one page,
+   add data-watford-ai="off" to that page's <body>. */
+(function () {
+  const s = document.createElement("script");
+  s.src = SITE_ROOT + "js/watford-ai.js";
+  s.defer = true;
+  document.body.appendChild(s);
+})();
