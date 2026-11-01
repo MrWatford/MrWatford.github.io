@@ -55,7 +55,7 @@
     );
   }
 
-  [6, 8].forEach(function (grade) {
+  [6, 7, 8].forEach(function (grade) {
     const box = document.getElementById("kits-grade-" + grade);
     const jump = document.getElementById("jump-grade-" + grade);
     const chapters = KIT_CHAPTERS.filter(function (c) { return c.grade === grade; });

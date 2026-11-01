@@ -86,7 +86,22 @@ const KITS = {
   "stream-table":       { name: "Stream table (erosion table)", brand: "Any brand", icon: "🏞️", type: "project" },
   "hydrometer":         { name: "Saltwater hydrometer", brand: "Any brand", icon: "🌊", type: "group" },
   "water-test":         { name: "Water quality test strips", brand: "Any brand", icon: "🚰", type: "group" },
-  "protozoa-slides":    { name: "Prepared microscope slides: protozoa", brand: "Any brand", icon: "🦠", type: "demo" }
+  "protozoa-slides":    { name: "Prepared microscope slides: protozoa", brand: "Any brand", icon: "🦠", type: "demo" },
+
+  // ---- Added for 7th grade (life science) ----
+  "anatomy-model":      { name: "Human anatomy torso model", brand: "Any brand", icon: "🫀", type: "demo" },
+  "stethoscope":        { name: "Student stethoscope", brand: "Any brand", icon: "🩺", type: "group" },
+  "glo-germ":           { name: "Glo Germ Kit", brand: "Glo Germ", icon: "🧼", type: "demo" },
+  "first-aid":          { name: "Classroom first aid kit", brand: "Any brand", icon: "⛑️", type: "demo" },
+  "skull-set":          { name: "Replica animal skull set", brand: "Any brand", icon: "💀", type: "demo" },
+  "owl-pellets":        { name: "Owl pellet dissection kit", brand: "Any brand", icon: "🦉", type: "group" },
+  "bird-feeder":        { name: "Window bird feeder", brand: "Any brand", icon: "🪶", type: "project" },
+  "binoculars":         { name: "Kids binoculars", brand: "Any brand", icon: "🔭", type: "group" },
+  "life-cycle-figures": { name: "Life cycle figure sets (frog, sea turtle)", brand: "Safari Ltd", icon: "🐸", type: "group" },
+  "insect-specimens":   { name: "Real insect specimens in clear resin", brand: "Any brand", icon: "🐞", type: "group" },
+  "dna-kit":            { name: "Strawberry DNA extraction kit", brand: "Any brand", icon: "🧬", type: "group" },
+  "brine-shrimp":       { name: "Brine shrimp hatchery kit", brand: "Any brand", icon: "🦐", type: "project" },
+  "tree-cookies":       { name: "Tree ring cross sections (tree cookies)", brand: "Any brand", icon: "🪵", type: "group" }
 };
 
 const KIT_CHAPTERS = [
@@ -135,6 +150,78 @@ const KIT_CHAPTERS = [
     ["ng-magic-chem", "\"Magic\" tricks that are really chemistry, then we explain how each one works."],
     ["molecular", "Groups snap atoms together to build water, carbon dioxide, and other molecules."],
     ["ng-battery", "Make electricity from a chemical reaction using simple materials."]
+  ]},
+
+  // ===== 7th grade =====
+  { grade: 7, ch: 1, title: "Invitation to Science", icon: "🔍", kits: [
+    ["ng-bug-catcher", "A ready-made nature observation kit for exploring the schoolyard and identifying what we find."],
+    ["binoculars", "Groups watch birds and other animals from a distance without scaring them away."],
+    ["ng-mega-science", "Practice the scientific method at stations: question, hypothesis, test, and results."],
+    ["ng-digital-scope", "Zoom in on leaves, bugs, and soil from the backyard and sort them into groups."]
+  ]},
+  { grade: 7, ch: 2, title: "Plants: Provision for Life", icon: "🌷", kits: [
+    ["fast-plants", "Watch flowers form, get pollinated, and make seeds in just a few weeks."],
+    ["root-viewer", "See seeds sprout and roots grow down while stems grow up."],
+    ["ng-terrarium", "A small light-up garden to observe through the whole chapter."],
+    ["ng-microscope-lab", "Look at leaf cells and the tiny pores where leaves let out water."]
+  ]},
+  { grade: 7, ch: 3, title: "Your Wonderful Body", icon: "❤️", kits: [
+    ["anatomy-model", "Take the organs out and put them back to see how the body systems fit together."],
+    ["stethoscope", "Groups listen to heartbeats and breathing before and after moving around."],
+    ["ng-microscope-lab", "Look at cells and tissues to go from organs down to cells."]
+  ]},
+  { grade: 7, ch: 4, title: "A Healthy Life", icon: "🥗", kits: [
+    ["glo-germ", "A lotion that glows under a black light shows how germs spread and how well we wash our hands."],
+    ["first-aid", "Practice simple first aid steps with real supplies."],
+    ["stethoscope", "Measure heart rate before and after exercise."]
+  ]},
+  { grade: 7, ch: 5, title: "Creation & Science", icon: "📖", kits: [
+    ["ng-microscope-lab", "Look at tiny living things and talk about how scientists showed that life only comes from life."],
+    ["ng-mega-science", "Run careful experiments the way early Christian scientists did: test, observe, and record."]
+  ]},
+  { grade: 7, ch: 6, title: "Mammals", icon: "🐻", kits: [
+    ["skull-set", "Compare teeth to tell meat eaters from plant eaters."],
+    ["ng-ocean-dig", "Dig out ocean animals and find the mammals, like the orca, among the fish and reptiles."],
+    ["binoculars", "Watch squirrels and other mammals around school."]
+  ]},
+  { grade: 7, ch: 7, title: "Birds", icon: "🦅", kits: [
+    ["owl-pellets", "Pick apart owl pellets to find the bones of what the owl ate."],
+    ["bird-feeder", "Hang a feeder by the window and keep a class calendar of the birds that visit."],
+    ["binoculars", "Groups watch a flock and record how the birds behave."]
+  ]},
+  { grade: 7, ch: 8, title: "Fish, Reptiles & Amphibians", icon: "🐠", kits: [
+    ["ng-shark-tooth", "Real fossil shark teeth for the lesson on sharks and other cartilage fish."],
+    ["life-cycle-figures", "Put frog and sea turtle life stages in order and compare them."],
+    ["ng-ocean-dig", "Dig out sharks, turtles, and other sea animals and sort them into fish and reptiles."]
+  ]},
+  { grade: 7, ch: 9, title: "Insects", icon: "🐝", kits: [
+    ["ng-bug-catcher", "Catch insects, label the three body parts, then let them go."],
+    ["ng-butterfly", "Raise caterpillars into butterflies to see complete metamorphosis."],
+    ["ng-ant", "Watch an ant colony build its tunnels."],
+    ["insect-specimens", "Groups study real beetles, bees, and butterflies sealed in clear blocks."],
+    ["insect-lore", "A second butterfly habitat if we want more than one."]
+  ]},
+  { grade: 7, ch: 10, title: "Assorted Invertebrates", icon: "🦂", kits: [
+    ["ng-bug-catcher", "Catch roly-polies and other small creatures to observe how they act."],
+    ["ng-digital-scope", "Look closely at shells, legs, and body segments."],
+    ["ng-ocean-dig", "Dig out octopuses, crabs, and other sea creatures without backbones."]
+  ]},
+  { grade: 7, ch: 11, title: "Through the Microscope", icon: "🔬", kits: [
+    ["ng-microscope-lab", "Learn to use a microscope and look at plant cells."],
+    ["protozoa-slides", "See one-celled creatures up close."],
+    ["dna-kit", "Pull real DNA out of strawberries, the material that carries traits from parents to children."],
+    ["ng-digital-scope", "Groups look at pond water and other samples for tiny living things."]
+  ]},
+  { grade: 7, ch: 12, title: "Forestry: Generous Giants", icon: "🌲", kits: [
+    ["tree-cookies", "Count tree rings to tell a tree's age and spot good and bad growing years."],
+    ["stream-table", "Show how tree roots hold soil in place and what happens when the trees are gone."],
+    ["ng-microscope-lab", "Look at thin slices of wood and leaves up close."]
+  ]},
+  { grade: 7, ch: 13, title: "Ecology: Harmony in God's Creation", icon: "🏞️", kits: [
+    ["brine-shrimp", "Hatch and raise brine shrimp to watch a tiny water ecosystem."],
+    ["ng-terrarium", "Build a sealed mini world to see how plants, soil, and water work together."],
+    ["owl-pellets", "Rebuild a food chain from the bones found in an owl pellet."],
+    ["water-test", "Test water samples from around school to see how healthy they are."]
   ]},
 
   // ===== 8th grade =====
