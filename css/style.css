@@ -1980,3 +1980,42 @@ body.dialog-open { overflow: hidden; }
 .year-key { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: -12px 0 24px; color: var(--muted); font-size: 0.92rem; font-weight: 600; }
 .year-key span::before { content: ""; display: inline-block; width: 22px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 999px; border: 2px solid var(--green-700); background: var(--white); }
 .year-key .k-up::before { border-style: dashed; border-color: #9fb8a6; }
+
+/* ===== Science Kit Guide (science/kit-guide.html) ===== */
+.kg-grade { margin: 34px 0 14px; font-size: 1.7rem; color: var(--green-900); }
+.kg-key { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
+.kg-key li { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.kg-type, .kg-adult {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 800; white-space: nowrap;
+}
+.kg-demo    { background: #e3eefc; color: #1f4f8f; }
+.kg-group   { background: #e2f3e4; color: #24632b; }
+.kg-project { background: #fdf0d2; color: #8a5a00; }
+.kg-adult   { background: #fde6e2; color: #9b2c1a; }
+.kg-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+.kg-filter span { font-weight: 800; }
+.kg-filter button {
+  font: inherit; font-weight: 700; cursor: pointer;
+  padding: 6px 14px; border-radius: 999px;
+  border: 2px solid var(--green-700); background: var(--white); color: var(--green-900);
+}
+.kg-filter button:hover { background: var(--green-100); }
+.kg-filter button[aria-pressed="true"] { background: var(--green-700); color: #fff; }
+.kg-note { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.kg-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.kg-kit {
+  margin: 0; display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px; border: 2px solid var(--line); border-radius: 14px; background: var(--white);
+}
+.kg-kit[hidden] { display: none; }
+.kg-icon { font-size: 1.9rem; line-height: 1; }
+.kg-text { display: flex; flex-direction: column; min-width: 0; flex: 1; height: 100%; }
+.kg-text p { margin: 0 0 8px; }
+.kg-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.kg-text h4 { margin: 0; font-size: 1.05rem; }
+.kg-brand { color: var(--muted); font-size: 0.88rem; font-weight: 700; }
+.kg-find { margin-top: auto; align-self: flex-start; font-weight: 800; color: var(--green-700); }
+.kg-find::after { content: " ↗"; }
+.kg-none { color: var(--muted); font-style: italic; margin: 0; }
+.kg-back { margin: 14px 0 0; font-weight: 700; }
