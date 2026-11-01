@@ -84,10 +84,39 @@
   });
 
   // Opened from a chapter link (kit-guide.html#g6-ch1): scroll to it once the panels exist.
+  // Grade buttons: show one grade at a time. The choice is remembered on this device.
+  const tabs = document.querySelectorAll("[data-grade-tab]");
+  function showGrade(grade) {
+    tabs.forEach(function (tab) {
+      const on = tab.dataset.gradeTab === String(grade);
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+      document.getElementById("grade-" + tab.dataset.gradeTab).hidden = !on;
+    });
+    try { localStorage.setItem("kit-guide-grade", grade); } catch (e) {}
+  }
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      showGrade(tab.dataset.gradeTab);
+      history.replaceState(null, "", "#grade-" + tab.dataset.gradeTab);
+    });
+  });
+
+  // Pick the grade from the link (#g7-ch3 or #grade-7), else the last one chosen, else 6th.
+  function gradeFromHash() {
+    const m = location.hash.match(/^#(?:g|grade-)([678])/);
+    return m ? m[1] : null;
+  }
+  let saved = null;
+  try { saved = localStorage.getItem("kit-guide-grade"); } catch (e) {}
+  showGrade(gradeFromHash() || (/^[678]$/.test(saved) ? saved : "6"));
+
   function jumpToHash() {
-    const target = location.hash && document.getElementById(location.hash.slice(1));
+    const grade = gradeFromHash();
+    if (grade) showGrade(grade);
+    const target = /^#g\d-ch\d+$/.test(location.hash) && document.getElementById(location.hash.slice(1));
     if (target) target.scrollIntoView({ behavior: "instant" });
   }
   jumpToHash();
   window.addEventListener("load", jumpToHash);
+  window.addEventListener("hashchange", jumpToHash);
 })();
