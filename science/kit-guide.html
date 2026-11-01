@@ -71,6 +71,20 @@
       <div class="container">
 
         <!-- The kit list lives in js/kit-guide-data.js. Edit that file to add, move, or remove kits. -->
+
+        <!-- Grade buttons: clicking one shows only that grade's kits. -->
+        <div class="kg-grade-tabs" role="tablist" aria-label="Choose your class">
+          <button type="button" role="tab" id="tab-grade-6" aria-controls="grade-6" aria-selected="true" data-grade-tab="6">
+            <span class="ic" aria-hidden="true">🌱</span> 6th Grade
+          </button>
+          <button type="button" role="tab" id="tab-grade-7" aria-controls="grade-7" aria-selected="false" data-grade-tab="7">
+            <span class="ic" aria-hidden="true">🦅</span> 7th Grade
+          </button>
+          <button type="button" role="tab" id="tab-grade-8" aria-controls="grade-8" aria-selected="false" data-grade-tab="8">
+            <span class="ic" aria-hidden="true">🔭</span> 8th Grade
+          </button>
+        </div>
+
         <section class="panel">
           <h2 class="panel-head"><span class="ic" aria-hidden="true">📦</span> How we use the kits</h2>
           <div class="panel-body">
@@ -90,17 +104,23 @@
           </div>
         </section>
 
-        <h2 class="kg-grade" id="grade-6">🌱 6th Grade Science</h2>
-        <ul class="chapter-jump" id="jump-grade-6" aria-label="Jump to a 6th grade chapter"></ul>
-        <div id="kits-grade-6"></div>
+        <section class="kg-grade-section" id="grade-6" role="tabpanel" aria-labelledby="tab-grade-6">
+          <h2 class="kg-grade">🌱 6th Grade Science</h2>
+          <ul class="chapter-jump" id="jump-grade-6" aria-label="Jump to a 6th grade chapter"></ul>
+          <div id="kits-grade-6"></div>
+        </section>
 
-        <h2 class="kg-grade" id="grade-7">🦅 7th Grade Science <small class="kg-next">Next school year</small></h2>
-        <ul class="chapter-jump" id="jump-grade-7" aria-label="Jump to a 7th grade chapter"></ul>
-        <div id="kits-grade-7"></div>
+        <section class="kg-grade-section" id="grade-7" role="tabpanel" aria-labelledby="tab-grade-7">
+          <h2 class="kg-grade">🦅 7th Grade Science <small class="kg-next">Next school year</small></h2>
+          <ul class="chapter-jump" id="jump-grade-7" aria-label="Jump to a 7th grade chapter"></ul>
+          <div id="kits-grade-7"></div>
+        </section>
 
-        <h2 class="kg-grade" id="grade-8">🔭 8th Grade Science</h2>
-        <ul class="chapter-jump" id="jump-grade-8" aria-label="Jump to an 8th grade chapter"></ul>
-        <div id="kits-grade-8"></div>
+        <section class="kg-grade-section" id="grade-8" role="tabpanel" aria-labelledby="tab-grade-8">
+          <h2 class="kg-grade">🔭 8th Grade Science</h2>
+          <ul class="chapter-jump" id="jump-grade-8" aria-label="Jump to an 8th grade chapter"></ul>
+          <div id="kits-grade-8"></div>
+        </section>
 
         <noscript><p class="card">Turn on JavaScript to see the kit list.</p></noscript>
 
@@ -134,8 +154,8 @@
     <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
   </footer>
 
-  <script src="../js/kit-guide-data.js?v=2"></script>
-  <script src="../js/kit-guide.js?v=2"></script>
+  <script src="../js/kit-guide-data.js?v=3"></script>
+  <script src="../js/kit-guide.js?v=3"></script>
   <script src="../js/site.js"></script>
 </body>
 </html>
