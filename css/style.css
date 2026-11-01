@@ -395,6 +395,49 @@ main { flex: 1; }
 .subjects { padding: 40px 0 24px; }
 .section-title { text-align: center; margin-bottom: 26px; }
 .section-title p { color: var(--muted); font-size: 1.1rem; margin: 0; }
+/* Home page subject cards: classroom doors. Each door sets its own color with --door. */
+.doors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
+.door { --door: var(--green-700); --door-ink: var(--white); --door-soft: var(--green-100);
+  position: relative; display: flex; flex-direction: column; background: var(--white);
+  border: 6px solid var(--wood-dark); border-radius: 30px 30px var(--radius) var(--radius);
+  box-shadow: var(--shadow); overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.door-science { --door: var(--blue); --door-soft: #e3edfa; }
+.door-math { --door: #d9a90f; --door-ink: #3d2e00; --door-soft: var(--yellow-50); }
+.door:hover, .door:focus-within { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.door-top { position: relative; background: var(--wood); padding: 16px 16px 12px;
+  background-image: repeating-linear-gradient(90deg, transparent 0 38px, rgba(0,0,0,0.05) 38px 40px); }
+.door-window { display: block; aspect-ratio: 16 / 10; border: 5px solid var(--wood-dark); border-radius: 18px 18px 8px 8px;
+  overflow: hidden; background: var(--door-soft); }
+.door-window img, .door-window svg { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+.door:hover .door-window img, .door:hover .door-window svg { transform: scale(1.05); }
+.door-plate { margin: 12px auto 0; width: fit-content; padding: 3px 16px; border-radius: 6px; background: var(--yellow);
+  color: #3d2e00; border: 2px solid #c99b16; font-weight: 800; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.door-knob { position: absolute; right: 14px; bottom: 16px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--yellow); border: 2px solid #c99b16; }
+.door-body { display: flex; flex-direction: column; flex: 1; padding: 18px 20px 20px; border-top: 6px solid var(--door); }
+.door-flag { align-self: flex-start; margin-bottom: 10px; padding: 3px 12px; border-radius: 999px; background: var(--yellow-50);
+  color: #6b5000; border: 1px solid #f0d27a; font-weight: 800; font-size: 0.78rem; }
+.door h3 { margin: 0 0 6px; font-size: 1.4rem; }
+.door-link { color: var(--green-900); text-decoration: none; }
+.door-link::after { content: ""; position: absolute; inset: 0; }   /* whole door is clickable */
+.door-link:focus-visible { outline: none; }
+.door:has(.door-link:focus-visible) { outline: 4px solid var(--door); outline-offset: 4px; }
+.door-body p { color: var(--muted); margin: 0 0 14px; }
+.door-stats { list-style: none; display: flex; gap: 10px; padding: 0; margin: 0 0 16px; }
+.door-stats li { flex: 1; margin: 0; padding: 8px 6px; border-radius: 12px; background: var(--door-soft); text-align: center;
+  font-size: 0.85rem; color: var(--muted); }
+.door-stats b { display: block; font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.35rem; color: var(--green-900); line-height: 1.2; }
+.door-grades { list-style: none; display: flex; gap: 8px; padding: 0; margin: 0 0 14px; }
+.door-grades li { margin: 0; flex: 1; }
+.door-grades a { position: relative; z-index: 1; display: block; text-align: center; padding: 6px 0; border-radius: 999px;
+  border: 2px solid var(--door); color: var(--door); font-weight: 800; text-decoration: none; }
+.door-grades a:hover, .door-grades a:focus-visible { background: var(--door); color: var(--door-ink); }
+.door-btn { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+  border-radius: 999px; background: var(--door); color: var(--door-ink); font-weight: 800; }
+.door-btn::after { content: "→"; transition: transform 0.2s ease; }
+.door:hover .door-btn::after { transform: translateX(5px); }
+@media (max-width: 960px) { .doors { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; } }
+
 .subject-link { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .subject-link:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); color: var(--ink); }
 .subject-link .panel-body { display: flex; flex-direction: column; flex: 1; }
