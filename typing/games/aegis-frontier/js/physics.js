@@ -1,4 +1,4 @@
-// Aegis Frontier: solid things you can bump into (boxes and upright cylinders), a spatial grid
+// Ringfall: solid things you can bump into (boxes and upright cylinders), a spatial grid
 // to find them quickly, ray casts, and the "stand on it / push out of it" rules for movement.
 import { clamp } from "./util.js";
 import { WATER_Y } from "./content.js";

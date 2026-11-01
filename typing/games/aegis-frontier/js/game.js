@@ -1,4 +1,4 @@
-// Aegis Frontier: progress and rules. World flags (saved) drive everything: missions read them,
+// Ringfall: progress and rules. World flags (saved) drive everything: missions read them,
 // terminals/bases/rescues set them, and nothing can be rewarded twice because rewards are keyed by id.
 import * as THREE from "../lib/three.module.min.js";
 import { MISSIONS, missionById, ENCOUNTERS, RESCUES, STRONGHOLDS, COMMANDER_SITES, COMMANDERS, COURSES, SITES, siteById,

@@ -1,4 +1,4 @@
-// Aegis Frontier: the land. One height grid (2.5 m cells) is used for BOTH drawing and collision,
+// Ringfall: the land. One height grid (2.5 m cells) is used for BOTH drawing and collision,
 // so what you see is exactly what you stand on.
 import * as THREE from "../lib/three.module.min.js";
 import { REGIONS, PASSES, ROADS, LAKES, GORGES, SITES, WORLD_HALF, WATER_Y } from "./content.js";

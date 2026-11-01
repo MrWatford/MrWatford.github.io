@@ -1,4 +1,4 @@
-// Aegis Frontier: every sound is made on the fly with Web Audio (no sound files).
+// Ringfall: every sound is made on the fly with Web Audio (no sound files).
 // Music is a gentle generated pad that adds a pulse layer during combat.
 export class Audio {
   constructor() {

@@ -1,4 +1,4 @@
-// Aegis Frontier: Directorate robots. Every hostile is a machine; when disabled it folds down and
+// Ringfall: Directorate robots. Every hostile is a machine; when disabled it folds down and
 // dissolves into harmless holographic particles. AI: idle/patrol, investigate, alert, engage,
 // reposition, search, return, disabled — with real sight lines, cover, flanking, and attack limits.
 import * as THREE from "../lib/three.module.min.js";

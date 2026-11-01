@@ -1,4 +1,4 @@
-// Aegis Frontier: the ATLAS ARRAY, a large automated command machine. Three phases, each with a
+// Ringfall: the ATLAS ARRAY, a large automated command machine. Three phases, each with a
 // different job: (1) dodge sweeps and disable 4 relay nodes, (2) climb to the side platforms and shut
 // off 2 link conduits while helper drones arrive, (3) interrupt the charge and damage the exposed core.
 // Every attack is announced by light and sound first. A failed attempt resets cleanly.

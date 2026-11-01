@@ -1,4 +1,4 @@
-// Aegis Frontier: start-up, the game loop (fixed 60 Hz simulation), controls, and menu wiring.
+// Ringfall: start-up, the game loop (fixed 60 Hz simulation), controls, and menu wiring.
 import * as THREE from "../lib/three.module.min.js";
 import { MISSIONS, missionById, siteById, SITES, COURSES, TRAINING, RESCUES, WEAPON_ORDER } from "./content.js";
 import { Terrain } from "./terrain.js";
@@ -646,13 +646,13 @@ class Game {
       else if (act === "exp") {
         const r = Saves.read(n); if (!r.state) return;
         const blob = new Blob([Saves.exportText(r.state)], { type: "application/json" });
-        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `aegis-frontier-slot-${n}.json`; a.click();
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `ringfall-slot-${n}.json`; a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       } else if (act === "imp") { this.importSlot = n; $("#importFile").value = ""; $("#importFile").click(); }
     });
     $("#importFile").addEventListener("change", async () => {
       const f = $("#importFile").files[0]; if (!f) return;
-      if (f.size > 200000) { alert("That file is too large to be an Aegis Frontier save."); return; }
+      if (f.size > 200000) { alert("That file is too large to be a Ringfall save."); return; }
       try {
         const st = Saves.importText(await f.text());
         const r = Saves.read(this.importSlot);

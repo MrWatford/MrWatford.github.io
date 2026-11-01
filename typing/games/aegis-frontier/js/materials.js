@@ -1,4 +1,4 @@
-// Aegis Frontier: the shared look. Procedural surface textures (made in code at load time, so there are
+// Ringfall: the shared look. Procedural surface textures (made in code at load time, so there are
 // no image downloads), a sky-reflection environment map, physically based materials, beveled shapes,
 // and small shader add-ons for world-space surface detail and wind.
 import * as THREE from "../lib/three.module.min.js";
@@ -96,6 +96,16 @@ export function makeTextures(size = 512) {
     }
     for (let i = 0; i < 400; i++) { g.fillStyle = `rgba(90,90,95,${R() * 0.25})`; g.fillRect(R() * s, R() * s, 1 + R() * 5, 1); }
   });
+  // Armor wear: light grain, fine scratches, and scuffs (no tile pattern; tinted by the paint color)
+  T.wear = canvasTex(size, (g, s) => {
+    noiseFill(g, s, (n) => { const a = n(14) * 0.6 + n(40) * 0.4; const v = 236 + a * 16; return [clamp255(v), clamp255(v), clamp255(v)]; }, 81);
+    for (let i = 0; i < 260; i++) {
+      const x = R() * s, y = R() * s, l = 4 + R() * 26, a = R() * 6.28;
+      g.strokeStyle = R() < 0.6 ? `rgba(90,90,95,${0.12 + R() * 0.25})` : `rgba(255,255,255,${0.25 + R() * 0.3})`;
+      g.lineWidth = 0.6 + R() * 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+    }
+    for (let i = 0; i < 90; i++) { const gr = g.createRadialGradient(0, 0, 0, 0, 0, 6 + R() * 14); const x = R() * s, y = R() * s; gr.addColorStop(0, "rgba(70,70,75,0.18)"); gr.addColorStop(1, "rgba(70,70,75,0)"); g.save(); g.translate(x, y); g.fillStyle = gr; g.fillRect(-20, -20, 40, 40); g.restore(); }
+  });
   // Bark: vertical furrows
   T.bark = canvasTex(256, (g, s) => {
     noiseFill(g, s, (n, u) => { const a = n(5), f = Math.abs(Math.sin(u * Math.PI * 14 + a * 3)); return [clamp255(90 + f * 50 + a * 20), clamp255(68 + f * 36 + a * 16), clamp255(50 + f * 24 + a * 12)]; }, 61);
@@ -170,7 +180,8 @@ export function buildMaterials(T, env) {
   MAT.robotTrim = std({ color: srgb(0.36, 0.29, 0.52), roughness: 0.45, metalness: 0.4 });
   MAT.robotGold = std({ color: srgb(0.78, 0.62, 0.18), roughness: 0.35, metalness: 0.85 });
   MAT.roverWhite = std({ color: srgb(0.92, 0.93, 0.94), roughness: 0.4, metalness: 0.1 });
-    for (const k of ["robotBody", "robotLight", "robotTrim"]) addDetail(MAT[k], T.panel, { scale: 1.4, bump: 0.08, mix: 0.18 });
+    for (const k of ["armorBlue", "armorWhite", "armorOrange", "roverWhite"]) addDetail(MAT[k], T.wear, { scale: 3.2, bump: 0.12, mix: 0.35 });
+  for (const k of ["robotBody", "robotLight", "robotTrim"]) addDetail(MAT[k], T.panel, { scale: 1.4, bump: 0.08, mix: 0.18 });
   MAT.glowTeal = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: srgb(0.25, 0.95, 0.85), emissiveIntensity: 2.2 });
   MAT.glowAmber = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: srgb(1, 0.66, 0.2), emissiveIntensity: 2.4 });
   MAT.glowViolet = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: srgb(0.69, 0.42, 1), emissiveIntensity: 2.2 });

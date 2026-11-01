@@ -1,4 +1,4 @@
-// Aegis Frontier: the seven energy tools, their first-person models, ammo/charge/heat rules,
+// Ringfall: the seven energy tools, their first-person models, ammo/charge/heat rules,
 // and the shared "what did this shot hit?" logic.
 import * as THREE from "../lib/three.module.min.js";
 import { WEAPONS, WEAPON_ORDER } from "./content.js";

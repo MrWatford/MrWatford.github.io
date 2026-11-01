@@ -1,4 +1,4 @@
-// Aegis Frontier: natural scenery and the sky.
+// Ringfall: natural scenery and the sky.
 //  - Trees (5 pine shapes + bare trees), rocks (6 shapes), and bushes are built from code, placed in
 //    natural clusters with a fixed seed (same layout every time), and drawn with instancing.
 //    Nearby copies use detailed models; distant copies use simple ones.

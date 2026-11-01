@@ -1,4 +1,4 @@
-// Aegis Frontier: friendly people. Rangers fight robots and withdraw when their shields drop (they
+// Ringfall: friendly people. Rangers fight robots and withdraw when their shields drop (they
 // are never defeated). Researchers and Pilot Rowan never fight and are never targeted.
 // Escort transports, and Rowan's dropship for deliveries and evacuations, live here too.
 import * as THREE from "../lib/three.module.min.js";

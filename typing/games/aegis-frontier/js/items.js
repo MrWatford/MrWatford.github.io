@@ -1,4 +1,4 @@
-// Aegis Frontier: things you pick up — upgrade cores, recordings, emblems (each collected once,
+// Ringfall: things you pick up — upgrade cores, recordings, emblems (each collected once,
 // saved by id), carryable energy cells, and energy packs that robots leave behind.
 import * as THREE from "../lib/three.module.min.js";
 import { CORES_HIDDEN, EMBLEMS, RECORDINGS } from "./content.js";

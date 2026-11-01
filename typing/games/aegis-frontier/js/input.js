@@ -1,4 +1,4 @@
-// Aegis Frontier: keyboard + mouse. Keys are read by name ("KeyW"), so layouts don't matter.
+// Ringfall: keyboard + mouse. Keys are read by name ("KeyW"), so layouts don't matter.
 export class Input {
   constructor(canvas) {
     this.canvas = canvas;

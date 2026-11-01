@@ -1,4 +1,4 @@
-// Aegis Frontier: moving shots (robot energy bolts, Flux orbs, EMP Orbs, Stasis Discs) and
+// Ringfall: moving shots (robot energy bolts, Flux orbs, EMP Orbs, Stasis Discs) and
 // area effects (energy repulse, EMP, stasis fields, flux bursts, volatile machinery).
 import * as THREE from "../lib/three.module.min.js";
 import { rayPanel, segPanel } from "./robots.js";

@@ -1,4 +1,4 @@
-// Aegis Frontier: HUD, menus, map, journal, upgrades, subtitles. Fast-changing numbers are written
+// Ringfall: HUD, menus, map, journal, upgrades, subtitles. Fast-changing numbers are written
 // straight into existing elements (no full re-render); menus are rebuilt only when opened.
 import * as THREE from "../lib/three.module.min.js";
 import { MISSIONS, missionById, CAST, WEAPONS, WEAPON_ORDER, EQUIPMENT, UPGRADES, UPGRADE_COSTS, VEHICLES, SUITS, RECORDINGS, EMBLEMS,

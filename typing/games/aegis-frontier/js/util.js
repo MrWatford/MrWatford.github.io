@@ -1,4 +1,4 @@
-// Aegis Frontier: small math helpers, seeded random numbers, and noise used by every other file.
+// Ringfall: small math helpers, seeded random numbers, and noise used by every other file.
 
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const lerp = (a, b, t) => a + (b - a) * t;

@@ -1,4 +1,4 @@
-// Aegis Frontier: detailed models built from beveled parts with separate materials
+// Ringfall: detailed models built from beveled parts with separate materials
 // (painted armor, dark undersuit, bare metal, rubber, glass, glowing energy parts).
 // The Guardian, first-person hands and weapons, robots, and the rover live here.
 import * as THREE from "../lib/three.module.min.js";
@@ -17,6 +17,7 @@ const cyl = (r1, r2, h, s = 12) => new THREE.CylinderGeometry(r1, r2, h, s);
 export function suitMaterials(colors) {
   const a = MAT.armorBlue.clone(), b = MAT.armorWhite.clone(), c = MAT.armorOrange.clone();
   a.color.set(colors[0]); b.color.set(colors[1]); c.color.set(colors[2]);
+  for (const m of [a, b, c]) { m.onBeforeCompile = MAT.armorBlue.onBeforeCompile; m.customProgramCacheKey = MAT.armorBlue.customProgramCacheKey; }
   return { main: a, light: b, accent: c };
 }
 
@@ -60,31 +61,69 @@ export function buildGuardian(colors, seated) {
   const em = new THREE.Mesh(new THREE.CircleGeometry(0.032, 6), MAT.glowAmber); em.position.set(0.11, 1.42, 0.161); em.rotation.y = 0.18; g.add(em);
   part(g, cyl(0.065, 0.075, 0.08, 10), U, 0, 1.53, 0);                            // collar
   part(g, B(0.3, 0.05, 0.2, 0.025), M, 0, 1.51, -0.02);
-  // ----- shoulders and arms -----
+  // ----- shoulders and arms (each arm pivots at the shoulder, the forearm at the elbow) -----
+  const arms = {};
   for (const sx of [-1, 1]) {
     const x = sx * 0.29;
-    part(g, shell(0.11, 1.15, 0.95, 1.05), S.main, x, 1.46, 0, 0, 0, sx * -0.35);          // rounded pauldron
-    part(g, B(0.2, 0.03, 0.2, 0.012), S.accent, x + sx * 0.02, 1.44, 0, 0, 0, sx * -0.35);  // pauldron rim
-    part(g, cyl(0.055, 0.05, 0.46, 10), U, x, 1.2, 0);                                     // undersuit arm
-    part(g, B(0.11, 0.16, 0.12, 0.04), S.light, x, 1.29, 0.0);                             // bicep plate
-    part(g, shell(0.05, 1, 0.8, 1), M, x, 1.12, -0.01, Math.PI);                           // elbow
-    part(g, B(0.12, 0.22, 0.13, 0.045), S.main, x, 0.99, 0.02);                            // gauntlet
-    part(g, B(0.125, 0.02, 0.135, 0.008), MAT.glowTeal, x, 0.92, 0.02, 0, 0, 0, false);
-    part(g, B(0.085, 0.09, 0.09, 0.03), U, x, 0.83, 0.03);                                 // glove
-    part(g, B(0.07, 0.025, 0.06, 0.01), S.light, x, 0.86, 0.06);                           // knuckle plate
+    const arm = new THREE.Group(); arm.position.set(x, 1.46, 0); g.add(arm);
+    const ay = (y) => y - 1.46;
+    part(arm, shell(0.115, 1.15, 0.95, 1.05), S.main, 0, 0, 0, 0, 0, sx * -0.35);                 // rounded pauldron
+    part(arm, shell(0.1, 1.1, 0.7, 1.0), S.light, sx * 0.03, -0.045, 0, 0, 0, sx * -0.5);         // layered lower plate
+    part(arm, B(0.2, 0.03, 0.2, 0.012), S.accent, sx * 0.02, -0.02, 0, 0, 0, sx * -0.35);          // pauldron rim
+    part(arm, B(0.03, 0.06, 0.11, 0.01), M, sx * 0.1, ay(1.48), 0, 0, 0, sx * -0.35);             // attachment point
+    part(arm, cyl(0.055, 0.05, 0.46, 10), U, 0, ay(1.2), 0);                                       // undersuit arm
+    part(arm, B(0.11, 0.16, 0.12, 0.04), S.light, 0, ay(1.29), 0.0);                               // bicep plate
+    part(arm, B(0.112, 0.012, 0.122, 0.004), M, 0, ay(1.3), 0.0, 0, 0, 0, false);                  // seam
+    const fore = new THREE.Group(); fore.position.set(0, ay(1.12), 0); arm.add(fore);
+    const fy = (y) => y - 1.12;
+    part(fore, shell(0.05, 1, 0.8, 1), M, 0, 0, -0.01, Math.PI);                                    // elbow
+    part(fore, B(0.12, 0.22, 0.13, 0.045), S.main, 0, fy(0.99), 0.02);                             // gauntlet
+    part(fore, B(0.13, 0.1, 0.06, 0.02), S.light, sx * 0.01, fy(1.03), 0.075);                     // forearm guard
+    part(fore, B(0.125, 0.02, 0.135, 0.008), MAT.glowTeal, 0, fy(0.92), 0.02, 0, 0, 0, false);
+    part(fore, B(0.085, 0.09, 0.09, 0.03), U, 0, fy(0.83), 0.03);                                  // glove
+    part(fore, B(0.07, 0.025, 0.06, 0.01), S.light, 0, fy(0.86), 0.06);                            // knuckle plate
+    arms[sx] = { arm, fore };
   }
-  // ----- helmet: rounded shell, crest, cheek guards, wrap-around amber visor -----
-  const hy = 1.69;
-  part(g, cyl(0.06, 0.07, 0.07, 10), U, 0, 1.59, 0);
-  part(g, new THREE.SphereGeometry(0.14, 20, 14).scale(0.92, 1.0, 1.05), S.light, 0, hy, -0.01);
-  part(g, shell(0.145, 0.95, 1.05, 1.08, Math.PI * 2, Math.PI * 0.34), S.main, 0, hy + 0.01, -0.01);   // top shell
-  part(g, B(0.06, 0.05, 0.28, 0.02), S.accent, 0, hy + 0.15, -0.01);                      // crest ridge
-  for (const sx of [-1, 1]) part(g, B(0.04, 0.12, 0.15, 0.02), S.main, sx * 0.12, hy - 0.04, 0.03, 0, sx * 0.15, 0);
-  const visor = new THREE.SphereGeometry(0.15, 22, 10, -0.8 + Math.PI / 2, 1.6, Math.PI * 0.36, Math.PI * 0.21);
-  part(g, visor.scale(0.95, 1, 1.12), MAT.visor, 0, hy, 0.0);
-  part(g, B(0.11, 0.05, 0.05, 0.015), M, 0, hy - 0.09, 0.12);                              // breather
-  part(g, cyl(0.006, 0.006, 0.1, 4), MAT.metal, 0.11, hy + 0.14, -0.06);                    // antenna
+  // ----- helmet: rounded shell, crest, cheek guards, side lights, wrap-around amber visor -----
+  const head = new THREE.Group(); head.position.y = 1.59; g.add(head);
+  const hy = 0.1;
+  part(head, cyl(0.06, 0.07, 0.07, 10), U, 0, 0, 0);
+  part(head, new THREE.SphereGeometry(0.14, 24, 16).scale(0.92, 1.0, 1.05), S.light, 0, hy, -0.01);
+  part(head, shell(0.145, 0.95, 1.05, 1.08, Math.PI * 2, Math.PI * 0.34), S.main, 0, hy + 0.01, -0.01);   // top shell
+  part(head, B(0.06, 0.05, 0.28, 0.02), S.accent, 0, hy + 0.15, -0.01);                      // crest ridge
+  part(head, B(0.02, 0.03, 0.2, 0.008), M, 0, hy + 0.175, -0.02);                            // crest seam
+  for (const sx of [-1, 1]) {
+    part(head, B(0.04, 0.12, 0.15, 0.02), S.main, sx * 0.12, hy - 0.04, 0.03, 0, sx * 0.15, 0);   // cheek guards
+    part(head, cyl(0.035, 0.035, 0.03, 12), M, sx * 0.135, hy + 0.02, -0.02, 0, 0, Math.PI / 2);  // ear module
+    part(head, cyl(0.012, 0.012, 0.032, 8), MAT.glowTeal, sx * 0.137, hy + 0.02, -0.02, 0, 0, Math.PI / 2, false);
+  }
+  const visor = new THREE.SphereGeometry(0.15, 28, 12, -0.8 + Math.PI / 2, 1.6, Math.PI * 0.36, Math.PI * 0.21);
+  part(head, visor.scale(0.95, 1, 1.12), MAT.visor, 0, hy, 0.0);
+  part(head, B(0.11, 0.05, 0.05, 0.015), M, 0, hy - 0.09, 0.12);                              // breather
+  for (const sx of [-1, 1]) part(head, B(0.025, 0.03, 0.02, 0.006), MAT.rubber, sx * 0.035, hy - 0.09, 0.148, 0, 0, 0, false);
+  part(head, cyl(0.006, 0.006, 0.1, 4), MAT.metal, 0.11, hy + 0.14, -0.06);                    // antenna
+  // extra seams and bands for close-up shots
+  for (let i = 0; i < 3; i++) part(g, B(0.27, 0.012, 0.21, 0.005), M, 0, 1.08 + i * 0.05, 0, 0, 0, 0, false);   // abdomen bands
+  part(g, B(0.44, 0.012, 0.262, 0.005), M, 0, 1.31, 0.0, 0, 0, 0, false);                                      // chest seam
+  g.userData = { arms, head, legs };
   return g;
+}
+
+// Poses for still shots (the Guardian holding a carbine across the body, ready).
+export function poseGuardian(g, pose, weapon) {
+  const { arms, head } = g.userData;
+  if (pose === "ready") {
+    // character's right arm is on -x (it faces +z)
+    arms[-1].arm.rotation.set(-0.55, 0.15, 0.12); arms[-1].fore.rotation.set(-1.35, 0.25, 0);
+    arms[1].arm.rotation.set(-0.95, -0.55, -0.15); arms[1].fore.rotation.set(-1.0, -0.2, 0.15);
+    head.rotation.set(0.05, -0.12, 0);
+    if (weapon) {
+      weapon.scale.setScalar(1.6);
+      weapon.position.set(0.02, 1.08, 0.33);
+      weapon.rotation.set(0.25, Math.PI + 0.75, 0.35, "YXZ");
+      g.add(weapon);
+    }
+  }
 }
 
 // ---------------- first-person arm ----------------

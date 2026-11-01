@@ -1,4 +1,4 @@
-// Aegis Frontier: all of the authored game content in one place (world layout, sites, missions,
+// Ringfall: all of the authored game content in one place (world layout, sites, missions,
 // dialogue, collectibles). Coordinates are meters: x = east, z = south (north is -z).
 // Everything here is plain data so the campaign can grow without rewriting the game systems.
 

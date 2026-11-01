@@ -1,4 +1,4 @@
-// Aegis Frontier: final image. When bloom is on, the frame is drawn into an off-screen buffer
+// Ringfall: final image. When bloom is on, the frame is drawn into an off-screen buffer
 // (with multisample antialiasing), bright energy parts get a soft glow, and tone mapping + color
 // conversion happen exactly once in the final pass. When bloom is off, the renderer does it directly.
 import * as THREE from "../lib/three.module.min.js";

@@ -1,4 +1,4 @@
-// Aegis Frontier: puts the static world together and keeps its switchable parts in sync with progress:
+// Ringfall: puts the static world together and keeps its switchable parts in sync with progress:
 // region barrier fields, doors/bridges/shield bubbles, shootable power cores, faction lights.
 import * as THREE from "../lib/three.module.min.js";
 import { REGIONS, SITES, siteById, WORLD_HALF } from "./content.js";

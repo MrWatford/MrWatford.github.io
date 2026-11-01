@@ -1,4 +1,4 @@
-// Aegis Frontier: ground navigation. The terrain grid (2.5 m cells) is marked walkable or blocked
+// Ringfall: ground navigation. The terrain grid (2.5 m cells) is marked walkable or blocked
 // (too steep, deep water, or inside a structure); A* finds paths, then they are smoothed.
 import { N, RES } from "./terrain.js";
 import { WORLD_HALF } from "./content.js";

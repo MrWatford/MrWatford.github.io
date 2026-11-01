@@ -1,4 +1,4 @@
-// Aegis Frontier: drivable vehicles — Trailrunner Rover (wheels), Driftwing Skiff (hover),
+// Ringfall: drivable vehicles — Trailrunner Rover (wheels), Driftwing Skiff (hover),
 // Bastion Crawler (armored cannon), Skyfin (flight). Third-person camera, collision with the
 // world, gentle shoving of people, stuck recovery, and safe shielded ejection.
 import * as THREE from "../lib/three.module.min.js";

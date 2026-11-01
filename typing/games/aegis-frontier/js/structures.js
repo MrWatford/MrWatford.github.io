@@ -1,4 +1,4 @@
-// Aegis Frontier: builds every site out of boxes. Each box can also be solid (collision).
+// Ringfall: builds every site out of boxes. Each box can also be solid (collision).
 // Static boxes are merged into one mesh per site to keep drawing fast.
 import * as THREE from "../lib/three.module.min.js";
 import { SITES, RESCUES } from "./content.js";

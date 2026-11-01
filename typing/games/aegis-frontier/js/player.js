@@ -1,4 +1,4 @@
-// Aegis Frontier: the Guardian. First-person movement with collision, mantling, sliding, swimming,
+// Ringfall: the Guardian. First-person movement with collision, mantling, sliding, swimming,
 // the Tether Gauntlet and other equipment, the energy repulse, throwables, and shields.
 import * as THREE from "../lib/three.module.min.js";
 import { clamp, lerp, approach, angleWrap } from "./util.js";

@@ -1,4 +1,4 @@
-// Aegis Frontier: pooled visual effects (sparks, holographic particles, tracers, beams, rings, flashes).
+// Ringfall: pooled visual effects (sparks, holographic particles, tracers, beams, rings, flashes).
 import * as THREE from "../lib/three.module.min.js";
 
 const MAXP = 700, MAXL = 160, MAXR = 16, MAXF = 24;

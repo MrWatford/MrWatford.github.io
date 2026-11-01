@@ -1,4 +1,4 @@
-// Aegis Frontier: saving. Three local slots in this browser's localStorage (saves are small: a few KB).
+// Ringfall: saving. Three local slots in this browser's localStorage (saves are small: a few KB).
 // Every load is checked: unknown keys are dropped, numbers are clamped, lists are filtered to known ids.
 import { MISSIONS, WEAPON_ORDER, CORES_HIDDEN, EMBLEMS, RECORDINGS, SUITS, UPGRADES, VEHICLES } from "./content.js";
 
@@ -45,7 +45,7 @@ const strList = (v, ok, max = 400) => (Array.isArray(v) ? [...new Set(v.filter((
 
 // Returns a clean state, or throws an Error with a friendly message.
 export function validate(raw) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("This isn't an Aegis Frontier save.");
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("This isn't a Ringfall save.");
   if (typeof raw.v !== "number") throw new Error("This save is missing its version number.");
   if (raw.v > SAVE_VERSION) throw new Error("This save comes from a newer version of the game.");
   const S = newState(["explorer", "standard", "veteran"].includes(raw.difficulty) ? raw.difficulty : "standard");
@@ -108,7 +108,7 @@ export const Saves = {
     if (typeof txt !== "string" || txt.length > MAX_IMPORT) throw new Error("That file is too large to be a save.");
     let raw;
     try { raw = JSON.parse(txt); } catch (e) { throw new Error("That file isn't readable save data."); }
-    if (!raw || raw.game !== "aegis-frontier") throw new Error("That file isn't an Aegis Frontier save.");
+    if (!raw || raw.game !== "aegis-frontier") throw new Error("That file isn't a Ringfall save.");
     delete raw.game;
     return validate(raw);
   },
