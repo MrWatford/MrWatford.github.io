@@ -1,4 +1,7 @@
-# Aegis Frontier — status checklist
+# Ringfall: Infinite Frontier — status checklist
+
+(Renamed from "Aegis Frontier" on 2026-11-01. The folder, web address, save slots, export files, and play counter keep the
+old internal id `aegis-frontier` on purpose, so links and saved progress keep working. "AEGIS" is still the name of the suit.)
 
 An original first-person sci-fi adventure for Mr. Watford's website (free-time game, not typing practice).
 Route: `typing/games/aegis-frontier/index.html` · Card: Typing page "New free-time game" panel · Home: "Recently added".

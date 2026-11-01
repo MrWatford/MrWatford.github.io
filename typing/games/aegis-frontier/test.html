@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aegis Frontier Checks</title>
+<title>Ringfall Checks</title>
 <style>
   body { font: 15px/1.45 system-ui, sans-serif; background: #0b1418; color: #eaf6f8; margin: 0; padding: 16px; }
   h1 { font-size: 20px; } .pass { color: #7affc8; } .fail { color: #ffb38a; font-weight: 700; }
@@ -11,7 +11,7 @@
 </style>
 </head>
 <body>
-<h1>Aegis Frontier — automated checks</h1>
+<h1>Ringfall: Infinite Frontier — automated checks</h1>
 <p>Checks the save system, content counts, school-content wording, and the "no reward twice" rules. Open this page in a browser; nothing here touches your real save slots.</p>
 <p id="sum">Running…</p>
 <ul id="out"></ul>
@@ -145,7 +145,7 @@ function fakeGame(mode = "campaign") {
 
 document.getElementById("sum").textContent = `${pass} passed, ${fail} failed`;
 document.getElementById("sum").className = fail ? "fail" : "pass";
-document.title = `Aegis Frontier Checks: ${pass} passed, ${fail} failed`;
+document.title = `Ringfall Checks: ${pass} passed, ${fail} failed`;
 </script>
 </body>
 </html>
