@@ -154,6 +154,21 @@ details.more .set { margin-top: 10px; }
 .adv span { font-size: 12px; font-weight: 800; color: #555; }
 .adv .adv-ok { color: #3a7a1a; } .adv .adv-wait { color: #8a6a00; } .adv .adv-rw { color: #4a7a10; }
 .void-card { background: #b8a8c8; }
+#victory { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); width: min(560px, 92vw); text-align: center; background: rgba(30, 12, 6, .82); border: 3px solid #ff9a2a; border-radius: 14px; padding: 14px 18px; pointer-events: auto; }
+#victory h2 { margin: 0 0 6px; font: 600 26px var(--display); color: #ffd34d; text-shadow: 0 2px 0 #000; }
+#victory p { margin: 0 0 10px; color: #ffe8c8; line-height: 1.4; font-weight: 700; }
+#bossbar.ember b { color: #ffd8a8; }
+#bossbar.ember i { background: linear-gradient(#ffb030, #c83a10); }
+.skin-wrap { display: grid; grid-template-columns: 1fr 240px; gap: 14px; align-items: start; margin-bottom: 10px; }
+.skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.skin-card { display: grid; justify-items: center; gap: 4px; background: #222723; border: 3px solid #111; border-radius: 10px; padding: 8px 4px; cursor: pointer; color: var(--text); font: 600 14px var(--display); }
+.skin-card canvas { image-rendering: pixelated; width: 54px; height: 92px; }
+.skin-card[aria-pressed=true] { border-color: var(--yellow); background: #333a2c; box-shadow: 0 0 0 2px var(--yellow); }
+.skin-card:focus-visible { outline: 3px solid var(--yellow); }
+.skin-side { display: grid; justify-items: center; text-align: center; gap: 4px; background: #1a1e1b; border: 2px solid #111; border-radius: 10px; padding: 10px; }
+#skinPreview { width: 220px; height: 260px; cursor: grab; touch-action: none; }
+#skinName { font: 600 20px var(--display); }
+@media (max-width: 640px) { .skin-wrap { grid-template-columns: 1fr; } }
 #compass { position: absolute; left: 14px; bottom: 14px; display: flex; gap: 8px; align-items: center; background: rgba(20,24,21,.8); border: 2px solid #111; border-radius: 10px; padding: 6px 10px 6px 6px; font-weight: 800; font-size: 13px; }
 #compass .dial { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #e8e8e8; border: 3px solid #8a8a8a; }
 #compass i { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 4px; margin-left: -2px; background: linear-gradient(#e04030 50%, #333 50%); border-radius: 2px; }
@@ -232,6 +247,7 @@ details.more .set { margin-top: 10px; }
   <div id="effects"></div>
   <div id="advToasts"></div>
   <div id="totemPop" hidden></div>
+  <div id="victory" hidden><h2></h2><p></p><button class="btn small" onclick="window.__bh.skipVictory()">Skip (Space)</button></div>
   <div id="compass" hidden><span class="dial"><i></i></span><b></b></div>
   <div id="bossbar" hidden><b>Hollow Wyrm</b><span><i></i></span></div>
   <div id="itemName"></div>
@@ -256,6 +272,7 @@ details.more .set { margin-top: 10px; }
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
     <div class="row"><button class="btn" id="btnSettings">Settings</button><button class="btn" id="btnControls">Controls</button></div>
+    <button class="btn" id="btnSkins">👕 Skins</button>
     <a class="back-link" href="../../index.html">← Back to Mr. Watford's Games</a>
     <p class="foot">Lighthouse Baptist Academy • Mr. Watford</p>
   </div>
@@ -313,7 +330,7 @@ details.more .set { margin-top: 10px; }
     <button class="btn primary" id="btnResume">Resume</button>
     <div class="row"><button class="btn" id="btnSave">Save</button><button class="btn" id="btnExport">Download world</button></div>
     <div class="row"><button class="btn" id="btnSettings2">Settings</button><button class="btn" id="btnControls2">Controls</button></div>
-    <button class="btn" id="btnAdv">🏆 Advancements</button>
+    <div class="row"><button class="btn" id="btnAdv">🏆 Advancements</button><button class="btn" id="btnSkins2">👕 Skins</button></div>
     <details class="more" id="worldOpts"><summary>World options</summary>
       <label class="set"><span>Difficulty</span><select id="pDiff" class="text-in"><option value="peaceful">Peaceful (no monsters)</option><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
       <label class="set"><span>Monsters can break blocks</span><input type="checkbox" id="pGrief"></label>
@@ -362,6 +379,7 @@ details.more .set { margin-top: 10px; }
       <tr><td><kbd>Q</kbd></td><td>Drop the item in your hand</td></tr>
       <tr><td><kbd>X</kbd> (change it in Settings)</td><td>Swap the items in your main hand and offhand. In the inventory, point at a slot and press it to move that item to your offhand</td></tr>
       <tr><td><kbd>L</kbd></td><td>Advancements</td></tr>
+      <tr><td><kbd>V</kbd> (or <kbd>F5</kbd>)</td><td>Change view: first person, third person from behind, third person from the front</td></tr>
       <tr><td><kbd>C</kbd> while riding</td><td>Get off a Trotter or climb out of a boat</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>Pause and free the mouse</td></tr>
       <tr><td><kbd>F3</kbd></td><td>Show position and speed info</td></tr>
@@ -373,6 +391,7 @@ details.more .set { margin-top: 10px; }
     <p class="note"><b>Survival:</b> keep your hearts and food full. Eat by holding food and right-clicking. Monsters come out in the dark, so light your home with torches. Sleep in a bed to skip the night and set where you wake up. If you faint, you wake up at your bed (or the starting spot). You keep your items unless that world option is turned off.</p>
     <p class="note"><b>The Ember Depths:</b> build an obsidian frame (at least 4 wide and 5 tall, corners optional) and light it with Flint and Steel. Stand in the portal for a moment to travel. Water boils away there, beds explode, and Boarkin leave you alone if you wear gold. Hand them gold ingots to trade. One step there equals 8 steps on the Surface.</p>
     <p class="note"><b>The Hollow:</b> craft an <b>Eye of the Void</b> (Void Pearl + Flare Powder) and right-click to throw it. It flies toward a stronghold, so follow it. When it dives into the ground, dig down. Put eyes in all 12 frames to open the portal. In Creative you can build your own ring from Hollow Portal Frames: 3 frames on each side of a 3×3 space, no corners, all at the same height. In the Hollow, shoot the crystals on the pillars, then defeat the Wyrm (it takes the most damage while it rests in the middle). Afterward, a Gateway leads to the outer islands, where Hollow towers hide <b>Glider Wings</b>: wear them as a chestplate and press Space while falling to glide.</p>
+    <p class="note"><b>The final dragon:</b> after you defeat the Hollow Wyrm it gives you a <b>Cinder Eye</b> (or craft one from a Wyrm Scale, an Eye of the Void, Magma Cream, and 2 Flare Powder). Throw it in the Ember Depths and follow it to the <b>Cinder Citadel</b>. Charge the Respawn Anchor in its entrance hall, then put the eye in the Cinder Altar to wake <b>Cindermaw, the Ember Dragon</b>. Watch for its warnings: a roar before it dives, glowing rings before fire, spread wings before a gust (hide behind a pillar). Hit it hardest when it lands. In its second phase, break the glowing Ember Pylons to remove its shield.</p>
     <p class="note"><b>Villages:</b> villagers work at their job blocks by day and go home at night. Right-click one to trade with <b>Jade</b> (found in mountain caves, chests, or earned by selling to villagers). The Ironwarden guards each village, so don't hurt the villagers! A Wanderer sometimes visits with rare goods.</p>
     <p class="note"><b>Pets and riding:</b> tame a <b>Scout</b> (grey, in forests) by giving it bones, and a <b>Whisker</b> (ginger, near villages and in grassland) with raw chicken or raw rabbit. It may take a few tries. Pets follow you, Scouts fight monsters near you, and Hissers stay away from Whiskers. Right-click a pet to make it sit or follow. To tame a wild <b>Trotter</b> (grassland), right-click it with an empty hand to climb on until it stops bucking you off (feeding it wheat or apples helps). Then craft a <b>Saddle</b> (5 leather + 1 iron ingot), right-click the Trotter with it, and ride: Shift gallops, Space jumps high, and C gets you off.</p>
     <p class="note"><b>The Blightking:</b> stack 4 Wailing Sand in a T and place 3 Blight Skulls on top. Back away! It explodes when it wakes. Below half health its armor stops arrows, so finish it with a sword. Its Radiant Star crafts a <b>Beacon</b> that heals you and speeds you up nearby.</p>
@@ -380,6 +399,25 @@ details.more .set { margin-top: 10px; }
     <p class="note"><b>Wildlife:</b> <b>Buzzers</b> carry pollen from flowers to their nest. When honey drips from the front, use a <b>Glass Bottle</b> (honey cures poison) or <b>Shears</b> (Honeycomb makes a Beehive). Put a Torch within 3 blocks first, or the bees get angry! <b>Pouncers</b> nap by day, hunt chickens at night, and run off unless you crouch. Feed two of them Sweet Berries for a baby that trusts you. Tame a <b>Chatterbird</b> with wheat seeds and it rides on your shoulder (crouch to let it hop off).</p>
     <p class="note"><b>Creatures:</b> left-click to attack. Hold a bow's right-click to pull, then let go to shoot. Hold wheat, carrots, or seeds to lead animals, and right-click two of the same kind to breed them. Use shears on sheep and a bucket on cows.</p>
     <div class="row"><button class="btn primary" data-back>Done</button></div>
+  </div>
+</section>
+
+<!-- Skin chooser -->
+<section class="screen dim" id="skins" hidden>
+  <div class="menu wide card">
+    <h2>Choose your skin</h2>
+    <div class="skin-wrap">
+      <div class="skin-grid" id="skinGrid" role="group" aria-label="Skins"></div>
+      <div class="skin-side">
+        <canvas id="skinPreview" width="220" height="260" aria-label="3D preview of the skin. Drag to turn it."></canvas>
+        <b id="skinName"></b>
+        <p id="skinDesc" class="note"></p>
+        <p id="skinNote" class="note" hidden>Drawn from the cartoon Mr. Watford in the class videos.</p>
+        <p id="skinCurrent" class="note"></p>
+      </div>
+    </div>
+    <p class="note">Drag the preview to turn it. Skins only change how you look: every skin is the same size and has the same abilities. Your choice is saved on this device for every world. Press <kbd>V</kbd> in a world to see yourself in third person.</p>
+    <div class="row"><button class="btn primary" id="skinApply">Wear this skin</button><button class="btn" id="skinCancel">Cancel</button></div>
   </div>
 </section>
 
