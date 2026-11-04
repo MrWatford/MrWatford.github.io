@@ -454,7 +454,19 @@ export class NetherGen {
     }
     this.fortressPiece(data, cx, cz, r);
     this.bastionPiece(data, cx, cz, r);
+    if (this.citadel) this.citadelPiece(data, cx, cz);
     return data;
+  }
+
+  // ----- the Cinder Citadel: Cindermaw's caldera, carved out of the rock wherever main.js placed it (this.citadel = { x, z }) -----
+  // A round hall 30 blocks across from the middle, floor at y 30, ceiling at y 72; an entrance tunnel runs east (+x).
+  citadelPiece(data, cx, cz) {
+    const C = this.citadel, x0 = cx * CHUNK, z0 = cz * CHUNK;
+    if (x0 > C.x + CITADEL.TUNNEL + 12 || x0 + CHUNK < C.x - CITADEL.R - 4 || z0 > C.z + CITADEL.R + 4 || z0 + CHUNK < C.z - CITADEL.R - 4) return;
+    for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
+      const dx = x0 + lx - C.x, dz = z0 + lz - C.z, d = Math.hypot(dx, dz);
+      for (let y = 1; y < HEIGHT - 2; y++) { const v = citadelAt(dx, y, dz, d, this.seed); if (v !== undefined) data[idx(lx, y, lz)] = v; }
+    }
   }
 
   // Ember Brick corridors that cross a 4×4-chunk area, with a garden room where they meet
@@ -507,6 +519,64 @@ export class NetherGen {
 }
 
 // ---------- the Hollow: floating pale islands over an endless void ----------
+// Shape of the Cinder Citadel (positions relative to its middle)
+export const CITADEL = { R: 30, F: 30, TOP: 72, TUNNEL: 62, PYLON_R: 23, PYLON_H: 12 };
+export const CITADEL_PILLARS = Array.from({ length: 8 }, (_, k) => { const a = (k * 45 + 22.5) * Math.PI / 180; return { x: Math.round(Math.cos(a) * 18), z: Math.round(Math.sin(a) * 18), h: 6 + (k * 5) % 7 }; });
+export const CITADEL_PYLONS = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => ({ x: a * CITADEL.PYLON_R, z: b * CITADEL.PYLON_R }));
+export const CITADEL_SPOTS = { chest: { x: 39, y: 31, z: -4 }, anchor: { x: 39, y: 31, z: 4 }, altar: { x: 0, y: 33, z: 0 }, egg: { x: 0, y: 33, z: 3 } };
+function citadelAt(dx, y, dz, d, seed) {
+  const { R, F, TOP, TUNNEL } = CITADEL;
+  // entrance tunnel (with a wider hall at 36–42 holding supplies and a Respawn Anchor), and an approach cave at the far end
+  if (dx >= R - 3 && dx <= TUNNEL + 10 && Math.abs(dz) <= 12 && y >= F - 1 && y <= F + 12 && d > R - 1) {
+    if (dx > TUNNEL) {   // approach cave: a rough dome so the tunnel opens into the caverns
+      const cd = Math.hypot(dx - TUNNEL - 4, (y - F - 4) * 1.3, dz);
+      if (cd < 8) return y === F ? B.BLACKSTONE : B.AIR;
+      if (y === F && Math.abs(dz) <= 2) return B.BLACKSTONE;
+      return undefined;
+    }
+    const hall = dx >= 36 && dx <= 42, tw = hall ? 4 : 2, th = hall ? F + 6 : F + 5;
+    if (Math.abs(dz) <= tw + 1 && y <= th + 1) {
+      if (y < F) return B.BLACKSTONE;
+      if (y === F) return B.CINDER_BRICKS;
+      if (Math.abs(dz) === tw + 1 || y === th + 1) return dx % 6 === 0 && y === th + 1 ? B.SHINESTONE : B.CINDER_BRICKS;
+      // the gate: two tall brick posts with lights at the tunnel mouth
+      if (dx === TUNNEL && Math.abs(dz) === tw) return y >= th - 1 ? B.SHINESTONE : B.CINDER_BRICKS;
+      // supplies for the fight and a Respawn Anchor, so fainting doesn't send you all the way home
+      if (y === F + 1 && dx === CITADEL_SPOTS.chest.x && dz === CITADEL_SPOTS.chest.z) return make(B.CHEST, LOOT);
+      if (y === F + 1 && dx === CITADEL_SPOTS.anchor.x && dz === CITADEL_SPOTS.anchor.z) return B.RESPAWN_ANCHOR;
+      return B.AIR;
+    }
+    if (Math.abs(dz) <= tw + 2 && d > R + 2.5) return undefined;
+  }
+  if (d > R + 2.5) return undefined;
+  if (d > R) return y >= F - 3 && y <= TOP + 2 ? (hash3(seed, dx, y, dz) < 0.03 ? B.MAGMA : B.CINDER_BRICKS) : undefined;   // the outer wall
+  if (y > TOP + 2) return undefined;
+  if (y >= TOP) return y === TOP && hash3(seed, dx, 999, dz) < 0.04 ? B.SHINESTONE : B.CINDER_BRICKS;    // the ceiling, with a few lights
+  if (y < F - 3) return undefined;
+  const channel = d >= 11 && d < 13 && Math.abs(dx) > 1.5 && Math.abs(dz) > 1.5;   // a ring of lava with 4 bridges
+  if (y < F) return channel && y === F - 1 ? B.LAVA : B.BASALT;
+  if (y === F) {
+    if (channel) return B.LAVA;
+    if ((d >= 7.5 && d < 8.5) || (d >= 19.5 && d < 20.5)) return B.BLACKSTONE_BRICKS;   // floor rings you can read from the air
+    return hash3(seed, dx, F, dz) < 0.12 ? B.BASALT : B.BLACKSTONE;
+  }
+  // the dais and altar in the middle
+  if (d <= 4.5 && y === F + 1) return B.CINDER_BRICKS;
+  if (d <= 2.5 && y === F + 2) return B.CINDER_BRICKS;
+  if (dx === 0 && dz === 0 && y === F + 3) return B.CINDER_ALTAR;
+  // basalt pillars for cover, each topped with a light
+  for (const p of CITADEL_PILLARS) if (Math.abs(dx - p.x) <= 1 && Math.abs(dz - p.z) <= 1 && y <= F + p.h) return y === F + p.h && dx === p.x && dz === p.z ? B.SHINESTONE : B.BASALT;
+  // four brick towers that hold the Ember Pylons
+  for (const p of CITADEL_PYLONS) if (Math.abs(dx - p.x) <= 1 && Math.abs(dz - p.z) <= 1 && y <= F + CITADEL.PYLON_H) return B.CINDER_BRICKS;
+  // four raised ledges against the wall (northeast, northwest, southwest, southeast), each with a stair ramp up from the floor
+  for (let k = 0; k < 4; k++) {
+    const a = (45 + k * 90) * Math.PI / 180, u = dx * Math.cos(a) + dz * Math.sin(a), v = -dx * Math.sin(a) + dz * Math.cos(a);
+    if (u >= 26 && Math.abs(v) <= 4 && y === F + 8) return B.CINDER_BRICKS;
+    if (u >= 26 && Math.abs(v) <= 4 && y === F + 9 && u >= 29) return B.CINDER_BRICKS;
+    if (u >= 18 && u < 26 && Math.abs(v) <= 1 && y <= F + Math.floor(u - 18) + 1) return B.BASALT;
+  }
+  return B.AIR;
+}
 export const END_TOP = 48;
 export class EndGen {
   constructor(seedText) {

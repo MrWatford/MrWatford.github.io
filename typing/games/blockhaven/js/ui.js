@@ -7,8 +7,8 @@ import { Sound } from "./audio.js";
 
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
-const screens = ["title", "worlds", "newWorld", "loading", "pause", "settings", "controls", "death", "panel"];
-let current = "title", backTo = "title";
+const screens = ["title", "worlds", "newWorld", "loading", "pause", "settings", "controls", "death", "panel", "skins"];
+let current = "title", backTo = "title", skinFrom = "title", skinPick = "explorer";
 let cursor = null, hoverRef = null, panelKind = null, panelCtx = null, craftFilter = "can", craftSearch = "", creativeCat = "All", creativeSearch = "", advCat = CATEGORIES[0];
 
 export const UI = {
@@ -21,6 +21,10 @@ export const UI = {
     $("btnSettings").onclick = () => this.openSettings("title");
     $("btnSettings2").onclick = () => this.openSettings("pause");
     $("btnControls").onclick = () => { backTo = "title"; this.show("controls"); };
+    $("btnSkins").onclick = () => this.openSkins("title");
+    $("btnSkins2").onclick = () => this.openSkins("pause");
+    $("skinApply").onclick = () => { G.applySkin(skinPick); Sound.craft(); this.closeSkins(); };
+    $("skinCancel").onclick = () => { Sound.click(); this.closeSkins(); };
     $("btnControls2").onclick = () => { backTo = "pause"; this.show("controls"); };
     document.querySelectorAll("[data-back]").forEach(b => b.onclick = () => { Sound.click(); const s = b.closest(".screen").id; this.show(s === "settings" || s === "controls" ? backTo : "title"); });
     $("newForm").onsubmit = e => {
@@ -92,6 +96,30 @@ export const UI = {
     $("confirmNo").focus();
   },
 
+  // ---------- skin chooser ----------
+  openSkins(from) {
+    skinFrom = from; skinPick = G.settings.skin; Sound.click();
+    const grid = $("skinGrid"); grid.innerHTML = "";
+    for (const s of G.skins) {
+      const b = document.createElement("button"); b.className = "skin-card"; b.type = "button"; b.dataset.skin = s.id;
+      b.setAttribute("aria-pressed", s.id === skinPick);
+      b.appendChild(G.skinThumb(s.id));
+      const n = document.createElement("span"); n.textContent = s.name; b.appendChild(n);
+      b.onclick = () => { skinPick = s.id; Sound.click(); this.pickSkin(); };
+      grid.appendChild(b);
+    }
+    this.show("skins");
+    this.pickSkin();
+  },
+  pickSkin() {
+    const s = G.skins.find(k => k.id === skinPick) || G.skins[0];
+    document.querySelectorAll(".skin-card").forEach(b => b.setAttribute("aria-pressed", b.dataset.skin === s.id));
+    $("skinName").textContent = s.name; $("skinDesc").textContent = s.desc;
+    $("skinNote").hidden = s.id !== "watford";
+    $("skinCurrent").textContent = s.id === G.settings.skin ? "You're wearing this skin." : "";
+    if (!G.openSkinPreview($("skinPreview"), s.id)) $("skinPreview").replaceWith(G.skinThumb(s.id));
+  },
+  closeSkins() { G.closeSkinPreview(); this.show(skinFrom === "pause" ? "pause" : "title"); },
   setLoading(frac, text) { $("loadBar").style.width = Math.round(frac * 100) + "%"; if (text) $("loadText").textContent = text; },
 
   // ---------- settings ----------
@@ -340,6 +368,10 @@ export const UI = {
     if (s.id === I.TOTEM) line("Hold it in either hand. If a hit would make you faint, it breaks instead and saves you: 1 heart left, then Regeneration II, golden hearts, and Fire Resistance. Doesn't work against the void");
     if (s.id === B.VOID_CHEST) line("Opens your personal storage. Every Void Chest, in every dimension, holds the same items. Breaking it never spills them");
     const DIMS = { overworld: "the Surface", nether: "the Ember Depths", end: "the Hollow" };
+    if (s.id === I.CINDER_EYE) line("Throw it in the Ember Depths: it flies toward the Cinder Citadel. Place one in the Cinder Altar to wake Cindermaw");
+    if (s.id === I.EMBER_HEART) line("Cindermaw's burning heart. Combine with a Duskmetal Helmet at a workbench for the Cinder Crown");
+    if (s.id === I.CINDER_CROWN) line("Helmet (4 armor). While you wear it, fire and lava can't burn you");
+    if (s.id === B.CINDER_EGG) line("A trophy from your first victory over Cindermaw");
     if (s.id === I.COMPASS) line(s.lode ? (s.lodeLost ? "Its Lodestone is gone" : `Points to a Lodestone at ${s.lode.x}, ${s.lode.y}, ${s.lode.z} (${DIMS[s.lode.dim] || s.lode.dim})`) : "Points to the Surface's starting spot. Right-click a Lodestone with it to point there instead");
     if (s.id === B.RESPAWN_ANCHOR) line("Ember Depths only. Charge it with Shinestone (up to 4), then right-click to set your respawn point. Each wake-up uses 1 charge. Explodes if used elsewhere");
     if (s.id === B.LODESTONE) line("Right-click it with a Compass to make the compass point here, even from far away");

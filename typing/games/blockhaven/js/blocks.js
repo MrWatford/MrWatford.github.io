@@ -24,7 +24,9 @@ export const B = {
   // Milestone 8: personal storage
   VOID_CHEST: 93,
   // beacons, respawn anchors, lodestones
-  SKY_BLOCK: 94, DUSK_BLOCK: 95, RESPAWN_ANCHOR: 96, LODESTONE: 97
+  SKY_BLOCK: 94, DUSK_BLOCK: 95, RESPAWN_ANCHOR: 96, LODESTONE: 97,
+  // the Cinder Citadel and Cindermaw
+  CINDER_BRICKS: 98, CINDER_ALTAR: 99, CINDER_EGG: 100
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -50,7 +52,8 @@ export const I = {
   SPAWN: 400,   // spawn eggs: 400 + index in SPAWN_EGGS
   FISHING_ROD: 500, RAW_MINNOW: 501, COOKED_MINNOW: 502, SUNFIN: 503, PUFFER: 504, INK_SAC: 505, BOAT: 506, BERRIES: 507,
   HONEYCOMB: 508, BOTTLE: 509, HONEY_BOTTLE: 510,
-  SHIELD: 520, TOTEM: 521, GOLDEN_APPLE: 522, GOLDEN_CARROT: 523, COMPASS: 524
+  SHIELD: 520, TOTEM: 521, GOLDEN_APPLE: 522, GOLDEN_CARROT: 523, COMPASS: 524,
+  CINDER_EYE: 525, EMBER_HEART: 526, CINDER_CROWN: 527
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -172,6 +175,10 @@ block(B.DUSK_BLOCK, "Block of Duskmetal", { hardness: 8, tool: "pick", tier: 4, 
 // Respawn Anchor (meta = charges 0–4): only works in the Ember Depths
 block(B.RESPAWN_ANCHOR, "Respawn Anchor", { hardness: 8, tool: "pick", tier: 3, interact: "anchor", tex: ["anchor_top", "anchor_side", "anchor_bottom"], category: DEPTHS });
 block(B.LODESTONE, "Lodestone", { hardness: 3.5, tool: "pick", tier: 1, interact: "lodestone", tex: ["lodestone_top", "lodestone_side", "lodestone_top"], category: "Useful" });
+// The Cinder Citadel: its bricks are very tough (Duskmetal pickaxe, slow), and the altar can't be broken
+block(B.CINDER_BRICKS, "Cinder Bricks", { hardness: 40, tool: "pick", tier: 5, tex: "cinder_bricks", category: DEPTHS });
+block(B.CINDER_ALTAR, "Cinder Altar", { hardness: Infinity, drops: 0, light: 9, interact: "cinderaltar", tex: ["cinder_altar_top", "cinder_altar_side", "cinder_bricks"], category: DEPTHS });
+block(B.CINDER_EGG, "Cindermaw Egg", { hardness: 3, tool: "pick", tier: 1, light: 12, tex: "cinder_egg", category: DEPTHS });
 export const BEACON_BASE = [B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
 export const BLOCKS = defs;
@@ -266,6 +273,9 @@ item(I.HONEY_BOTTLE, "Honey Bottle", { icon: "bottle", colors: ["#f0a820"], kind
 item(I.SHIELD, "Shield", { icon: "shield", kind: "tool", stack: 1, category: "Tools", tool: { type: "shield", tier: 0, speed: 1, dur: 336, damage: 1 }, offhand: true });
 item(I.TOTEM, "Lifeward Totem", { icon: "totem", stack: 1, category: "Tools", offhand: true });
 item(I.GOLDEN_APPLE, "Golden Apple", { icon: "apple", colors: ["gold"], kind: "food", food: 4, category: "Food", sideEffect: "golden", alwaysEat: true });
+item(I.CINDER_EYE, "Cinder Eye", { icon: "eye_cinder", stack: 16, category: "Tools" });
+item(I.EMBER_HEART, "Ember Heart", { icon: "ember_heart", stack: 16 });
+item(I.CINDER_CROWN, "Cinder Crown", { icon: "armor_helmet", colors: ["#e0702a"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 0, points: 4, dur: 900 }, fireproof: true });
 item(I.COMPASS, "Compass", { icon: "compass", stack: 1, category: "Tools", offhand: true });
 item(I.GOLDEN_CARROT, "Golden Carrot", { icon: "carrot", colors: ["gold"], kind: "food", food: 6, category: "Food" });
 // Saturation ("fullness") from each food, following Minecraft Java Edition 1.20.1. Fullness is used up before the food bar drops.
@@ -395,6 +405,8 @@ export const RECIPES = [
   { out: [B.BLACK_WOOL, 1], ins: [[B.WOOL, 1], [I.INK_SAC, 1]] },
   { out: [B.SHELL_BOX, 1], ins: [[I.SHELL, 2], [B.CHEST, 1]], table: true },
   { out: [I.SHIELD, 1], ins: [["planks", 6], [I.IRON_INGOT, 1]], table: true },
+  { out: [I.CINDER_EYE, 1], ins: [[I.WYRM_SCALE, 1], [I.EYE, 1], [I.MAGMA_CREAM, 1], [I.FLARE_POWDER, 2]], table: true },
+  { out: [I.CINDER_CROWN, 1], ins: [[I.DUSK_HELMET, 1], [I.EMBER_HEART, 1]], table: true, upgrade: true },
   { out: [B.SKY_BLOCK, 1], ins: [[I.SKYSHARD, 9]], table: true },
   { out: [I.SKYSHARD, 9], ins: [[B.SKY_BLOCK, 1]], table: true },
   { out: [B.DUSK_BLOCK, 1], ins: [[I.DUSK_INGOT, 9]], table: true },
@@ -439,7 +451,7 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "skull_face", "beacon", "jade_ore", "jade_block", "composter_top", "composter_side", "fletch_top", "fletch_side", "loom_top", "loom_side",
   "altar_top", "altar_side", "smith_top", "smith_side", "hay_top", "hay_side",
   "nest_top", "nest_side", "nest_front", "nest_front_honey", "hive_top", "hive_side", "hive_front", "hive_front_honey", "berry0", "berry1", "berry2", "berry3", "black_wool",
-  "voidchest_top", "voidchest_side", "voidchest_front", "sky_block", "dusk_block", "anchor_top", "anchor_top_lit", "anchor_side", "anchor_bottom", "lodestone_top", "lodestone_side"];
+  "voidchest_top", "voidchest_side", "voidchest_front", "sky_block", "dusk_block", "anchor_top", "anchor_top_lit", "anchor_side", "anchor_bottom", "lodestone_top", "lodestone_side", "cinder_bricks", "cinder_altar_top", "cinder_altar_side", "cinder_egg"];
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
 
@@ -689,6 +701,10 @@ Object.assign(PAINT, {
   black_wool(P) { P.fill(["#1e1e24", "#26262c", "#18181e", "#2c2c32"]); },
   voidchest_top(P) { PAINT.obsidian(P); P.rect(0, 0, 16, 1, "#0a0612"); P.rect(0, 15, 16, 1, "#0a0612"); P.rect(0, 0, 1, 16, "#0a0612"); P.rect(15, 0, 1, 16, "#0a0612"); P.rect(6, 6, 4, 4, "#2a7a6a"); },
   voidchest_side(P) { PAINT.voidchest_top(P); P.rect(0, 5, 16, 2, "#0a0612"); },
+  cinder_bricks(P) { P.fill(["#2a1a1a"]); for (let r = 0; r < 4; r++) { const off = r % 2 ? 4 : 0; for (let b = -1; b < 3; b++) for (let yy = 0; yy < 3; yy++) for (let xx = 0; xx < 7; xx++) P.px(b * 8 + off + xx, r * 4 + yy, P.pick(["#3a2420", "#42281f", "#34201c"])); } P.specks(4, ["#ff7a1a", "#c84a10"]); },
+  cinder_altar_side(P) { PAINT.cinder_bricks(P); P.rect(5, 3, 6, 10, "#1a1010"); P.rect(7, 5, 2, 6, "#ff7a1a"); P.rect(6, 7, 4, 2, "#ff7a1a"); },
+  cinder_altar_top(P) { P.fill(["#2a1a1a"]); P.rect(2, 2, 12, 12, "#3a2420"); P.rect(5, 5, 6, 6, "#120808"); P.rect(6, 6, 4, 4, "#ff9a2a"); P.rect(7, 7, 2, 2, "#fff2a0"); },
+  cinder_egg(P) { P.fill(["#2a1410", "#341a12", "#20100c"]); for (let i = 0; i < 6; i++) { let x = Math.floor(P.r() * 16), y = Math.floor(P.r() * 16); for (let k = 0; k < 5; k++) { P.px(x, y, P.pick(["#ff7a1a", "#ffb030"])); x += P.r() < 0.5 ? 1 : -1; y += 1; } } },
   sky_block(P) { P.fill(["#62e6ee", "#58dce4"]); P.rect(0, 0, 16, 1, "#c9fbfd"); P.rect(0, 15, 16, 1, "#2a9fb0"); P.rect(0, 0, 1, 16, "#c9fbfd"); P.rect(15, 0, 1, 16, "#2a9fb0"); P.rect(4, 4, 8, 8, "#7ef0f5"); },
   dusk_block(P) { P.fill(["#4a3e4e", "#42364a"]); P.rect(0, 0, 16, 1, "#7a6a80"); P.rect(0, 15, 16, 1, "#2a2230"); P.rect(0, 0, 1, 16, "#7a6a80"); P.rect(15, 0, 1, 16, "#2a2230"); P.rect(2, 6, 12, 2, "#5a4a60"); },
   anchor_side(P) { PAINT.obsidian(P); P.rect(0, 0, 16, 3, "#2a1a3a"); P.rect(0, 13, 16, 3, "#2a1a3a"); P.rect(6, 5, 4, 6, "#ffb030"); },
@@ -791,6 +807,8 @@ Object.assign(ICON_PAINT, {
 });
 Object.assign(ICON_PAINT, {
   shield(P) { for (let y = 1; y < 15; y++) { const w = y < 10 ? 6 : 6 - (y - 9); for (let x = 8 - w; x < 8 + w; x++) P.px(x, y, x === 8 - w || x === 7 + w || y === 1 ? "#9a9a9a" : (x + y) % 5 ? "#a87a48" : "#8a5e32"); } P.rect(7, 2, 2, 11, "#bcbcbc"); },
+  eye_cinder(P) { for (let y = 3; y < 14; y++) for (let x = 3; x < 14; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 25) P.px(x, y, x + y < 15 ? "#ff9a2a" : "#c84a10"); P.rect(7, 5, 3, 7, "#2a0a04"); P.rect(6, 7, 1, 3, "#2a0a04"); P.rect(10, 7, 1, 3, "#2a0a04"); P.rect(8, 7, 1, 2, "#fff2a0"); },
+  ember_heart(P) { for (const [y, a, b] of [[3, 3, 6], [3, 9, 12], [4, 2, 13], [5, 2, 13], [6, 2, 13], [7, 3, 12], [8, 4, 11], [9, 5, 10], [10, 6, 9], [11, 7, 8]]) for (let x = a; x <= b; x++) P.px(x, y, P.pick(["#c83a10", "#e05a1a", "#a82a0a"])); P.rect(5, 5, 2, 2, "#ffd34d"); P.rect(8, 6, 3, 1, "#ffb030"); P.rect(6, 8, 2, 1, "#ffb030"); },
   compass(P) { for (let y = 2; y < 15; y++) for (let x = 2; x < 15; x++) { const d = (x - 8.5) ** 2 + (y - 8.5) ** 2; if (d < 42) P.px(x, y, d > 30 ? "#8a8a8a" : "#e8e8e8"); } P.rect(8, 4, 1, 5, "#e04030"); P.rect(8, 9, 1, 4, "#3a3a3a"); P.px(8, 8, "#222"); },
   totem(P) { P.rect(5, 1, 6, 5, "#f0c020"); P.rect(6, 3, 1, 1, "#3ad07a"); P.rect(9, 3, 1, 1, "#3ad07a"); P.rect(4, 6, 8, 6, "#e0b018"); P.rect(2, 7, 2, 3, "#e0b018"); P.rect(12, 7, 2, 3, "#e0b018"); P.rect(6, 7, 4, 2, "#3ad07a"); P.rect(5, 12, 2, 3, "#c89a14"); P.rect(9, 12, 2, 3, "#c89a14"); P.rect(5, 1, 6, 1, "#fff2a0"); }
 });

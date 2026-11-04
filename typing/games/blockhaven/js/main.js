@@ -3,7 +3,7 @@ import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
   buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX } from "./blocks.js";
 import { Entities, SPECIES, TRADES } from "./entities.js";
-import { Generator, NetherGen, EndGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots } from "./worldgen.js";
+import { Generator, NetherGen, EndGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
 import { Player, raycast, blockBoxes, REACH } from "./player.js";
@@ -11,6 +11,7 @@ import { Inventory, newStack, maxStack, OFF } from "./inventory.js";
 import { Sound } from "./audio.js";
 import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.js";
 import { Adv } from "./advancements.js";
+import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
 
@@ -151,7 +152,7 @@ function updateHeld(bright) {
     if (heldMesh) { hand.remove(heldMesh); disposeItemMesh(heldMesh); }
     heldId = id;
     if (id) { heldMesh = itemMesh(id, 0.15); heldMesh.userData.shared = heldMesh.userData.shared || heldMesh.geometry.type !== "PlaneGeometry"; }
-    else { heldMesh = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.26), new THREE.MeshBasicMaterial({ color: 0xd9a77c })); heldMesh.userData.skin = true; }
+    else { heldMesh = firstPersonArm(G.settings.skin); heldMesh.userData.shared = true; heldMesh.userData.arm = true; }   // your bare arm matches your skin
     prepHandMesh(heldMesh);
     hand.add(heldMesh);
   }
@@ -167,9 +168,9 @@ function updateHeld(bright) {
   const eating = G.eat && G.eat.slot === G.selected ? Math.min(1, G.eat.t * 4) : 0, chew = G.eat ? Math.sin(G.eat.t * 22) * 0.015 : 0;
   hand.position.set(0.4 - sw * 0.08 - eating * 0.3, -0.36 + bob - sw * 0.06 + eating * 0.12 + (eating ? chew : 0), -0.62 - sw * 0.06);
   hand.rotation.set(-sw * 0.9, 0.5, 0);
-  if (heldMesh.userData.multi) heldMesh.rotation.set(0, -0.3, 0); else if (heldMesh.geometry.type === "PlaneGeometry") heldMesh.rotation.set(0, -0.6, 0.3); else heldMesh.rotation.set(0.1, 0.3, 0);
-  if (heldMesh.userData.skin) heldMesh.material.color.setRGB(G.armColor[0] * bright, G.armColor[1] * bright, G.armColor[2] * bright);
-  else lightItem(heldMesh, bright);
+  if (heldMesh.userData.arm) heldMesh.rotation.set(-Math.PI / 2 + 0.25, 0.15, 0.1);
+  else if (heldMesh.userData.multi) heldMesh.rotation.set(0, -0.3, 0); else if (heldMesh.geometry.type === "PlaneGeometry") heldMesh.rotation.set(0, -0.6, 0.3); else heldMesh.rotation.set(0.1, 0.3, 0);
+  lightItem(heldMesh, bright);
   // offhand: lower left; a raised shield moves in front of you
   const up = G.blocking && G.blockHand === OFF ? 1 : 0, offEat = G.eat && G.eat.slot === OFF ? Math.min(1, G.eat.t * 4) : 0;
   offHand.position.set(-0.42 + up * 0.22 + offEat * 0.3, -0.37 + bob + up * 0.12 + offEat * 0.12 + (offEat ? chew : 0), -0.7 + up * 0.08);
@@ -217,7 +218,10 @@ const ents = new Entities(scene, {
   cloud: (x, y, z) => addCloud(x, y, z),
   crystalGone: i => { const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
   bossLeft: e => { (G.dimData.end || (G.dimData.end = {})).wyrmHp = e.hp; },
-  bossDefeated: e => e.sp === "dragon" ? wyrmDefeated(e) : blightDefeated(e),
+  bossDefeated: e => e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
+  arena: () => arena(), cinderPylons: () => G.cinderPylons(),
+  pylonGone: i => { const c = cinderData(); if (!c.pylonsGone.includes(i)) c.pylonsGone.push(i); const left = CITADEL_PYLONS.length - c.pylonsGone.length; UI.toast(left ? `Ember Pylon broken! ${left} left.` : "All the Ember Pylons are broken! Cindermaw's shield is gone.", "good"); },
+  push: (vx, vy, vz) => { const p = G.player; if (G.creative || G.spectator) return; p.vel.x += vx; p.vel.y = Math.max(p.vel.y, vy); p.vel.z += vz; },
   time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m),
   openTrade: e => openPanel("trade", e.uid),
   mount: e => mount(e), riding: () => !!G.riding, boating: () => !!(G.riding && G.riding.def.boat),
@@ -526,6 +530,8 @@ function wyrmDefeated(e) {
   buildGateway(40, (G.gen.land(40, 0) || { top }).top + 4, 0);
   spawnOrbs(400, G.player.pos.x, G.player.pos.y + 2, G.player.pos.z);
   spawnDrop(I.WYRM_SCALE, 3, 0.5, top + 2, 2.5);
+  giveItem(I.CINDER_EYE, 1);   // the key to the final fight
+  setTimeout(() => UI.toast("The Wyrm left you a glowing Cinder Eye (check your pack). Throw it in the Ember Depths to find what waits there…", "good"), 6500);
   Sound.levelUp(); setTimeout(() => Sound.levelUp(), 400);
   UI.toast("You defeated the Hollow Wyrm! A portal home opened in the middle of the island.", "good");
   setTimeout(() => UI.toast("A Gateway appeared nearby. Step into it to reach the outer islands and the Hollow towers.", "good"), 3000);
@@ -760,6 +766,7 @@ async function travel(toDim, fromPortal) {
     G.state = "pause"; UI.show("none"); UI.hud(); G.resume(); G.adv("dim", toDim);
     UI.toast(toDim === "nether" ? "Welcome to the Ember Depths! Watch out for lava, and don't sleep here." : "Back on the Surface.", toDim === "nether" ? "bad" : "good");
     if (toDim === "nether" && !G.tips.nether) { G.tips.nether = true; UI.toast("Tip: wear a piece of gold armor and the Boarkin won't attack. Give them gold ingots to trade.", ""); }
+    if (toDim === "nether") cinderHint();
   } catch (err) {
     console.error(err);
     // something went wrong: go back where we were
@@ -808,6 +815,159 @@ function buildPortal(tx, tz) {
   const anchor = { x: x + 1, y: y + 1, z, axis: 0, w: 2, h: 3 };
   registerPortal(G.dim, anchor);
   return anchor;
+}
+
+// ---------- the Cinder Citadel and Cindermaw, the Ember Dragon (final boss of Survival) ----------
+// Story: defeat the Hollow Wyrm → it drops a Cinder Eye (also craftable from a Wyrm Scale) → in the Ember Depths the eye
+// flies toward the Cinder Citadel → place it in the Cinder Altar to wake Cindermaw → win → keep playing.
+// Saved in G.dimData.nether.cinder: { state: "dormant" | "awake" | "defeated", hp, pylonsGone: [], wins, firstWin }
+const cinderData = () => { const d = G.dimData.nether || (G.dimData.nether = {}); return d.cinder || (d.cinder = { state: "dormant", hp: null, pylonsGone: [], wins: 0, firstWin: null }); };
+// Pick where the citadel goes (once per world): 150–240 blocks out, somewhere the player hasn't been or changed yet
+function chooseCitadel() {
+  const d = G.dimData.nether || (G.dimData.nether = {});
+  if (d.citadel) return d.citadel;
+  const r = rng(hashSeed(G.meta.seed) ^ 0x5c17ade), mods = d.mods || {}, seen = new Set(d.visited || []);
+  const clear = (x, z) => { for (let cx = Math.floor((x - 36) / CHUNK); cx <= Math.floor((x + CITADEL.TUNNEL + 14) / CHUNK); cx++) for (let cz = Math.floor((z - 36) / CHUNK); cz <= Math.floor((z + 36) / CHUNK); cz++) if (mods[cx + "," + cz] || seen.has(cx + "," + cz)) return false; return true; };
+  for (let t = 0; t < 40; t++) {
+    const a = r() * Math.PI * 2, rad = 150 + r() * 90 + t * 6, x = Math.round(Math.cos(a) * rad), z = Math.round(Math.sin(a) * rad);
+    if (clear(x, z)) return (d.citadel = { x, z });
+  }
+  return (d.citadel = { x: 700, z: -700 });
+}
+const arena = () => { const c = G.dimData.nether && G.dimData.nether.citadel; return c && G.dim === "nether" ? { x: c.x + 0.5, y: CITADEL.F, z: c.z + 0.5, r: CITADEL.R } : null; };
+G.arena = arena;
+function inArena(pad = 0) { const A = arena(), p = G.player; return !!A && Math.hypot(p.pos.x - A.x, p.pos.z - A.z) < A.r + pad && p.pos.y > A.y - 4 && p.pos.y < CITADEL.TOP + 2; }
+// Keep the fight going while you're nearby; it waits (keeping its health) if you leave
+let cinderMsgT = 0, citadelSeen = false;
+function tickCinder(dt) {
+  if (G.dim !== "nether" || !arena()) return;
+  const c = cinderData(), A = arena(), p = G.player, dist = Math.hypot(p.pos.x - A.x, p.pos.z - A.z);
+  if (!citadelSeen && dist < A.r + 30 && G.mode === "survival") { citadelSeen = true; G.adv("citadel"); }
+  let boss = ents.list.find(e => e.sp === "cindermaw" && !e.gone);
+  if (c.state !== "awake") { if (boss && !boss.dead) removeCinder(); return; }
+  if (dist < A.r + 8 && !boss && G.world.isLoaded(A.x, A.z)) {
+    if (c.hp !== null && c.hp <= 0) { cinderDefeated(null); return; }   // the page closed during its last moments
+    boss = ents.add("cindermaw", A.x, A.y + 26, A.z - 6, { hp: c.hp ?? undefined });
+    boss.ang = 0; boss.phase = "circle"; boss.phaseT = 3; boss.lastPhase = 0;
+    if (c.hp !== null && c.hp < boss.maxHp) UI.toast("Cindermaw is still here, and still hurt. Finish it!", "bad");
+  }
+  if (boss && !boss.dead) {
+    c.hp = boss.hp;
+    if (dist > A.r + 18) { removeCinder(); UI.toast("Cindermaw circles back to its citadel. It keeps its wounds until you return.", "bad"); }
+  }
+}
+function giveItem(id, n) { const left = G.inv.add(id, n); if (left) G.dropItem(id, left); G.hudDirty = true; }
+function giveXp(n) { const before = levelInfo(G.xp).level; G.xp += n; G.hudDirty = true; if (levelInfo(G.xp).level > before) UI.toast(`Level ${levelInfo(G.xp).level}!`, "good"); }
+function removeCinder() {
+  for (const e of ents.list) if ((e.sp === "cindermaw" || e.sp === "pylon" || e.cinderMinion) && !e.gone) { if (e.sp === "cindermaw" && !e.dead) cinderData().hp = e.hp; e.gone = true; }
+  ents.clearHazards();
+}
+// Phase 2: the Ember Pylons rise on their towers (ones you broke stay broken)
+G.cinderPylons = () => {
+  const A = arena(), c = cinderData();
+  if (!A) return;
+  CITADEL_PYLONS.forEach((pl, i) => {
+    if (c.pylonsGone.includes(i) || ents.list.some(e => e.sp === "pylon" && e.cid === i && !e.gone)) return;
+    const e = ents.add("pylon", A.x + pl.x, A.y + CITADEL.PYLON_H + 1, A.z + pl.z, { cid: i });
+    puff(e.pos.x, e.pos.y + 1, e.pos.z, "fire");
+  });
+};
+// Right-click the Cinder Altar
+function useCinderAltar(hit) {
+  const c = cinderData(), at = [G.selected, OFF].find(i => G.inv.slots[i] && G.inv.slots[i].id === I.CINDER_EYE);
+  if (!arena()) { UI.toast("The altar is cold. It only answers in its own citadel."); return; }
+  if (c.state === "awake") { UI.toast("Cindermaw is already awake!", "bad"); return; }
+  if (at === undefined && c.spareEye) {   // a retry after fainting uses the eye already in the altar
+    c.spareEye = false;
+  } else if (at === undefined) {
+    UI.toast(c.state === "defeated" ? "Cindermaw is gone, but a Cinder Eye placed here would call another one to fight." : "An empty socket glows on the altar. Something shaped like an eye belongs here: a Cinder Eye.");
+    return;
+  }
+  if (G.spectator) return;
+  if (at !== undefined && !G.creative) { const s = G.inv.slots[at]; s.n--; if (!s.n) G.inv.slots[at] = null; }
+  G.hudDirty = true; heldId = -1; offId = -1;
+  c.state = "awake"; c.hp = null; c.pylonsGone = [];
+  Sound.mob("rumble", 0); setTimeout(() => Sound.mob("roar", 0), 900);
+  for (let i = 0; i < 6; i++) puff(hit.x + 0.5, hit.y + 1 + i * 0.4, hit.z + 0.5, "fire");
+  UI.toast(c.wins ? "The altar flares! Another Cindermaw rises to fight." : "The altar flares! Cindermaw, the Ember Dragon, awakens!", "bad");
+  setTimeout(() => UI.toast("Watch for its warnings: a roar before it dives, glowing rings before fire, spread wings before a gust.", ""), 3500);
+  G.adv("cinderwake");
+  saveNow(false);
+}
+// Fainting during the fight resets it: Cindermaw rests and heals, and the altar gives the Cinder Eye back
+function cinderOnFaint() {
+  const c = cinderData();
+  if (G.dim !== "nether" || c.state !== "awake" || !inArena(40)) return;
+  removeCinder();
+  c.state = c.wins ? "defeated" : "dormant"; c.hp = null; c.pylonsGone = [];
+  c.spareEye = true;   // the altar keeps the Cinder Eye, so trying again is free
+  G.cinderReset = true;
+  setTimeout(() => UI.toast("Cindermaw went back to sleep. Your Cinder Eye stays in the altar: right-click it to try again.", ""), 1500);
+}
+// Victory! Rewards are given once per fight and saved right away, so reloading can't hand them out twice.
+function cinderDefeated(e) {
+  const c = cinderData(), A = arena(), first = !c.firstWin;
+  if (c.state !== "awake") return;
+  c.state = "defeated"; c.hp = null; c.wins = (c.wins || 0) + 1; c.pylonsGone = [];
+  removeCinder();
+  const w = G.world, at = (o, dy = 0) => ({ x: Math.floor(A.x) + o.x, y: o.y + dy, z: Math.floor(A.z) + o.z });
+  if (first) {
+    c.firstWin = Date.now();
+    const egg = at(CITADEL_SPOTS.egg);
+    w.set(egg.x, egg.y, egg.z, B.CINDER_EGG);
+  }
+  // rewards go straight into your pack (things on the ground aren't saved), with a shower of orbs to celebrate
+  giveXp(first ? 470 : 130); spawnOrbs(30, A.x, A.y + 4, A.z);
+  giveItem(I.EMBER_HEART, 1);
+  Sound.levelUp(); setTimeout(() => Sound.levelUp(), 400);
+  G.adv("boss", first ? "cindermaw" : "cindermawAgain");
+  saveNow(true);
+  startVictoryScene(first);
+}
+// A short victory scene: the camera circles the altar; press Space, Esc, or click to skip
+function startVictoryScene(first) {
+  const A = arena();
+  G.cutscene = { t: 0, dur: 9, x: A.x, y: A.y, z: A.z };
+  const el = document.getElementById("victory");
+  el.querySelector("h2").textContent = first ? "Cindermaw has fallen!" : "Cindermaw is defeated again!";
+  el.querySelector("p").textContent = first ? "The Ember Depths are quiet at last. Your rewards: the Cindermaw Egg on the altar, an Ember Heart (combine it with a Duskmetal Helmet at a workbench for the Cinder Crown), and lots of experience. Your world goes on: keep exploring and building!" : "Another Ember Heart is yours. Place a Cinder Eye in the altar whenever you want a rematch.";
+  el.hidden = false;
+}
+function endVictoryScene() { G.cutscene = null; document.getElementById("victory").hidden = true; }
+G.skipVictory = endVictoryScene;
+function tickCutscene(dt) {
+  const s = G.cutscene;
+  if (!s) return false;
+  s.t += dt;
+  const a = s.t * 0.35, r = 20;
+  camera.position.set(s.x + Math.cos(a) * r, s.y + 12 + Math.sin(s.t * 0.5) * 2, s.z + Math.sin(a) * r);
+  camera.lookAt(s.x, s.y + 3, s.z);
+  if (Math.random() < 0.3) puff(s.x + (Math.random() - 0.5) * 4, s.y + 3.5, s.z + (Math.random() - 0.5) * 4, "ember");
+  if (s.t >= s.dur) endVictoryScene();
+  return true;
+}
+// Hints before the fight: the Cinder Eye pulls toward the Ember Depths, and the Boarkin tell stories
+function throwCinderEye() {
+  const p = G.player;
+  if (G.dim !== "nether") { UI.toast("The Cinder Eye tugs downward, toward the Ember Depths. Throw it there.", ""); return; }
+  const C = chooseCitadel();
+  ents.addProjectile("eye", p.pos.x, p.pos.y + 1.5, p.pos.z, 0, 0, 0, { tx: C.x + 0.5, tz: C.z + 0.5, noGrav: true, fromPlayer: true, item: I.CINDER_EYE });
+  const sl = G.inv.slots[G.useSlot]; if (sl && !G.creative) { sl.n--; if (!sl.n) G.inv.slots[G.useSlot] = null; }
+  G.hudDirty = true; heldId = -1; Sound.mob("fireshoot", 0); G.adv("cindereye");
+  const dist = Math.hypot(C.x - p.pos.x, C.z - p.pos.z);
+  UI.toast(dist < 40 ? "The eye dives toward the citadel. It's right here!" : `The eye streaks away… the citadel is about ${Math.round(dist / 10) * 10} blocks that way.`, "good");
+}
+const CINDER_HINTS = [
+  "A deep rumble rolls through the Ember Depths, like something huge breathing far away.",
+  "The Boarkin whisper about a citadel of cinders where a dragon of embers sleeps.",
+  "Scorch marks on the rock point one way… toward something very hot."
+];
+function cinderHint() {
+  const d = G.dimData.nether || {}, n = d.hints || 0, c = cinderData();
+  if (G.mode !== "survival" || c.firstWin || n >= CINDER_HINTS.length + 1) return;
+  d.hints = n + 1;
+  if (n < CINDER_HINTS.length) setTimeout(() => UI.toast(CINDER_HINTS[n], ""), 4000);
+  else if (endData().wyrmDefeated) setTimeout(() => UI.toast("You carry the Wyrm's last secret: a Cinder Eye. Throw it here to find Cindermaw's citadel.", "good"), 4000);
 }
 
 // ---------- Respawn Anchors and Lodestones ----------
@@ -1078,6 +1238,7 @@ function clearWorldMeshes() {
 function makeWorld(dim) {
   const data = G.dimData[dim] || (G.dimData[dim] = {});
   const gen = dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : new Generator(G.meta.seed, G.meta.gen || 1);
+  if (dim === "nether") gen.citadel = chooseCitadel();   // where Cindermaw's citadel stands in this world
   const w = new World(gen);
   w.dim = dim;
   w.modsFromJSON(data.mods);
@@ -1262,6 +1423,8 @@ window.addEventListener("keydown", e => {
     if (e.code === G.settings.keySwap && !typing) { if (UI.hotkey(OFF)) e.preventDefault(); }   // swap the slot you point at with the offhand
     return;
   }
+  if (e.code === "Escape" && UI.current === "skins") { e.preventDefault(); UI.closeSkins(); return; }
+  if (G.cutscene && (e.code === "Space" || e.code === "Escape" || e.code === "Enter")) { e.preventDefault(); G.skipVictory(); return; }
   if (G.state === "pause" && e.code === "Escape" && UI.current === "pause" && performance.now() - (G.pausedAt || 0) > 400) { e.preventDefault(); G.resume(); return; }
   if (G.state === "pause" && e.code === "Escape" && (UI.current === "settings" || UI.current === "controls")) { UI.show("pause"); return; }
   if (G.state !== "play") return;
@@ -1277,6 +1440,7 @@ window.addEventListener("keydown", e => {
   else if (e.code === "KeyQ") dropSelected(e.ctrlKey);
   else if (e.code === "KeyC" && G.riding) dismount();
   else if (e.code === "F3") { G.debug = !G.debug; document.getElementById("debug").hidden = !G.debug; }
+  else if (e.code === "KeyV" || e.code === "F5") { e.preventDefault(); G.view = ((G.view || 0) + 1) % 3; UI.toast(["First-person view", "Third-person view (behind)", "Third-person view (front)"][G.view]); }
   else if (e.code === "Space" && !G.player.onGround && !G.player.inWater && !G.player.flying && !G.player.gliding && G.player.vel.y < -1 && G.inv.slots[37] && G.inv.slots[37].id === I.GLIDER) {
     G.player.gliding = true; G.adv("glide");
     if (!G.tips.glide) { G.tips.glide = true; UI.toast("Gliding! Look down to speed up and up to slow down. Land gently!", "good"); }
@@ -1381,7 +1545,7 @@ function updateMining(dt, hit) {
       const d = blockDef(hit.v);
       UI.toast(`You need a ${TIER_NAME[d.tier]} ${d.tool === "pick" ? "pickaxe" : d.tool} or better to collect ${d.name}.`, "bad");
     }
-    if (info.time === Infinity) UI.toast("Deepstone can't be broken.", "bad");
+    if (info.time === Infinity) UI.toast(`${blockDef(hit.v).name} can't be broken.`, "bad");
   }
   const m = G.mining;
   if (m.info.time === Infinity) return;
@@ -1618,6 +1782,7 @@ function useWith(offhand) {
   }
   if (slot.id === I.VOID_PEARL) { throwItem("pearl"); return true; }
   if (slot.id === I.EYE) { throwEye(); return true; }
+  if (slot.id === I.CINDER_EYE && !(hit && idOf(hit.v) === B.CINDER_ALTAR)) { throwCinderEye(); return true; }
   if (slot.id === I.EGG) { throwItem("egg"); return true; }
   // food you can plant (carrots on farmland, berries on grass, even through tall grass) gets planted when you point at the right ground
   let soil = hit;
@@ -1848,6 +2013,7 @@ function interact(hit, kind) {
     Sound.door(true); openPanel("chest", key); return;
   }
   if (kind === "anchor") { useAnchor(hit); return; }
+  if (kind === "cinderaltar") { useCinderAltar(hit); return; }
   if (kind === "lodestone") { bindCompass(hit); return; }
   if (kind === "voidchest") { Sound.door(true); puff(hit.x + 0.5, hit.y + 1.1, hit.z + 0.5, "portal"); openPanel("voidchest"); G.adv("voidchest"); return; }
   if (kind === "furnace") {
@@ -1883,8 +2049,14 @@ function fillLoot(box, hit) {
     if (r() < 0.3) put(I.SKY_CHEST, 1);
     if (r() < 0.3) put(I.DUSK_SCRAP, 1);
     if (r() < 0.25) put(I.TOTEM, 1);
+    if (r() < 0.3) put(I.WYRM_SCALE, 1);
     for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
     UI.toast("You found a Hollow treasure chest!", "good"); return;
+  }
+  const A = arena();
+  if (A && Math.hypot(hit.x - A.x, hit.z - A.z) < CITADEL.TUNNEL + 4 && Math.abs(hit.z - A.z) < 8) {   // the citadel's supply chest
+    put(B.SHINESTONE, 8); put(I.GOLDEN_APPLE, 2); put(I.ARROW, 24); put(I.COOKED_PORK, 8); put(I.TOTEM, 1); put(B.COBBLE, 32);
+    UI.toast("Supplies for the fight! Charge the Respawn Anchor beside this chest with Shinestone so you wake up here if you faint.", "good"); return;
   }
   if (G.world.gen.isNether()) {   // fortress and bastion treasure
     put(I.GOLD_INGOT, 2 + Math.floor(r() * 5)); put(I.GOLD_NUGGET, 4 + Math.floor(r() * 10));
@@ -2074,6 +2246,7 @@ function useTotem() {
 }
 function die(why) {
   dismount(true);
+  cinderOnFaint();
   G.eat = null; G.blocking = false; G.bowT = -1;
   const p = G.player;
   if ((!G.wset.keepInv || G.meta.hardcore) && !G.creative) {   // drop everything where you fell
@@ -2157,6 +2330,7 @@ function survival(dt) {
   if (G.eat) p.speedMul *= 0.35;       // and while eating
   p.swimMul = G.effects.dolphin ? 1.9 : 1;
   tickBeacons(dt);
+  if (G.inv.slots[36] && G.inv.slots[36].id === I.CINDER_CROWN) { G.effects.fireRes = Math.max(G.effects.fireRes || 0, 1.5); }   // the Cinder Crown keeps fire away
   if (p.gliding && (G.glideT = (G.glideT || 0) + dt) >= 1) { G.glideT = 0; const wings = G.inv.slots[37]; if (wings && wings.id === I.GLIDER) { wings.dur = (wings.dur ?? 432) - 1; if (wings.dur <= 0) { G.inv.slots[37] = null; p.gliding = false; UI.toast("Your Glider Wings wore out!", "bad"); } G.hudDirty = true; } }
   if (p.inLava && !G.effects.fireRes) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true, "fire"); } }
   const w = G.world, fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y), fz = Math.floor(p.pos.z);
@@ -2254,6 +2428,80 @@ function applyView() {
   camera.far = Math.max(120, R + 40); camera.updateProjectionMatrix();
 }
 
+// ---------- your player model, third-person view, and the skin chooser ----------
+let pmodel = null, pmMain = -1, pmOff = -1;
+function itemForModel(id) { if (!id) return null; const m = itemMesh(id, 0.32); m.userData.shared = m.userData.shared || m.geometry.type !== "PlaneGeometry"; return m; }
+function updatePlayerModel(dt) {
+  const p = G.player, want = G.settings.skin;
+  if (!pmodel || pmodel.skinId !== skinById(want).id) {
+    if (pmodel) { scene.remove(pmodel.holder); for (const m of Object.values(pmodel.held)) if (m) disposeItemMesh(m); disposeModel(pmodel); }
+    pmodel = makeModel(want); scene.add(pmodel.holder); pmMain = pmOff = -1; heldId = -1;
+  }
+  pmodel.holder.visible = !!G.thirdPerson && G.state !== "title";
+  if (!pmodel.holder.visible) return;
+  // what you wear and hold
+  dressModel(pmodel, [36, 37, 38, 39].map(i => { const s = G.inv.slots[i], d = s && itemDef(s.id); return d ? (d.glider ? "#6a5a7a" : d.colors && d.colors[0]) : null; }));
+  const mainId = (G.inv.slots[G.selected] || {}).id || 0, offIdNow = (G.inv.slots[OFF] || {}).id || 0;
+  if (mainId !== pmMain || offIdNow !== pmOff) {
+    for (const m of Object.values(pmodel.held)) if (m) disposeItemMesh(m);
+    pmodel.held = {}; for (const k of ["armR", "armL"]) for (const c of [...pmodel.parts[k].children]) if (c.userData.held) pmodel.parts[k].remove(c);
+    const a = itemForModel(mainId), b = itemForModel(offIdNow);
+    if (a) a.userData.held = true; if (b) b.userData.held = true;
+    holdItems(pmodel, a, b); pmMain = mainId; pmOff = offIdNow;
+  }
+  pmodel.holder.position.set(p.pos.x, p.pos.y + (p.mount ? 0.85 : p.boat ? 0.1 : 0), p.pos.z);
+  pmodel.holder.rotation.y = p.yaw + Math.PI;
+  poseModel(pmodel, { walkPhase: G.walkPhase, speed: Math.hypot(p.vel.x, p.vel.z), pitch: -p.pitch, crouch: p.crouch && !p.flying, swing: G.swing,
+    eating: G.eat ? (G.eat.slot === OFF ? "L" : "R") : null, bow: G.bowT >= 0, blocking: G.blocking ? (G.blockHand === OFF ? "L" : "R") : null, riding: !!(p.mount || p.boat) });
+}
+// The camera sits behind you (or in front, looking back), pulled closer if a wall is in the way
+function placeThirdPersonCamera(p) {
+  const d = lookDir(), back = G.view === 1 ? -1 : 1, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
+  const dir = { x: d.x * back, y: d.y * back, z: d.z * back };
+  const hit = raycast(G.world, eye, dir, 4.2, false);
+  const dist = hit ? Math.max(0.6, hit.dist - 0.3) : 4;
+  camera.position.set(eye.x + dir.x * dist, eye.y + dir.y * dist, eye.z + dir.z * dist);
+  if (G.view === 2) camera.rotation.set(-p.pitch, p.yaw + Math.PI, 0, "YXZ");
+}
+// Skin chooser: a grid of pictures and a turning 3D preview (its own small renderer, made only while the chooser is open)
+let chooser = null;
+G.skins = SKINS.map(s => ({ id: s.id, name: s.name, desc: s.desc }));
+G.skinThumb = id => thumbnail(id, 72);
+G.openSkinPreview = (canvasEl, skinId) => {
+  if (!chooser) {
+    let r;
+    try { r = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: false, alpha: true }); } catch (e) { return false; }
+    r.outputColorSpace = THREE.LinearSRGBColorSpace; r.setPixelRatio(1);
+    const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(35, 1, 0.1, 20);
+    cam.position.set(0, 1.05, 4.1); cam.lookAt(0, 0.85, 0);
+    chooser = { r, sc, cam, model: null, ang: 0.5, drag: null, t: 0, canvasEl };
+    const down = e => { chooser.drag = e.clientX; }, move = e => { if (chooser && chooser.drag !== null) { chooser.ang += (e.clientX - chooser.drag) * 0.012; chooser.drag = e.clientX; chooser.t = 0; } }, up = () => { if (chooser) chooser.drag = null; };
+    canvasEl.onpointerdown = down; canvasEl.onpointermove = move; canvasEl.onpointerup = canvasEl.onpointerleave = up;
+    const spin = () => {
+      if (!chooser) return;
+      chooser.t += 1 / 60; if (chooser.drag === null && chooser.t > 2) chooser.ang += 0.012;
+      if (chooser.model) { chooser.model.holder.rotation.y = chooser.ang; poseModel(chooser.model, { walkPhase: chooser.t * 4, speed: 1.5, pitch: 0 }); }
+      const w = canvasEl.clientWidth || 220, h = canvasEl.clientHeight || 260;
+      if (canvasEl.width !== w || canvasEl.height !== h) { chooser.r.setSize(w, h, false); chooser.cam.aspect = w / h; chooser.cam.updateProjectionMatrix(); }
+      chooser.r.render(chooser.sc, chooser.cam);
+      chooser.raf = setTimeout(spin, 33);   // about 30 frames a second is plenty for a preview
+    };
+    spin();
+  }
+  if (chooser.model) { chooser.sc.remove(chooser.model.holder); disposeModel(chooser.model); }
+  chooser.model = makeModel(skinId); chooser.sc.add(chooser.model.holder);
+  dressModel(chooser.model, []);
+  return true;
+};
+G.closeSkinPreview = () => {
+  if (!chooser) return;
+  clearTimeout(chooser.raf);
+  if (chooser.model) disposeModel(chooser.model);
+  chooser.r.dispose(); chooser.r.forceContextLoss();
+  chooser = null;
+};
+G.applySkin = id => { G.settings.skin = skinById(id).id; saveSettings(G.settings); heldId = -1; UI.toast(`Skin: ${skinById(id).name}`, "good"); };
+
 // ---------- settings ----------
 G.applySettings = (k) => {
   const s = G.settings;
@@ -2312,7 +2560,7 @@ function loop(now) {
   if (running) {
     G.time = (G.time + dt / DAY_LENGTH) % 1;
     if (G.time < dt / DAY_LENGTH) { G.meta.day = (G.meta.day || 1) + 1; }
-    const input = G.state === "play" && locked ? {
+    const input = G.state === "play" && locked && !G.cutscene ? {
       f: (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) - (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0),
       r: (keys.has("KeyD") || keys.has("ArrowRight") ? 1 : 0) - (keys.has("KeyA") || keys.has("ArrowLeft") ? 1 : 0),
       jump: keys.has("Space"), crouch: keys.has("KeyC"),
@@ -2361,15 +2609,20 @@ function loop(now) {
     updateClouds(dt);
     if (G.dim === "end") ensureBoss();
     if (G.state === "play") checkPortal(dt);
+    tickCinder(dt);
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
   }
 
   // camera
-  const bob = G.settings.reducedMotion || !p.onGround ? 0 : Math.sin(G.walkPhase) * 0.04 * Math.min(1, Math.hypot(p.vel.x, p.vel.z) / 4);
+  const bob = G.settings.reducedMotion || !p.onGround || G.view ? 0 : Math.sin(G.walkPhase) * 0.04 * Math.min(1, Math.hypot(p.vel.x, p.vel.z) / 4);
   camera.position.set(p.pos.x, p.pos.y + p.eye + bob, p.pos.z);
   camera.rotation.set(p.pitch, p.yaw, p.hurtT > 0 && !G.settings.reducedMotion ? Math.sin(p.hurtT * 30) * 0.03 : 0, "YXZ");
+  G.thirdPerson = (!!G.view && !G.spectator) || !!G.cutscene;
+  if (tickCutscene(dt)) { /* the victory scene moves the camera */ }
+  else if (G.thirdPerson) placeThirdPersonCamera(p);
+  updatePlayerModel(dt);
   if (p.hurtT > 0) p.hurtT -= dt;
 
   stream(G.state === "play" ? 7 : 4);
@@ -2420,7 +2673,12 @@ function loop(now) {
   // the boss health bar
   const boss = ents.list.filter(e => e.def.boss && !e.gone).sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0], bar = document.getElementById("bossbar");
   bar.hidden = !boss || Math.hypot(boss.pos.x - p.pos.x, boss.pos.z - p.pos.z) > (boss.sp === "dragon" ? 160 : 64);
-  if (!bar.hidden) { bar.querySelector("i").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%"; bar.querySelector("b").textContent = boss.def.name + (boss.armored ? " (armored: arrows bounce off)" : ""); }
+  if (!bar.hidden) {
+    let label = boss.def.name + (boss.armored ? " (armored: arrows bounce off)" : "");
+    if (boss.sp === "cindermaw") { const ph = ents.cinderPhase(boss), py = ents.list.filter(o => o.sp === "pylon" && !o.dead).length; label = `Cindermaw • Phase ${ph}${py ? ` • Shielded by ${py} Ember Pylon${py > 1 ? "s" : ""}` : boss.tired ? " • Worn out!" : boss.perched ? " • Landed: hit it!" : ""}`; }
+    bar.querySelector("i").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%"; bar.querySelector("b").textContent = label;
+    bar.classList.toggle("ember", boss.sp === "cindermaw");
+  }
   if (G.hudDirty) { G.hudDirty = false; UI.hud(); }
   if (running) { G.autosaveT += dt; if (G.autosaveT > AUTOSAVE) { G.autosaveT = 0; saveNow(true); } }
   if (G.debug) {
@@ -2438,4 +2696,4 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };

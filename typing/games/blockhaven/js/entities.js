@@ -390,6 +390,37 @@ function spiderModel(pal) {
     { name: "head", size: [8, 8, 8], pivot: [0, 5, 4], off: [0, 0, 4], paint: { all: solid(pal), front: face(pal, P => { for (const [x, y] of [[2, 5], [5, 4], [9, 4], [12, 5], [4, 8], [11, 8]]) P.rect(x, y, 2, 2, "#e0202a"); }) } },
     ...legs] };
 }
+// ----- Cindermaw, the Ember Dragon (final boss of Survival), and its Ember Pylons -----
+const CSCALE = ["#2a1a16", "#22140f", "#30201a", "#1c120e"], CEMBER = ["#ff7a1a", "#ffb030", "#e05a10"], CWING = ["#3a1410", "#30100c", "#42180f"];
+// dark volcanic scales split by glowing cracks
+const cracked = (n = 5) => P => { P.fill(CSCALE); for (let i = 0; i < n; i++) { let x = Math.floor(Math.random() * 16), y = Math.floor(Math.random() * 16); for (let k = 0; k < 6; k++) { P.px(x, y, CEMBER[Math.floor(Math.random() * 3)]); x += Math.random() < 0.5 ? 1 : -1; y += Math.random() < 0.7 ? 1 : 0; } } };
+const veined = P => { P.fill(CWING); for (let x = 1; x < 16; x += 5) for (let y = 0; y < 16; y++) P.px(x + (y % 5 === 0 ? 1 : 0), y, "#c84a10"); };
+Object.assign(SPECIES, {
+  cindermaw: { name: "Cindermaw, the Ember Dragon", boss: true, noSave: true, hostile: true, hp: 320, speed: 11, w: 4.5, h: 3, ai: "cindermaw", flies: true, noclip: true, fireproof: true, dmg: 7, xp: 0, sound: "roar", deathPuff: "ember",
+    drops: () => [],
+    model: { type: "cindermaw", parts: [
+      { name: "body", size: [34, 22, 46], pivot: [0, 46, 0], off: [0, 0, 0], paint: { all: cracked(6), top: P => { cracked(4)(P); for (let y = 0; y < 16; y += 3) P.rect(6, y, 4, 2, "#4a2a1e"); } } },
+      { name: "spikes", parent: "body", size: [4, 8, 40], pivot: [0, 13, 0], off: [0, 2, 0], paint: { all: solid(["#1a0e0a", "#24140e"]), top: solid(CEMBER) } },
+      { name: "neck", size: [14, 14, 30], pivot: [0, 50, 22], off: [0, 0, 15], paint: { all: cracked(4) } },
+      { name: "head", parent: "neck", size: [22, 16, 26], pivot: [0, 2, 15], off: [0, 0, 12], paint: { all: cracked(3), front: face(CSCALE, P => { P.rect(1, 3, 5, 3, "#ffd34d"); P.rect(10, 3, 5, 3, "#ffd34d"); P.rect(2, 4, 3, 1, "#fff6c0"); P.rect(11, 4, 3, 1, "#fff6c0"); P.rect(3, 11, 2, 2, "#120808"); P.rect(11, 11, 2, 2, "#120808"); }) } },
+      { name: "hornL", parent: "head", size: [3, 3, 12], pivot: [7, 8, -6], off: [0, 1, -5], paint: { all: solid(["#1a0e0a", "#2a1a12"]) } },
+      { name: "hornR", parent: "head", size: [3, 3, 12], pivot: [-7, 8, -6], off: [0, 1, -5], paint: { all: solid(["#1a0e0a", "#2a1a12"]) } },
+      { name: "jaw", parent: "head", size: [18, 6, 22], pivot: [0, -8, 0], off: [0, -3, 10], paint: { all: cracked(2), top: solid(["#ff7a1a", "#e05a10"]) } },
+      { name: "wingL", size: [64, 4, 40], pivot: [17, 56, 8], off: [32, 0, 0], paint: { all: veined } },
+      { name: "wingTipL", parent: "wingL", size: [56, 2, 32], pivot: [32, 0, 0], off: [28, 0, -3], paint: { all: veined } },
+      { name: "wingR", size: [64, 4, 40], pivot: [-17, 56, 8], off: [-32, 0, 0], paint: { all: veined } },
+      { name: "wingTipR", parent: "wingR", size: [56, 2, 32], pivot: [-32, 0, 0], off: [-28, 0, -3], paint: { all: veined } },
+      { name: "tail", size: [12, 12, 26], pivot: [0, 46, -23], off: [0, 0, -13], paint: { all: cracked(3) } },
+      { name: "tail2", parent: "tail", size: [10, 10, 24], pivot: [0, 0, -13], off: [0, 0, -12], paint: { all: cracked(3) } },
+      { name: "tail3", parent: "tail2", size: [8, 8, 22], pivot: [0, 0, -12], off: [0, 0, -11], paint: { all: cracked(2) } },
+      { name: "tail4", parent: "tail3", size: [6, 6, 20], pivot: [0, 0, -11], off: [0, 0, -10], paint: { all: cracked(2), back: solid(CEMBER) } },
+      ...[[-13, 16, "legFR"], [13, 16, "legFL"], [-13, -16, "legBR"], [13, -16, "legBL"]].map(([x, z, name]) => ({ name, size: [9, 22, 9], pivot: [x, 36, z], off: [0, -11, 0], paint: { all: cracked(2) } }))] } },
+  pylon: { name: "Ember Pylon", noSave: true, hp: 6, w: 1.4, h: 2.4, ai: "crystal", static: true, fireproof: true, xp: 0, sound: "crystal", drops: () => [],
+    model: { type: "crystal", parts: [
+      { name: "cage", size: [14, 14, 14], pivot: [0, 18, 0], off: [0, 0, 0], paint: { all: P => { P.clear(); P.rect(0, 0, 16, 2, "#ffb030"); P.rect(0, 14, 16, 2, "#ffb030"); P.rect(0, 0, 2, 16, "#ffb030"); P.rect(14, 0, 2, 16, "#ffb030"); } } },
+      { name: "core", size: [8, 8, 8], pivot: [0, 18, 0], off: [0, 0, 0], paint: { all: solid(["#ff7a1a", "#ffd34d", "#e05a10"]) } },
+      { name: "base", size: [16, 4, 16], pivot: [0, 0, 0], off: [0, 2, 0], paint: { all: solid(["#2a1a1a", "#3a2420"]) } }] } }
+});
 for (const sp of Object.values(SPECIES)) if (!sp.geos) makeSpecies(sp);
 export const SPAWN_SPECIES = SPAWN_EGGS.map(e => e[0]);
 
@@ -774,7 +805,7 @@ export class Entities {
       e.age += dt;
       if (d2 < 48 * 48 || e.def.boss) {
         e.thinkT -= dt;
-        if (e.thinkT <= 0) { e.thinkT = d2 < 24 * 24 ? 0.15 : 0.6; this.think(e, daylight); }
+        if (e.thinkT <= 0) { e.thinkT = d2 < 24 * 24 || e.def.boss ? 0.15 : 0.6; this.think(e, daylight); }
         this.physics(e, dt);
       }
       if (d2 < 64 * 64 || e.def.boss) this.animate(e, dt, d2, daylight);
@@ -782,7 +813,158 @@ export class Entities {
     }
     this.sweep();
     this.updateProjectiles(dt);
+    this.updateHazards(dt);
   }
+
+  // ----- Cindermaw's fight -----
+  // Phase 1 (above 2/3 health): fireball volleys, sweeping dives, fire breath on marked ground, and landings (the time to hit it hard).
+  // Phase 2: Ember Pylons rise and shield it until you break them; marked eruption zones, wing gusts, and a few helpers.
+  // Phase 3 (below 1/3): everything comes faster, plus a new combo (breath + eruptions), after which it lands worn out.
+  // Every big attack has a warning: a roar and wind-up, glowing marks on the floor, or spread wings.
+  cinderPhase(e) { return e.hp > e.maxHp * 0.66 ? 1 : e.hp > e.maxHp * 0.33 ? 2 : 3; }
+  thinkCinder(e, d, dmgMul) {
+    const ctx = this.ctx, p = ctx.player(), A = ctx.arena();
+    if (!A) return;
+    const step = Math.min(0.5, e.age - (e.lastThink ?? e.age)); e.lastThink = e.age;
+    const ph = this.cinderPhase(e), fast = ph === 3 ? 0.65 : 1, F = A.y;
+    e.phaseT -= step; if (e.windT > 0) e.windT -= step; if (e.cd > 0) e.cd -= step;
+    if (ph !== e.lastPhase) {
+      if (e.lastPhase && ph > e.lastPhase) { ctx.toast(ph === 2 ? "Cindermaw calls on the Ember Pylons! Break them to weaken its shield." : "Cindermaw is badly hurt and furious! Watch for its new attack.", "bad"); Sound.mob("roar", 0); e.mouthT = 1.2; }
+      if (ph >= 2) ctx.cinderPylons();
+      e.lastPhase = ph;
+    }
+    const pylons = this.list.filter(o => o.sp === "pylon" && !o.dead);
+    e.shielded = pylons.length > 0;
+    e.healFrom = e.shielded ? pylons[Math.floor(e.age) % pylons.length] : null;
+    if (e.shielded && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + 0.4 * step);
+    const inArena = Math.hypot(p.pos.x - A.x, p.pos.z - A.z) < A.r + 1 && !ctx.creative();
+    const keep = g => { const gx = g.x - A.x, gz = g.z - A.z, gl = Math.hypot(gx, gz), lim = A.r - 5; if (gl > lim) { g.x = A.x + gx / gl * lim; g.z = A.z + gz / gl * lim; } g.y = Math.max(F + 3, Math.min(F + 38, g.y)); return g; };
+    const face = () => { e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)); };
+    const toCircle = (t = 3.5) => { e.phase = "circle"; e.phaseT = rand(t, t + 2) * fast; e.perched = false; e.shot = 0; e.windT = 0; e.flapFast = false; };
+    if (Math.random() < 0.006) Sound.mob("roar", d);
+    switch (e.phase) {
+      case "circle": {
+        e.ang += step * 0.35 / fast;
+        e.goal = keep({ x: A.x + Math.cos(e.ang) * 20, z: A.z + Math.sin(e.ang) * 20, y: F + 22 + Math.sin(e.ang * 2) * 5, speed: 10 });
+        if (e.phaseT > 0 || !inArena) break;
+        const r = Math.random(), picks = ph === 1 ? ["fireballs", "sweep", "breath", "land"] : ph === 2 ? ["fireballs", "sweep", "breath", "zones", "gust", "summon", "land"] : ["combo", "fireballs", "sweep", "zones", "gust", "breath", "summon"];
+        let pick = picks[Math.floor(r * picks.length)];
+        if (pick === "summon" && (e.cd > 0 || this.list.filter(o => o.cinderMinion && !o.dead).length >= 3)) pick = "fireballs";
+        if (pick === "land" && e.shielded) pick = "zones";
+        e.phase = pick; e.phaseT = 10; e.windT = pick === "sweep" ? 1.1 : pick === "gust" ? 1.3 : pick === "fireballs" ? 0.8 : 0; e.shot = 0;
+        if (e.windT) { Sound.mob("roar", d); e.mouthT = e.windT; }
+        break;
+      }
+      case "fireballs": {   // hover, glow, and spit a volley of 3 (5 in phase 3)
+        e.goal = keep({ x: e.pos.x, z: e.pos.z, y: F + 14, speed: 6 }); face();
+        if (e.windT > 0) { e.flapFast = true; break; }
+        e.flapFast = false;
+        if ((e.fireT = (e.fireT || 0) - step) <= 0 && e.shot < (ph === 3 ? 5 : 3)) { e.fireT = 0.35; e.shot++; e.mouthT = 0.4; this.shootFire(e, p, "fireball", 15, { dmg: 5, fromBoss: true }); }
+        if (e.shot >= (ph === 3 ? 5 : 3)) toCircle();
+        break;
+      }
+      case "sweep": {   // a readable wind-up (hover, roar, fast flaps), then a fast low pass through where you're standing
+        if (e.windT > 0) { e.goal = null; face(); e.flapFast = true; e.target = { x: p.pos.x, y: p.pos.y + 1.2, z: p.pos.z }; break; }
+        e.flapFast = false;
+        const t = e.target || p.pos, dir = { x: t.x - e.pos.x, z: t.z - e.pos.z }, l = Math.hypot(dir.x, dir.z) || 1;
+        e.goal = keep({ x: t.x + dir.x / l * 10, z: t.z + dir.z / l * 10, y: t.y, speed: 19 });
+        if (d < 4 && e.attackCd <= 0) { ctx.hurtPlayer(e.def.dmg * dmgMul, "Cindermaw swept right through you! Watch for its roar, then dodge to the side.", e); e.attackCd = 2; }
+        if (l < 3 || e.phaseT < 6.5) toCircle();
+        break;
+      }
+      case "breath": {   // marks a line of floor with glowing rings, then breathes fire along it
+        if (!e.shot) {
+          e.shot = 1; e.windT = 1.3; const tx = p.pos.x, tz = p.pos.z, ang = Math.atan2(tz - A.z, tx - A.x);
+          e.goal = keep({ x: tx - Math.cos(ang) * 9, z: tz - Math.sin(ang) * 9, y: F + 7, speed: 12 });
+          for (let k = -1; k <= 1; k++) this.addHazard(tx + Math.cos(ang) * k * 3, F + 1, tz + Math.sin(ang) * k * 3, 2.6, 1.6 * fast, 5, "Cindermaw's fire breath caught you! Step out of the glowing rings.", 1.2);
+          Sound.mob("flare", d); e.mouthT = 2.5;
+        }
+        face();
+        if (e.phaseT < 6) toCircle();
+        break;
+      }
+      case "zones": {   // eruptions: rings appear around you and burst after a moment
+        if (!e.shot) {
+          e.shot = 1; const n = ph === 3 ? 5 : 3;
+          for (let k = 0; k < n; k++) { const a = Math.random() * Math.PI * 2, rr = k === 0 ? 0 : rand(3, 7); this.addHazard(p.pos.x + Math.cos(a) * rr, F + 1, p.pos.z + Math.sin(a) * rr, 2.4, (ph === 3 ? 1.6 : 2) + k * 0.15, 6, "The floor erupted under you! Move out of the glowing rings.", 0); }
+          Sound.mob("rumble", 0); e.mouthT = 1;
+        }
+        e.goal = keep({ x: A.x + Math.cos(e.ang) * 18, z: A.z + Math.sin(e.ang) * 18, y: F + 20, speed: 8 });
+        if (e.phaseT < 7) toCircle();
+        break;
+      }
+      case "gust": {   // spreads its wings, then a blast of wind that throws you back (hide behind a pillar!)
+        e.goal = keep({ x: e.pos.x, z: e.pos.z, y: F + 9, speed: 5 }); face();
+        if (e.windT > 0) { e.spread = true; if (Math.random() < 0.5) ctx.particles(e.pos.x + rand(-4, 4), e.pos.y + 2, e.pos.z + rand(-4, 4), "ash"); break; }
+        e.spread = false;
+        if (!e.shot) {
+          e.shot = 1; Sound.mob("rumble", 0);
+          const dx = p.pos.x - e.pos.x, dz = p.pos.z - e.pos.z, l = Math.hypot(dx, dz) || 1;
+          if (l < 18 && this.lineToPlayer(e)) { ctx.push(dx / l * 13, 6, dz / l * 13); ctx.hurtPlayer(2 * dmgMul, "Cindermaw's wing gust knocked you down! Hide behind a pillar when it spreads its wings.", null); }
+        }
+        if (e.phaseT < 8) toCircle();
+        break;
+      }
+      case "summon": {   // a couple of Magma Gloops and Flares join the fight (never more than 3 at once)
+        e.cd = 25; Sound.mob("roar", d); e.mouthT = 1;
+        for (let k = 0; k < 2; k++) { const a = Math.random() * Math.PI * 2, x = A.x + Math.cos(a) * 16, z = A.z + Math.sin(a) * 16; const m = this.add(Math.random() < 0.5 ? "magma" : "flare", x, F + 1.2, z, { size: 2 }); if (m) { m.cinderMinion = true; m.angry = 60; this.ctx.particles(x, F + 2, z, "fire"); } }
+        toCircle();
+        break;
+      }
+      case "combo": {   // phase 3: fire breath and eruptions together, then it lands worn out
+        if (!e.shot) {
+          e.shot = 1; const ang = Math.random() * Math.PI * 2;
+          for (let k = 0; k < 4; k++) { const a = ang + k * Math.PI / 2; this.addHazard(p.pos.x + Math.cos(a) * 5, F + 1, p.pos.z + Math.sin(a) * 5, 2.6, 1.5, 6, "Cindermaw's inferno caught you! Stand where there are no rings.", 0.8); }
+          this.addHazard(p.pos.x, F + 1, p.pos.z, 2.2, 2.2, 6, "Cindermaw's inferno caught you! Stand where there are no rings.", 0);
+          Sound.mob("roar", 0); e.mouthT = 2;
+        }
+        e.goal = keep({ x: A.x, z: A.z, y: F + 16, speed: 8 });
+        if (e.phaseT < 6.5) { e.phase = "land"; e.phaseT = 14; e.tired = true; }
+        break;
+      }
+      case "land": {   // lands beside the altar: it takes full damage here (and even more when worn out after a combo)
+        const lx = A.x, ly = F + 1, lz = A.z + 8;
+        if (!e.perched) {
+          const dist = Math.hypot(e.pos.x - lx, e.pos.y - ly, e.pos.z - lz);
+          e.goal = { x: lx, z: lz, y: ly, speed: Math.max(2, Math.min(10, dist * 0.8)) };
+          if (dist < 3) { e.perched = true; e.phaseT = e.tired ? 8 : 6.5; e.goal = null; e.vel.x = e.vel.y = e.vel.z = 0; e.pos.x = lx; e.pos.y = ly; e.pos.z = lz; ctx.toast(e.tired ? "Cindermaw is worn out! Hit it now!" : "Cindermaw landed! Now's your chance to hit it.", "good"); }
+          else if (e.phaseT <= 0) toCircle();
+        } else {
+          face();
+          // a tail sweep if you stand too close for too long (it rears up first)
+          if (!e.tired && d < 6 && e.attackCd <= 0) { if (!e.tailT) { e.tailT = 0.9; e.mouthT = 0.9; Sound.mob("roar", d); } }
+          if (e.tailT > 0) { e.tailT -= step; if (e.tailT <= 0) { e.tailT = 0; if (d < 6.5) { const dx = p.pos.x - e.pos.x, dz = p.pos.z - e.pos.z, l = Math.hypot(dx, dz) || 1; ctx.push(dx / l * 9, 5, dz / l * 9); ctx.hurtPlayer(4 * dmgMul, "Cindermaw's tail knocked you away! Back off when it rears up.", null); } e.attackCd = 3; } }
+          if (e.phaseT <= 0) { e.perched = false; e.tired = false; e.phase = "takeoff"; e.phaseT = 3; }
+        }
+        break;
+      }
+      case "takeoff": e.goal = keep({ x: e.pos.x, z: e.pos.z - 6, y: F + 18, speed: 9 }); if (e.phaseT <= 0) toCircle(); break;
+      default: toCircle();
+    }
+  }
+  // Marked danger rings on the floor: a warning glow, then damage to anyone inside (lasting `burn` seconds for breath)
+  addHazard(x, y, z, r, warn, dmg, why, burn) {
+    if (!this.hazards) this.hazards = [];
+    if (this.hazards.length > 12) return;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(r - 0.35, r, 28), new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false, fog: false }));
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(r, 28), new THREE.MeshBasicMaterial({ color: 0xff3a10, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false, fog: false }));
+    for (const m of [ring, fill]) { m.rotation.x = -Math.PI / 2; m.position.set(x, y + 0.03, z); this.scene.add(m); }
+    this.hazards.push({ x, y, z, r, t: warn, warn, dmg, why, burn: burn || 0, ring, fill, hitT: 0 });
+  }
+  updateHazards(dt) {
+    if (!this.hazards || !this.hazards.length) return;
+    const p = this.ctx.player();
+    for (const h of this.hazards) {
+      h.t -= dt;
+      const inside = Math.hypot(p.pos.x - h.x, p.pos.z - h.z) < h.r && Math.abs(p.pos.y - h.y) < 3;
+      if (h.t > 0) { h.fill.material.opacity = 0.12 + (1 - h.t / h.warn) * 0.3; h.ring.material.opacity = 0.5 + Math.sin(h.t * 14) * 0.15; continue; }
+      if (!h.fired) { h.fired = true; for (let k = 0; k < 3; k++) this.ctx.particles(h.x + rand(-h.r, h.r) * 0.6, h.y + 0.3, h.z + rand(-h.r, h.r) * 0.6, "fire"); Sound.mob("fireshoot", this.dist({ pos: h })); h.fill.material.color.setHex(0xffb030); h.fill.material.opacity = 0.45; }
+      if (inside && (h.hitT -= dt) <= 0) { h.hitT = 0.5; this.ctx.hurtPlayer(h.dmg * ({ peaceful: 0, easy: 0.67, normal: 1, hard: 1.5 }[this.ctx.settings().difficulty] ?? 1), h.why, null); this.ctx.effect("fire", 3); }
+      if (h.t < -Math.max(0.35, h.burn)) h.gone = true;
+    }
+    this.hazards = this.hazards.filter(h => { if (!h.gone) return true; for (const m of [h.ring, h.fill]) { this.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } return false; });
+  }
+  clearHazards() { for (const h of this.hazards || []) h.gone = true; this.hazards = (this.hazards || []).filter(h => { for (const m of [h.ring, h.fill]) { this.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } return false; }); }
 
   physics(e, dt) {
     const w = this.world, def = e.def, ctx = this.ctx;
@@ -948,7 +1130,7 @@ export class Entities {
       const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.eyeY), Math.floor(e.pos.z));
       if (L && L[0] >= 15) e.burning = Math.max(e.burning || 0, 3);
     }
-    if (def.hostile && def.hostile && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
+    if (def.hostile && !def.boss && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
     if (def.pet && e.tame) return this.thinkPet(e, d, dmgMul);
     if (def.boat) return;
     if (def.swims) return this.thinkSwimmer(e, d, dmgMul);
@@ -961,6 +1143,7 @@ export class Entities {
     if (def.ai === "crystal") return;
     if (def.ai === "sheller") return this.thinkSheller(e, d, dmgMul);
     if (def.ai === "dragon") return this.thinkDragon(e, d, dmgMul);
+    if (def.ai === "cindermaw") return this.thinkCinder(e, d, dmgMul);
     if (def.ai === "villager") return this.thinkVillager(e, d);
     if (def.ai === "golem") return this.thinkGolem(e, d, dmgMul);
     if (def.ai === "blightking") return this.thinkBlightking(e, d, dmgMul);
@@ -1595,6 +1778,8 @@ export class Entities {
     if (attacker === "player" && !e.def.villager && !e.def.object) this.petFoe = e;   // your Scouts join in
     if (e.summonT > 0) return false;   // can't be hurt while it's being summoned
     if (e.sp === "dragon") { n *= e.perched ? 1 : 0.6; knock = null; if (attacker === "explosion") n *= 0.3; }
+    // Cindermaw: half damage in the air, full when landed, 1.5× when worn out; the pylons' shield blocks most of it
+    if (e.sp === "cindermaw") { n *= e.perched ? (e.tired ? 1.5 : 1) : 0.5; if (e.shielded) n *= 0.2; if (attacker === "explosion") n *= 0.3; knock = null; if (e.shielded) this.ctx.particles(e.pos.x, e.pos.y + 2, e.pos.z, "ember"); }
     if (e.sp === "blightking") { knock = null; if (attacker === "explosion") n *= 0.2; }
     if (attacker === "player" && e.def.villager) for (const g of this.near(e.pos.x, e.pos.y, e.pos.z, 24, o => o.sp === "golem")) g.angry = 30;   // hurting villagers angers the Ironwarden
     if (e.def.villager) e.fleeT = 4;
@@ -1621,6 +1806,7 @@ export class Entities {
     const ctx = this.ctx;
     if (attacker === "player" && ctx.adv) ctx.adv("kill", e.sp);
     if (e.sp === "crystal") { e.gone = true; ctx.crystalGone(e.cid); ctx.explode(e.pos.x, e.pos.y + 1, e.pos.z, 3, null); return; }
+    if (e.sp === "pylon") { e.gone = true; ctx.pylonGone(e.cid); for (let k = 0; k < 3; k++) ctx.particles(e.pos.x, e.pos.y + 1 + k * 0.4, e.pos.z, "fire"); Sound.mob("crystal", 0); return; }
     if (e.def.boss) { Sound.mob("roar", 0); return; }
     if (attacker === "player" || e.burning || attacker === "explosion" || (attacker && (attacker.tame || attacker.sp === "fox"))) {
       for (const d of e.def.drops(e)) if (d && d[1] > 0) ctx.drop(d[0], d[1], e.pos.x, e.pos.y + 0.4, e.pos.z);
@@ -1634,9 +1820,10 @@ export class Entities {
   }
   dying(e, dt) {
     if (e.def.boss) {   // the wyrm rises, shudders, and bursts into light
-      e.dead -= dt; e.pos.y += dt * 2; e.root.rotation.z = Math.sin(e.dead * 20) * 0.08;
-      e.mat.color.setRGB(1, 0.7 + Math.sin(e.dead * 30) * 0.3, 1);
-      if (Math.random() < 0.6) this.ctx.particles(e.pos.x + rand(-4, 4), e.pos.y + rand(0, 3), e.pos.z + rand(-4, 4), "void");
+      e.dead -= dt; e.pos.y += dt * (e.sp === "cindermaw" ? 0.6 : 2); e.root.rotation.z = Math.sin(e.dead * 20) * 0.08;
+      if (e.sp === "cindermaw") { const k = 1 + Math.sin(e.dead * 25) * 0.4; e.mat.color.setRGB(1.3 * k, 0.8 * k, 0.5 * k); if (e.parts.wingL) { e.parts.wingL.rotation.z = -0.6 + e.dead * 0.1; e.parts.wingR.rotation.z = 0.6 - e.dead * 0.1; } }
+      else e.mat.color.setRGB(1, 0.7 + Math.sin(e.dead * 30) * 0.3, 1);
+      if (Math.random() < 0.6) this.ctx.particles(e.pos.x + rand(-4, 4), e.pos.y + rand(0, 3), e.pos.z + rand(-4, 4), e.def.deathPuff || "void");
       if (e.dead <= 0) { e.gone = true; this.ctx.bossDefeated(e); }
       e.mesh.position.set(e.pos.x, e.pos.y, e.pos.z);
       return;
@@ -1828,9 +2015,9 @@ export class Entities {
       pr.x += dx / l * 7 * dt * (down ? 0.3 : 1); pr.z += dz / l * 7 * dt * (down ? 0.3 : 1); pr.y += (down ? -2.5 : 1.8) * dt;
     } else if (pr.age > 2.4) {
       pr.gone = true;
-      if (Math.random() < 0.8) ctx.drop(I.EYE, 1, pr.x, pr.y, pr.z); else { ctx.particles(pr.x, pr.y, pr.z, "void"); Sound.mob("crystal", 0); }
+      if (Math.random() < 0.8) ctx.drop(pr.item || I.EYE, 1, pr.x, pr.y, pr.z); else { ctx.particles(pr.x, pr.y, pr.z, pr.item ? "ember" : "void"); Sound.mob("crystal", 0); }
     }
-    if (Math.random() < 0.6) ctx.particles(pr.x, pr.y, pr.z, "portal");
+    if (Math.random() < 0.6) ctx.particles(pr.x, pr.y, pr.z, pr.item ? "ember" : "portal");
     pr.mesh.position.set(pr.x, pr.y, pr.z); pr.mesh.rotation.y += dt * 6;
   }
   // Hitting a Wailer's fireball sends it back where you're looking
@@ -1933,6 +2120,24 @@ export class Entities {
       if (!e.beam) { e.beam = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xff8af0 })); this.scene.add(e.beam); e.beam.frustumCulled = false; }
       e.beam.visible = !!e.healFrom;
       if (e.healFrom) { const a = e.beam.geometry.attributes.position; a.setXYZ(0, e.healFrom.pos.x, e.healFrom.pos.y + 1, e.healFrom.pos.z); a.setXYZ(1, e.pos.x, e.pos.y + 2, e.pos.z); a.needsUpdate = true; }
+    } else if (t === "cindermaw") {
+      const spread = e.spread ? -0.15 : null;
+      const flap = e.perched ? Math.sin(e.age * 1.2) * 0.06 : spread !== null ? spread : Math.sin(e.age * (e.flapFast ? 8 : 2.8)) * 0.6;
+      P.wingL.rotation.z = flap; P.wingR.rotation.z = -flap; P.wingTipL.rotation.z = flap * 0.7; P.wingTipR.rotation.z = -flap * 0.7;
+      if (e.perched) { P.wingL.rotation.z = P.wingR.rotation.z = 0; P.wingL.rotation.y = -0.9; P.wingR.rotation.y = 0.9; } else { P.wingL.rotation.y = P.wingR.rotation.y = 0; }
+      const sw = e.tailT > 0 ? Math.sin(e.age * 18) * 0.9 : Math.sin(e.age * 1.4) * 0.22;
+      P.tail.rotation.y = sw; P.tail2.rotation.y = Math.sin(e.age * 1.4 - 0.7) * 0.3; P.tail3.rotation.y = Math.sin(e.age * 1.4 - 1.4) * 0.35; P.tail4.rotation.y = Math.sin(e.age * 1.4 - 2.1) * 0.4;
+      P.neck.rotation.x = e.perched ? 0.3 : Math.max(-0.4, Math.min(0.4, -e.vel.y * 0.05));
+      if (e.mouthT > 0) { e.mouthT -= dt; P.jaw.rotation.x = 0.55; if (Math.random() < 0.4) { const h = P.head.children[0].getWorldPosition(new THREE.Vector3()); this.ctx.particles(h.x, h.y, h.z, "fire"); } } else P.jaw.rotation.x = 0.05;
+      for (const leg of ["legFR", "legFL", "legBR", "legBL"]) P[leg].rotation.x = e.perched ? 0 : 0.7;
+      e.root.rotation.x = e.perched ? 0 : Math.max(-0.35, Math.min(0.35, -e.vel.y * 0.04));
+      // its cracks glow brighter as it weakens
+      const hurtGlow = 1 + (1 - e.hp / e.maxHp) * 0.5 + (e.tired ? Math.sin(e.age * 6) * 0.15 : 0);
+      if (e.hurtT > 0) e.mat.color.setRGB(1.6, 0.6, 0.5); else e.mat.color.setRGB(hurtGlow, hurtGlow * 0.92, hurtGlow * 0.85);
+      if (e.hp < e.maxHp * 0.33 && Math.random() < 0.15) this.ctx.particles(e.pos.x + rand(-2, 2), e.pos.y + 2.5, e.pos.z + rand(-2, 2), "ash");
+      if (!e.beam) { e.beam = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xffa040 })); this.scene.add(e.beam); e.beam.frustumCulled = false; }
+      e.beam.visible = !!e.healFrom;
+      if (e.healFrom) { const a = e.beam.geometry.attributes.position; a.setXYZ(0, e.healFrom.pos.x, e.healFrom.pos.y + 1.2, e.healFrom.pos.z); a.setXYZ(1, e.pos.x, e.pos.y + 2, e.pos.z); a.needsUpdate = true; }
     } else if (t === "crystal") {
       P.cage.rotation.set(e.age * 1.2, e.age * 1.7, 0); P.core.rotation.set(-e.age * 2, e.age, e.age * 1.4);
       P.cage.position.y = P.core.position.y = 16 / 16 + Math.sin(e.age * 2) * 0.15;

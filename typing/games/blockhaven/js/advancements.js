@@ -59,6 +59,12 @@ export const ADVANCEMENTS = [
   { id: "block", cat: "Combat & Bosses", icon: I.SHIELD, title: "Shields Up", desc: "Block an attack with a Shield.", parent: "kill", ev: "block" },
   { id: "totem", cat: "Combat & Bosses", icon: I.TOTEM, title: "Second Chance", desc: "Let a Lifeward Totem save you from fainting.", parent: "kill", ev: "totem", reward: { xp: 30 } },
   { id: "blightking", cat: "Combat & Bosses", icon: I.RADIANT_STAR, title: "Blight Breaker", desc: "Defeat the Blightking.", parent: "kill", ev: "boss", match: s => s === "blightking", reward: { xp: 100 } },
+  { id: "cindereye", cat: "Combat & Bosses", icon: I.CINDER_EYE, title: "Follow the Embers", desc: "Throw a Cinder Eye in the Ember Depths.", parent: "wyrm", ev: "cindereye" },
+  { id: "citadel", cat: "Combat & Bosses", icon: B.CINDER_BRICKS, title: "Citadel of Cinders", desc: "Find Cindermaw's citadel.", parent: "cindereye", ev: "citadel", reward: { xp: 30 } },
+  { id: "cinderwake", cat: "Combat & Bosses", icon: B.CINDER_ALTAR, title: "Wake the Dragon", desc: "Place a Cinder Eye in the Cinder Altar.", parent: "citadel", ev: "cinderwake" },
+  { id: "cindermaw", cat: "Combat & Bosses", icon: B.CINDER_EGG, title: "The Final Flame", desc: "Defeat Cindermaw, the Ember Dragon. You beat Blockhaven's Survival story!", parent: "cinderwake", ev: "boss", match: s => s === "cindermaw", reward: { xp: 200 } },
+  { id: "crown", cat: "Combat & Bosses", icon: I.CINDER_CROWN, title: "Crowned in Fire", desc: "Make the Cinder Crown.", parent: "cindermaw", check: G => G.inv.slots.some(s => s && s.id === I.CINDER_CROWN) },
+  { id: "rekindled", cat: "Combat & Bosses", icon: I.EMBER_HEART, title: "Rekindled", desc: "Defeat Cindermaw a second time.", parent: "cindermaw", ev: "boss", match: s => s === "cindermawAgain" },
   { id: "wyrm", cat: "Combat & Bosses", icon: B.WYRM_EGG, title: "Wyrm Slayer", desc: "Defeat the Hollow Wyrm.", parent: "kill", ev: "boss", match: s => s === "dragon", reward: { xp: 100 } }
 ];
 const BY_ID = Object.fromEntries(ADVANCEMENTS.map(a => [a.id, a]));
