@@ -1,15 +1,16 @@
 // Blockhaven: the game loop, 3D drawing, controls, mining and building, survival rules, and saving.
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
-  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf } from "./blocks.js";
+  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX } from "./blocks.js";
 import { Entities, SPECIES, TRADES } from "./entities.js";
 import { Generator, NetherGen, EndGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
 import { Player, raycast, blockBoxes, REACH } from "./player.js";
-import { Inventory, newStack, maxStack } from "./inventory.js";
+import { Inventory, newStack, maxStack, OFF } from "./inventory.js";
 import { Sound } from "./audio.js";
-import { Saves, newId, loadSettings, saveSettings } from "./save.js";
+import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.js";
+import { Adv } from "./advancements.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
 
@@ -122,29 +123,59 @@ function itemTexture(id) {
   if (!itemTexCache.has(id)) { const t = new THREE.CanvasTexture(iconCanvas(id)); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; itemTexCache.set(id, t); }
   return itemTexCache.get(id);
 }
+// a shield is a thin board with the shield picture on its face
+const shieldGeo = new THREE.BoxGeometry(0.14, 0.19, 0.018);
+function shieldMesh() {
+  const face = new THREE.MeshBasicMaterial({ map: itemTexture(I.SHIELD), color: 0xffffff, alphaTest: 0.5 }), edge = new THREE.MeshBasicMaterial({ color: 0x8a5e32 });
+  face.userData.base = 1; edge.userData.base = 0x8a5e32;
+  const m = new THREE.Mesh(shieldGeo, [edge, edge, edge, edge, face, face]);
+  m.userData.shared = true; m.userData.multi = true;
+  return m;
+}
 function itemMesh(id, size) {
   const d = BLOCKS[id];
+  if (id === I.SHIELD) return shieldMesh();
   if (isBlockItem(id) && d.shape === "cube") return new THREE.Mesh(blockGeometry(id, size), new THREE.MeshBasicMaterial({ map: atlasTex, transparent: d.render !== "opaque", alphaTest: 0.5 }));
   return new THREE.Mesh(new THREE.PlaneGeometry(size * 1.5, size * 1.5), new THREE.MeshBasicMaterial({ map: itemTexture(id), alphaTest: 0.5, side: THREE.DoubleSide }));
 }
-let heldId = -1, heldMesh = null;
+const mats = m => Array.isArray(m.material) ? m.material : [m.material];
+function disposeItemMesh(m) { if (!m.userData.shared) m.geometry.dispose(); for (const x of mats(m)) x.dispose(); }
+function prepHandMesh(m) { m.renderOrder = 10; for (const x of mats(m)) { x.depthTest = false; x.fog = false; } }
+// darken a held item in the shade (materials with a base color keep their hue)
+function lightItem(m, bright) { for (const x of mats(m)) { if (typeof x.userData.base === "number" && x.userData.base > 1) x.color.setHex(x.userData.base).multiplyScalar(bright); else x.color.setScalar(bright); } }
+const offHand = new THREE.Group(); camera.add(offHand);   // the offhand item, lower left
+let heldId = -1, heldMesh = null, offId = -1, offMesh = null;
 function updateHeld(bright) {
   const s = G.inv.slots[G.selected], id = s ? s.id : 0;
   if (id !== heldId) {
-    if (heldMesh) { hand.remove(heldMesh); if (!heldMesh.userData.shared) heldMesh.geometry.dispose(); heldMesh.material.dispose(); }
+    if (heldMesh) { hand.remove(heldMesh); disposeItemMesh(heldMesh); }
     heldId = id;
-    if (id) { heldMesh = itemMesh(id, 0.15); heldMesh.userData.shared = heldMesh.geometry.type !== "PlaneGeometry"; }
+    if (id) { heldMesh = itemMesh(id, 0.15); heldMesh.userData.shared = heldMesh.userData.shared || heldMesh.geometry.type !== "PlaneGeometry"; }
     else { heldMesh = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.26), new THREE.MeshBasicMaterial({ color: 0xd9a77c })); heldMesh.userData.skin = true; }
-    heldMesh.renderOrder = 10; heldMesh.material.depthTest = false; heldMesh.material.fog = false;
+    prepHandMesh(heldMesh);
     hand.add(heldMesh);
   }
+  const o = G.inv.slots[OFF], oid = o ? o.id : 0;
+  if (oid !== offId) {
+    if (offMesh) { offHand.remove(offMesh); disposeItemMesh(offMesh); offMesh = null; }
+    offId = oid;
+    if (oid) { offMesh = itemMesh(oid, 0.13); offMesh.userData.shared = offMesh.userData.shared || offMesh.geometry.type !== "PlaneGeometry"; prepHandMesh(offMesh); offHand.add(offMesh); }
+  }
+  hand.visible = offHand.visible = !G.spectator && !G.thirdPerson;
   const sw = Math.sin(Math.min(1, G.swing) * Math.PI);
   const bob = G.settings.reducedMotion ? 0 : Math.sin(G.walkPhase * 2) * 0.012;
-  hand.position.set(0.4 - sw * 0.08, -0.36 + bob - sw * 0.06, -0.62 - sw * 0.06);
+  const eating = G.eat && G.eat.slot === G.selected ? Math.min(1, G.eat.t * 4) : 0, chew = G.eat ? Math.sin(G.eat.t * 22) * 0.015 : 0;
+  hand.position.set(0.4 - sw * 0.08 - eating * 0.3, -0.36 + bob - sw * 0.06 + eating * 0.12 + (eating ? chew : 0), -0.62 - sw * 0.06);
   hand.rotation.set(-sw * 0.9, 0.5, 0);
-  if (heldMesh.geometry.type === "PlaneGeometry") heldMesh.rotation.set(0, -0.6, 0.3); else heldMesh.rotation.set(0.1, 0.3, 0);
-  if (heldMesh.userData.skin) heldMesh.material.color.setRGB(0.85 * bright, 0.65 * bright, 0.49 * bright);
-  else heldMesh.material.color.setScalar(bright);
+  if (heldMesh.userData.multi) heldMesh.rotation.set(0, -0.3, 0); else if (heldMesh.geometry.type === "PlaneGeometry") heldMesh.rotation.set(0, -0.6, 0.3); else heldMesh.rotation.set(0.1, 0.3, 0);
+  if (heldMesh.userData.skin) heldMesh.material.color.setRGB(G.armColor[0] * bright, G.armColor[1] * bright, G.armColor[2] * bright);
+  else lightItem(heldMesh, bright);
+  // offhand: lower left; a raised shield moves in front of you
+  const up = G.blocking && G.blockHand === OFF ? 1 : 0, offEat = G.eat && G.eat.slot === OFF ? Math.min(1, G.eat.t * 4) : 0;
+  offHand.position.set(-0.42 + up * 0.22 + offEat * 0.3, -0.37 + bob + up * 0.12 + offEat * 0.12 + (offEat ? chew : 0), -0.7 + up * 0.08);
+  offHand.rotation.set(0, -0.5 + up * 0.45, 0);
+  if (offMesh) { if (offMesh.userData.multi) offMesh.rotation.set(0, 0.3, 0); else if (offMesh.geometry.type === "PlaneGeometry") offMesh.rotation.set(0, 0.6, -0.3); else offMesh.rotation.set(0.1, -0.3, 0); lightItem(offMesh, bright); }
+  if (G.blocking && G.blockHand === G.selected) { hand.position.x -= 0.18; hand.position.y += 0.1; hand.rotation.y = 0.05; }
 }
 
 // ---------- game state ----------
@@ -156,19 +187,29 @@ const G = {
   mining: null, useCooldown: 0, lastSpace: 0, playedSince: 0, autosaveT: 0, debug: false,
   xp: 0, effects: {}, bowT: -1, attackCd: 0, orbs: [], worlds: {}, dim: "overworld", dimData: {},
   wset: { difficulty: "easy", griefing: true, keepInv: true },
-  get creative() { return this.mode === "creative"; }
+  voidInv: new Array(27).fill(null),   // personal Void Chest storage (the same in every Void Chest and every dimension)
+  elv: {}, absorb: 0, totemGuard: 0, eat: null, blocking: false, useHand: null, stats: {},
+  armColor: [0.85, 0.65, 0.49],   // the bare first-person arm color (follows the chosen skin)
+  get creative() { return this.mode === "creative"; },
+  get spectator() { return this.mode === "spectator"; },
+  get useSlot() { return this.useHand ?? this.selected; }   // the hand being used right now: the main hand unless the offhand is acting
 };
+G.adv = (type, arg) => Adv.event(type, arg);
 window.__bh = G;   // handy for testing in the browser console
 
 // ---------- creatures ----------
 const ents = new Entities(scene, {
-  world: () => G.world, player: () => G.player, settings: () => G.wset, creative: () => G.creative, alive: () => G.state !== "dead",
-  hurtPlayer: (n, why, src) => hurt(n, why, src), effect: (k, t) => addEffect(k, t),
+  world: () => G.world, player: () => G.player, settings: () => G.wset, creative: () => G.creative || G.spectator, alive: () => G.state !== "dead",
+  hurtPlayer: (n, why, src, kind) => hurt(n, why, src, false, kind), effect: (k, t) => addEffect(k, t),
   explode: (x, y, z, power, src) => explode(x, y, z, power, src),
   drop: (id, n, x, y, z) => spawnDrop(id, n, x, y, z), xp: (n, x, y, z) => spawnOrbs(n, x, y, z),
-  particles: (x, y, z, kind) => puff(x, y, z, kind), heldId: () => (G.inv.slots[G.selected] || {}).id || 0, lookDir: () => lookDir(),
-  consume: () => { const s = G.inv.slots[G.selected]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.selected] = null; } G.hudDirty = true; heldId = -1; },
-  wear: () => { const s = G.inv.slots[G.selected]; if (s) wearTool(s, 1); },
+  particles: (x, y, z, kind) => puff(x, y, z, kind), lookDir: () => lookDir(),
+  // the item in the hand being used (main hand first; an empty main hand shows the offhand item)
+  heldId: () => (G.inv.slots[G.useSlot] || G.inv.slots[OFF] || {}).id || 0,
+  holds: id => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === id),
+  consume: () => { const s = G.inv.slots[G.useSlot]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.useSlot] = null; } G.hudDirty = true; heldId = -1; },
+  wear: () => { const s = G.inv.slots[G.useSlot]; if (s) wearTool(s, 1); },
+  adv: (type, arg) => Adv.event(type, arg),
   swapHeld: id => swapHeld(id), give: (id, n) => G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
   wearingGold: () => [36, 37, 38, 39].some(i => G.inv.slots[i] && [I.GOLD_HELMET, I.GOLD_CHEST, I.GOLD_LEGS, I.GOLD_BOOTS].includes(G.inv.slots[i].id)),
   ignite: (x, y, z) => ignite(x, y, z),
@@ -187,34 +228,41 @@ const ents = new Entities(scene, {
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
-const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1] };
+const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
 function puff(x, y, z, kind) {
   const c = PUFF_COLORS[kind] || [1, 1, 1], n = kind === "heart" ? 6 : 14;
   for (let i = 0; i < n; i++) { if (parts.length >= PMAX) parts.shift(); parts.push({ x: x + (Math.random() - 0.5) * 0.8, y: y + Math.random() * 0.6, z: z + (Math.random() - 0.5) * 0.8, vx: (Math.random() - 0.5) * 2, vy: kind === "heart" ? 1.5 : Math.random() * 2, vz: (Math.random() - 0.5) * 2, life: 0.6 + Math.random() * 0.4, c, floaty: true }); }
 }
 function swapHeld(id) {
-  const s = G.inv.slots[G.selected];
+  const s = G.inv.slots[G.useSlot];
   if (s && s.n > 1) { s.n--; if (G.inv.add(id, 1)) G.dropItem(id, 1); }
-  else G.inv.slots[G.selected] = newStack(id, 1);
+  else G.inv.slots[G.useSlot] = newStack(id, 1);
   G.hudDirty = true; heldId = -1;
 }
 
 // ---------- status effects (poison, queasy, burning) ----------
-const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer" };
-function addEffect(k, t) { if (G.creative) return; G.effects[k] = Math.max(G.effects[k] || 0, t); G.hudDirty = true; }
-let effT = 0;
+// Each effect has seconds left (G.effects) and a strength (G.elv, 1 when not set)
+function addEffect(k, t, lv = 1) {
+  if (G.creative || G.spectator) return;
+  if (k === "fire" && G.effects.fireRes) return;   // Fire Resistance keeps you from catching fire
+  G.effects[k] = Math.max(G.effects[k] || 0, t); G.elv[k] = Math.max(lv, G.elv[k] || 1);
+  if (k === "absorb") G.absorb = Math.max(G.absorb, 4 * lv);   // golden hearts that soak up damage first
+  G.hudDirty = true;
+}
+let effT = 0, regenAcc = 0;
 function tickEffects(dt) {
   const p = G.player;
   effT += dt;
   const tick = effT >= 1; if (tick) effT = 0;
   for (const k of Object.keys(G.effects)) {
     G.effects[k] -= dt;
-    if (G.effects[k] <= 0) { delete G.effects[k]; G.hudDirty = true; continue; }
-    if (k === "poison" && tick && p.health > 1) hurt(1, "Poison wore you down.", null, true);
-    if (k === "queasy") p.exhaust += dt * 0.6;
-    if (k === "fire") { if (p.inWater && !p.inLava) { delete G.effects.fire; G.hudDirty = true; } else if (tick) hurt(1, "You were burned. Jump in water to put out flames!", null, true); }
+    if (G.effects[k] <= 0) { delete G.effects[k]; delete G.elv[k]; if (k === "absorb") G.absorb = 0; G.hudDirty = true; continue; }
+    if (k === "poison" && tick && p.health > 1) hurt(1, "Poison wore you down.", null, true, "poison");
+    if (k === "queasy") p.exhaust += dt * 0.5;
+    if (k === "fire") { if ((p.inWater && !p.inLava) || G.effects.fireRes) { delete G.effects.fire; G.hudDirty = true; } else if (tick) hurt(1, "You were burned. Jump in water to put out flames!", null, true, "fire"); }
     if (k === "blight" && tick && Math.floor(G.effects[k]) % 2 === 0) hurt(1, "The Blight wore you down. Blight Rattlers cause it, so fight them with good armor.", null, true);
-    if (k === "regen" && tick && Math.floor(G.effects[k]) % 2 === 0 && p.health < 20) { p.health = Math.min(20, p.health + 1); G.hudDirty = true; }
+    // Regeneration heals 1 point every 2.5 s (level I), 1.25 s (level II)
+    if (k === "regen") { regenAcc += dt; const every = 2.5 / (G.elv.regen || 1); if (regenAcc >= every) { regenAcc = 0; if (p.health < 20) { p.health = Math.min(20, p.health + 1); G.hudDirty = true; } } }
   }
 }
 
@@ -244,7 +292,7 @@ function mount(e) {
     G.riding = e; e.ridden = true; e.goal = null;
     p.boat = true; p.flying = false; p.gliding = false; p.crouch = false;
     p.pos.x = e.pos.x; p.pos.y = e.pos.y; p.pos.z = e.pos.z; p.vel.x = p.vel.y = p.vel.z = 0;
-    Sound.place("wood");
+    Sound.place("wood"); G.adv("boat");
     UI.toast("In the boat! W A S D to row (Shift rows faster), C to climb out.");
     return true;
   }
@@ -252,7 +300,7 @@ function mount(e) {
   G.riding = e; e.ridden = true; e.rideT = 0; e.goal = null; e.path = null;
   p.mount = true; p.flying = false; p.gliding = false; p.crouch = false;
   p.pos.x = e.pos.x; p.pos.y = e.pos.y; p.pos.z = e.pos.z; p.vel.x = p.vel.y = p.vel.z = 0;
-  Sound.mob("neigh", 0);
+  Sound.mob("neigh", 0); if (e.tame) G.adv("ride");
   UI.toast(e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : "Hold on! This Trotter is wild, so it may buck you off. Keep trying to tame it.");
   return true;
 }
@@ -294,7 +342,7 @@ function tickRiding(dt) {
   if ((e.rideCheck = (e.rideCheck || 0) + dt) >= 1) {
     e.rideCheck = 0;
     if (Math.random() < 0.08 + (e.temper || 0) / 100 * 0.5) {
-      e.tame = true;
+      e.tame = true; G.adv("tame", e.sp);
       for (let k = 0; k < 4; k++) puff(e.pos.x + (Math.random() - 0.5), e.pos.y + 2, e.pos.z + (Math.random() - 0.5), "heart");
       Sound.mob("neigh", 0); dismount(true);
       UI.toast("You tamed the Trotter! Craft a Saddle (5 leather + 1 iron ingot), then right-click the Trotter with it to ride.", "good");
@@ -328,22 +376,91 @@ function checkBlightSummon(x, y, z) {
 }
 function blightDefeated(e) {
   explode(e.pos.x, e.pos.y + 1.5, e.pos.z, 3, null);
-  spawnDrop(I.RADIANT_STAR, 1, e.pos.x, e.pos.y + 1, e.pos.z);
+  spawnDrop(I.RADIANT_STAR, 1, e.pos.x, e.pos.y + 1, e.pos.z); G.adv("boss", "blightking");
   spawnOrbs(50, e.pos.x, e.pos.y + 1, e.pos.z);
   Sound.levelUp();
   UI.toast("You defeated the Blightking! It dropped a Radiant Star. Use it to craft a Beacon.", "good");
 }
-// Beacons: standing within 24 blocks gives Regeneration and Swiftness
+// Beacons (Minecraft 1.20.1 rules): a pyramid of mineral blocks underneath (1–4 layers) and open sky above make the beam shine.
+// More layers = more range (20/30/40/50 blocks) and more powers to choose from. Choosing a power costs one ingot, Jade, or Skyshard.
+// Beacons placed before this update (no settings saved) keep their old gift: Regeneration and Swiftness within 24 blocks.
+const BEACON_POWERS = {
+  swift: { name: "Swiftness", level: 1, desc: "Move faster" },
+  haste: { name: "Haste", level: 1, desc: "Mine faster" },
+  resist: { name: "Resistance", level: 2, desc: "Take less damage" },
+  jump: { name: "Jump Boost", level: 2, desc: "Jump higher, softer landings" },
+  strength: { name: "Strength", level: 3, desc: "Hit harder" }
+};
+const BEACON_PAY = [I.IRON_INGOT, I.GOLD_INGOT, I.JADE, I.SKYSHARD, I.DUSK_INGOT];
+G.beaconPay = BEACON_PAY;
+function pyramidLevel(x, y, z) {
+  const w = G.world;
+  let lvl = 0;
+  for (let k = 1; k <= 4; k++) {
+    for (let dx = -k; dx <= k; dx++) for (let dz = -k; dz <= k; dz++) if (!BEACON_BASE.includes(w.id(x + dx, y - k, z + dz))) return lvl;
+    lvl = k;
+  }
+  return lvl;
+}
+function skyClear(x, y, z) { for (let yy = y + 1; yy < HEIGHT; yy++) if (OPAQUE[G.world.id(x, yy, z)]) return false; return true; }
+// What a beacon is doing right now: { level, open, active, range }
+function beaconState(key) {
+  const [x, y, z] = key.split(",").map(Number), c = G.world.containers.get(key);
+  const level = pyramidLevel(x, y, z), open = skyClear(x, y, z), legacy = !c || !!c.legacy;
+  return { x, y, z, c, level, open, legacy, active: legacy ? true : level > 0 && open && !!c.primary, range: legacy ? 24 : 10 + level * 10 };
+}
+G.beaconState = beaconState;
+const beams = new Map();   // key → beam mesh
+const beamGeo = new THREE.BoxGeometry(0.32, 1, 0.32);
+const BEAM_COLOR = { swift: 0x9ad8ff, haste: 0xffe27a, resist: 0xb8c0d0, jump: 0x9aff9a, strength: 0xff8a6a, regen: 0xff9ad0 };
+function setBeam(key, st) {
+  let m = beams.get(key);
+  if (!st || !st.active || st.legacy || !st.open) { if (m) { scene.remove(m); m.material.dispose(); beams.delete(key); } return; }
+  if (!m) {
+    m = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+    m.scale.y = HEIGHT - st.y; m.position.set(st.x + 0.5, st.y + 1 + (HEIGHT - st.y) / 2, st.z + 0.5); m.renderOrder = 2;
+    scene.add(m); beams.set(key, m);
+  }
+  m.material.color.setHex(BEAM_COLOR[st.c.primary] || 0xffffff);
+}
+function clearBeams() { for (const k of [...beams.keys()]) setBeam(k, null); }
 let beaconT = 0;
 function tickBeacons(dt) {
   if ((beaconT += dt) < 1) return; beaconT = 0;
   const p = G.player;
-  for (const k of G.world.beacons) {
+  for (const k of [...G.world.beacons]) {
     const [x, y, z] = k.split(",").map(Number);
-    if (G.world.isLoaded(x, z) && G.world.id(x, y, z) !== B.BEACON) { G.world.beacons.delete(k); continue; }
-    if (Math.hypot(p.pos.x - x, p.pos.y - y, p.pos.z - z) < 24) { G.effects.regen = Math.max(G.effects.regen || 0, 4); G.effects.swift = Math.max(G.effects.swift || 0, 4); G.hudDirty = true; return; }
+    if (!G.world.isLoaded(x, z)) { setBeam(k, null); continue; }
+    if (G.world.id(x, y, z) !== B.BEACON) { G.world.beacons.delete(k); setBeam(k, null); continue; }
+    const st = beaconState(k);   // checked again every second, so changing the pyramid takes effect right away
+    setBeam(k, st);
+    if (!st.active) continue;
+    const inRange = Math.abs(p.pos.x - x - 0.5) <= st.range && Math.abs(p.pos.z - z - 0.5) <= st.range && (st.legacy ? Math.abs(p.pos.y - y) <= st.range : p.pos.y >= y - st.range);
+    if (!inRange) continue;
+    // effects last a few seconds and are topped up while you stay in range, so they fade soon after you leave
+    if (st.legacy) { addEffect("regen", 4); addEffect("swift", 4); continue; }
+    const c = st.c, two = st.level >= 4 && c.secondary === c.primary;
+    addEffect(c.primary, 4, two ? 2 : 1);
+    if (st.level >= 4 && c.secondary === "regen") addEffect("regen", 4);
   }
 }
+// Choose powers at the beacon screen (pays one ingot from the beacon's slot)
+G.setBeaconPower = (key, primary, secondary) => {
+  const st = beaconState(key), c = st.c;
+  if (!c) return;
+  if (c.legacy) st.level = pyramidLevel(st.x, st.y, st.z);
+  const pay = c.slots[0];
+  if (!pay || !BEACON_PAY.includes(pay.id)) { UI.toast("Put an Iron Ingot, Gold Ingot, Jade, Skyshard, or Duskmetal Ingot in the slot to pay.", "bad"); Sound.error(); return; }
+  if (!st.level) { UI.toast("This Beacon needs a pyramid of mineral blocks underneath first.", "bad"); Sound.error(); return; }
+  if (!BEACON_POWERS[primary] || BEACON_POWERS[primary].level > st.level) { UI.toast("Build a bigger pyramid to unlock that power.", "bad"); Sound.error(); return; }
+  if (secondary && (st.level < 4 || (secondary !== "regen" && secondary !== primary))) secondary = null;
+  pay.n--; if (!pay.n) c.slots[0] = null;
+  c.primary = primary; c.secondary = secondary || null; delete c.legacy;
+  Sound.levelUp(); G.adv("beaconPower", st.level);
+  UI.toast(st.open ? `Beacon set to ${BEACON_POWERS[primary].name}${secondary === "regen" ? " + Regeneration" : secondary ? " II" : ""}! Range: ${st.range} blocks.` : "Power chosen, but the beam is blocked. Clear everything above the Beacon.", st.open ? "good" : "bad");
+  beaconT = 1; UI.refreshPanel();
+};
+G.BEACON_POWERS = BEACON_POWERS;
 // Trading with villagers
 G.trade = (uid, i, many) => {
   const e = ents.list.find(o => o.uid === uid);
@@ -360,7 +477,7 @@ G.trade = (uid, i, many) => {
     spawnOrbs(2, e.pos.x, e.pos.y + 1, e.pos.z);
   }
   if (!done) { Sound.error(); UI.toast(e.uses[i] >= t[2] ? "Sold out for now. Villagers restock while they work." : "You don't have enough for that trade.", "bad"); return; }
-  Sound.craft(); puff(e.pos.x, e.pos.y + 2, e.pos.z, "xp"); e.trading = 30;
+  Sound.craft(); puff(e.pos.x, e.pos.y + 2, e.pos.z, "xp"); e.trading = 30; G.adv("trade");
   G.hudDirty = true; UI.refreshPanel();
 };
 
@@ -394,6 +511,7 @@ function ensureBoss() {
   }
 }
 function wyrmDefeated(e) {
+  G.adv("boss", "dragon");
   const d = endData(); d.wyrmDefeated = true; delete d.wyrmHp;
   const w = G.world, top = (G.gen.land(0, 0) || { top: END_TOP }).top;
   // exit fountain: a bedrock ring holding a portal home, with the egg on a pillar
@@ -434,7 +552,7 @@ async function changeDim(toDim, cx, cz, label, place) {
     p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; p.gliding = false;
     portalCooldown = true; portalT = 0;
     await saveNow(false);
-    G.state = "pause"; UI.show("none"); UI.hud(); G.resume();
+    G.state = "pause"; UI.show("none"); UI.hud(); G.resume(); G.adv("dim", toDim);
   } catch (err) {
     console.error(err);
     clearWorldMeshes(); if (G.world) G.world.chunks.clear();
@@ -483,13 +601,13 @@ async function gatewayJump() {
 }
 // Put an Eye of the Void into a portal frame; when all 12 have eyes, the portal opens
 function fillFrame(hit) {
-  const w = G.world, slot = G.inv.slots[G.selected];
+  const w = G.world, slot = G.inv.slots[G.useSlot];
   hit.v = w.get(hit.x, hit.y, hit.z);
   if (idOf(hit.v) !== B.END_FRAME) return;
   if (metaOf(hit.v) & EYE_IN) { UI.toast("That frame already has an eye."); return; }
   if (!slot || slot.id !== I.EYE) { UI.toast("This frame needs an Eye of the Void.", ""); return; }
   w.set(hit.x, hit.y, hit.z, make(B.END_FRAME, metaOf(hit.v) | EYE_IN));
-  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
   Sound.mob("teleport", 0); puff(hit.x + 0.5, hit.y + 1, hit.z + 0.5, "portal"); G.hudDirty = true; heldId = -1;
   // any ring works (a stronghold's or one you built): 12 frames, 3 on each side of a 3×3 space, all at the same height
   let best = null;
@@ -510,8 +628,8 @@ function throwEye() {
   if (G.dim !== "overworld") { UI.toast("The eye just spins in place. Strongholds are on the Surface.", "bad"); return; }
   const p = G.player, s = [...G.gen.strongholds].sort((a, b) => Math.hypot(a.x - p.pos.x, a.z - p.pos.z) - Math.hypot(b.x - p.pos.x, b.z - p.pos.z))[0];
   ents.addProjectile("eye", p.pos.x, p.pos.y + 1.5, p.pos.z, 0, 0, 0, { tx: s.x + 0.5, tz: s.z + 0.5, noGrav: true, fromPlayer: true });
-  const sl = G.inv.slots[G.selected]; if (sl && !G.creative) { sl.n--; if (!sl.n) G.inv.slots[G.selected] = null; }
-  G.hudDirty = true; heldId = -1; Sound.mob("teleport", 0);
+  const sl = G.inv.slots[G.useSlot]; if (sl && !G.creative) { sl.n--; if (!sl.n) G.inv.slots[G.useSlot] = null; }
+  G.hudDirty = true; heldId = -1; Sound.mob("teleport", 0); G.adv("eye");
   const dist = Math.hypot(s.x - p.pos.x, s.z - p.pos.z);
   if (dist < 14) UI.toast("The eye dove into the ground. The stronghold is right below you!", "good");
 }
@@ -531,6 +649,7 @@ function chorusBlink() {
 
 // ---------- portals between the Surface and the Ember Depths ----------
 const DIM_NAMES = { overworld: "the Surface", nether: "the Ember Depths", end: "the Hollow" };
+const dimWhere = d => (d === "overworld" ? "on " : "in ") + (DIM_NAMES[d] || d);
 // Light a portal inside an obsidian frame. (x, y, z) is an empty spot inside the frame.
 function lightPortal(x, y, z) {
   const w = G.world;
@@ -638,7 +757,7 @@ async function travel(toDim, fromPortal) {
     p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null;
     portalCooldown = true; portalT = 0;
     await saveNow(false);
-    G.state = "pause"; UI.show("none"); UI.hud(); G.resume();
+    G.state = "pause"; UI.show("none"); UI.hud(); G.resume(); G.adv("dim", toDim);
     UI.toast(toDim === "nether" ? "Welcome to the Ember Depths! Watch out for lava, and don't sleep here." : "Back on the Surface.", toDim === "nether" ? "bad" : "good");
     if (toDim === "nether" && !G.tips.nether) { G.tips.nether = true; UI.toast("Tip: wear a piece of gold armor and the Boarkin won't attack. Give them gold ingots to trade.", ""); }
   } catch (err) {
@@ -689,6 +808,78 @@ function buildPortal(tx, tz) {
   const anchor = { x: x + 1, y: y + 1, z, axis: 0, w: 2, h: 3 };
   registerPortal(G.dim, anchor);
   return anchor;
+}
+
+// ---------- Respawn Anchors and Lodestones ----------
+// A Respawn Anchor holds up to 4 charges of Shinestone. In the Ember Depths, right-clicking a charged anchor makes it your
+// respawn point; each time you wake up there it uses 1 charge. Anywhere else a charged anchor explodes when used (after a warning).
+let anchorWarn = 0;
+function useAnchor(hit) {
+  const w = G.world, v = hit.v, charge = metaOf(v) & 7, key = hit.x + "," + hit.y + "," + hit.z;
+  const hand = [G.selected, OFF].find(i => G.inv.slots[i] && G.inv.slots[i].id === B.SHINESTONE);
+  if (hand !== undefined && charge < ANCHOR_MAX) {
+    w.set(hit.x, hit.y, hit.z, make(B.RESPAWN_ANCHOR, charge + 1));
+    if (!G.creative) { const s = G.inv.slots[hand]; s.n--; if (!s.n) G.inv.slots[hand] = null; }
+    Sound.mob("fireshoot", 0); puff(hit.x + 0.5, hit.y + 1.1, hit.z + 0.5, "ember"); G.hudDirty = true; heldId = -1; offId = -1;
+    UI.toast(`Respawn Anchor charged: ${charge + 1} of ${ANCHOR_MAX}.`, "good"); return;
+  }
+  if (!G.world.gen.isNether()) {
+    if (!charge) { UI.toast("Respawn Anchors only work in the Ember Depths. Charge one there with Shinestone."); return; }
+    if (performance.now() - anchorWarn > 4000) { anchorWarn = performance.now(); UI.toast("Careful! A charged Respawn Anchor explodes outside the Ember Depths. Use it again to set it off.", "bad"); return; }
+    w.set(hit.x, hit.y, hit.z, B.AIR); explode(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5, 4, null); return;
+  }
+  if (!charge) { UI.toast("This Respawn Anchor has no charge. Right-click it while holding Shinestone (up to 4)."); return; }
+  G.player.anchor = { x: hit.x, y: hit.y, z: hit.z };
+  Sound.levelUp(); puff(hit.x + 0.5, hit.y + 1.2, hit.z + 0.5, "portal");
+  UI.toast(`Respawn point set in the Ember Depths (${charge} charge${charge > 1 ? "s" : ""} left). A bed on the Surface replaces it.`, "good");
+  G.adv("anchor");
+}
+// Safe place to wake up next to an anchor: a spot with floor below and two clear blocks above (never lava or fire)
+function anchorSpot(a) {
+  const w = G.world;
+  for (const r of [1, 2]) for (let dy = 0; dy >= -1; dy--) for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+    const x = a.x + dx, y = a.y + dy, z = a.z + dz;
+    if (dx === 0 && dz === 0) continue;
+    const bad = id => id === B.LAVA || id === B.FIRE || id === B.MAGMA;
+    if (SOLID[w.id(x, y - 1, z)] && !bad(w.id(x, y - 1, z)) && !SOLID[w.id(x, y, z)] && !SOLID[w.id(x, y + 1, z)] && !bad(w.id(x, y, z)) && !bad(w.id(x, y + 1, z))) return { x: x + 0.5, y, z: z + 0.5 };
+  }
+  return null;
+}
+// Lodestones: right-click one with a Compass to make the compass point to it, even from far away
+function bindCompass(hit) {
+  const hand = [G.selected, OFF].find(i => G.inv.slots[i] && G.inv.slots[i].id === I.COMPASS);
+  if (hand === undefined) { UI.toast("Right-click a Lodestone while holding a Compass to link them."); return; }
+  const s = G.inv.slots[hand];
+  s.lode = { x: hit.x, y: hit.y, z: hit.z, dim: G.dim }; delete s.lodeLost;
+  Sound.mob("crystal", 0); puff(hit.x + 0.5, hit.y + 1.1, hit.z + 0.5, "xp");
+  UI.toast(`Compass linked to this Lodestone ${dimWhere(G.dim)}.`, "good"); G.hudDirty = true;
+  G.adv("lodestone");
+}
+// Where a held compass points: { yaw, text } (yaw = null means it spins)
+function compassReading() {
+  const s = [G.inv.slots[G.selected], G.inv.slots[OFF]].find(q => q && q.id === I.COMPASS);
+  if (!s) return null;
+  const p = G.player;
+  let t = null, text;
+  if (s.lode) {
+    if (s.lodeLost) text = "The Lodestone is gone";
+    else if (s.lode.dim !== G.dim) text = `Lodestone is ${dimWhere(s.lode.dim)}`;
+    else if (G.world.isLoaded(s.lode.x, s.lode.z) && G.world.id(s.lode.x, s.lode.y, s.lode.z) !== B.LODESTONE) { s.lodeLost = true; text = "The Lodestone is gone"; }
+    else { t = s.lode; text = `Lodestone: ${Math.round(Math.hypot(t.x + 0.5 - p.pos.x, t.z + 0.5 - p.pos.z))} blocks`; }
+  } else if (G.dim === "overworld") { t = p.spawn; text = `Spawn: ${Math.round(Math.hypot(t.x - p.pos.x, t.z - p.pos.z))} blocks`; }
+  else text = "The needle spins here";
+  if (!t) return { yaw: null, text };
+  const ang = Math.atan2(-(t.x + 0.5 - p.pos.x), -(t.z + 0.5 - p.pos.z));   // same angle system as the player's yaw
+  return { yaw: ang - p.yaw, text };
+}
+let compassSpin = 0;
+function updateCompassHud(dt) {
+  const el = document.getElementById("compass"), r = G.state === "play" || G.state === "panel" ? compassReading() : null;
+  el.hidden = !r;
+  if (!r) return;
+  compassSpin += dt * 6;
+  el.querySelector("i").style.transform = `rotate(${r.yaw === null ? compassSpin : -r.yaw}rad)`;
+  el.querySelector("b").textContent = r.text;
 }
 
 // ---------- experience ----------
@@ -874,6 +1065,7 @@ function stream(budget) {
 }
 function clearWorldMeshes() {
   if (!G.world) return;
+  clearBeams();
   for (const c of G.world.chunks.values()) disposeMesh(c);
   for (const d of G.drops) removeDrop(d);
   G.drops = []; parts.length = 0;
@@ -929,23 +1121,34 @@ async function startWorld(save) {
   G.dimData = save.dims || { overworld: { mods: save.mods || {}, containers: save.containers || [] } };
   G.dim = (save.player && save.player.dim) || "overworld";
   G.wset = { difficulty: "easy", griefing: true, keepInv: true, ...(save.settings || {}) };
-  G.xp = save.xp || 0; G.effects = {};
+  G.xp = save.xp || 0; G.effects = {}; G.elv = {}; G.absorb = 0; G.eat = null; G.blocking = false; G.bowT = -1; G.totemGuard = 0;
+  G.voidInv = Array.from({ length: 27 }, (_, i) => (save.voidInv && save.voidInv[i] && itemDef(save.voidInv[i].id) ? { ...save.voidInv[i] } : null));
+  Adv.load(save.adv); G.story = save.story || {}; G.stats = save.stats || {};
+  if (save.hardcore) { G.wset.difficulty = "hard"; G.wset.keepInv = false; }
   G.world = makeWorld(G.dim); G.gen = G.world.gen;
   G.inv = new Inventory(); G.inv.load(save.inventory);
   G.time = save.time ?? 0.02; G.tips = save.tips || {};
   const p = G.player = new Player();
   if (save.player) {
     Object.assign(p.pos, save.player.pos); p.yaw = save.player.yaw || 0; p.pitch = save.player.pitch || 0;
-    p.health = save.player.health ?? 20; p.hunger = save.player.hunger ?? 20; p.spawn = save.player.spawn; p.flying = !!save.player.flying && G.creative;
+    p.health = save.player.health ?? 20; p.hunger = save.player.hunger ?? 20; p.sat = save.player.sat ?? 5; p.exhaust = save.player.exhaust || 0; p.spawn = save.player.spawn; p.anchor = save.player.anchor || null; p.flying = !!save.player.flying && G.creative;
+    // effects you had (like a totem's regeneration) carry over a save
+    for (const [k, t] of Object.entries(save.player.effects || {})) if (t > 0) G.effects[k] = t;
+    G.elv = { ...(save.player.elv || {}) }; G.absorb = save.player.absorb || 0;
   }
   if (!p.spawn) { const s = G.gen.findSpawn(); p.spawn = { x: s.x, y: null, z: s.z }; Object.assign(p.pos, { x: s.x, y: 70, z: s.z }); }
   p.air = 10; G.selected = 0; G.drops = []; G.mining = null; G.hudDirty = true;
+  // the page was closed on the "You fainted" screen: wake up properly (Hardcore worlds go straight to Spectator)
+  if (save.hardcoreOver && G.mode !== "spectator") G.mode = G.meta.mode = "spectator";
+  if (p.health <= 0 && !G.spectator) { p.health = 20; p.hunger = 20; p.sat = 5; if (G.dim === "overworld") { p.pos.x = p.spawn.x; p.pos.z = p.spawn.z; p.pos.y = p.spawn.y ?? 70; } }
+  if (G.spectator) { p.flying = true; p.noclip = true; p.health = 20; }
   // build the land around the player before dropping them in
   await loadArea(p.pos.x, p.pos.z, G.dim === "nether" ? "Heating up the Ember Depths" : "Shaping hills and valleys");
   if (p.spawn.y == null) { placeSafely(p, p.spawn.x, p.spawn.z); p.spawn.y = p.pos.y; }
   else if (!save.player) placeSafely(p, p.pos.x, p.pos.z);
   else if (p.collides(G.world, p.aabb())) placeSafely(p, p.pos.x, p.pos.z);
-  G.autosaveT = 0; heldId = -1;
+  G.autosaveT = 0; heldId = -1; offId = -1;
+  portalCooldown = true; portalT = 0;   // waking up inside a portal doesn't send you through it until you step out
   UI.setLoading(1, "Ready!");
   await saveNow(false);
   G.state = "pause"; UI.show("none"); UI.hud();
@@ -987,9 +1190,10 @@ function snapshot() {
   const p = G.player;
   G.dimData[G.dim] = dimSnapshot(G.world);
   return {
-    ...G.meta, version: 2, played: Date.now(), time: G.time, day: G.meta.day || 1, tips: G.tips, mods: undefined, containers: undefined,
-    player: { pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, health: p.health, hunger: p.hunger, spawn: p.spawn, flying: p.flying, dim: G.dim },
-    inventory: G.inv.toJSON(), dims: G.dimData, xp: G.xp, settings: G.wset, gen: G.meta.gen || 1
+    ...G.meta, mode: G.mode, version: SAVE_VERSION, played: Date.now(), time: G.time, day: G.meta.day || 1, tips: G.tips, mods: undefined, containers: undefined,
+    player: { pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, health: p.health, hunger: p.hunger, sat: p.sat, exhaust: p.exhaust, spawn: p.spawn, anchor: p.anchor || null, flying: p.flying, dim: G.dim, effects: { ...G.effects }, elv: { ...G.elv }, absorb: G.absorb },
+    inventory: G.inv.toJSON(), dims: G.dimData, xp: G.xp, settings: G.wset, gen: G.meta.gen || 1,
+    voidInv: G.voidInv.map(s => s && { ...s }), adv: Adv.toJSON(), story: G.story, hardcore: !!G.meta.hardcore, hardcoreOver: !!G.meta.hardcoreOver, stats: G.stats
   };
 }
 async function saveNow(show) {
@@ -1042,6 +1246,7 @@ function openPanel(kind, ctx) {
   if (kind === "table") tipDone("table");
   if (kind === "inventory" && G.creative) tipDone("craft");
 }
+G.openAdvancements = () => openPanel("advancements");
 function closePanel() {
   UI.closePanel(); G.panelKind = null;
   G.state = "play"; UI.show("none");
@@ -1051,8 +1256,10 @@ function closePanel() {
 // ---------- input ----------
 window.addEventListener("keydown", e => {
   if (G.state === "panel") {
-    if (e.code === "KeyE" || e.code === "Escape") { if (document.activeElement && document.activeElement.tagName === "INPUT" && e.code === "KeyE") return; e.preventDefault(); closePanel(); return; }
-    if (/^Digit[1-9]$/.test(e.code) && !(document.activeElement && document.activeElement.tagName === "INPUT")) { if (UI.hotkey(+e.code.slice(5) - 1)) e.preventDefault(); }
+    const typing = document.activeElement && document.activeElement.tagName === "INPUT";
+    if (e.code === "KeyE" || e.code === "Escape" || (e.code === "KeyL" && G.panelKind === "advancements")) { if (typing && e.code !== "Escape") return; e.preventDefault(); closePanel(); return; }
+    if (/^Digit[1-9]$/.test(e.code) && !typing) { if (UI.hotkey(+e.code.slice(5) - 1)) e.preventDefault(); }
+    if (e.code === G.settings.keySwap && !typing) { if (UI.hotkey(OFF)) e.preventDefault(); }   // swap the slot you point at with the offhand
     return;
   }
   if (G.state === "pause" && e.code === "Escape" && UI.current === "pause" && performance.now() - (G.pausedAt || 0) > 400) { e.preventDefault(); G.resume(); return; }
@@ -1063,12 +1270,15 @@ window.addEventListener("keydown", e => {
   keys.add(e.code);
   if (!locked) return;
   if (/^Digit[1-9]$/.test(e.code)) selectSlot(+e.code.slice(5) - 1);
+  else if (e.code === G.settings.keySwap) swapHands();
+  else if (e.code === "KeyL") openPanel("advancements");
+  else if (e.code === "KeyE" && G.spectator) UI.toast("Spectators can look around but can't use items.");
   else if (e.code === "KeyE") openPanel("inventory");
   else if (e.code === "KeyQ") dropSelected(e.ctrlKey);
   else if (e.code === "KeyC" && G.riding) dismount();
   else if (e.code === "F3") { G.debug = !G.debug; document.getElementById("debug").hidden = !G.debug; }
   else if (e.code === "Space" && !G.player.onGround && !G.player.inWater && !G.player.flying && !G.player.gliding && G.player.vel.y < -1 && G.inv.slots[37] && G.inv.slots[37].id === I.GLIDER) {
-    G.player.gliding = true;
+    G.player.gliding = true; G.adv("glide");
     if (!G.tips.glide) { G.tips.glide = true; UI.toast("Gliding! Look down to speed up and up to slow down. Land gently!", "good"); }
   }
   else if (e.code === "Space" && G.creative) {
@@ -1081,15 +1291,24 @@ window.addEventListener("keyup", e => keys.delete(e.code));
 window.addEventListener("blur", () => { keys.clear(); mouseL = mouseR = false; if (G.state === "play") pause(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) { keys.clear(); if (G.state === "play" || G.state === "panel") pause(); else Sound.pause(); } });
 // left button (or R): break and attack; right button (or F): place and use
-function pressL() { mouseL = true; G.mining = null; if (!attack() && G.creative) creativeBreak(); }
+function pressL() { mouseL = true; G.mining = null; if (G.spectator) return; G.eat = null; if (!attack() && G.creative) creativeBreak(); }
 function pressR() {
   mouseR = true;
-  const s = G.inv.slots[G.selected];
-  if (s && s.id === I.BOW && !entityTarget()) { if (G.creative || G.inv.count(I.ARROW) > 0) G.bowT = 0; else { UI.toast("You need arrows to shoot. Make them from flint, a stick, and a feather.", "bad"); Sound.error(); } }
-  else { useItem(); G.useCooldown = 0.28; }
+  if (G.spectator) return;
+  useItem(); G.useCooldown = 0.28;
 }
 function releaseL() { mouseL = false; G.mining = null; }
-function releaseR() { mouseR = false; if (G.bowT >= 0) releaseBow(); }
+function releaseR() { mouseR = false; if (G.bowT >= 0) releaseBow(); G.blocking = false; G.eat = null; }
+// Swap the items in your main hand and offhand (X by default; change it in Settings)
+function swapHands() {
+  if (G.spectator) return;
+  const a = G.inv.slots[G.selected], b = G.inv.slots[OFF];
+  if (!a && !b) return;
+  G.inv.slots[G.selected] = b; G.inv.slots[OFF] = a;
+  G.eat = null; G.blocking = false; G.bowT = -1; G.mining = null;
+  heldId = -1; offId = -1; G.hudDirty = true; Sound.place("soft");
+  tipDone("offhand");
+}
 canvas.addEventListener("mousedown", e => {
   if (G.state !== "play") return;
   if (!locked) { requestLock(); return; }
@@ -1145,6 +1364,7 @@ function mineInfo(v) {
   let time = d.hardness * 1.5;
   if (right) time /= tool.speed;
   if (!tierOK) time = d.hardness * 5;
+  if (G.effects.haste) time /= 1 + 0.2 * (G.elv.haste || 1);   // a Beacon's Haste
   if (d.render === "cutout" && id_isLeaves(d.id) && tool && tool.type === "sword") time *= 0.3;
   return { time: Math.max(0.05, time), drops: tierOK };
 }
@@ -1152,7 +1372,7 @@ const id_isLeaves = id => id === B.LEAVES || id === B.BIRCH_LEAVES;
 const TIER_NAME = ["", "wooden", "stone", "iron"];
 
 function updateMining(dt, hit) {
-  if (!mouseL || G.creative || !hit) { G.mining = null; crack.visible = false; return; }
+  if (!mouseL || G.creative || G.spectator || !hit) { G.mining = null; crack.visible = false; return; }
   const key = hit.x + "," + hit.y + "," + hit.z;
   if (!G.mining || G.mining.key !== key) {
     const info = mineInfo(hit.v);
@@ -1172,6 +1392,7 @@ function updateMining(dt, hit) {
   if (crack.userData.stage !== stage) { setBoxUV(crackGeo, () => TILE["crack" + stage]); crack.userData.stage = stage; }
   if (m.prog >= 1) {
     breakBlock(hit.x, hit.y, hit.z, m.info.drops);
+    G.player.exhaust += 0.005;
     const t = heldTool();
     if (t && blockDef(hit.v).hardness > 0) wearTool(t.stack, 1);
     G.mining = null; crack.visible = false;
@@ -1262,6 +1483,7 @@ function attack() {
   if (G.attackCd > 0) return true;
   const s = G.inv.slots[G.selected], d = s ? itemDef(s.id) : null;
   let dmg = d && d.tool ? d.tool.damage : 1;
+  if (G.effects.strength) dmg += 3 * (G.elv.strength || 1);
   const p = G.player, crit = !p.onGround && p.vel.y < 0 && !p.inWater;
   if (crit) dmg *= 1.5;
   const dir = lookDir(), l = Math.hypot(dir.x, dir.z) || 1, sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
@@ -1270,10 +1492,11 @@ function attack() {
     if (s && d.tool) wearTool(s, d.tool.type === "sword" ? 1 : 2);
   }
   G.attackCd = d && d.tool && d.tool.type === "sword" ? 0.45 : 0.6; G.swing = 0.01;
+  if (!G.creative) G.player.exhaust += 0.1;
   return true;
 }
 function releaseBow() {
-  const charge = Math.min(1, G.bowT), s = G.inv.slots[G.selected];
+  const charge = Math.min(1, G.bowT), s = G.inv.slots[G.bowHand ?? G.selected];
   G.bowT = -1;
   if (charge < 0.15 || !s || s.id !== I.BOW) return;
   if (!G.creative) { if (!G.inv.remove(I.ARROW, 1)) return; wearTool(s, 1); }
@@ -1284,7 +1507,7 @@ function releaseBow() {
 function throwItem(kind) {
   const p = G.player, dir = lookDir();
   ents.addProjectile(kind, p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * 18, dir.y * 18 + 2, dir.z * 18, { fromPlayer: true });
-  const s = G.inv.slots[G.selected]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.selected] = null; }
+  const s = G.inv.slots[G.useSlot]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.useSlot] = null; }
   G.swing = 0.01; G.hudDirty = true; heldId = -1;
 }
 
@@ -1303,7 +1526,7 @@ function useRod(slot) {
       if (G.inv.add(catchId, 1)) spawnDrop(catchId, 1, p.pos.x, p.pos.y + 1, p.pos.z);
       puff(b.x, b.y, b.z, "splash"); Sound.splash(); Sound.pickup();
       spawnOrbs(1 + Math.floor(Math.random() * 4), p.pos.x, p.pos.y + 0.5, p.pos.z);
-      UI.toast(`You caught: ${itemDef(catchId).name}!`, "good");
+      UI.toast(`You caught: ${itemDef(catchId).name}!`, "good"); G.adv("fish", catchId);
       wearTool(slot, 1);
     } else if (b.stuck) wearTool(slot, 2);
     G.hudDirty = true;
@@ -1335,7 +1558,7 @@ function placeBoat(slot) {
   else return false;
   if (SOLID[G.world.id(hit.x, Math.floor(y + 0.5), hit.z)]) return false;
   ents.add("boat", x, y, z, { yaw: p.yaw });
-  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
   Sound.place("wood"); G.swing = 0.01; G.hudDirty = true; heldId = -1;
   UI.toast("Right-click the boat to climb in.");
   return true;
@@ -1350,127 +1573,172 @@ function target() {
 function lookDir() { const p = G.player, cp = Math.cos(p.pitch); return { x: -Math.sin(p.yaw) * cp, y: Math.sin(p.pitch), z: -Math.cos(p.yaw) * cp }; }
 function facingFromYaw() { const a = ((G.player.yaw % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2); return [0, 1, 2, 3][Math.round(a / (Math.PI / 2)) % 4]; }
 
+// Right-click: the main hand acts first; if it has nothing to do, the offhand gets a turn (Minecraft Java rules).
+// Left-click (mining and attacking) always uses the main hand.
 function useItem() {
-  const hit = target(), w = G.world, slot = G.inv.slots[G.selected], crouch = keys.has("KeyC"), sd = slot ? itemDef(slot.id) : null;
-  // creatures first
-  if (slot && slot.id === I.FISHING_ROD) { useRod(slot); return; }
-  if (slot && slot.id === I.BOAT && placeBoat(slot)) return;
-  const ent = entityTarget();
-  if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; } return; }
-  if (hit && !crouch) {
-    const id = idOf(hit.v), d = BLOCKS[id];
-    if (d.interact && d.interact !== "tnt") { G.swing = 0.01; interact(hit, d.interact); return; }
+  if (G.spectator || G.eat || G.bowT >= 0) return true;
+  for (const si of [G.selected, OFF]) {
+    if (si === OFF && !G.inv.slots[OFF]) break;
+    G.useHand = si;
+    let did = false;
+    try { did = useWith(si === OFF); } finally { G.useHand = null; }
+    if (did) return true;
   }
-  if (sd && sd.kind === "spawn" && hit) {
+  return false;
+}
+// Use the item in the active hand (G.useSlot). Returns true if something happened.
+function useWith(offhand) {
+  const hit = target(), w = G.world, slot = G.inv.slots[G.useSlot], crouch = keys.has("KeyC"), sd = slot ? itemDef(slot.id) : null;
+  const take = () => { if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; } };
+  if (slot && slot.id === I.FISHING_ROD) { useRod(slot); return true; }
+  if (slot && slot.id === I.BOAT && placeBoat(slot)) return true;
+  // creatures first, then blocks you can open or use (only the main hand opens things)
+  const ent = entityTarget();
+  if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; } if (!offhand && !slot) return false; }
+  if (hit && !crouch && !offhand) {
+    const id = idOf(hit.v), d = BLOCKS[id];
+    if (d.interact && d.interact !== "tnt") { G.swing = 0.01; interact(hit, d.interact); return true; }
+  }
+  if (!slot) return false;
+  if (slot.id === I.SHIELD) { G.blocking = true; G.blockHand = G.useSlot; return true; }   // hold to keep the shield up
+  if (slot.id === I.BOW) {
+    if (G.creative || G.inv.count(I.ARROW) > 0) { G.bowT = 0; G.bowHand = G.useSlot; return true; }
+    UI.toast("You need arrows to shoot. Make them from flint, a stick, and a feather.", "bad"); Sound.error(); return true;
+  }
+  if (sd.kind === "spawn" && hit) {
     const x = hit.x + hit.nx + 0.5, y = hit.y + hit.ny, z = hit.z + hit.nz + 0.5;
     const sp = sd.species === "villager" ? ["farmer", "fletcher", "shepherd", "cleric", "smith"][Math.floor(Math.random() * 5)] : sd.species;
     ents.add(sp, x, y, z, sp === "blightking" ? { summonT: 10 } : sp === "golem" ? { home: [x, y, z] } : {}); puff(x, y + 0.5, z, "poof");
-    if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
-    G.hudDirty = true; return;
+    take(); G.hudDirty = true; return true;
   }
-  if (sd && sd.kind === "armor") {   // put it on
+  if (sd.kind === "armor") {   // put it on
     const at = 36 + sd.armor.slot, old = G.inv.slots[at];
-    G.inv.slots[at] = slot; G.inv.slots[G.selected] = old;
-    Sound.place("soft"); UI.toast(`Wearing ${sd.name}`); G.hudDirty = true; heldId = -1; return;
+    G.inv.slots[at] = slot; G.inv.slots[G.useSlot] = old;
+    Sound.place("soft"); UI.toast(`Wearing ${sd.name}`); G.hudDirty = true; heldId = -1; return true;
   }
-  if (slot && slot.id === I.VOID_PEARL) { throwItem("pearl"); return; }
-  if (slot && slot.id === I.EYE) { throwEye(); return; }
-  if (slot && slot.id === I.EGG) { throwItem("egg"); return; }
+  if (slot.id === I.VOID_PEARL) { throwItem("pearl"); return true; }
+  if (slot.id === I.EYE) { throwEye(); return true; }
+  if (slot.id === I.EGG) { throwItem("egg"); return true; }
   // food you can plant (carrots on farmland, berries on grass, even through tall grass) gets planted when you point at the right ground
   let soil = hit;
   if (hit && BLOCKS[idOf(hit.v)].replaceable && BLOCKS[idOf(hit.v)].shape === "cross") soil = { x: hit.x, y: hit.y - 1, z: hit.z, ny: 1, v: w.get(hit.x, hit.y - 1, hit.z) };
   const above = soil && w.id(soil.x, soil.y + 1, soil.z);
-  if (sd && sd.plants && sd.kind === "food" && soil && soil.ny === 1 && (!above || BLOCKS[above].replaceable) && (sd.plants === B.BERRY_BUSH ? [B.GRASS, B.DIRT] : [B.FARMLAND]).includes(idOf(soil.v))) {
+  if (sd.plants && sd.kind === "food" && soil && soil.ny === 1 && (!above || BLOCKS[above].replaceable) && (sd.plants === B.BERRY_BUSH ? [B.GRASS, B.DIRT] : [B.FARMLAND]).includes(idOf(soil.v))) {
     w.set(soil.x, soil.y + 1, soil.z, make(sd.plants, 0)); w.crops.add(soil.x + "," + (soil.y + 1) + "," + soil.z);
     if (idOf(soil.v) === B.FARMLAND && hydrate(soil.x, soil.y, soil.z)) w.set(soil.x, soil.y, soil.z, make(B.FARMLAND, WET));
-    if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
-    Sound.place("leaf"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return;
+    take(); Sound.place("leaf"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return true;
   }
-  if (sd && (sd.food !== undefined) && sd.kind === "food") {
-    if (G.creative) return;
-    if (G.player.hunger >= 20 && sd.food > 0) { UI.toast("You're not hungry right now."); return; }
-    G.player.hunger = Math.min(20, G.player.hunger + sd.food); G.player.exhaust = 0;
-    if (sd.sideEffect === "poison" || (sd.raw && slot.id === I.RAW_CHICKEN && Math.random() < 0.3)) { addEffect("poison", 4); UI.toast("That made you feel sick!", "bad"); }
-    if (sd.sideEffect === "queasy" && Math.random() < 0.8) { addEffect("queasy", 30); UI.toast("Yuck! You feel queasy (you'll get hungry faster for a bit).", "bad"); }
-    if (sd.sideEffect === "cure") { G.effects = {}; UI.toast("Milk cleared your effects.", "good"); }
-    if (sd.sideEffect === "blink") chorusBlink();
-    if (sd.sideEffect === "puffer") { addEffect("poison", 10); addEffect("queasy", 15); UI.toast("Ouch! Puffers are poisonous. Don't eat those!", "bad"); }
-    if (sd.sideEffect === "honey" && G.effects.poison) { delete G.effects.poison; UI.toast("The honey soothed the poison.", "good"); }
-    slot.n--; if (!slot.n) G.inv.slots[G.selected] = null;
-    if (sd.sideEffect === "cure") swapHeld(I.BUCKET);
-    if (sd.sideEffect === "honey" && G.inv.add(I.BOTTLE, 1)) G.dropItem(I.BOTTLE, 1);   // you keep the empty bottle
-    Sound.eat(); G.swing = 0.01; G.hudDirty = true; heldId = -1; return;
+  if (sd.food !== undefined && sd.kind === "food") {
+    if (G.creative) return false;
+    if (G.player.hunger >= 20 && !sd.alwaysEat) { if (!offhand) UI.toast("You're not hungry right now."); return false; }
+    G.eat = { slot: G.useSlot, id: slot.id, t: 0, crunch: 0 };   // eating takes 1.6 seconds of holding right-click
+    return true;
   }
-  if (slot && [I.BUCKET, I.WATER_BUCKET, I.LAVA_BUCKET].includes(slot.id)) { useBucket(slot); return; }
-  if (!hit || !slot) return;
+  if ([I.BUCKET, I.WATER_BUCKET, I.LAVA_BUCKET].includes(slot.id)) { useBucket(slot); return true; }
+  if (!hit) return false;
   const hitId = idOf(hit.v);
   // hoe: turn grass or dirt into farmland
   if (sd.tool && sd.tool.type === "hoe") {
     if ((hitId === B.GRASS || hitId === B.DIRT) && hit.ny === 1 && !SOLID[w.id(hit.x, hit.y + 1, hit.z)]) {
       if (w.id(hit.x, hit.y + 1, hit.z)) breakBlock(hit.x, hit.y + 1, hit.z, true);
       w.set(hit.x, hit.y, hit.z, make(B.FARMLAND, hydrate(hit.x, hit.y, hit.z) ? WET : 0)); Sound.place("soft"); wearTool(slot, 1); G.swing = 0.01;
+      G.adv("till"); return true;
     }
-    return;
+    return false;
   }
   // seeds and carrots: plant on farmland
   if (sd.plants) {
     if (hitId === B.FARMLAND && hit.ny === 1 && !w.id(hit.x, hit.y + 1, hit.z)) {
       w.set(hit.x, hit.y + 1, hit.z, make(sd.plants, 0)); w.crops.add(hit.x + "," + (hit.y + 1) + "," + hit.z);
       if (hydrate(hit.x, hit.y, hit.z)) w.set(hit.x, hit.y, hit.z, make(B.FARMLAND, WET));
-      if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
-      Sound.place("leaf"); G.hudDirty = true; heldId = -1; return;
+      take(); Sound.place("leaf"); G.hudDirty = true; heldId = -1; return true;
     }
-    if (sd.kind !== "food") { UI.toast("Plant seeds on farmland. Use a hoe on grass or dirt first.", "bad"); return; }
+    if (sd.kind !== "food") { if (!offhand) UI.toast("Plant seeds on farmland. Use a hoe on grass or dirt first.", "bad"); return false; }
   }
-  if (slot.id === I.BONE_MEAL) { useBoneMeal(hit, slot); return; }
+  if (slot.id === I.BONE_MEAL) { useBoneMeal(hit, slot); return true; }
   if (slot.id === I.FLINT_STEEL) {
-    if (hitId === B.TNT) { w.set(hit.x, hit.y, hit.z, B.AIR); primeTNT(hit.x, hit.y, hit.z); wearTool(slot, 1); return; }
+    if (hitId === B.TNT) { w.set(hit.x, hit.y, hit.z, B.AIR); primeTNT(hit.x, hit.y, hit.z); wearTool(slot, 1); G.adv("tnt"); return true; }
     const ax = hit.x + hit.nx, ay = hit.y + hit.ny, az = hit.z + hit.nz;
-    if (hitId === B.OBSIDIAN && !w.id(ax, ay, az) && lightPortal(ax, ay, az)) { wearTool(slot, 1); return; }
+    if (hitId === B.OBSIDIAN && !w.id(ax, ay, az) && lightPortal(ax, ay, az)) { wearTool(slot, 1); G.adv("portal"); return true; }
     if (ignite(ax, ay, az)) { wearTool(slot, 1); Sound.mob("fireshoot", 0); }
-    return;
+    return true;
   }
-  if (slot.id === B.BED) { placeBed(hit, slot); return; }
+  if (slot.id === B.BED) { placeBed(hit, slot); return true; }
   if (sd.places) {   // items that can be set down as a block (Blight Skulls)
     const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
-    if (w.id(x, y, z) && !BLOCKS[w.id(x, y, z)].replaceable) return;
-    if (!SOLID[w.id(x, y - 1, z)]) { UI.toast("Set it on top of a block.", "bad"); return; }
+    if (w.id(x, y, z) && !BLOCKS[w.id(x, y, z)].replaceable) return false;
+    if (!SOLID[w.id(x, y - 1, z)]) { UI.toast("Set it on top of a block.", "bad"); return true; }
     w.set(x, y, z, sd.places);
-    if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
-    Sound.place("stone"); G.hudDirty = true; heldId = -1;
+    take(); Sound.place("stone"); G.hudDirty = true; heldId = -1;
     if (sd.places === B.SKULL) checkBlightSummon(x, y, z);
-    return;
+    return true;
   }
-  if (!isBlockItem(slot.id)) return;
+  if (!isBlockItem(slot.id)) return false;
   let x = hit.x, y = hit.y, z = hit.z;
   const hitDef = blockDef(hit.v);
   if (!hitDef.replaceable) { x += hit.nx; y += hit.ny; z += hit.nz; }
-  if (y < 1 || y >= HEIGHT - 1) return;
+  if (y < 1 || y >= HEIGHT - 1) return false;
   const here = w.id(x, y, z);
-  if (here && here !== B.WATER && !BLOCKS[here].replaceable) return;
+  if (here && here !== B.WATER && !BLOCKS[here].replaceable) return false;
   const id = slot.id, d = BLOCKS[id];
   let v = make(id);
   if (d.front) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces and chests face you
-  if (d.shape === "cross" && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return; }
+  if (d.shape === "cross" && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return true; }
   if (id === B.SAPLING) w.crops.add(x + "," + y + "," + z);
-  if (id === B.WATER && G.world.gen.isNether()) { puff(x + 0.5, y + 0.5, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); return; }
-  if (id === B.LAVA || id === B.WATER) { placeLiquid(id, x, y, z); if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; } G.hudDirty = true; return; }
-  if (id === B.TORCH && !OPAQUE[idOf(hit.v)]) { Sound.error(); return; }
+  if (id === B.WATER && G.world.gen.isNether()) { puff(x + 0.5, y + 0.5, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); return true; }
+  if (id === B.LAVA || id === B.WATER) { placeLiquid(id, x, y, z); take(); G.hudDirty = true; return true; }
+  if (id === B.TORCH && !OPAQUE[idOf(hit.v)]) { Sound.error(); return true; }
   if (id === B.DOOR) {
-    if (!SOLID[w.id(x, y - 1, z)] || (w.id(x, y + 1, z) && !BLOCKS[w.id(x, y + 1, z)].replaceable)) { UI.toast("A door needs two empty blocks of space on solid ground.", "bad"); Sound.error(); return; }
+    if (!SOLID[w.id(x, y - 1, z)] || (w.id(x, y + 1, z) && !BLOCKS[w.id(x, y + 1, z)].replaceable)) { UI.toast("A door needs two empty blocks of space on solid ground.", "bad"); Sound.error(); return true; }
     const f = (facingFromYaw() + 2) % 4;
     v = make(B.DOOR, f);
-    if (blocksPlayer(v, x, y, z) || blocksPlayer(make(B.DOOR, f | TOP), x, y + 1, z)) return;
+    if (blocksPlayer(v, x, y, z) || blocksPlayer(make(B.DOOR, f | TOP), x, y + 1, z)) return false;
     w.set(x, y, z, v); w.set(x, y + 1, z, make(B.DOOR, f | TOP));
   } else {
-    if (blocksPlayer(v, x, y, z)) return;
+    if (blocksPlayer(v, x, y, z)) return false;
     w.set(x, y, z, v);
     if (id === B.SHELL_BOX) w.containers.set(x + "," + y + "," + z, { type: "chest", slots: slot.contents ? slot.contents.map(s => s && { ...s }) : new Array(27).fill(null) });
-    if (id === B.BEACON) { w.beacons.add(x + "," + y + "," + z); UI.toast("The Beacon glows! Within 24 blocks you'll heal over time and move faster.", "good"); }
+    if (id === B.BEACON) { w.beacons.add(x + "," + y + "," + z); w.containers.set(x + "," + y + "," + z, { type: "beacon", slots: [null], primary: null, secondary: null }); UI.toast("Build a pyramid of mineral blocks under the Beacon, then right-click it to pick a power.", "good"); G.adv("beacon"); }
   }
-  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
-  Sound.place(MATERIAL(id)); G.swing = 0.01; G.hudDirty = true; heldId = G.inv.slots[G.selected] ? heldId : -1;
+  take();
+  Sound.place(MATERIAL(id)); G.swing = 0.01; G.hudDirty = true; heldId = -1;
+  G.adv("place", id);
   tipDone("place");
+  return true;
+}
+// Finish eating or drinking (after holding right-click for 1.6 seconds)
+function finishEat() {
+  const e = G.eat, slot = G.inv.slots[e.slot], sd = itemDef(e.id), p = G.player;
+  G.eat = null;
+  if (!slot || slot.id !== e.id) return;
+  // food points fill the food bar; fullness (saturation) can never be more than the food bar
+  p.hunger = Math.min(20, p.hunger + sd.food);
+  p.sat = Math.min(p.hunger, (p.sat || 0) + (sd.sat || 0));
+  if (sd.sideEffect === "poison" || (sd.raw && slot.id === I.RAW_CHICKEN && Math.random() < 0.3)) { addEffect("poison", 4); UI.toast("That made you feel sick!", "bad"); }
+  if (sd.sideEffect === "queasy" && Math.random() < 0.8) { addEffect("queasy", 30); UI.toast("Yuck! You feel queasy (you'll get hungry faster for a bit).", "bad"); }
+  if (sd.sideEffect === "cure") { G.effects = {}; G.elv = {}; G.absorb = 0; UI.toast("Milk cleared your effects.", "good"); }
+  if (sd.sideEffect === "blink") chorusBlink();
+  if (sd.sideEffect === "puffer") { addEffect("poison", 10); addEffect("queasy", 15); UI.toast("Ouch! Puffers are poisonous. Don't eat those!", "bad"); }
+  if (sd.sideEffect === "honey" && G.effects.poison) { delete G.effects.poison; UI.toast("The honey soothed the poison.", "good"); }
+  if (sd.sideEffect === "golden") { addEffect("regen", 5, 2); addEffect("absorb", 120, 1); UI.toast("A Golden Apple! You feel strong.", "good"); }
+  slot.n--; if (!slot.n) G.inv.slots[e.slot] = null;
+  if (sd.sideEffect === "cure") { G.useHand = e.slot; swapHeld(I.BUCKET); G.useHand = null; }
+  if (sd.sideEffect === "honey" && G.inv.add(I.BOTTLE, 1)) G.dropItem(I.BOTTLE, 1);   // you keep the empty bottle
+  Sound.eat(); G.swing = 0.01; G.hudDirty = true; heldId = -1;
+  G.adv("eat", e.id);
+}
+function tickEating(dt) {
+  const e = G.eat;
+  if (!e) return;
+  const s = G.inv.slots[e.slot];
+  if (!mouseR || !s || s.id !== e.id || G.state !== "play") { G.eat = null; return; }   // let go to stop eating
+  e.t += dt; e.crunch -= dt;
+  if (e.crunch <= 0) {
+    e.crunch = 0.22; Sound.eat();
+    const p = G.player, d = lookDir();
+    puff(p.pos.x + d.x * 0.4, p.pos.y + p.eye - 0.4, p.pos.z + d.z * 0.4, "crumb");
+  }
+  if (e.t >= 1.6) finishEat();
 }
 // Water next to lava turns the lava into obsidian
 function placeLiquid(id, x, y, z) {
@@ -1495,13 +1763,13 @@ function useBucket(slot) {
     return;
   }
   const liquid = slot.id === I.WATER_BUCKET ? B.WATER : B.LAVA;
-  if (liquid === B.WATER && G.world.gen.isNether()) { puff(hit.x + 0.5, hit.y + 1.5, hit.z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); if (!G.creative) { G.inv.slots[G.selected] = newStack(I.BUCKET, 1); heldId = -1; } G.hudDirty = true; return; }
+  if (liquid === B.WATER && G.world.gen.isNether()) { puff(hit.x + 0.5, hit.y + 1.5, hit.z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); if (!G.creative) { G.inv.slots[G.useSlot] = newStack(I.BUCKET, 1); heldId = -1; } G.hudDirty = true; return; }
   let x = hit.x, y = hit.y, z = hit.z;
   if (!blockDef(hit.v).replaceable && idOf(hit.v) !== B.WATER) { x += hit.nx; y += hit.ny; z += hit.nz; }
   const here = w.id(x, y, z);
   if (here && here !== B.WATER && !BLOCKS[here].replaceable) return;
   placeLiquid(liquid, x, y, z);
-  if (!G.creative) { G.inv.slots[G.selected] = newStack(I.BUCKET, 1); heldId = -1; }
+  if (!G.creative) { G.inv.slots[G.useSlot] = newStack(I.BUCKET, 1); heldId = -1; }
   Sound.splash(); G.hudDirty = true;
 }
 function useBoneMeal(hit, slot) {
@@ -1516,7 +1784,7 @@ function useBoneMeal(hit, slot) {
   }
   if (!used) return;
   puff(hit.x + 0.5, hit.y + 1, hit.z + 0.5, "xp");
-  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
   G.hudDirty = true; heldId = -1;
 }
 const DIR = [[0, 1], [1, 0], [0, -1], [-1, 0]];   // facing 0..3 → (dx, dz)
@@ -1528,20 +1796,20 @@ function placeBed(hit, slot) {
   const fv = make(B.BED, (f + 2) % 4), hv = make(B.BED, ((f + 2) % 4) | HEAD);
   if (blocksPlayer(fv, x, y, z) || blocksPlayer(hv, x + hx, y, z + hz)) return;
   w.set(x, y, z, fv); w.set(x + hx, y, z + hz, hv);
-  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
   Sound.place("soft"); G.hudDirty = true; heldId = -1;
 }
 function useBed(hit) {
   if (G.world.gen.isNether()) { breakBlock(hit.x, hit.y, hit.z, false); explode(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5, 3, null); UI.toast("Beds explode in the Ember Depths! Only sleep on the Surface.", "bad"); return; }
   const meta = metaOf(hit.v), [dx, dz] = DIR[meta & 3];
   const head = meta & HEAD ? { x: hit.x, z: hit.z } : { x: hit.x + dx, z: hit.z + dz };
-  G.player.spawn = { x: head.x + 0.5, y: hit.y + 1, z: head.z + 0.5, bed: [hit.x, hit.y, hit.z] };
+  G.player.spawn = { x: head.x + 0.5, y: hit.y + 1, z: head.z + 0.5, bed: [hit.x, hit.y, hit.z] }; G.player.anchor = null;
   const night = G.time > 0.53 && G.time < 0.97;
   if (!night) { UI.toast("Respawn point set. You can only sleep at night."); return; }
   if (G.creative === false && ents.near(G.player.pos.x, G.player.pos.y, G.player.pos.z, 10, e => e.def.hostile).length) { UI.toast("You can't rest now. There are monsters nearby!", "bad"); return; }
   const shade = document.getElementById("flash");
   shade.style.background = "#000"; shade.classList.add("on");
-  setTimeout(() => { G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; shade.classList.remove("on"); setTimeout(() => shade.style.background = "", 400); UI.toast("Good morning! Respawn point set.", "good"); }, 1200);
+  setTimeout(() => { G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; shade.classList.remove("on"); setTimeout(() => shade.style.background = "", 400); UI.toast("Good morning! Respawn point set.", "good"); G.adv("sleep"); }, 1200);
 }
 function blocksPlayer(v, x, y, z) {
   const boxes = []; blockBoxes(v, x, y, z, boxes);
@@ -1560,7 +1828,7 @@ function interact(hit, kind) {
   if (kind === "table") { openPanel("table"); return; }
   if (kind === "bed") { useBed(hit); return; }
   if (kind === "berries") {   // pick ripe berries (the bush keeps growing)
-    const st = metaOf(hit.v) & 3, s = G.inv.slots[G.selected];
+    const st = metaOf(hit.v) & 3, s = G.inv.slots[G.useSlot];
     if (st >= 2) {
       spawnDrop(I.BERRIES, st === 3 ? 2 + Math.floor(Math.random() * 2) : 1, hit.x + 0.5, hit.y + 0.6, hit.z + 0.5);
       w.set(hit.x, hit.y, hit.z, make(B.BERRY_BUSH, 1)); w.crops.add(key); Sound.place("leaf");
@@ -1569,16 +1837,19 @@ function interact(hit, kind) {
   }
   if (kind === "hive") { harvestHoney(hit); return; }
   if (kind === "frame") { fillFrame(hit); return; }
-  if (kind === "beacon") { UI.toast("This Beacon gives Regeneration and Swiftness to anyone within 24 blocks."); return; }
+  if (kind === "beacon") { if (!w.containers.has(key)) w.containers.set(key, { type: "beacon", slots: [null], primary: null, secondary: null, legacy: true }); w.beacons.add(key); openPanel("beacon", key); return; }
   if (kind === "shellbox") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
     Sound.door(true); openPanel("chest", key); return;
   }
   if (kind === "chest") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
-    if (metaOf(hit.v) & LOOT) { fillLoot(w.containers.get(key), hit); w.set(hit.x, hit.y, hit.z, make(B.CHEST, metaOf(hit.v) & 3)); }
+    if (metaOf(hit.v) & LOOT) { fillLoot(w.containers.get(key), hit); w.set(hit.x, hit.y, hit.z, make(B.CHEST, metaOf(hit.v) & 3)); G.adv("loot"); }
     Sound.door(true); openPanel("chest", key); return;
   }
+  if (kind === "anchor") { useAnchor(hit); return; }
+  if (kind === "lodestone") { bindCompass(hit); return; }
+  if (kind === "voidchest") { Sound.door(true); puff(hit.x + 0.5, hit.y + 1.1, hit.z + 0.5, "portal"); openPanel("voidchest"); G.adv("voidchest"); return; }
   if (kind === "furnace") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "furnace", slots: [null, null, null], burn: 0, burnMax: 0, prog: 0 });
     openPanel("furnace", key);
@@ -1590,12 +1861,12 @@ function torchNear(x, y, z) {
   return false;
 }
 function harvestHoney(hit) {
-  const w = G.world, s = G.inv.slots[G.selected], id = idOf(hit.v), name = BLOCKS[id].name;
+  const w = G.world, s = G.inv.slots[G.useSlot], id = idOf(hit.v), name = BLOCKS[id].name;
   if (honeyOf(hit.v) < HONEY_MAX) {
     UI.toast(`This ${name} isn't full of honey yet (${honeyOf(hit.v)} of ${HONEY_MAX}). Buzzers bring honey after visiting flowers.`);
     return;
   }
-  if (s && s.id === I.BOTTLE) { s.n--; if (!s.n) G.inv.slots[G.selected] = null; if (G.inv.add(I.HONEY_BOTTLE, 1)) G.dropItem(I.HONEY_BOTTLE, 1); heldId = -1; }
+  if (s && s.id === I.BOTTLE) { s.n--; if (!s.n) G.inv.slots[G.useSlot] = null; if (G.inv.add(I.HONEY_BOTTLE, 1)) G.dropItem(I.HONEY_BOTTLE, 1); heldId = -1; }
   else if (s && s.id === I.SHEARS) { spawnDrop(I.HONEYCOMB, 3, hit.x + 0.5 + hit.nx * 0.6, hit.y + 0.5, hit.z + 0.5 + hit.nz * 0.6); wearTool(s, 1); }
   else { UI.toast(`This ${name} is full of honey! Use a Glass Bottle or Shears on it to collect some.`); return; }
   w.set(hit.x, hit.y, hit.z, make(id, metaOf(hit.v) & 3));
@@ -1611,6 +1882,7 @@ function fillLoot(box, hit) {
     if (r() < 0.5) put(I.SKYSHARD, 1 + Math.floor(r() * 3));
     if (r() < 0.3) put(I.SKY_CHEST, 1);
     if (r() < 0.3) put(I.DUSK_SCRAP, 1);
+    if (r() < 0.25) put(I.TOTEM, 1);
     for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
     UI.toast("You found a Hollow treasure chest!", "good"); return;
   }
@@ -1622,6 +1894,7 @@ function fillLoot(box, hit) {
     if (r() < 0.3) put(I.GOLD_CHEST, 1);
     if (r() < 0.25) put(I.SKYSHARD, 1 + Math.floor(r() * 2));
     if (r() < 0.12) put(I.DUSK_SCRAP, 1);
+    if (r() < 0.15) put(I.TOTEM, 1);
     for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
     UI.toast("You found a treasure chest!", "good"); return;
   }
@@ -1635,6 +1908,8 @@ function fillLoot(box, hit) {
   if (r() < 0.35) put(I.SKYSHARD, 1 + Math.floor(r() * 2));
   if (r() < 0.5) put(I.STONE_PICK, 1);
   if (r() < 0.4) put(I.BRICK, 4 + Math.floor(r() * 8));
+  if (r() < 0.08) put(I.TOTEM, 1);
+  if (r() < 0.12) put(I.GOLDEN_APPLE, 1);
   // shuffle so it looks like a real stash
   for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
   UI.toast("You found a treasure chest!", "good");
@@ -1699,7 +1974,7 @@ G.craft = (recipe, many) => {
     made++;
   }
   if (!made) { Sound.error(); UI.toast("You don't have enough materials for that.", "bad"); return; }
-  Sound.craft();
+  Sound.craft(); G.adv("craft", recipe.out[0]);
   UI.toast(`Made ${itemDef(recipe.out[0]).name}${recipe.out[1] * made > 1 ? " ×" + recipe.out[1] * made : ""}!`, "good");
   if (recipe.out[0] === B.PLANKS || recipe.out[0] === B.BIRCH_PLANKS) tipDone("craft");
   G.hudDirty = true; UI.refreshPanel();
@@ -1736,10 +2011,30 @@ function updateFurnaces(dt) {
 // armor points worn (each point blocks 4% of damage)
 function armorPoints() { let a = 0; for (let i = 36; i < 40; i++) { const s = G.inv.slots[i]; if (s && itemDef(s.id).armor) a += itemDef(s.id).armor.points; } return a; }
 let iframes = 0;
-function hurt(n, why, src, bypassArmor) {
+// Is the raised shield facing the thing that hit you? (it covers the front half of a circle around you)
+function shieldFaces(src) {
+  if (!G.blocking || !src || !src.pos) return false;
+  const p = G.player, dx = src.pos.x - p.pos.x, dz = src.pos.z - p.pos.z, l = Math.hypot(dx, dz) || 1, d = lookDir(), dl = Math.hypot(d.x, d.z) || 1;
+  return (dx / l) * (d.x / dl) + (dz / l) * (d.z / dl) > 0.1;
+}
+// Damage kinds: undefined (hits, falls, explosions…), "fire", "poison", "void", "starve"
+function hurt(n, why, src, bypassArmor, kind) {
   const p = G.player;
-  if (G.creative || G.state === "dead" || n <= 0) return;
+  if (G.creative || G.spectator || G.state === "dead" || n <= 0) return;
+  if (G.totemGuard > 0 && kind !== "void") return;
+  if (G.respawnGuard > 0 && kind !== "void") return;   // just woke up   // a Lifeward Totem just saved you: a moment of safety
   if (iframes > 0 && !bypassArmor) return;
+  if (kind === "fire" && G.effects.fireRes) return;
+  // a raised shield stops hits from the front (it wears down instead)
+  if (!bypassArmor && kind !== "void" && shieldFaces(src)) {
+    const sh = G.inv.slots[G.blockHand];
+    if (sh && sh.id === I.SHIELD) {
+      wearTool(sh, Math.max(1, Math.floor(n)));
+      iframes = 0.5; Sound.place("wood"); G.adv("block");
+      if (src.def) { const l = Math.hypot(src.pos.x - p.pos.x, src.pos.z - p.pos.z) || 1; src.vel && (src.vel.x += (src.pos.x - p.pos.x) / l * 4, src.vel.z += (src.pos.z - p.pos.z) / l * 4); }
+      return;
+    }
+  }
   if (!bypassArmor) {
     const a = armorPoints();
     n = n * (1 - Math.min(20, a) * 0.04);
@@ -1747,6 +2042,10 @@ function hurt(n, why, src, bypassArmor) {
     iframes = 0.5;
   }
   n = Math.max(0.5, Math.round(n * 2) / 2);
+  if (G.effects.resist && kind !== "void" && kind !== "starve") n = Math.max(0.5, n * (1 - 0.2 * (G.elv.resist || 1)));   // Resistance
+  if (G.absorb > 0) { const k = Math.min(G.absorb, n); G.absorb -= k; n -= k; }   // golden hearts go first
+  p.exhaust += 0.1;
+  if (n > 0 && p.health - n <= 0 && kind !== "void" && useTotem()) n = 0;
   p.health = Math.max(0, p.health - n); p.hurtT = 0.4;
   if (src && src.pos) { const dx = p.pos.x - src.pos.x, dz = p.pos.z - src.pos.z, l = Math.hypot(dx, dz) || 1; p.vel.x += dx / l * 6; p.vel.z += dz / l * 6; p.vel.y = Math.max(p.vel.y, 4); }
   if (src && src.def && src.def.knockUp) p.vel.y = 9;   // Hogbeasts toss you into the air
@@ -1754,23 +2053,59 @@ function hurt(n, why, src, bypassArmor) {
   Sound.hurt(); UI.flash(); G.hudDirty = true;
   if (p.health <= 0) die(why);
 }
+// Lifeward Totem: held in either hand, it stops one fatal hit. Main hand is checked first, then the offhand.
+// It does not work against the void (falling out of the Hollow) and does nothing in Creative or Spectator.
+function useTotem() {
+  const at = [G.selected, OFF].find(i => G.inv.slots[i] && G.inv.slots[i].id === I.TOTEM);
+  if (at === undefined) return false;
+  const s = G.inv.slots[at];
+  s.n--; if (!s.n) G.inv.slots[at] = null;   // exactly one is used up
+  const p = G.player;
+  p.health = 1;
+  G.effects = {}; G.elv = {}; G.absorb = 0;
+  addEffect("regen", 45, 2); addEffect("absorb", 5, 2); addEffect("fireRes", 40);
+  G.totemGuard = 0.5;   // any other damage arriving in the same moment can't use a second totem
+  iframes = Math.max(iframes, 0.5);
+  for (let i = 0; i < 4; i++) { puff(p.pos.x, p.pos.y + 1 + i * 0.3, p.pos.z, "totem"); puff(p.pos.x, p.pos.y + 1.2, p.pos.z, "totemGreen"); }
+  Sound.totem(); UI.totem(); heldId = -1; offId = -1; G.hudDirty = true;
+  UI.toast("Your Lifeward Totem saved you!", "good");
+  G.adv("totem");
+  return true;
+}
 function die(why) {
   dismount(true);
-  if (!G.wset.keepInv && !G.creative) {   // drop everything where you fell
-    const p = G.player;
+  G.eat = null; G.blocking = false; G.bowT = -1;
+  const p = G.player;
+  if ((!G.wset.keepInv || G.meta.hardcore) && !G.creative) {   // drop everything where you fell
     for (let i = 0; i < G.inv.slots.length; i++) { const s = G.inv.slots[i]; if (s) spawnDrop(s.id, s.n, p.pos.x, p.pos.y + 1, p.pos.z, s); G.inv.slots[i] = null; }
     if (G.xp) { spawnOrbs(Math.min(100, Math.floor(G.xp / 2)), p.pos.x, p.pos.y + 1, p.pos.z); G.xp = 0; }
   }
-  G.effects = {};
+  G.effects = {}; G.elv = {}; G.absorb = 0;
   G.state = "dead"; keys.clear(); mouseL = mouseR = false;
   document.getElementById("deathWhy").textContent = why;
   if (document.pointerLockElement) document.exitPointerLock();
-  UI.show("death");
+  if (G.meta.hardcore) {   // Hardcore: the adventure is over for good. You can still look around as a Spectator.
+    G.meta.hardcoreOver = true; G.deathSpot = { ...p.pos };
+    saveNow(false);
+  }
+  UI.death(!!G.meta.hardcore);
 }
 G.respawn = async () => {
   const p = G.player;
-  p.health = 20; p.hunger = 20; p.air = 10; p.exhaust = 0; p.flying = false;
-  if (G.dim !== "overworld") {   // you always wake up on the Surface
+  if (G.meta.hardcore) {   // Spectator: float through the world where you fell; no items, no damage, nothing to break
+    G.mode = G.meta.mode = "spectator";
+    p.health = 20; p.hunger = 20; p.sat = 5; p.air = 10; p.flying = true; p.noclip = true;
+    if (G.deathSpot) { Object.assign(p.pos, G.deathSpot); p.pos.y += 1; }
+    p.vel.x = p.vel.y = p.vel.z = 0;
+    await saveNow(false);
+    G.state = "pause"; UI.hud(); G.resume(); updateTips();
+    UI.toast("Spectator: fly with Space and C. You can look around, but this Hardcore world's adventure is over.");
+    return;
+  }
+  p.health = 20; p.hunger = 20; p.sat = 5; p.air = 10; p.exhaust = 0; p.flying = false;
+  G.respawnGuard = 3;   // a few seconds where nothing can hurt you right after waking up
+  if (p.anchor && await respawnAtAnchor(p)) { G.state = "pause"; G.resume(); return; }
+  if (G.dim !== "overworld") {   // otherwise you wake up on the Surface
     G.state = "loading"; UI.show("loading");
     G.dimData[G.dim] = dimSnapshot(G.world);
     clearWorldMeshes(); G.world.chunks.clear();
@@ -1782,30 +2117,68 @@ G.respawn = async () => {
   if (p.spawn.bed && G.world.id(...p.spawn.bed) !== B.BED) { UI.toast("Your bed was missing, so you woke up at the world's starting spot.", "bad"); delete p.spawn.bed; }
   G.state = "pause"; G.resume();
 };
-let survT = 0, regenT = 0, starveT = 0, drownT = 0;
+// Wake up next to a charged Respawn Anchor in the Ember Depths. Returns false (with a reason) if that isn't possible.
+async function respawnAtAnchor(p) {
+  const a = p.anchor;
+  if (G.dim !== "nether") {
+    G.state = "loading"; UI.show("loading");
+    G.dimData[G.dim] = dimSnapshot(G.world);
+    clearWorldMeshes(); G.world.chunks.clear();
+    G.dim = "nether"; G.world = makeWorld("nether"); G.gen = G.world.gen;
+  }
+  p.pos.x = a.x + 0.5; p.pos.z = a.z + 0.5; p.pos.y = a.y;
+  await loadArea(a.x, a.z, "Waking up at your Respawn Anchor…");
+  const v = G.world.get(a.x, a.y, a.z), charge = idOf(v) === B.RESPAWN_ANCHOR ? metaOf(v) & 7 : -1, spot = charge > 0 ? anchorSpot(a) : null;
+  if (!spot) {
+    UI.toast(charge < 0 ? "Your Respawn Anchor was missing, so you woke up on the Surface." : charge === 0 ? "Your Respawn Anchor was out of charge, so you woke up on the Surface. Recharge it with Shinestone." : "Your Respawn Anchor was blocked in, so you woke up on the Surface. Leave open space next to it.", "bad");
+    if (charge < 0) p.anchor = null;
+    return false;
+  }
+  G.world.set(a.x, a.y, a.z, make(B.RESPAWN_ANCHOR, charge - 1));
+  Object.assign(p.pos, spot); p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null;
+  portalCooldown = true;
+  UI.toast(`You woke up at your Respawn Anchor (${charge - 1} charge${charge - 1 === 1 ? "" : "s"} left).`, charge - 1 ? "good" : "bad");
+  return true;
+}
+// Food follows Minecraft Java Edition 1.20.1: actions add "exhaustion"; every 4 points of it uses up 1 fullness (saturation),
+// or 1 food point once fullness is gone. A full food bar with fullness heals quickly; 18+ food heals slowly.
+let healT = 0, starveT = 0, drownT = 0;
 function survival(dt) {
   const p = G.player;
-  if (G.creative) { p.health = 20; p.hunger = 20; p.air = 10; G.effects = {}; p.levitate = false; return; }
+  if (G.totemGuard > 0) G.totemGuard -= dt;
+  if (G.respawnGuard > 0) G.respawnGuard -= dt;
+  if (G.creative || G.spectator) { p.health = 20; p.hunger = 20; p.air = 10; G.effects = {}; G.absorb = 0; p.levitate = false; return; }
   if (iframes > 0) iframes -= dt;
   tickEffects(dt);
   p.levitate = !!G.effects.levitation;
-  p.speedMul = G.effects.swift ? 1.25 : 1;
+  p.speedMul = G.effects.swift ? 1 + 0.2 * (G.elv.swift || 1) : 1;
+  p.jumpMul = G.effects.jump ? 1 + 0.16 * (G.elv.jump || 1) : 1;
+  if (G.blocking) p.speedMul *= 0.3;   // you walk slowly behind a raised shield
+  if (G.eat) p.speedMul *= 0.35;       // and while eating
   p.swimMul = G.effects.dolphin ? 1.9 : 1;
   tickBeacons(dt);
   if (p.gliding && (G.glideT = (G.glideT || 0) + dt) >= 1) { G.glideT = 0; const wings = G.inv.slots[37]; if (wings && wings.id === I.GLIDER) { wings.dur = (wings.dur ?? 432) - 1; if (wings.dur <= 0) { G.inv.slots[37] = null; p.gliding = false; UI.toast("Your Glider Wings wore out!", "bad"); } G.hudDirty = true; } }
-  if (p.inLava) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true); } }
+  if (p.inLava && !G.effects.fireRes) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true, "fire"); } }
   const w = G.world, fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y), fz = Math.floor(p.pos.z);
   if (w.id(fx, fy, fz) === B.FIRE || w.id(fx, fy + 1, fz) === B.FIRE) addEffect("fire", 4);
-  if (p.onGround && w.id(fx, Math.floor(p.pos.y - 0.1), fz) === B.MAGMA && !p.crouch && (G.magmaT = (G.magmaT || 0) + dt) > 1) { G.magmaT = 0; hurt(1, "Magma blocks are hot! Crouch (C) to walk on them safely.", null, true); }
-  if (G.wset.difficulty === "peaceful" && p.health < 20 && (G.peaceT = (G.peaceT || 0) + dt) > 2) { G.peaceT = 0; p.health++; G.hudDirty = true; }
-  survT += dt;
-  if (survT > 50) { survT = 0; p.exhaust += 4; }         // slowly get hungry over time
-  if (p.exhaust >= 4) { p.exhaust -= 4; p.hunger = Math.max(0, p.hunger - 1); G.hudDirty = true; }
-  regenT += dt;
-  if (p.hunger >= 16 && p.health < 20 && regenT > 3) { regenT = 0; p.health++; p.exhaust += 2; G.hudDirty = true; }
-  if (p.hunger <= 0) { starveT += dt; if (starveT > 4 && p.health > 2) { starveT = 0; hurt(1, "You were too hungry. Eat apples to keep your food bar up!"); } }
+  if (p.onGround && w.id(fx, Math.floor(p.pos.y - 0.1), fz) === B.MAGMA && !p.crouch && (G.magmaT = (G.magmaT || 0) + dt) > 1) { G.magmaT = 0; hurt(1, "Magma blocks are hot! Crouch (C) to walk on them safely.", null, true, "fire"); }
+  const diff = G.wset.difficulty;
+  if (diff === "peaceful" && (G.peaceT = (G.peaceT || 0) + dt) > 2) { G.peaceT = 0; if (p.health < 20) p.health++; if (p.hunger < 20) p.hunger++; G.hudDirty = true; }
+  // exhaustion → fullness → food
+  while (p.exhaust >= 4) { p.exhaust -= 4; if (p.sat > 0) p.sat = Math.max(0, p.sat - 1); else if (diff !== "peaceful") p.hunger = Math.max(0, p.hunger - 1); G.hudDirty = true; }
+  healT += dt;
+  if (p.health < 20 && p.hunger >= 20 && p.sat > 0) {   // fast healing: every half second, using fullness
+    if (healT >= 0.5) { healT = 0; p.health = Math.min(20, p.health + 1); p.exhaust += Math.min(p.sat, 6); G.hudDirty = true; }
+  } else if (p.health < 20 && p.hunger >= 18) {        // slow healing: every 4 seconds
+    if (healT >= 4) { healT = 0; p.health = Math.min(20, p.health + 1); p.exhaust += 6; G.hudDirty = true; }
+  } else if (healT > 4) healT = 0;
+  // starving: Easy stops at 5 hearts, Normal at half a heart, Hard can make you faint
+  if (p.hunger <= 0) {
+    starveT += dt;
+    if (starveT >= 4) { starveT = 0; const floor = diff === "easy" ? 10 : diff === "normal" ? 1 : 0; if (p.health > floor) hurt(1, "You were too hungry. Eat something to keep your food bar up!", null, true, "starve"); }
+  } else starveT = 0;
   // breath underwater
-  if (p.headInWater) { p.air -= dt; if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!"); } } G.hudDirty = true; }
+  if (p.headInWater) { p.air -= dt; if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
   else if (p.air < 10) { p.air = Math.min(10, p.air + dt * 4); G.hudDirty = true; }
 }
 
@@ -1901,8 +2274,10 @@ window.addEventListener("resize", resize);
 // ---------- world list actions (called from the menus) ----------
 G.listWorlds = () => Saves.list();
 G.storageOK = () => Saves.persistent();
-G.newWorld = ({ name, seed, mode, settings }) => {
-  const save = { id: newId(), name, seed, mode, created: Date.now(), played: Date.now(), day: 1, version: 2, gen: CURRENT_GEN, dims: {}, inventory: [], tips: {}, settings };
+G.newWorld = ({ name, seed, mode, settings }) => {   // mode: survival | creative | hardcore
+  const hardcore = mode === "hardcore";
+  if (hardcore) settings = { ...settings, difficulty: "hard", keepInv: false };
+  const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen: CURRENT_GEN, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings };
   startWorld(save);
 };
 G.loadWorld = async id => {
@@ -1940,34 +2315,45 @@ function loop(now) {
     const input = G.state === "play" && locked ? {
       f: (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) - (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0),
       r: (keys.has("KeyD") || keys.has("ArrowRight") ? 1 : 0) - (keys.has("KeyA") || keys.has("ArrowLeft") ? 1 : 0),
-      jump: keys.has("Space"), sprint: keys.has("ShiftLeft") || keys.has("ShiftRight"), crouch: keys.has("KeyC"),
+      jump: keys.has("Space"), crouch: keys.has("KeyC"),
+      // no sprinting with 3 or fewer food drumsticks, behind a raised shield, or while eating
+      sprint: (keys.has("ShiftLeft") || keys.has("ShiftRight")) && (G.creative || G.spectator || G.riding || p.hunger > 6) && !G.blocking && !G.eat,
       flyUp: keys.has("Space"), flyDown: keys.has("KeyC")
     } : { f: 0, r: 0 };
     if (G.riding) { input.crouch = false; if (!G.riding.tame && !G.riding.def.boat) { input.f = input.r = 0; input.jump = false; } }   // a wild Trotter won't go where you steer
-    if (!G.creative) p.flying = false;
+    if (G.spectator) { p.flying = true; p.noclip = true; } else { p.noclip = false; if (!G.creative) p.flying = false; }
     acc += dt;
     const startX = p.pos.x, startZ = p.pos.z;
     while (acc >= 1 / 60) {
       acc -= 1 / 60;
       const wasWater = p.inWater;
       const res = p.step(G.world, p.flying ? { ...input, crouch: false } : input, 1 / 60, G.creative);
-      const fall = G.riding ? res.fall - 3 : res.fall;   // a Trotter's legs soak up some of a fall
+      const fall = (G.riding ? res.fall - 3 : res.fall) - (G.effects.jump ? G.elv.jump || 1 : 0);   // Jump Boost softens landings   // a Trotter's legs soak up some of a fall
       if (fall > 3.5) hurt(Math.floor(fall - 3), "That was a long fall! Build stairs or use water to land safely.");
       if (res.crash > 10) hurt(Math.round((res.crash - 10) * 0.7), "You glided into a wall! Slow down by looking up before you land.", null, true);
       if (!wasWater && p.inWater && p.vel.y < -4) Sound.splash();
       if (G.dim === "end" && p.pos.y < -4) {   // the void below the Hollow
         if (G.creative) { p.pos.x = 100.5; p.pos.z = 0.5; p.pos.y = 60; p.vel.y = 0; }
-        else if ((G.voidT = (G.voidT || 0) - 1 / 60) <= 0) { G.voidT = 0.5; hurt(4, "You fell into the void.", null, true); }
+        else if ((G.voidT = (G.voidT || 0) - 1 / 60) <= 0) { G.voidT = 0.5; hurt(4, "You fell into the void.", null, true, "void"); }
       } else if (p.pos.y < -20) { placeSafely(p, p.spawn.x, p.spawn.z); }
     }
     const moved = Math.hypot(p.pos.x - startX, p.pos.z - startZ);
+    // exhaustion from moving (Minecraft 1.20.1: sprinting 0.1 per block, swimming 0.01 per block; walking is free)
+    if (!G.creative && !G.spectator && !G.riding) {
+      if (p.inWater) p.exhaust += 0.01 * moved;
+      else if (input.sprint && p.onGround) p.exhaust += 0.1 * moved;
+      if (p.onGround && !p.flying) G.stats.walked = (G.stats.walked || 0) + moved;
+    }
     if (moved > 0.001 && p.onGround) {
       G.walkPhase += moved * 2.2; G.stepDist += moved;
       if (G.stepDist > 2.2) { G.stepDist = 0; Sound.step(MATERIAL(G.world.id(Math.floor(p.pos.x), Math.floor(p.pos.y - 0.2), Math.floor(p.pos.z)))); }
       G.moveTotal = (G.moveTotal || 0) + moved; if (G.moveTotal > 6) tipDone("move");
     }
     tickRiding(dt);
+    tickEating(dt);
+    if (G.blocking) { const sh = G.inv.slots[G.blockHand]; if (!mouseR || !sh || sh.id !== I.SHIELD || G.state !== "play") G.blocking = false; }
     survival(dt);
+    Adv.poll(dt);
     updateFurnaces(dt);
     tickCrops(dt);
     updateTNT(dt);
@@ -1990,7 +2376,7 @@ function loop(now) {
   const daylight = updateSky();
   applyView();
   if (running) { ents.update(dt, daylight, camera); updateOrbs(dt); }
-  if (G.state === "play" && mouseL && !G.creative && G.attackCd <= 0 && entityTarget()) attack();
+  if (G.state === "play" && mouseL && !G.creative && !G.spectator && G.attackCd <= 0 && entityTarget()) attack();
   document.getElementById("waterTint").hidden = !p.headInWater;
 
   // what am I pointing at?
@@ -2018,6 +2404,7 @@ function loop(now) {
   if (G.swing > 0) { G.swing += dt * 4; if (G.swing >= 1) G.swing = mouseL && !G.creative && G.mining ? 0.01 : 0; }
   updateHeld(bright);
   updateFishLine();
+  updateCompassHud(dt);
 
   // particles
   let n = 0;
@@ -2044,10 +2431,11 @@ function loop(now) {
 }
 
 // ---------- start ----------
+Adv.init(G, SPECIES, { xp: n => spawnOrbs(n, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z), give: (id, n) => { if (G.inv.add(id, n)) G.dropItem(id, n); } });
 UI.init(G);
 G.applySettings();
 resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { hand, ents, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; } };
+G._test = { hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };

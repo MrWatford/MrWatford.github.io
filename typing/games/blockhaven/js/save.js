@@ -1,6 +1,6 @@
 // Saves worlds on this device only (IndexedDB), with a fallback when the browser blocks storage.
 // Nothing is ever sent anywhere. Worlds can also be downloaded as a file and loaded back.
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
 
@@ -55,7 +55,7 @@ export const Saves = {
   async remove(id) {
     const db = await openDB();
     if (!db) { memory.meta.delete(id); memory.data.delete(id); return; }
-    await new Promise((resolve) => { const t = db.transaction([META, DATA], "readwrite"); t.objectStore(META).delete(id); t.objectStore(DATA).delete(id); t.objectStore(DATA).delete("backup-v1-" + id); t.oncomplete = t.onerror = resolve; });
+    await new Promise((resolve) => { const t = db.transaction([META, DATA], "readwrite"); t.objectStore(META).delete(id); t.objectStore(DATA).delete(id); t.objectStore(DATA).delete("backup-v1-" + id); t.objectStore(DATA).delete("backup-v2-" + id); t.oncomplete = t.onerror = resolve; });
   },
   exportFile(world) {
     const blob = new Blob([JSON.stringify({ blockhaven: SAVE_VERSION, ...world })], { type: "application/json" });
@@ -78,8 +78,8 @@ export const Saves = {
 
 export const newId = () => "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 function split(w) {
-  const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1, gen: w.gen || 1 };
-  const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips };
+  const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1, gen: w.gen || 1, hardcore: !!w.hardcore, hardcoreOver: !!w.hardcoreOver };
+  const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips, voidInv: w.voidInv, adv: w.adv, story: w.story };
   return { meta, data };
 }
 // Older save versions get converted here when the game is updated
@@ -87,16 +87,24 @@ function upgrade(w) {
   // version 1 → 2: block changes and containers move into the "overworld" dimension; land shapes stay the same (gen 1)
   if (!w.dims) { w.dims = { overworld: { mods: w.mods || {}, containers: w.containers || [] } }; w.gen = w.gen || 1; }
   delete w.mods; delete w.containers;
-  w.version = SAVE_VERSION;
+  // version 2 → 3: offhand slot (inventory index 40), personal Void Chest storage, fullness (saturation), Hardcore, advancements, story progress
   w.inventory = Array.isArray(w.inventory) ? w.inventory : [];
-  w.mode = w.mode === "creative" ? "creative" : "survival";
+  w.voidInv = Array.isArray(w.voidInv) ? w.voidInv.slice(0, 27) : [];
+  while (w.voidInv.length < 27) w.voidInv.push(null);
+  w.adv = w.adv && typeof w.adv === "object" ? { done: {}, prog: {}, ...w.adv } : { done: {}, prog: {} };
+  w.story = w.story && typeof w.story === "object" ? w.story : {};
+  if (w.player && w.player.sat === undefined) w.player.sat = 5;
+  w.hardcore = !!w.hardcore; w.hardcoreOver = !!w.hardcoreOver;
+  w.version = SAVE_VERSION;
+  w.mode = w.mode === "creative" ? "creative" : w.mode === "spectator" && w.hardcore ? "spectator" : "survival";
   w.settings = { difficulty: "easy", griefing: true, keepInv: true, ...(w.settings || {}) };
+  if (w.hardcore) { w.settings.difficulty = "hard"; w.settings.keepInv = false; }
   return w;
 }
 
 // Small settings live in localStorage
 const SETTINGS_KEY = "blockhaven-settings";
-export const DEFAULT_SETTINGS = { sensitivity: 1, volume: 0.6, muted: false, renderDist: 4, quality: "fast", fov: 72, reducedMotion: false };
+export const DEFAULT_SETTINGS = { sensitivity: 1, volume: 0.6, muted: false, renderDist: 4, quality: "fast", fov: 72, reducedMotion: false, keySwap: "KeyX", skin: "explorer" };
 export function loadSettings() {
   try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") }; } catch (e) { return { ...DEFAULT_SETTINGS }; }
 }

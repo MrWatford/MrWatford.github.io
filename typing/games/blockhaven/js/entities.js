@@ -228,7 +228,7 @@ export const TRADES = {
   shepherd: [[[[B.WOOL, 18]], [I.JADE, 1], 12], [[[I.JADE, 2]], [I.SHEARS, 1], 6], [[[I.JADE, 3]], [B.BED, 1], 6], [[[I.JADE, 1]], [B.WOOL, 4], 12]],
   cleric: [[[[I.ROTTEN_FLESH, 32]], [I.JADE, 1], 12], [[[I.WART, 22]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.SHINE_DUST, 2], 12], [[[I.JADE, 5]], [I.VOID_PEARL, 1], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 2], 8]],
   smith: [[[[I.COAL, 15]], [I.JADE, 1], 12], [[[I.IRON_INGOT, 4]], [I.JADE, 1], 12], [[[I.JADE, 6]], [I.IRON_PICK, 1], 4], [[[I.JADE, 7]], [I.IRON_SWORD, 1], 4], [[[I.JADE, 9]], [I.IRON_CHEST, 1], 3], [[[I.JADE, 4]], [I.IRON_HELMET, 1], 4]],
-  wanderer: [[[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2]]
+  wanderer: [[[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1]]
 };
 const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], wanderer: ["#2a5aa0", "#245094"] };
 const VSKIN = ["#e8b890", "#deae86"];
@@ -465,7 +465,7 @@ export class Entity {
     this.taskT = 0; this.task = "wander"; this.summonT = opts.summonT || 0;
     // pets and mounts
     this.tame = !!opts.tame; this.sitting = !!opts.sitting; this.saddled = !!opts.saddled; this.temper = opts.temper || 0; this.ridden = false;
-    if (this.def.villager && !this.uses) this.uses = (TRADES[this.def.prof] || []).map(() => 0);
+    if (this.def.villager) { this.uses = this.uses || []; while (this.uses.length < (TRADES[this.def.prof] || []).length) this.uses.push(0); }   // older saves may have fewer trades
     this.barterT = 0;
     // wildlife: color variant, a Pouncer's trust and the item in its mouth, a Buzzer's pollen and hive
     this.variant = opts.variant ?? (this.def.variants ? randi(0, this.def.variants.length - 1) : 0);
@@ -1512,6 +1512,7 @@ export class Entities {
     if (md < 1.6) {
       e.love = mate.love = 0; e.breedCd = mate.breedCd = 300;
       this.add(e.sp, (e.pos.x + mate.pos.x) / 2, e.pos.y + 0.2, (e.pos.z + mate.pos.z) / 2, { baby: true, trust: e.sp === "fox", home: e.home });
+      if (this.ctx.adv) this.ctx.adv("breed", e.sp);
       ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); ctx.xp(randi(1, 7), e.pos.x, e.pos.y + 0.5, e.pos.z);
       Sound.mob(def.sound, d);
     }
@@ -1618,6 +1619,7 @@ export class Entities {
   kill(e, attacker) {
     e.dead = e.def.boss ? 4 : 0.6; e.goal = null; e.path = null;
     const ctx = this.ctx;
+    if (attacker === "player" && ctx.adv) ctx.adv("kill", e.sp);
     if (e.sp === "crystal") { e.gone = true; ctx.crystalGone(e.cid); ctx.explode(e.pos.x, e.pos.y + 1, e.pos.z, 3, null); return; }
     if (e.def.boss) { Sound.mob("roar", 0); return; }
     if (attacker === "player" || e.burning || attacker === "explosion" || (attacker && (attacker.tame || attacker.sp === "fox"))) {
@@ -1667,6 +1669,7 @@ export class Entities {
         }
         if (Math.random() < def.tameChance) {
           e.tame = true; e.angry = 0; e.fleeT = 0; e.sitting = false; e.hp = e.maxHp; e.goal = null; hearts(); Sound.mob(def.sound, 2);
+          if (ctx.adv) ctx.adv("tame", e.sp);
           ctx.toast(`You tamed a ${def.name}! It will follow you. Right-click it to make it sit or follow.`, "good");
         } else ctx.particles(e.pos.x, e.pos.y + e.h, e.pos.z, "poof");
         return true;
@@ -1790,7 +1793,7 @@ export class Entities {
   // A fishing bobber: flies, lands on the water, bobs, and now and then a fish bites (it dips under for about a second)
   updateBobber(pr, dt) {
     const w = this.world, ctx = this.ctx, p = ctx.player();
-    if (Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z) > 32 || ctx.heldId() !== I.FISHING_ROD) { pr.gone = true; return; }   // the line snaps
+    if (Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z) > 32 || !ctx.holds(I.FISHING_ROD)) { pr.gone = true; return; }   // the line snaps
     if (!pr.surf && !pr.stuck && w.id(Math.floor(pr.x), Math.floor(pr.y), Math.floor(pr.z)) === B.WATER) {
       let t = Math.floor(pr.y); while (w.id(Math.floor(pr.x), t + 1, Math.floor(pr.z)) === B.WATER) t++;
       pr.surf = t + 0.92; pr.waitT = rand(4, 13); pr.vx *= 0.3; pr.vz *= 0.3;

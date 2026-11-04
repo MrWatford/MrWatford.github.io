@@ -19,7 +19,7 @@ export class Player {
     this.vel = { x: 0, y: 0, z: 0 };
     this.yaw = 0; this.pitch = 0;
     this.onGround = false; this.crouch = false; this.flying = false; this.inWater = false; this.headInWater = false;
-    this.health = 20; this.hunger = 20; this.exhaust = 0; this.airTop = null;
+    this.health = 20; this.hunger = 20; this.sat = 5; this.exhaust = 0; this.airTop = null;
     this.spawn = null; this.hurtT = 0;
   }
   get height() { return this.boat ? 1.2 : this.mount ? 2.6 : this.crouch && !this.flying ? 1.5 : 1.8; }
@@ -96,12 +96,13 @@ export class Player {
     } else {
       v.y -= GRAVITY * dt;
       if (v.y < -40) v.y = -40;
-      if (input.jump && this.onGround) { v.y = this.mount ? JUMP * 1.4 : JUMP; this.exhaust += this.mount ? 0 : 0.05 * (input.sprint ? 4 : 1); }
+      if (input.jump && this.onGround) { v.y = this.mount ? JUMP * 1.4 : JUMP * (this.jumpMul || 1); this.exhaust += this.mount ? 0 : 0.05 * (input.sprint ? 4 : 1); }
     }
-    if (input.sprint && (mx || mz) && this.onGround && !this.mount) this.exhaust += 0.1 * dt;
     }
     if (this.levitate && !this.flying) { v.y += (1.8 - v.y) * 0.25; this.airTop = null; }   // a Sheller's bullet makes you float up
 
+    // Spectators drift through blocks
+    if (this.noclip) { p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt; this.onGround = false; this.airTop = null; return { fall: 0, crash: 0 }; }
     // move one axis at a time and stop at blocks
     const wasGround = this.onGround;
     this.onGround = false;

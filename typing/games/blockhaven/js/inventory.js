@@ -1,4 +1,4 @@
-// Inventory slots: 9 hotbar slots + 27 backpack slots, then 4 armor slots (36 cap, 37 chest, 38 legs, 39 boots).
+// Inventory slots: 9 hotbar slots + 27 backpack slots, then 4 armor slots (36 cap, 37 chest, 38 legs, 39 boots), then the offhand (40).
 // Each slot is null or { id, n, dur? }.
 import { itemDef, TAGS } from "./blocks.js";
 
@@ -10,10 +10,10 @@ export function newStack(id, n = 1) {
   if (d && d.armor) s.dur = d.armor.dur;
   return s;
 }
-export const MAIN = 36;
+export const MAIN = 36, OFF = 40;
 
 export class Inventory {
-  constructor(size = 40) { this.slots = new Array(size).fill(null); }
+  constructor(size = 41) { this.slots = new Array(size).fill(null); }
 
   // Adds items; returns how many did not fit
   add(id, n = 1, stack = null) {

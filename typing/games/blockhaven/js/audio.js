@@ -45,6 +45,8 @@ export const Sound = {
   hurt() { this.tone(300, 0.2, "sawtooth", 0.12, -180); this.noise(500, 0.15, 0.25); },
   eat() { for (let i = 0; i < 3; i++) setTimeout(() => this.noise(900, 0.06, 0.3, 3), i * 110); },
   splash() { this.noise(700, 0.35, 0.4, 0.6, "lowpass"); },
+  // Lifeward Totem: a rising shimmer with a bright chord
+  totem() { this.noise(3000, 0.6, 0.3, 0.8, "highpass"); [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.5, "triangle", 0.12, 200), i * 90)); },
   door(open) { this.tone(open ? 220 : 180, 0.12, "triangle", 0.12, open ? 60 : -40); this.noise(500, 0.1, 0.2); },
   // creature sounds, quieter the farther away they are
   mob(kind, dist = 0) {
