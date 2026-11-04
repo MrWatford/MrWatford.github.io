@@ -106,14 +106,35 @@ Tech: static site on GitHub Pages, no build step. Plain ES modules in `js/`, Thr
 | Saddle [saddle] | Done | 5 leather + 1 iron ingot at a workbench. Right-click a tame Trotter with it. Dropped again if a saddled Trotter is defeated |
 | Riding | Done | You sit high up. W A S D steers (7.5 blocks/s), Shift gallops (11 blocks/s), Space jumps about 2.5 blocks high, C gets off. Falls hurt less. You get off automatically when you take a portal, faint, or leave the world |
 | New spawn eggs | Done | Scout, Whisker, Trotter (Creative) |
-| Pet breeding, parrots, more horse colors, donkeys/mules, horse armor, leads, name tags | Missing | |
+| Pet breeding, more horse colors, donkeys/mules, horse armor, leads, name tags | Missing | Parrots came in Milestone 7 |
+
+## Milestone 7: water life and wildlife (built 2026-11-04, not published yet)
+| Feature | Status | Notes |
+|---|---|---|
+| Swimming creatures | Done | `swims` species move in any direction underwater, stay below the surface, steer around walls, flop and slowly dry out on land (fish after 6 s, Splashers after 60 s). They appear in lakes and rivers 12–34 blocks from you (at most 16 at once) and swim off again when you leave, like monsters |
+| Minnow [cod] | Done | Gray, swims in schools of 3–5. Drops Raw Minnow (cook it in a furnace) |
+| Sunfin [tropical fish] | Done | 5 color patterns, schools in shallow water and sandy land. Drops Sunfin |
+| Puffer [pufferfish] | Done | Puffs up when you get within about 3 blocks and stings (poison) if you touch it while puffed. Eating one poisons you and makes you queasy |
+| Inkling [squid] | Done | Deep water (4+ blocks). Pushes itself along with its 8 tentacles. When hit, it squirts a cloud of ink and flees. Drops 1–3 Ink Sacs (Wool + Ink Sac = Black Wool) |
+| Splasher [dolphin] | Done | Pods of 1–3 in wide, deep water. Leaps out of the water, swims alongside you when you swim or row, and gives "Swift swimmer" (swim about twice as fast). Feeding it a minnow gives 30 s of it. Neutral: hit one and the pod bumps you back |
+| Boat [boat] | Done | 5 planks at a workbench. Right-click water (or the ground) to set it down, right-click it to climb in. W A S D rows (7 blocks/s), Shift rows faster (10), very slow on land. C climbs out onto nearby dry land if there is some. 3 hits break it back into a Boat item. Saved with the world |
+| Fishing Rod [fishing rod] | Done | 3 sticks + 2 string at a workbench. Right-click to cast; the bobber floats, little splashes show a fish coming, then it dips under for about 1 s: right-click to reel in. Catches: mostly Minnows and Sunfins, some Puffers, a little junk (bone, string, leather, stick, ink sac), and rare treasure (saddle, bow, Void Pearl, jade, gold, another rod). Gives XP and uses 1 durability (64). The line snaps if you switch items or go more than 32 blocks away |
+| Pouncer [fox] | Done | Forest and birch land, 1–2 at a time. Naps during the day (curled up), wakes and runs if you walk up without crouching. At night it hunts chickens and rabbits with a jump-pounce. Picks up food lying on the ground and carries it in its mouth (eats it when hurt, drops it when defeated). Breed two with Sweet Berries: the baby trusts you (doesn't run away, and fights monsters near you) |
+| Sweet Berries and Berry Bushes [sweet berries] | Done | Land v6: bushes grow in forests. Right-click a ripe bush to pick 2–3 berries (it regrows). Plant berries on grass or dirt (even through tall grass). Bone meal speeds them up |
+| Buzzer [bee] | Done | 3 live in each wild Bee Nest (land v6: on some trees, more often in grassland). They visit flowers, carry pollen home, and fill the nest with honey (5 levels, honey drips from the front when full). With pollen they help crops and berry bushes grow as they fly over. They sleep inside at night. Breed with flowers. Homeless Buzzers move into a nearby nest or Beehive |
+| Honey | Done | Use a Glass Bottle (3 glass at a workbench = 3 bottles) on a full nest for a Honey Bottle (6 food, cures poison, you keep the bottle), or Shears for 3 Honeycomb (3 Honeycomb + 6 planks = Beehive). Taking honey or breaking a nest without a Torch within 3 blocks makes that nest's Buzzers angry. Each can sting only once (poison), then calms down |
+| Chatterbird [parrot] | Done | 5 colors, flies and lands in forests. Tame with wheat seeds (about 1 in 3). A tame one follows you and hops onto your shoulder (shown small in the lower corner of your view); it hops off when you crouch, swim, fly, ride, or get hurt. Copies the sound of nearby monsters as a warning. Right-click to sit or follow |
+| New spawn eggs | Done | Minnow, Sunfin, Puffer, Inkling, Splasher, Pouncer, Buzzer, Chatterbird (Creative) |
+| Land version 6 | Done | `CURRENT_GEN = 6`. Older worlds get nests and bushes only in places the player hasn't changed |
+| Fish buckets, axolotls, turtles, coral reefs, shipwrecks, ocean monuments | Missing | |
+| Splashers leading you to treasure, foxes holding any item, bees in rain | Missing | |
 
 ## Later milestones
 | Feature | Status |
 |---|---|
-| Aquatic life, wildlife roster (parrots, foxes, bees…) | Missing |
+| More wildlife (turtles, axolotls, wolves in snow, goats…) | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
-| Redstone-style mechanisms, minecarts, boats | Missing |
+| Redstone-style mechanisms, minecarts | Missing |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
 | Building palette (slabs, stairs, fences, colored blocks, signs…) | Missing |
 | Multiplayer | Blocked: the site is static (GitHub Pages). A shared world needs a real-time server (for example a WebSocket game server with an authoritative world state), a hosting account, and a privacy review, because it would collect player connections. |
