@@ -128,6 +128,41 @@ details.more .set { margin-top: 10px; }
 #bossbar b { display: block; font: 600 16px var(--display); color: #f0d8ff; text-shadow: 0 2px 0 #000; margin-bottom: 3px; }
 #bossbar span { display: block; height: 12px; background: rgba(0,0,0,.6); border: 2px solid #111; border-radius: 6px; overflow: hidden; }
 #bossbar i { display: block; height: 100%; width: 100%; background: linear-gradient(#e070ff, #8a2ad0); }
+.hotrow-wrap { display: flex; gap: 8px; align-items: flex-end; }
+#offslot { pointer-events: none; background: rgba(20, 24, 21, .72); border: 3px solid #111; border-radius: 8px; width: 54px; height: 54px; }
+#offslot.empty::after { content: "✋"; position: absolute; inset: 0; display: grid; place-items: center; opacity: .35; font-size: 20px; }
+.off-gap { height: 8px; }
+#advToasts { position: absolute; right: 14px; top: 120px; display: grid; gap: 6px; z-index: 2; }
+.adv-toast { display: flex; gap: 8px; align-items: center; background: #1f2a1c; border: 2px solid #f5c431; border-radius: 10px; padding: 6px 10px; min-width: 220px; animation: toast 4.2s forwards; }
+.adv-toast img { width: 32px; height: 32px; image-rendering: pixelated; }
+.adv-toast small { display: block; color: #f5c431; font: 400 8px var(--pixel); margin-bottom: 3px; }
+.adv-toast b { font: 600 16px var(--display); }
+#totemPop { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); pointer-events: none; }
+#totemPop img { width: 120px; height: 120px; image-rendering: pixelated; }
+#totemPop.go { animation: totemPop 1.6s ease-out forwards; }
+@keyframes totemPop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(-20deg); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.3) rotate(8deg); } 60% { opacity: 1; transform: translate(-50%, -60%) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, -90%) scale(.8); } }
+#effects small { color: var(--dim); font-weight: 700; }
+.mode-opt.hc { grid-column: 1 / -1; }
+.mode-opt.hc:has(input:checked) { border-color: #e0453a; background: #3a2422; }
+.adv-card { width: min(780px, 94vw); }
+.adv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; max-height: min(58vh, 520px); overflow-y: auto; }
+.adv { display: grid; grid-template-columns: 36px 1fr; gap: 8px; background: #b3b3b3; border: 2px solid #8b8b8b; border-radius: 8px; padding: 7px; opacity: .8; }
+.adv.done { background: #e8f2c8; border-color: #b8960c; opacity: 1; }
+.adv img { width: 32px; height: 32px; image-rendering: pixelated; }
+.adv b { font: 600 15px var(--display); }
+.adv p { margin: 2px 0; font-size: 12.5px; color: #333; }
+.adv span { font-size: 12px; font-weight: 800; color: #555; }
+.adv .adv-ok { color: #3a7a1a; } .adv .adv-wait { color: #8a6a00; } .adv .adv-rw { color: #4a7a10; }
+.void-card { background: #b8a8c8; }
+#compass { position: absolute; left: 14px; bottom: 14px; display: flex; gap: 8px; align-items: center; background: rgba(20,24,21,.8); border: 2px solid #111; border-radius: 10px; padding: 6px 10px 6px 6px; font-weight: 800; font-size: 13px; }
+#compass .dial { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #e8e8e8; border: 3px solid #8a8a8a; }
+#compass i { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 4px; margin-left: -2px; background: linear-gradient(#e04030 50%, #333 50%); border-radius: 2px; }
+.beacon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin: 8px 0; }
+.beacon-pow { text-align: left; }
+.beacon-pow small { display: block; font-weight: 600; font-size: 11px; opacity: .85; }
+.beacon-pow:disabled { opacity: .45; cursor: not-allowed; }
+.beacon-row { display: flex; gap: 12px; align-items: flex-end; justify-content: space-between; margin: 6px 0; font-weight: 800; font-size: 13px; }
+.beacon-row .label { font-size: 12px; margin-bottom: 4px; max-width: 200px; }
 #modeTag { position: absolute; right: 14px; bottom: 14px; font: 400 9px var(--pixel); color: rgba(255,255,255,.75); text-shadow: 0 2px 0 #000; }
 
 /* ---------- inventory & crafting panels ---------- */
@@ -195,13 +230,16 @@ details.more .set { margin-top: 10px; }
   <div id="toasts" aria-live="polite"></div>
   <div id="saveDot">💾 Saved</div>
   <div id="effects"></div>
+  <div id="advToasts"></div>
+  <div id="totemPop" hidden></div>
+  <div id="compass" hidden><span class="dial"><i></i></span><b></b></div>
   <div id="bossbar" hidden><b>Hollow Wyrm</b><span><i></i></span></div>
   <div id="itemName"></div>
   <div id="bottom">
     <div class="icons" id="armor" style="align-self:flex-start"></div>
     <div id="stats"><div class="icons" id="hearts"></div><div class="icons" id="air"></div><div class="icons" id="food"></div></div>
     <div id="xpbar"><i></i><b></b></div>
-    <div id="hotbar"></div>
+    <div class="hotrow-wrap"><div class="slot" id="offslot" title="Offhand"></div><div id="hotbar"></div></div>
   </div>
   <div id="modeTag"></div>
   <div id="clickToPlay" hidden>Click here to play</div>
@@ -245,9 +283,10 @@ details.more .set { margin-top: 10px; }
     <h2>Create a new world</h2>
     <label class="field">World name <input class="text-in" id="nwName" maxlength="32" value="My World"></label>
     <label class="field">World seed <small>Leave blank for a random world. The same seed always makes the same land.</small><input class="text-in" id="nwSeed" maxlength="40" placeholder="Random"></label>
-    <div class="modes" role="radiogroup" aria-label="Game mode">
+    <div class="modes" role="radiogroup" aria-label="Game mode" id="nwModes">
       <label class="mode-opt"><input type="radio" name="mode" value="survival" checked><b>⛏️ Survival</b><span>Gather resources, craft tools, keep your health and food up.</span></label>
       <label class="mode-opt"><input type="radio" name="mode" value="creative"><b>🏗️ Creative</b><span>Every block, unlimited supplies, flying, and no damage.</span></label>
+      <label class="mode-opt hc"><input type="radio" name="mode" value="hardcore"><b>💀 Hardcore</b><span>Survival on Hard with one life. If you faint, the world's adventure ends and you can only look around as a Spectator.</span></label>
     </div>
     <details class="more"><summary>More world options</summary>
       <label class="set"><span>Difficulty</span><select id="nwDiff" class="text-in"><option value="peaceful">Peaceful (no monsters)</option><option value="easy" selected>Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
@@ -274,10 +313,12 @@ details.more .set { margin-top: 10px; }
     <button class="btn primary" id="btnResume">Resume</button>
     <div class="row"><button class="btn" id="btnSave">Save</button><button class="btn" id="btnExport">Download world</button></div>
     <div class="row"><button class="btn" id="btnSettings2">Settings</button><button class="btn" id="btnControls2">Controls</button></div>
+    <button class="btn" id="btnAdv">🏆 Advancements</button>
     <details class="more" id="worldOpts"><summary>World options</summary>
       <label class="set"><span>Difficulty</span><select id="pDiff" class="text-in"><option value="peaceful">Peaceful (no monsters)</option><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
       <label class="set"><span>Monsters can break blocks</span><input type="checkbox" id="pGrief"></label>
       <label class="set"><span>Keep your items when you faint</span><input type="checkbox" id="pKeep"></label>
+      <p class="note" id="hcNote" hidden>This is a Hardcore world: difficulty stays on Hard and items drop when you faint.</p>
     </details>
     <button class="btn" id="btnTitle">Save &amp; return to title</button>
     <a class="btn" href="../../index.html" id="btnLeave">Back to Mr. Watford's Games</a>
@@ -296,6 +337,7 @@ details.more .set { margin-top: 10px; }
       <label class="set"><span>Graphics</span><select id="sQuality" class="text-in"><option value="fast">Fast (best for Chromebooks)</option><option value="fancy">Fancy (sharper, fuller leaves)</option></select></label>
       <label class="set"><span>Field of view<output id="oFov"></output></span><input type="range" id="sFov" min="55" max="100" step="1"></label>
       <label class="set"><span>Reduce camera motion</span><input type="checkbox" id="sMotion"></label>
+      <div class="set"><span>Swap hands key</span><button class="btn small" id="sSwap" type="button">X</button></div>
       <div class="set" id="fsRow"><span>Full screen</span><button class="btn small" id="btnFull" type="button">Toggle full screen</button></div>
     </div>
     <p class="note">Settings are saved on this device. A shorter view distance runs smoother on Chromebooks.</p>
@@ -318,11 +360,16 @@ details.more .set { margin-top: 10px; }
       <tr><td>Wheel or <kbd>1</kbd>–<kbd>9</kbd></td><td>Pick a hotbar slot</td></tr>
       <tr><td><kbd>E</kbd></td><td>Inventory and crafting</td></tr>
       <tr><td><kbd>Q</kbd></td><td>Drop the item in your hand</td></tr>
+      <tr><td><kbd>X</kbd> (change it in Settings)</td><td>Swap the items in your main hand and offhand. In the inventory, point at a slot and press it to move that item to your offhand</td></tr>
+      <tr><td><kbd>L</kbd></td><td>Advancements</td></tr>
       <tr><td><kbd>C</kbd> while riding</td><td>Get off a Trotter or climb out of a boat</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>Pause and free the mouse</td></tr>
       <tr><td><kbd>F3</kbd></td><td>Show position and speed info</td></tr>
     </table>
     <p class="note"><b>Inventory:</b> click a stack to pick it up and click a slot to put it down. Right-click picks up half or drops one. Shift-click moves a stack across. Point at a slot and press 1–9 to swap it into the hotbar.</p>
+    <p class="note"><b>Two hands:</b> your offhand (the ✋ slot in the inventory, shown left of the hotbar) holds a second item. Right-click uses your main hand first; if it has nothing to do, the offhand acts. Left-click always uses the main hand. Try a sword in your main hand and a <b>Shield</b> in your offhand: hold right-click to block hits from the front. A <b>Lifeward Totem</b> in either hand saves you once from fainting (not from the void). Look for totems in treasure chests, or buy one from a Wanderer.</p>
+    <p class="note"><b>Food:</b> eating takes a moment, so hold right-click. Each food fills the food bar and also gives hidden <b>fullness</b> that gets used up first. Filling foods (steak, cooked porkchops, golden carrots) keep you healing longer. Sprinting, jumping, swimming, fighting, mining, and healing use up fullness; walking doesn't. You can't sprint with 3 or fewer drumsticks. Hover over a food in your inventory to compare.</p>
+    <p class="note"><b>Void Chest:</b> craft one from 8 obsidian and an Eye of the Void. Every Void Chest opens the same personal storage, in every dimension.</p>
     <p class="note"><b>Survival:</b> keep your hearts and food full. Eat by holding food and right-clicking. Monsters come out in the dark, so light your home with torches. Sleep in a bed to skip the night and set where you wake up. If you faint, you wake up at your bed (or the starting spot). You keep your items unless that world option is turned off.</p>
     <p class="note"><b>The Ember Depths:</b> build an obsidian frame (at least 4 wide and 5 tall, corners optional) and light it with Flint and Steel. Stand in the portal for a moment to travel. Water boils away there, beds explode, and Boarkin leave you alone if you wear gold. Hand them gold ingots to trade. One step there equals 8 steps on the Surface.</p>
     <p class="note"><b>The Hollow:</b> craft an <b>Eye of the Void</b> (Void Pearl + Flare Powder) and right-click to throw it. It flies toward a stronghold, so follow it. When it dives into the ground, dig down. Put eyes in all 12 frames to open the portal. In Creative you can build your own ring from Hollow Portal Frames: 3 frames on each side of a 3×3 space, no corners, all at the same height. In the Hollow, shoot the crystals on the pillars, then defeat the Wyrm (it takes the most damage while it rests in the middle). Afterward, a Gateway leads to the outer islands, where Hollow towers hide <b>Glider Wings</b>: wear them as a chestplate and press Space while falling to glide.</p>
@@ -339,10 +386,11 @@ details.more .set { margin-top: 10px; }
 <!-- Faint (death) -->
 <section class="screen dim" id="death" hidden>
   <div class="menu card" style="text-align:center">
-    <h2>You fainted!</h2>
+    <h2 id="deathTitle">You fainted!</h2>
     <p id="deathWhy">Ouch.</p>
-    <p>You'll wake up back at your starting spot, and you keep everything you were carrying.</p>
+    <p id="deathNote">You'll wake up back at your starting spot, and you keep everything you were carrying.</p>
     <button class="btn primary" id="btnRespawn">Wake up</button>
+    <button class="btn" id="btnDeathTitle" hidden onclick="window.__bh.toTitle()">Return to title</button>
   </div>
 </section>
 
