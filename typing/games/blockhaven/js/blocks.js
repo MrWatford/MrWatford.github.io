@@ -18,7 +18,9 @@ export const B = {
   HOLLOWSTONE: 68, VIOLET_BRICKS: 69, END_FRAME: 70, END_PORTAL: 71, GATEWAY: 72, WYRM_EGG: 73, CHORUS_PLANT: 74, CHORUS_FLOWER: 75, SHELL_BOX: 76,
   HOLLOW_BRICKS: 77, VIOLET_PILLAR: 78,
   // villages and the Blightking
-  SKULL: 79, BEACON: 80, JADE_ORE: 81, JADE_BLOCK: 82, COMPOSTER: 83, FLETCH_TABLE: 84, LOOM: 85, ALTAR: 86, SMITH_TABLE: 87, HAY: 88
+  SKULL: 79, BEACON: 80, JADE_ORE: 81, JADE_BLOCK: 82, COMPOSTER: 83, FLETCH_TABLE: 84, LOOM: 85, ALTAR: 86, SMITH_TABLE: 87, HAY: 88,
+  // water life and wildlife
+  BEE_NEST: 89, BEEHIVE: 90, BERRY_BUSH: 91, BLACK_WOOL: 92
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -41,7 +43,9 @@ export const I = {
   DUSK_HELMET: 376, DUSK_CHEST: 377, DUSK_LEGS: 378, DUSK_BOOTS: 379,
   DUSK_PICK: 380, DUSK_AXE: 381, DUSK_SHOVEL: 382, DUSK_SWORD: 383, DUSK_HOE: 384,
   EYE: 385, GLIDER: 386, SHELL: 387, CHORUS_FRUIT: 388, WYRM_SCALE: 389, JADE: 390, RADIANT_STAR: 391, SADDLE: 392,
-  SPAWN: 400   // spawn eggs: 400 + index in SPAWN_EGGS
+  SPAWN: 400,   // spawn eggs: 400 + index in SPAWN_EGGS
+  FISHING_ROD: 500, RAW_MINNOW: 501, COOKED_MINNOW: 502, SUNFIN: 503, PUFFER: 504, INK_SAC: 505, BOAT: 506, BERRIES: 507,
+  HONEYCOMB: 508, BOTTLE: 509, HONEY_BOTTLE: 510
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -50,6 +54,8 @@ export const metaOf = v => v >> 8;
 export const make = (id, meta = 0) => id | (meta << 8);
 // Meta bits: facing 0-3 (0 = +z, 1 = +x, 2 = -z, 3 = -x), OPEN for doors, TOP for door tops, LIT for furnaces
 export const OPEN = 4, TOP = 8, LIT = 4, HEAD = 8, WET = 1, EYE_IN = 4;
+// Bee nests and hives keep their honey level (0-5) above the facing bits
+export const HONEY_MAX = 5, honeyOf = v => (metaOf(v) >> 2) & 7;
 
 // ---------- Block definitions ----------
 // shape: cube | cross | torch | water | door      render: opaque | cutout | water
@@ -148,6 +154,10 @@ block(B.LOOM, "Loom", { hardness: 2.5, tool: "axe", tex: ["loom_top", "loom_side
 block(B.ALTAR, "Healing Altar", { hardness: 2, tool: "pick", tier: 1, light: 6, tex: ["altar_top", "altar_side", "cobble"], category: "Village", job: "cleric" });
 block(B.SMITH_TABLE, "Smithing Anvil", { hardness: 5, tool: "pick", tier: 1, tex: ["smith_top", "smith_side", "iron_block"], category: "Village", job: "smith" });
 block(B.HAY, "Hay Bale", { hardness: 0.5, tool: "hoe", tex: ["hay_top", "hay_side", "hay_top"], category: "Village" });
+block(B.BEE_NEST, "Bee Nest", { hardness: 0.3, tool: "axe", interact: "hive", tex: ["nest_top", "nest_side", "nest_top"], front: "nest_front", category: "Nature" });
+block(B.BEEHIVE, "Beehive", { hardness: 0.6, tool: "axe", interact: "hive", tex: ["hive_top", "hive_side", "hive_top"], front: "hive_front", category: "Useful" });
+block(B.BERRY_BUSH, "Berry Bush", { shape: "cross", render: "cutout", solid: false, hardness: 0, drops: "berries", interact: "berries", tex: "berry0", noItem: true, category: "Nature" });
+block(B.BLACK_WOOL, "Black Wool", { hardness: 0.8, tool: "shears", tex: "black_wool" });
 block(B.SHELL_BOX, "Shell Box", { hardness: 2, tool: "pick", interact: "shellbox", drops: 0, tex: ["shellbox_top", "shellbox_side", "shellbox_top"], category: "Useful" });
 export const BLOCKS = defs;
 export const blockDef = v => defs[v & 255] || defs[0];
@@ -225,6 +235,18 @@ item(I.WYRM_SCALE, "Wyrm Scale", { icon: "scale" });
 item(I.JADE, "Jade", { icon: "jade" });
 item(I.RADIANT_STAR, "Radiant Star", { icon: "star" });
 item(I.SADDLE, "Saddle", { icon: "saddle" });
+// water life and wildlife
+item(I.FISHING_ROD, "Fishing Rod", { icon: "fishing_rod", kind: "tool", stack: 1, category: "Tools", tool: { type: "rod", tier: 0, speed: 1, dur: 64, damage: 1 } });
+item(I.RAW_MINNOW, "Raw Minnow", { icon: "fish", colors: ["#9aa8b0", "#d8dce0"], kind: "food", food: 2, category: "Food", raw: true });
+item(I.COOKED_MINNOW, "Cooked Minnow", { icon: "fish", colors: ["#b8844a", "#e0b878"], kind: "food", food: 5, category: "Food" });
+item(I.SUNFIN, "Sunfin", { icon: "fish", colors: ["#f08a1a", "#ffffff"], kind: "food", food: 1, category: "Food" });
+item(I.PUFFER, "Puffer", { icon: "puffer", kind: "food", food: 1, category: "Food", sideEffect: "puffer" });
+item(I.INK_SAC, "Ink Sac", { icon: "inksac" });
+item(I.BOAT, "Boat", { icon: "boat", stack: 1, category: "Tools" });
+item(I.BERRIES, "Sweet Berries", { icon: "berries", kind: "food", food: 2, plants: B.BERRY_BUSH, category: "Food" });
+item(I.HONEYCOMB, "Honeycomb", { icon: "comb" });
+item(I.BOTTLE, "Glass Bottle", { icon: "bottle", colors: [null], stack: 16, category: "Tools" });
+item(I.HONEY_BOTTLE, "Honey Bottle", { icon: "bottle", colors: ["#f0a820"], kind: "food", food: 6, stack: 16, category: "Food", sideEffect: "honey" });
 items[I.BLIGHT_SKULL].places = B.SKULL;   // skulls can be set down as blocks (three on Wailing Sand summon the Blightking)
 const TIERS = [
   { key: "WOOD", label: "Wooden", tier: 1, speed: 2, dur: 60, color: "#b48a52", dark: "#7d5a30" },
@@ -255,7 +277,9 @@ export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skelet
   ["flare", "Flare", "#f0b030", "#fff07a"], ["wailer", "Wailer", "#f0f0f0", "#b0b0b0"], ["boarkin", "Boarkin", "#e8a090", "#ffd84a"], ["brute", "Boarkin Brute", "#c08070", "#3a3a3a"],
   ["rotboar", "Rotboar", "#e8a090", "#5a8a4a"], ["hogbeast", "Hogbeast", "#c07850", "#f0e0c0"], ["blight", "Blight Rattler", "#2a2a2a", "#5a5a5a"], ["magma", "Magma Gloop", "#4a1a10", "#ff8a1a"], ["strider", "Lavastrider", "#a02a2a", "#5a5a5a"],
   ["sheller", "Sheller", "#9a6aa8", "#e8d0f0"], ["villager", "Villager", "#8a5a3a", "#e8b890"], ["golem", "Ironwarden", "#d8d4cc", "#6a8a4a"], ["blightking", "Blightking", "#1a1a1a", "#5a5a5a"],
-  ["scout", "Scout", "#a8a8a4", "#6a6a66"], ["whisker", "Whisker", "#e0902a", "#f4e8d8"], ["trotter", "Trotter", "#8a5a32", "#2a1a10"]];
+  ["scout", "Scout", "#a8a8a4", "#6a6a66"], ["whisker", "Whisker", "#e0902a", "#f4e8d8"], ["trotter", "Trotter", "#8a5a32", "#2a1a10"],
+  ["minnow", "Minnow", "#9aa8b0", "#5a6a74"], ["sunfin", "Sunfin", "#f08a1a", "#ffffff"], ["puffer", "Puffer", "#e8c840", "#5a8ab0"], ["squid", "Inkling", "#2a3a5a", "#5a6a8a"],
+  ["dolphin", "Splasher", "#8a9ab0", "#e8ecf0"], ["fox", "Pouncer", "#e0782a", "#f4ece0"], ["bee", "Buzzer", "#f0c020", "#2a2018"], ["parrot", "Chatterbird", "#d8302a", "#2a8ad8"]];
 // Glider Wings go in the chest armor slot: jump while falling to glide
 item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
@@ -336,6 +360,11 @@ export const RECIPES = [
   { out: [B.HAY, 1], ins: [[I.WHEAT, 9]] },
   { out: [I.SADDLE, 1], ins: [[I.LEATHER, 5], [I.IRON_INGOT, 1]], table: true },
   { out: [I.WHEAT, 9], ins: [[B.HAY, 1]] },
+  { out: [I.FISHING_ROD, 1], ins: [[I.STICK, 3], [I.STRING, 2]], table: true },
+  { out: [I.BOAT, 1], ins: [["planks", 5]], table: true },
+  { out: [I.BOTTLE, 3], ins: [[B.GLASS, 3]], table: true },
+  { out: [B.BEEHIVE, 1], ins: [[I.HONEYCOMB, 3], ["planks", 6]], table: true },
+  { out: [B.BLACK_WOOL, 1], ins: [[B.WOOL, 1], [I.INK_SAC, 1]] },
   { out: [B.SHELL_BOX, 1], ins: [[I.SHELL, 2], [B.CHEST, 1]], table: true },
   { out: [B.HOLLOW_BRICKS, 4], ins: [[B.HOLLOWSTONE, 4]], table: true },
   { out: [B.VIOLET_PILLAR, 1], ins: [[B.VIOLET_BRICKS, 2]], table: true },
@@ -348,7 +377,7 @@ export const RECIPES = [
 ];
 export const SMELT = { [B.IRON_ORE]: I.IRON_INGOT, [B.SAND]: B.GLASS, [B.COBBLE]: B.STONE, [I.CLAY_BALL]: I.BRICK, [B.LOG]: I.COAL, [B.BIRCH_LOG]: I.COAL,
   [I.RAW_BEEF]: I.STEAK, [I.RAW_PORK]: I.COOKED_PORK, [I.RAW_CHICKEN]: I.COOKED_CHICKEN, [I.RAW_MUTTON]: I.COOKED_MUTTON, [I.RAW_RABBIT]: I.COOKED_RABBIT,
-  [B.NETHER_GOLD_ORE]: I.GOLD_INGOT, [B.QUARTZ_ORE]: I.QUARTZ, [B.ANCIENT_SCRAP]: I.DUSK_SCRAP, [B.EMBERRACK]: B.EMBER_BRICKS, [I.CHORUS_FRUIT]: B.VIOLET_BRICKS };
+  [B.NETHER_GOLD_ORE]: I.GOLD_INGOT, [B.QUARTZ_ORE]: I.QUARTZ, [B.ANCIENT_SCRAP]: I.DUSK_SCRAP, [B.EMBERRACK]: B.EMBER_BRICKS, [I.CHORUS_FRUIT]: B.VIOLET_BRICKS, [I.RAW_MINNOW]: I.COOKED_MINNOW };
 export const FUEL = { [I.COAL]: 40, [B.LOG]: 8, [B.BIRCH_LOG]: 8, [B.PLANKS]: 7, [B.BIRCH_PLANKS]: 7, [I.STICK]: 2.5, [B.TABLE]: 7, [B.CHEST]: 7,
   [I.FLARE_ROD]: 60, [I.LAVA_BUCKET]: 100, [B.CRIMSON_PLANKS]: 7, [B.WARPED_PLANKS]: 7 };
 export const SMELT_TIME = 5;
@@ -369,14 +398,16 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "hollowstone", "hollow_bricks", "violet_bricks", "violet_pillar", "violet_pillar_top", "frame_top", "frame_top_eye", "frame_side", "end_portal", "gateway",
   "wyrm_egg", "chorus_plant", "chorus_flower", "shellbox_top", "shellbox_side",
   "skull_face", "beacon", "jade_ore", "jade_block", "composter_top", "composter_side", "fletch_top", "fletch_side", "loom_top", "loom_side",
-  "altar_top", "altar_side", "smith_top", "smith_side", "hay_top", "hay_side"];
+  "altar_top", "altar_side", "smith_top", "smith_side", "hay_top", "hay_side",
+  "nest_top", "nest_side", "nest_front", "nest_front_honey", "hive_top", "hive_side", "hive_front", "hive_front_honey", "berry0", "berry1", "berry2", "berry3", "black_wool"];
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
 
 // texture tile for each face: dir 0 = top, 1 = side, 2 = bottom
 export function faceTile(v, dir, front) {
   const d = blockDef(v), t = d.tex;
-  if (front && d.front) return TILE[idOf(v) === B.FURNACE && (metaOf(v) & LIT) ? "furnace_front_lit" : d.front];
+  if (front && d.front) return TILE[idOf(v) === B.FURNACE && (metaOf(v) & LIT) ? "furnace_front_lit" : (idOf(v) === B.BEE_NEST || idOf(v) === B.BEEHIVE) && honeyOf(v) >= HONEY_MAX ? d.front + "_honey" : d.front];
+  if (idOf(v) === B.BERRY_BUSH) return TILE["berry" + (metaOf(v) & 3)];
   if (idOf(v) === B.DOOR) return TILE[metaOf(v) & TOP ? "door_top" : "door_bottom"];
   if (idOf(v) === B.WHEAT || idOf(v) === B.CARROTS) return TILE[(idOf(v) === B.WHEAT ? "wheat" : "carrots") + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.FARMLAND && dir === 0) return TILE[metaOf(v) & WET ? "farmland_wet" : "farmland_dry"];
@@ -598,6 +629,24 @@ Object.assign(PAINT, {
   hay_side(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, (x + Math.floor(P.r() * 2)) % 3 ? "#d8b030" : "#c09a20"); P.rect(0, 3, 16, 1, "#8a3a20"); P.rect(0, 12, 16, 1, "#8a3a20"); },
   hay_top(P) { P.fill(["#d8b030", "#c8a028", "#e0bc40"]); P.rect(3, 0, 1, 16, "#8a3a20"); P.rect(12, 0, 1, 16, "#8a3a20"); }
 });
+// water life and wildlife
+const NEST = ["#d8a840", "#c89830", "#e0b450"], COMB = ["#f0b828", "#e0a020"];
+const bush = (P, berries) => { for (let i = 0; i < 40; i++) { const x = 1 + Math.floor(P.r() * 14), y = 4 + Math.floor(P.r() * 12); P.px(x, y, P.pick(["#2f6a2a", "#3a7a30", "#28582a"])); } for (let i = 0; i < berries; i++) { const x = 2 + Math.floor(P.r() * 11), y = 5 + Math.floor(P.r() * 9); P.rect(x, y, 2, 2, "#c8203a"); P.px(x, y, "#f06070"); } };
+Object.assign(PAINT, {
+  nest_side(P) { P.fill(NEST); for (let y = 2; y < 16; y += 4) P.rect(0, y, 16, 1, "#a87820"); },
+  nest_top(P) { P.fill(NEST); P.rect(3, 3, 10, 10, "#b88828"); P.rect(5, 5, 6, 6, "#d8a840"); },
+  nest_front(P) { PAINT.nest_side(P); P.rect(5, 6, 6, 5, "#3a2a10"); },
+  nest_front_honey(P) { PAINT.nest_front(P); P.rect(5, 6, 6, 5, "#f0a820"); P.rect(6, 11, 2, 3, "#f0a820"); P.rect(10, 11, 1, 2, "#f0a820"); },
+  hive_side(P) { PAINT.planks(P); P.rect(0, 0, 16, 3, "#e0b450"); P.rect(0, 13, 16, 3, "#e0b450"); },
+  hive_top(P) { P.fill(COMB); for (let y = 1; y < 16; y += 4) for (let x = (y % 8 === 1 ? 0 : 2); x < 16; x += 4) P.rect(x, y, 2, 2, "#c88a18"); },
+  hive_front(P) { PAINT.hive_side(P); P.rect(4, 6, 8, 2, "#2a1a10"); },
+  hive_front_honey(P) { PAINT.hive_front(P); P.rect(4, 6, 8, 2, "#f0a820"); P.rect(5, 8, 2, 4, "#f0a820"); P.rect(9, 8, 1, 3, "#f0a820"); },
+  berry0(P) { for (let i = 0; i < 14; i++) P.px(5 + Math.floor(P.r() * 6), 10 + Math.floor(P.r() * 6), P.pick(["#2f6a2a", "#3a7a30"])); },
+  berry1(P) { bush(P, 0); },
+  berry2(P) { bush(P, 3); },
+  berry3(P) { bush(P, 9); },
+  black_wool(P) { P.fill(["#1e1e24", "#26262c", "#18181e", "#2c2c32"]); }
+});
 function crop(P, h, pal) { for (let x = 1; x < 16; x += 2) { const hh = Math.max(2, h - Math.floor(P.r() * 3)); for (let y = 15; y > 15 - hh; y--) P.px(x + (y % 3 === 0 ? 0 : 0), y, P.pick(pal)); } }
 function oreSpots(P, pal) { for (let i = 0; i < 5; i++) { const x = 1 + Math.floor(P.r() * 12), y = 1 + Math.floor(P.r() * 12); P.px(x, y, pal[0]); P.px(x + 1, y, pal[1]); P.px(x, y + 1, pal[1]); if (P.r() < 0.7) P.px(x + 1, y + 1, pal[2]); } }
 function stem(P) { P.rect(7, 6, 2, 10, "#3f8a2c"); P.px(6, 11, "#4f9a33"); P.px(9, 9, "#4f9a33"); P.px(5, 10, "#4f9a33"); }
@@ -677,6 +726,16 @@ Object.assign(ICON_PAINT, {
   jade(P) { for (let y = 3; y < 14; y++) { const w = y < 8 ? y - 3 : 13 - y; for (let x = 8 - w; x <= 8 + w; x++) P.px(x, y, x < 8 ? "#2ac86a" : "#18a050"); } P.rect(7, 5, 2, 2, "#a8f8c0"); },
   star(P) { for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? 3 : 7; P.rect(Math.round(8 + Math.cos(a) * r) - 1, Math.round(8 + Math.sin(a) * r) - 1, 2, 2, "#fff6c0"); } P.rect(5, 5, 6, 6, "#fffbe0"); P.rect(7, 7, 2, 2, "#ffffff"); },
   skull(P) { P.rect(4, 3, 8, 8, "#2a2a2a"); P.rect(5, 11, 6, 3, "#2a2a2a"); P.rect(5, 6, 2, 2, "#0a0a0a"); P.rect(9, 6, 2, 2, "#0a0a0a"); P.rect(6, 12, 1, 2, "#5a5a5a"); P.rect(9, 12, 1, 2, "#5a5a5a"); }
+});
+Object.assign(ICON_PAINT, {
+  fishing_rod(P) { for (let i = 0; i < 11; i++) { P.px(2 + i, 13 - i, "#8a6235"); P.px(3 + i, 13 - i, "#6a4825"); } for (let y = 3; y < 13; y++) P.px(13, y, "#e8e8e8"); P.rect(12, 12, 3, 2, "#c8302a"); },
+  fish(P, c) { for (let y = 5; y < 12; y++) for (let x = 3; x < 12; x++) if ((x - 7.5) ** 2 / 20 + (y - 8.5) ** 2 / 9 < 1) P.px(x, y, y < 8 ? c[1] : c[0]); P.rect(11, 6, 2, 5, c[0]); P.rect(13, 5, 2, 7, c[0]); P.rect(5, 7, 1, 1, "#1a1a1a"); },
+  puffer(P) { for (let y = 3; y < 14; y++) for (let x = 3; x < 14; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 24) P.px(x, y, y < 8 ? "#e8c840" : "#f4e8b0"); for (const [x, y] of [[2, 8], [14, 8], [8, 2], [8, 14], [4, 4], [12, 4], [4, 12], [12, 12]]) P.px(x, y, "#8a7a3a"); P.rect(5, 7, 2, 2, "#1a1a1a"); P.rect(10, 7, 2, 2, "#1a1a1a"); },
+  inksac(P) { blob(P, ["#1a1a2a", "#24243a", "#101018"]); P.rect(6, 6, 2, 2, "#4a4a6a"); },
+  boat(P) { P.rect(1, 8, 14, 3, "#a87a48"); P.rect(2, 11, 12, 2, "#8a5e32"); P.rect(1, 6, 2, 2, "#a87a48"); P.rect(13, 6, 2, 2, "#a87a48"); P.rect(3, 9, 10, 1, "#6a4825"); P.rect(10, 2, 1, 7, "#6a4825"); P.rect(6, 4, 7, 1, "#6a4825"); },
+  berries(P) { for (const [x, y] of [[4, 7], [8, 5], [10, 9], [6, 10], [9, 12]]) { P.rect(x, y, 3, 3, "#c8203a"); P.px(x, y, "#f06070"); } P.rect(8, 2, 1, 3, "#3a7a30"); P.rect(6, 3, 2, 1, "#3a7a30"); },
+  comb(P) { for (let y = 3; y < 14; y++) for (let x = 2; x < 14; x++) P.px(x, y, (x + (y % 4 < 2 ? 0 : 2)) % 4 === 0 || y % 4 === 0 ? "#c88a18" : P.pick(COMB)); },
+  bottle(P, c) { P.rect(6, 2, 4, 2, "#a07040"); P.rect(7, 4, 2, 3, "rgba(220,240,255,.8)"); for (let y = 7; y < 15; y++) P.rect(4, y, 8, 1, "rgba(220,240,255,.75)"); if (c && c[0]) P.rect(5, 9, 6, 5, c[0]); P.rect(5, 8, 1, 4, "rgba(255,255,255,.9)"); }
 });
 function blob(P, pal) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) { const dx = x - 8, dy = y - 8.5; if (dx * dx + dy * dy < 16 + P.r() * 6) P.px(x, y, P.pick(pal)); } }
 function handle(P) { for (let i = 0; i < 10; i++) P.px(3 + i, 14 - i, i % 2 ? "#6a4825" : "#8a6235"); }

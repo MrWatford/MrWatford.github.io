@@ -22,8 +22,8 @@ export class Player {
     this.health = 20; this.hunger = 20; this.exhaust = 0; this.airTop = null;
     this.spawn = null; this.hurtT = 0;
   }
-  get height() { return this.mount ? 2.6 : this.crouch && !this.flying ? 1.5 : 1.8; }
-  get eye() { return this.mount ? 2.45 : this.crouch && !this.flying ? 1.27 : 1.62; }   // riding a Trotter puts you up high
+  get height() { return this.boat ? 1.2 : this.mount ? 2.6 : this.crouch && !this.flying ? 1.5 : 1.8; }
+  get eye() { return this.boat ? 1.0 : this.mount ? 2.45 : this.crouch && !this.flying ? 1.27 : 1.62; }   // riding a Trotter puts you up high; a boat sits low
   aabb(px = this.pos.x, py = this.pos.y, pz = this.pos.z, h = this.height) { return [px - 0.3, py, pz - 0.3, px + 0.3, py + h, pz + 0.3]; }
 
   boxesNear(world, a) {
@@ -51,7 +51,22 @@ export class Player {
     else this.crouch = wantCrouch;
 
     if (this.gliding && (this.onGround || this.inWater || this.flying)) this.gliding = false;
-    if (this.gliding) {
+    if (this.boat) {
+      // rowing a boat: fast on water, a slow scrape on land; it floats on the surface
+      const fx = Math.floor(p.x), fz = Math.floor(p.z);
+      let top = null;
+      for (const yy of [Math.floor(p.y + 0.4), Math.floor(p.y + 0.4) - 1]) if (world.id(fx, yy, fz) === B.WATER) { top = yy; break; }
+      if (top !== null) while (world.id(fx, top + 1, fz) === B.WATER) top++;
+      this.inWater = false; this.inLava = false; this.headInWater = false;
+      const afloat = top !== null, speed = afloat ? (input.sprint ? 10 : 7) : 1.2;
+      const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
+      let mx = -sin * input.f + cos * input.r, mz = -cos * input.f - sin * input.r;
+      const len = Math.hypot(mx, mz); if (len > 1) { mx /= len; mz /= len; }
+      const grip = afloat ? 0.04 : 0.3;
+      v.x += (mx * speed - v.x) * grip; v.z += (mz * speed - v.z) * grip;
+      if (afloat) { v.y = (top + 1 - 0.12 - p.y) * 6; this.airTop = null; }
+      else { v.y -= GRAVITY * dt; if (v.y < -40) v.y = -40; }
+    } else if (this.gliding) {
       // Glider Wings: look down to dive and speed up, look up to climb and slow down
       const cp = Math.cos(this.pitch), dx = -Math.sin(this.yaw) * cp, dy = Math.sin(this.pitch), dz = -Math.cos(this.yaw) * cp;
       let sp = Math.hypot(v.x, v.y, v.z);
@@ -62,7 +77,7 @@ export class Player {
       this.airTop = p.y;   // gliding never builds up fall damage
     } else {
     let speed = this.flying ? (input.sprint ? 16 : 9) : this.mount ? (input.sprint ? 11 : 7.5) : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
-    if (this.inWater && !this.flying) speed *= this.inLava ? 0.3 : 0.55;
+    if (this.inWater && !this.flying) speed *= this.inLava ? 0.3 : 0.55 * (this.swimMul || 1);   // Splashers help you swim faster
     speed *= this.speedMul || 1;
     if (this.onGround && !this.flying && world.id(Math.floor(p.x), Math.floor(p.y - 0.1), Math.floor(p.z)) === B.SOUL_SAND) speed *= 0.5;   // Wailing Sand slows you down
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);

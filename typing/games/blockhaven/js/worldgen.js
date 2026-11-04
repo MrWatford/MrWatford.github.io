@@ -3,8 +3,8 @@ import { Noise, hashSeed, rng, hash3 } from "./noise.js";
 import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD } from "./blocks.js";
 
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
-// Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade. Raise this when generation changes.
-export const CURRENT_GEN = 5;
+// Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade, 6 = bee nests + berry bushes. Raise this when generation changes.
+export const CURRENT_GEN = 6;
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -127,14 +127,21 @@ export class Generator {
       const lx = 2 + Math.floor(r() * 12), lz = 2 + Math.floor(r() * 12), col = cols[lx + lz * CHUNK];
       if (data[idx(lx, col.h, lz)] !== B.GRASS || col.h + 9 >= HEIGHT) continue;
       const birch = col.biome === "birch" || (col.biome === "forest" && r() < 0.2);
-      this.tree(data, lx, col.h + 1, lz, birch, r);
+      const top = this.tree(data, lx, col.h + 1, lz, birch, r);
+      // land v6: now and then a bee nest hangs on the trunk just under the leaves (more often in grassland)
+      if (ver >= 6 && hash3(this.seed, x0 + lx, 61, z0 + lz) < (col.biome === "plains" ? 0.35 : 0.035)) {
+        const f = Math.floor(hash3(this.seed, x0 + lx, 62, z0 + lz) * 4), [dx, dz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][f], ny = Math.max(top - 4, col.h + 2);
+        const clear = v => v === B.AIR || v === B.TALL_GRASS;   // the nest's spot (leaves are fine) and the open air in front of its opening
+        if ((clear(data[idx(lx + dx, ny, lz + dz)]) || data[idx(lx + dx, ny, lz + dz)] === (birch ? B.BIRCH_LEAVES : B.LEAVES)) && clear(data[idx(lx + dx * 2, ny, lz + dz * 2)])) data[idx(lx + dx, ny, lz + dz)] = make(B.BEE_NEST, f);
+      }
     }
     for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
       const col = cols[lx + lz * CHUNK], y = col.h + 1;
       if (y >= HEIGHT || data[idx(lx, col.h, lz)] !== B.GRASS || data[idx(lx, y, lz)] !== B.AIR) continue;
       const p = hash3(this.seed, x0 + lx, 7, z0 + lz);
       const grassChance = col.biome === "plains" ? 0.16 : 0.07;
-      if (p < 0.012) data[idx(lx, y, lz)] = B.FLOWER_RED;
+      if (ver >= 6 && (col.biome === "forest" || col.biome === "birch") && hash3(this.seed, x0 + lx, 13, z0 + lz) < 0.015) data[idx(lx, y, lz)] = make(B.BERRY_BUSH, 3);   // ripe berry bushes
+      else if (p < 0.012) data[idx(lx, y, lz)] = B.FLOWER_RED;
       else if (p < 0.024) data[idx(lx, y, lz)] = B.FLOWER_YELLOW;
       else if (p < 0.024 + grassChance) data[idx(lx, y, lz)] = B.TALL_GRASS;
     }
@@ -275,6 +282,7 @@ export class Generator {
     }
     for (let ly = y; ly < top; ly++) data[idx(x, ly, z)] = log;
     data[idx(x, y - 1, z)] = B.DIRT;
+    return top;
   }
 
   ruin(data, cols, r) {

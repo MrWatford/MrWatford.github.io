@@ -79,6 +79,12 @@ export const Sound = {
       case "fireshoot": this.noise(900, 0.3, g(0.35), 0.8); break;
       case "portal": this.tone(200, 2.5, "sine", g(0.08), 300); this.noise(1200, 2, g(0.06), 0.5); break;
       case "rumble": this.noise(80, 3, g(0.18), 0.5, "lowpass"); break;
+      case "blub": this.tone(260 * r(), 0.09, "sine", g(0.08), 220); break;
+      case "buzz": this.tone(190 * r(), 0.5, "sawtooth", g(0.025), 15); break;
+      case "yip": this.tone(900 * r(), 0.08, "triangle", g(0.06), 300); setTimeout(() => this.tone(1000 * r(), 0.07, "triangle", g(0.05), 200), 110); break;
+      case "squawk": this.tone(1300 * r(), 0.14, "sawtooth", g(0.04), -500); break;
+      case "click": for (let i = 0; i < 5; i++) setTimeout(() => this.tone(2400 * r(), 0.02, "square", g(0.04)), i * 45); this.tone(1800, 0.25, "sine", g(0.04), 900); break;
+      case "cast": this.noise(2200, 0.25, g(0.25), 1.2); break;
     }
   },
   explode(dist = 0) { const k = Math.max(0.15, 1 - dist / 60); this.noise(120, 1.2, 0.9 * k, 0.6, "lowpass"); this.noise(500, 0.5, 0.5 * k, 0.8); this.tone(60, 0.8, "sine", 0.4 * k, -30); },

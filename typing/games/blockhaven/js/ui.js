@@ -127,7 +127,7 @@ export const UI = {
     $("armor").innerHTML = survival && armor ? icons(armor, "shield") : "";
     const lv = G.levelInfo(); $("xpbar").style.visibility = survival ? "visible" : "hidden";
     $("xpbar").querySelector("i").style.width = Math.round(lv.frac * 100) + "%"; $("xpbar").querySelector("b").textContent = lv.level ? lv.level : "";
-    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift" };
+    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer" };
     $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${names[k] || k}</span>`).join("");
     $("modeTag").textContent = survival ? "" : "CREATIVE" + (p.flying ? " • FLYING" : "");
   },

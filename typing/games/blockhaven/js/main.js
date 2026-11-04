@@ -1,7 +1,7 @@
 // Blockhaven: the game loop, 3D drawing, controls, mining and building, survival rules, and saving.
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
-  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN } from "./blocks.js";
+  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf } from "./blocks.js";
 import { Entities, SPECIES, TRADES } from "./entities.js";
 import { Generator, NetherGen, EndGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
@@ -179,11 +179,15 @@ const ents = new Entities(scene, {
   bossDefeated: e => e.sp === "dragon" ? wyrmDefeated(e) : blightDefeated(e),
   time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m),
   openTrade: e => openPanel("trade", e.uid),
-  mount: e => mount(e),
+  mount: e => mount(e), riding: () => !!G.riding, boating: () => !!(G.riding && G.riding.def.boat),
+  itemMesh: (id, size) => itemMesh(id, size),
+  // Pouncers pick up food lying on the ground
+  nearDrop: (pos, r) => G.drops.find(d => d.pickDelay <= 0 && itemDef(d.id).kind === "food" && Math.abs(d.y - pos.y) < 1.5 && Math.hypot(d.x - pos.x, d.z - pos.z) < r),
+  takeDrop: d => { d.n--; if (d.n <= 0) { removeDrop(d); G.drops.splice(G.drops.indexOf(d), 1); } return d.id; },
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
-const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1] };
+const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1] };
 function puff(x, y, z, kind) {
   const c = PUFF_COLORS[kind] || [1, 1, 1], n = kind === "heart" ? 6 : 14;
   for (let i = 0; i < n; i++) { if (parts.length >= PMAX) parts.shift(); parts.push({ x: x + (Math.random() - 0.5) * 0.8, y: y + Math.random() * 0.6, z: z + (Math.random() - 0.5) * 0.8, vx: (Math.random() - 0.5) * 2, vy: kind === "heart" ? 1.5 : Math.random() * 2, vz: (Math.random() - 0.5) * 2, life: 0.6 + Math.random() * 0.4, c, floaty: true }); }
@@ -196,7 +200,7 @@ function swapHeld(id) {
 }
 
 // ---------- status effects (poison, queasy, burning) ----------
-const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift" };
+const EFFECT_NAMES = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer" };
 function addEffect(k, t) { if (G.creative) return; G.effects[k] = Math.max(G.effects[k] || 0, t); G.hudDirty = true; }
 let effT = 0;
 function tickEffects(dt) {
@@ -236,6 +240,14 @@ function updateFires(dt) {
 function mount(e) {
   const p = G.player;
   if (G.riding) return false;
+  if (e.def.boat) {   // climb into a boat
+    G.riding = e; e.ridden = true; e.goal = null;
+    p.boat = true; p.flying = false; p.gliding = false; p.crouch = false;
+    p.pos.x = e.pos.x; p.pos.y = e.pos.y; p.pos.z = e.pos.z; p.vel.x = p.vel.y = p.vel.z = 0;
+    Sound.place("wood");
+    UI.toast("In the boat! W A S D to row (Shift rows faster), C to climb out.");
+    return true;
+  }
   if (e.tame && !e.saddled) { UI.toast("Put a Saddle on your Trotter first: hold it and right-click the Trotter."); return true; }
   G.riding = e; e.ridden = true; e.rideT = 0; e.goal = null; e.path = null;
   p.mount = true; p.flying = false; p.gliding = false; p.crouch = false;
@@ -247,7 +259,8 @@ function mount(e) {
 function dismount(quiet) {
   const p = G.player, e = G.riding;
   if (!e) return;
-  G.riding = null; p.mount = false; e.ridden = false; e.vel.x = e.vel.y = e.vel.z = 0;
+  G.riding = null; p.mount = false; p.boat = false; e.ridden = false; e.vel.x = e.vel.y = e.vel.z = 0;
+  if (e.def.boat && boatLanding(p)) { if (!quiet) Sound.place("wood"); return; }
   // step off to the side if there is room
   for (const s of [1, -1]) {
     const x = p.pos.x + Math.cos(p.yaw) * 1.2 * s, z = p.pos.z - Math.sin(p.yaw) * 1.2 * s;
@@ -255,14 +268,28 @@ function dismount(quiet) {
   }
   if (!quiet) Sound.place("wood");
 }
-// keep the Trotter under you; a wild one bucks you off unless it decides to trust you
+// climbing out of a boat: step onto dry land nearby if there is some
+function boatLanding(p) {
+  const w = G.world, fy = Math.floor(p.pos.y);
+  for (const r of [1.2, 2.1]) for (let k = 0; k < 8; k++) {
+    const a = p.yaw + k * Math.PI / 4, x = p.pos.x - Math.sin(a) * r, z = p.pos.z - Math.cos(a) * r;
+    for (let y = fy + 2; y >= fy - 1; y--) {
+      const below = w.id(Math.floor(x), y - 1, Math.floor(z));
+      if (!SOLID[below] || w.id(Math.floor(x), y, Math.floor(z)) === B.WATER || p.collides(w, p.aabb(x, y, z))) continue;
+      p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0;
+      return true;
+    }
+  }
+  return false;
+}
+// keep the Trotter (or boat) under you; a wild Trotter bucks you off unless it decides to trust you
 function tickRiding(dt) {
   const p = G.player, e = G.riding;
   if (!e) return;
   if (e.dead || e.gone || !ents.list.includes(e)) { dismount(true); return; }
   e.pos.x = p.pos.x; e.pos.y = p.pos.y; e.pos.z = p.pos.z;
   e.vel.x = p.vel.x; e.vel.y = p.vel.y; e.vel.z = p.vel.z; e.yaw = p.yaw; e.onGround = p.onGround;
-  if (e.tame) return;
+  if (e.tame || e.def.boat) return;
   e.rideT += dt;
   if ((e.rideCheck = (e.rideCheck || 0) + dt) >= 1) {
     e.rideCheck = 0;
@@ -763,6 +790,11 @@ function tickCrops(dt) {
       const soil = w.get(x, y - 1, z), wet = idOf(soil) === B.FARMLAND && (metaOf(soil) & WET);
       if (Math.random() < (wet ? 1 / 12 : 1 / 30)) w.set(x, y, z, make(id, stage + 1));
     } else if (id === B.SAPLING) { if (Math.random() < 1 / 90) growTree(x, y, z, metaOf(v) & 1); }
+    else if (id === B.BERRY_BUSH) {
+      const stage = metaOf(v) & 3;
+      if (stage >= 3) w.crops.delete(key);
+      else if (Math.random() < 1 / 40) w.set(x, y, z, make(B.BERRY_BUSH, stage + 1));
+    }
     else w.crops.delete(key);
   }
 }
@@ -1190,6 +1222,7 @@ function breakBlock(x, y, z, drops, quiet) {
     if (drop === "goldnuggets") drop = [I.GOLD_NUGGET, 2 + Math.floor(Math.random() * 4)];
     if (drop === "wart") drop = [I.WART, (metaOf(v) & 7) >= 7 ? 2 + Math.floor(Math.random() * 3) : 1];
     if (drop === "chorus") drop = Math.random() < 0.6 ? I.CHORUS_FRUIT : 0;
+    if (drop === "berries") { const st = metaOf(v) & 3; drop = [I.BERRIES, st === 3 ? 2 + Math.floor(Math.random() * 2) : 1]; }
     if (drop === "crop") {
       const ripe = (metaOf(v) & 7) >= 7;
       if (id === B.WHEAT) { if (ripe) spawnDrop(I.WHEAT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
@@ -1204,7 +1237,8 @@ function breakBlock(x, y, z, drops, quiet) {
   else if (box) { for (const s of box.slots) if (s) spawnDrop(s.id, s.n, x + 0.5, y + 0.5, z + 0.5, s); w.containers.delete(key); }
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
-  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART].includes(aid) || (aid === B.DOOR && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if ((id === B.BEE_NEST || id === B.BEEHIVE) && !G.creative && !torchNear(x, y, z)) { ents.angerBees(x, y, z); UI.toast("You broke the bees' home, and now they're angry!", "bad"); }
+  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH].includes(aid) || (aid === B.DOOR && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
   if (aid === B.FIRE) w.set(x, y + 1, z, B.AIR);
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
   if (id === B.LOG || id === B.BIRCH_LOG) tipDone("chop");
@@ -1254,6 +1288,59 @@ function throwItem(kind) {
   G.swing = 0.01; G.hudDirty = true; heldId = -1;
 }
 
+// ---------- fishing and boats ----------
+// Right-click once to cast. When the bobber dips under (a splash), right-click again quickly to reel in a catch.
+function useRod(slot) {
+  const p = G.player, b = G.bobber;
+  G.swing = 0.01;
+  if (b && !b.gone) {
+    b.gone = true; G.bobber = null;
+    if (b.biteT > 0) {
+      const r = Math.random();
+      const catchId = r < 0.05 ? [I.SADDLE, I.BOW, I.VOID_PEARL, I.JADE, I.GOLD_INGOT, I.FISHING_ROD][Math.floor(Math.random() * 6)]   // treasure!
+        : r < 0.15 ? [I.BONE, I.STRING, I.LEATHER, I.STICK, I.INK_SAC][Math.floor(Math.random() * 5)]                                  // junk
+        : r < 0.62 ? I.RAW_MINNOW : r < 0.82 ? I.SUNFIN : r < 0.92 ? I.RAW_MINNOW : I.PUFFER;
+      if (G.inv.add(catchId, 1)) spawnDrop(catchId, 1, p.pos.x, p.pos.y + 1, p.pos.z);
+      puff(b.x, b.y, b.z, "splash"); Sound.splash(); Sound.pickup();
+      spawnOrbs(1 + Math.floor(Math.random() * 4), p.pos.x, p.pos.y + 0.5, p.pos.z);
+      UI.toast(`You caught: ${itemDef(catchId).name}!`, "good");
+      wearTool(slot, 1);
+    } else if (b.stuck) wearTool(slot, 2);
+    G.hudDirty = true;
+    return;
+  }
+  const dir = lookDir();
+  ents.addProjectile("bobber", p.pos.x + dir.x * 0.6, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.6, dir.x * 13, dir.y * 13 + 3, dir.z * 13, { fromPlayer: true });
+  G.bobber = ents.projectiles[ents.projectiles.length - 1];
+  Sound.mob("cast", 0);
+}
+const fishLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xe8e8e8 }));
+fishLine.frustumCulled = false; fishLine.visible = false; scene.add(fishLine);
+function updateFishLine() {
+  if (G.bobber && (G.bobber.gone || !ents.projectiles.includes(G.bobber))) G.bobber = null;
+  const b = G.bobber;
+  fishLine.visible = !!b;
+  if (!b) return;
+  const p = G.player, d = lookDir(), c = Math.cos(p.yaw), s = Math.sin(p.yaw), a = fishLine.geometry.attributes.position;
+  a.setXYZ(0, p.pos.x + d.x * 0.6 + c * 0.36, p.pos.y + p.eye + d.y * 0.6 - 0.26, p.pos.z + d.z * 0.6 - s * 0.36);   // from the rod's tip
+  a.setXYZ(1, b.x, b.y + 0.07, b.z); a.needsUpdate = true;
+}
+// Set a boat down on the water you're pointing at (or on the ground)
+function placeBoat(slot) {
+  const p = G.player, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z }, hit = raycast(G.world, eye, lookDir(), REACH, false);
+  if (!hit) return false;
+  let x = hit.x + 0.5, y, z = hit.z + 0.5;
+  if (idOf(hit.v) === B.WATER) { let t = hit.y; while (G.world.id(hit.x, t + 1, hit.z) === B.WATER) t++; y = t + 1 - 0.12; }
+  else if (hit.ny === 1) y = hit.y + 1;
+  else return false;
+  if (SOLID[G.world.id(hit.x, Math.floor(y + 0.5), hit.z)]) return false;
+  ents.add("boat", x, y, z, { yaw: p.yaw });
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+  Sound.place("wood"); G.swing = 0.01; G.hudDirty = true; heldId = -1;
+  UI.toast("Right-click the boat to climb in.");
+  return true;
+}
+
 // ---------- placing and using ----------
 function target() {
   const p = G.player, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
@@ -1266,6 +1353,8 @@ function facingFromYaw() { const a = ((G.player.yaw % (Math.PI * 2)) + Math.PI *
 function useItem() {
   const hit = target(), w = G.world, slot = G.inv.slots[G.selected], crouch = keys.has("KeyC"), sd = slot ? itemDef(slot.id) : null;
   // creatures first
+  if (slot && slot.id === I.FISHING_ROD) { useRod(slot); return; }
+  if (slot && slot.id === I.BOAT && placeBoat(slot)) return;
   const ent = entityTarget();
   if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; } return; }
   if (hit && !crouch) {
@@ -1287,6 +1376,16 @@ function useItem() {
   if (slot && slot.id === I.VOID_PEARL) { throwItem("pearl"); return; }
   if (slot && slot.id === I.EYE) { throwEye(); return; }
   if (slot && slot.id === I.EGG) { throwItem("egg"); return; }
+  // food you can plant (carrots on farmland, berries on grass, even through tall grass) gets planted when you point at the right ground
+  let soil = hit;
+  if (hit && BLOCKS[idOf(hit.v)].replaceable && BLOCKS[idOf(hit.v)].shape === "cross") soil = { x: hit.x, y: hit.y - 1, z: hit.z, ny: 1, v: w.get(hit.x, hit.y - 1, hit.z) };
+  const above = soil && w.id(soil.x, soil.y + 1, soil.z);
+  if (sd && sd.plants && sd.kind === "food" && soil && soil.ny === 1 && (!above || BLOCKS[above].replaceable) && (sd.plants === B.BERRY_BUSH ? [B.GRASS, B.DIRT] : [B.FARMLAND]).includes(idOf(soil.v))) {
+    w.set(soil.x, soil.y + 1, soil.z, make(sd.plants, 0)); w.crops.add(soil.x + "," + (soil.y + 1) + "," + soil.z);
+    if (idOf(soil.v) === B.FARMLAND && hydrate(soil.x, soil.y, soil.z)) w.set(soil.x, soil.y, soil.z, make(B.FARMLAND, WET));
+    if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.selected] = null; }
+    Sound.place("leaf"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return;
+  }
   if (sd && (sd.food !== undefined) && sd.kind === "food") {
     if (G.creative) return;
     if (G.player.hunger >= 20 && sd.food > 0) { UI.toast("You're not hungry right now."); return; }
@@ -1295,8 +1394,11 @@ function useItem() {
     if (sd.sideEffect === "queasy" && Math.random() < 0.8) { addEffect("queasy", 30); UI.toast("Yuck! You feel queasy (you'll get hungry faster for a bit).", "bad"); }
     if (sd.sideEffect === "cure") { G.effects = {}; UI.toast("Milk cleared your effects.", "good"); }
     if (sd.sideEffect === "blink") chorusBlink();
+    if (sd.sideEffect === "puffer") { addEffect("poison", 10); addEffect("queasy", 15); UI.toast("Ouch! Puffers are poisonous. Don't eat those!", "bad"); }
+    if (sd.sideEffect === "honey" && G.effects.poison) { delete G.effects.poison; UI.toast("The honey soothed the poison.", "good"); }
     slot.n--; if (!slot.n) G.inv.slots[G.selected] = null;
     if (sd.sideEffect === "cure") swapHeld(I.BUCKET);
+    if (sd.sideEffect === "honey" && G.inv.add(I.BOTTLE, 1)) G.dropItem(I.BOTTLE, 1);   // you keep the empty bottle
     Sound.eat(); G.swing = 0.01; G.hudDirty = true; heldId = -1; return;
   }
   if (slot && [I.BUCKET, I.WATER_BUCKET, I.LAVA_BUCKET].includes(slot.id)) { useBucket(slot); return; }
@@ -1407,6 +1509,7 @@ function useBoneMeal(hit, slot) {
   let used = false;
   if (id === B.WHEAT || id === B.CARROTS) { const st = metaOf(hit.v) & 7; if (st < 7) { w.set(hit.x, hit.y, hit.z, make(id, Math.min(7, st + 2 + Math.floor(Math.random() * 3)))); used = true; } }
   else if (id === B.SAPLING) { used = true; if (Math.random() < 0.45) growTree(hit.x, hit.y, hit.z, metaOf(hit.v) & 1); }
+  else if (id === B.BERRY_BUSH && (metaOf(hit.v) & 3) < 3) { w.set(hit.x, hit.y, hit.z, make(B.BERRY_BUSH, (metaOf(hit.v) & 3) + 1)); used = true; }
   else if (id === B.GRASS && hit.ny === 1) {
     used = true;
     for (let i = 0; i < 12; i++) { const x = hit.x + Math.floor(Math.random() * 7) - 3, z = hit.z + Math.floor(Math.random() * 7) - 3; if (w.id(x, hit.y, z) === B.GRASS && !w.id(x, hit.y + 1, z)) w.set(x, hit.y + 1, z, Math.random() < 0.8 ? B.TALL_GRASS : Math.random() < 0.5 ? B.FLOWER_RED : B.FLOWER_YELLOW); }
@@ -1456,6 +1559,15 @@ function interact(hit, kind) {
   }
   if (kind === "table") { openPanel("table"); return; }
   if (kind === "bed") { useBed(hit); return; }
+  if (kind === "berries") {   // pick ripe berries (the bush keeps growing)
+    const st = metaOf(hit.v) & 3, s = G.inv.slots[G.selected];
+    if (st >= 2) {
+      spawnDrop(I.BERRIES, st === 3 ? 2 + Math.floor(Math.random() * 2) : 1, hit.x + 0.5, hit.y + 0.6, hit.z + 0.5);
+      w.set(hit.x, hit.y, hit.z, make(B.BERRY_BUSH, 1)); w.crops.add(key); Sound.place("leaf");
+    } else if (s && s.id === I.BONE_MEAL) useBoneMeal(hit, s);
+    return;
+  }
+  if (kind === "hive") { harvestHoney(hit); return; }
   if (kind === "frame") { fillFrame(hit); return; }
   if (kind === "beacon") { UI.toast("This Beacon gives Regeneration and Swiftness to anyone within 24 blocks."); return; }
   if (kind === "shellbox") {
@@ -1471,6 +1583,24 @@ function interact(hit, kind) {
     if (!w.containers.has(key)) w.containers.set(key, { type: "furnace", slots: [null, null, null], burn: 0, burnMax: 0, prog: 0 });
     openPanel("furnace", key);
   }
+}
+// A full nest or hive (honey dripping from the front) gives a Honey Bottle (with a Glass Bottle) or 3 Honeycomb (with Shears)
+function torchNear(x, y, z) {
+  for (let dy = -3; dy <= 3; dy++) for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) if (G.world.id(x + dx, y + dy, z + dz) === B.TORCH) return true;
+  return false;
+}
+function harvestHoney(hit) {
+  const w = G.world, s = G.inv.slots[G.selected], id = idOf(hit.v), name = BLOCKS[id].name;
+  if (honeyOf(hit.v) < HONEY_MAX) {
+    UI.toast(`This ${name} isn't full of honey yet (${honeyOf(hit.v)} of ${HONEY_MAX}). Buzzers bring honey after visiting flowers.`);
+    return;
+  }
+  if (s && s.id === I.BOTTLE) { s.n--; if (!s.n) G.inv.slots[G.selected] = null; if (G.inv.add(I.HONEY_BOTTLE, 1)) G.dropItem(I.HONEY_BOTTLE, 1); heldId = -1; }
+  else if (s && s.id === I.SHEARS) { spawnDrop(I.HONEYCOMB, 3, hit.x + 0.5 + hit.nx * 0.6, hit.y + 0.5, hit.z + 0.5 + hit.nz * 0.6); wearTool(s, 1); }
+  else { UI.toast(`This ${name} is full of honey! Use a Glass Bottle or Shears on it to collect some.`); return; }
+  w.set(hit.x, hit.y, hit.z, make(id, metaOf(hit.v) & 3));
+  Sound.place("soft"); G.swing = 0.01; G.hudDirty = true;
+  if (!torchNear(hit.x, hit.y, hit.z) && !G.creative) { ents.angerBees(hit.x, hit.y, hit.z); UI.toast("The bees are angry! Next time, put a Torch within 3 blocks of the nest first. The smoke calms them.", "bad"); }
 }
 function fillLoot(box, hit) {
   const r = rng(hashSeed(G.meta.seed) ^ (hit.x * 73856093) ^ (hit.z * 19349663));
@@ -1660,6 +1790,7 @@ function survival(dt) {
   tickEffects(dt);
   p.levitate = !!G.effects.levitation;
   p.speedMul = G.effects.swift ? 1.25 : 1;
+  p.swimMul = G.effects.dolphin ? 1.9 : 1;
   tickBeacons(dt);
   if (p.gliding && (G.glideT = (G.glideT || 0) + dt) >= 1) { G.glideT = 0; const wings = G.inv.slots[37]; if (wings && wings.id === I.GLIDER) { wings.dur = (wings.dur ?? 432) - 1; if (wings.dur <= 0) { G.inv.slots[37] = null; p.gliding = false; UI.toast("Your Glider Wings wore out!", "bad"); } G.hudDirty = true; } }
   if (p.inLava) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true); } }
@@ -1812,7 +1943,7 @@ function loop(now) {
       jump: keys.has("Space"), sprint: keys.has("ShiftLeft") || keys.has("ShiftRight"), crouch: keys.has("KeyC"),
       flyUp: keys.has("Space"), flyDown: keys.has("KeyC")
     } : { f: 0, r: 0 };
-    if (G.riding) { input.crouch = false; if (!G.riding.tame) { input.f = input.r = 0; input.jump = false; } }   // a wild Trotter won't go where you steer
+    if (G.riding) { input.crouch = false; if (!G.riding.tame && !G.riding.def.boat) { input.f = input.r = 0; input.jump = false; } }   // a wild Trotter won't go where you steer
     if (!G.creative) p.flying = false;
     acc += dt;
     const startX = p.pos.x, startZ = p.pos.z;
@@ -1886,6 +2017,7 @@ function loop(now) {
   updateDrops(running ? dt : 0, bright);
   if (G.swing > 0) { G.swing += dt * 4; if (G.swing >= 1) G.swing = mouseL && !G.creative && G.mining ? 0.01 : 0; }
   updateHeld(bright);
+  updateFishLine();
 
   // particles
   let n = 0;
