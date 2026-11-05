@@ -304,6 +304,17 @@ Code: `js/rails.js` (rail shapes and cart movement), carts in `js/entities.js`, 
 | Dispensers | Done | Put minecarts onto the rail in front of them |
 | Speed | Done | 12 carts on a loop: median 0.6 ms per frame, worst 16.3 ms |
 
+## Starter Home + Explorer's Map (built and browser-tested 2026-11-05, not published)
+| Feature | Status | Notes |
+|---|---|---|
+| Starter Home at spawn (Survival and Creative) | Done | `js/starter.js`. A 40×40 stamp (leveled plot to 15 blocks, blended to 20) applied last in `applyStamps`, so terrain, trees, ruins, and villages can't overwrite it. Site search avoids water, mountains, villages, ruins, strongholds, and landmarks. Cottage: stone foundation, plank walls, log frame, brick gable roof, chimney, windows, door, porch, lit path, flower beds, fenced garden with ripe wheat and carrots, bed, workbench, 2 furnaces, bookshelves, Expedition Table, 4 Shinestone lights, 2 signs |
+| Four labeled supply chests | Done | Weapons & Armor (full Duskmetal set and tools, shield, bow, 256 arrows, golden apples, 2 totems), Food & Survival, Building Supplies, Adventure Gear. Filled once (`story.starter.granted`); never refilled |
+| Explorer's Map (item 563) | Done | In the hotbar at start. M opens (or right-click it), N toggles the on-screen waypoint. Terrain from the land generator, icons + legend, you-arrow, zoom, drag, off-map arrow, dashed direction line (labeled "not a path"), honest travel notes (water / mountains on the line), approach guides (Echohold's lift; the sea temple's boat launch on the shore) |
+| Landmarks always within reach | Done | `ADVENTURE = { near: 160, far: 720 }` in lost.js. Natural spot first, then a looser match, then (sea only) a carved bay of real water (`carveLake` in worldgen), then the old wide search. 7 seeds tested: all four within ~580 blocks; markers match the real lift blocks |
+| New blocks 206–208 | Done | Wooden Sign (read/write, model shape), Bookshelf, Expedition Table (gives a spare map only if you have none) |
+| Saving, no duplicates | Done | Reload, death, mode switch tested. Old worlds: one-time migration builds the house only in never-visited, unmodified chunks and doesn't move spawn |
+| Limitations | Partial | No enchantments, ladders, scaffolding, or water-breathing potions exist in the game, so the chests use the best working items instead. No multiplayer. Movement still needs a keyboard |
+
 ## Later milestones
 | Feature | Status |
 |---|---|

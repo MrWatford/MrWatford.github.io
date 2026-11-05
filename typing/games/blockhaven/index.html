@@ -189,7 +189,7 @@ details.more .set { margin-top: 10px; }
 .fw-test { background: #f0e0c0; border: 2px dashed #8a6a1a; border-radius: 8px; padding: 6px; }
 #fwMap { width: 240px; height: 240px; border: 2px solid #333; border-radius: 6px; image-rendering: pixelated; }
 .note-card { width: min(560px, 94vw); background: #efe6cf; }
-.note-text { white-space: pre-wrap; font: 600 15px/1.5 var(--body); color: #2a2418; max-height: 50vh; overflow-y: auto; }
+.note-text { white-space: pre-wrap; font: 600 15px/1.5 var(--body); color: #2a2418; max-height: 64vh; overflow-y: auto; }
 .skin-card.locked { opacity: .45; cursor: not-allowed; }
 .set-head { margin: 8px 0 0; font: 600 16px var(--display); }
 @media (max-width: 700px) { .fw-journal { grid-template-columns: 1fr; } }
@@ -206,6 +206,33 @@ details.more .set { margin-top: 10px; }
 @media (max-width: 640px) { .skin-wrap { grid-template-columns: 1fr; } }
 #compass { position: absolute; left: 14px; bottom: 14px; display: flex; gap: 8px; align-items: center; background: rgba(20,24,21,.8); border: 2px solid #111; border-radius: 10px; padding: 6px 10px 6px 6px; font-weight: 800; font-size: 13px; }
 #compass .dial { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #e8e8e8; border: 3px solid #8a8a8a; }
+#waypoint { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; background: rgba(20,24,21,.82); border: 2px solid #111; border-radius: 10px; padding: 5px 12px 5px 6px; pointer-events: none; max-width: calc(100vw - 32px); }
+#waypoint .wp-arrow { position: relative; width: 30px; height: 30px; flex: none; }
+#waypoint i { position: absolute; inset: 0; clip-path: polygon(50% 0, 92% 92%, 50% 70%, 8% 92%); background: #fff36a; }
+#waypoint .wp-text { display: flex; flex-direction: column; line-height: 1.15; }
+#waypoint b { font-size: 13px; font-weight: 800; }
+#waypoint em { font-style: normal; font-size: 12px; opacity: .85; }
+.xmap { max-width: 980px; }
+.xmap .xm-body { display: grid; grid-template-columns: minmax(0, 480px) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 860px) { .xmap .xm-body { grid-template-columns: 1fr; } }
+.xmap .xm-wrap { position: relative; }
+.xmap #xmCanvas { width: 100%; height: auto; aspect-ratio: 1; display: block; border: 3px solid #3a2e1e; border-radius: 6px; background: #2f62b8; touch-action: none; cursor: grab; image-rendering: pixelated; }
+.xmap .xm-zoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.xmap .xm-zoom .btn { min-width: 34px; font-size: 18px; padding: 2px 6px; }
+.xmap .xm-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 12px; color: #333; }
+.xmap .xm-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.xmap .xm-sw { display: inline-block; width: 12px; height: 12px; border: 1px solid #555; }
+.xmap .xm-dash { display: inline-block; width: 22px; border-top: 3px dashed #333; }
+.xmap .xm-list { display: grid; gap: 5px; }
+.xmap .xm-dest { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center; text-align: left; padding: 6px 8px; border: 2px solid #8a7a5a; border-radius: 6px; background: #f4ecd8; cursor: pointer; font: inherit; color: #222; }
+.xmap .xm-dest.on { border-color: #d8a000; background: #fff3b0; box-shadow: 0 0 0 2px #ffd84a; }
+.xmap .xm-dest small { display: block; color: #555; font-size: 11px; }
+.xmap .xm-dest em { font-style: normal; font-weight: 700; font-size: 12px; white-space: nowrap; }
+.xmap .xm-info { margin: 10px 0; font-size: 13px; color: #222; }
+.xmap .xm-info h4 { margin: 0 0 2px; }
+.xmap .xm-info p { margin: 4px 0; }
+.xmap .xm-coords { color: #555; font-size: 12px; }
+.xmap .xm-guide { background: #efe6cf; border-left: 4px solid #b89a5a; padding: 6px 8px; }
 #compass i { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 4px; margin-left: -2px; background: linear-gradient(#e04030 50%, #333 50%); border-radius: 2px; }
 .beacon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin: 8px 0; }
 .beacon-pow { text-align: left; }
@@ -288,6 +315,7 @@ details.more .set { margin-top: 10px; }
   <div id="victory" hidden><h2></h2><p></p><button class="btn small" onclick="window.__bh.skipVictory()">Skip (Space)</button></div>
   <div id="lostHud" hidden><span class="meter"><span class="bar"><i></i></span><b></b></span><em></em></div>
   <div id="compass" hidden><span class="dial"><i></i></span><b></b></div>
+  <div id="waypoint" hidden><span class="wp-arrow"><i></i></span><span class="wp-text"><b></b><em></em></span></div>
   <div id="bossbar" hidden><b>Hollow Wyrm</b><span><i></i></span></div>
   <div id="itemName"></div>
   <div id="bottom">
@@ -414,6 +442,8 @@ details.more .set { margin-top: 10px; }
     <h2>Controls</h2>
     <table class="keys">
       <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Walk</td></tr>
+      <tr><td><kbd>M</kbd></td><td>Open or close the Explorer's Map (pick a destination there)</td></tr>
+      <tr><td><kbd>N</kbd></td><td>Show or hide the on-screen waypoint arrow</td></tr>
       <tr><td>Mouse or touchpad</td><td>Look around (click the game first). No mouse? Use <kbd>R</kbd> and <kbd>F</kbd> in place of the mouse buttons</td></tr>
       <tr><td><kbd>Space</kbd></td><td>Jump, swim up. In Creative, tap twice to fly, hold to rise</td></tr>
       <tr><td><kbd>Shift</kbd></td><td>Sprint</td></tr>
