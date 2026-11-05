@@ -1119,7 +1119,6 @@ Object.assign(PAINT, {
   tuned_sensor_top(P) { PAINT.hush_sensor_top(P); for (const [x, y] of [[2, 2], [12, 2], [2, 12], [12, 12]]) P.rect(x, y, 2, 2, "#c8a8f0"); },
   tendril(P) { P.fill(["#1d5a60", "#2a6a70"]); },
   tendril_on(P) { P.fill(["#5af0e0", "#8af8f0"]); },
-  hopper(P) { P.rect(1, 2, 14, 4, "#4a4a4e"); P.rect(1, 2, 14, 1, "#6a6a70"); P.rect(3, 3, 10, 2, "#1e1e22"); P.rect(4, 6, 8, 4, "#424246"); P.rect(6, 10, 4, 4, "#3a3a3e"); },
   bell(P) { P.fill(["#f0c020", "#e0b018", "#f8d040"]); P.rect(0, 0, 16, 1, "#fff2a0"); P.rect(0, 15, 16, 1, "#a87a10"); P.rect(3, 4, 2, 6, "#fff2a0"); },
   bell_post(P) { PAINT.stone(P); P.rect(0, 0, 16, 2, "#5a5a5a"); },
   hopper_outside(P) { P.fill(["#4a4a4e", "#424246", "#505054"]); P.rect(0, 0, 16, 1, "#6a6a70"); P.rect(0, 15, 16, 1, "#2a2a2e"); for (const x of [2, 13]) P.rect(x, 2, 1, 12, "#5a5a60"); },
@@ -1249,6 +1248,7 @@ Object.assign(ICON_PAINT, {
   lever(P) { P.rect(4, 11, 8, 3, "#8a8a8a"); P.rect(4, 13, 8, 1, "#5a5a5a"); for (let i = 0; i < 8; i++) { P.px(7 + Math.floor(i / 2), 11 - i, "#8a6235"); P.px(8 + Math.floor(i / 2), 11 - i, "#6a4825"); } P.rect(10, 2, 2, 2, "#5a5a5a"); },
   button(P, c) { P.rect(5, 6, 6, 4, c[0]); P.rect(5, 9, 6, 1, c[1]); P.rect(5, 6, 6, 1, "rgba(255,255,255,.35)"); },
   fence(P, c) { for (const x of [2, 12]) { P.rect(x, 2, 3, 13, c[0]); P.rect(x + 2, 2, 1, 13, c[1]); } P.rect(5, 4, 7, 2, c[0]); P.rect(5, 9, 7, 2, c[0]); P.rect(5, 5, 7, 1, c[1]); P.rect(5, 10, 7, 1, c[1]); },
+  hopper(P) { P.rect(1, 2, 14, 4, "#4a4a4e"); P.rect(1, 2, 14, 1, "#6a6a70"); P.rect(3, 3, 10, 2, "#1e1e22"); P.rect(4, 6, 8, 4, "#424246"); P.rect(6, 10, 4, 4, "#3a3a3e"); },
   piston(P, c) { P.rect(2, 2, 12, 4, c && c[0] ? c[0] : "#b98d55"); P.rect(2, 6, 12, 8, "#7a7a7a"); P.rect(2, 6, 12, 1, "#5a5a5a"); P.rect(6, 4, 4, 2, "#d8d8d8"); P.rect(3, 9, 10, 1, "#6a6a6a"); },
   hook(P) { P.rect(6, 1, 4, 9, "#b98d55"); P.rect(7, 10, 2, 3, "#8a8a8a"); P.rect(5, 12, 6, 2, "#c8c8c8"); P.rect(5, 10, 1, 3, "#c8c8c8"); P.rect(10, 10, 1, 3, "#c8c8c8"); },
   bell(P) { P.rect(5, 2, 6, 2, "#c89a14"); for (let y = 4; y < 12; y++) { const w = 3 + Math.floor((y - 4) / 3); P.rect(8 - w, y, w * 2, 1, y < 6 ? "#fff2a0" : "#f0c020"); } P.rect(2, 12, 12, 2, "#c89a14"); P.rect(7, 14, 2, 1, "#8a6a10"); },
@@ -1266,6 +1266,16 @@ export function iconCanvas(id) {
   const d = itemDef(id);
   if (!d) return c;
   const bdi = d.kind === "block" ? BLOCKS[id] : null;
+  try { drawIcon(ctx, id, d, bdi); }
+  catch (e) {   // one broken picture must never stop a whole inventory from opening: show a plain "?" tile instead
+    console.warn("Icon failed for item " + id, e);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 32, 32);
+    ctx.fillStyle = "#6a6a6a"; ctx.fillRect(4, 4, 24, 24); ctx.fillStyle = "#fff"; ctx.font = "bold 18px sans-serif"; ctx.textAlign = "center"; ctx.fillText("?", 16, 23);
+  }
+  iconCache.set(id, c);
+  return c;
+}
+function drawIcon(ctx, id, d, bdi) {
   if (d.kind !== "block" || (bdi.icon && !bdi.icon.startsWith("tile:"))) {
     const s = document.createElement("canvas"); s.width = s.height = 16;
     ICON_PAINT[d.icon || bdi.icon](painter(s.getContext("2d"), 0, 0, id), d.colors || (bdi && (bdi.colors || WOOD_ICON[bdi.tex])));
@@ -1293,8 +1303,6 @@ export function iconCanvas(id) {
       ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(0, 0, 16, 16); ctx.restore();
     }
   }
-  iconCache.set(id, c);
-  return c;
 }
 const urlCache = new Map();
 export function iconURL(id) { if (!urlCache.has(id)) urlCache.set(id, iconCanvas(id).toDataURL()); return urlCache.get(id); }
