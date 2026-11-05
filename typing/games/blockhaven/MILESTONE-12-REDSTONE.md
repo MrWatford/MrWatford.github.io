@@ -1,6 +1,6 @@
 # Blockhaven Milestone 12: the Sparkworks Update (redstone, machines, and minecarts)
 
-**Status:** Part A (Signals) published 2026-11-05. Part B (Movers) built and browser-tested 2026-11-05, not published yet. Parts C to E still to build.
+**Status:** Parts A (Signals) and B (Movers) published 2026-11-05. Part C (Items) built and browser-tested 2026-11-05, not published yet. Parts D and E still to build.
 **Reference:** Minecraft Java Edition 1.20.1 (the baseline we picked for Blockhaven), plus the Crafter from 1.21 because your spec asks for automatic crafting.
 **Source of the request:** section 24 "Mechanisms and automation" of your original Blockhaven spec (Oct 29), plus "make it have everything Minecraft has."
 

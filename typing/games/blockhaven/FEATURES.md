@@ -257,7 +257,7 @@ Design: `MILESTONE-12-REDSTONE.md`. Rules follow Minecraft Java Edition 1.20.1. 
 | Safety limit | Done | 6,000 real updates per game tick (plus a high cap on quick checks); a machine that goes over pauses a moment with a message. Tested: 20 clocks at once use 0.4 ms per tick; frames stayed under 16 ms. Signal-only redraws are spread over frames |
 | Saving | Done | Save version 4 (version 3 backup kept). Timers and comparator outputs are saved per dimension and resume after loading |
 | Creative tab, recipes, trade | Done | "Mechanisms" tab. Recipes from the design. Clerics sell 2 Sparkdust for 1 Jade |
-| Parts C to E (items, rails, finish) | Missing | See the design |
+| Parts D and E (rails, finish) | Missing | See the design |
 
 ## Milestone 12, Part B: movers and sensors (built and browser-tested 2026-11-05, not published)
 
@@ -273,12 +273,25 @@ Design: `MILESTONE-12-REDSTONE.md`. Rules follow Minecraft Java Edition 1.20.1. 
 | Bell | Done | Rings when right-clicked or when it gets power; villagers within 48 blocks hurry home for a while. A bell stands in every new village plaza (land version 8); Smiths sell one for 16 Jade |
 | Saving | Done | Saving during a push finishes the move first, so nothing gets stuck mid-slide |
 
+## Milestone 12, Part C: item machines (built and browser-tested 2026-11-05, not published)
+
+| Feature | Status | Notes |
+|---|---|---|
+| Hopper | Done | 5 slots. Points down or into the block you clicked. Every 8 game ticks: pushes 1 item into the container it points at, then pulls 1 from the container above (or picks up items lying on top, unless a solid block is on it). Furnaces: from above it fills the cook slot, from the side the fuel slot, and a hopper under a furnace takes the results. A hopper that just got its first item from another hopper waits 8 ticks (Java's rule that makes item sorters work). A signal locks it. Can't be pushed by pistons |
+| Dropper | Done | 9 slots, faces 6 ways (the front faces you). A new signal (4 game ticks later) drops 1 random item out of its face, or puts it into a container in front (a full container: just a click). Java's "powered from above" quirk |
+| Dispenser | Done | Like a dropper, but uses items: shoots arrows, throws eggs, places and scoops water and lava (buckets swap full/empty), lights fires and Blast Blocks with Flint and Steel (it wears out), sets Blast Blocks off, uses bone meal on crops and saplings, hatches spawn eggs, shears sheep, saddles tame Trotters, launches boats on water, fills Glass Bottles from full beehives, places Shell Boxes (with what's inside) and Blight Skulls, and puts armor on a player standing in front. Anything else is dropped |
+| Crafter | Done | A 3×3 grid (any recipe whose ingredients fit in 9 slots; Blockhaven recipes don't care about the pattern). Click an empty slot to lock it. Each new signal crafts one result out of its face (or into a container in front); no recipe = a click. Hoppers fill its unlocked slots evenly. The panel shows what it will make |
+| Comparator readings | Done | Hoppers, droppers, and dispensers use Java's fullness formula; a Crafter gives the number of slots that are full or locked |
+| Item sorter | Done | The classic design works: a filter hopper holding 41 of an item + 4 different single fillers (reads 2), pointing at its comparator; the hopper under it is locked until a 42nd item arrives. Tested with mixed streams: every item ends up sorted or in overflow, nothing is lost. A long unbroken stream of only the sorted item flips the torch often enough to burn it out (8 switch-offs in 3 seconds), as in Java |
+| Item counts | Done | Every transfer moves exactly one item and is checked before anything is taken, so items are never copied or lost (tested across sorter, smelter, dropper, dispenser, and Crafter runs). Dropped items now merge with a matching stack lying in the same spot, and up to 150 dropped stacks can lie around (was 90) |
+| Fixes found while testing | Done | Wire stepping down off glass now keeps its power when recalculated. Torch burnout counts only switch-offs (Java's rule). The game clock can't run backwards |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
 | More wildlife (turtles, axolotls, wolves in snow, goats…) | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
-| Redstone-style mechanisms, minecarts | Parts A and B done (Milestone 12); C to E next |
+| Redstone-style mechanisms, minecarts | Parts A to C done (Milestone 12); D and E next |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
 | Building palette (slabs, stairs, fences, colored blocks, signs…) | Missing |
 | Multiplayer | Blocked: the site is static (GitHub Pages). A shared world needs a real-time server (for example a WebSocket game server with an authoritative world state), a hosting account, and a privacy review, because it would collect player connections. |
