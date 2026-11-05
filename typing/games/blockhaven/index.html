@@ -158,6 +158,41 @@ details.more .set { margin-top: 10px; }
 #victory h2 { margin: 0 0 6px; font: 600 26px var(--display); color: #ffd34d; text-shadow: 0 2px 0 #000; }
 #victory p { margin: 0 0 10px; color: #ffe8c8; line-height: 1.4; font-weight: 700; }
 #bossbar.ember b { color: #ffd8a8; }
+#bossbar.pale b { color: #e8f4ff; }
+#bossbar.pale i { background: linear-gradient(#e8f4ff, #7a8aa0); }
+#fwHud { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: grid; gap: 6px; font-weight: 800; font-size: 13px; }
+#fwHud > span:empty { display: none; }
+#fwHud .fw-eye { display: flex; gap: 8px; align-items: center; background: rgba(20,24,28,.75); border-radius: 18px; padding: 4px 10px 4px 4px; width: max-content; }
+#fwHud .fw-eye i { width: 26px; height: 16px; border-radius: 50%; background: radial-gradient(circle, #222 0 3px, #9aa4ac 4px 7px, transparent 8px); border: 2px solid #9aa4ac; transition: all .4s; }
+#fwHud[data-level=safe] .fw-eye i { border-color: #7ad8ff; background: radial-gradient(circle, #7ad8ff 0 7px, transparent 8px); }
+#fwHud[data-level=watched] .fw-eye i { border-color: #e8e8e8; background: radial-gradient(circle, #fff 0 5px, #c8c8c8 6px 7px, transparent 8px); }
+#fwHud[data-level=warning] .fw-eye i { border-color: #ffb030; background: radial-gradient(circle, #fff 0 5px, #ffb030 6px 7px, transparent 8px); }
+#fwHud[data-level=hunted] .fw-eye i { border-color: #ff4a3a; background: radial-gradient(circle, #fff 0 5px, #ff4a3a 6px 7px, transparent 8px); }
+#fwHud[data-level=hunted] .fw-eye b { color: #ffb3a8; }
+#fwHud[data-level=free] .fw-eye i { border-color: #b7f5a0; background: radial-gradient(circle, #b7f5a0 0 7px, transparent 8px); }
+#lostHud { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: grid; gap: 6px; font-weight: 800; font-size: 13px; color: #d8f4f0; }
+#lostHud .meter { display: flex; gap: 8px; align-items: center; background: rgba(10,22,26,.8); border-radius: 18px; padding: 5px 12px; width: max-content; }
+#lostHud .bar { width: 90px; height: 8px; border-radius: 4px; background: #1a3a40; overflow: hidden; }
+#lostHud .bar i { display: block; height: 100%; width: 0; background: #5ae0d0; transition: width .3s; }
+#lostHud[data-level=mid] .bar i { background: #ffc040; }
+#lostHud[data-level=high] .bar i { background: #ff5a4a; }
+#lostHud[data-level=high] b { color: #ffb3a8; }
+#lostHud em { font-style: normal; background: rgba(10,22,26,.8); border-radius: 8px; padding: 3px 9px; width: max-content; }
+#lostHud em:empty { display: none; }
+#fwHud .fw-ward, #fwHud .fw-task { background: rgba(20,24,28,.75); border-radius: 8px; padding: 4px 9px; color: #c8e8ff; width: max-content; }
+.fw-card { width: min(860px, 95vw); }
+.fw-journal { display: grid; grid-template-columns: 1fr 250px; gap: 12px; }
+.fw-journal h4 { margin: 8px 0 4px; font: 600 15px var(--display); }
+.fw-journal ul { margin: 0; padding-left: 18px; font-size: 13px; } .fw-journal li.ok { color: #2a6a1a; font-weight: 800; }
+.fw-obj { font-weight: 800; background: #e8f2c8; border: 2px solid #b8960c; border-radius: 8px; padding: 6px 8px; margin: 0; }
+.fw-notes, .fw-test, .fw-journal .help { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.fw-test { background: #f0e0c0; border: 2px dashed #8a6a1a; border-radius: 8px; padding: 6px; }
+#fwMap { width: 240px; height: 240px; border: 2px solid #333; border-radius: 6px; image-rendering: pixelated; }
+.note-card { width: min(560px, 94vw); background: #efe6cf; }
+.note-text { white-space: pre-wrap; font: 600 15px/1.5 var(--body); color: #2a2418; max-height: 50vh; overflow-y: auto; }
+.skin-card.locked { opacity: .45; cursor: not-allowed; }
+.set-head { margin: 8px 0 0; font: 600 16px var(--display); }
+@media (max-width: 700px) { .fw-journal { grid-template-columns: 1fr; } }
 #bossbar.ember i { background: linear-gradient(#ffb030, #c83a10); }
 .skin-wrap { display: grid; grid-template-columns: 1fr 240px; gap: 14px; align-items: start; margin-bottom: 10px; }
 .skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
@@ -205,6 +240,8 @@ details.more .set { margin-top: 10px; }
 .filters { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
 .filters input { flex: 1; min-width: 120px; padding: 6px 8px; border-radius: 6px; border: 2px solid #555; }
 .chip-btn { border: 2px solid #555; background: #e2e2e2; border-radius: 6px; padding: 5px 8px; font-weight: 800; cursor: pointer; font-size: 13px; }
+.jtabs { margin: 0 8px; display: inline-flex; gap: 4px; vertical-align: middle; }
+.jtabs .chip-btn.on { background: #2a6a70; color: #fff; border-color: #1a4a50; }
 .chip-btn[aria-pressed=true] { background: #4f9a33; color: #fff; border-color: #2f6b1e; }
 .furnace { display: grid; grid-template-columns: auto auto auto; gap: 10px 16px; align-items: center; justify-content: center; margin: 6px 0 12px; }
 .furnace .label { font-size: 12px; font-weight: 800; text-align: center; }
@@ -247,7 +284,9 @@ details.more .set { margin-top: 10px; }
   <div id="effects"></div>
   <div id="advToasts"></div>
   <div id="totemPop" hidden></div>
+  <div id="fwHud" hidden><span class="fw-eye"><i></i><b></b></span><span class="fw-ward"></span><span class="fw-task"></span></div>
   <div id="victory" hidden><h2></h2><p></p><button class="btn small" onclick="window.__bh.skipVictory()">Skip (Space)</button></div>
+  <div id="lostHud" hidden><span class="meter"><span class="bar"><i></i></span><b></b></span><em></em></div>
   <div id="compass" hidden><span class="dial"><i></i></span><b></b></div>
   <div id="bossbar" hidden><b>Hollow Wyrm</b><span><i></i></span></div>
   <div id="itemName"></div>
@@ -354,6 +393,13 @@ details.more .set { margin-top: 10px; }
       <label class="set"><span>Graphics</span><select id="sQuality" class="text-in"><option value="fast">Fast (best for Chromebooks)</option><option value="fancy">Fancy (sharper, fuller leaves)</option></select></label>
       <label class="set"><span>Field of view<output id="oFov"></output></span><input type="range" id="sFov" min="55" max="100" step="1"></label>
       <label class="set"><span>Reduce camera motion</span><input type="checkbox" id="sMotion"></label>
+      <h3 class="set-head">Forsaken World</h3>
+      <label class="set"><span>Background sounds<output id="oFwAmb"></output></span><input type="range" id="sFwAmb" min="0" max="1" step="0.05"></label>
+      <label class="set"><span>Sudden sounds<output id="oFwSud"></output></span><input type="range" id="sFwSud" min="0" max="1" step="0.05"></label>
+      <label class="set"><span>Mist and screen effects</span><input type="checkbox" id="sFwFx"></label>
+      <label class="set"><span>Camera shake</span><input type="checkbox" id="sFwShake"></label>
+      <label class="set"><span>Show danger words next to the eye</span><input type="checkbox" id="sFwWords"></label>
+      <label class="set"><span>Lost Civilization: Reduced Suspense (gentler alarms, no Stalker when the city stirs, slower pulse bridges)</span><input type="checkbox" id="sLostCalm"></label>
       <div class="set"><span>Swap hands key</span><button class="btn small" id="sSwap" type="button">X</button></div>
       <div class="set" id="fsRow"><span>Full screen</span><button class="btn small" id="btnFull" type="button">Toggle full screen</button></div>
     </div>
@@ -379,6 +425,7 @@ details.more .set { margin-top: 10px; }
       <tr><td><kbd>Q</kbd></td><td>Drop the item in your hand</td></tr>
       <tr><td><kbd>X</kbd> (change it in Settings)</td><td>Swap the items in your main hand and offhand. In the inventory, point at a slot and press it to move that item to your offhand</td></tr>
       <tr><td><kbd>L</kbd></td><td>Advancements</td></tr>
+      <tr><td><kbd>J</kbd></td><td>Journal (Forsaken World)</td></tr>
       <tr><td><kbd>V</kbd> (or <kbd>F5</kbd>)</td><td>Change view: first person, third person from behind, third person from the front</td></tr>
       <tr><td><kbd>C</kbd> while riding</td><td>Get off a Trotter or climb out of a boat</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>Pause and free the mouse</td></tr>
@@ -392,6 +439,7 @@ details.more .set { margin-top: 10px; }
     <p class="note"><b>The Ember Depths:</b> build an obsidian frame (at least 4 wide and 5 tall, corners optional) and light it with Flint and Steel. Stand in the portal for a moment to travel. Water boils away there, beds explode, and Boarkin leave you alone if you wear gold. Hand them gold ingots to trade. One step there equals 8 steps on the Surface.</p>
     <p class="note"><b>The Hollow:</b> craft an <b>Eye of the Void</b> (Void Pearl + Flare Powder) and right-click to throw it. It flies toward a stronghold, so follow it. When it dives into the ground, dig down. Put eyes in all 12 frames to open the portal. In Creative you can build your own ring from Hollow Portal Frames: 3 frames on each side of a 3×3 space, no corners, all at the same height. In the Hollow, shoot the crystals on the pillars, then defeat the Wyrm (it takes the most damage while it rests in the middle). Afterward, a Gateway leads to the outer islands, where Hollow towers hide <b>Glider Wings</b>: wear them as a chestplate and press Space while falling to glide.</p>
     <p class="note"><b>The final dragon:</b> after you defeat the Hollow Wyrm it gives you a <b>Cinder Eye</b> (or craft one from a Wyrm Scale, an Eye of the Void, Magma Cream, and 2 Flare Powder). Throw it in the Ember Depths and follow it to the <b>Cinder Citadel</b>. Charge the Respawn Anchor in its entrance hall, then put the eye in the Cinder Altar to wake <b>Cindermaw, the Ember Dragon</b>. Watch for its warnings: a roar before it dives, glowing rings before fire, spread wings before a gust (hide behind a pillar). Hit it hardest when it lands. In its second phase, break the glowing Ember Pylons to remove its shield.</p>
+    <p class="note"><b>The Forsaken World (optional):</b> find <b>Pale Shards</b> in Ember Depths fortresses (chests and Blight Rattlers). 4 shards + Shinestone + 2 iron ingots make a <b>Pale Lantern</b>: right-click it on the Surface to enter Herobrine's valley. You start in a safe refuge with a Return Gate home. Inside a ward's ring you're always safe. Running, mining, and fighting draw his attention; walking and crouching don't. The eye in the corner shows the real danger. Read the notes, restore the three shrines with their sigils, and face him in his citadel. Press <kbd>J</kbd> for your journal.</p>
     <p class="note"><b>Villages:</b> villagers work at their job blocks by day and go home at night. Right-click one to trade with <b>Jade</b> (found in mountain caves, chests, or earned by selling to villagers). The Ironwarden guards each village, so don't hurt the villagers! A Wanderer sometimes visits with rare goods.</p>
     <p class="note"><b>Pets and riding:</b> tame a <b>Scout</b> (grey, in forests) by giving it bones, and a <b>Whisker</b> (ginger, near villages and in grassland) with raw chicken or raw rabbit. It may take a few tries. Pets follow you, Scouts fight monsters near you, and Hissers stay away from Whiskers. Right-click a pet to make it sit or follow. To tame a wild <b>Trotter</b> (grassland), right-click it with an empty hand to climb on until it stops bucking you off (feeding it wheat or apples helps). Then craft a <b>Saddle</b> (5 leather + 1 iron ingot), right-click the Trotter with it, and ride: Shift gallops, Space jumps high, and C gets you off.</p>
     <p class="note"><b>The Blightking:</b> stack 4 Wailing Sand in a T and place 3 Blight Skulls on top. Back away! It explodes when it wakes. Below half health its armor stops arrows, so finish it with a sword. Its Radiant Star crafts a <b>Beacon</b> that heals you and speeds you up nearby.</p>
