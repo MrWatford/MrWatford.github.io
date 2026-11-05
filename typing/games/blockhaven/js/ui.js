@@ -52,6 +52,7 @@ export const UI = {
     $("pDiff").onchange = e => { if (G.meta && G.meta.hardcore) { e.target.value = "hard"; return; } G.wset.difficulty = e.target.value; this.toast("Difficulty: " + e.target.value); };
     $("btnAdv").onclick = () => { Sound.click(); G.openAdvancements(); };
     $("nwModes").onchange = () => { const hc = document.querySelector("input[name=mode]:checked").value === "hardcore"; $("nwDiff").disabled = $("nwKeep").disabled = hc; if (hc) { $("nwDiff").value = "hard"; $("nwKeep").checked = false; } };
+    $("pMode").onchange = e => { if (!G.setMode(e.target.value)) e.target.value = G.mode; };
     $("pGrief").onchange = e => { G.wset.griefing = e.target.checked; };
     $("pKeep").onchange = e => { G.wset.keepInv = e.target.checked; };
     // inventory screen mouse handling
@@ -68,7 +69,7 @@ export const UI = {
     for (const s of screens) $(s).hidden = s !== name;
     $("hud").hidden = !(name === "none" || name === "panel" || name === "pause" || name === "death");
     if (name === "title") paintTitleScene();
-    if (name === "pause" && G.wset) { const hc = !!(G.meta && G.meta.hardcore); $("pDiff").value = G.wset.difficulty; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; $("pDiff").disabled = $("pKeep").disabled = hc; $("hcNote").hidden = !hc; }
+    if (name === "pause" && G.wset) { const hc = !!(G.meta && G.meta.hardcore); $("pDiff").value = G.wset.difficulty; $("pMode").value = G.mode === "creative" ? "creative" : "survival"; $("pMode").disabled = hc || G.spectator; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; $("pDiff").disabled = $("pKeep").disabled = hc; $("hcNote").hidden = !hc; }
   },
   get current() { return current; },
 

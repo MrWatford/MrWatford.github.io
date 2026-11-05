@@ -1533,6 +1533,21 @@ G.resume = () => {
   requestLock();
 };
 G.pause = pause;
+// switch between Survival and Creative in the middle of a game (World options in the pause menu)
+G.setMode = mode => {
+  if (mode !== "survival" && mode !== "creative") return false;
+  if (!G.meta || G.meta.hardcore || G.spectator) { UI.toast("Hardcore worlds always stay in Survival.", "bad"); return false; }
+  if (mode === G.mode) return true;
+  const p = G.player;
+  G.mode = G.meta.mode = mode;
+  G.mining = null; G.eat = null; G.bowT = -1;
+  if (mode === "survival") { p.flying = false; p.airTop = null; }   // no fall damage from where you were flying
+  else { p.health = Math.max(p.health, 1); }
+  G.hudDirty = true;
+  UI.toast(mode === "creative" ? "Game mode: Creative. Double-tap Space to fly; E opens every block." : "Game mode: Survival. Watch your health and hunger!", "good");
+  saveNow(false);
+  return true;
+};
 G.saveNow = saveNow;
 
 function openPanel(kind, ctx) {

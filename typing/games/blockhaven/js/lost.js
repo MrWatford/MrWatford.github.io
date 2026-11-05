@@ -395,7 +395,7 @@ export function initLost(api) {
     const kind = G.dim, T = TEMPLES[kind], s = st().temples[kind], A = M().arena, p = G.player;
     const d = Math.hypot(p.pos.x - A.x, p.pos.z - A.z);
     if (s.boss === "defeated") { const dr = M().puzzles.vault.door; if (G.world.isLoaded(dr.x0, dr.z0) && G.world.id(dr.x0, dr.y0, dr.z0) === B.KEEPER_STONE) setBox(dr, B.AIR); return; }
-    if (!tf && d < A.r - 2 && Math.abs(p.pos.y - A.y) < 5 && G.mode === "survival") {
+    if (!tf && d < A.r - 2 && Math.abs(p.pos.y - A.y) < 5 && !G.spectator) {   // wakes in Survival and Creative
       const e = ents.add(T.boss, A.x, A.y, A.z); if (!e) return;
       tf = { e, kind, dev: [false, false, false] }; e.atkT = 3; e.next = 0;
       for (let k = 0; k < 8; k++) puff(A.x + rand(-2, 2), A.y + rand(0, 4), A.z + rand(-2, 2), kind === "sea" ? "splash" : kind === "jungle" ? "xp" : "ember");
