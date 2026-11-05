@@ -257,14 +257,28 @@ Design: `MILESTONE-12-REDSTONE.md`. Rules follow Minecraft Java Edition 1.20.1. 
 | Safety limit | Done | 6,000 real updates per game tick (plus a high cap on quick checks); a machine that goes over pauses a moment with a message. Tested: 20 clocks at once use 0.4 ms per tick; frames stayed under 16 ms. Signal-only redraws are spread over frames |
 | Saving | Done | Save version 4 (version 3 backup kept). Timers and comparator outputs are saved per dimension and resume after loading |
 | Creative tab, recipes, trade | Done | "Mechanisms" tab. Recipes from the design. Clerics sell 2 Sparkdust for 1 Jade |
-| Parts B to E (movers, items, rails, finish) | Missing | See the design |
+| Parts C to E (items, rails, finish) | Missing | See the design |
+
+## Milestone 12, Part B: movers and sensors (built and browser-tested 2026-11-05, not published)
+
+| Feature | Status | Notes |
+|---|---|---|
+| Piston, Sticky Piston | Done | Face 6 ways (the pushing face points back at you). Push up to 12 blocks over 2 game ticks with a sliding animation; the head and moved blocks shove players and creatures. Stopped by obsidian, bedrock, portals, chests and other storage, beacons, extended pistons, and every unbreakable story/temple block. Flowers, torches, wire, levers, buttons, plates, repeaters, comparators, doors, beds, sensors, and bells in the way pop off. Sticky pistons pull; a pulse shorter than the push makes them drop the block ("spitting"). Java's "powered from the block above" quirk |
+| Gloop Block, Honey Block | Done | Stick to the blocks around them when pushed (Gloop and Honey don't stick to each other, which makes two-part machines possible). Gloop: bounces you about 2/3 of your fall height, no fall damage (crouch to stop the bounce), launches you when a piston pushes it up. Honey: slows walking and jumping, carries you when it moves, cuts fall damage by 80%, you slide slowly down its sides. See-through with a smaller cube inside |
+| Observer | Done | Watches the block its face points at; any change gives a 1-redstone-tick pulse out the back after 1 redstone tick (Java's single-timer behavior, so two observers facing each other make a steady clock). Fires when a piston moves it. Wire connects only to its back |
+| Flying machines | Done | Tested with a 10-block machine (2 pistons, 2 observers, 6 Gloop Blocks): it carries itself through the air and keeps all its blocks. Three at once stayed under 16 ms per frame |
+| Tripwire Hook, Tripwire | Done | Hooks on facing walls up to 40 blocks apart with string (right-click String on the ground) between them. Walking through powers both hooks (and the blocks they hang on); they stay on 0.5 s after you leave. Cutting the string by hand trips them for 0.5 s; Shears cut it silently |
+| Trapped Chest | Done | A chest that gives power 1 (and strong power to the block under it) while open. Comparators read it like a chest |
+| Hush Sensor, Tuned Hush Sensor | Done | Hear vibrations within 8 blocks (Tuned: 16): footsteps (not when crouching or on wool/Hush Carpet), creatures walking, breaking, placing, doors, switches, plates, chests, eating, bows, arrows landing, explosions, getting hurt, pistons, bells. Signal arrives 1 tick per block away, strength by distance, on 1.5 s (Tuned 0.5 s) then rests 0.5 s. Wool between blocks the sound. Comparators read the last frequency (1-15). A Tuned Sensor powered from behind only hears that frequency. Hush Sensors grow on Hushmoss in the Deep (about 46); Tuned = Hush Sensor + 3 Lumen Shards |
+| Bell | Done | Rings when right-clicked or when it gets power; villagers within 48 blocks hurry home for a while. A bell stands in every new village plaza (land version 8); Smiths sell one for 16 Jade |
+| Saving | Done | Saving during a push finishes the move first, so nothing gets stuck mid-slide |
 
 ## Later milestones
 | Feature | Status |
 |---|---|
 | More wildlife (turtles, axolotls, wolves in snow, goats…) | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
-| Redstone-style mechanisms, minecarts | Part A done (Milestone 12); B to E next |
+| Redstone-style mechanisms, minecarts | Parts A and B done (Milestone 12); C to E next |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
 | Building palette (slabs, stairs, fences, colored blocks, signs…) | Missing |
 | Multiplayer | Blocked: the site is static (GitHub Pages). A shared world needs a real-time server (for example a WebSocket game server with an authoritative world state), a hosting account, and a privacy review, because it would collect player connections. |
