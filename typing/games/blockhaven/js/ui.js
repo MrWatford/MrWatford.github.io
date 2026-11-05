@@ -264,6 +264,10 @@ export const UI = {
       p.querySelectorAll("[data-fwt]").forEach(b => b.onclick = () => { Sound.click(); G.forsaken.testControl(b.dataset.fwt); this.renderPanel(); });
       p.querySelectorAll("[data-lt]").forEach(b => b.onclick = async () => { Sound.click(); await G.lost.testControl(b.dataset.lt); if (G.panelKind === "journal") this.renderPanel(); });
       return;
+    } else if (panelKind === "xmap") {
+      p.innerHTML = G.starter.mapHTML();
+      G.starter.mountMap(p);
+      return;
     } else if (panelKind === "note") {
       const n = panelCtx || {};
       p.innerHTML = `<div class="inv-card note-card"><h3></h3><div class="note-text"></div><p class="help">${n.first ? "Added to your journal (J). " : ""}Press Esc or E to close.</p><button class="btn small" id="noteClose">Close</button></div>`;
@@ -299,8 +303,9 @@ export const UI = {
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (panelKind === "chest") {
       const shell = isShellBox();
-      const cartChest = String(panelCtx).startsWith("cart:");
-      left = `<div class="inv-card"><h3>${shell ? "Shell Box" : cartChest ? "Storage" : "Chest"}</h3><div class="grid9">${slots("box", 0, 27)}</div><p class="help">${shell ? "A Shell Box keeps everything inside when you break it and carry it. Shell Boxes can't go inside other Shell Boxes." : "Things in a chest stay saved. Breaking the chest drops everything inside."}</p></div>`;
+      const cartChest = String(panelCtx).startsWith("cart:"), cbox = G.world.containers.get(panelCtx);
+      const ctitle = cbox && cbox.label ? escapeAttr(cbox.label) : shell ? "Shell Box" : cartChest ? "Storage" : "Chest";
+      left = `<div class="inv-card"><h3>${ctitle}</h3><div class="grid9">${slots("box", 0, 27)}</div><p class="help">${shell ? "A Shell Box keeps everything inside when you break it and carry it. Shell Boxes can't go inside other Shell Boxes." : "Things in a chest stay saved. Breaking the chest drops everything inside."}</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (panelKind === "machine") {
       const [mx, my, mz] = panelCtx.split(",").map(Number), id = G.world.id(mx, my, mz), box = G.world.containers.get(panelCtx);

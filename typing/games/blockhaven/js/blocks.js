@@ -49,7 +49,9 @@ export const B = {
   // part C: item machines
   HOPPER: 198, DROPPER: 199, DISPENSER: 200, CRAFTER: 201,
   // part D: rails
-  RAIL: 202, POWERED_RAIL: 203, DETECTOR_RAIL: 204, ACTIVATOR_RAIL: 205
+  RAIL: 202, POWERED_RAIL: 203, DETECTOR_RAIL: 204, ACTIVATOR_RAIL: 205,
+  // the Starter Home (js/starter.js)
+  SIGN: 206, BOOKSHELF: 207, MAP_TABLE: 208
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -81,7 +83,8 @@ export const I = {
   TIDAL_HEART: 540, VERDANT_LENS: 541, SOLAR_SEAL: 542, RESONANCE_CORE: 543, STAB_ARCHIVE: 544, STAB_FOUNDRY: 545, STAB_GARDEN: 546, SURVEY_MAP: 547,
   ECHO_SHARD: 548, ECHO_COMPASS: 549, WARDEN_PLATE: 550, ECHO_MANTLE: 551, LUMEN_SHARD: 552,
   TIDE_CHARM: 553, LEAFSTEP_BOOTS: 554, SUNWARD_HELM: 555,
-  SPARKDUST: 556, MINECART: 557, CHEST_CART: 558, HOPPER_CART: 559, FURNACE_CART: 560, TNT_CART: 561, CHEST_BOAT: 562
+  SPARKDUST: 556, MINECART: 557, CHEST_CART: 558, HOPPER_CART: 559, FURNACE_CART: 560, TNT_CART: 561, CHEST_BOAT: 562,
+  EXPLORER_MAP: 563
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -312,8 +315,12 @@ block(B.POWERED_RAIL, "Powered Rail", { shape: "rail", render: "cutout", solid: 
 block(B.DETECTOR_RAIL, "Detector Rail", { shape: "rail", render: "cutout", solid: false, hardness: 0.7, tool: "pick", tex: "rail_detector", category: MECH, icon: "tile:rail_detector" });
 block(B.ACTIVATOR_RAIL, "Activator Rail", { shape: "rail", render: "cutout", solid: false, hardness: 0.7, tool: "pick", tex: "rail_activator", category: MECH, icon: "tile:rail_activator" });
 block(B.DAYLIGHT, "Daylight Sensor", { shape: "model", render: "cutout", hardness: 0.2, tool: "axe", interact: "daylight", tex: ["daylight_top", "daylight_side", "daylight_side"], category: MECH, iconBox: 6 / 16 });
+// ----- the Starter Home: signs you can read (and write on), bookshelves, and the Expedition Table (it holds your Explorer's Map)
+block(B.SIGN, "Wooden Sign", { shape: "model", render: "cutout", solid: false, hardness: 1, tool: "axe", interact: "sign", tex: "sign", faces: true, category: "Useful", icon: "sign" });
+block(B.BOOKSHELF, "Bookshelf", { hardness: 1.5, tool: "axe", tex: ["planks", "bookshelf", "planks"], category: "Building" });
+block(B.MAP_TABLE, "Expedition Table", { hardness: 2.5, tool: "axe", interact: "maptable", tex: ["map_table_top", "map_table_side", "planks"], category: "Useful" });
 
-export const BEACON_BASE = [B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
+export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
 export const BLOCKS = defs;
 export const blockDef = v => defs[v & 255] || defs[0];
@@ -465,7 +472,8 @@ item(I.CHEST_CART, "Minecart with Chest", { icon: "cart", colors: ["chest"], sta
 item(I.HOPPER_CART, "Minecart with Hopper", { icon: "cart", colors: ["hopper"], stack: 1, category: "Mechanisms", cart: "hopper_cart" });
 item(I.FURNACE_CART, "Minecart with Furnace", { icon: "cart", colors: ["furnace"], stack: 1, category: "Mechanisms", cart: "furnace_cart" });
 item(I.TNT_CART, "Minecart with Blast Block", { icon: "cart", colors: ["tnt"], stack: 1, category: "Mechanisms", cart: "tnt_cart" });
-item(I.CHEST_BOAT, "Boat with Chest", { icon: "boat", colors: ["chest"], stack: 1, category: "Tools" });   // string can be laid down as tripwire between two hooks
+item(I.EXPLORER_MAP, "Explorer's Map", { icon: "explorer_map", stack: 1, category: "Tools", offhand: true });   // press M (or right-click it) to open; see js/starter.js
+item(I.CHEST_BOAT, "Boat with Chest",{ icon: "boat", colors: ["chest"], stack: 1, category: "Tools" });   // string can be laid down as tripwire between two hooks
 item(I.SPARKDUST, "Sparkdust", { icon: "dust", colors: ["#ff5a2a", "#c2361a", "#ff8a4a"], category: "Mechanisms", places: B.SPARK_DUST });
 // Saturation ("fullness") from each food, following Minecraft Java Edition 1.20.1. Fullness is used up before the food bar drops.
 const SATURATION = { [I.APPLE]: 2.4, [I.BREAD]: 6, [I.CARROT]: 3.6, [I.RAW_BEEF]: 1.8, [I.STEAK]: 12.8, [I.RAW_PORK]: 1.8, [I.COOKED_PORK]: 12.8,
@@ -529,6 +537,9 @@ export const RECIPES = [
   { out: [I.WOOD_SHOVEL, 1], ins: [["planks", 1], [I.STICK, 2]], table: true },
   { out: [I.WOOD_SWORD, 1], ins: [["planks", 2], [I.STICK, 1]], table: true },
   { out: [B.CHEST, 1], ins: [["planks", 8]], table: true },
+  { out: [B.SIGN, 3], ins: [["planks", 6], [I.STICK, 1]], table: true },
+  { out: [B.BOOKSHELF, 1], ins: [["planks", 6], [I.LEATHER, 3]], table: true },
+  { out: [B.MAP_TABLE, 1], ins: [["planks", 4], [I.COMPASS, 1]], table: true },
   { out: [B.DOOR, 1], ins: [["planks", 6]], table: true },
   { out: [B.FURNACE, 1], ins: [[B.COBBLE, 8]], table: true },
   { out: [I.STONE_PICK, 1], ins: [[B.COBBLE, 3], [I.STICK, 2]], table: true },
@@ -716,7 +727,9 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "piston_side", "piston_top", "piston_top_sticky", "piston_bottom", "piston_inner", "gloop_block", "honey_block", "observer_front", "observer_back", "observer_back_on", "observer_side", "observer_top",
   "hook", "tripwire", "trapped_front", "trapped_side", "hush_sensor_top", "hush_sensor_top_on", "hush_sensor_side", "tuned_sensor_top", "tendril", "tendril_on", "bell", "bell_post",
   "hopper_outside", "hopper_top", "hopper_inside", "dropper_front", "dispenser_front", "crafter_front", "crafter_front_on", "crafter_top", "crafter_side", "crafter_bottom",
-  "rail", "rail_curve", "rail_powered", "rail_powered_on", "rail_detector", "rail_detector_on", "rail_activator", "rail_activator_on"];
+  "rail", "rail_curve", "rail_powered", "rail_powered_on", "rail_detector", "rail_detector_on", "rail_activator", "rail_activator_on",
+  // the Starter Home
+  "sign", "bookshelf", "map_table_top", "map_table_side"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1165,6 +1178,19 @@ Object.assign(PAINT, {
   rail_detector_on(P) { railTies(P); railBars(P, "#a0a0a0", "#d8d8d8"); P.rect(5, 5, 6, 6, "#8a8a8a"); P.rect(6, 6, 4, 4, "#ff5a2a"); },
   rail_activator(P) { railTies(P); railBars(P, "#a0a0a0", "#d8d8d8"); for (let y = 1; y < 16; y += 4) P.rect(7, y, 2, 2, "#5a1608"); },
   rail_activator_on(P) { railTies(P); railBars(P, "#a0a0a0", "#d8d8d8"); for (let y = 1; y < 16; y += 4) P.rect(7, y, 2, 2, "#ff5a2a"); },
+  // the Starter Home
+  sign(P) { PAINT.planks(P, ["#c49a5e", "#b98f55", "#cca468"], "#9a7442"); for (const y of [4, 7, 10]) P.rect(3, y, 10 - (y % 3) * 2, 1, "#5a3a1a"); },
+  bookshelf(P) {
+    PAINT.planks(P); P.rect(0, 7, 16, 2, "#7f5a31");
+    const spines = ["#a8322a", "#2a5aa8", "#3a8a3a", "#c89a2a", "#6a3a8a", "#2a7a7a", "#8a4a2a"];
+    for (const y0 of [1, 9]) { let x = 1; while (x < 15) { const w = 1 + Math.floor(P.r() * 2), h = 5 - Math.floor(P.r() * 2); P.rect(x, y0 + 6 - h, w, h, P.pick(spines)); x += w + (P.r() < 0.2 ? 1 : 0); } }
+  },
+  map_table_top(P) {
+    PAINT.planks(P); P.rect(2, 2, 12, 12, "#e8dcc0"); P.rect(2, 2, 12, 1, "#b8a880");
+    for (let i = 0; i < 10; i++) P.px(3 + i, 8 + Math.round(Math.sin(i * 0.9) * 2), "#4a7aa8");
+    P.rect(4, 4, 3, 2, "#5a9a4a"); P.rect(9, 10, 3, 2, "#d8c070"); P.px(10, 5, "#c83a2a"); P.px(11, 4, "#c83a2a"); P.px(9, 4, "#c83a2a"); P.px(10, 3, "#c83a2a");
+  },
+  map_table_side(P) { PAINT.planks(P); P.rect(0, 0, 16, 2, "#e8dcc0"); P.rect(1, 2, 2, 14, "#6a4825"); P.rect(13, 2, 2, 14, "#6a4825"); },
   crafter_front_on(P) { PAINT.crafter_front(P); P.rect(4, 5, 2, 1, "#ff5a2a"); P.rect(10, 5, 2, 1, "#ff5a2a"); P.rect(3, 4, 4, 1, "#ff8a4a"); P.rect(9, 4, 4, 1, "#ff8a4a"); }
 });
 for (let k = 0; k < 6; k++) {
@@ -1280,6 +1306,14 @@ Object.assign(ICON_PAINT, {
   totem(P) { P.rect(5, 1, 6, 5, "#f0c020"); P.rect(6, 3, 1, 1, "#3ad07a"); P.rect(9, 3, 1, 1, "#3ad07a"); P.rect(4, 6, 8, 6, "#e0b018"); P.rect(2, 7, 2, 3, "#e0b018"); P.rect(12, 7, 2, 3, "#e0b018"); P.rect(6, 7, 4, 2, "#3ad07a"); P.rect(5, 12, 2, 3, "#c89a14"); P.rect(9, 12, 2, 3, "#c89a14"); P.rect(5, 1, 6, 1, "#fff2a0"); }
 });
 // colors for wooden (and stone) mechanism icons, by the block's texture
+Object.assign(ICON_PAINT, {
+  explorer_map(P) {
+    P.rect(1, 2, 14, 12, "#efe2c2"); P.rect(1, 2, 14, 1, "#b8a078"); P.rect(1, 13, 14, 1, "#b8a078"); P.rect(1, 2, 1, 12, "#c8b088"); P.rect(14, 2, 1, 12, "#c8b088");
+    P.rect(3, 4, 4, 3, "#6ab04a"); P.rect(9, 9, 4, 3, "#e0c878"); for (let i = 0; i < 9; i++) P.px(3 + i, 10 - Math.round(Math.sin(i * 0.8) * 1.5), "#3a7ac8");
+    P.px(11, 4, "#d83a2a"); P.px(12, 5, "#d83a2a"); P.px(10, 5, "#d83a2a"); P.px(11, 6, "#d83a2a"); P.px(11, 5, "#ffffff");
+  },
+  sign(P) { P.rect(2, 2, 12, 8, "#c49a5e"); P.rect(2, 9, 12, 1, "#8a6235"); for (const y of [4, 6]) P.rect(4, y, 8, 1, "#5a3a1a"); P.rect(7, 10, 2, 5, "#7a5530"); }
+});
 const WOOD_ICON = { planks: ["#b98d55", "#7d5a30"], birch_planks: ["#d8c890", "#9a8a5a"], crimson_planks: ["#7a3a50", "#4a1e2e"], warped_planks: ["#2a7a74", "#164a46"], stone: ["#9a9a9a", "#6a6a6a"], cobble: ["#8a8a8a", "#5a5a5a"] };
 Object.assign(ICON_PAINT, {
   lever(P) { P.rect(4, 11, 8, 3, "#8a8a8a"); P.rect(4, 13, 8, 1, "#5a5a5a"); for (let i = 0; i < 8; i++) { P.px(7 + Math.floor(i / 2), 11 - i, "#8a6235"); P.px(8 + Math.floor(i / 2), 11 - i, "#6a4825"); } P.rect(10, 2, 2, 2, "#5a5a5a"); },

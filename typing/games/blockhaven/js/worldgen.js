@@ -622,6 +622,7 @@ export function applyStamps(gen, data, cx, cz) {
   for (const st of gen.stamps || []) {
     const x0 = cx * CHUNK, z0 = cz * CHUNK;
     if (x0 >= st.x + st.size || x0 + CHUNK <= st.x || z0 >= st.z + st.size || z0 + CHUNK <= st.z) continue;
+    if (st.lake) { carveLake(gen, data, x0, z0, st.lake); continue; }
     for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
       const sx = x0 + lx - st.x, sz = z0 + lz - st.z;
       if (sx < 0 || sz < 0 || sx >= st.size || sz >= st.size) continue;
@@ -637,6 +638,22 @@ export function applyStamps(gen, data, cx, cz) {
     }
   }
   return data;
+}
+// A round bay of real sea water (used when a world has no open ocean near spawn, so the sea temple's lighthouse
+// still stands in deep water). lake: { cx, cz, r0 (open water), r1 (where the shore meets the natural land) }.
+// The floor dips gently toward the middle; the shore slopes up to the land around it, so you can walk or row in.
+export function carveLake(gen, data, x0, z0, lake) {
+  for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
+    const x = x0 + lx, z = z0 + lz, d = Math.hypot(x + 0.5 - lake.cx, z + 0.5 - lake.cz);
+    if (d > lake.r1) continue;
+    const h = gen.column(x, z).h;
+    // depth: SEA-9 in the middle, SEA-4 at the edge of open water, then up the beach to the natural ground
+    const floor = d <= lake.r0 ? Math.round(SEA - 9 + 5 * (d / lake.r0) ** 2) : Math.round(SEA - 4 + (Math.max(h, SEA + 1) - (SEA - 4)) * (d - lake.r0) / (lake.r1 - lake.r0));
+    if (d > lake.r0 && floor >= h) continue;   // already lower than the shore line here: leave the land alone
+    for (let y = Math.max(1, floor - 3); y <= floor; y++) data[idx(lx, y, lz)] = y === floor ? (floor >= SEA ? B.SAND : B.GRAVEL) : B.SAND;
+    const top = Math.min(HEIGHT - 2, Math.max(h, SEA) + 10);
+    for (let y = floor + 1; y <= top; y++) data[idx(lx, y, lz)] = y <= SEA ? B.WATER : B.AIR;
+  }
 }
 // ----- the Forsaken World: the packaged core map (maps/forsaken-v1.bin) plus plain misty scenery around it -----
 // The core is copied fresh from the template every time a chunk loads; the player's changes are saved separately

@@ -29,6 +29,9 @@ const SOCKETS = { sea: [I.TIDAL_HEART, I.STAB_ARCHIVE], green: [I.VERDANT_LENS, 
 const ORDER = ["sea", "green", "sun", "echo"];
 const SLOT_NAMES = { sea: "Sea (wave)", green: "Green (leaf)", sun: "Sun", echo: "Echo" };
 export const LOST_DIMS = ["deep", "expanse", "sea", "jungle", "desert"];
+// How far from spawn (in blocks) new worlds place the four landmarks: the Keeper excavation (Echohold, the Ancient City)
+// and the three temple entrances. Raise "far" for longer journeys; lower it for shorter ones.
+export const ADVENTURE = { near: 160, far: 720 };
 
 export function initLost(api) {
   const { G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giveXp, placeSafely, hurt } = api;
@@ -75,11 +78,15 @@ export function initLost(api) {
   L.prepareOverworld = (gen, data) => {
     const s = st();
     if (!maps.surface) return;
+    // placement rules v2 (the Starter Home update): a temple that found no spot before gets one more try, in unvisited land only
+    if (!s.siteV) { s.siteV = 2; for (const k of TEMPLE_KEYS) if (s.tsites[k] === null) delete s.tsites[k]; }
     if (s.site === undefined || s.site === null) s.site = chooseSite(gen, data, "excavation");
     for (const k of TEMPLE_KEYS) if (s.tsites[k] === undefined) s.tsites[k] = chooseSite(gen, data, k);
     gen.stamps = []; L.siteChests = {};
     for (const kind of ["excavation", ...TEMPLE_KEYS]) {
       const site = siteOf(kind); if (!site) continue;
+      // a sea temple with no open ocean nearby stands in a bay carved for it (the water goes in first, then the lighthouse)
+      if (site.lake) gen.stamps.push({ x: site.x + 16 - site.lake.r1, z: site.z + 16 - site.lake.r1, size: site.lake.r1 * 2, lake: { cx: site.x + 16, cz: site.z + 16, r0: site.lake.r0, r1: site.lake.r1 } });
       const st2 = stampOf(kind), sz = st2.size, ox = st2.ox || 0, cells = new Uint16Array(sz * sz * HEIGHT);
       // flatten the stamp's chunks into one block grid (x + z*size + y*size*size)
       for (let cz = 0; cz < sz / CHUNK; cz++) for (let cx = 0; cx < sz / CHUNK; cx++) {
@@ -92,7 +99,8 @@ export function initLost(api) {
   };
   function chooseSite(gen, data, kind) {
     const visited = new Set(data.visited || []), mods = data.mods || {}, sp = gen.findSpawn(), s = st();
-    const others = ["excavation", ...TEMPLE_KEYS].filter(k => k !== kind).map(siteOf).filter(Boolean);
+    // the other sites, plus anything else that must stay clear (the Starter Home)
+    const others = [...["excavation", ...TEMPLE_KEYS].filter(k => k !== kind).map(siteOf).filter(Boolean), ...(L.avoid || [])];
     const P5 = [[16, 16], [4, 4], [28, 4], [4, 28], [28, 28]];
     const fits = {
       excavation: (x0, z0) => P5.every(([dx, dz]) => { const c = gen.column(x0 + dx, z0 + dz); return c.h >= 32 && c.h <= 46 && c.biome !== "peak"; }),
@@ -105,14 +113,59 @@ export function initLost(api) {
       if (others.some(o => Math.hypot(o.x - x0, o.z - z0) < 96)) return false;
       return fits(x0, z0);
     };
-    const r0 = kind === "excavation" ? 160 : 240, r1 = kind === "excavation" ? 480 : 1600;
-    for (let r = r0; r <= r1; r += 32) for (let a = 0; a < 24 + Math.floor(r / 40); a++) {
-      const t = a / (24 + Math.floor(r / 40)) * Math.PI * 2 + r * 0.01, x0 = Math.round((sp.x + Math.cos(t) * r) / CHUNK) * CHUNK, z0 = Math.round((sp.z + Math.sin(t) * r) / CHUNK) * CHUNK;
-      if (ok(x0, z0)) return { x: x0, z: z0 };
-    }
+    // looser matches, used only when the natural spot would be farther than the adventure range
+    const loose = {
+      excavation: (x0, z0) => P5.every(([dx, dz]) => { const c = gen.column(x0 + dx, z0 + dz); return c.h >= SEA + 2 && c.h <= 52 && c.biome !== "peak"; }),
+      sea: (x0, z0) => P5.every(([dx, dz]) => gen.column(x0 + dx, z0 + dz).h <= SEA - 2) && [0, 1, 2, 3, 4, 5, 6, 7].some(a => gen.column(x0 + 16 + Math.cos(a * 0.785) * 44, z0 + 16 + Math.sin(a * 0.785) * 44).h > SEA + 1),
+      jungle: (x0, z0) => P5.every(([dx, dz]) => { const c = gen.column(x0 + dx, z0 + dz); return (c.biome === "forest" || c.biome === "birch") && c.h >= 33 && c.h <= 46; }),
+      desert: (x0, z0) => P5.every(([dx, dz]) => { const c = gen.column(x0 + dx, z0 + dz); return c.biome === "sandy" && c.h >= SEA + 1 && c.h <= 46; })
+    }[kind];
+    // last resort inside the range: grassland that the site's own blended ground turns into a clearing (forest temple) or a dune field (pyramid)
+    const open = { jungle: ["plains", "forest", "birch"], desert: ["sandy", "plains"] }[kind];
+    const any = open && ((x0, z0) => P5.every(([dx, dz]) => { const c = gen.column(x0 + dx, z0 + dz); return open.includes(c.biome) && c.h >= SEA + 2 && c.h <= 44; }));
+    const ring = (from, to, fit) => {
+      for (let r = from; r <= to; r += 32) for (let a = 0; a < 24 + Math.floor(r / 40); a++) {
+        const t = a / (24 + Math.floor(r / 40)) * Math.PI * 2 + r * 0.01, x0 = Math.round((sp.x + Math.cos(t) * r) / CHUNK) * CHUNK, z0 = Math.round((sp.z + Math.sin(t) * r) / CHUNK) * CHUNK;
+        if (fit(x0, z0)) return { x: x0, z: z0 };
+      }
+      return null;
+    };
+    // A bay for the lighthouse: low, gentle land (no mountains) that nobody has visited, carved into sea water when the world is made
+    const LAKE = { r0: 34, r1: 46 };
+    const bay = (x0, z0) => {
+      const cx = x0 + 16, cz = z0 + 16;
+      if (others.some(o => Math.hypot(o.x - x0, o.z - z0) < 120)) return false;
+      for (let gx = Math.floor((cx - LAKE.r1) / CHUNK); gx <= Math.floor((cx + LAKE.r1) / CHUNK); gx++) for (let gz = Math.floor((cz - LAKE.r1) / CHUNK); gz <= Math.floor((cz + LAKE.r1) / CHUNK); gz++) if (visited.has(gx + "," + gz) || mods[gx + "," + gz]) return false;
+      for (const rr of [0, 18, 34, 46]) for (let a = 0; a < (rr ? 8 : 1); a++) {
+        const c = gen.column(Math.round(cx + Math.cos(a * 0.785) * rr), Math.round(cz + Math.sin(a * 0.785) * rr));
+        if (c.h > SEA + 14 || c.biome === "mountain" || c.biome === "peak") return false;
+      }
+      return true;
+    };
+    const [near, far] = kind === "excavation" ? [ADVENTURE.near, Math.max(ADVENTURE.near, ADVENTURE.far - 160)] : [ADVENTURE.near + 80, ADVENTURE.far];
+    let site = ring(near, far, ok) || ring(near, far, (x0, z0) => ok2(x0, z0, loose));
+    if (!site && any) site = ring(near, far, (x0, z0) => ok2(x0, z0, any));
+    if (!site && kind === "sea") { const b = ring(near, far, bay); if (b) site = { ...b, lake: LAKE }; }
+    if (!site) site = ring(far, 1600, ok);   // the old, wide search (only if nothing fits inside the adventure range)
     void s;
-    return null;
+    return site;
+    function ok2(x0, z0, fit) {
+      for (let cx = 0; cx < 2; cx++) for (let cz = 0; cz < 2; cz++) { const k = (x0 / CHUNK + cx) + "," + (z0 / CHUNK + cz); if (visited.has(k) || mods[k]) return false; }
+      if (others.some(o => Math.hypot(o.x - x0, o.z - z0) < 96)) return false;
+      return fit(x0, z0);
+    }
   }
+  // Every landmark's real entrance on the Surface, for the Explorer's Map (js/starter.js). Coordinates are the lift block itself.
+  L.landmarks = () => {
+    if (!maps.surface) return [];
+    return ["excavation", ...TEMPLE_KEYS].map(kind => {
+      const site = siteOf(kind); if (!site) return null;
+      const sm = stampOf(kind), lift = liftOf(kind);
+      return { kind, x: lift.x, y: lift.y, z: lift.z, center: { x: site.x + sm.size / 2, z: site.z + sm.size / 2 }, ground: sm.ground, lake: site.lake || null,
+        name: kind === "excavation" ? "Echohold" : TEMPLES[kind].name.replace(/^the /, "The "), visited: kind === "excavation" ? !!st().visits : !!st().temples[kind].visits, relic: kind === "excavation" ? st().sovereign === "calmed" : !!st().temples[kind].relic };
+    }).filter(Boolean);
+  };
+  L.loadedSurface = () => !!maps.surface;
   L.site = () => st().site || null;
   const liftOf = kind => { const s = siteOf(kind), l = stampOf(kind).lift; return { x: s.x + l.x, y: l.y, z: s.z + l.z }; };
   const siteLift = () => liftOf("excavation");
@@ -869,7 +922,7 @@ export function initLost(api) {
 
   // ---------- the main tick ----------
   L.tick = dt => {
-    if (G.dim === "overworld" && st().site && !st().mapGiven && G.mode === "survival" && G.state === "play") {
+    if (G.dim === "overworld" && st().site && !st().mapGiven && G.mode === "survival" && G.state === "play" && !(G.story.starter && G.story.starter.house)) {   // worlds with a Starter Home get the Explorer's Map instead
       st().mapGiven = true; giveItem(I.SURVEY_MAP, 1);
       UI.toast("A Survey Map was tucked into your pack. Hold it to see the way to a Keeper excavation.", "good");
     }

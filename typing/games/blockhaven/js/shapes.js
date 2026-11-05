@@ -147,6 +147,8 @@ export function model(v, get) {
     else parts.push(p([2, 6, 7, 14, 9, 9], tex), p([2, 12, 7, 14, 15, 9], tex), p([6, 9, 7, 8, 12, 9], tex), p([8, 9, 7, 10, 12, 9], tex));
     return { T: floorT(m & 3), parts };
   }
+  // a standing wooden sign: a board on a post, facing the way it was placed (the Starter Home has two)
+  if (id === B.SIGN) return { T: floorT(m & 3), parts: [p([0, 7, 7, 16, 15, 9], TILE.sign), p([7, 0, 7.25, 9, 7, 8.75], TILE.log_side)] };
   return null;
 }
 

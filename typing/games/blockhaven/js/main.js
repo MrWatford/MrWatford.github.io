@@ -15,6 +15,7 @@ import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.j
 import { Adv } from "./advancements.js";
 import { initForsaken, isQuestItem } from "./forsaken.js";
 import { initLost, LOST_DIMS } from "./lost.js";
+import { initStarter } from "./starter.js";
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
@@ -1127,6 +1128,7 @@ function compassReading() {
   if (!s) {   // the Lost Civilization's map and compass use the same dial
     const held = [G.inv.slots[G.selected], G.inv.slots[OFF]].map(q => q && q.id);
     if (held.includes(I.ECHO_COMPASS)) return L.echoReading();
+    if (held.includes(I.EXPLORER_MAP)) return ST.reading();
     if (held.includes(I.SURVEY_MAP)) return L.surveyReading();
     return null;
   }
@@ -1352,7 +1354,11 @@ function makeWorld(dim) {
   const data = G.dimData[dim] || (G.dimData[dim] = {});
   const gen = dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
   if (dim === "nether") gen.citadel = chooseCitadel();   // where Cindermaw's citadel stands in this world
-  if (dim === "overworld") L.prepareOverworld(gen, data);   // the Keeper excavation, stamped into land nobody has visited yet
+  if (dim === "overworld") {
+    ST.plan(gen, data);              // the Starter Home's spot (chosen once per world, before any land is made)
+    L.prepareOverworld(gen, data);   // the Keeper excavation and temple entrances, stamped into land nobody has visited yet
+    ST.stamp(gen);                   // the house goes in last, so nothing else draws over it
+  }
   const w = new World(gen);
   w.dim = dim;
   w.modsFromJSON(data.mods);
@@ -1422,7 +1428,12 @@ async function startWorld(save) {
     for (const [k, t] of Object.entries(save.player.effects || {})) if (t > 0) G.effects[k] = t;
     G.elv = { ...(save.player.elv || {}) }; G.absorb = save.player.absorb || 0;
   }
-  if (!p.spawn) { const s = G.gen.findSpawn(); p.spawn = { x: s.x, y: null, z: s.z }; Object.assign(p.pos, { x: s.x, y: 70, z: s.z }); }
+  if (!p.spawn) {   // a new world: start on the path in front of the Starter Home (or at the natural spawn spot)
+    const h = G.dim === "overworld" ? ST.spawnPoint() : null, s = h || G.gen.findSpawn();
+    p.spawn = { x: s.x, y: h ? h.y : null, z: s.z }; Object.assign(p.pos, { x: s.x, y: h ? h.y : 70, z: s.z });
+    if (h) p.yaw = h.yaw;
+  }
+  ST.resetClock();
   p.air = 10; G.selected = 0; G.drops = []; G.mining = null; G.hudDirty = true;
   // the page was closed on the "You fainted" screen: wake up properly (Hardcore worlds go straight to Spectator)
   if (save.hardcoreOver && G.mode !== "spectator") G.mode = G.meta.mode = "spectator";
@@ -1546,7 +1557,7 @@ function closePanel() {
 window.addEventListener("keydown", e => {
   if (G.state === "panel") {
     const typing = document.activeElement && document.activeElement.tagName === "INPUT";
-    if (e.code === "KeyE" || e.code === "Escape" || (e.code === "KeyL" && G.panelKind === "advancements") || (e.code === "KeyJ" && G.panelKind === "journal")) { if (typing && e.code !== "Escape") return; e.preventDefault(); closePanel(); return; }
+    if (e.code === "KeyE" || e.code === "Escape" || (e.code === "KeyL" && G.panelKind === "advancements") || (e.code === "KeyJ" && G.panelKind === "journal") || (e.code === "KeyM" && G.panelKind === "xmap")) { if (typing && e.code !== "Escape") return; e.preventDefault(); closePanel(); return; }
     if (/^Digit[1-9]$/.test(e.code) && !typing) { if (UI.hotkey(+e.code.slice(5) - 1)) e.preventDefault(); }
     if (e.code === G.settings.keySwap && !typing) { if (UI.hotkey(OFF)) e.preventDefault(); }   // swap the slot you point at with the offhand
     return;
@@ -1564,6 +1575,8 @@ window.addEventListener("keydown", e => {
   else if (e.code === G.settings.keySwap) swapHands();
   else if (e.code === "KeyL") openPanel("advancements");
   else if (e.code === "KeyJ") openPanel("journal");
+  else if (e.code === "KeyM") { if (ST.canOpen()) openPanel("xmap"); else UI.toast("You need an Explorer's Map. Right-click the Expedition Table in your Starter Home for a new one.", "bad"); }
+  else if (e.code === "KeyN") { if (ST.canOpen()) ST.toggleWaypoint(); }
   else if (e.code === "KeyE" && G.spectator) UI.toast("Spectators can look around but can't use items.");
   else if (e.code === "KeyE") openPanel("inventory");
   else if (e.code === "KeyQ") dropSelected(e.ctrlKey);
@@ -1711,7 +1724,7 @@ function breakBlock(x, y, z, drops, quiet) {
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
   R.vibrate(x + 0.5, y + 0.5, z + 0.5, 13);
-  F.blockBroken(x, y, z, id); L.blockBroken(x, y, z, id);
+  F.blockBroken(x, y, z, id); L.blockBroken(x, y, z, id); ST.blockBroken(x, y, z, id);
   w.crops.delete(x + "," + y + "," + z);
   if (id === B.OBSIDIAN || id === B.PORTAL) setTimeout(() => breakPortal(x, y, z), 0);
   if (isDoor(id)) {   // doors are two blocks tall: remove both halves
@@ -1906,6 +1919,7 @@ function useWith(offhand) {
     else if (d.interact && d.interact !== "tnt") { G.swing = 0.01; interact(hit, d.interact); return true; }
   }
   if (!slot) return false;
+  if (slot.id === I.EXPLORER_MAP) { openPanel("xmap"); return true; }
   if (slot.id === I.SHIELD) { G.blocking = true; G.blockHand = G.useSlot; return true; }   // hold to keep the shield up
   if (slot.id === I.BOW) {
     if (G.creative || G.inv.count(I.ARROW) > 0) { G.bowT = 0; G.bowHand = G.useSlot; return true; }
@@ -1992,7 +2006,7 @@ function useWith(offhand) {
   if (here && here !== B.WATER && !BLOCKS[here].replaceable) return false;
   const id = slot.id === I.SPARKDUST ? B.SPARK_DUST : slot.id === I.STRING ? B.TRIPWIRE : slot.id, d = BLOCKS[id];
   let v = make(id);
-  if (d.front) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces and chests face you
+  if (d.front || d.faces) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces, chests, and signs face you
   // Sparkworks parts: which way they face or what they hang on depends on where you clicked
   { const e = G.player, dir = lookDir(), fy = e.pos.y + e.eye + dir.y * hit.dist - hit.y;
     const rv = R.placeValue(id, hit, x, y, z, Math.min(1, Math.max(0, fy)), !!hitDef.replaceable);
@@ -2149,6 +2163,8 @@ function interact(hit, kind) {
     Sound.door(open); R.vibrate(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5, open ? 11 : 10); return;
   }
   if (kind === "table") { openPanel("table"); return; }
+  if (kind === "sign") { ST.readSign(hit); return; }
+  if (kind === "maptable") { ST.useTable(); return; }
   if (kind === "bed") { useBed(hit); return; }
   if (kind === "berries") {   // pick ripe berries (the bush keeps growing)
     const st = metaOf(hit.v) & 3, s = G.inv.slots[G.useSlot];
@@ -2815,7 +2831,7 @@ function loop(now) {
     if (G.dim === "end") ensureBoss();
     if (G.state === "play") checkPortal(dt);
     tickCinder(dt);
-    F.tick(dt); L.tick(dt);
+    F.tick(dt); L.tick(dt); ST.tick(dt);
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
@@ -2906,6 +2922,9 @@ G.forsaken = F;
 // The Lost Civilization adventure (js/lost.js). Its test controls only show on a development copy (localhost or ?dev).
 const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giveXp, placeSafely, hurt, lookDir, keys, victory: showVictory, devTools: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.search.includes("dev") });
 G.lost = L;
+// The Starter Home and the Explorer's Map (js/starter.js)
+const ST = initStarter({ G, UI, Sound, L, openPanel, closePanel });
+G.starter = ST;
 // The Sparkworks signal engine (js/redstone.js)
 const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, lookFacing3, noteFx, moveFx, pushEntities,
   spawnDrop, dropGone: d => { removeDrop(d); const i = G.drops.indexOf(d); if (i >= 0) G.drops.splice(i, 1); }, placeLiquid, ignite, checkBlightSummon,
