@@ -10,6 +10,7 @@ Tech: static site on GitHub Pages, no build step. Plain ES modules in `js/`, Thr
 | Feature | Status | Notes |
 |---|---|---|
 | Title, world list, new world (seed, mode), settings, controls, pause | Done | |
+| Switch Survival ↔ Creative in the middle of a game | Done | Pause → World options → Game mode (added 2026-11-05). Saved with the world. Switching to Survival stops flying and doesn't count the fall from where you were. Hardcore worlds stay in Survival |
 | Seeded chunk terrain, caves, ores, trees, rivers/lakes, ruins with loot | Done | 16×16 chunks, height 80 |
 | Movement, collision, jump, sprint, crouch edge-guard, swim, creative flight | Done | |
 | Mining with hardness/tool tiers, durability, drops, pickup | Done | |
@@ -234,7 +235,7 @@ Names: the realm is the **Echo Expanse** (our End is already "the Hollow"), and 
 | The Verdant Labyrinth (jungle) | Done | A hidden green valley with light-trees, a ravine (crumbling bridge, or steps down and up), a 9 × 9 hedge maze with caches in its dead ends, the Grove of Bells (ring three bells within 8 seconds to open the Root Gate), a spore-vent walk, and a cave behind a waterfall. 13 caches. |
 | The Sunken Pyramid of Aurelis (desert) | Done | A stairway Gallery of Statues (dart vents) with a hidden Scribe's Nook, the Grand Hall (glyph order puzzle: SUN, EYE, RIVER, STAR) and the Hall of Records behind it, a flame corridor (vents take turns), the Sand Pit Hall (crumbling bridge, steps, and a bridge-swap puzzle to the pit island), and the Mirror Court (turn three mirrors to open the Sun Door). 12 caches. |
 | Traps | Done | Darts, vents, and cracked floors. Every trap shows glowing marks or crumbling dust before it hurts (longer warnings with Reduced Suspense), always leaves a gap or a safe moment, and cracked floors grow back. A first-time warning names each trap. |
-| Temple guardians | Done | The Abyssal Regent (tide-wave rings with gaps, a charge), the Verdant Colossus (roots under you, a vine pull then a slam), and the Solar Colossus (a sun-beam line, a solar flare). Phase 2: three devices around the arena (tide valves, bloom levers, great mirrors) shield it until you use all three. Phase 3: faster, and it calls two helpers. Fainting or leaving resets the fight. |
+| Temple guardians | Done | The Abyssal Regent (tide-wave rings with gaps, a charge), the Verdant Colossus (roots under you, a vine pull then a slam), and the Solar Colossus (a sun-beam line, a solar flare). Phase 2: three devices around the arena (tide valves, bloom levers, great mirrors) shield it until you use all three. Phase 3: faster, and it calls two helpers. Fainting or leaving resets the fight. Guardians wake in Survival and Creative (since 2026-11-05) when you walk into the middle of the arena. |
 | Relics and rewards | Done | Beating a guardian opens its vault: take the relic from the pedestal. Rewards: Tidecaller Charm (keeps your breath up underwater while held), Leafstep Boots (no fall damage), Sunward Helm (fire can't hurt you), 120 XP each. New creatures: Tide Crab, Vinewalker, Sun Scarab. |
 | Advancements | Done | Three more: Temple Explorer, Guardians at Rest, Keeper of Relics. |
 
@@ -304,7 +305,7 @@ Code: `js/rails.js` (rail shapes and cart movement), carts in `js/entities.js`, 
 | Dispensers | Done | Put minecarts onto the rail in front of them |
 | Speed | Done | 12 carts on a loop: median 0.6 ms per frame, worst 16.3 ms |
 
-## Starter Home + Explorer's Map (built and browser-tested 2026-11-05, not published)
+## Starter Home + Explorer's Map (built, browser-tested, and published 2026-11-05)
 | Feature | Status | Notes |
 |---|---|---|
 | Starter Home at spawn (Survival and Creative) | Done | `js/starter.js`. A 40×40 stamp (leveled plot to 15 blocks, blended to 20) applied last in `applyStamps`, so terrain, trees, ruins, and villages can't overwrite it. Site search avoids water, mountains, villages, ruins, strongholds, and landmarks. Cottage: stone foundation, plank walls, log frame, brick gable roof, chimney, windows, door, porch, lit path, flower beds, fenced garden with ripe wheat and carrots, bed, workbench, 2 furnaces, bookshelves, Expedition Table, 4 Shinestone lights, 2 signs |

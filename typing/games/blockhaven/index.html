@@ -399,10 +399,11 @@ details.more .set { margin-top: 10px; }
     <div class="row"><button class="btn" id="btnSettings2">Settings</button><button class="btn" id="btnControls2">Controls</button></div>
     <div class="row"><button class="btn" id="btnAdv">🏆 Advancements</button><button class="btn" id="btnSkins2">👕 Skins</button></div>
     <details class="more" id="worldOpts"><summary>World options</summary>
+      <label class="set"><span>Game mode</span><select id="pMode" class="text-in"><option value="survival">Survival</option><option value="creative">Creative</option></select></label>
       <label class="set"><span>Difficulty</span><select id="pDiff" class="text-in"><option value="peaceful">Peaceful (no monsters)</option><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
       <label class="set"><span>Monsters can break blocks</span><input type="checkbox" id="pGrief"></label>
       <label class="set"><span>Keep your items when you faint</span><input type="checkbox" id="pKeep"></label>
-      <p class="note" id="hcNote" hidden>This is a Hardcore world: difficulty stays on Hard and items drop when you faint.</p>
+      <p class="note" id="hcNote" hidden>This is a Hardcore world: it stays in Survival, difficulty stays on Hard, and items drop when you faint.</p>
     </details>
     <button class="btn" id="btnTitle">Save &amp; return to title</button>
     <a class="btn" href="../../index.html" id="btnLeave">Back to Mr. Watford's Games</a>
