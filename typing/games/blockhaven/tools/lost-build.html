@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lost Civilization map builder (development tool)</title>
+<style>body { font: 14px monospace; background: #111; color: #ddd; padding: 16px; } pre { white-space: pre-wrap; word-break: break-all; } .data { display: none; }</style>
+</head>
+<body>
+<h1>Lost Civilization map builder</h1>
+<p>Development tool. Builds the Deep (with Echohold), the Echo Expanse, and the Surface stamps; checks them; and packs them into <code>maps/</code>. Students never load this page.</p>
+<pre id="report">Building…</pre>
+<pre class="data" id="deep"></pre><pre class="data" id="expanse"></pre><pre class="data" id="surface"></pre><pre class="data" id="sea"></pre><pre class="data" id="jungle"></pre><pre class="data" id="desert"></pre>
+<script type="module">
+import { buildDeep, buildExpanse, buildSurface, validateLost, DEEP, EXPANSE } from "../js/lost-author.js";
+import { packMap, gzip, gunzip, unpackMap } from "../js/maps.js";
+import { buildSeaTemple, buildJungleTemple, buildDesertTemple, validateTemple, TEMPLE } from "../js/lost-temples.js";
+const report = [], t0 = performance.now();
+const b64 = bytes => { let s = ""; for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192)); return btoa(s); };
+async function one(name, built, x0, z0, sx, sz) {
+  if (name === "deep" || name === "expanse") report.push(...validateLost(name, built.grid, built.meta));
+  else if (name !== "surface") report.push(...validateTemple(name, built.grid, built.meta));
+  const raw = packMap(built.grid, x0, z0, sx, sz, built.meta), gz = await gzip(raw);
+  const back = unpackMap(await gunzip(gz));
+  let same = true; const k = back.meta.area;
+  for (let t = 0; t < 4000 && same; t++) { const x = k.x0 + Math.floor(Math.random() * k.sx), z = k.z0 + Math.floor(Math.random() * k.sz), y = Math.floor(Math.random() * 80); const key = Math.floor(x / 16) + "," + Math.floor(z / 16), d = back.decode(key); if (d[(x - Math.floor(x / 16) * 16) + (z - Math.floor(z / 16) * 16) * 16 + y * 256] !== built.grid.get(x, y, z)) same = false; }
+  report.push(`${same ? "PASS" : "FAIL"} ${name}: packed map unpacks to the same blocks (4000 spot checks)`);
+  report.push(`${name}: raw ${raw.length} bytes, gzipped ${gz.length} bytes`);
+  document.getElementById(name).textContent = "BEGIN" + b64(gz) + "END";
+}
+try {
+  await one("deep", buildDeep(), DEEP.min, DEEP.min, DEEP.size, DEEP.size);
+  await one("expanse", buildExpanse(), EXPANSE.min, EXPANSE.min, EXPANSE.size, EXPANSE.size);
+  await one("surface", buildSurface(), 0, 0, 128, 32);
+  await one("sea", buildSeaTemple(), TEMPLE.min, TEMPLE.min, TEMPLE.size, TEMPLE.size);
+  await one("jungle", buildJungleTemple(), TEMPLE.min, TEMPLE.min, TEMPLE.size, TEMPLE.size);
+  await one("desert", buildDesertTemple(), TEMPLE.min, TEMPLE.min, TEMPLE.size, TEMPLE.size);
+} catch (e) { report.push("ERROR " + e.message + "\n" + e.stack); }
+report.push(`total ${Math.round(performance.now() - t0)} ms`);
+document.getElementById("report").textContent = report.join("\n");
+document.title = "done";
+</script>
+</body>
+</html>

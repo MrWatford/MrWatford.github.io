@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Forsaken World map builder (development tool)</title>
+<style>body { font: 14px monospace; background: #111; color: #ddd; padding: 16px; } pre { white-space: pre-wrap; word-break: break-all; } #data { display: none; }</style>
+</head>
+<body>
+<h1>Forsaken World map builder</h1>
+<p>Development tool. It builds the hand-planned map, checks it, and packs it into <code>maps/forsaken-v1.bin</code>. Students never load this page.</p>
+<pre id="report">Building…</pre>
+<pre id="data"></pre>
+<script type="module">
+import { buildForsaken, validateForsaken, packForsaken, unpackForsaken } from "../js/forsaken-author.js";
+const t0 = performance.now();
+const { grid, meta } = buildForsaken();
+const report = validateForsaken(grid, meta);
+const raw = packForsaken(grid, meta);
+// gzip it (the game unzips it with DecompressionStream)
+const gz = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+// round trip: unzip and unpack again, and compare every block
+const back = unpackForsaken(new Uint8Array(await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer()));
+let same = true;
+for (const [k, data] of back.chunks) { const [cx, cz] = k.split(",").map(Number); for (let i = 0; i < data.length && same; i += 37) { const lx = i % 16, lz = Math.floor(i / 16) % 16, y = Math.floor(i / 256); if (data[i] !== grid.get(cx * 16 + lx, y, cz * 16 + lz)) same = false; } }
+report.push((same ? "PASS " : "FAIL ") + "packed map unpacks to the same blocks");
+report.push(`raw ${raw.length} bytes, gzipped ${gz.length} bytes, ${back.chunks.size} chunks, ${Math.round(performance.now() - t0)} ms`);
+document.getElementById("report").textContent = report.join("\n");
+let b64 = ""; for (let i = 0; i < gz.length; i += 8192) b64 += String.fromCharCode(...gz.subarray(i, i + 8192));
+document.getElementById("data").textContent = "BEGIN" + btoa(b64) + "END";
+document.title = "done";
+</script>
+</body>
+</html>
