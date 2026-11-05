@@ -34,7 +34,15 @@ export const B = {
   LUMEN_CRYSTAL: 120, DRIPSTONE: 121, CAVE_MOSS: 122, ECHOSTONE: 123, RESONANT_GLASS: 124, ROOTWOOD: 125, LORE_TABLET: 126, KEEPER_STONE: 127, LUMEN_GRASS: 128, KEEPER_BEACON: 129,
   DEEP_LIFT: 130, MURAL: 131, ANCHOR_STATION: 132, HUSH_CARPET: 133, WARDEN_TROPHY: 134, SOVEREIGN_TROPHY: 135, KEEPER_SWITCH: 136,
   // the three temples
-  TIDE_BRICKS: 137, TIDE_LAMP: 138, VINE_BRICKS: 139, VINES: 140, SUN_BRICKS: 141, SUN_GLYPH: 142, SUN_MIRROR: 143, TRAP_VENT: 144, CRACKED_FLOOR: 145, RELIC_PEDESTAL: 146
+  TIDE_BRICKS: 137, TIDE_LAMP: 138, VINE_BRICKS: 139, VINES: 140, SUN_BRICKS: 141, SUN_GLYPH: 142, SUN_MIRROR: 143, TRAP_VENT: 144, CRACKED_FLOOR: 145, RELIC_PEDESTAL: 146,
+  // Milestone 12 (the Sparkworks Update), part A: signals
+  SPARK_ORE: 147, DARK_SPARK_ORE: 148, SPARK_DUST: 149, SPARK_BLOCK: 150, SPARK_TORCH: 151, LEVER: 152,
+  STONE_BUTTON: 153, OAK_BUTTON: 154, BIRCH_BUTTON: 155, CRIMSON_BUTTON: 156, WARPED_BUTTON: 157,
+  OAK_PLATE: 158, BIRCH_PLATE: 159, CRIMSON_PLATE: 160, WARPED_PLATE: 161, STONE_PLATE: 162, GOLD_PLATE: 163, IRON_PLATE: 164,
+  REPEATER: 165, COMPARATOR: 166, SPARK_LAMP: 167, IRON_DOOR: 168,
+  OAK_TRAPDOOR: 169, BIRCH_TRAPDOOR: 170, CRIMSON_TRAPDOOR: 171, WARPED_TRAPDOOR: 172, IRON_TRAPDOOR: 173,
+  OAK_FENCE: 174, BIRCH_FENCE: 175, CRIMSON_FENCE: 176, WARPED_FENCE: 177, OAK_GATE: 178, BIRCH_GATE: 179, CRIMSON_GATE: 180, WARPED_GATE: 181,
+  NOTE_BLOCK: 182, TARGET: 183, DAYLIGHT: 184
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -65,7 +73,8 @@ export const I = {
   PALE_SHARD: 528, PALE_LANTERN: 529, SIGIL_HEARTH: 530, SIGIL_STONE: 531, SIGIL_ROOT: 532, WARD_HEART: 533, WARD_LANTERN: 534,
   TIDAL_HEART: 540, VERDANT_LENS: 541, SOLAR_SEAL: 542, RESONANCE_CORE: 543, STAB_ARCHIVE: 544, STAB_FOUNDRY: 545, STAB_GARDEN: 546, SURVEY_MAP: 547,
   ECHO_SHARD: 548, ECHO_COMPASS: 549, WARDEN_PLATE: 550, ECHO_MANTLE: 551, LUMEN_SHARD: 552,
-  TIDE_CHARM: 553, LEAFSTEP_BOOTS: 554, SUNWARD_HELM: 555
+  TIDE_CHARM: 553, LEAFSTEP_BOOTS: 554, SUNWARD_HELM: 555,
+  SPARKDUST: 556
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -242,6 +251,36 @@ block(B.SUN_MIRROR, "Sun Mirror", { hardness: Infinity, drops: 0, light: 3, inte
 block(B.TRAP_VENT, "Trap Vent", { hardness: Infinity, drops: 0, tex: "trap_vent", category: LOST });
 block(B.CRACKED_FLOOR, "Cracked Floor", { hardness: Infinity, drops: 0, tex: "cracked_floor", category: LOST });
 block(B.RELIC_PEDESTAL, "Relic Pedestal", { hardness: Infinity, drops: 0, light: 6, interact: "pedestal", tex: ["pedestal_top", "pedestal_side", "keeper_stone"], category: LOST });
+// ----- Milestone 12: Sparkworks (signals). Rules follow Minecraft Java Edition 1.20.1; "Sparkdust" is Blockhaven's name for redstone.
+// shape "model" blocks are drawn from small boxes (see js/shapes.js); "dust" is the flat wire.
+const MECH = "Mechanisms";
+block(B.SPARK_ORE, "Spark Ore", { hardness: 3, tool: "pick", tier: 3, drops: "spark", tex: "spark_ore", interact: "sparkore", category: "Nature" });
+block(B.DARK_SPARK_ORE, "Darkslate Spark Ore", { hardness: 4.5, tool: "pick", tier: 3, drops: "spark", tex: "dark_spark_ore", interact: "sparkore", category: LOST });
+block(B.SPARK_DUST, "Sparkdust", { shape: "dust", render: "cutout", solid: false, hardness: 0, drops: I.SPARKDUST, tex: "dust_line0", noItem: true, interact: "dust", category: MECH });
+block(B.SPARK_BLOCK, "Block of Sparkdust", { hardness: 5, tool: "pick", tier: 1, tex: "spark_block", category: MECH });
+block(B.SPARK_TORCH, "Spark Torch", { shape: "model", render: "cutout", solid: false, hardness: 0, tex: "spark_torch", category: MECH, icon: "tile:spark_torch" });
+block(B.LEVER, "Lever", { shape: "model", render: "cutout", solid: false, hardness: 0.5, interact: "lever", tex: "cobble", category: MECH, icon: "lever" });
+const WOODS = [["OAK", "Oak", "planks"], ["BIRCH", "Birch", "birch_planks"], ["CRIMSON", "Crimson", "crimson_planks"], ["WARPED", "Warped", "warped_planks"]];
+block(B.STONE_BUTTON, "Stone Button", { shape: "model", render: "cutout", solid: false, hardness: 0.5, tool: "pick", interact: "button", tex: "stone", category: MECH, icon: "button" });
+for (const [k, n, t] of WOODS) {
+  block(B[k + "_BUTTON"], n + " Button", { shape: "model", render: "cutout", solid: false, hardness: 0.5, tool: "axe", interact: "button", tex: t, category: MECH, icon: "button", wood: true });
+  block(B[k + "_PLATE"], n + " Pressure Plate", { shape: "model", render: "cutout", solid: false, hardness: 0.5, tool: "axe", tex: t, category: MECH, iconBox: 1 / 16, wood: true });
+  block(B[k + "_TRAPDOOR"], n + " Trapdoor", { shape: "model", render: "cutout", hardness: 3, tool: "axe", interact: "trapdoor", tex: "trap_" + k.toLowerCase(), category: MECH, icon: "tile:trap_" + k.toLowerCase() });
+  block(B[k + "_FENCE"], n + " Fence", { shape: "model", render: "cutout", hardness: 2, tool: "axe", tex: t, category: "Building", icon: "fence", fence: true });
+  block(B[k + "_GATE"], n + " Fence Gate", { shape: "model", render: "cutout", hardness: 2, tool: "axe", interact: "gate", tex: t, category: MECH, icon: "gate" });
+}
+block(B.STONE_PLATE, "Stone Pressure Plate", { shape: "model", render: "cutout", solid: false, hardness: 0.5, tool: "pick", tex: "stone", category: MECH, iconBox: 1 / 16 });
+block(B.GOLD_PLATE, "Light Weighted Pressure Plate", { shape: "model", render: "cutout", solid: false, hardness: 0.5, tool: "pick", tex: "gold_block", category: MECH, iconBox: 1 / 16 });
+block(B.IRON_PLATE, "Heavy Weighted Pressure Plate", { shape: "model", render: "cutout", solid: false, hardness: 0.5, tool: "pick", tex: "iron_block", category: MECH, iconBox: 1 / 16 });
+block(B.REPEATER, "Repeater", { shape: "model", render: "cutout", hardness: 0, interact: "repeater", tex: ["repeater_top", "slab_side", "slab_side"], category: MECH, iconBox: 2 / 16 });
+block(B.COMPARATOR, "Comparator", { shape: "model", render: "cutout", hardness: 0, interact: "comparator", tex: ["comparator_top", "slab_side", "slab_side"], category: MECH, iconBox: 2 / 16 });
+block(B.SPARK_LAMP, "Spark Lamp", { hardness: 0.3, tex: "lamp_off", category: MECH });
+block(B.IRON_DOOR, "Iron Door", { shape: "door", render: "cutout", hardness: 5, tool: "pick", tier: 1, interact: "irondoor", tex: "iron_door_bottom", category: MECH });
+block(B.IRON_TRAPDOOR, "Iron Trapdoor", { shape: "model", render: "cutout", hardness: 5, tool: "pick", tier: 1, interact: "irontrapdoor", tex: "trap_iron", category: MECH, icon: "tile:trap_iron" });
+block(B.NOTE_BLOCK, "Note Block", { hardness: 0.8, tool: "axe", interact: "note", tex: "note_block", category: MECH });
+block(B.TARGET, "Target", { hardness: 0.5, tool: "hoe", tex: ["target_top", "target_side", "target_top"], category: MECH });
+block(B.DAYLIGHT, "Daylight Sensor", { shape: "model", render: "cutout", hardness: 0.2, tool: "axe", interact: "daylight", tex: ["daylight_top", "daylight_side", "daylight_side"], category: MECH, iconBox: 6 / 16 });
+
 export const BEACON_BASE = [B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
 export const BLOCKS = defs;
@@ -256,7 +295,22 @@ for (const d of Object.values(defs)) {
   SOLID[d.id] = d.solid ? 1 : 0;
   EMIT[d.id] = d.light;
 }
-export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & 255];
+// ----- Sparkworks block state ("meta") layouts -----
+// Sparkdust: bits 0-3 power, DOT = drawn as a dot instead of a cross when nothing connects.
+// Spark Torch: bits 0-2 attach (0 floor, 1-4 wall: support is in direction DIR[attach-1]), UNLIT.
+// Lever and buttons: bits 0-2 attach (0 floor, 1 ceiling, 2-5 wall: support in DIR[attach-2]), AXIS_X, ON.
+// Plates, Target, Daylight Sensor: bits 0-3 power (Daylight: INVERT). Repeater: bits 0-1 facing (the way its output points), bits 2-3 delay-1, ON, LOCKED.
+// Comparator: bits 0-1 facing, SUBTRACT, ON (output is kept by the signal engine). Doors, trapdoors, gates: OPEN, TOP (door top / trapdoor upper half), POWERED.
+// Spark Ore and Spark Lamp: bit 0 = lit. Note Block: bits 0-4 pitch (0-24), NOTE_ON.
+export const DOT = 16, UNLIT = 8, AXIS_X = 8, ON = 16, INVERT = 16, LOCKED = 32, SUBTRACT = 4, CMP_ON = 8, POWERED = 16, NOTE_ON = 32;
+export const isDoor = id => id === B.DOOR || id === B.IRON_DOOR;
+export const isTrapdoor = id => id >= B.OAK_TRAPDOOR && id <= B.IRON_TRAPDOOR;
+export const isFence = id => id >= B.OAK_FENCE && id <= B.WARPED_FENCE;
+export const isGate = id => id >= B.OAK_GATE && id <= B.WARPED_GATE;
+export const isButton = id => id >= B.STONE_BUTTON && id <= B.WARPED_BUTTON;
+export const isPlate = id => id >= B.OAK_PLATE && id <= B.IRON_PLATE;
+export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
+  (idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) ? (metaOf(v) & 1 ? 9 : 0) : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & 255];
 
 // ---------- Items ----------
 const items = {};
@@ -364,6 +418,7 @@ item(I.EMBER_HEART, "Ember Heart", { icon: "ember_heart", stack: 16 });
 item(I.CINDER_CROWN, "Cinder Crown", { icon: "armor_helmet", colors: ["#e0702a"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 0, points: 4, dur: 900 }, fireproof: true });
 item(I.COMPASS, "Compass", { icon: "compass", stack: 1, category: "Tools", offhand: true });
 item(I.GOLDEN_CARROT, "Golden Carrot", { icon: "carrot", colors: ["gold"], kind: "food", food: 6, category: "Food" });
+item(I.SPARKDUST, "Sparkdust", { icon: "dust", colors: ["#ff5a2a", "#c2361a", "#ff8a4a"], category: "Mechanisms", places: B.SPARK_DUST });
 // Saturation ("fullness") from each food, following Minecraft Java Edition 1.20.1. Fullness is used up before the food bar drops.
 const SATURATION = { [I.APPLE]: 2.4, [I.BREAD]: 6, [I.CARROT]: 3.6, [I.RAW_BEEF]: 1.8, [I.STEAK]: 12.8, [I.RAW_PORK]: 1.8, [I.COOKED_PORK]: 12.8,
   [I.RAW_CHICKEN]: 1.2, [I.COOKED_CHICKEN]: 7.2, [I.RAW_MUTTON]: 1.2, [I.COOKED_MUTTON]: 9.6, [I.RAW_RABBIT]: 1.8, [I.COOKED_RABBIT]: 6,
@@ -514,6 +569,29 @@ export const RECIPES = [
   { out: [I.GOLDEN_CARROT, 1], ins: [[I.CARROT, 1], [I.GOLD_NUGGET, 8]], table: true },
   { out: [B.HOLLOW_BRICKS, 4], ins: [[B.HOLLOWSTONE, 4]], table: true },
   { out: [B.VIOLET_PILLAR, 1], ins: [[B.VIOLET_BRICKS, 2]], table: true },
+  // Sparkworks
+  { out: [B.SPARK_BLOCK, 1], ins: [[I.SPARKDUST, 9]], table: true },
+  { out: [I.SPARKDUST, 9], ins: [[B.SPARK_BLOCK, 1]] },
+  { out: [B.SPARK_TORCH, 1], ins: [[I.SPARKDUST, 1], [I.STICK, 1]] },
+  { out: [B.LEVER, 1], ins: [[I.STICK, 1], [B.COBBLE, 1]] },
+  { out: [B.STONE_BUTTON, 1], ins: [[B.STONE, 1]] },
+  { out: [B.STONE_PLATE, 1], ins: [[B.STONE, 2]], table: true },
+  { out: [B.GOLD_PLATE, 1], ins: [[I.GOLD_INGOT, 2]], table: true },
+  { out: [B.IRON_PLATE, 1], ins: [[I.IRON_INGOT, 2]], table: true },
+  ...[["OAK", B.PLANKS], ["BIRCH", B.BIRCH_PLANKS], ["CRIMSON", B.CRIMSON_PLANKS], ["WARPED", B.WARPED_PLANKS]].flatMap(([k, pl]) => [
+    { out: [B[k + "_BUTTON"], 1], ins: [[pl, 1]] },
+    { out: [B[k + "_PLATE"], 1], ins: [[pl, 2]], table: true },
+    { out: [B[k + "_TRAPDOOR"], 2], ins: [[pl, 6]], table: true },
+    { out: [B[k + "_FENCE"], 3], ins: [[pl, 4], [I.STICK, 2]], table: true },
+    { out: [B[k + "_GATE"], 1], ins: [[pl, 2], [I.STICK, 4]], table: true }]),
+  { out: [B.REPEATER, 1], ins: [[B.STONE, 3], [B.SPARK_TORCH, 2], [I.SPARKDUST, 1]], table: true },
+  { out: [B.COMPARATOR, 1], ins: [[B.STONE, 3], [B.SPARK_TORCH, 3], [I.QUARTZ, 1]], table: true },
+  { out: [B.SPARK_LAMP, 1], ins: [[I.SPARKDUST, 4], [B.SHINESTONE, 1]], table: true },
+  { out: [B.IRON_DOOR, 3], ins: [[I.IRON_INGOT, 6]], table: true },
+  { out: [B.IRON_TRAPDOOR, 1], ins: [[I.IRON_INGOT, 4]], table: true },
+  { out: [B.NOTE_BLOCK, 1], ins: [["planks", 8], [I.SPARKDUST, 1]], table: true },
+  { out: [B.TARGET, 1], ins: [[I.SPARKDUST, 4], [B.HAY, 1]], table: true },
+  { out: [B.DAYLIGHT, 1], ins: [[B.GLASS, 3], [I.QUARTZ, 3], ["planks", 3]], table: true },
   // upgrade Skyshard gear to Duskmetal (the best tier)
   ...["PICK", "AXE", "SHOVEL", "SWORD", "HOE", "HELMET", "CHEST", "LEGS", "BOOTS"].map(k => ({ out: [I["DUSK_" + k], 1], ins: [[I["SKY_" + k], 1], [I.DUSK_INGOT, 1]], table: true, upgrade: true })),
   ...["LEATHER", "GOLD", "IRON", "SKY"].flatMap(k => {
@@ -523,9 +601,12 @@ export const RECIPES = [
 ];
 export const SMELT = { [B.IRON_ORE]: I.IRON_INGOT, [B.SAND]: B.GLASS, [B.COBBLE]: B.STONE, [I.CLAY_BALL]: I.BRICK, [B.LOG]: I.COAL, [B.BIRCH_LOG]: I.COAL,
   [I.RAW_BEEF]: I.STEAK, [I.RAW_PORK]: I.COOKED_PORK, [I.RAW_CHICKEN]: I.COOKED_CHICKEN, [I.RAW_MUTTON]: I.COOKED_MUTTON, [I.RAW_RABBIT]: I.COOKED_RABBIT,
-  [B.NETHER_GOLD_ORE]: I.GOLD_INGOT, [B.QUARTZ_ORE]: I.QUARTZ, [B.ANCIENT_SCRAP]: I.DUSK_SCRAP, [B.EMBERRACK]: B.EMBER_BRICKS, [I.CHORUS_FRUIT]: B.VIOLET_BRICKS, [I.RAW_MINNOW]: I.COOKED_MINNOW };
+  [B.NETHER_GOLD_ORE]: I.GOLD_INGOT, [B.QUARTZ_ORE]: I.QUARTZ, [B.ANCIENT_SCRAP]: I.DUSK_SCRAP, [B.EMBERRACK]: B.EMBER_BRICKS, [I.CHORUS_FRUIT]: B.VIOLET_BRICKS, [I.RAW_MINNOW]: I.COOKED_MINNOW,
+  [B.SPARK_ORE]: I.SPARKDUST, [B.DARK_SPARK_ORE]: I.SPARKDUST };
 export const FUEL = { [I.COAL]: 40, [B.LOG]: 8, [B.BIRCH_LOG]: 8, [B.PLANKS]: 7, [B.BIRCH_PLANKS]: 7, [I.STICK]: 2.5, [B.TABLE]: 7, [B.CHEST]: 7,
-  [I.FLARE_ROD]: 60, [I.LAVA_BUCKET]: 100, [B.CRIMSON_PLANKS]: 7, [B.WARPED_PLANKS]: 7 };
+  [I.FLARE_ROD]: 60, [I.LAVA_BUCKET]: 100, [B.CRIMSON_PLANKS]: 7, [B.WARPED_PLANKS]: 7,
+  [B.OAK_FENCE]: 7, [B.BIRCH_FENCE]: 7, [B.OAK_GATE]: 7, [B.BIRCH_GATE]: 7, [B.OAK_TRAPDOOR]: 7, [B.BIRCH_TRAPDOOR]: 7, [B.NOTE_BLOCK]: 7, [B.DAYLIGHT]: 7,
+  [B.OAK_BUTTON]: 2.5, [B.BIRCH_BUTTON]: 2.5, [B.OAK_PLATE]: 7, [B.BIRCH_PLATE]: 7, [B.LEVER]: 1.5 };
 export const SMELT_TIME = 5;
 
 // ---------- Textures ----------
@@ -553,7 +634,13 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "gate_frame", "gate_veil", "gate_veil_open", "lumen_crystal", "dripstone", "cave_moss", "echostone", "resonant_glass", "rootwood", "rootwood_top", "tablet_top", "tablet_side", "keeper_stone",
   "lumen_grass", "lumen_grass_side", "beacon_k_top", "beacon_k_side", "lift_top", "lift_side", "mural", "anchor_top", "anchor_top_on", "anchor_s_side", "hush_carpet",
   "warden_t_top", "warden_t_side", "warden_t_front", "crown_top", "crown_side", "switch_top", "switch_top_on", "switch_side",
-  "tide_bricks", "tide_lamp", "vine_bricks", "vines", "sun_bricks", "sun_glyph", "mirror_top", "mirror_top_on", "mirror_side", "trap_vent", "cracked_floor", "pedestal_top", "pedestal_side"];
+  "tide_bricks", "tide_lamp", "vine_bricks", "vines", "sun_bricks", "sun_glyph", "mirror_top", "mirror_top_on", "mirror_side", "trap_vent", "cracked_floor", "pedestal_top", "pedestal_side",
+  // Sparkworks (the atlas grew to 16 × 32 tiles for these)
+  "spark_ore", "spark_ore_lit", "dark_spark_ore", "dark_spark_ore_lit", "spark_block", "spark_torch", "spark_torch_off", "lever_handle",
+  "dust_line0", "dust_line1", "dust_line2", "dust_line3", "dust_line4", "dust_line5", "dust_dot0", "dust_dot1", "dust_dot2", "dust_dot3", "dust_dot4", "dust_dot5",
+  "repeater_top", "repeater_top_on", "comparator_top", "comparator_top_on", "slab_side", "lamp_off", "lamp_on", "iron_door_bottom", "iron_door_top",
+  "trap_oak", "trap_birch", "trap_crimson", "trap_warped", "trap_iron", "note_block", "target_top", "target_side", "daylight_top", "daylight_inv_top", "daylight_side"];
+export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
 
@@ -571,6 +658,13 @@ export function faceTile(v, dir, front) {
   if (idOf(v) === B.SUN_MIRROR && dir === 0 && (metaOf(v) & 1)) return TILE.mirror_top_on;
   if (idOf(v) === B.ARENA_WARD && dir !== 2 && (metaOf(v) & 1)) return TILE.arena_ward_lit;
   if (idOf(v) === B.DOOR) return TILE[metaOf(v) & TOP ? "door_top" : "door_bottom"];
+  if (idOf(v) === B.IRON_DOOR) return TILE[metaOf(v) & TOP ? "iron_door_top" : "iron_door_bottom"];
+  if ((idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) && (metaOf(v) & 1)) return TILE[t + "_lit"];
+  if (idOf(v) === B.SPARK_LAMP) return TILE[metaOf(v) & 1 ? "lamp_on" : "lamp_off"];
+  if (idOf(v) === B.SPARK_TORCH) return TILE[metaOf(v) & UNLIT ? "spark_torch_off" : "spark_torch"];
+  if (idOf(v) === B.REPEATER && dir === 0) return TILE[metaOf(v) & ON ? "repeater_top_on" : "repeater_top"];
+  if (idOf(v) === B.COMPARATOR && dir === 0) return TILE[metaOf(v) & CMP_ON ? "comparator_top_on" : "comparator_top"];
+  if (idOf(v) === B.DAYLIGHT && dir === 0) return TILE[metaOf(v) & INVERT ? "daylight_inv_top" : "daylight_top"];
   if (idOf(v) === B.WHEAT || idOf(v) === B.CARROTS) return TILE[(idOf(v) === B.WHEAT ? "wheat" : "carrots") + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.FARMLAND && dir === 0) return TILE[metaOf(v) & WET ? "farmland_wet" : "farmland_dry"];
   if (idOf(v) === B.BED) return TILE[dir === 0 ? (metaOf(v) & HEAD ? "bed_head" : "bed_foot") : "bed_side"];
@@ -898,6 +992,62 @@ Object.assign(PAINT, {
   lodestone_top(P) { P.fill(["#6a6a6a", "#5e5e5e"]); P.rect(2, 2, 12, 12, "#3a3a3a"); P.rect(6, 6, 4, 4, "#d8d8d8"); P.rect(7, 4, 2, 8, "#e04030"); },
   voidchest_front(P) { PAINT.voidchest_side(P); P.rect(6, 3, 4, 5, "#3ad0a0"); P.rect(7, 5, 2, 2, "#0a2a2a"); }
 });
+// ----- Sparkworks textures (original designs) -----
+export const DUST_LEVEL = p => p <= 0 ? 0 : Math.min(5, 1 + Math.floor((p - 1) / 3));   // power 0-15 → texture 0-5
+const DUST_COLS = ["#5a1608", "#7a200c", "#9a2a10", "#c2361a", "#e2461f", "#ff5a2a"];
+const SPARK = ["#ff5a2a", "#c2361a", "#5a1608"];
+function sparkFlecks(P, lit) {
+  for (let i = 0; i < 6; i++) {
+    const x = 1 + Math.floor(P.r() * 12), y = 1 + Math.floor(P.r() * 12);
+    P.rect(x, y, 2, 2, lit ? "#ff8a4a" : SPARK[1]); P.px(x, y, lit ? "#ffd0a0" : SPARK[0]);
+    P.px(x + 2, y + 1, lit ? SPARK[0] : SPARK[2]); P.px(x - 1, y, SPARK[2]);
+  }
+}
+const IRON = ["#dcdcdc", "#d0d0d0", "#e6e6e6"];
+function trapGrid(P, pal, dark) {
+  P.fill(pal); P.rect(0, 0, 16, 1, dark); P.rect(0, 15, 16, 1, dark); P.rect(0, 0, 1, 16, dark); P.rect(15, 0, 1, 16, dark);
+  for (const [x, y] of [[3, 3], [10, 3], [3, 10], [10, 10]]) for (let yy = 0; yy < 3; yy++) for (let xx = 0; xx < 3; xx++) P.clear(x + xx, y + yy);
+  P.rect(7, 1, 2, 14, dark); P.rect(1, 7, 14, 2, dark);
+}
+Object.assign(PAINT, {
+  spark_ore(P) { PAINT.stone(P); sparkFlecks(P, false); },
+  spark_ore_lit(P) { PAINT.stone(P); sparkFlecks(P, true); },
+  dark_spark_ore(P) { PAINT.darkslate(P); sparkFlecks(P, false); },
+  dark_spark_ore_lit(P) { PAINT.darkslate(P); sparkFlecks(P, true); },
+  spark_block(P) {
+    P.fill(["#b02a12", "#a82610", "#b8301a"]); P.rect(0, 0, 16, 1, "#ff6a3a"); P.rect(0, 0, 1, 16, "#ff6a3a"); P.rect(0, 15, 16, 1, "#6a1608"); P.rect(15, 0, 1, 16, "#6a1608");
+    for (const [x, y, w, h] of [[3, 3, 6, 1], [8, 3, 1, 5], [8, 7, 5, 1], [3, 3, 1, 9], [3, 11, 8, 1], [12, 7, 1, 6]]) P.rect(x, y, w, h, "#ff8a4a");
+    for (const [x, y] of [[3, 3], [8, 7], [12, 12], [10, 11]]) P.rect(x, y, 1, 1, "#ffe0b0");
+  },
+  spark_torch(P) { P.rect(7, 8, 2, 8, "#6a4a2a"); P.rect(7, 8, 1, 8, "#8a6235"); P.rect(7, 6, 2, 2, "#ff5a2a"); P.px(7, 6, "#ffd0a0"); P.px(6, 5, "rgba(255,120,60,.8)"); P.px(9, 5, "rgba(255,120,60,.8)"); },
+  spark_torch_off(P) { P.rect(7, 8, 2, 8, "#6a4a2a"); P.rect(7, 8, 1, 8, "#8a6235"); P.rect(7, 6, 2, 2, "#5a1a10"); P.px(7, 6, "#7a2a1a"); },
+  lever_handle(P) { P.rect(7, 8, 2, 8, "#8a6235"); P.rect(8, 8, 1, 8, "#6a4825"); P.rect(7, 6, 2, 2, "#5a5a5a"); },
+  slab_side(P) { P.fill(["#a8a8a8", "#a2a2a2", "#aeaeae"]); P.rect(0, 0, 16, 1, "#c8c8c8"); P.rect(0, 15, 16, 1, "#7a7a7a"); },
+  repeater_top(P) { PAINT.slab_side(P); P.fill(["#a8a8a8", "#a2a2a2"]); P.rect(7, 1, 2, 14, "#5a1608"); P.rect(5, 12, 6, 1, "#5a1608"); P.rect(6, 13, 4, 1, "#5a1608"); P.rect(0, 0, 16, 1, "#8a8a8a"); P.rect(0, 15, 16, 1, "#8a8a8a"); },
+  repeater_top_on(P) { PAINT.repeater_top(P); P.rect(7, 1, 2, 14, "#ff5a2a"); P.rect(5, 12, 6, 1, "#ff5a2a"); P.rect(6, 13, 4, 1, "#ff5a2a"); },
+  comparator_top(P) { P.fill(["#a8a8a8", "#a2a2a2"]); P.rect(4, 2, 1, 10, "#5a1608"); P.rect(11, 2, 1, 10, "#5a1608"); P.rect(4, 11, 8, 1, "#5a1608"); P.rect(7, 11, 2, 3, "#5a1608"); P.rect(0, 0, 16, 1, "#8a8a8a"); P.rect(0, 15, 16, 1, "#8a8a8a"); },
+  comparator_top_on(P) { PAINT.comparator_top(P); P.rect(4, 2, 1, 10, "#ff5a2a"); P.rect(11, 2, 1, 10, "#ff5a2a"); P.rect(4, 11, 8, 1, "#ff5a2a"); P.rect(7, 11, 2, 3, "#ff5a2a"); },
+  lamp_off(P) { P.fill(["#5a3a1e", "#62421f", "#523418"]); P.rect(0, 0, 16, 2, "#3a2614"); P.rect(0, 14, 16, 2, "#3a2614"); P.rect(0, 0, 2, 16, "#3a2614"); P.rect(14, 0, 2, 16, "#3a2614"); P.rect(7, 2, 2, 12, "#3a2614"); P.rect(2, 7, 12, 2, "#3a2614"); },
+  lamp_on(P) { P.fill(["#ffd86a", "#ffe08a", "#f8c850"]); P.rect(5, 5, 6, 6, "#fff4c8"); P.rect(0, 0, 16, 2, "#8a5a2a"); P.rect(0, 14, 16, 2, "#8a5a2a"); P.rect(0, 0, 2, 16, "#8a5a2a"); P.rect(14, 0, 2, 16, "#8a5a2a"); P.rect(7, 2, 2, 12, "#c88a3a"); P.rect(2, 7, 12, 2, "#c88a3a"); },
+  iron_door_bottom(P) { P.fill(IRON); P.rect(0, 0, 1, 16, "#a0a0a0"); P.rect(15, 0, 1, 16, "#a0a0a0"); P.rect(0, 15, 16, 1, "#a0a0a0"); P.rect(3, 3, 10, 10, "#c8c8c8"); for (const [x, y] of [[2, 2], [13, 2], [2, 13], [13, 13]]) P.px(x, y, "#8a8a8a"); P.rect(11, 6, 2, 1, "#6a6a6a"); },
+  iron_door_top(P) { P.fill(IRON); P.rect(0, 0, 1, 16, "#a0a0a0"); P.rect(15, 0, 1, 16, "#a0a0a0"); P.rect(0, 0, 16, 1, "#a0a0a0"); for (const [x, y] of [[3, 3], [9, 3], [3, 9], [9, 9]]) for (let yy = 0; yy < 4; yy++) for (let xx = 0; xx < 4; xx++) P.clear(x + xx, y + yy); },
+  trap_oak(P) { trapGrid(P, PLANK, "#7d5a30"); },
+  trap_birch(P) { trapGrid(P, ["#d8c890", "#cfbe84", "#e0d29c"], "#9a8a5a"); },
+  trap_crimson(P) { trapGrid(P, ["#7a3a50", "#6e3448", "#864258"], "#4a1e2e"); },
+  trap_warped(P) { trapGrid(P, ["#2a7a74", "#26706a", "#2e847e"], "#164a46"); },
+  trap_iron(P) { trapGrid(P, IRON, "#9a9a9a"); },
+  note_block(P) { P.fill(["#5a3a22", "#62402a", "#523420"]); P.rect(0, 0, 16, 1, "#3a2414"); P.rect(0, 15, 16, 1, "#3a2414"); P.rect(9, 3, 1, 8, "#1e120a"); P.rect(10, 3, 3, 1, "#1e120a"); P.rect(12, 4, 1, 2, "#1e120a"); P.rect(6, 10, 4, 3, "#1e120a"); },
+  target_side(P) { P.fill(["#e8e0c8", "#f0e8d4"]); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const d = Math.hypot(x - 7.5, y - 7.5); if (d < 2) P.px(x, y, "#d8302a"); else if (d > 3.5 && d < 5.5) P.px(x, y, "#d8302a"); else if (d > 7) P.px(x, y, P.pick(["#d8c070", "#c8b060"])); } },
+  target_top(P) { PAINT.target_side(P); },
+  daylight_side(P) { P.fill(PLANK); P.rect(0, 0, 16, 10, "rgba(0,0,0,0)"); for (let y = 0; y < 10; y++) for (let x = 0; x < 16; x++) P.clear(x, y); P.rect(0, 10, 16, 1, "#7d5a30"); },
+  daylight_top(P) { P.fill(["#c8d8e0"]); P.rect(1, 1, 14, 14, "#5a8ab8"); for (const [x, y] of [[1, 1], [8, 1], [1, 8], [8, 8]]) P.rect(x + 1, y + 1, 5, 5, "#7ab0d8"); P.rect(7, 1, 2, 14, "#e8e4d8"); P.rect(1, 7, 14, 2, "#e8e4d8"); },
+  daylight_inv_top(P) { P.fill(["#c8d8e0"]); P.rect(1, 1, 14, 14, "#3a2a5a"); for (const [x, y] of [[1, 1], [8, 1], [1, 8], [8, 8]]) P.rect(x + 1, y + 1, 5, 5, "#5a3a8a"); P.rect(7, 1, 2, 14, "#e8e4d8"); P.rect(1, 7, 14, 2, "#e8e4d8"); }
+});
+for (let k = 0; k < 6; k++) {
+  const c = DUST_COLS[k], hi = DUST_COLS[Math.min(5, k + 1)];
+  PAINT["dust_line" + k] = P => { P.rect(0, 6, 16, 4, c); for (let x = 0; x < 16; x += 3) P.px(x, 7, hi); P.rect(0, 6, 16, 1, DUST_COLS[Math.max(0, k - 1)]); };
+  PAINT["dust_dot" + k] = P => { for (let y = 4; y < 12; y++) for (let x = 4; x < 12; x++) if ((x - 7.5) ** 2 + (y - 7.5) ** 2 < 11) P.px(x, y, (x + y) % 3 ? c : hi); };
+}
 function crop(P, h, pal) { for (let x = 1; x < 16; x += 2) { const hh = Math.max(2, h - Math.floor(P.r() * 3)); for (let y = 15; y > 15 - hh; y--) P.px(x + (y % 3 === 0 ? 0 : 0), y, P.pick(pal)); } }
 function oreSpots(P, pal) { for (let i = 0; i < 5; i++) { const x = 1 + Math.floor(P.r() * 12), y = 1 + Math.floor(P.r() * 12); P.px(x, y, pal[0]); P.px(x + 1, y, pal[1]); P.px(x, y + 1, pal[1]); if (P.r() < 0.7) P.px(x + 1, y + 1, pal[2]); } }
 function stem(P) { P.rect(7, 6, 2, 10, "#3f8a2c"); P.px(6, 11, "#4f9a33"); P.px(9, 9, "#4f9a33"); P.px(5, 10, "#4f9a33"); }
@@ -911,13 +1061,13 @@ for (let s = 0; s < 8; s++) {
 let atlasCanvas = null;
 export function buildAtlas() {
   if (atlasCanvas) return atlasCanvas;
-  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const c = document.createElement("canvas"); c.width = ATLAS_W; c.height = ATLAS_H;
   const ctx = c.getContext("2d");
   TILE_NAMES.forEach((name, i) => PAINT[name](painter(ctx, (i % 16) * 16, Math.floor(i / 16) * 16, i + 1)));
   atlasCanvas = c;
   return c;
 }
-export const tileUV = t => [(t % 16) / 16, Math.floor(t / 16) / 16];
+export const tileUV = t => [(t % 16) / 16, Math.floor(t / 16) * 16 / ATLAS_H];
 
 // ---------- Item pictures (inventory icons) ----------
 const ICON_PAINT = {
@@ -1003,6 +1153,14 @@ Object.assign(ICON_PAINT, {
   compass(P) { for (let y = 2; y < 15; y++) for (let x = 2; x < 15; x++) { const d = (x - 8.5) ** 2 + (y - 8.5) ** 2; if (d < 42) P.px(x, y, d > 30 ? "#8a8a8a" : "#e8e8e8"); } P.rect(8, 4, 1, 5, "#e04030"); P.rect(8, 9, 1, 4, "#3a3a3a"); P.px(8, 8, "#222"); },
   totem(P) { P.rect(5, 1, 6, 5, "#f0c020"); P.rect(6, 3, 1, 1, "#3ad07a"); P.rect(9, 3, 1, 1, "#3ad07a"); P.rect(4, 6, 8, 6, "#e0b018"); P.rect(2, 7, 2, 3, "#e0b018"); P.rect(12, 7, 2, 3, "#e0b018"); P.rect(6, 7, 4, 2, "#3ad07a"); P.rect(5, 12, 2, 3, "#c89a14"); P.rect(9, 12, 2, 3, "#c89a14"); P.rect(5, 1, 6, 1, "#fff2a0"); }
 });
+// colors for wooden (and stone) mechanism icons, by the block's texture
+const WOOD_ICON = { planks: ["#b98d55", "#7d5a30"], birch_planks: ["#d8c890", "#9a8a5a"], crimson_planks: ["#7a3a50", "#4a1e2e"], warped_planks: ["#2a7a74", "#164a46"], stone: ["#9a9a9a", "#6a6a6a"], cobble: ["#8a8a8a", "#5a5a5a"] };
+Object.assign(ICON_PAINT, {
+  lever(P) { P.rect(4, 11, 8, 3, "#8a8a8a"); P.rect(4, 13, 8, 1, "#5a5a5a"); for (let i = 0; i < 8; i++) { P.px(7 + Math.floor(i / 2), 11 - i, "#8a6235"); P.px(8 + Math.floor(i / 2), 11 - i, "#6a4825"); } P.rect(10, 2, 2, 2, "#5a5a5a"); },
+  button(P, c) { P.rect(5, 6, 6, 4, c[0]); P.rect(5, 9, 6, 1, c[1]); P.rect(5, 6, 6, 1, "rgba(255,255,255,.35)"); },
+  fence(P, c) { for (const x of [2, 12]) { P.rect(x, 2, 3, 13, c[0]); P.rect(x + 2, 2, 1, 13, c[1]); } P.rect(5, 4, 7, 2, c[0]); P.rect(5, 9, 7, 2, c[0]); P.rect(5, 5, 7, 1, c[1]); P.rect(5, 10, 7, 1, c[1]); },
+  gate(P, c) { for (const x of [1, 13]) { P.rect(x, 2, 2, 12, c[1]); } P.rect(3, 3, 10, 2, c[0]); P.rect(3, 10, 10, 2, c[0]); P.rect(5, 5, 2, 5, c[0]); P.rect(9, 5, 2, 5, c[0]); }
+});
 function blob(P, pal) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) { const dx = x - 8, dy = y - 8.5; if (dx * dx + dy * dy < 16 + P.r() * 6) P.px(x, y, P.pick(pal)); } }
 function handle(P) { for (let i = 0; i < 10; i++) P.px(3 + i, 14 - i, i % 2 ? "#6a4825" : "#8a6235"); }
 
@@ -1014,16 +1172,23 @@ export function iconCanvas(id) {
   const ctx = c.getContext("2d"); ctx.imageSmoothingEnabled = false;
   const d = itemDef(id);
   if (!d) return c;
-  if (d.kind !== "block") {
+  const bdi = d.kind === "block" ? BLOCKS[id] : null;
+  if (d.kind !== "block" || (bdi.icon && !bdi.icon.startsWith("tile:"))) {
     const s = document.createElement("canvas"); s.width = s.height = 16;
-    ICON_PAINT[d.icon](painter(s.getContext("2d"), 0, 0, id), d.colors);
+    ICON_PAINT[d.icon || bdi.icon](painter(s.getContext("2d"), 0, 0, id), d.colors || (bdi && WOOD_ICON[bdi.tex]));
     ctx.drawImage(s, 0, 0, 32, 32);
   } else {
     const bd = BLOCKS[id], atlas = buildAtlas();
     const tileAt = t => [(t % 16) * 16, Math.floor(t / 16) * 16];
-    if (bd.shape !== "cube" && bd.shape !== "water") {
-      const [sx, sy] = tileAt(faceTile(make(id, id === B.DOOR ? 0 : 0), 1));
-      if (id === B.DOOR) { const [tx, ty] = tileAt(TILE.door_top); ctx.drawImage(atlas, tx, ty, 16, 16, 8, 0, 16, 16); ctx.drawImage(atlas, sx, sy, 16, 16, 8, 16, 16, 16); }
+    if (bd.icon) { const [sx, sy] = tileAt(TILE[bd.icon.slice(5)]); ctx.drawImage(atlas, sx, sy, 16, 16, 0, 0, 32, 32); }
+    else if (bd.iconBox) {   // a thin box (plates, repeaters, sensors)
+      const h = bd.iconBox * 16, top = tileAt(faceTile(make(id), 0)), side = tileAt(faceTile(make(id), 1)), dy = 16 - h;
+      ctx.save(); ctx.setTransform(1, 0.5, -1, 0.5, 16, dy); ctx.drawImage(atlas, top[0], top[1], 16, 16, 0, 0, 16, 16); ctx.restore();
+      ctx.save(); ctx.setTransform(1, 0.5, 0, 1, 0, 8 + dy); ctx.drawImage(atlas, side[0], side[1] + 16 - h, 16, h, 0, 0, 16, h); ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.fillRect(0, 0, 16, h); ctx.restore();
+      ctx.save(); ctx.setTransform(1, -0.5, 0, 1, 16, 16 + dy); ctx.drawImage(atlas, side[0], side[1] + 16 - h, 16, h, 0, 0, 16, h); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(0, 0, 16, h); ctx.restore();
+    } else if (bd.shape !== "cube" && bd.shape !== "water") {
+      const [sx, sy] = tileAt(faceTile(make(id, 0), 1));
+      if (id === B.DOOR || id === B.IRON_DOOR) { const [tx, ty] = tileAt(TILE[id === B.DOOR ? "door_top" : "iron_door_top"]); ctx.drawImage(atlas, tx, ty, 16, 16, 8, 0, 16, 16); ctx.drawImage(atlas, sx, sy, 16, 16, 8, 16, 16, 16); }
       else ctx.drawImage(atlas, sx, sy, 16, 16, 0, 0, 32, 32);
     } else {
       // little 3D cube: top, left side, right side

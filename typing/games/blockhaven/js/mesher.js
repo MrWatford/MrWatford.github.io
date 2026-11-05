@@ -1,7 +1,8 @@
 // Turns a chunk's blocks into triangles the graphics card can draw.
 // Only faces that touch air (or see-through blocks) are drawn, and each corner gets
 // sunlight, torchlight, and soft corner shadows.
-import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD } from "./blocks.js";
+import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL } from "./blocks.js";
+import { model, dustConn, dustPoints } from "./shapes.js";
 import { chunkKey } from "./world.js";
 
 const M = 8, RW = CHUNK + 2 * M, AREA = RW * RW, SIZE = AREA * HEIGHT;
@@ -41,8 +42,8 @@ function quad(buf, pts, tile, uvs, lights) {
   const p = buf.n * 12, u = buf.n * 8, tx = (tile % 16) * 16, ty = Math.floor(tile / 16) * 16;
   for (let k = 0; k < 4; k++) {
     buf.pos[p + k * 3] = pts[k][0]; buf.pos[p + k * 3 + 1] = pts[k][1]; buf.pos[p + k * 3 + 2] = pts[k][2];
-    buf.uv[u + k * 2] = (tx + 0.02 + uvs[k][0] * 15.96) / 256;
-    buf.uv[u + k * 2 + 1] = 1 - (ty + 0.02 + (1 - uvs[k][1]) * 15.96) / 256;
+    buf.uv[u + k * 2] = (tx + 0.02 + uvs[k][0] * 15.96) / ATLAS_W;
+    buf.uv[u + k * 2 + 1] = 1 - (ty + 0.02 + (1 - uvs[k][1]) * 15.96) / ATLAS_H;
     buf.lt[p + k * 3] = lights[k][0]; buf.lt[p + k * 3 + 1] = lights[k][1]; buf.lt[p + k * 3 + 2] = lights[k][2];
   }
   buf.n++;
@@ -204,6 +205,13 @@ export function buildChunk(world, chunk, fancy) {
     } else if (def.shape === "head") {   // a small block sitting on the ground (skulls)
       const box = [0.25, 0, 0.25, 0.75, 0.5, 0.75], tile = faceTile(v, 1), l = [sky[i] / 15, blk[i] / 15, 1];
       for (const F of FACES) quad(solidBuf, F.c.map(p => [x + (p[0] ? box[3] : box[0]), y + (p[1] ? box[4] : box[1]), z + (p[2] ? box[5] : box[2])]), tile, UV, [l, l, l, l].map(q => [q[0], q[1], F.shade]));
+    } else if (def.shape === "dust") {
+      const get = (dx, dy, dz) => { const yy = y + dy; return yy < 0 ? B.BEDROCK : yy >= HEIGHT ? 0 : vals[ri(x + dx, yy, z + dz)]; };
+      drawDust(v, get, x, y, z, sky[i], blk[i]);
+    } else if (def.shape === "model") {
+      const get = (dx, dy, dz) => { const yy = y + dy; return yy < 0 ? B.BEDROCK : yy >= HEIGHT ? 0 : vals[ri(x + dx, yy, z + dz)]; };
+      const mo = model(v, get), ls = sky[i] / 15, lb = blk[i] / 15;
+      if (mo) { drawModel(mo, x, y, z, ls, lb); if (mo.arms) for (const a of mo.arms) drawModel(a, x, y, z, ls, lb); }
     } else if (def.shape === "door") {
       const meta = metaOf(v), box = doorBox(meta), tile = faceTile(v, 1), l = [sky[i] / 15, blk[i] / 15, 1];
       for (const F of FACES) {
@@ -214,6 +222,64 @@ export function buildChunk(world, chunk, fancy) {
     }
   }
   return { solid: pack(solidBuf), water: pack(waterBuf) };
+}
+
+// ----- Sparkworks shapes -----
+// Texture position (u, v) for a point on a box face, from the point's position in the model's own space, so textures are cropped, not squashed
+function uvFor(f, lx, ly, lz) {
+  switch (f) { case 0: return [1 - lz, ly]; case 1: return [lz, ly]; case 2: return [lx, 1 - lz]; case 3: return [lx, lz]; case 4: return [lx, ly]; default: return [1 - lx, ly]; }
+}
+const SHADE = [0.75, 0.75, 1, 0.5, 0.88, 0.88];
+function drawModel(mo, x, y, z, ls, lb) {
+  for (const part of mo.parts) {
+    const b = part.b, sh = part.shear;
+    for (let f = 0; f < 6; f++) {
+      const F = FACES[f], pts = [], uvs = [];
+      for (const c of F.c) {
+        const lx = c[0] ? b[3] : b[0], ly = c[1] ? b[4] : b[1], lz = c[2] ? b[5] : b[2];
+        let px = lx, pz = lz;
+        if (sh) { px += sh[0] * (ly - b[1]); pz += sh[1] * (ly - b[1]); }
+        const w = mo.T([px, ly, pz]);
+        pts.push([x + w[0], y + w[1], z + w[2]]);
+        uvs.push(uvFor(f, lx, ly, lz));
+      }
+      // shade by which way the face ends up pointing
+      const ax = pts[1][0] - pts[0][0], ay = pts[1][1] - pts[0][1], az = pts[1][2] - pts[0][2], bx = pts[3][0] - pts[0][0], by = pts[3][1] - pts[0][1], bz = pts[3][2] - pts[0][2];
+      const nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx, anx = Math.abs(nx), any = Math.abs(ny), anz = Math.abs(nz);
+      const shade = any >= anx && any >= anz ? (ny > 0 ? SHADE[2] : SHADE[3]) : anx >= anz ? SHADE[0] : SHADE[4];
+      const l = [ls, lb, shade], tile = part.tiles[f === 2 ? 0 : f === 3 ? 2 : 1];
+      quad(solidBuf, pts, tile, uvs, [l, l, l, l]);
+    }
+  }
+}
+// Sparkdust: flat lines on the floor (and up the side of a block it climbs). Brighter the stronger the signal.
+function drawDust(v, get, x, y, z, s, b) {
+  const power = metaOf(v) & 15, k = DUST_LEVEL(power), line = TILE["dust_line" + k], dot = TILE["dust_dot" + k];
+  const conn = dustConn(get), pts = dustPoints(v, conn), h = y + 1 / 64;
+  const l = [s / 15, Math.max(b / 15, power ? 0.3 + power / 40 : 0), 1], L = [l, l, l, l];
+  const flat = (x0, z0, x1, z1, tile, alongZ) => {
+    const q = [[x + x0, h, z + z1], [x + x1, h, z + z1], [x + x1, h, z + z0], [x + x0, h, z + z0]];
+    const uv = q.map(p => { const lx = p[0] - x, lz = p[2] - z; return alongZ ? [lz, lx] : [lx, 1 - lz]; });
+    quad(solidBuf, q, tile, uv, L);
+  };
+  const n = pts.reduce((a, c) => a + c, 0), straight = n === 2 && pts[0] === pts[2];
+  if (pts[1]) flat(0.5, 0, 1, 1, line, false);
+  if (pts[3]) flat(0, 0, 0.5, 1, line, false);
+  if (pts[0]) flat(0, 0.5, 1, 1, line, true);
+  if (pts[2]) flat(0, 0, 1, 0.5, line, true);
+  if (!straight) flat(0, 0, 1, 1, dot, false);
+  // climbing up the side of a block
+  const e = 0.01;
+  for (let d = 0; d < 4; d++) {
+    if (conn[d] !== 2) continue;
+    let q;
+    if (d === 0) q = [[1, 0, 1 - e], [0, 0, 1 - e], [0, 1, 1 - e], [1, 1, 1 - e]];
+    else if (d === 1) q = [[1 - e, 0, 0], [1 - e, 0, 1], [1 - e, 1, 1], [1 - e, 1, 0]];
+    else if (d === 2) q = [[0, 0, e], [1, 0, e], [1, 1, e], [0, 1, e]];
+    else q = [[e, 0, 1], [e, 0, 0], [e, 1, 0], [e, 1, 1]];
+    const uv = q.map(p => d % 2 ? [p[1], p[2]] : [p[1], p[0]]);
+    quad(solidBuf, q.map(p => [x + p[0], y + p[1], z + p[2]]), line, uv, L);
+  }
 }
 
 // The thin slab a door takes up inside its block: [x0, y0, z0, x1, y1, z1]

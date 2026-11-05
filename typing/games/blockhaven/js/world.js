@@ -1,5 +1,5 @@
 // Holds the blocks of the world in 16×16 columns ("chunks") and remembers every change the player makes.
-import { B, CHUNK, HEIGHT, idOf } from "./blocks.js";
+import { B, CHUNK, HEIGHT, idOf, lightOf } from "./blocks.js";
 import { idx, CURRENT_GEN } from "./worldgen.js";
 
 export const chunkKey = (cx, cz) => cx + "," + cz;
@@ -17,6 +17,7 @@ export class World {
     this.crops = new Set();        // "x,y,z" of crops and saplings that grow over time
     this.editCount = 0;            // bumps on every block change (creatures re-plan their paths)
     this.onLoad = null; this.onUnload = null;
+    this.onSet = null;            // the signal engine listens for every block change
   }
   // [sky light, torch light] at a block, if that chunk has been drawn
   lightAt(x, y, z) {
@@ -63,24 +64,28 @@ export class World {
   id(x, y, z) { return idOf(this.get(x, y, z)); }
   isLoaded(x, z) { return !!this.chunkAt(x, z); }
 
-  set(x, y, z, v) {
+  // soft = only the block's state changed (a wire's power, a lamp turning on): its shape and collision stay the same,
+  // so creatures don't need new paths and the chunk is redrawn at most a few times a second.
+  set(x, y, z, v, soft) {
     if (y < 0 || y >= HEIGHT) return false;
     const cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK), key = chunkKey(cx, cz);
     const c = this.chunks.get(key);
     if (!c) return false;
-    const i = idx(x - cx * CHUNK, y, z - cz * CHUNK);
+    const i = idx(x - cx * CHUNK, y, z - cz * CHUNK), old = c.data[i];
     c.data[i] = v;
     let m = this.mods.get(key);
     if (!m) { m = new Map(); this.mods.set(key, m); }
     m.set(i, v);
-    this.editCount++;
-    // this chunk and the neighbors whose light could change need new shapes
-    c.dirty = true; c.urgent = true; this.dirtyQueue.add(c);
-    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+    const lightChanged = lightOf(old) !== lightOf(v);
+    if (soft) { c.dirty = true; c.soft = true; this.dirtyQueue.add(c); }
+    else { this.editCount++; c.dirty = true; c.urgent = true; this.dirtyQueue.add(c); }
+    // the neighbors whose light could change need new shapes
+    if (!soft || lightChanged) for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
       if (!dx && !dz) continue;
       const n = this.chunks.get(chunkKey(cx + dx, cz + dz));
-      if (n) { n.dirty = true; this.dirtyQueue.add(n); }
+      if (n) { n.dirty = true; if (soft) n.soft = true; this.dirtyQueue.add(n); }
     }
+    if (this.onSet && old !== v) this.onSet(x, y, z, v, old);
     return true;
   }
 

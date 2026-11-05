@@ -1,5 +1,6 @@
 // Player body: walking, jumping, crouching, swimming, flying, and bumping into blocks.
-import { B, SOLID, idOf, metaOf, TOP } from "./blocks.js";
+import { B, SOLID, idOf, metaOf, TOP, isDoor } from "./blocks.js";
+import { shapeBoxes } from "./shapes.js";
 const LOW = { [B.BED]: 9 / 16, [B.FARMLAND]: 15 / 16 };   // blocks shorter than a full cube
 import { doorBox } from "./mesher.js";
 
@@ -7,10 +8,14 @@ export const GRAVITY = 26, JUMP = 8.2, REACH = 5;
 const EPS = 1e-4;
 
 // Collision boxes of the block at (x, y, z), in world coordinates
-export function blockBoxes(v, x, y, z, out) {
+// world is optional: fences need it to know which way they connect
+export function blockBoxes(v, x, y, z, out, world) {
   const id = idOf(v);
-  if (id === B.DOOR) { const b = doorBox(metaOf(v)); out.push([x + b[0], y + b[1], z + b[2], x + b[3], y + b[4], z + b[5]]); return; }
-  if (SOLID[id]) out.push([x, y, z, x + 1, y + (LOW[id] || 1), z + 1]);
+  if (isDoor(id)) { const b = doorBox(metaOf(v)); out.push([x + b[0], y + b[1], z + b[2], x + b[3], y + b[4], z + b[5]]); return; }
+  if (!SOLID[id]) return;
+  const sb = shapeBoxes(v, world ? (dx, dy, dz) => world.get(x + dx, y + dy, z + dz) : null);
+  if (sb) { for (const b of sb) out.push([x + b[0], y + b[1], z + b[2], x + b[3], y + b[4], z + b[5]]); return; }
+  out.push([x, y, z, x + 1, y + (LOW[id] || 1), z + 1]);
 }
 
 export class Player {
@@ -30,7 +35,7 @@ export class Player {
     const out = [];
     for (let y = Math.floor(a[1]) - 1; y <= Math.floor(a[4]); y++)
       for (let z = Math.floor(a[2]); z <= Math.floor(a[5]); z++)
-        for (let x = Math.floor(a[0]); x <= Math.floor(a[3]); x++) blockBoxes(world.get(x, y, z), x, y, z, out);
+        for (let x = Math.floor(a[0]); x <= Math.floor(a[3]); x++) blockBoxes(world.get(x, y, z), x, y, z, out, world);
     return out;
   }
   collides(world, a) {
@@ -121,7 +126,13 @@ export class Player {
       if (!d) continue;
       const before = p[axis];
       p[axis] += d;
-      if (this.collides(world, this.aabb())) { if (this.gliding) crash = Math.max(crash, Math.abs(v[axis])); p[axis] = before; v[axis] = 0; continue; }
+      const bump = this.collides(world, this.aabb());
+      if (bump) {
+        // step up onto something low (a repeater, a sensor, a bed) like Minecraft's 0.6-block step
+        const rise = bump[4] - p.y;
+        if ((wasGround || this.onGround) && !this.flying && rise > 0 && rise <= 0.6 && !this.collides(world, this.aabb(p.x, p.y + rise + EPS, p.z))) { p.y += rise + EPS; continue; }
+        if (this.gliding) crash = Math.max(crash, Math.abs(v[axis])); p[axis] = before; v[axis] = 0; continue;
+      }
       // crouching keeps you from walking off edges
       if (this.crouch && wasGround && !this.flying) {
         const a = this.aabb(); a[1] -= 0.6; a[4] = p.y;
@@ -155,7 +166,7 @@ export function raycast(world, o, d, maxDist, skipWater = true) {
   for (let i = 0; i < 64 && t <= maxDist; i++) {
     const v = world.get(x, y, z), id = idOf(v);
     if (id && !(skipWater && id === B.WATER) && !(id === B.BEDROCK && !world.isLoaded(x, z))) {
-      if (id !== B.DOOR || doorHit(v, x, y, z, o, d)) return { x, y, z, nx, ny, nz, v, dist: t };
+      if (!isDoor(id) || doorHit(v, x, y, z, o, d)) return { x, y, z, nx, ny, nz, v, dist: t };
     }
     if (tx < ty && tx < tz) { x += sx; t = tx; tx += tdx; nx = -sx; ny = 0; nz = 0; }
     else if (ty < tz) { y += sy; t = ty; ty += tdy; nx = 0; ny = -sy; nz = 0; }

@@ -314,7 +314,7 @@ export const UI = {
         <p class="help">Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore.</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (G.mode === "creative") {
-      const cats = ["All", "Building", "Nature", "Useful", "Village", "Tools", "Food", "Items", "Ember Depths", "The Hollow", "Creatures"];
+      const cats = ["All", "Building", "Nature", "Useful", "Mechanisms", "Village", "Tools", "Food", "Items", "Ember Depths", "The Hollow", "Creatures"];
       const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || d.category === creativeCat) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
       left = `<div class="inv-card"><h3>Every block <span class="note" style="color:#444">Click to grab a stack</span></h3>
         <div class="filters"><input id="cSearch" placeholder="Search blocks…" value="${escapeAttr(creativeSearch)}">${cats.map(c => `<button class="chip-btn" data-cat="${c}" aria-pressed="${c === creativeCat}">${c}</button>`).join("")}</div>

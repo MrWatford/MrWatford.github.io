@@ -1,7 +1,9 @@
 // Blockhaven: the game loop, 3D drawing, controls, mining and building, survival rules, and saving.
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
-  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX } from "./blocks.js";
+  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor } from "./blocks.js";
+import { initRedstone } from "./redstone.js";
+import { selectBox } from "./shapes.js";
 import { Entities, SPECIES, TRADES } from "./entities.js";
 import { Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
@@ -81,7 +83,7 @@ function setBoxUV(geo, tileFor) {
   const uv = geo.attributes.uv;
   for (let f = 0; f < 6; f++) {
     const t = tileFor(f), tx = (t % 16) * 16, ty = Math.floor(t / 16) * 16;
-    for (let k = 0; k < 4; k++) { const i = f * 4 + k, u = uv.getX(i), v = uv.getY(i); uv.setXY(i, (tx + 0.02 + u * 15.96) / 256, 1 - (ty + 0.02 + (1 - v) * 15.96) / 256); }
+    for (let k = 0; k < 4; k++) { const i = f * 4 + k, u = uv.getX(i), v = uv.getY(i); uv.setXY(i, (tx + 0.02 + u * 15.96) / ATLAS_W, 1 - (ty + 0.02 + (1 - v) * 15.96) / ATLAS_H); }
   }
   uv.needsUpdate = true;
 }
@@ -95,11 +97,11 @@ pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3)); pGeo.setAttri
 const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.09, vertexColors: true }));
 particles.frustumCulled = false; scene.add(particles);
 const tileColor = (() => {
-  const atlas = buildAtlas(), data = atlas.getContext("2d").getImageData(0, 0, 256, 256).data, cache = {};
+  const atlas = buildAtlas(), data = atlas.getContext("2d").getImageData(0, 0, ATLAS_W, ATLAS_H).data, cache = {};
   return t => {
     if (cache[t]) return cache[t];
     let r = 0, g = 0, b = 0, n = 0; const tx = (t % 16) * 16, ty = Math.floor(t / 16) * 16;
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const i = ((ty + y) * 256 + tx + x) * 4; if (data[i + 3] > 100) { r += data[i]; g += data[i + 1]; b += data[i + 2]; n++; } }
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const i = ((ty + y) * ATLAS_W + tx + x) * 4; if (data[i + 3] > 100) { r += data[i]; g += data[i + 1]; b += data[i + 2]; n++; } }
     return (cache[t] = n ? [r / n / 255, g / n / 255, b / n / 255] : [0.5, 0.5, 0.5]);
   };
 })();
@@ -231,15 +233,23 @@ const ents = new Entities(scene, {
   openTrade: e => openPanel("trade", e.uid),
   mount: e => mount(e), riding: () => !!G.riding, boating: () => !!(G.riding && G.riding.def.boat),
   itemMesh: (id, size) => itemMesh(id, size),
+  hitBlock: (pr, bx, by, bz, x, y, z) => R.projectileHit(pr, bx, by, bz, x, y, z),
   // Pouncers pick up food lying on the ground
   nearDrop: (pos, r) => G.drops.find(d => d.pickDelay <= 0 && itemDef(d.id).kind === "food" && Math.abs(d.y - pos.y) < 1.5 && Math.hypot(d.x - pos.x, d.z - pos.z) < r),
   takeDrop: d => { d.n--; if (d.n <= 0) { removeDrop(d); G.drops.splice(G.drops.indexOf(d), 1); } return d.id; },
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
-const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], pale: [0.88, 0.94, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
+const PUFF_COLORS = { spark: [1, 0.32, 0.1], poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], pale: [0.88, 0.94, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
+// a musical note floating up from a note block, colored by its pitch (green → red → blue → green, like a color wheel)
+function noteFx(x, y, z, pitch) {
+  const h = pitch / 24, c = [Math.max(0, Math.sin((h + 0.0) * Math.PI * 2) * 0.5 + 0.5), Math.max(0, Math.sin((h + 0.33) * Math.PI * 2) * 0.5 + 0.5), Math.max(0, Math.sin((h + 0.66) * Math.PI * 2) * 0.5 + 0.5)];
+  for (let i = 0; i < 4; i++) { if (parts.length >= PMAX) parts.shift(); parts.push({ x: x + (Math.random() - 0.5) * 0.15, y: y + i * 0.05, z: z + (Math.random() - 0.5) * 0.15, vx: 0, vy: 0.9, vz: 0, life: 0.7, floaty: true, c }); }
+}
+// which of the 4 directions (0 +z, 1 +x, 2 −z, 3 −x) the player is looking along
+function lookFacing() { const d = lookDir(); return Math.abs(d.x) > Math.abs(d.z) ? (d.x > 0 ? 1 : 3) : (d.z > 0 ? 0 : 2); }
 function puff(x, y, z, kind) {
-  const c = PUFF_COLORS[kind] || [1, 1, 1], n = kind === "heart" ? 6 : 14;
+  const c = PUFF_COLORS[kind] || [1, 1, 1], n = kind === "heart" ? 6 : kind === "spark" ? 3 : 14;
   for (let i = 0; i < n; i++) { if (parts.length >= PMAX) parts.shift(); parts.push({ x: x + (Math.random() - 0.5) * 0.8, y: y + Math.random() * 0.6, z: z + (Math.random() - 0.5) * 0.8, vx: (Math.random() - 0.5) * 2, vy: kind === "heart" ? 1.5 : Math.random() * 2, vz: (Math.random() - 0.5) * 2, life: 0.6 + Math.random() * 0.4, c, floaty: true }); }
 }
 function swapHeld(id) {
@@ -1210,7 +1220,7 @@ function meshChunk(c) {
   c.mesh = {};
   if (built.solid) { const m = new THREE.Mesh(makeGeo(built.solid), solidMat); m.position.set(c.cx * CHUNK, 0, c.cz * CHUNK); scene.add(m); c.mesh.solid = m; }
   if (built.water) { const m = new THREE.Mesh(makeGeo(built.water), waterMat); m.position.set(c.cx * CHUNK, 0, c.cz * CHUNK); m.renderOrder = 1; scene.add(m); c.mesh.water = m; }
-  c.dirty = false; c.urgent = false; G.world.dirtyQueue.delete(c);
+  c.dirty = false; c.urgent = false; c.soft = false; c.meshT = performance.now(); G.world.dirtyQueue.delete(c);
 }
 const neighborsReady = c => { for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) if (!G.world.chunks.has(chunkKey(c.cx + dx, c.cz + dz))) return false; return true; };
 let unloadTick = 0;
@@ -1218,7 +1228,9 @@ function stream(budget) {
   const w = G.world, t0 = performance.now(), R = G.settings.renderDist;
   const pcx = Math.floor(G.player.pos.x / CHUNK), pcz = Math.floor(G.player.pos.z / CHUNK);
   // edits near the player first
-  for (const c of w.dirtyQueue) if (c.urgent && neighborsReady(c)) meshChunk(c);
+  const now = performance.now(), calm = c => c.soft && !c.urgent && now - (c.meshT || 0) < 120;   // a signal flickering doesn't redraw every frame
+  let softN = 0;   // at most 2 signal-only redraws here per frame; the rest wait for the time-limited pass below
+  for (const c of w.dirtyQueue) if ((c.urgent || (c.soft && !calm(c) && softN++ < 2)) && neighborsReady(c)) meshChunk(c);
   for (const [dx, dz] of OFFSETS[R + 1]) {
     if (performance.now() - t0 > budget) break;
     if (!w.chunks.has(chunkKey(pcx + dx, pcz + dz))) w.load(pcx + dx, pcz + dz);
@@ -1226,7 +1238,7 @@ function stream(budget) {
   for (const [dx, dz] of OFFSETS[R]) {
     if (performance.now() - t0 > budget) break;
     const c = w.chunks.get(chunkKey(pcx + dx, pcz + dz));
-    if (c && c.dirty && neighborsReady(c)) meshChunk(c);
+    if (c && c.dirty && !calm(c) && neighborsReady(c)) meshChunk(c);
   }
   if (++unloadTick % 30 === 0) {
     for (const c of [...w.chunks.values()]) {
@@ -1263,6 +1275,7 @@ function makeWorld(dim) {
   for (const k of data.crops || []) w.crops.add(k);
   for (const k of data.newGen || []) w.newGen.add(k);
   w.beacons = new Set(data.beacons || []);
+  R.attach(w, data.rs);   // the signal engine's timers and comparator outputs
   w.onLoad = c => ents.loadChunk(c);
   w.onUnload = c => ents.unloadChunk(c);
   return w;
@@ -1270,7 +1283,7 @@ function makeWorld(dim) {
 function dimSnapshot(w) {
   const old = G.dimData[w.dim] || {};
   if (w.dim === "end") { const dr = ents.list.find(e => e.sp === "dragon" && !e.dead); if (dr) old.wyrmHp = dr.hp; }
-  return { ...old, mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {} };
+  return { ...old, mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w) };
 }
 // Build (and draw) the land around a spot, with a progress bar
 async function loadArea(x, z, label) {
@@ -1566,6 +1579,7 @@ function updateMining(dt, hit) {
   if (!G.mining || G.mining.key !== key) {
     const info = mineInfo(hit.v);
     G.mining = { key, prog: 0, info, sound: 0, warned: false };
+    if (idOf(hit.v) === B.SPARK_ORE || idOf(hit.v) === B.DARK_SPARK_ORE) R.touchOre(hit.x, hit.y, hit.z);
     if (!info.drops && info.time !== Infinity) {
       const d = blockDef(hit.v);
       UI.toast(`You need a ${TIER_NAME[d.tier]} ${d.tool === "pick" ? "pickaxe" : d.tool} or better to collect ${d.name}.`, "bad");
@@ -1607,10 +1621,10 @@ function breakBlock(x, y, z, drops, quiet) {
   F.blockBroken(x, y, z, id); L.blockBroken(x, y, z, id);
   w.crops.delete(x + "," + y + "," + z);
   if (id === B.OBSIDIAN || id === B.PORTAL) setTimeout(() => breakPortal(x, y, z), 0);
-  if (id === B.DOOR) {   // doors are two blocks tall: remove both halves
+  if (isDoor(id)) {   // doors are two blocks tall: remove both halves
     if (metaOf(v) & TOP) y -= 1;
     w.set(x, y, z, B.AIR);
-    if (w.id(x, y + 1, z) === B.DOOR) w.set(x, y + 1, z, B.AIR);
+    if (w.id(x, y + 1, z) === id) w.set(x, y + 1, z, B.AIR);
   } else if (id === B.BED) {   // beds are two blocks long
     const [dx, dz] = DIR[metaOf(v) & 3], s = metaOf(v) & HEAD ? -1 : 1;
     w.set(x, y, z, B.AIR);
@@ -1630,6 +1644,7 @@ function breakBlock(x, y, z, drops, quiet) {
     if (id === B.TALL_GRASS) drop = r < 0.12 ? I.SEEDS : r < 0.14 ? I.CARROT : 0;
     if (id === B.GRAVEL && r < 0.1) drop = I.FLINT;
     if (drop === "shine") drop = [I.SHINE_DUST, 2 + Math.floor(Math.random() * 3)];
+    if (drop === "spark") drop = [I.SPARKDUST, 4 + Math.floor(Math.random() * 2)];
     if (drop === "lumen") drop = [I.LUMEN_SHARD, 1 + Math.floor(Math.random() * 2)];
     if (drop === "goldnuggets") drop = [I.GOLD_NUGGET, 2 + Math.floor(Math.random() * 4)];
     if (drop === "wart") drop = [I.WART, (metaOf(v) & 7) >= 7 ? 2 + Math.floor(Math.random() * 3) : 1];
@@ -1650,7 +1665,7 @@ function breakBlock(x, y, z, drops, quiet) {
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
   if ((id === B.BEE_NEST || id === B.BEEHIVE) && !G.creative && !torchNear(x, y, z)) { ents.angerBees(x, y, z); UI.toast("You broke the bees' home, and now they're angry!", "bad"); }
-  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH].includes(aid) || (aid === B.DOOR && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH].includes(aid) || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
   if (aid === B.FIRE) w.set(x, y + 1, z, B.AIR);
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
   if (id === B.LOG || id === B.BIRCH_LOG) tipDone("chop");
@@ -1789,7 +1804,8 @@ function useWith(offhand) {
   if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; } if (!offhand && !slot) return false; }
   if (hit && !crouch && !offhand) {
     const id = idOf(hit.v), d = BLOCKS[id];
-    if (d.interact && d.interact !== "tnt") { G.swing = 0.01; interact(hit, d.interact); return true; }
+    if (d.interact && R.kinds.has(d.interact)) { if (R.interact(hit, d.interact)) { G.swing = 0.01; return true; } }
+    else if (d.interact && d.interact !== "tnt") { G.swing = 0.01; interact(hit, d.interact); return true; }
   }
   if (!slot) return false;
   if (slot.id === I.SHIELD) { G.blocking = true; G.blockHand = G.useSlot; return true; }   // hold to keep the shield up
@@ -1860,7 +1876,7 @@ function useWith(offhand) {
     return true;
   }
   if (slot.id === B.BED) { placeBed(hit, slot); return true; }
-  if (sd.places) {   // items that can be set down as a block (Blight Skulls)
+  if (sd.places && slot.id !== I.SPARKDUST) {   // items that can be set down as a block (Blight Skulls)
     const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
     if (w.id(x, y, z) && !BLOCKS[w.id(x, y, z)].replaceable) return false;
     if (!SOLID[w.id(x, y - 1, z)]) { UI.toast("Set it on top of a block.", "bad"); return true; }
@@ -1869,27 +1885,32 @@ function useWith(offhand) {
     if (sd.places === B.SKULL) checkBlightSummon(x, y, z);
     return true;
   }
-  if (!isBlockItem(slot.id)) return false;
+  if (!isBlockItem(slot.id) && slot.id !== I.SPARKDUST) return false;
   let x = hit.x, y = hit.y, z = hit.z;
   const hitDef = blockDef(hit.v);
   if (!hitDef.replaceable) { x += hit.nx; y += hit.ny; z += hit.nz; }
   if (y < 1 || y >= HEIGHT - 1) return false;
   const here = w.id(x, y, z);
   if (here && here !== B.WATER && !BLOCKS[here].replaceable) return false;
-  const id = slot.id, d = BLOCKS[id];
+  const id = slot.id === I.SPARKDUST ? B.SPARK_DUST : slot.id, d = BLOCKS[id];
   let v = make(id);
   if (d.front) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces and chests face you
+  // Sparkworks parts: which way they face or what they hang on depends on where you clicked
+  { const e = G.player, dir = lookDir(), fy = e.pos.y + e.eye + dir.y * hit.dist - hit.y;
+    const rv = R.placeValue(id, hit, x, y, z, Math.min(1, Math.max(0, fy)), !!hitDef.replaceable);
+    if (typeof rv === "string") { UI.toast(rv, "bad"); Sound.error(); return true; }
+    if (rv !== null) v = rv; }
   if (d.shape === "cross" && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return true; }
   if (id === B.SAPLING) w.crops.add(x + "," + y + "," + z);
   if (id === B.WATER && G.world.gen.isNether()) { puff(x + 0.5, y + 0.5, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); return true; }
   if (id === B.LAVA || id === B.WATER) { placeLiquid(id, x, y, z); take(); G.hudDirty = true; return true; }
   if ((id === B.TORCH || id === B.WARD_CANDLE) && !OPAQUE[idOf(hit.v)]) { Sound.error(); return true; }
-  if (id === B.DOOR) {
+  if (isDoor(id)) {
     if (!SOLID[w.id(x, y - 1, z)] || (w.id(x, y + 1, z) && !BLOCKS[w.id(x, y + 1, z)].replaceable)) { UI.toast("A door needs two empty blocks of space on solid ground.", "bad"); Sound.error(); return true; }
     const f = (facingFromYaw() + 2) % 4;
-    v = make(B.DOOR, f);
-    if (blocksPlayer(v, x, y, z) || blocksPlayer(make(B.DOOR, f | TOP), x, y + 1, z)) return false;
-    w.set(x, y, z, v); w.set(x, y + 1, z, make(B.DOOR, f | TOP));
+    v = make(id, f);
+    if (blocksPlayer(v, x, y, z) || blocksPlayer(make(id, f | TOP), x, y + 1, z)) return false;
+    w.set(x, y, z, v); w.set(x, y + 1, z, make(id, f | TOP));
   } else {
     if (blocksPlayer(v, x, y, z)) return false;
     w.set(x, y, z, v);
@@ -1900,6 +1921,7 @@ function useWith(offhand) {
   Sound.place(MATERIAL(id)); G.swing = 0.01; G.hudDirty = true; heldId = -1;
   G.adv("place", id);
   if (id === B.WARD_CANDLE) F.placeCandle(x, y, z);
+  R.placed(x, y, z);
   L.blockChanged(x, y, z, false);
   tipDone("place");
   return true;
@@ -2678,6 +2700,7 @@ function loop(now) {
     updateFurnaces(dt);
     tickCrops(dt);
     updateTNT(dt);
+    R.tick(dt);
     updateFires(dt);
     updateClouds(dt);
     if (G.dim === "end") ensureBoss();
@@ -2711,8 +2734,9 @@ function loop(now) {
   if (hit) {
     let box = [0, 0, 0, 1, 1, 1];
     const id = idOf(hit.v);
-    if (id === B.DOOR) box = doorBox(metaOf(hit.v));
+    if (isDoor(id)) box = doorBox(metaOf(hit.v));
     else if (BLOCKS[id].shape === "cross" || BLOCKS[id].shape === "torch") box = [0.2, 0, 0.2, 0.8, 0.8, 0.8];
+    else if (BLOCKS[id].shape === "model" || BLOCKS[id].shape === "dust") box = selectBox(hit.v) || box;
     outline.visible = true;
     outline.scale.set(box[3] - box[0] + 0.004, box[4] - box[1] + 0.004, box[5] - box[2] + 0.004);
     outline.position.set(hit.x + (box[0] + box[3]) / 2, hit.y + (box[1] + box[4]) / 2, hit.z + (box[2] + box[5]) / 2);
@@ -2772,6 +2796,9 @@ G.forsaken = F;
 // The Lost Civilization adventure (js/lost.js). Its test controls only show on a development copy (localhost or ?dev).
 const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giveXp, placeSafely, hurt, lookDir, keys, victory: showVictory, devTools: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.search.includes("dev") });
 G.lost = L;
+// The Sparkworks signal engine (js/redstone.js)
+const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, noteFx });
+G.rs = R;
 Adv.init(G, SPECIES, { xp: n => spawnOrbs(n, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z), give: (id, n) => { if (G.inv.add(id, n)) G.dropItem(id, n); } });
 UI.init(G);
 G.applySettings();
@@ -2779,4 +2806,4 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };

@@ -90,6 +90,44 @@ export const Sound = {
     }
   },
   explode(dist = 0) { const k = Math.max(0.15, 1 - dist / 60); this.noise(120, 1.2, 0.9 * k, 0.6, "lowpass"); this.noise(500, 0.5, 0.5 * k, 0.8); this.tone(60, 0.8, "sine", 0.4 * k, -30); },
+  // Sparkworks: lever/button/plate clicks, a burnt-out torch's fizz, and note block instruments
+  switchClick(on, dist = 0, plate) {
+    const k = Math.max(0, 1 - dist / 16); if (k <= 0.02) return;
+    if (plate) { this.tone(on ? 140 : 110, 0.06, "square", 0.05 * k, -30); this.noise(on ? 900 : 700, 0.05, 0.15 * k, 3); return; }
+    this.tone(on ? 900 : 700, 0.03, "square", 0.06 * k); this.noise(on ? 2600 : 2000, 0.04, 0.2 * k, 4);
+  },
+  fizz(dist = 0) { const k = Math.max(0, 1 - dist / 16); if (k > 0.02) this.noise(4000, 0.35, 0.25 * k, 0.6, "highpass"); },
+  // pitch 0-24 is F♯3 to F♯5 on the harp (Minecraft's two-octave range); other instruments shift octaves
+  note(inst, pitch, dist = 0) {
+    const k = Math.max(0, 1 - dist / 48);
+    if (k <= 0.02 || !ctx || ctx.state !== "running") return;
+    const oct = { bass: -2, didgeridoo: -2, guitar: -1, flute: 1, cow_bell: 1, bell: 2, chime: 2, xylophone: 2 }[inst] || 0;
+    const f = 185 * Math.pow(2, pitch / 12 + oct), t = ctx.currentTime;
+    if (inst === "basedrum") { this.tone(70 + pitch * 2, 0.25, "sine", 0.35 * k, -40); this.noise(150, 0.08, 0.3 * k, 1, "lowpass"); return; }
+    if (inst === "snare") { this.noise(1800 + pitch * 40, 0.14, 0.4 * k, 0.8); this.tone(180, 0.06, "triangle", 0.1 * k); return; }
+    if (inst === "hat") { this.noise(7000 + pitch * 100, 0.05, 0.3 * k, 1, "highpass"); return; }
+    const voice = (freq, type, dur, gain, attack = 0.005) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain * k, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+    };
+    switch (inst) {
+      case "bass": voice(f, "triangle", 0.5, 0.35); voice(f * 2, "sine", 0.3, 0.1); break;
+      case "didgeridoo": voice(f, "sawtooth", 0.9, 0.12, 0.05); voice(f * 1.5, "sine", 0.9, 0.05, 0.05); break;
+      case "guitar": voice(f, "sawtooth", 0.6, 0.08); voice(f * 2, "triangle", 0.4, 0.06); break;
+      case "flute": voice(f, "sine", 0.7, 0.2, 0.06); voice(f * 2, "sine", 0.5, 0.03, 0.06); break;
+      case "cow_bell": voice(f, "square", 0.3, 0.06); voice(f * 1.48, "square", 0.25, 0.05); break;
+      case "bell": voice(f, "sine", 1.4, 0.18); voice(f * 2.76, "sine", 0.8, 0.06); voice(f * 5.4, "sine", 0.4, 0.03); break;
+      case "chime": voice(f, "sine", 1.6, 0.14); voice(f * 3.01, "sine", 1.0, 0.06); break;
+      case "xylophone": voice(f, "sine", 0.35, 0.22); voice(f * 3.9, "sine", 0.12, 0.08); break;
+      case "iron_xylophone": voice(f, "triangle", 0.6, 0.18); voice(f * 4, "sine", 0.3, 0.05); break;
+      case "bit": voice(f, "square", 0.35, 0.08); break;
+      case "banjo": voice(f, "sawtooth", 0.35, 0.09); voice(f * 2, "square", 0.2, 0.04); break;
+      case "pling": voice(f, "sine", 0.9, 0.18); voice(f * 2, "triangle", 0.6, 0.07); break;
+      default: voice(f, "triangle", 0.8, 0.2); voice(f * 2, "sine", 0.5, 0.05);   // harp
+    }
+  },
   levelUp() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, "triangle", 0.1), i * 80)); },
   xp() { this.tone(1200 + Math.random() * 600, 0.06, "sine", 0.05); }
 };

@@ -1,6 +1,6 @@
 // Saves worlds on this device only (IndexedDB), with a fallback when the browser blocks storage.
 // Nothing is ever sent anywhere. Worlds can also be downloaded as a file and loaded back.
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
 
@@ -55,7 +55,7 @@ export const Saves = {
   async remove(id) {
     const db = await openDB();
     if (!db) { memory.meta.delete(id); memory.data.delete(id); return; }
-    await new Promise((resolve) => { const t = db.transaction([META, DATA], "readwrite"); t.objectStore(META).delete(id); t.objectStore(DATA).delete(id); t.objectStore(DATA).delete("backup-v1-" + id); t.objectStore(DATA).delete("backup-v2-" + id); t.oncomplete = t.onerror = resolve; });
+    await new Promise((resolve) => { const t = db.transaction([META, DATA], "readwrite"); t.objectStore(META).delete(id); t.objectStore(DATA).delete(id); t.objectStore(DATA).delete("backup-v1-" + id); t.objectStore(DATA).delete("backup-v2-" + id); t.objectStore(DATA).delete("backup-v3-" + id); t.oncomplete = t.onerror = resolve; });
   },
   exportFile(world) {
     const blob = new Blob([JSON.stringify({ blockhaven: SAVE_VERSION, ...world })], { type: "application/json" });
@@ -95,6 +95,7 @@ function upgrade(w) {
   w.story = w.story && typeof w.story === "object" ? w.story : {};
   if (w.player && w.player.sat === undefined) w.player.sat = 5;
   w.hardcore = !!w.hardcore; w.hardcoreOver = !!w.hardcoreOver;
+  // version 3 → 4: Sparkworks (signal timers and comparator outputs live in each dimension as dims[dim].rs; nothing old needs changing)
   w.version = SAVE_VERSION;
   w.mode = w.mode === "creative" ? "creative" : w.mode === "spectator" && w.hardcore ? "spectator" : "survival";
   w.settings = { difficulty: "easy", griefing: true, keepInv: true, ...(w.settings || {}) };

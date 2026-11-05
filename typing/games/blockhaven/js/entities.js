@@ -1,7 +1,7 @@
 // Creatures and moving things: models, animation, movement, path finding, behavior, spawning, and saving.
 // Each species is described by data (size, health, behavior, drops, model) and shares the same body physics.
 import * as THREE from "../lib/three.module.min.js";
-import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef } from "./blocks.js";
+import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { Sound } from "./audio.js";
 
@@ -226,7 +226,7 @@ export const TRADES = {
   farmer: [[[[I.WHEAT, 20]], [I.JADE, 1], 12], [[[I.CARROT, 15]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.BREAD, 6], 12], [[[I.JADE, 1]], [I.APPLE, 4], 12], [[[I.JADE, 2]], [I.STEAK, 5], 8]],
   fletcher: [[[[I.STICK, 24]], [I.JADE, 1], 12], [[[I.FLINT, 10]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.ARROW, 16], 12], [[[I.JADE, 2]], [I.BOW, 1], 6], [[[I.JADE, 1], [I.FEATHER, 4]], [I.ARROW, 24], 8]],
   shepherd: [[[[B.WOOL, 18]], [I.JADE, 1], 12], [[[I.JADE, 2]], [I.SHEARS, 1], 6], [[[I.JADE, 3]], [B.BED, 1], 6], [[[I.JADE, 1]], [B.WOOL, 4], 12]],
-  cleric: [[[[I.ROTTEN_FLESH, 32]], [I.JADE, 1], 12], [[[I.WART, 22]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.SHINE_DUST, 2], 12], [[[I.JADE, 5]], [I.VOID_PEARL, 1], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 2], 8]],
+  cleric: [[[[I.ROTTEN_FLESH, 32]], [I.JADE, 1], 12], [[[I.WART, 22]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.SHINE_DUST, 2], 12], [[[I.JADE, 5]], [I.VOID_PEARL, 1], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 2], 8], [[[I.JADE, 1]], [I.SPARKDUST, 2], 12]],
   smith: [[[[I.COAL, 15]], [I.JADE, 1], 12], [[[I.IRON_INGOT, 4]], [I.JADE, 1], 12], [[[I.JADE, 6]], [I.IRON_PICK, 1], 4], [[[I.JADE, 7]], [I.IRON_SWORD, 1], 4], [[[I.JADE, 9]], [I.IRON_CHEST, 1], 3], [[[I.JADE, 4]], [I.IRON_HELMET, 1], 4]],
   wanderer: [[[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1]]
 };
@@ -561,7 +561,7 @@ export const SPAWN_SPECIES = SPAWN_EGGS.map(e => e[0]);
 // ---------- block helpers ----------
 function solidCell(world, x, y, z) {
   const v = world.get(x, y, z), id = idOf(v);
-  if (id === B.DOOR) return !(metaOf(v) & OPEN);
+  if (isDoor(id) || isGate(id) || isTrapdoor(id)) return !(metaOf(v) & OPEN);
   return SOLID[id] === 1;
 }
 const liquidAt = (world, x, y, z) => { const id = world.id(Math.floor(x), Math.floor(y), Math.floor(z)); return id === B.WATER ? "water" : id === B.LAVA ? "lava" : null; };
@@ -2148,6 +2148,7 @@ export class Entities {
         const v = w.get(Math.floor(nx), Math.floor(ny), Math.floor(nz));
         const boxes = []; blockBoxes(v, Math.floor(nx), Math.floor(ny), Math.floor(nz), boxes);
         if (boxes.some(b => nx > b[0] && nx < b[3] && ny > b[1] && ny < b[4] && nz > b[2] && nz < b[5])) {
+          if (ctx.hitBlock) ctx.hitBlock(pr, Math.floor(nx), Math.floor(ny), Math.floor(nz), nx, ny, nz);   // targets and wooden buttons
           if (pr.kind === "arrow") { pr.stuck = true; pr.age = 0; Sound.mob("arrowhit", Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z)); }
           else if (pr.kind === "bigfire") { ctx.explode(pr.x, pr.y, pr.z, pr.power || 1.3, pr.owner); pr.gone = true; }
           else if (pr.kind === "fireball") { ctx.ignite(Math.floor(pr.x), Math.floor(pr.y), Math.floor(pr.z)); pr.gone = true; }

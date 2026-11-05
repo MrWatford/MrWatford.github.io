@@ -4,7 +4,7 @@ import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD } from "./blocks.j
 
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
 // Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade, 6 = bee nests + berry bushes. Raise this when generation changes.
-export const CURRENT_GEN = 6;
+export const CURRENT_GEN = 7;   // 7: Spark Ore
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -119,6 +119,7 @@ export class Generator {
     vein(B.GRAVEL, 4, 6, 50, 10);
     if (ver >= 5 && ["mountain", "peak"].includes(cols[8 + 8 * CHUNK].biome)) vein(B.JADE_ORE, 5, 4, 50, 2);
     vein(B.DIRT, 4, 6, 50, 10);
+    if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like Minecraft's redstone
 
     // trees and plants
     const center = cols[8 + 8 * CHUNK];
@@ -577,6 +578,18 @@ function citadelAt(dx, y, dz, d, seed) {
   }
   return B.AIR;
 }
+// Darkslate Spark Ore in the Deep: small veins inside darkslate only (never in built rooms), the same in every world
+function sparkVeins(data, cx, cz) {
+  const r = rng(hashSeed("spark") ^ (cx * 73856093) ^ (cz * 19349663));
+  for (let t = 0; t < 5; t++) {
+    let x = Math.floor(r() * 16), y = 4 + Math.floor(r() * 50), z = Math.floor(r() * 16);
+    const n = 2 + Math.floor(r() * 6);
+    for (let k = 0; k < n; k++) {
+      if (x >= 0 && x < 16 && z >= 0 && z < 16 && y > 0 && y < HEIGHT && data[idx(x, y, z)] === B.DARKSLATE) data[idx(x, y, z)] = B.DARK_SPARK_ORE;
+      const d = Math.floor(r() * 6); x += [1, -1, 0, 0, 0, 0][d]; y += [0, 0, 1, -1, 0, 0][d]; z += [0, 0, 0, 0, 1, -1][d];
+    }
+  }
+}
 // ----- dimensions made from a packed map (the Deep, the Echo Expanse). Chunks are unpacked only when loaded.
 // Outside the map: solid rock (the Deep) or empty sky (the Expanse).
 export class MapGen {
@@ -587,7 +600,11 @@ export class MapGen {
   findSpawn() { const a = this.map.meta.arrival; return { x: a.x, z: a.z }; }
   generate(cx, cz) {
     const k = cx + "," + cz;
-    if (this.map.has(k)) return this.map.decode(k);
+    if (this.map.has(k)) {
+      const data = this.map.decode(k);
+      if (this.kind === "deep") sparkVeins(data, cx, cz);
+      return data;
+    }
     const data = new Uint16Array(CHUNK * CHUNK * HEIGHT);
     if (this.kind !== "expanse") { data.fill(this.map.meta.fill || B.DARKSLATE); data.fill(B.BEDROCK, 0, CHUNK * CHUNK); data.fill(B.BEDROCK, CHUNK * CHUNK * (HEIGHT - 1)); }   // the Deep and the temples sit inside solid rock
     return data;
