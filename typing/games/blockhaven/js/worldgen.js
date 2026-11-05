@@ -4,7 +4,7 @@ import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD } from "./blocks.j
 
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
 // Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade, 6 = bee nests + berry bushes. Raise this when generation changes.
-export const CURRENT_GEN = 7;   // 7: Spark Ore
+export const CURRENT_GEN = 8;   // 7: Spark Ore; 8: a bell in each new village plaza
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -151,7 +151,7 @@ export class Generator {
     if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
     else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
     if (ver >= 4) for (const s of this.strongholds) if (Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
-    if (ver >= 5) { const vp = this.villagePiece(cx, cz); if (vp) this.buildVillagePiece(data, vp, x0, z0); }
+    if (ver >= 5) { const vp = this.villagePiece(cx, cz); if (vp) this.buildVillagePiece(data, vp, x0, z0, ver); }
     return applyStamps(this, data, cx, cz);   // hand-built sites (the Keeper excavation, temples) in never-visited land
   }
 
@@ -177,7 +177,7 @@ export class Generator {
     if (type === "plaza") piece.home = [x0 + 7.5, y + 1, z0 + 12.5];
     return piece;
   }
-  buildVillagePiece(data, vp, x0, z0) {
+  buildVillagePiece(data, vp, x0, z0, ver = CURRENT_GEN) {
     const y = vp.y, put = (lx, yy, lz, v) => { if (lx >= 0 && lx < 16 && lz >= 0 && lz < 16 && yy > 0 && yy < HEIGHT) data[idx(lx, yy, lz)] = v; };
     const wall = vp.sandy ? B.SANDSTONE : B.PLANKS, post = vp.sandy ? B.SANDSTONE : B.LOG, ground = vp.sandy ? B.SAND : B.GRASS;
     // level the building site: fill below, clear above
@@ -196,6 +196,7 @@ export class Generator {
       for (const [lx, lz] of [[6, 6], [9, 6], [6, 9], [9, 9]]) for (let yy = y + 2; yy <= y + 3; yy++) put(lx, yy, lz, post);
       for (let lx = 6; lx <= 9; lx++) for (let lz = 6; lz <= 9; lz++) put(lx, y + 4, lz, wall);
       put(7, y + 1, 11, B.TORCH); put(8, y + 1, 4, B.TORCH);
+      if (ver >= 8) put(10, y + 1, 10, make(B.BELL, 0));   // the village bell (ring it and villagers hurry home)
     } else if (vp.type === "farm") {
       for (let lx = 3; lx <= 12; lx++) for (let lz = 3; lz <= 12; lz++) {
         const edge = lx === 3 || lx === 12 || lz === 3 || lz === 12;
@@ -590,6 +591,11 @@ function sparkVeins(data, cx, cz) {
     }
   }
 }
+// Hush Sensors growing on hushmoss in the Deep (about 1 in 40 open patches; only with 3 blocks of headroom, so no path gets blocked)
+function hushSensors(data, cx, cz) {
+  const r = rng(hashSeed("hush") ^ (cx * 83492791) ^ (cz * 297121507)), L = CHUNK * CHUNK;
+  for (let i = 0; i < data.length - 3 * L; i++) if (data[i] === B.HUSHMOSS && !data[i + L] && !data[i + 2 * L] && !data[i + 3 * L] && r() < 0.025) data[i + L] = B.HUSH_SENSOR;
+}
 // ----- dimensions made from a packed map (the Deep, the Echo Expanse). Chunks are unpacked only when loaded.
 // Outside the map: solid rock (the Deep) or empty sky (the Expanse).
 export class MapGen {
@@ -603,6 +609,7 @@ export class MapGen {
     if (this.map.has(k)) {
       const data = this.map.decode(k);
       if (this.kind === "deep") sparkVeins(data, cx, cz);
+      if (this.kind === "deep") hushSensors(data, cx, cz);
       return data;
     }
     const data = new Uint16Array(CHUNK * CHUNK * HEIGHT);

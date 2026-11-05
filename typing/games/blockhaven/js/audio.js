@@ -96,6 +96,13 @@ export const Sound = {
     if (plate) { this.tone(on ? 140 : 110, 0.06, "square", 0.05 * k, -30); this.noise(on ? 900 : 700, 0.05, 0.15 * k, 3); return; }
     this.tone(on ? 900 : 700, 0.03, "square", 0.06 * k); this.noise(on ? 2600 : 2000, 0.04, 0.2 * k, 4);
   },
+  piston(out, dist = 0) { const k = Math.max(0, 1 - dist / 20); if (k <= 0.02) return; this.noise(out ? 900 : 700, 0.18, 0.35 * k, 1.2); this.tone(out ? 120 : 95, 0.14, "square", 0.06 * k, out ? 40 : -30); },
+  bell(dist = 0) {
+    const k = Math.max(0, 1 - dist / 64);
+    if (k <= 0.02 || !ctx || ctx.state !== "running") return;
+    for (const [f, d, gn] of [[660, 2.6, 0.16], [1650, 1.6, 0.07], [2640, 1.0, 0.04], [990, 2.2, 0.06]]) this.tone(f, d, "sine", gn * k);
+  },
+  hush(dist = 0) { const k = Math.max(0, 1 - dist / 16); if (k <= 0.02) return; for (let i = 0; i < 3; i++) setTimeout(() => this.tone(1900 + i * 240, 0.05, "triangle", 0.04 * k), i * 40); },
   fizz(dist = 0) { const k = Math.max(0, 1 - dist / 16); if (k > 0.02) this.noise(4000, 0.35, 0.25 * k, 0.6, "highpass"); },
   // pitch 0-24 is F♯3 to F♯5 on the harp (Minecraft's two-octave range); other instruments shift octaves
   note(inst, pitch, dist = 0) {

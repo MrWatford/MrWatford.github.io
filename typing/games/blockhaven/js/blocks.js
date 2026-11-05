@@ -42,7 +42,10 @@ export const B = {
   REPEATER: 165, COMPARATOR: 166, SPARK_LAMP: 167, IRON_DOOR: 168,
   OAK_TRAPDOOR: 169, BIRCH_TRAPDOOR: 170, CRIMSON_TRAPDOOR: 171, WARPED_TRAPDOOR: 172, IRON_TRAPDOOR: 173,
   OAK_FENCE: 174, BIRCH_FENCE: 175, CRIMSON_FENCE: 176, WARPED_FENCE: 177, OAK_GATE: 178, BIRCH_GATE: 179, CRIMSON_GATE: 180, WARPED_GATE: 181,
-  NOTE_BLOCK: 182, TARGET: 183, DAYLIGHT: 184
+  NOTE_BLOCK: 182, TARGET: 183, DAYLIGHT: 184,
+  // part B: movers and sensors
+  PISTON: 185, STICKY_PISTON: 186, PISTON_HEAD: 187, MOVING: 188, GLOOP_BLOCK: 189, HONEY_BLOCK: 190, OBSERVER: 191,
+  TRIPWIRE_HOOK: 192, TRIPWIRE: 193, TRAPPED_CHEST: 194, HUSH_SENSOR: 195, TUNED_SENSOR: 196, BELL: 197
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -279,6 +282,20 @@ block(B.IRON_DOOR, "Iron Door", { shape: "door", render: "cutout", hardness: 5, 
 block(B.IRON_TRAPDOOR, "Iron Trapdoor", { shape: "model", render: "cutout", hardness: 5, tool: "pick", tier: 1, interact: "irontrapdoor", tex: "trap_iron", category: MECH, icon: "tile:trap_iron" });
 block(B.NOTE_BLOCK, "Note Block", { hardness: 0.8, tool: "axe", interact: "note", tex: "note_block", category: MECH });
 block(B.TARGET, "Target", { hardness: 0.5, tool: "hoe", tex: ["target_top", "target_side", "target_top"], category: MECH });
+// part B. Pistons, observers, and heads face one of 6 ways (meta bits 0-2: 0 up, 1 down, 2-5 = DIR[0-3]).
+block(B.PISTON, "Piston", { shape: "model", render: "cutout", hardness: 1.5, tool: "pick", tex: "piston_side", category: MECH, icon: "piston" });
+block(B.STICKY_PISTON, "Sticky Piston", { shape: "model", render: "cutout", hardness: 1.5, tool: "pick", tex: "piston_side", category: MECH, icon: "piston", colors: ["#6ac85a"] });
+block(B.PISTON_HEAD, "Piston Head", { shape: "model", render: "cutout", hardness: 1.5, tool: "pick", drops: 0, tex: "piston_top", noItem: true, category: MECH });
+block(B.MOVING, "Moving Block", { shape: "none", render: "none", solid: false, hardness: Infinity, drops: 0, tex: "stone", noItem: true, category: MECH });
+block(B.GLOOP_BLOCK, "Gloop Block", { shape: "jelly", render: "water", hardness: 0, tex: "gloop_block", category: MECH });
+block(B.HONEY_BLOCK, "Honey Block", { shape: "jelly", render: "water", hardness: 0, tex: "honey_block", category: MECH });
+block(B.OBSERVER, "Observer", { shape: "model", render: "cutout", hardness: 3, tool: "pick", tier: 1, tex: "observer_side", category: MECH, icon: "tile:observer_front" });
+block(B.TRIPWIRE_HOOK, "Tripwire Hook", { shape: "model", render: "cutout", solid: false, hardness: 0, tex: "hook", category: MECH, icon: "hook" });
+block(B.TRIPWIRE, "Tripwire", { shape: "model", render: "cutout", solid: false, hardness: 0, drops: I.STRING, tex: "tripwire", noItem: true, category: MECH });
+block(B.TRAPPED_CHEST, "Trapped Chest", { hardness: 2.5, tool: "axe", interact: "chest", tex: ["chest_top", "trapped_side", "chest_top"], front: "trapped_front", category: MECH });
+block(B.HUSH_SENSOR, "Hush Sensor", { shape: "model", render: "cutout", hardness: 1.5, tool: "hoe", light: 1, tex: ["hush_sensor_top", "hush_sensor_side", "hush_sensor_side"], category: LOST, iconBox: 8 / 16 });
+block(B.TUNED_SENSOR, "Tuned Hush Sensor", { shape: "model", render: "cutout", hardness: 1.5, tool: "hoe", light: 1, tex: ["tuned_sensor_top", "hush_sensor_side", "hush_sensor_side"], category: MECH, iconBox: 8 / 16 });
+block(B.BELL, "Bell", { shape: "model", render: "cutout", hardness: 5, tool: "pick", interact: "bell", tex: "bell", category: "Village", icon: "bell" });
 block(B.DAYLIGHT, "Daylight Sensor", { shape: "model", render: "cutout", hardness: 0.2, tool: "axe", interact: "daylight", tex: ["daylight_top", "daylight_side", "daylight_side"], category: MECH, iconBox: 6 / 16 });
 
 export const BEACON_BASE = [B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
@@ -302,6 +319,11 @@ for (const d of Object.values(defs)) {
 // Plates, Target, Daylight Sensor: bits 0-3 power (Daylight: INVERT). Repeater: bits 0-1 facing (the way its output points), bits 2-3 delay-1, ON, LOCKED.
 // Comparator: bits 0-1 facing, SUBTRACT, ON (output is kept by the signal engine). Doors, trapdoors, gates: OPEN, TOP (door top / trapdoor upper half), POWERED.
 // Spark Ore and Spark Lamp: bit 0 = lit. Note Block: bits 0-4 pitch (0-24), NOTE_ON.
+// Part B: pistons EXTENDED, heads STICKY_HEAD, observers OBS_ON; tripwire hooks bits 0-1 support side + ATTACHED + HOOK_ON; strings ATTACHED + HOOK_ON + DISARMED;
+// trapped chest OPENED; Hush Sensors bits 0-1 phase (0 waiting, 1 active, 2 resting), bits 2-5 power, bits 6-7 facing (tuned); bells bits 0-1 facing + BELL_POWERED.
+export const EXTENDED = 8, STICKY_HEAD = 8, OBS_ON = 8, ATTACHED = 4, HOOK_ON = 8, DISARMED = 16, OPENED = 16, BELL_POWERED = 4;
+export const isPiston = id => id === B.PISTON || id === B.STICKY_PISTON;
+export const isHush = id => id === B.HUSH_SENSOR || id === B.TUNED_SENSOR;
 export const DOT = 16, UNLIT = 8, AXIS_X = 8, ON = 16, INVERT = 16, LOCKED = 32, SUBTRACT = 4, CMP_ON = 8, POWERED = 16, NOTE_ON = 32;
 export const isDoor = id => id === B.DOOR || id === B.IRON_DOOR;
 export const isTrapdoor = id => id >= B.OAK_TRAPDOOR && id <= B.IRON_TRAPDOOR;
@@ -418,6 +440,7 @@ item(I.EMBER_HEART, "Ember Heart", { icon: "ember_heart", stack: 16 });
 item(I.CINDER_CROWN, "Cinder Crown", { icon: "armor_helmet", colors: ["#e0702a"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 0, points: 4, dur: 900 }, fireproof: true });
 item(I.COMPASS, "Compass", { icon: "compass", stack: 1, category: "Tools", offhand: true });
 item(I.GOLDEN_CARROT, "Golden Carrot", { icon: "carrot", colors: ["gold"], kind: "food", food: 6, category: "Food" });
+items[I.STRING].places = B.TRIPWIRE;   // string can be laid down as tripwire between two hooks
 item(I.SPARKDUST, "Sparkdust", { icon: "dust", colors: ["#ff5a2a", "#c2361a", "#ff8a4a"], category: "Mechanisms", places: B.SPARK_DUST });
 // Saturation ("fullness") from each food, following Minecraft Java Edition 1.20.1. Fullness is used up before the food bar drops.
 const SATURATION = { [I.APPLE]: 2.4, [I.BREAD]: 6, [I.CARROT]: 3.6, [I.RAW_BEEF]: 1.8, [I.STEAK]: 12.8, [I.RAW_PORK]: 1.8, [I.COOKED_PORK]: 12.8,
@@ -592,6 +615,16 @@ export const RECIPES = [
   { out: [B.NOTE_BLOCK, 1], ins: [["planks", 8], [I.SPARKDUST, 1]], table: true },
   { out: [B.TARGET, 1], ins: [[I.SPARKDUST, 4], [B.HAY, 1]], table: true },
   { out: [B.DAYLIGHT, 1], ins: [[B.GLASS, 3], [I.QUARTZ, 3], ["planks", 3]], table: true },
+  { out: [B.PISTON, 1], ins: [["planks", 3], [B.COBBLE, 4], [I.IRON_INGOT, 1], [I.SPARKDUST, 1]], table: true },
+  { out: [B.STICKY_PISTON, 1], ins: [[B.PISTON, 1], [I.GLOOP_BALL, 1]] },
+  { out: [B.GLOOP_BLOCK, 1], ins: [[I.GLOOP_BALL, 9]], table: true },
+  { out: [I.GLOOP_BALL, 9], ins: [[B.GLOOP_BLOCK, 1]] },
+  { out: [B.HONEY_BLOCK, 1], ins: [[I.HONEY_BOTTLE, 4]] },
+  { out: [I.HONEY_BOTTLE, 4], ins: [[B.HONEY_BLOCK, 1], [I.BOTTLE, 4]] },
+  { out: [B.OBSERVER, 1], ins: [[B.COBBLE, 6], [I.SPARKDUST, 2], [I.QUARTZ, 1]], table: true },
+  { out: [B.TRIPWIRE_HOOK, 2], ins: [[I.IRON_INGOT, 1], [I.STICK, 1], ["planks", 1]], table: true },
+  { out: [B.TRAPPED_CHEST, 1], ins: [[B.CHEST, 1], [B.TRIPWIRE_HOOK, 1]] },
+  { out: [B.TUNED_SENSOR, 1], ins: [[B.HUSH_SENSOR, 1], [I.LUMEN_SHARD, 3]], table: true },
   // upgrade Skyshard gear to Duskmetal (the best tier)
   ...["PICK", "AXE", "SHOVEL", "SWORD", "HOE", "HELMET", "CHEST", "LEGS", "BOOTS"].map(k => ({ out: [I["DUSK_" + k], 1], ins: [[I["SKY_" + k], 1], [I.DUSK_INGOT, 1]], table: true, upgrade: true })),
   ...["LEATHER", "GOLD", "IRON", "SKY"].flatMap(k => {
@@ -639,7 +672,9 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "spark_ore", "spark_ore_lit", "dark_spark_ore", "dark_spark_ore_lit", "spark_block", "spark_torch", "spark_torch_off", "lever_handle",
   "dust_line0", "dust_line1", "dust_line2", "dust_line3", "dust_line4", "dust_line5", "dust_dot0", "dust_dot1", "dust_dot2", "dust_dot3", "dust_dot4", "dust_dot5",
   "repeater_top", "repeater_top_on", "comparator_top", "comparator_top_on", "slab_side", "lamp_off", "lamp_on", "iron_door_bottom", "iron_door_top",
-  "trap_oak", "trap_birch", "trap_crimson", "trap_warped", "trap_iron", "note_block", "target_top", "target_side", "daylight_top", "daylight_inv_top", "daylight_side"];
+  "trap_oak", "trap_birch", "trap_crimson", "trap_warped", "trap_iron", "note_block", "target_top", "target_side", "daylight_top", "daylight_inv_top", "daylight_side",
+  "piston_side", "piston_top", "piston_top_sticky", "piston_bottom", "piston_inner", "gloop_block", "honey_block", "observer_front", "observer_back", "observer_back_on", "observer_side", "observer_top",
+  "hook", "tripwire", "trapped_front", "trapped_side", "hush_sensor_top", "hush_sensor_top_on", "hush_sensor_side", "tuned_sensor_top", "tendril", "tendril_on", "bell", "bell_post"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -665,6 +700,7 @@ export function faceTile(v, dir, front) {
   if (idOf(v) === B.REPEATER && dir === 0) return TILE[metaOf(v) & ON ? "repeater_top_on" : "repeater_top"];
   if (idOf(v) === B.COMPARATOR && dir === 0) return TILE[metaOf(v) & CMP_ON ? "comparator_top_on" : "comparator_top"];
   if (idOf(v) === B.DAYLIGHT && dir === 0) return TILE[metaOf(v) & INVERT ? "daylight_inv_top" : "daylight_top"];
+  if (idOf(v) === B.HUSH_SENSOR && dir === 0) return TILE[(metaOf(v) & 3) === 1 ? "hush_sensor_top_on" : "hush_sensor_top"];
   if (idOf(v) === B.WHEAT || idOf(v) === B.CARROTS) return TILE[(idOf(v) === B.WHEAT ? "wheat" : "carrots") + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.FARMLAND && dir === 0) return TILE[metaOf(v) & WET ? "farmland_wet" : "farmland_dry"];
   if (idOf(v) === B.BED) return TILE[dir === 0 ? (metaOf(v) & HEAD ? "bed_head" : "bed_foot") : "bed_side"];
@@ -1043,6 +1079,32 @@ Object.assign(PAINT, {
   daylight_top(P) { P.fill(["#c8d8e0"]); P.rect(1, 1, 14, 14, "#5a8ab8"); for (const [x, y] of [[1, 1], [8, 1], [1, 8], [8, 8]]) P.rect(x + 1, y + 1, 5, 5, "#7ab0d8"); P.rect(7, 1, 2, 14, "#e8e4d8"); P.rect(1, 7, 14, 2, "#e8e4d8"); },
   daylight_inv_top(P) { P.fill(["#c8d8e0"]); P.rect(1, 1, 14, 14, "#3a2a5a"); for (const [x, y] of [[1, 1], [8, 1], [1, 8], [8, 8]]) P.rect(x + 1, y + 1, 5, 5, "#5a3a8a"); P.rect(7, 1, 2, 14, "#e8e4d8"); P.rect(1, 7, 14, 2, "#e8e4d8"); }
 });
+Object.assign(PAINT, {
+  piston_side(P) { PAINT.cobble(P); P.rect(0, 0, 16, 4, "#b98d55"); P.rect(0, 3, 16, 1, "#7d5a30"); for (let x = 1; x < 16; x += 4) P.px(x, 1, "#d8b07a"); },
+  piston_top(P) { P.fill(PLANK); P.rect(0, 0, 16, 1, "#7d5a30"); P.rect(0, 15, 16, 1, "#7d5a30"); P.rect(5, 5, 6, 6, "#a8a8a8"); P.rect(6, 6, 4, 4, "#d8d8d8"); },
+  piston_top_sticky(P) { PAINT.piston_top(P); for (let y = 2; y < 14; y++) for (let x = 2; x < 14; x++) if ((x - 7.5) ** 2 + (y - 7.5) ** 2 < 30 && P.r() < 0.8) P.px(x, y, P.pick(["#6ac85a", "#5ab84a", "#7ad86a"])); },
+  piston_bottom(P) { PAINT.cobble(P); P.rect(5, 5, 6, 6, "#5a5a5a"); },
+  piston_inner(P) { PAINT.cobble(P); P.rect(6, 6, 4, 4, "#b98d55"); },
+  gloop_block(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, x === 0 || y === 0 || x === 15 || y === 15 ? "rgba(70,170,60,.85)" : "rgba(110,210,95,.55)"); P.rect(4, 4, 8, 8, "rgba(80,180,70,.75)"); P.rect(5, 5, 2, 2, "rgba(220,255,210,.8)"); },
+  honey_block(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, x === 0 || y === 0 || x === 15 || y === 15 ? "rgba(210,130,30,.9)" : "rgba(245,170,50,.6)"); P.rect(4, 4, 8, 8, "rgba(230,145,35,.8)"); for (const x of [3, 9, 12]) P.rect(x, 15, 1, 1, "rgba(200,120,20,.95)"); P.rect(5, 5, 2, 1, "rgba(255,235,180,.85)"); },
+  observer_side(P) { P.fill(["#6a6a6a", "#646464", "#707070"]); P.rect(0, 0, 16, 2, "#4a4a4a"); P.rect(0, 14, 16, 2, "#4a4a4a"); P.rect(7, 4, 2, 7, "#3a3a3a"); P.rect(5, 4, 6, 2, "#3a3a3a"); },
+  observer_top(P) { PAINT.observer_side(P); },
+  observer_front(P) { P.fill(["#6a6a6a", "#646464"]); P.rect(0, 0, 16, 2, "#4a4a4a"); P.rect(0, 14, 16, 2, "#4a4a4a"); P.rect(2, 5, 4, 3, "#1e1e1e"); P.rect(10, 5, 4, 3, "#1e1e1e"); P.rect(3, 6, 2, 1, "#9a9a9a"); P.rect(11, 6, 2, 1, "#9a9a9a"); P.rect(4, 11, 8, 2, "#2a2a2a"); P.rect(4, 3, 3, 1, "#3a3a3a"); P.rect(9, 3, 3, 1, "#3a3a3a"); },
+  observer_back(P) { PAINT.observer_side(P); P.fill(["#6a6a6a", "#646464"]); P.rect(0, 0, 16, 2, "#4a4a4a"); P.rect(0, 14, 16, 2, "#4a4a4a"); P.rect(6, 6, 4, 4, "#2a2a2a"); P.rect(7, 7, 2, 2, "#5a1608"); },
+  observer_back_on(P) { PAINT.observer_back(P); P.rect(6, 6, 4, 4, "#ff5a2a"); P.rect(7, 7, 2, 2, "#ffd0a0"); },
+  hook(P) { P.fill(PLANK); P.rect(0, 0, 16, 1, "#7d5a30"); P.rect(6, 4, 4, 8, "#c8c8c8"); P.rect(7, 5, 2, 6, "#8a8a8a"); },
+  tripwire(P) { P.rect(0, 7, 16, 2, "rgba(235,235,235,.95)"); P.rect(0, 8, 16, 1, "rgba(180,180,180,.95)"); },
+  trapped_side(P) { PAINT.chest_side(P); P.rect(0, 7, 16, 1, "#b02a12"); },
+  trapped_front(P) { PAINT.chest_front(P); P.rect(0, 7, 16, 1, "#b02a12"); P.rect(6, 5, 4, 5, "#c2361a"); P.rect(7, 7, 2, 2, "#ff8a4a"); },
+  hush_sensor_side(P) { P.fill(["#0e2a30", "#12323a", "#0c2228"]); P.specks(6, ["#1d5a60", "#2a8a8a"]); P.rect(0, 0, 16, 1, "#2a8a8a"); },
+  hush_sensor_top(P) { P.fill(["#0e2a30", "#12323a"]); P.rect(3, 3, 10, 10, "#163c44"); P.rect(6, 6, 4, 4, "#1d5a60"); P.rect(7, 7, 2, 2, "#2a8a8a"); },
+  hush_sensor_top_on(P) { PAINT.hush_sensor_top(P); P.rect(6, 6, 4, 4, "#5af0e0"); P.rect(7, 7, 2, 2, "#e0fffa"); },
+  tuned_sensor_top(P) { PAINT.hush_sensor_top(P); for (const [x, y] of [[2, 2], [12, 2], [2, 12], [12, 12]]) P.rect(x, y, 2, 2, "#c8a8f0"); },
+  tendril(P) { P.fill(["#1d5a60", "#2a6a70"]); },
+  tendril_on(P) { P.fill(["#5af0e0", "#8af8f0"]); },
+  bell(P) { P.fill(["#f0c020", "#e0b018", "#f8d040"]); P.rect(0, 0, 16, 1, "#fff2a0"); P.rect(0, 15, 16, 1, "#a87a10"); P.rect(3, 4, 2, 6, "#fff2a0"); },
+  bell_post(P) { PAINT.stone(P); P.rect(0, 0, 16, 2, "#5a5a5a"); }
+});
 for (let k = 0; k < 6; k++) {
   const c = DUST_COLS[k], hi = DUST_COLS[Math.min(5, k + 1)];
   PAINT["dust_line" + k] = P => { P.rect(0, 6, 16, 4, c); for (let x = 0; x < 16; x += 3) P.px(x, 7, hi); P.rect(0, 6, 16, 1, DUST_COLS[Math.max(0, k - 1)]); };
@@ -1159,6 +1221,9 @@ Object.assign(ICON_PAINT, {
   lever(P) { P.rect(4, 11, 8, 3, "#8a8a8a"); P.rect(4, 13, 8, 1, "#5a5a5a"); for (let i = 0; i < 8; i++) { P.px(7 + Math.floor(i / 2), 11 - i, "#8a6235"); P.px(8 + Math.floor(i / 2), 11 - i, "#6a4825"); } P.rect(10, 2, 2, 2, "#5a5a5a"); },
   button(P, c) { P.rect(5, 6, 6, 4, c[0]); P.rect(5, 9, 6, 1, c[1]); P.rect(5, 6, 6, 1, "rgba(255,255,255,.35)"); },
   fence(P, c) { for (const x of [2, 12]) { P.rect(x, 2, 3, 13, c[0]); P.rect(x + 2, 2, 1, 13, c[1]); } P.rect(5, 4, 7, 2, c[0]); P.rect(5, 9, 7, 2, c[0]); P.rect(5, 5, 7, 1, c[1]); P.rect(5, 10, 7, 1, c[1]); },
+  piston(P, c) { P.rect(2, 2, 12, 4, c && c[0] ? c[0] : "#b98d55"); P.rect(2, 6, 12, 8, "#7a7a7a"); P.rect(2, 6, 12, 1, "#5a5a5a"); P.rect(6, 4, 4, 2, "#d8d8d8"); P.rect(3, 9, 10, 1, "#6a6a6a"); },
+  hook(P) { P.rect(6, 1, 4, 9, "#b98d55"); P.rect(7, 10, 2, 3, "#8a8a8a"); P.rect(5, 12, 6, 2, "#c8c8c8"); P.rect(5, 10, 1, 3, "#c8c8c8"); P.rect(10, 10, 1, 3, "#c8c8c8"); },
+  bell(P) { P.rect(5, 2, 6, 2, "#c89a14"); for (let y = 4; y < 12; y++) { const w = 3 + Math.floor((y - 4) / 3); P.rect(8 - w, y, w * 2, 1, y < 6 ? "#fff2a0" : "#f0c020"); } P.rect(2, 12, 12, 2, "#c89a14"); P.rect(7, 14, 2, 1, "#8a6a10"); },
   gate(P, c) { for (const x of [1, 13]) { P.rect(x, 2, 2, 12, c[1]); } P.rect(3, 3, 10, 2, c[0]); P.rect(3, 10, 10, 2, c[0]); P.rect(5, 5, 2, 5, c[0]); P.rect(9, 5, 2, 5, c[0]); }
 });
 function blob(P, pal) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) { const dx = x - 8, dy = y - 8.5; if (dx * dx + dy * dy < 16 + P.r() * 6) P.px(x, y, P.pick(pal)); } }
@@ -1175,7 +1240,7 @@ export function iconCanvas(id) {
   const bdi = d.kind === "block" ? BLOCKS[id] : null;
   if (d.kind !== "block" || (bdi.icon && !bdi.icon.startsWith("tile:"))) {
     const s = document.createElement("canvas"); s.width = s.height = 16;
-    ICON_PAINT[d.icon || bdi.icon](painter(s.getContext("2d"), 0, 0, id), d.colors || (bdi && WOOD_ICON[bdi.tex]));
+    ICON_PAINT[d.icon || bdi.icon](painter(s.getContext("2d"), 0, 0, id), d.colors || (bdi && (bdi.colors || WOOD_ICON[bdi.tex])));
     ctx.drawImage(s, 0, 0, 32, 32);
   } else {
     const bd = BLOCKS[id], atlas = buildAtlas();
@@ -1186,7 +1251,7 @@ export function iconCanvas(id) {
       ctx.save(); ctx.setTransform(1, 0.5, -1, 0.5, 16, dy); ctx.drawImage(atlas, top[0], top[1], 16, 16, 0, 0, 16, 16); ctx.restore();
       ctx.save(); ctx.setTransform(1, 0.5, 0, 1, 0, 8 + dy); ctx.drawImage(atlas, side[0], side[1] + 16 - h, 16, h, 0, 0, 16, h); ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.fillRect(0, 0, 16, h); ctx.restore();
       ctx.save(); ctx.setTransform(1, -0.5, 0, 1, 16, 16 + dy); ctx.drawImage(atlas, side[0], side[1] + 16 - h, 16, h, 0, 0, 16, h); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(0, 0, 16, h); ctx.restore();
-    } else if (bd.shape !== "cube" && bd.shape !== "water") {
+    } else if (bd.shape !== "cube" && bd.shape !== "water" && bd.shape !== "jelly") {
       const [sx, sy] = tileAt(faceTile(make(id, 0), 1));
       if (id === B.DOOR || id === B.IRON_DOOR) { const [tx, ty] = tileAt(TILE[id === B.DOOR ? "door_top" : "iron_door_top"]); ctx.drawImage(atlas, tx, ty, 16, 16, 8, 0, 16, 16); ctx.drawImage(atlas, sx, sy, 16, 16, 8, 16, 16, 16); }
       else ctx.drawImage(atlas, sx, sy, 16, 16, 0, 0, 32, 32);

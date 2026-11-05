@@ -2,8 +2,9 @@
 // signal strength 0-15 that drops 1 per wire block, strong and weak power through solid blocks, 1 redstone tick = 2 game ticks = 0.1 s.
 // Every change is handled from a queue with a hard budget per game tick, so clocks and feedback loops can never freeze the game.
 import { B, I, BLOCKS, OPAQUE, idOf, metaOf, make, isDoor, isTrapdoor, isGate, isButton, isPlate, isFence,
-  DOT, UNLIT, AXIS_X, ON, LOCKED, SUBTRACT, CMP_ON, INVERT, POWERED, NOTE_ON, OPEN, TOP, EYE_IN, honeyOf, itemDef, ANCHOR_MAX } from "./blocks.js";
-import { DIR, conductor, dustConn, dustPoints, supportOf } from "./shapes.js";
+  DOT, UNLIT, AXIS_X, ON, LOCKED, SUBTRACT, CMP_ON, INVERT, POWERED, NOTE_ON, OPEN, TOP, EYE_IN, honeyOf, itemDef, ANCHOR_MAX,
+  EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED, HOOK_ON, DISARMED, OPENED, BELL_POWERED, isPiston, isHush, SOLID } from "./blocks.js";
+import { DIR, PF, oppPF, conductor, dustConn, dustPoints, supportOf } from "./shapes.js";
 import { CHUNK } from "./blocks.js";
 
 const D6 = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
@@ -12,11 +13,12 @@ export const BUDGET = 6000; // real block updates (parts that react) allowed per
 const LOOKS = 120000;        // quick "is anything here?" checks allowed per game tick
 const MAX_NET = 4096;       // biggest wire network worked out at once
 const MAX_SCHED = 20000;
-const POLLED = id => id === B.COMPARATOR || id === B.DAYLIGHT || isPlate(id);
+const POLLED = id => id === B.COMPARATOR || id === B.DAYLIGHT || isPlate(id) || id === B.TRIPWIRE_HOOK;
 const key = (x, y, z) => x + "," + y + "," + z;
 // blocks that do something when their neighbors change (everything else is skipped quickly)
 const REACTS = id => id === B.SPARK_DUST || id === B.SPARK_TORCH || id === B.REPEATER || id === B.COMPARATOR || id === B.SPARK_LAMP || id === B.TNT || id === B.NOTE_BLOCK ||
-  id === B.LEVER || isButton(id) || isPlate(id) || isDoor(id) || isTrapdoor(id) || isGate(id);
+  id === B.LEVER || isButton(id) || isPlate(id) || isDoor(id) || isTrapdoor(id) || isGate(id) ||
+  isPiston(id) || id === B.PISTON_HEAD || id === B.TRIPWIRE_HOOK || id === B.TRIPWIRE || id === B.BELL;
 // Note block instruments (Java 1.20.1) and their octave shift from the harp
 const INSTRUMENT = id => {
   if ([B.SAND, B.GRAVEL].includes(id)) return "snare";
@@ -48,17 +50,22 @@ export function initRedstone(ctx) {
   // ---------- per-world state ----------
   function attach(w, data) {
     data = data || {};
-    const st = w.rs = { tick: data.tick || 0, acc: 0, seq: 0, sched: new Map(), queue: [], head: 0, queued: new Set(), cmp: new Map(data.cmp || []), seen: new Map(), poll: new Set(), hist: new Map(), burnt: new Map(), used: 0, looks: 0, overload: false, ver: 0, netVer: new Map() };
+    const st = w.rs = { tick: data.tick || 0, acc: 0, seq: 0, sched: new Map(), queue: [], head: 0, queued: new Set(), cmp: new Map(data.cmp || []), seen: new Map(), poll: new Set(), hist: new Map(), burnt: new Map(), used: 0, looks: 0, overload: false, ver: 0, netVer: new Map(),
+      moves: new Map(), pulse: new Map(), hush: new Set(), hushPend: new Map(), hushFreq: new Map(), openChest: null };
     for (const [x, y, z, kind, dt] of data.sched || []) schedule(st, x, y, z, Math.max(1, dt), kind);
     // find comparators, sensors, and plates the player has placed (they're all in the change list)
     for (const [ck, m] of w.mods) {
       const [cx, cz] = ck.split(",").map(Number);
+      for (const [i, v] of m) if (isHush(idOf(v))) st.hush.add(key(cx * CHUNK + (i % CHUNK), Math.floor(i / (CHUNK * CHUNK)), cz * CHUNK + Math.floor(i / CHUNK) % CHUNK));
       for (const [i, v] of m) if (POLLED(idOf(v))) st.poll.add(key(cx * CHUNK + (i % CHUNK), Math.floor(i / (CHUNK * CHUNK)), cz * CHUNK + Math.floor(i / CHUNK) % CHUNK));
     }
     w.onSet = (x, y, z, v, old) => {
       st.ver++;
       if (POLLED(idOf(old)) && idOf(old) !== idOf(v)) { st.poll.delete(key(x, y, z)); st.cmp.delete(key(x, y, z)); }
       if (POLLED(idOf(v))) st.poll.add(key(x, y, z));
+      if (isHush(idOf(v))) st.hush.add(key(x, y, z));
+      if (idOf(old) === B.TRIPWIRE && idOf(v) !== B.TRIPWIRE && (metaOf(old) & ATTACHED) && !(metaOf(old) & DISARMED)) stringCut(x, y, z);
+      if (idOf(old) !== idOf(v) || !isHush(idOf(v))) watchers(x, y, z);   // observers see every change (a sensor's own timer doesn't count)
       if (!mute) changed(x, y, z);
     };
   }
@@ -116,6 +123,10 @@ export function initRedstone(ctx) {
       case B.SPARK_TORCH: { if (m & UNLIT) return 0; const s = supportOf(v); return s[0] === dx && s[1] === dy && s[2] === dz ? 0 : 15; }
       case B.LEVER: return m & ON ? 15 : 0;
       case B.DAYLIGHT: case B.TARGET: return m & 15;
+      case B.OBSERVER: { if (!(m & OBS_ON)) return 0; const b = PF[oppPF(m & 7)]; return b[0] === dx && b[1] === dy && b[2] === dz ? 15 : 0; }
+      case B.TRIPWIRE_HOOK: return m & HOOK_ON ? 15 : 0;
+      case B.TRAPPED_CHEST: return m & OPENED ? 1 : 0;
+      case B.HUSH_SENSOR: case B.TUNED_SENSOR: return (m & 3) === 1 ? (m >> 2) & 15 : 0;
       case B.REPEATER: { if (!(m & ON)) return 0; const f = facingVec(m & 3); return f[0] === dx && dy === 0 && f[2] === dz ? 15 : 0; }
       case B.COMPARATOR: { const f = facingVec(m & 3); return f[0] === dx && dy === 0 && f[2] === dz ? (S().cmp.get(key(x, y, z)) || 0) : 0; }
       case B.SPARK_DUST: return forDust ? 0 : dustLevelToward(x, y, z, v, dx, dy, dz);
@@ -131,9 +142,10 @@ export function initRedstone(ctx) {
       const nx = x + dx, ny = y + dy, nz = z + dz, v = get(nx, ny, nz), id = idOf(v), m = metaOf(v);
       let p = 0;
       if (id === B.SPARK_TORCH) p = !(m & UNLIT) && dy === -1 ? 15 : 0;
-      else if (id === B.LEVER || isButton(id)) { const s = supportOf(v); p = m & ON && nx + s[0] === x && ny + s[1] === y && nz + s[2] === z ? 15 : 0; }
+      else if (id === B.TRAPPED_CHEST) p = dy === 1 && (m & OPENED) ? 1 : 0;
+      else if (id === B.LEVER || isButton(id) || id === B.TRIPWIRE_HOOK) { const s = supportOf(v); p = (id === B.TRIPWIRE_HOOK ? m & HOOK_ON : m & ON) && nx + s[0] === x && ny + s[1] === y && nz + s[2] === z ? 15 : 0; }
       else if (isPlate(id)) p = dy === 1 ? m & 15 : 0;
-      else if (id === B.REPEATER || id === B.COMPARATOR) p = emitDirect(nx, ny, nz, v, -dx, -dy, -dz, false);
+      else if (id === B.REPEATER || id === B.COMPARATOR || id === B.OBSERVER) p = emitDirect(nx, ny, nz, v, -dx, -dy, -dz, false);
       if (p > best) { best = p; if (best >= 15) return 15; }
     }
     return best;
@@ -167,7 +179,8 @@ export function initRedstone(ctx) {
   // ---------- what comparators read from containers and other blocks ----------
   function readable(x, y, z) {
     const w = W(), v = w.get(x, y, z), id = idOf(v), m = metaOf(v);
-    if (id === B.CHEST || id === B.FURNACE || id === B.SHELL_BOX) {
+    if (isHush(id)) return S().hushFreq.get(key(x, y, z)) || 0;
+    if (id === B.CHEST || id === B.TRAPPED_CHEST || id === B.FURNACE || id === B.SHELL_BOX) {
       const box = w.containers.get(key(x, y, z));
       if (!box || !box.slots) return 0;
       let sum = 0, any = false;
@@ -185,6 +198,7 @@ export function initRedstone(ctx) {
     const id = idOf(v), sid = idOf(s);
     if (id === B.SPARK_DUST || id === B.REPEATER || id === B.COMPARATOR) return OPAQUE[sid] === 1 || sid === B.GLASS || sid === B.RESONANT_GLASS;
     if (isPlate(id)) return OPAQUE[sid] === 1 || isFence(sid) || sid === B.GLASS;
+    if (id === B.TRIPWIRE || id === B.BELL) return SOLID[sid] === 1;
     return OPAQUE[sid] === 1;
   }
   function update(x, y, z) {
@@ -195,6 +209,10 @@ export function initRedstone(ctx) {
     S().used++;
     const sup = supportOf(v);
     if (sup && !supports(v, w.get(x + sup[0], y + sup[1], z + sup[2]))) { ctx.breakBlock(x, y, z, true); return; }
+    if (isPiston(id)) return pistonCheck(x, y, z, v);
+    if (id === B.PISTON_HEAD) return headCheck(x, y, z, v);
+    if (id === B.TRIPWIRE_HOOK) return hookCheck(x, y, z, v);
+    if (id === B.BELL) { const p = isPowered(x, y, z), m = metaOf(v); if (p !== !!(m & BELL_POWERED)) { setState(x, y, z, make(id, p ? m | BELL_POWERED : m & ~BELL_POWERED)); if (p) ring(x, y, z); } return; }
     if (id === B.SPARK_DUST) return dustNetwork(x, y, z);
     if (id === B.SPARK_TORCH) return torchCheck(x, y, z, v);
     if (id === B.REPEATER) return repeaterCheck(x, y, z, v);
@@ -210,6 +228,7 @@ export function initRedstone(ctx) {
       const p = isPowered(x, y, z), m = metaOf(v);
       if (p !== !!(m & POWERED)) {
         const open = p;
+        vibrate(x + 0.5, y + 0.5, z + 0.5, open ? 11 : 10);
         setState(x, y, z, make(id, (m & ~(OPEN | POWERED)) | (open ? OPEN : 0) | (p ? POWERED : 0)), true);
         if (!!(m & OPEN) !== open) ctx.Sound.door(open);
       }
@@ -232,7 +251,7 @@ export function initRedstone(ctx) {
       const hm = metaOf(hv);
       w.set(x, yy, z, make(id, (hm & ~(OPEN | POWERED)) | (p ? OPEN | POWERED : 0)));
     }
-    if (!!(m & OPEN) !== p) ctx.Sound.door(p);
+    if (!!(m & OPEN) !== p) { ctx.Sound.door(p); vibrate(x + 0.5, by + 0.5, z + 0.5, p ? 11 : 10); }
   }
 
   // ----- Sparkdust: work out a whole connected network at once -----
@@ -357,6 +376,241 @@ export function initRedstone(ctx) {
     if (nv !== v) setState(x, y, z, nv); else changed(x, y, z);
   }
 
+  // ---------- Part B: pistons (Java rules: push up to 12 blocks, sticky blocks drag their neighbors, 2 game ticks to move) ----------
+  const PUSH_LIMIT = 12;
+  const IMMOVABLE = new Set([B.OBSIDIAN, B.BEDROCK, B.PORTAL, B.END_PORTAL, B.GATEWAY, B.END_FRAME, B.CHEST, B.TRAPPED_CHEST, B.FURNACE, B.SHELL_BOX, B.VOID_CHEST, B.BEACON, B.RESPAWN_ANCHOR, B.PISTON_HEAD, B.MOVING]);
+  const SMASH = new Set([B.REPEATER, B.COMPARATOR, B.HUSH_SENSOR, B.TUNED_SENSOR, B.BELL, B.SKULL, B.BED, B.FIRE]);
+  const STICKY = id => id === B.GLOOP_BLOCK || id === B.HONEY_BLOCK;
+  const sticks = (a, b) => !((a === B.GLOOP_BLOCK && b === B.HONEY_BLOCK) || (a === B.HONEY_BLOCK && b === B.GLOOP_BLOCK));
+  // what happens to a block in a piston's way: "air" (nothing there), "move", "smash" (pops off as an item), or "stop"
+  function reaction(v) {
+    const id = idOf(v), d = BLOCKS[id];
+    if (!id || id === B.WATER || id === B.LAVA) return "air";
+    if (!d || d.hardness === Infinity || IMMOVABLE.has(id)) return "stop";
+    if (isPiston(id)) return metaOf(v) & EXTENDED ? "stop" : "move";
+    if (SMASH.has(id) || !d.solid || isDoor(id) || d.replaceable) return "smash";
+    return "move";
+  }
+  // Work out every block that moves (or "null" if something can't)
+  function resolve(base, start, dir, pulling) {
+    const w = W(), moving = new Map(), smash = [], q = [[start[0], start[1], start[2], pulling ? "stick" : "push"]];
+    for (let qi = 0; qi < q.length; qi++) {
+      const [x, y, z, why] = q[qi], k = key(x, y, z);
+      if (moving.has(k)) continue;
+      if (x === base[0] && y === base[1] && z === base[2]) { if (why === "push") return null; continue; }
+      if (y + dir[1] < 1 || y + dir[1] >= 79) { if (why === "push" && reaction(w.get(x, y, z)) === "move") return null; }
+      const v = w.get(x, y, z), r = reaction(v);
+      if (r === "air") continue;
+      if (r === "stop") { if (why === "push") return null; continue; }
+      if (r === "smash") { if (why === "push" && !smash.some(s => s[0] === x && s[1] === y && s[2] === z)) smash.push([x, y, z]); continue; }
+      if (y + dir[1] < 1 || y + dir[1] >= 79) return null;
+      moving.set(k, { x, y, z, v });
+      if (moving.size > PUSH_LIMIT) return null;
+      q.push([x + dir[0], y + dir[1], z + dir[2], "push"]);
+      if (STICKY(idOf(v))) for (const e of D6) {
+        if (e[0] === dir[0] && e[1] === dir[1] && e[2] === dir[2]) continue;
+        const nx = x + e[0], ny = y + e[1], nz = z + e[2], nv = w.get(nx, ny, nz);
+        if (reaction(nv) === "move" && sticks(idOf(v), idOf(nv))) q.push([nx, ny, nz, "stick"]);
+      }
+    }
+    return { cells: [...moving.values()], smash };
+  }
+  const pistonKey = (x, y, z) => key(x, y, z);
+  function pistonPowered(x, y, z, face) {
+    for (let i = 0; i < 6; i++) { if (i === face) continue; const e = PF[i]; if (powerFrom(x, y, z, e[0], e[1], e[2], false) > 0) return true; }
+    return powerAt(x, y + 1, z, false) > 0;   // Java's quirk: a piston also notices power at the block above it
+  }
+  function pistonCheck(x, y, z, v) {
+    const st = S(), m = metaOf(v), face = m & 7, want = pistonPowered(x, y, z, face), ext = !!(m & EXTENDED), mv = st.moves.get(pistonKey(x, y, z));
+    if (mv && mv.extending !== want) { schedule(st, x, y, z, 0, "piston"); return; }
+    if (!mv && want !== ext) schedule(st, x, y, z, 0, "piston");
+    // an extended piston whose head is gone breaks
+    if (!mv && ext) { const f = PF[face], hv = get(x + f[0], y + f[1], z + f[2]); if (idOf(hv) !== B.PISTON_HEAD || (metaOf(hv) & 7) !== face) ctx.breakBlock(x, y, z, true); }
+  }
+  function headCheck(x, y, z, v) {
+    const face = metaOf(v) & 7, f = PF[face], bx = x - f[0], by = y - f[1], bz = z - f[2], bv = get(bx, by, bz);
+    if (!(isPiston(idOf(bv)) && (metaOf(bv) & EXTENDED) && (metaOf(bv) & 7) === face) && !S().moves.has(pistonKey(bx, by, bz))) W().set(x, y, z, B.AIR);
+  }
+  function startMove(rec) {
+    const w = W(), st = S(), { cells, dir } = rec;
+    mute = true;
+    try {
+      for (const c of cells) w.set(c.x, c.y, c.z, B.AIR);
+      for (const c of cells) w.set(c.x + dir[0], c.y + dir[1], c.z + dir[2], B.MOVING);
+      if (rec.headAt) w.set(rec.headAt[0], rec.headAt[1], rec.headAt[2], B.MOVING);
+    } finally { mute = false; }
+    for (const c of cells) { changed(c.x, c.y, c.z); changed(c.x + dir[0], c.y + dir[1], c.z + dir[2]); }
+    rec.end = st.tick + 2;
+    st.moves.set(pistonKey(...rec.base), rec);
+    schedule(st, rec.base[0], rec.base[1], rec.base[2], 2, "pfin");
+    ctx.moveFx(cells, dir, 0.1);
+    ctx.pushEntities(rec.headAt ? [...cells, { x: rec.base[0], y: rec.base[1], z: rec.base[2], v: B.STONE }] : cells, dir);   // the head itself shoves too
+  }
+  function finishMove(rec) {
+    const w = W(), st = S(), { cells, dir } = rec;
+    st.moves.delete(pistonKey(...rec.base));
+    st.sched.delete(key(...rec.base) + ":pfin");
+    for (const c of cells) { const dx = c.x + dir[0], dy = c.y + dir[1], dz = c.z + dir[2]; if (w.id(dx, dy, dz) === B.MOVING) w.set(dx, dy, dz, c.v); }
+    if (rec.headAt && w.id(...rec.headAt) === B.MOVING) w.set(rec.headAt[0], rec.headAt[1], rec.headAt[2], rec.headV);
+    for (const c of cells) if (idOf(c.v) === B.OBSERVER) observerTrigger(c.x + dir[0], c.y + dir[1], c.z + dir[2]);   // a moved observer fires
+  }
+  function extend(x, y, z, v) {
+    const w = W(), m = metaOf(v), face = m & 7, f = PF[face], front = [x + f[0], y + f[1], z + f[2]];
+    if (front[1] < 1 || front[1] >= 79) return false;
+    const res = resolve([x, y, z], front, f, false);
+    if (!res) return false;
+    for (const [sx, sy, sz] of res.smash) ctx.breakBlock(sx, sy, sz, true);
+    w.set(x, y, z, make(idOf(v), m | EXTENDED));
+    startMove({ base: [x, y, z], cells: res.cells, dir: f, extending: true, headAt: front, headV: make(B.PISTON_HEAD, face | (idOf(v) === B.STICKY_PISTON ? STICKY_HEAD : 0)) });
+    ctx.Sound.piston(true, dist(x, y, z)); vibrate(x + 0.5, y + 0.5, z + 0.5, 11);
+    G.adv && G.adv("piston");
+    return true;
+  }
+  function retract(x, y, z, v, pull) {
+    const w = W(), m = metaOf(v), face = m & 7, f = PF[face], hx = x + f[0], hy = y + f[1], hz = z + f[2];
+    mute = true;
+    try { if (w.id(hx, hy, hz) === B.PISTON_HEAD) w.set(hx, hy, hz, B.AIR); w.set(x, y, z, make(idOf(v), m & ~EXTENDED)); } finally { mute = false; }
+    changed(hx, hy, hz); changed(x, y, z);
+    ctx.Sound.piston(false, dist(x, y, z)); vibrate(x + 0.5, y + 0.5, z + 0.5, 10);
+    if (!pull || idOf(v) !== B.STICKY_PISTON) return;
+    const back = [-f[0], -f[1], -f[2]], res = resolve([x, y, z], [hx + f[0], hy + f[1], hz + f[2]], back, true);
+    if (res && res.cells.length) startMove({ base: [x, y, z], cells: res.cells, dir: back, extending: false });
+  }
+  function pistonFire(x, y, z) {
+    const st = S(), v = get(x, y, z);
+    if (!isPiston(idOf(v))) return;
+    const m = metaOf(v), want = pistonPowered(x, y, z, m & 7), mv = st.moves.get(pistonKey(x, y, z));
+    if (mv) {
+      finishMove(mv);
+      // switched off before it finished pushing: a sticky piston lets go of its block ("spitting"). Off right as it finishes: a normal pull.
+      if (mv.extending && !want) retract(x, y, z, get(x, y, z), st.tick >= mv.end);
+      else if (!mv.extending && want) extend(x, y, z, get(x, y, z));
+      return;
+    }
+    const ext = !!(m & EXTENDED);
+    if (want && !ext) extend(x, y, z, v);
+    else if (!want && ext) retract(x, y, z, v, true);
+  }
+  function settle() { const st = S(); if (!st) return; for (const rec of [...st.moves.values()]) finishMove(rec); }
+
+  // ---------- observers: a 1-redstone-tick pulse out the back when the block in front changes ----------
+  function observerTrigger(x, y, z) { const st = S(); if (st && idOf(get(x, y, z)) === B.OBSERVER) schedule(st, x, y, z, 2, "obs"); }
+  function watchers(x, y, z) {   // observers looking at (x, y, z)
+    for (let i = 0; i < 6; i++) { const e = PF[i], ox = x - e[0], oy = y - e[1], oz = z - e[2], ov = get(ox, oy, oz); if (idOf(ov) === B.OBSERVER && (metaOf(ov) & 7) === i) observerTrigger(ox, oy, oz); }
+  }
+
+  // ---------- tripwire: two hooks facing each other (up to 40 apart) with string between ----------
+  function hookLine(x, y, z, v) {
+    const d = metaOf(v) & 3, [sx, sz] = [-DIR[d][0], -DIR[d][1]], cells = [];
+    for (let i = 1; i <= 41; i++) {
+      const cx = x + sx * i, cz = z + sz * i, cv = get(cx, y, cz), id = idOf(cv);
+      if (id === B.TRIPWIRE) { cells.push([cx, y, cz]); continue; }
+      if (id === B.TRIPWIRE_HOOK && (metaOf(cv) & 3) === (d + 2) % 4 && cells.length) return cells;
+      return null;
+    }
+    return null;
+  }
+  function hookCheck(x, y, z, v) {
+    const st = S(), w = W(), m = metaOf(v), k = key(x, y, z), line = hookLine(x, y, z, v);
+    let seen = false;
+    if (line) for (const [cx, cy, cz] of line) if (entitiesIn([cx, cy, cz, cx + 1, cy + 0.25, cz + 1], "all")) { seen = true; break; }
+    if (seen) st.seen.set(k, st.tick);
+    const on = (line && (seen || st.tick - (st.seen.get(k) ?? -99) < 10)) || (st.pulse.get(k) || 0) > st.tick;
+    const nm = (m & 3) | (line ? ATTACHED : 0) | (on ? HOOK_ON : 0);
+    if (nm !== m) {
+      setState(x, y, z, make(B.TRIPWIRE_HOOK, nm));
+      if (!!(m & HOOK_ON) !== on) { ctx.Sound.switchClick(on, dist(x, y, z)); if (on) vibrate(x + 0.5, y + 0.5, z + 0.5, 11); }
+    }
+    if (line) for (const [cx, cy, cz] of line) { const sv = w.get(cx, cy, cz), sm = metaOf(sv), want = (sm & ~(ATTACHED | HOOK_ON)) | ATTACHED | (on ? HOOK_ON : 0); if (want !== sm) { mute = true; try { w.set(cx, cy, cz, make(B.TRIPWIRE, want), true); } finally { mute = false; } } }
+  }
+  // cutting an armed string (without shears) trips the hooks for a moment
+  function stringCut(x, y, z) {
+    const st = S();
+    for (let d = 0; d < 4; d++) for (let i = 1; i <= 41; i++) {
+      const cx = x + DIR[d][0] * i, cz = z + DIR[d][1] * i, cv = get(cx, y, cz), id = idOf(cv);
+      if (id === B.TRIPWIRE) continue;
+      if (id === B.TRIPWIRE_HOOK && (metaOf(cv) & 3) === d) { st.pulse.set(key(cx, y, cz), st.tick + 10); enqueue(cx, y, cz); schedule(st, cx, y, cz, 11, "hook"); }
+      break;
+    }
+  }
+  function beforeBreak(x, y, z, tool) {
+    const v = get(x, y, z);
+    if (idOf(v) === B.TRIPWIRE && tool === "shears") { mute = true; try { W().set(x, y, z, make(B.TRIPWIRE, metaOf(v) | DISARMED), true); } finally { mute = false; } }
+  }
+
+  // ---------- trapped chests: power 1 while you have it open ----------
+  function trappedTick() {
+    const st = S(), open = G.state === "panel" && G.panelKind === "chest" && G.panelCtx ? G.panelCtx : null;
+    if (open === st.openChest) return;
+    for (const [k, on] of [[st.openChest, false], [open, true]]) {
+      if (!k) continue;
+      const [x, y, z] = k.split(",").map(Number), v = get(x, y, z);
+      if (idOf(v) === B.CHEST || idOf(v) === B.TRAPPED_CHEST) vibrate(x + 0.5, y + 0.5, z + 0.5, on ? 11 : 10);
+      if (idOf(v) === B.TRAPPED_CHEST) setState(x, y, z, make(B.TRAPPED_CHEST, on ? metaOf(v) | OPENED : metaOf(v) & ~OPENED));
+    }
+    st.openChest = open;
+  }
+
+  // ---------- Hush Sensors (sculk sensors): hear vibrations within 8 blocks (Tuned: 16, one frequency) ----------
+  function occluded(ax, ay, az, bx, by, bz) {
+    const n = Math.ceil(Math.hypot(bx - ax, by - ay, bz - az) / 0.4);
+    for (let i = 1; i < n; i++) { const t = i / n, id = W().id(Math.floor(ax + (bx - ax) * t), Math.floor(ay + (by - ay) * t), Math.floor(az + (bz - az) * t)); if (id === B.WOOL || id === B.BLACK_WOOL || id === B.HUSH_CARPET) return true; }
+    return false;
+  }
+  function vibrate(x, y, z, freq) {
+    const st = S();
+    if (!st || !st.hush.size) return;
+    for (const k of st.hush) {
+      const [sx, sy, sz] = k.split(",").map(Number);
+      if (!W().isLoaded(sx, sz)) continue;
+      const v = get(sx, sy, sz), id = idOf(v), m = metaOf(v);
+      if (!isHush(id)) { st.hush.delete(k); continue; }
+      const range = id === B.TUNED_SENSOR ? 16 : 8, d = Math.hypot(sx + 0.5 - x, sy + 0.5 - y, sz + 0.5 - z);
+      if (d > range || (m & 3) !== 0 || st.hushPend.has(k)) continue;
+      if (id === B.TUNED_SENSOR) { const b = DIR[(((m >> 6) & 3) + 2) % 4], inp = powerFrom(sx, sy, sz, b[0], 0, b[1], false); if (inp > 0 && inp !== freq) continue; }
+      if (occluded(x, y, z, sx + 0.5, sy + 0.5, sz + 0.5)) continue;
+      st.hushPend.set(k, { freq, d, range });
+      schedule(st, sx, sy, sz, Math.max(1, Math.floor(d)), "hush");
+    }
+  }
+  function hushFire(x, y, z, kind) {
+    const st = S(), k = key(x, y, z), v = get(x, y, z), id = idOf(v), m = metaOf(v);
+    if (!isHush(id)) { st.hushPend.delete(k); return; }
+    if (kind === "hush") {
+      const p = st.hushPend.get(k); st.hushPend.delete(k);
+      if (!p || (m & 3) !== 0) return;
+      const power = Math.max(1, 15 - Math.floor(p.d / p.range * 15));
+      setState(x, y, z, make(id, (m & ~63) | 1 | (power << 2)));
+      st.hushFreq.set(k, p.freq);
+      schedule(st, x, y, z, id === B.TUNED_SENSOR ? 10 : 30, "hushoff");
+      ctx.Sound.hush(dist(x, y, z)); ctx.puff(x + 0.5, y + 0.9, z + 0.5, "hush");
+      G.adv && G.adv("hush", id);
+    } else if (kind === "hushoff") { setState(x, y, z, make(id, (m & ~63) | 2)); schedule(st, x, y, z, 10, "hushrest"); }
+    else setState(x, y, z, make(id, m & ~63));
+  }
+  function chunkLoaded(w, c) {   // sensors that came with the land (the Deep) join the list when their land loads
+    const st = w.rs;
+    if (!st) return;
+    const d = c.data;
+    for (let i = 0; i < d.length; i++) { const id = d[i] & 255; if (id === B.HUSH_SENSOR || id === B.TUNED_SENSOR) st.hush.add(key(c.cx * CHUNK + (i % CHUNK), Math.floor(i / (CHUNK * CHUNK)), c.cz * CHUNK + Math.floor(i / CHUNK) % CHUNK)); }
+  }
+
+  // ---------- bells ----------
+  function ring(x, y, z) {
+    ctx.Sound.bell(dist(x, y, z)); ctx.puff(x + 0.5, y + 0.6, z + 0.5, "spark");
+    for (const e of ctx.ents.list) if (e.def.villager && !e.dead && Math.hypot(e.pos.x - x, e.pos.z - z) < 48) e.bellT = 30;   // villagers hurry home
+    vibrate(x + 0.5, y + 0.5, z + 0.5, 11);
+    G.adv && G.adv("bell");
+  }
+  function entitiesIn(b, kinds) {
+    const over = a => a[0] < b[3] && a[3] > b[0] && a[1] < b[4] && a[4] > b[1] && a[2] < b[5] && a[5] > b[2];
+    const p = G.player;
+    if (p && !G.spectator && G.state !== "dead" && over(p.aabb())) return true;
+    for (const e of ctx.ents.list) if (!e.dead && !e.gone && over([e.pos.x - e.w / 2, e.pos.y, e.pos.z - e.w / 2, e.pos.x + e.w / 2, e.pos.y + e.h, e.pos.z + e.w / 2])) return true;
+    if (kinds === "all") for (const d of G.drops) if (d.x > b[0] && d.x < b[3] && d.z > b[2] && d.z < b[5] && d.y >= b[1] - 0.1 && d.y < b[4]) return true;
+    return false;
+  }
+
   // ---------- note blocks ----------
   function dist(x, y, z) { const p = G.player.pos; return Math.hypot(p.x - x - 0.5, p.y - y, p.z - z - 0.5); }
   function playNote(x, y, z) {
@@ -395,6 +649,12 @@ export function initRedstone(ctx) {
         if (BLOCKS[id].wood && arrowIn(e.x, e.y, e.z)) { schedule(S(), e.x, e.y, e.z, 20, "btn"); break; }
         setState(e.x, e.y, e.z, make(id, m & ~ON)); ctx.Sound.switchClick(false, dist(e.x, e.y, e.z)); break;
       case "target": if (id === B.TARGET && (m & 15)) setState(e.x, e.y, e.z, make(id, 0)); break;
+      case "piston": pistonFire(e.x, e.y, e.z); break;
+      case "pfin": { const rec = S().moves.get(key(e.x, e.y, e.z)); if (rec) finishMove(rec); break; }
+      // Java observer: one timer. Off: turn on and check again in 2 ticks. On: turn off.
+      case "obs": if (id === B.OBSERVER) { if (m & OBS_ON) setState(e.x, e.y, e.z, make(id, m & ~OBS_ON)); else { setState(e.x, e.y, e.z, make(id, m | OBS_ON)); schedule(S(), e.x, e.y, e.z, 2, "obs"); } } break;
+      case "hook": if (id === B.TRIPWIRE_HOOK) hookCheck(e.x, e.y, e.z, v); break;
+      case "hush": case "hushoff": case "hushrest": hushFire(e.x, e.y, e.z, e.kind); break;
       case "ore": if ((id === B.SPARK_ORE || id === B.DARK_SPARK_ORE) && (m & 1)) setState(e.x, e.y, e.z, make(id, 0)); break;
     }
   }
@@ -414,9 +674,13 @@ export function initRedstone(ctx) {
       if (!w.isLoaded(x, z)) continue;
       const id = w.id(x, y, z);
       if (isPlate(id)) plateCheck(x, y, z);
+      else if (id === B.TRIPWIRE_HOOK) hookCheck(x, y, z, w.get(x, y, z));   // also notices a string line being finished
       else if (id === B.COMPARATOR) enqueue(x, y, z);
       else if (id === B.DAYLIGHT && st.tick % 20 === 0) daylightCheck(x, y, z);
     }
+    trappedTick();
+    // creatures walking near Hush Sensors make vibrations (checked twice a second)
+    if (st.hush.size && st.tick % 10 === 0) for (const e of ctx.ents.list) if (!e.dead && e.onGround !== false && Math.hypot(e.vel ? e.vel.x : 0, e.vel ? e.vel.z : 0) > 0.6) vibrate(e.pos.x, e.pos.y + 0.1, e.pos.z, 1);
     // stepping on Spark Ore makes it glow
     const p = G.player;
     if (p && p.onGround && !G.spectator) { const fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y - 0.1), fz = Math.floor(p.pos.z); if ([B.SPARK_ORE, B.DARK_SPARK_ORE].includes(w.id(fx, fy, fz))) touchOre(fx, fy, fz); }
@@ -455,7 +719,7 @@ export function initRedstone(ctx) {
     if (!level && old && st.tick - (st.seen.get(k) || 0) < (id === B.GOLD_PLATE || id === B.IRON_PLATE ? 10 : 20)) return;   // plates hold on a moment after you step off
     if (level === old) return;
     setState(x, y, z, make(id, (m & ~15) | level));
-    if (!old || !level) ctx.Sound.switchClick(!!level, dist(x, y, z), true);
+    if (!old || !level) { ctx.Sound.switchClick(!!level, dist(x, y, z), true); vibrate(x + 0.5, y + 0.2, z + 0.5, level ? 11 : 10); }
     if (level && !old) G.adv && G.adv("plate");
   }
   function daylightCheck(x, y, z) {
@@ -499,12 +763,12 @@ export function initRedstone(ctx) {
     const id = idOf(v), m = metaOf(v);
     if (m & ON) return;
     setState(x, y, z, make(id, m | ON));
-    ctx.Sound.switchClick(true, dist(x, y, z));
+    ctx.Sound.switchClick(true, dist(x, y, z)); vibrate(x + 0.5, y + 0.5, z + 0.5, 11);
     schedule(S(), x, y, z, BLOCKS[id].wood ? 30 : 20, "btn");
   }
 
   // ---------- right-clicking Sparkworks blocks. Returns true if the click was used up. ----------
-  const KINDS = new Set(["sparkore", "dust", "lever", "button", "trapdoor", "irontrapdoor", "gate", "repeater", "comparator", "irondoor", "note", "daylight"]);
+  const KINDS = new Set(["sparkore", "dust", "lever", "button", "trapdoor", "irontrapdoor", "gate", "repeater", "comparator", "irondoor", "note", "daylight", "bell"]);
   function interact(hit, kind) {
     const w = W(), { x, y, z } = hit, v = w.get(x, y, z), id = idOf(v), m = metaOf(v);
     switch (kind) {
@@ -515,7 +779,7 @@ export function initRedstone(ctx) {
         setState(x, y, z, make(id, m ^ DOT)); changed(x, y, z); return true;
       }
       case "lever":
-        setState(x, y, z, make(id, m ^ ON)); ctx.Sound.switchClick(!(m & ON), 0);
+        setState(x, y, z, make(id, m ^ ON)); ctx.Sound.switchClick(!(m & ON), 0); vibrate(x + 0.5, y + 0.5, z + 0.5, m & ON ? 10 : 11);
         ctx.puff(x + 0.5, y + 0.5, z + 0.5, "spark"); G.adv && G.adv("lever"); return true;
       case "button": press(x, y, z, v); return true;
       case "trapdoor": case "gate": {
@@ -527,6 +791,7 @@ export function initRedstone(ctx) {
       case "repeater": setState(x, y, z, make(id, (m & ~12) | ((((m >> 2) & 3) + 1) & 3) << 2)); ctx.Sound.click(); return true;
       case "comparator": setState(x, y, z, make(id, m ^ SUBTRACT)); ctx.Sound.click(); enqueue(x, y, z); return true;
       case "daylight": setState(x, y, z, make(id, m ^ INVERT)); daylightCheck(x, y, z); ctx.Sound.click(); return true;
+      case "bell": ring(x, y, z); return true;
       case "note": setState(x, y, z, make(id, (m & ~31) | (((m & 31) + 1) % 25))); playNote(x, y, z); return true;
     }
     return false;
@@ -563,11 +828,18 @@ export function initRedstone(ctx) {
       return make2(hinge | (top ? TOP : 0));
     }
     if (isGate(id)) return make2(look);
+    if (isPiston(id)) return make2(oppPF(ctx.lookFacing3()));   // the pushing face points back at you
+    if (id === B.OBSERVER) return make2(ctx.lookFacing3());     // the face watches the way you look; the output points at you
+    if (id === B.TRIPWIRE_HOOK) return ny === 0 && side >= 0 && OPAQUE[w.id(x + DIR[side][0], y, z + DIR[side][1])] ? make2(side) : "A Tripwire Hook goes on the side of a solid block.";
+    if (id === B.TRIPWIRE) return SOLID[idOf(below)] ? make2(0) : "String needs a block under it to be laid as a tripwire.";
+    if (id === B.BELL) return SOLID[idOf(below)] ? make2(look) : "A Bell needs a solid block under it.";
+    if (id === B.TUNED_SENSOR) return make2(((look + 2) % 4) << 6);
+    if (id === B.HUSH_SENSOR) return make2(0);
     if (id === B.SPARK_LAMP || id === B.NOTE_BLOCK || id === B.TARGET || id === B.DAYLIGHT || id === B.SPARK_BLOCK || isFence(id) || id === B.SPARK_ORE || id === B.DARK_SPARK_ORE) return make2(0);
     return null;
   }
   // after placing: let the engine settle the new block (a torch next to power, a lamp already powered…)
   function placed(x, y, z) { if (S()) { changed(x, y, z); process(); } }
 
-  return { attach, toJSON, tick, interact, placeValue, placed, projectileHit, touchOre, kinds: KINDS, isPowered: (x, y, z) => isPowered(x, y, z), powerAt: (x, y, z) => powerAt(x, y, z, false), blockPower, strongPower, comparatorOutput: (x, y, z) => (S().cmp.get(key(x, y, z)) || 0), process, state: S };
+  return { attach, toJSON, tick, interact, placeValue, placed, projectileHit, touchOre, kinds: KINDS, settle, vibrate, beforeBreak, chunkLoaded, reaction, isPowered: (x, y, z) => isPowered(x, y, z), powerAt: (x, y, z) => powerAt(x, y, z, false), blockPower, strongPower, comparatorOutput: (x, y, z) => (S().cmp.get(key(x, y, z)) || 0), process, state: S };
 }

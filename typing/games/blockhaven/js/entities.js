@@ -227,7 +227,7 @@ export const TRADES = {
   fletcher: [[[[I.STICK, 24]], [I.JADE, 1], 12], [[[I.FLINT, 10]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.ARROW, 16], 12], [[[I.JADE, 2]], [I.BOW, 1], 6], [[[I.JADE, 1], [I.FEATHER, 4]], [I.ARROW, 24], 8]],
   shepherd: [[[[B.WOOL, 18]], [I.JADE, 1], 12], [[[I.JADE, 2]], [I.SHEARS, 1], 6], [[[I.JADE, 3]], [B.BED, 1], 6], [[[I.JADE, 1]], [B.WOOL, 4], 12]],
   cleric: [[[[I.ROTTEN_FLESH, 32]], [I.JADE, 1], 12], [[[I.WART, 22]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.SHINE_DUST, 2], 12], [[[I.JADE, 5]], [I.VOID_PEARL, 1], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 2], 8], [[[I.JADE, 1]], [I.SPARKDUST, 2], 12]],
-  smith: [[[[I.COAL, 15]], [I.JADE, 1], 12], [[[I.IRON_INGOT, 4]], [I.JADE, 1], 12], [[[I.JADE, 6]], [I.IRON_PICK, 1], 4], [[[I.JADE, 7]], [I.IRON_SWORD, 1], 4], [[[I.JADE, 9]], [I.IRON_CHEST, 1], 3], [[[I.JADE, 4]], [I.IRON_HELMET, 1], 4]],
+  smith: [[[[I.COAL, 15]], [I.JADE, 1], 12], [[[I.IRON_INGOT, 4]], [I.JADE, 1], 12], [[[I.JADE, 6]], [I.IRON_PICK, 1], 4], [[[I.JADE, 7]], [I.IRON_SWORD, 1], 4], [[[I.JADE, 9]], [I.IRON_CHEST, 1], 3], [[[I.JADE, 4]], [I.IRON_HELMET, 1], 4], [[[I.JADE, 16]], [B.BELL, 1], 2]],
   wanderer: [[[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1]]
 };
 const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], wanderer: ["#2a5aa0", "#245094"] };
@@ -1522,7 +1522,8 @@ export class Entities {
   }
   // Villagers: work at their job site during the day, go home at night, run from monsters
   thinkVillager(e, d) {
-    const ctx = this.ctx, time = ctx.time(), night = time > 0.52 && time < 0.97;
+    if (e.bellT > 0) e.bellT -= 0.15;   // a ringing bell sends villagers home for a while
+    const ctx = this.ctx, time = ctx.time(), night = (time > 0.52 && time < 0.97) || e.bellT > 0;
     const home = e.home ? { x: e.home[0], y: e.home[1], z: e.home[2] } : null;
     if (e.trading > 0) { e.trading -= 0.15; e.goal = null; const p = ctx.player(); e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)); return; }
     const danger = this.list.find(o => o.def.hostile && !o.dead && !o.def.boss && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 8);

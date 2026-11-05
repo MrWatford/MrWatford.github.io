@@ -233,20 +233,61 @@ const ents = new Entities(scene, {
   openTrade: e => openPanel("trade", e.uid),
   mount: e => mount(e), riding: () => !!G.riding, boating: () => !!(G.riding && G.riding.def.boat),
   itemMesh: (id, size) => itemMesh(id, size),
-  hitBlock: (pr, bx, by, bz, x, y, z) => R.projectileHit(pr, bx, by, bz, x, y, z),
+  hitBlock: (pr, bx, by, bz, x, y, z) => { R.projectileHit(pr, bx, by, bz, x, y, z); R.vibrate(x, y, z, 2); },
   // Pouncers pick up food lying on the ground
   nearDrop: (pos, r) => G.drops.find(d => d.pickDelay <= 0 && itemDef(d.id).kind === "food" && Math.abs(d.y - pos.y) < 1.5 && Math.hypot(d.x - pos.x, d.z - pos.z) < r),
   takeDrop: d => { d.n--; if (d.n <= 0) { removeDrop(d); G.drops.splice(G.drops.indexOf(d), 1); } return d.id; },
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
-const PUFF_COLORS = { spark: [1, 0.32, 0.1], poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], pale: [0.88, 0.94, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
+const PUFF_COLORS = { hush: [0.35, 0.95, 0.9], spark: [1, 0.32, 0.1], poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], pale: [0.88, 0.94, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
 // a musical note floating up from a note block, colored by its pitch (green → red → blue → green, like a color wheel)
 function noteFx(x, y, z, pitch) {
   const h = pitch / 24, c = [Math.max(0, Math.sin((h + 0.0) * Math.PI * 2) * 0.5 + 0.5), Math.max(0, Math.sin((h + 0.33) * Math.PI * 2) * 0.5 + 0.5), Math.max(0, Math.sin((h + 0.66) * Math.PI * 2) * 0.5 + 0.5)];
   for (let i = 0; i < 4; i++) { if (parts.length >= PMAX) parts.shift(); parts.push({ x: x + (Math.random() - 0.5) * 0.15, y: y + i * 0.05, z: z + (Math.random() - 0.5) * 0.15, vx: 0, vy: 0.9, vz: 0, life: 0.7, floaty: true, c }); }
 }
 // which of the 4 directions (0 +z, 1 +x, 2 −z, 3 −x) the player is looking along
+// 6-way version for pistons and observers: 0 up, 1 down, 2-5 the 4 sides
+function lookFacing3() { const d = lookDir(); return Math.abs(d.y) > Math.max(Math.abs(d.x), Math.abs(d.z)) ? (d.y > 0 ? 0 : 1) : 2 + lookFacing(); }
+// Blocks sliding out of a piston: drawn as their own little cubes for the 0.1 s the move takes
+const movers = [];
+function moveFx(cells, dir, dur) {
+  for (const c of cells) {
+    const id = idOf(c.v), d = BLOCKS[id], g = new THREE.BoxGeometry(1, 1, 1);
+    setBoxUV(g, f => faceTile(c.v, BOX_FACE_DIR[f], d.front && f === BOX_FRONT));
+    const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: atlasTex, transparent: d.render === "water", alphaTest: 0.1 }));
+    mesh.material.color.setScalar(0.85);
+    mesh.position.set(c.x + 0.5, c.y + 0.5, c.z + 0.5); scene.add(mesh);
+    movers.push({ mesh, x: c.x + 0.5, y: c.y + 0.5, z: c.z + 0.5, dir, t0: G.clock, dur });
+  }
+}
+function updateMovers() {
+  for (let i = movers.length - 1; i >= 0; i--) {
+    const m = movers[i], k = Math.min(1, (G.clock - m.t0) / m.dur);
+    m.mesh.position.set(m.x + m.dir[0] * k, m.y + m.dir[1] * k, m.z + m.dir[2] * k);
+    if (G.clock - m.t0 > m.dur + 0.12) { scene.remove(m.mesh); m.mesh.geometry.dispose(); m.mesh.material.dispose(); movers.splice(i, 1); }
+  }
+}
+// Players and creatures in the way get shoved along; a Gloop Block launches whoever stands on it; a Honey Block carries them
+function pushEntities(cells, dir) {
+  const bodies = [];
+  if (!G.spectator) bodies.push({ pos: G.player.pos, vel: G.player.vel, w: 0.6, h: G.player.height, player: true });
+  for (const e of ents.list) if (!e.dead && !e.gone) bodies.push({ pos: e.pos, vel: e.vel, w: e.w, h: e.h });
+  for (const b of bodies) {
+    const a = [b.pos.x - b.w / 2, b.pos.y, b.pos.z - b.w / 2, b.pos.x + b.w / 2, b.pos.y + b.h, b.pos.z + b.w / 2];
+    let push = false, launch = false, ride = false;
+    for (const c of cells) {
+      const dx = c.x + dir[0], dy = c.y + dir[1], dz = c.z + dir[2], id = idOf(c.v);
+      const overXZ = a[0] < Math.max(c.x, dx) + 1 && a[3] > Math.min(c.x, dx) && a[2] < Math.max(c.z, dz) + 1 && a[5] > Math.min(c.z, dz);
+      if (overXZ && a[1] < Math.max(c.y, dy) + 1 && a[4] > Math.min(c.y, dy)) push = true;
+      const onTop = a[0] < c.x + 1 && a[3] > c.x && a[2] < c.z + 1 && a[5] > c.z && Math.abs(a[1] - (c.y + 1)) < 0.3;
+      if (onTop && id === B.GLOOP_BLOCK) launch = true;
+      if (onTop && id === B.HONEY_BLOCK) ride = true;
+    }
+    if (push || ride) { b.pos.x += dir[0]; b.pos.y += Math.max(0, dir[1]) + (push && dir[1] === 0 ? 0 : 0); b.pos.z += dir[2]; if (dir[1] < 0 && ride) b.pos.y += dir[1]; }
+    if (launch) { if (dir[1] > 0) b.vel.y = 14; else { b.vel.x += dir[0] * 9; b.vel.z += dir[2] * 9; b.vel.y = Math.max(b.vel.y, 4); } if (b.player) G.player.airTop = null; }
+  }
+}
 function lookFacing() { const d = lookDir(); return Math.abs(d.x) > Math.abs(d.z) ? (d.x > 0 ? 1 : 3) : (d.z > 0 ? 0 : 2); }
 function puff(x, y, z, kind) {
   const c = PUFF_COLORS[kind] || [1, 1, 1], n = kind === "heart" ? 6 : kind === "spark" ? 3 : 14;
@@ -1100,7 +1141,7 @@ function updateOrbs(dt) {
 // ---------- explosions ----------
 function explode(x, y, z, power, src) {
   const w = G.world, p = G.player, dist = Math.hypot(p.pos.x - x, p.pos.y + 0.9 - y, p.pos.z - z);
-  Sound.explode(dist);
+  Sound.explode(dist); R.vibrate(x, y, z, 15);
   for (let i = 0; i < 5; i++) puff(x + (Math.random() - 0.5) * power, y + (Math.random() - 0.5) * power, z + (Math.random() - 0.5) * power, "poof");
   // blocks
   const griefing = G.wset.griefing || !(src && src.def);   // Blast Blocks always break things; creatures only if allowed
@@ -1276,11 +1317,12 @@ function makeWorld(dim) {
   for (const k of data.newGen || []) w.newGen.add(k);
   w.beacons = new Set(data.beacons || []);
   R.attach(w, data.rs);   // the signal engine's timers and comparator outputs
-  w.onLoad = c => ents.loadChunk(c);
+  w.onLoad = c => { ents.loadChunk(c); R.chunkLoaded(w, c); };
   w.onUnload = c => ents.unloadChunk(c);
   return w;
 }
 function dimSnapshot(w) {
+  if (w === G.world) R.settle();   // finish any blocks a piston is still sliding
   const old = G.dimData[w.dim] || {};
   if (w.dim === "end") { const dr = ents.list.find(e => e.sp === "dragon" && !e.dead); if (dr) old.wyrmHp = dr.hp; }
   return { ...old, mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w) };
@@ -1437,7 +1479,7 @@ G.saveNow = saveNow;
 function openPanel(kind, ctx) {
   G.state = "panel"; keys.clear(); mouseL = mouseR = false; G.mining = null;
   if (document.pointerLockElement) document.exitPointerLock();
-  G.panelKind = kind;
+  G.panelKind = kind; G.panelCtx = ctx;
   UI.openPanel(kind, ctx);
   if (kind === "table") tipDone("table");
   if (kind === "inventory" && G.creative) tipDone("craft");
@@ -1446,7 +1488,7 @@ G.openAdvancements = () => openPanel("advancements");
 G.openNoteRaw = n => { if (G.state === "play" || G.state === "panel") openPanel("note", n); };
 G.closePanel = () => closePanel();
 function closePanel() {
-  UI.closePanel(); G.panelKind = null;
+  UI.closePanel(); G.panelKind = null; G.panelCtx = null;
   G.state = "play"; UI.show("none");
   requestLock();
 }
@@ -1616,8 +1658,10 @@ function wearTool(stack, n) {
 }
 const water = (x, y, z) => G.world.id(x, y, z) === B.WATER;
 function breakBlock(x, y, z, drops, quiet) {
+  if (!quiet) R.beforeBreak(x, y, z, (heldTool() || {}).type);   // shears cut a tripwire without setting it off
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
+  R.vibrate(x + 0.5, y + 0.5, z + 0.5, 13);
   F.blockBroken(x, y, z, id); L.blockBroken(x, y, z, id);
   w.crops.delete(x + "," + y + "," + z);
   if (id === B.OBSIDIAN || id === B.PORTAL) setTimeout(() => breakPortal(x, y, z), 0);
@@ -1703,6 +1747,7 @@ function attack() {
   return true;
 }
 function releaseBow() {
+  R.vibrate(G.player.pos.x, G.player.pos.y + 1.4, G.player.pos.z, 3);
   const charge = Math.min(1, G.bowT), s = G.inv.slots[G.bowHand ?? G.selected];
   G.bowT = -1;
   if (charge < 0.15 || !s || s.id !== I.BOW) return;
@@ -1876,7 +1921,7 @@ function useWith(offhand) {
     return true;
   }
   if (slot.id === B.BED) { placeBed(hit, slot); return true; }
-  if (sd.places && slot.id !== I.SPARKDUST) {   // items that can be set down as a block (Blight Skulls)
+  if (sd.places && slot.id !== I.SPARKDUST && slot.id !== I.STRING) {   // items that can be set down as a block (Blight Skulls)
     const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
     if (w.id(x, y, z) && !BLOCKS[w.id(x, y, z)].replaceable) return false;
     if (!SOLID[w.id(x, y - 1, z)]) { UI.toast("Set it on top of a block.", "bad"); return true; }
@@ -1885,14 +1930,14 @@ function useWith(offhand) {
     if (sd.places === B.SKULL) checkBlightSummon(x, y, z);
     return true;
   }
-  if (!isBlockItem(slot.id) && slot.id !== I.SPARKDUST) return false;
+  if (!isBlockItem(slot.id) && slot.id !== I.SPARKDUST && slot.id !== I.STRING) return false;
   let x = hit.x, y = hit.y, z = hit.z;
   const hitDef = blockDef(hit.v);
   if (!hitDef.replaceable) { x += hit.nx; y += hit.ny; z += hit.nz; }
   if (y < 1 || y >= HEIGHT - 1) return false;
   const here = w.id(x, y, z);
   if (here && here !== B.WATER && !BLOCKS[here].replaceable) return false;
-  const id = slot.id === I.SPARKDUST ? B.SPARK_DUST : slot.id, d = BLOCKS[id];
+  const id = slot.id === I.SPARKDUST ? B.SPARK_DUST : slot.id === I.STRING ? B.TRIPWIRE : slot.id, d = BLOCKS[id];
   let v = make(id);
   if (d.front) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces and chests face you
   // Sparkworks parts: which way they face or what they hang on depends on where you clicked
@@ -1924,11 +1969,13 @@ function useWith(offhand) {
   R.placed(x, y, z);
   L.blockChanged(x, y, z, false);
   tipDone("place");
+  R.vibrate(x + 0.5, y + 0.5, z + 0.5, 14);
   return true;
 }
 // Finish eating or drinking (after holding right-click for 1.6 seconds)
 function finishEat() {
   const e = G.eat, slot = G.inv.slots[e.slot], sd = itemDef(e.id), p = G.player;
+  R.vibrate(p.pos.x, p.pos.y + 1.4, p.pos.z, 9);
   G.eat = null;
   if (!slot || slot.id !== e.id) return;
   // food points fill the food bar; fullness (saturation) can never be more than the food bar
@@ -2045,7 +2092,7 @@ function interact(hit, kind) {
     const open = !(meta & OPEN);
     for (const yy of [by, by + 1]) { const v = w.get(hit.x, yy, hit.z); if (idOf(v) === B.DOOR) { const m = metaOf(v); w.set(hit.x, yy, hit.z, make(B.DOOR, open ? m | OPEN : m & ~OPEN)); } }
     // don't let a closing door trap the player inside it
-    Sound.door(open); return;
+    Sound.door(open); R.vibrate(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5, open ? 11 : 10); return;
   }
   if (kind === "table") { openPanel("table"); return; }
   if (kind === "bed") { useBed(hit); return; }
@@ -2253,6 +2300,7 @@ function shieldFaces(src) {
 function hurt(n, why, src, bypassArmor, kind) {
   const p = G.player;
   if (G.creative || G.spectator || G.state === "dead" || n <= 0) return;
+  R.vibrate(p.pos.x, p.pos.y + 1, p.pos.z, 8);
   if (G.totemGuard > 0 && kind !== "void") return;
   if (G.respawnGuard > 0 && kind !== "void") return;   // just woke up   // a Lifeward Totem just saved you: a moment of safety
   if (iframes > 0 && !bypassArmor) return;
@@ -2689,7 +2737,11 @@ function loop(now) {
     }
     if (moved > 0.001 && p.onGround) {
       G.walkPhase += moved * 2.2; G.stepDist += moved;
-      if (G.stepDist > 2.2) { G.stepDist = 0; Sound.step(MATERIAL(G.world.id(Math.floor(p.pos.x), Math.floor(p.pos.y - 0.2), Math.floor(p.pos.z)))); }
+      if (G.stepDist > 2.2) {
+        G.stepDist = 0; const under = G.world.id(Math.floor(p.pos.x), Math.floor(p.pos.y - 0.2), Math.floor(p.pos.z));
+        Sound.step(MATERIAL(under));
+        if (!p.crouch && under !== B.WOOL && under !== B.BLACK_WOOL && under !== B.HUSH_CARPET) R.vibrate(p.pos.x, p.pos.y + 0.1, p.pos.z, 1);   // sneaking or walking on wool is silent to Hush Sensors
+      }
       G.moveTotal = (G.moveTotal || 0) + moved; if (G.moveTotal > 6) tipDone("move");
     }
     tickRiding(dt);
@@ -2700,6 +2752,7 @@ function loop(now) {
     updateFurnaces(dt);
     tickCrops(dt);
     updateTNT(dt);
+    updateMovers();
     R.tick(dt);
     updateFires(dt);
     updateClouds(dt);
@@ -2797,7 +2850,7 @@ G.forsaken = F;
 const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giveXp, placeSafely, hurt, lookDir, keys, victory: showVictory, devTools: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.search.includes("dev") });
 G.lost = L;
 // The Sparkworks signal engine (js/redstone.js)
-const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, noteFx });
+const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, lookFacing3, noteFx, moveFx, pushEntities });
 G.rs = R;
 Adv.init(G, SPECIES, { xp: n => spawnOrbs(n, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z), give: (id, n) => { if (G.inv.add(id, n)) G.dropItem(id, n); } });
 UI.init(G);

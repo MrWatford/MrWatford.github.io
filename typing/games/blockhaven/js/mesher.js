@@ -205,6 +205,16 @@ export function buildChunk(world, chunk, fancy) {
     } else if (def.shape === "head") {   // a small block sitting on the ground (skulls)
       const box = [0.25, 0, 0.25, 0.75, 0.5, 0.75], tile = faceTile(v, 1), l = [sky[i] / 15, blk[i] / 15, 1];
       for (const F of FACES) quad(solidBuf, F.c.map(p => [x + (p[0] ? box[3] : box[0]), y + (p[1] ? box[4] : box[1]), z + (p[2] ? box[5] : box[2])]), tile, UV, [l, l, l, l].map(q => [q[0], q[1], F.shade]));
+    } else if (def.shape === "jelly") {   // Gloop and Honey Blocks: see-through, with a smaller cube inside
+      const tile = faceTile(v, 1), ls = sky[i] / 15, lb = blk[i] / 15;
+      for (let f = 0; f < 6; f++) {
+        const F = FACES[f], nv = vals[i + F.front];
+        if ((nv & 255) === id || OPAQUE[nv & 255]) continue;
+        const l = [Math.max(ls, sky[i + F.front] / 15), Math.max(lb, blk[i + F.front] / 15), F.shade];
+        quad(waterBuf, F.c.map(p => [x + p[0], y + p[1], z + p[2]]), tile, UV, [l, l, l, l]);
+      }
+      const a = 0.22, b = 0.78, l = [ls, lb, 0.8];
+      for (const F of FACES) quad(waterBuf, F.c.map(p => [x + (p[0] ? b : a), y + (p[1] ? b : a), z + (p[2] ? b : a)]), tile, [[0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75]], [l, l, l, l]);
     } else if (def.shape === "dust") {
       const get = (dx, dy, dz) => { const yy = y + dy; return yy < 0 ? B.BEDROCK : yy >= HEIGHT ? 0 : vals[ri(x + dx, yy, z + dz)]; };
       drawDust(v, get, x, y, z, sky[i], blk[i]);

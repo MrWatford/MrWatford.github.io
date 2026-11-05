@@ -84,7 +84,9 @@ export class Player {
     let speed = this.flying ? (input.sprint ? 16 : 9) : this.mount ? (input.sprint ? 11 : 7.5) : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
     if (this.inWater && !this.flying) speed *= this.inLava ? 0.3 : 0.55 * (this.swimMul || 1);   // Splashers help you swim faster
     speed *= this.speedMul || 1;
-    if (this.onGround && !this.flying && world.id(Math.floor(p.x), Math.floor(p.y - 0.1), Math.floor(p.z)) === B.SOUL_SAND) speed *= 0.5;   // Wailing Sand slows you down
+    const under = this.onGround && !this.flying ? world.id(Math.floor(p.x), Math.floor(p.y - 0.1), Math.floor(p.z)) : 0;
+    if (under === B.SOUL_SAND) speed *= 0.5;   // Wailing Sand slows you down
+    if (under === B.HONEY_BLOCK) speed *= 0.4; else if (under === B.GLOOP_BLOCK) speed *= 0.6;   // Honey is sticky; Gloop is wobbly
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     let mx = -sin * input.f + cos * input.r, mz = -cos * input.f - sin * input.r;
     const len = Math.hypot(mx, mz); if (len > 1) { mx /= len; mz /= len; }
@@ -101,7 +103,7 @@ export class Player {
     } else {
       v.y -= GRAVITY * dt;
       if (v.y < -40) v.y = -40;
-      if (input.jump && this.onGround) { v.y = this.mount ? JUMP * 1.4 : JUMP * (this.jumpMul || 1); this.exhaust += this.mount ? 0 : 0.05 * (input.sprint ? 4 : 1); }
+      if (input.jump && this.onGround) { v.y = (this.mount ? JUMP * 1.4 : JUMP * (this.jumpMul || 1)) * (under === B.HONEY_BLOCK ? 0.5 : 1); this.exhaust += this.mount ? 0 : 0.05 * (input.sprint ? 4 : 1); }
     }
     }
     if (this.levitate && !this.flying) { v.y += (1.8 - v.y) * 0.25; this.airTop = null; }   // a Sheller's bullet makes you float up
@@ -112,6 +114,7 @@ export class Player {
     const wasGround = this.onGround;
     this.onGround = false;
     let landed = 0, crash = 0;
+    const vyBefore = v.y;
     p.y += v.y * dt;
     let hit = null;
     { const a = this.aabb();
@@ -120,6 +123,10 @@ export class Player {
     if (hit) {
       if (v.y < 0) { p.y = hit[4]; this.onGround = true; landed = 1; } else p.y = hit[1] - this.height - EPS;
       v.y = 0;
+      // landing on a Gloop Block bounces you (unless you crouch) and never hurts
+      const landId = vyBefore < 0 ? world.id(Math.floor(p.x), Math.floor(p.y - 0.05), Math.floor(p.z)) : 0;
+      if (landId === B.GLOOP_BLOCK) { this.airTop = null; landed = 0; if (!this.crouch && vyBefore < -2) { v.y = -vyBefore * 0.82; this.onGround = false; } }
+      if (landId === B.HONEY_BLOCK && this.airTop !== null) this.airTop = p.y + (this.airTop - p.y) * 0.2;   // honey softens a fall
     }
     for (const axis of ["x", "z"]) {
       const d = v[axis] * dt;
@@ -144,6 +151,11 @@ export class Player {
       if (v.y <= 0 && this.collides(world, a)) this.onGround = true;
     }
 
+    // sliding slowly down the side of a Honey Block
+    if (!this.onGround && !this.flying && v.y < -1.2) {
+      const yy = Math.floor(p.y + 0.5);
+      for (const [ox, oz] of [[0.32, 0], [-0.32, 0], [0, 0.32], [0, -0.32]]) if (world.id(Math.floor(p.x + ox), yy, Math.floor(p.z + oz)) === B.HONEY_BLOCK) { v.y = -1.2; this.airTop = p.y; break; }
+    }
     // fall damage
     let fall = 0;
     if (this.onGround || this.inWater || this.flying || creative) {
