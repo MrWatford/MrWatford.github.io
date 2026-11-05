@@ -286,7 +286,7 @@ Design: `MILESTONE-12-REDSTONE.md`. Rules follow Minecraft Java Edition 1.20.1. 
 | Item counts | Done | Every transfer moves exactly one item and is checked before anything is taken, so items are never copied or lost (tested across sorter, smelter, dropper, dispenser, and Crafter runs). Dropped items now merge with a matching stack lying in the same spot, and up to 150 dropped stacks can lie around (was 90) |
 | Fixes found while testing | Done | Wire stepping down off glass now keeps its power when recalculated. Torch burnout counts only switch-offs (Java's rule). The game clock can't run backwards |
 
-## Milestone 12, Part D: rails and minecarts (built and browser-tested 2026-11-05, not published)
+## Milestone 12, Part D: rails and minecarts (built, browser-tested, and published 2026-11-05)
 Code: `js/rails.js` (rail shapes and cart movement), carts in `js/entities.js`, rail power in `js/redstone.js`.
 
 | Feature | Status | Notes |
