@@ -1,0 +1,279 @@
+PASS deep: arrival spot has floor and head room
+PASS deep: checkpoint "the Keeper Lift" is reachable on foot
+PASS deep: checkpoint "the Lush Caverns" is reachable on foot
+PASS deep: checkpoint "the Expedition Camp" is reachable on foot
+PASS deep: checkpoint "the Sanctuary of Silence" is reachable on foot
+PASS deep: checkpoint "the Citadel threshold" is reachable on foot
+PASS deep: checkpoint "the First Gate" is reachable on foot
+PASS deep: tablet "ilyan_gate" is reachable on foot
+PASS deep: tablet "camp_pell" is reachable on foot
+PASS deep: tablet "camp_pell" is reachable on foot
+PASS deep: tablet "m_founding" is reachable on foot
+PASS deep: tablet "m_founding" is reachable on foot
+PASS deep: tablet "bazaar_ledger" is reachable on foot
+PASS deep: tablet "sanctuary_plaque" is reachable on foot
+PASS deep: tablet "child_hush" is reachable on foot
+PASS deep: tablet "mara_voice" is reachable on foot
+PASS deep: tablet "ilyan_worry" is reachable on foot
+PASS deep: tablet "m_voice" is reachable on foot
+PASS deep: tablet "m_voice" is reachable on foot
+PASS deep: tablet "foundry_log" is reachable on foot
+PASS deep: tablet "m_hush" is reachable on foot
+PASS deep: tablet "m_hush" is reachable on foot
+PASS deep: tablet "tovin_evac" is reachable on foot
+PASS deep: tablet "mem_evac" is reachable on foot
+PASS deep: tablet "council_order" is reachable on foot
+PASS deep: tablet "garden_keeper" is reachable on foot
+PASS deep: tablet "mara_crown" is reachable on foot
+PASS deep: tablet "warden_order" is reachable on foot
+PASS deep: tablet "m_sealing" is reachable on foot
+PASS deep: tablet "m_sealing" is reachable on foot
+PASS deep: tablet "last_procedure" is reachable on foot
+PASS deep: tablet "mem_control" is reachable on foot
+PASS deep: tablet "mem_apartment" is reachable on foot
+PASS deep: chest "lift_cache" is reachable on foot
+PASS deep: chest "shelter" is reachable on foot
+PASS deep: chest "lush_cache" is reachable on foot
+PASS deep: chest "drip_cache" is reachable on foot
+PASS deep: chest "crystal_cache" is reachable on foot
+PASS deep: chest "ravine_camp" is reachable on foot
+PASS deep: chest "camp_supplies" is reachable on foot
+PASS deep: chest "gate_tower" is reachable on foot
+PASS deep: chest "bazaar_safe1" is reachable on foot
+PASS deep: chest "bazaar_safe2" is reachable on foot
+PASS deep: chest "bazaar_stall" is reachable on foot
+PASS deep: chest "bazaar_roof" is reachable on foot
+PASS deep: chest "sanctuary_store" is reachable on foot
+PASS deep: chest "terrace_family" is reachable on foot
+PASS deep: chest "terrace_kitchen" is reachable on foot
+PASS deep: chest "secret_kitchen" is reachable on foot
+PASS deep: chest "archive_vault" is reachable on foot
+PASS deep: chest "archive_balcony" is reachable on foot
+PASS deep: chest "foundry_vault" is reachable on foot
+PASS deep: chest "foundry_tools" is reachable on foot
+PASS deep: chest "flooded_treasury" is reachable on foot
+PASS deep: chest "bridge_cache" is reachable on foot
+PASS deep: chest "garden_vault" is reachable on foot
+PASS deep: chest "garden_seeds" is reachable on foot
+PASS deep: chest "citadel_prep" is reachable on foot
+PASS deep: chest "gate_archive" is reachable on foot
+PASS deep: chest "engineer_workshop" is reachable on foot
+PASS deep: chest "rail_depot" is reachable on foot
+PASS deep: chest "observatory" is reachable on foot
+PASS deep: chest "emergency_vault" is reachable on foot
+PASS deep: chest "street_0" is reachable on foot
+PASS deep: chest "street_1" is reachable on foot
+PASS deep: chest "street_2" is reachable on foot
+PASS deep: chest "street_3" is reachable on foot
+PASS deep: chest "street_4" is reachable on foot
+PASS deep: chest "street_5" is reachable on foot
+PASS deep: chest "street_6" is reachable on foot
+PASS deep: chest "street_7" is reachable on foot
+PASS deep: the Abandoned Expedition Camp entrance is reachable on foot
+PASS deep: the Gate of Whispers entrance is reachable on foot
+PASS deep: the Silent Bazaar entrance is reachable on foot
+PASS deep: the Sanctuary of Silence entrance is reachable on foot
+PASS deep: the Residential Terraces entrance is reachable on foot
+PASS deep: the Great Archive entrance is reachable on foot
+PASS deep: the Resonance Foundry entrance is reachable on foot
+PASS deep: the Sunken Aqueduct entrance is reachable on foot
+PASS deep: the Watcher Bridges entrance is reachable on foot
+PASS deep: the Memory Gardens entrance is reachable on foot
+PASS deep: the Warden's Citadel entrance is reachable on foot
+PASS deep: the First Gate entrance is reachable on foot
+PASS deep: secret "the hidden pantry" is reachable on foot
+PASS deep: secret "the Chief Engineer's workshop" is reachable on foot
+PASS deep: secret "a concealed rail depot" is reachable on foot
+PASS deep: secret "a forgotten observatory shaft" is reachable on foot
+PASS deep: secret "the sealed emergency vault" is reachable on foot
+PASS deep: secret "a quiet apartment" is reachable on foot
+PASS deep: gate socket (sea) is reachable on foot
+PASS deep: gate socket (green) is reachable on foot
+PASS deep: gate socket (sun) is reachable on foot
+PASS deep: gate socket (echo) is reachable on foot
+PASS deep: the gate's activation spot is reachable on foot
+PASS deep: a Citadel pylon is reachable on foot
+PASS deep: a Citadel pylon is reachable on foot
+PASS deep: a Citadel pylon is reachable on foot
+PASS deep: the city arrival is reachable on foot
+PASS deep: puzzle control (tone) is reachable on foot
+PASS deep: puzzle control (tone) is reachable on foot
+PASS deep: puzzle control (order) is reachable on foot
+PASS deep: puzzle control (order) is reachable on foot
+PASS deep: puzzle control (order) is reachable on foot
+PASS deep: puzzle control (order) is reachable on foot
+PASS deep: puzzle control (timing) is reachable on foot
+PASS deep: puzzle control (timing) is reachable on foot
+PASS deep: puzzle control (timing) is reachable on foot
+PASS deep: puzzle control (switch) is reachable on foot
+PASS deep: puzzle control (all) is reachable on foot
+PASS deep: puzzle control (all) is reachable on foot
+PASS deep: puzzle control (all) is reachable on foot
+PASS deep: all three city stabilizers are placed
+PASS deep: 38 caches placed (target 25–40)
+PASS deep: at least 12 tablets placed
+deep: walkable spots found: 44184
+PASS deep: packed map unpacks to the same blocks (4000 spot checks)
+deep: raw 1062961 bytes, gzipped 199894 bytes
+PASS expanse: arrival spot has floor and head room
+PASS expanse: checkpoint "the Arrival Sanctum" is reachable on foot
+PASS expanse: checkpoint "the Resonance Forge" is reachable on foot
+PASS expanse: checkpoint "the Crownless Citadel" is reachable on foot
+PASS expanse: tablet "expanse_camp" is reachable on foot
+PASS expanse: tablet "forge_plaque" is reachable on foot
+PASS expanse: tablet "citadel_answer" is reachable on foot
+PASS expanse: chest "sanctum_cache" is reachable on foot
+PASS expanse: chest "scout_camp" is reachable on foot
+PASS expanse: chest "fields_cache" is reachable on foot
+PASS expanse: chest "fields_post" is reachable on foot
+PASS expanse: chest "ruin_vault" is reachable on foot
+PASS expanse: chest "forge_rest" is reachable on foot
+PASS expanse: chest "anchor_trial" is reachable on foot
+PASS expanse: chest "anchor_puzzle" is reachable on foot
+PASS expanse: chest "anchor_climb" is reachable on foot
+PASS expanse: chest "citadel_supplies" is reachable on foot
+PASS expanse: chest "mirror_lake" is reachable on foot
+PASS expanse: chest "observatory_expanse" is reachable on foot
+PASS expanse: secret "the hanging vault" is reachable on foot
+PASS expanse: secret "the mirror lake" is reachable on foot
+PASS expanse: secret "the far observatory" is reachable on foot
+PASS expanse: forge anchor (combat) is reachable on foot
+PASS expanse: forge anchor (puzzle) is reachable on foot
+PASS expanse: forge anchor (climb) is reachable on foot
+PASS expanse: a Sovereign arena station is reachable on foot
+PASS expanse: a Sovereign arena station is reachable on foot
+PASS expanse: a Sovereign arena station is reachable on foot
+PASS expanse: the return gate is reachable on foot
+PASS expanse: 12 caches placed (target 12–20)
+expanse: walkable spots found: 5794
+PASS expanse: packed map unpacks to the same blocks (4000 spot checks)
+expanse: raw 42784 bytes, gzipped 8181 bytes
+PASS surface: packed map unpacks to the same blocks (4000 spot checks)
+surface: raw 101968 bytes, gzipped 3844 bytes
+PASS sea: entrance has floor and head room
+PASS sea: beacon "the temple entrance" is reachable on foot
+PASS sea: beacon "the Lantern Hall" is reachable on foot
+PASS sea: tablet "sea_arrival" is reachable on foot
+PASS sea: tablet "sea_history" is reachable on foot
+PASS sea: tablet "sea_clue" is reachable on foot
+PASS sea: tablet "sea_relic" is reachable on foot
+PASS sea: cache "sea_entry" is reachable on foot
+PASS sea: cache "sea_courtyard" is reachable on foot
+PASS sea: cache "sea_gallery" is reachable on foot
+PASS sea: cache "sea_bellvault" is reachable on foot
+PASS sea: cache "sea_lantern" is reachable on foot
+PASS sea: cache "sea_treasury1" is reachable on foot
+PASS sea: cache "sea_treasury2" is reachable on foot
+PASS sea: cache "sea_treasury3" is reachable on foot
+PASS sea: cache "sea_cracked" is reachable on foot
+PASS sea: cache "sea_secret" is reachable on foot
+PASS sea: cache "sea_vault1" is reachable on foot
+PASS sea: cache "sea_vault2" is reachable on foot
+PASS sea: the Citadel Courtyard is reachable on foot
+PASS sea: the Gallery of Bells is reachable on foot
+PASS sea: the Lantern Hall is reachable on foot
+PASS sea: the Flooded Treasury is reachable on foot
+PASS sea: the Tide Hall is reachable on foot
+PASS sea: secret "the hidden grotto" is reachable on foot
+PASS sea: puzzle control (order) is reachable on foot
+PASS sea: puzzle control (order) is reachable on foot
+PASS sea: puzzle control (order) is reachable on foot
+PASS sea: puzzle control (order) is reachable on foot
+PASS sea: puzzle control (switch) is reachable on foot
+PASS sea: a boss device is reachable on foot
+PASS sea: a boss device is reachable on foot
+PASS sea: a boss device is reachable on foot
+PASS sea: the relic pedestal is reachable on foot
+PASS sea: the lift home is reachable on foot
+PASS sea: trap "tide jets" area is reachable on foot
+PASS sea: trap "geysers" area is reachable on foot
+PASS sea: trap "cracked floor" area is reachable on foot
+PASS sea: 12 caches (target 10–16)
+sea: walkable spots found: 273608
+PASS sea: packed map unpacks to the same blocks (4000 spot checks)
+sea: raw 148358 bytes, gzipped 18388 bytes
+PASS jungle: entrance has floor and head room
+PASS jungle: beacon "the temple entrance" is reachable on foot
+PASS jungle: beacon "the Grove of Bells" is reachable on foot
+PASS jungle: tablet "jungle_arrival" is reachable on foot
+PASS jungle: tablet "jungle_clue" is reachable on foot
+PASS jungle: tablet "jungle_history" is reachable on foot
+PASS jungle: tablet "jungle_relic" is reachable on foot
+PASS jungle: cache "jungle_entry" is reachable on foot
+PASS jungle: cache "jungle_valley1" is reachable on foot
+PASS jungle: cache "jungle_valley2" is reachable on foot
+PASS jungle: cache "jungle_ravine" is reachable on foot
+PASS jungle: cache "jungle_maze0" is reachable on foot
+PASS jungle: cache "jungle_maze1" is reachable on foot
+PASS jungle: cache "jungle_maze2" is reachable on foot
+PASS jungle: cache "jungle_maze3" is reachable on foot
+PASS jungle: cache "jungle_maze4" is reachable on foot
+PASS jungle: cache "jungle_grove" is reachable on foot
+PASS jungle: cache "jungle_vault1" is reachable on foot
+PASS jungle: cache "jungle_vault2" is reachable on foot
+PASS jungle: cache "jungle_secret" is reachable on foot
+PASS jungle: the Hidden Valley is reachable on foot
+PASS jungle: the Labyrinth is reachable on foot
+PASS jungle: the Grove of Bells is reachable on foot
+PASS jungle: the Heart Grove is reachable on foot
+PASS jungle: secret "the cave behind the waterfall" is reachable on foot
+PASS jungle: puzzle control (timing) is reachable on foot
+PASS jungle: puzzle control (timing) is reachable on foot
+PASS jungle: puzzle control (timing) is reachable on foot
+PASS jungle: a boss device is reachable on foot
+PASS jungle: a boss device is reachable on foot
+PASS jungle: a boss device is reachable on foot
+PASS jungle: the relic pedestal is reachable on foot
+PASS jungle: the lift home is reachable on foot
+PASS jungle: trap "cracked floor" area is reachable on foot
+PASS jungle: trap "spore vents" area is reachable on foot
+PASS jungle: 13 caches (target 10–16)
+jungle: walkable spots found: 11169
+PASS jungle: packed map unpacks to the same blocks (4000 spot checks)
+jungle: raw 111259 bytes, gzipped 12435 bytes
+PASS desert: entrance has floor and head room
+PASS desert: beacon "the temple entrance" is reachable on foot
+PASS desert: beacon "the Grand Hall" is reachable on foot
+PASS desert: tablet "desert_arrival" is reachable on foot
+PASS desert: tablet "desert_clue" is reachable on foot
+PASS desert: tablet "desert_clue" is reachable on foot
+PASS desert: tablet "desert_history" is reachable on foot
+PASS desert: tablet "desert_relic" is reachable on foot
+PASS desert: cache "desert_entry" is reachable on foot
+PASS desert: cache "desert_secret" is reachable on foot
+PASS desert: cache "desert_gallery" is reachable on foot
+PASS desert: cache "desert_hall1" is reachable on foot
+PASS desert: cache "desert_hall2" is reachable on foot
+PASS desert: cache "desert_records1" is reachable on foot
+PASS desert: cache "desert_records2" is reachable on foot
+PASS desert: cache "desert_island" is reachable on foot
+PASS desert: cache "desert_sandhall" is reachable on foot
+PASS desert: cache "desert_mirror" is reachable on foot
+PASS desert: cache "desert_vault1" is reachable on foot
+PASS desert: cache "desert_vault2" is reachable on foot
+PASS desert: the Grand Hall is reachable on foot
+PASS desert: the Sand Pit Hall is reachable on foot
+PASS desert: the Mirror Court is reachable on foot
+PASS desert: the Hall of the Sun is reachable on foot
+PASS desert: secret "the Scribe's Nook" is reachable on foot
+PASS desert: puzzle control (order) is reachable on foot
+PASS desert: puzzle control (order) is reachable on foot
+PASS desert: puzzle control (order) is reachable on foot
+PASS desert: puzzle control (order) is reachable on foot
+PASS desert: puzzle control (swap) is reachable on foot
+PASS desert: puzzle control (all) is reachable on foot
+PASS desert: puzzle control (all) is reachable on foot
+PASS desert: puzzle control (all) is reachable on foot
+PASS desert: a boss device is reachable on foot
+PASS desert: a boss device is reachable on foot
+PASS desert: a boss device is reachable on foot
+PASS desert: the relic pedestal is reachable on foot
+PASS desert: the lift home is reachable on foot
+PASS desert: trap "dart vents" area is reachable on foot
+PASS desert: trap "flame vents" area is reachable on foot
+PASS desert: trap "cracked floor" area is reachable on foot
+PASS desert: 12 caches (target 10–16)
+desert: walkable spots found: 3105
+PASS desert: packed map unpacks to the same blocks (4000 spot checks)
+desert: raw 48972 bytes, gzipped 4147 bytes
+total 389 ms

@@ -1,0 +1,49 @@
+Forsaken World map v1 build checks (tools/forsaken-build.html)
+
+PASS arrival spot (0, 35, -3) has floor and head room
+PASS arrival is inside the refuge ward
+PASS Hollowmere Shrine is reachable on foot
+PASS Deepvein Shrine is reachable on foot
+PASS Pale Wood Shrine is reachable on foot
+PASS chest with sigil 530 at 25,34,-6 is reachable
+PASS chest with sigil 531 at -56,16,39 is reachable
+PASS chest with sigil 532 at -52,34,-52 is reachable
+PASS note "welcome" at 3,35,-4 is reachable
+PASS note "rules" at -3,35,-4 is reachable
+PASS note "elder" at 29,34,-6 is reachable
+PASS note "mara" at 44,34,-8 is reachable
+PASS note "barricade" at 28,34,9 is reachable
+PASS note "log1" at 36,35,-39 is reachable
+PASS note "log2" at 40,35,-39 is reachable
+PASS note "log3" at 43,35,-39 is reachable
+PASS note "foreman" at -50,22,23 is reachable
+PASS note "forester" at -47,34,-46 is reachable
+PASS note "gate" at 4,35,44 is reachable
+PASS the Pale Altar is reachable
+PASS arena ward 0 is reachable
+PASS arena ward 1 is reachable
+PASS arena ward 2 is reachable
+PASS arena ward 3 is reachable
+PASS the Return Gate is reachable
+PASS the top of the Watchtower is reachable
+PASS the mine's escape shaft comes out on the surface
+PASS SIGIL_HEARTH is placed in a chest
+PASS SIGIL_STONE is placed in a chest
+PASS SIGIL_ROOT is placed in a chest
+PASS the citadel gate isn't buried
+PASS the mine entrance isn't buried
+PASS watch point -6, -52 is open ground
+PASS watch point 24, -20 is open ground
+PASS watch point -24, -8 is open ground
+PASS watch point 56, 20 is open ground
+PASS watch point 18, 34 is open ground
+PASS watch point -30, 40 is open ground
+PASS watch point 52, -52 is open ground
+PASS watch point -58, -30 is open ground
+PASS watch point -20, -64 is open ground
+PASS watch point 30, 56 is open ground
+PASS watch point -36, 58 is open ground
+PASS watch point 62, -14 is open ground
+walkable spots found: 23205
+PASS packed map unpacks to the same blocks
+raw 272783 bytes, gzipped 60807 bytes, 100 chunks, 177 ms
