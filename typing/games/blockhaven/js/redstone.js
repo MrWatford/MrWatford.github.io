@@ -4,7 +4,8 @@
 import { B, I, BLOCKS, OPAQUE, idOf, metaOf, make, isDoor, isTrapdoor, isGate, isButton, isPlate, isFence,
   DOT, UNLIT, AXIS_X, ON, LOCKED, SUBTRACT, CMP_ON, INVERT, POWERED, NOTE_ON, OPEN, TOP, EYE_IN, honeyOf, itemDef, ANCHOR_MAX,
   EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED, HOOK_ON, DISARMED, OPENED, BELL_POWERED, isPiston, isHush, SOLID,
-  HOPPER_LOCKED, TRIGGERED, CRAFTING, isMachine, RECIPES, TAGS, SMELT, FUEL, HONEY_MAX } from "./blocks.js";
+  HOPPER_LOCKED, TRIGGERED, CRAFTING, isMachine, RECIPES, TAGS, SMELT, FUEL, HONEY_MAX, isRail, RAIL_ON } from "./blocks.js";
+import { railShape as railShapeFor, needsShape as needsRailShape, EXITS as RAIL_EXITS, shapeOf as railShapeOf } from "./rails.js";
 import { maxStack, newStack } from "./inventory.js";
 import { DIR, PF, oppPF, conductor, dustConn, dustPoints, supportOf } from "./shapes.js";
 import { CHUNK } from "./blocks.js";
@@ -15,12 +16,12 @@ export const BUDGET = 6000; // real block updates (parts that react) allowed per
 const LOOKS = 120000;        // quick "is anything here?" checks allowed per game tick
 const MAX_NET = 4096;       // biggest wire network worked out at once
 const MAX_SCHED = 20000;
-const POLLED = id => id === B.COMPARATOR || id === B.DAYLIGHT || isPlate(id) || id === B.TRIPWIRE_HOOK;
+const POLLED = id => id === B.COMPARATOR || id === B.DAYLIGHT || isPlate(id) || id === B.TRIPWIRE_HOOK || id === B.DETECTOR_RAIL;
 const key = (x, y, z) => x + "," + y + "," + z;
 // blocks that do something when their neighbors change (everything else is skipped quickly)
 const REACTS = id => id === B.SPARK_DUST || id === B.SPARK_TORCH || id === B.REPEATER || id === B.COMPARATOR || id === B.SPARK_LAMP || id === B.TNT || id === B.NOTE_BLOCK ||
   id === B.LEVER || isButton(id) || isPlate(id) || isDoor(id) || isTrapdoor(id) || isGate(id) ||
-  isPiston(id) || id === B.PISTON_HEAD || id === B.TRIPWIRE_HOOK || id === B.TRIPWIRE || id === B.BELL || isMachine(id);
+  isPiston(id) || id === B.PISTON_HEAD || id === B.TRIPWIRE_HOOK || id === B.TRIPWIRE || id === B.BELL || isMachine(id) || isRail(id);
 // Note block instruments (Java 1.20.1) and their octave shift from the harp
 const INSTRUMENT = id => {
   if ([B.SAND, B.GRAVEL].includes(id)) return "snare";
@@ -131,6 +132,7 @@ export function initRedstone(ctx) {
       case B.OBSERVER: { if (!(m & OBS_ON)) return 0; const b = PF[oppPF(m & 7)]; return b[0] === dx && b[1] === dy && b[2] === dz ? 15 : 0; }
       case B.TRIPWIRE_HOOK: return m & HOOK_ON ? 15 : 0;
       case B.TRAPPED_CHEST: return m & OPENED ? 1 : 0;
+      case B.DETECTOR_RAIL: return m & RAIL_ON ? 15 : 0;
       case B.HUSH_SENSOR: case B.TUNED_SENSOR: return (m & 3) === 1 ? (m >> 2) & 15 : 0;
       case B.REPEATER: { if (!(m & ON)) return 0; const f = facingVec(m & 3); return f[0] === dx && dy === 0 && f[2] === dz ? 15 : 0; }
       case B.COMPARATOR: { const f = facingVec(m & 3); return f[0] === dx && dy === 0 && f[2] === dz ? (S().cmp.get(key(x, y, z)) || 0) : 0; }
@@ -148,6 +150,7 @@ export function initRedstone(ctx) {
       let p = 0;
       if (id === B.SPARK_TORCH) p = !(m & UNLIT) && dy === -1 ? 15 : 0;
       else if (id === B.TRAPPED_CHEST) p = dy === 1 && (m & OPENED) ? 1 : 0;
+      else if (id === B.DETECTOR_RAIL) p = dy === 1 && (m & RAIL_ON) ? 15 : 0;
       else if (id === B.LEVER || isButton(id) || id === B.TRIPWIRE_HOOK) { const s = supportOf(v); p = (id === B.TRIPWIRE_HOOK ? m & HOOK_ON : m & ON) && nx + s[0] === x && ny + s[1] === y && nz + s[2] === z ? 15 : 0; }
       else if (isPlate(id)) p = dy === 1 ? m & 15 : 0;
       else if (id === B.REPEATER || id === B.COMPARATOR || id === B.OBSERVER) p = emitDirect(nx, ny, nz, v, -dx, -dy, -dz, false);
@@ -185,6 +188,7 @@ export function initRedstone(ctx) {
   function readable(x, y, z) {
     const w = W(), v = w.get(x, y, z), id = idOf(v), m = metaOf(v);
     if (isHush(id)) return S().hushFreq.get(key(x, y, z)) || 0;
+    if (id === B.DETECTOR_RAIL) { const c = cartIn(x, y, z, true); if (!c) return -1; let sum = 0, any = false; for (const q of c.inv.slots) if (q) { any = true; sum += q.n / ((itemDef(q.id) || {}).stack || 64); } return any ? Math.floor(1 + sum / c.inv.slots.length * 14) : 0; }
     if (id === B.CRAFTER) { const box = W().containers.get(key(x, y, z)); return box ? box.slots.filter((s2, i) => s2 || (box.locked && box.locked[i])).length : 0; }
     if (id === B.CHEST || id === B.TRAPPED_CHEST || id === B.FURNACE || id === B.SHELL_BOX || id === B.HOPPER || id === B.DROPPER || id === B.DISPENSER) {
       const box = w.containers.get(key(x, y, z));
@@ -205,6 +209,7 @@ export function initRedstone(ctx) {
     if (id === B.SPARK_DUST || id === B.REPEATER || id === B.COMPARATOR) return OPAQUE[sid] === 1 || sid === B.GLASS || sid === B.RESONANT_GLASS;
     if (isPlate(id)) return OPAQUE[sid] === 1 || isFence(sid) || sid === B.GLASS;
     if (id === B.TRIPWIRE || id === B.BELL) return SOLID[sid] === 1;
+    if (isRail(id)) return OPAQUE[sid] === 1 || sid === B.HOPPER || sid === B.GLASS;
     return OPAQUE[sid] === 1;
   }
   function update(x, y, z) {
@@ -215,6 +220,7 @@ export function initRedstone(ctx) {
     S().used++;
     const sup = supportOf(v);
     if (sup && !supports(v, w.get(x + sup[0], y + sup[1], z + sup[2]))) { ctx.breakBlock(x, y, z, true); return; }
+    if (isRail(id)) return railCheck(x, y, z, v);
     if (id === B.HOPPER) return hopperCheck(x, y, z, v);
     if (id === B.DROPPER || id === B.DISPENSER || id === B.CRAFTER) return machineCheck(x, y, z, v);
     if (isPiston(id)) return pistonCheck(x, y, z, v);
@@ -400,6 +406,7 @@ export function initRedstone(ctx) {
     if (!id || id === B.WATER || id === B.LAVA) return "air";
     if (!d || d.hardness === Infinity || IMMOVABLE.has(id)) return "stop";
     if (isPiston(id)) return metaOf(v) & EXTENDED ? "stop" : "move";
+    if (isRail(id)) return "move";
     if (SMASH.has(id) || !d.solid || isDoor(id) || d.replaceable) return "smash";
     return "move";
   }
@@ -642,7 +649,8 @@ export function initRedstone(ctx) {
   // Which slots a machine may put into or take from. from = "top" when the machine is above, pointing down into it.
   function access(x, y, z, from) {
     const id = W().id(x, y, z);
-    if (!isContainerId(id) || !W().isLoaded(x, z)) return null;
+    if (!W().isLoaded(x, z)) return null;
+    if (!isContainerId(id)) { const c = cartIn(x, y, z, true); return c ? { box: c.inv, ins: c.inv.slots.map((_, i) => i), outs: c.inv.slots.map((_, i) => i), accept: () => true, cart: c } : null; }
     const box = boxAt(x, y, z, true), all = box.slots.map((_, i) => i);
     if (id === B.FURNACE) return { box, ins: from === "top" ? [0] : [1], outs: [2], accept: (i, s) => i === 0 ? SMELT[s.id] !== undefined : i === 1 ? FUEL[s.id] !== undefined : false };
     if (id === B.CRAFTER) { box.locked = box.locked || new Array(9).fill(false); return { box, ins: all.filter(i => !box.locked[i]), outs: [], even: true, accept: () => true }; }
@@ -773,6 +781,7 @@ export function initRedstone(ctx) {
         if (!air || !SOLID[w.id(F.fx, F.fy - 1, F.fz)]) return false;
         w.set(F.fx, F.fy, F.fz, B.SKULL); useOne(box, i); ctx.checkBlightSummon(F.fx, F.fy, F.fz); return true;
     }
+    if (d && d.cart && isRail(fid)) { ctx.ents.add(d.cart, F.fx + 0.5, F.fy + 0.0625, F.fz + 0.5, {}); useOne(box, i); return true; }
     if (d && d.kind === "spawn" && air) {
       const sp = d.species === "villager" ? ["farmer", "fletcher", "shepherd", "cleric", "smith"][Math.floor(Math.random() * 5)] : d.species;
       ctx.ents.add(sp, F.fx + 0.5, F.fy, F.fz + 0.5, sp === "golem" ? { home: [F.fx + 0.5, F.fy, F.fz + 0.5] } : {}); useOne(box, i); return true;
@@ -816,6 +825,61 @@ export function initRedstone(ctx) {
     setState(x, y, z, make(B.CRAFTER, metaOf(v) | CRAFTING)); schedule(S(), x, y, z, 6, "craftoff");
     ctx.Sound.craft(); vibrate(x + 0.5, y + 0.5, z + 0.5, 11);
     G.adv && G.adv("crafter", oid);
+  }
+
+  // ---------- Part D: rails ----------
+  function railSupported(x, y, z) { const s = W().id(x, y - 1, z); return OPAQUE[s] === 1 || s === B.HOPPER || s === B.GLASS; }
+  // powered and activator rails: on if powered themselves, or if a rail of the same kind up to 8 along the line is powered
+  function railLinePowered(x, y, z, v) {
+    if (isPowered(x, y, z)) return true;
+    const id = idOf(v);
+    for (const ex of RAIL_EXITS[railShapeOf(v)]) {
+      let cx = x, cy = y, cz = z, cv = v;
+      for (let k = 0; k < 8; k++) {
+        const [dx, , dz] = RAIL_EXITS[railShapeOf(cv)].find(q => q[0] === ex[0] && q[2] === ex[2]) || [0, 0, 0];
+        if (!dx && !dz) break;
+        let nx = cx + dx, nz = cz + dz, ny = null;
+        for (const dy of [0, 1, -1]) if (W().id(nx, cy + dy, nz) === id) { ny = cy + dy; break; }
+        if (ny === null) break;
+        const nv = get(nx, ny, nz);
+        if (railShapeOf(nv) % 2 !== railShapeOf(v) % 2 && railShapeOf(nv) > 1 === railShapeOf(v) > 1 && railShapeOf(nv) < 6) { /* same axis family */ }
+        if (railShapeOf(nv) >= 6) break;
+        if (isPowered(nx, ny, nz)) return true;
+        cx = nx; cy = ny; cz = nz; cv = nv;
+      }
+    }
+    return false;
+  }
+  function railCheck(x, y, z, v) {
+    const w = W(), id = idOf(v), m = metaOf(v);
+    const g = (a, b, c) => w.get(a, b, c);
+    let nm = m;
+    const powered = id === B.RAIL ? isPowered(x, y, z) : false;
+    if (needsRailShape(g, v, x, y, z)) nm = (nm & ~15) | railShapeFor(g, x, y, z, v, powered);
+    if (id === B.POWERED_RAIL || id === B.ACTIVATOR_RAIL) { const on = railLinePowered(x, y, z, make(id, nm)); nm = on ? nm | RAIL_ON : nm & ~RAIL_ON; }
+    if (nm !== m) w.set(x, y, z, make(id, nm), id !== B.RAIL || (nm & 15) === (m & 15));
+  }
+  // the minecart (if any) in a block
+  const cartIn = (x, y, z, needInv) => ctx.ents.list.find(c => c.def.cart && !c.dead && !c.gone && (!needInv || c.inv) && Math.floor(c.pos.x) === x && Math.floor(c.pos.y + 0.1) === y && Math.floor(c.pos.z) === z);
+  function detectorCheck(x, y, z) {
+    const st = S(), v = get(x, y, z), m = metaOf(v), k = key(x, y, z), here = !!cartIn(x, y, z);
+    if (here) st.seen.set(k, st.tick);
+    const on = here || st.tick - (st.seen.get(k) ?? -99) < 10;
+    if (on !== !!(m & RAIL_ON)) { setState(x, y, z, make(B.DETECTOR_RAIL, on ? m | RAIL_ON : m & ~RAIL_ON)); ctx.Sound.switchClick(on, dist(x, y, z), true); }
+  }
+  // a hopper minecart: pulls from a container above the track, or picks up items it rolls over
+  function cartPull(e) {
+    if (!S() || !e.inv) return;
+    const x = Math.floor(e.pos.x), y = Math.floor(e.pos.y + 0.1), z = Math.floor(e.pos.z);
+    const me = { box: e.inv, ins: e.inv.slots.map((_, i) => i), outs: [], accept: () => true };
+    const src = access(x, y + 1, z, "side");
+    if (src && !src.cart) { for (const i of src.outs) { const s = src.box.slots[i]; if (s && insertOne(me, { ...s, n: 1 }) >= 0) { useOne(src.box, i); return; } } return; }
+    for (const d of [...G.drops]) {
+      if (Math.abs(d.x - e.pos.x) > 0.9 || Math.abs(d.z - e.pos.z) > 0.9 || d.y < e.pos.y - 0.3 || d.y > e.pos.y + 1.6) continue;
+      let n = d.n;
+      while (n > 0 && insertOne(me, d.stack ? { ...d.stack, n: 1 } : newStack(d.id, 1)) >= 0) n--;
+      if (n !== d.n) { d.n = n; if (!n) ctx.dropGone(d); }
+    }
   }
 
   // ---------- note blocks ----------
@@ -884,7 +948,8 @@ export function initRedstone(ctx) {
       if (!w.isLoaded(x, z)) continue;
       const id = w.id(x, y, z);
       if (isPlate(id)) plateCheck(x, y, z);
-      else if (id === B.TRIPWIRE_HOOK) hookCheck(x, y, z, w.get(x, y, z));   // also notices a string line being finished
+      else if (id === B.TRIPWIRE_HOOK) hookCheck(x, y, z, w.get(x, y, z));
+      else if (id === B.DETECTOR_RAIL) detectorCheck(x, y, z);   // also notices a string line being finished
       else if (id === B.COMPARATOR) enqueue(x, y, z);
       else if (id === B.DAYLIGHT && st.tick % 20 === 0) daylightCheck(x, y, z);
     }
@@ -1047,6 +1112,7 @@ export function initRedstone(ctx) {
     if (id === B.BELL) return SOLID[idOf(below)] ? make2(look) : "A Bell needs a solid block under it.";
     if (id === B.TUNED_SENSOR) return make2(((look + 2) % 4) << 6);
     if (id === B.HUSH_SENSOR) return make2(0);
+    if (isRail(id)) return supports(make(id), below) ? make2(look % 2 ? 1 : 0) : "Rails need a solid block under them.";
     if (id === B.HOPPER) return make2(ny === 0 && side >= 0 ? 2 + side : 1);   // points into the block you clicked (or down)
     if (id === B.DROPPER || id === B.DISPENSER || id === B.CRAFTER) return make2(oppPF(ctx.lookFacing3()));   // the front faces you
     if (id === B.SPARK_LAMP || id === B.NOTE_BLOCK || id === B.TARGET || id === B.DAYLIGHT || id === B.SPARK_BLOCK || isFence(id) || id === B.SPARK_ORE || id === B.DARK_SPARK_ORE) return make2(0);
@@ -1055,5 +1121,5 @@ export function initRedstone(ctx) {
   // after placing: let the engine settle the new block (a torch next to power, a lamp already powered…)
   function placed(x, y, z) { if (S()) { changed(x, y, z); process(); } }
 
-  return { attach, toJSON, tick, interact, placeValue, placed, projectileHit, touchOre, kinds: KINDS, settle, vibrate, beforeBreak, chunkLoaded, reaction, matchRecipe, boxAt, readable, isPowered: (x, y, z) => isPowered(x, y, z), powerAt: (x, y, z) => powerAt(x, y, z, false), blockPower, strongPower, comparatorOutput: (x, y, z) => (S().cmp.get(key(x, y, z)) || 0), process, state: S };
+  return { attach, toJSON, tick, interact, placeValue, placed, projectileHit, touchOre, kinds: KINDS, settle, vibrate, beforeBreak, chunkLoaded, reaction, matchRecipe, boxAt, readable, cartPull, isPowered: (x, y, z) => isPowered(x, y, z), powerAt: (x, y, z) => powerAt(x, y, z, false), blockPower, strongPower, comparatorOutput: (x, y, z) => (S().cmp.get(key(x, y, z)) || 0), process, state: S };
 }

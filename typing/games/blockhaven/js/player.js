@@ -27,8 +27,8 @@ export class Player {
     this.health = 20; this.hunger = 20; this.sat = 5; this.exhaust = 0; this.airTop = null;
     this.spawn = null; this.hurtT = 0;
   }
-  get height() { return this.boat ? 1.2 : this.mount ? 2.6 : this.crouch && !this.flying ? 1.5 : 1.8; }
-  get eye() { return this.boat ? 1.0 : this.mount ? 2.45 : this.crouch && !this.flying ? 1.27 : 1.62; }   // riding a Trotter puts you up high; a boat sits low
+  get height() { return this.cart ? 1.2 : this.boat ? 1.2 : this.mount ? 2.6 : this.crouch && !this.flying ? 1.5 : 1.8; }
+  get eye() { return this.cart ? 1.1 : this.boat ? 1.0 : this.mount ? 2.45 : this.crouch && !this.flying ? 1.27 : 1.62; }   // riding a Trotter puts you up high; a boat sits low
   aabb(px = this.pos.x, py = this.pos.y, pz = this.pos.z, h = this.height) { return [px - 0.3, py, pz - 0.3, px + 0.3, py + h, pz + 0.3]; }
 
   boxesNear(world, a) {
@@ -46,6 +46,7 @@ export class Player {
   // One physics step. input: { f, r (−1..1), jump, sprint, crouch, flyUp, flyDown }
   step(world, input, dt, creative) {
     const p = this.pos, v = this.vel;
+    if (this.cart) { this.onGround = true; this.inWater = false; this.airTop = null; return { fall: 0, crash: 0 }; }   // a minecart carries you (main.js)
     const feet = world.id(Math.floor(p.x), Math.floor(p.y + 0.1), Math.floor(p.z)), body = world.id(Math.floor(p.x), Math.floor(p.y + 0.9), Math.floor(p.z));
     this.inLava = feet === B.LAVA || body === B.LAVA;
     this.inWater = feet === B.WATER || body === B.WATER || this.inLava;   // lava is swum through like (very slow) water

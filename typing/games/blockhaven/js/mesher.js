@@ -216,6 +216,8 @@ export function buildChunk(world, chunk, fancy) {
       }
       const a = 0.22, b = 0.78, l = [ls, lb, 0.8];
       for (const F of FACES) quad(waterBuf, F.c.map(p => [x + (p[0] ? b : a), y + (p[1] ? b : a), z + (p[2] ? b : a)]), tile, [[0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75]], [l, l, l, l]);
+    } else if (def.shape === "rail") {
+      drawRail(v, x, y, z, sky[i], blk[i]);
     } else if (def.shape === "dust") {
       const get = (dx, dy, dz) => { const yy = y + dy; return yy < 0 ? B.BEDROCK : yy >= HEIGHT ? 0 : vals[ri(x + dx, yy, z + dz)]; };
       drawDust(v, get, x, y, z, sky[i], blk[i]);
@@ -262,6 +264,16 @@ function drawModel(mo, x, y, z, ls, lb) {
       quad(solidBuf, pts, tile, uvs, [l, l, l, l]);
     }
   }
+}
+// Rails: a flat strip (or a slope up to the next block). Curves use their own picture, turned to fit.
+function drawRail(v, x, y, z, s, b) {
+  const sh = Math.min(9, metaOf(v) & 15), tile = (v & 255) === B.RAIL && sh >= 6 ? TILE.rail_curve : faceTile(v, 1);
+  const on = (v & 255) !== B.RAIL && (metaOf(v) & 16);
+  const l = [s / 15, Math.max(b / 15, on ? 0.45 : 0), 1], L = [l, l, l, l], e = 1 / 16;
+  const h = (lx, lz) => y + e + (sh === 2 ? lx : sh === 3 ? 1 - lx : sh === 4 ? 1 - lz : sh === 5 ? lz : 0);
+  const C = [[0, 1], [1, 1], [1, 0], [0, 0]];
+  const uv = C.map(([lx, lz]) => sh === 1 || sh === 2 || sh === 3 ? [lz, lx] : sh <= 5 ? [lx, 1 - lz] : sh === 6 ? [lx, 1 - lz] : sh === 7 ? [1 - lx, 1 - lz] : sh === 8 ? [1 - lx, lz] : [lx, lz]);
+  quad(solidBuf, C.map(([lx, lz]) => [x + lx, h(lx, lz), z + lz]), tile, uv, L);
 }
 // Sparkdust: flat lines on the floor (and up the side of a block it climbs). Brighter the stronger the signal.
 function drawDust(v, get, x, y, z, s, b) {

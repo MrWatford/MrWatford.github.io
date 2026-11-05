@@ -3,6 +3,7 @@
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate } from "./blocks.js";
 import { blockBoxes } from "./player.js";
+import { cartStep } from "./rails.js";
 import { Sound } from "./audio.js";
 
 const GRAV = 26, EPS = 1e-4;
@@ -303,6 +304,27 @@ Object.assign(SPECIES, {
 const MINNOW = ["#9aa8b0", "#8e9ca4", "#a6b4bc"], PUFF = ["#e8c840", "#e0c038", "#f0d050"], INK = ["#2a3a5a", "#24344e", "#304266"], DOLPH = ["#8a9ab0", "#8292a8", "#92a2b8"];
 const PLANKB = ["#a87a48", "#9a6e3e", "#b4864f"], FOX = ["#e0782a", "#d46e22", "#e88434"], BEEY = ["#f0c020", "#e8b818", "#f4c828"], BELLY = ["#e0e6ec", "#d8dee4"];
 const fishEyes = pal => face(pal, P => { P.rect(0, 3, 5, 5, "#f4f4f4"); P.rect(1, 4, 3, 3, "#111"); P.rect(11, 3, 5, 5, "#f4f4f4"); P.rect(12, 4, 3, 3, "#111"); });
+// ----- minecarts (Part D of the Sparkworks update) -----
+const IRONP = ["#8a8a8a", "#7e7e7e", "#949494"];
+const CHESTP = P => { P.fill(["#9a6a35", "#8e6230"]); P.rect(0, 5, 16, 2, "#5a3a1a"); P.rect(7, 4, 2, 4, "#c8c8c8"); };
+function cartSpecies() {
+  const base = [
+    { name: "bottom", size: [14, 2, 18], pivot: [0, 2, 0], off: [0, 0, 0], paint: { all: solid(["#5a5a5a", "#525252"]) } },
+    { name: "sideR", size: [2, 8, 18], pivot: [-8, 5, 0], off: [0, 0, 0], paint: { all: solid(IRONP) } },
+    { name: "sideL", size: [2, 8, 18], pivot: [8, 5, 0], off: [0, 0, 0], paint: { all: solid(IRONP) } },
+    { name: "front", size: [14, 8, 2], pivot: [0, 5, 9], off: [0, 0, 0], paint: { all: solid(IRONP) } },
+    { name: "back", size: [14, 8, 2], pivot: [0, 5, -9], off: [0, 0, 0], paint: { all: solid(IRONP) } }];
+  const box = (paint) => [{ name: "load", size: [12, 12, 12], pivot: [0, 9, 0], off: [0, 0, 0], paint }];
+  const mk = (name, extra, more) => ({ name, cart: true, object: true, persist: true, hp: 3, speed: 0, w: 0.98, h: 0.7, ai: "cart", xp: 0, sound: "", ...more, model: { type: "cart", parts: [...base, ...extra] } });
+  return {
+    minecart: mk("Minecart", [], { drops: () => [[I.MINECART, 1]] }),
+    chest_cart: mk("Minecart with Chest", box({ all: CHESTP }), { invSize: 27, drops: () => [[I.CHEST_CART, 1]] }),
+    hopper_cart: mk("Minecart with Hopper", [{ name: "load", size: [12, 6, 12], pivot: [0, 11, 0], off: [0, 0, 0], paint: { all: solid(["#4a4a4e", "#424246"]), top: P => { P.fill(["#4a4a4e"]); P.rect(2, 2, 12, 12, "#1e1e22"); } } },
+      { name: "spout", size: [6, 4, 6], pivot: [0, 6, 0], off: [0, 0, 0], paint: { all: solid(["#3a3a3e"]) } }], { invSize: 5, drops: () => [[I.HOPPER_CART, 1]] }),
+    furnace_cart: mk("Minecart with Furnace", box({ all: solid(["#7a7a7a", "#727272", "#848484"]), front: P => { P.fill(["#7a7a7a"]); P.rect(4, 6, 8, 6, "#2a2a2a"); P.rect(5, 9, 6, 2, "#ff8a2a"); } }), { drops: () => [[I.FURNACE_CART, 1]] }),
+    tnt_cart: mk("Minecart with Blast Block", box({ all: P => { P.fill(["#c83a2a", "#b8322a"]); P.rect(0, 5, 16, 5, "#e8e8e8"); P.rect(3, 6, 10, 3, "#2a2a2a"); } }), { drops: () => [[I.TNT_CART, 1]] })
+  };
+}
 const plankPaint = P => { P.fill(PLANKB); for (let y = 3; y < 16; y += 4) P.rect(0, y, 16, 1, "#7a5430"); };
 const fishParts = o => [
   { name: "body", size: o.body, pivot: [0, o.body[1] / 2, 0], off: [0, 0, 0], paint: o.bodyPaint },
@@ -349,6 +371,15 @@ Object.assign(SPECIES, {
       { name: "sideL", size: [2, 6, 28], pivot: [11, 4, 0], off: [0, 0, 0], paint: { all: plankPaint } },
       { name: "bow", size: [20, 6, 2], pivot: [0, 4, 13], off: [0, 0, 0], paint: { all: plankPaint } },
       { name: "stern", size: [20, 6, 2], pivot: [0, 4, -13], off: [0, 0, 0], paint: { all: plankPaint } }] } },
+  chest_boat: { name: "Boat with Chest", boat: true, object: true, persist: true, invSize: 27, hp: 3, speed: 0, w: 1.3, h: 0.6, ai: "boat", xp: 0, sound: "", drops: () => [[I.CHEST_BOAT, 1]],
+    model: { type: "boat", parts: [
+      { name: "bottom", size: [20, 2, 28], pivot: [0, 1, 0], off: [0, 0, 0], paint: { all: plankPaint } },
+      { name: "sideR", size: [2, 6, 28], pivot: [-11, 4, 0], off: [0, 0, 0], paint: { all: plankPaint } },
+      { name: "sideL", size: [2, 6, 28], pivot: [11, 4, 0], off: [0, 0, 0], paint: { all: plankPaint } },
+      { name: "bow", size: [20, 6, 2], pivot: [0, 4, 13], off: [0, 0, 0], paint: { all: plankPaint } },
+      { name: "stern", size: [20, 6, 2], pivot: [0, 4, -13], off: [0, 0, 0], paint: { all: plankPaint } },
+      { name: "chest", size: [12, 10, 10], pivot: [0, 7, -7], off: [0, 0, 0], paint: { all: CHESTP } }] } },
+  ...cartSpecies(),
   fox: { name: "Pouncer", animal: true, hp: 10, speed: 2.8, w: 0.6, h: 0.7, ai: "fox", food: [I.BERRIES], xp: 2, sound: "yip",
     drops: e => [e.held ? [e.held, 1] : null],
     model: { type: "quad", parts: [...quadParts({ body: [6, 6, 10], head: [8, 6, 6], leg: 2, legH: 6, headUp: 2,
@@ -639,6 +670,9 @@ export class Entity {
     this.attackCd = 0; this.thinkT = Math.random() * 0.3; this.state = "idle"; this.target = null; this.goal = null; this.path = null; this.pathT = 0;
     this.fuse = 0; this.burnT = 0; this.angry = opts.angry || 0; this.dead = 0; this.age = 0; this.fleeT = 0; this.wantJump = false; this.drawT = 0;
     this.stuckT = 0; this.lastX = x; this.lastZ = z; this.hopT = rand(0.5, 2);
+    // minecarts and chest boats: what's inside, furnace fuel and push, a creature riding along, a lit Blast Block
+    if (this.def.invSize) { const sl = new Array(this.def.invSize).fill(null); (opts.inv || []).forEach((q, i) => { if (i < sl.length) sl[i] = q; }); this.inv = { type: "chest", slots: sl }; }
+    this.fuel = opts.fuel || 0; this.pushX = opts.pushX || 0; this.pushZ = opts.pushZ || 0; this.riderUid = opts.riderUid || null; this.fuseT = opts.fuseT || 0; this.hopperOff = !!opts.hopperOff;
   }
   get maxHp() { if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
   get scale() { return (this.def.scale || 1) * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
@@ -651,7 +685,8 @@ export class Entity {
       baby: this.baby, growT: Math.round(this.growT), breedCd: Math.round(this.breedCd), sheared: this.sheared, eggT: Math.round(this.eggT), size: this.size, name: this.name,
       home: this.home, job: this.job, uses: this.uses, restockT: this.restockT, restockDay: this.restockDay, restocks: this.restocks, summonT: this.summonT,
       tame: this.tame, sitting: this.sitting, saddled: this.saddled, temper: this.temper,
-      variant: this.variant, trust: this.trust, held: this.held, pollen: this.pollen, inHive: this.inHive, stung: this.stung };
+      variant: this.variant, trust: this.trust, held: this.held, pollen: this.pollen, inHive: this.inHive, stung: this.stung,
+      ...(this.def.cart || this.inv ? { inv: this.inv ? this.inv.slots.map(q => q && { ...q }) : undefined, fuel: Math.round(this.fuel), pushX: this.pushX, pushZ: this.pushZ, riderUid: this.riderE && !this.riderE.dead ? this.riderE.uid : null, fuseT: this.fuseT, hopperOff: this.hopperOff } : {}) };
   }
 }
 
@@ -929,7 +964,12 @@ export class Entities {
       if (e.sp === "wanderer" && e.age > 300) { this.ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "poof"); e.gone = true; continue; }   // the Wanderer moves on
       if (!w.isLoaded(e.pos.x, e.pos.z)) continue;
       if (e.dead) { this.dying(e, dt); continue; }
-      if (e.ridden) {   // a Trotter you're riding moves with you (main.js steers it)
+      if (e.inCart) {   // a creature sitting in a minecart goes wherever the cart goes
+        const c = e.inCart;
+        if (c.gone || c.dead || !this.list.includes(c)) { e.inCart = null; }
+        else { e.pos.x = c.pos.x; e.pos.y = c.pos.y + 0.15; e.pos.z = c.pos.z; e.vel.x = e.vel.y = e.vel.z = 0; e.goal = null; e.path = null; e.age += dt; this.animate(e, dt, d2, daylight); e.mesh.visible = d2 < 64 * 64; continue; }
+      }
+      if (e.ridden && !e.def.cart) {   // a Trotter you're riding moves with you (main.js steers it)
         e.age += dt; e.walkPhase += Math.hypot(e.vel.x, e.vel.z) * dt * 1.5;
         if (e.iframes > 0) e.iframes -= dt; if (e.hurtT > 0) e.hurtT -= dt;
         this.animate(e, dt, d2, daylight); e.mesh.visible = true; continue;
@@ -1170,6 +1210,7 @@ export class Entities {
     e.inLava = liquidAt(w, e.pos.x, e.pos.y + 0.3, e.pos.z) === "lava";
     if (def.swims) return this.swimPhysics(e, dt);
     if (def.boat) return this.boatPhysics(e, dt);
+    if (def.cart) return this.cartPhysics(e, dt);
     // steering toward the current goal
     let speed = 0, mx = 0, mz = 0;
     if (e.goal && !e.frozen) {
@@ -1271,6 +1312,58 @@ export class Entities {
     if (e.pos.y < -10) e.gone = true;
   }
   // Boats float on the water's surface and slide to a stop
+  // Minecarts: roll along rails (js/rails.js); off the rails they slide to a stop like a boat on land
+  cartPhysics(e, dt) {
+    const ctx = this.ctx, w = this.world, p = ctx.player();
+    if (e.iframes > 0) e.iframes -= dt; if (e.hurtT > 0) e.hurtT -= dt;
+    // walking into a cart shoves it
+    if (!e.ridden && !ctx.creative()) {
+      const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+      if (d < 0.8 && Math.abs(e.pos.y - p.pos.y) < 1 && d > 0.01) { e.vel.x += dx / d * 6 * dt; e.vel.z += dz / d * 6 * dt; }
+    }
+    let fuel = null;
+    if (e.sp === "furnace_cart" && e.fuel > 0) { e.fuel -= dt; fuel = [e.pushX, e.pushZ]; if (Math.random() < dt * 6) ctx.particles(e.pos.x, e.pos.y + 1.1, e.pos.z, "ash"); if (e.fuel <= 0) e.fuel = 0; }
+    if (e.riderUid && !e.riderE) { const r = this.list.find(o => o.uid === e.riderUid); if (r) { e.riderE = r; r.inCart = e; } }
+    if (e.riderE && (e.riderE.dead || e.riderE.gone || e.riderE.inCart !== e)) { e.riderE = null; e.riderUid = null; }
+    const onRail = cartStep(w, e, dt, { push: e.ridden ? ctx.cartInput() : null, rider: !!(e.ridden || e.riderE), fuel });
+    if (!onRail) {
+      e.onRail = null;
+      e.vel.y = Math.max(e.vel.y - GRAV * dt, -30);
+      const f = e.onGround ? Math.pow(0.5, dt * 20) : 0.995;
+      e.vel.x *= f; e.vel.z *= f;
+      moveBody(w, e, dt);
+    }
+    const r = e.onRail;
+    // activator rails: throw riders out, light a Blast Block cart, switch a hopper cart off
+    if (r && r.id === B.ACTIVATOR_RAIL) {
+      if (r.on) { if (e.ridden) ctx.ejectCart(e); if (e.riderE) { e.riderE.inCart = null; e.riderE.pos.x += 1; e.riderE = null; e.riderUid = null; } if (e.sp === "tnt_cart" && !e.fuseT) { e.fuseT = 4; Sound.mob("fuse", this.dist(e)); } if (e.sp === "hopper_cart") e.hopperOff = true; }
+      else if (e.sp === "hopper_cart") e.hopperOff = false;
+    }
+    // a lit Blast Block cart explodes (harder the faster it's going)
+    if (e.fuseT > 0) {
+      e.fuseT -= dt;
+      if (e.mesh) e.mesh.traverse(o => { if (o.material && o.material.color) o.material.color.setScalar(Math.sin(e.fuseT * 18) > 0 ? 1.6 : 1); });
+      if (e.fuseT <= 0) { e.gone = true; ctx.explode(e.pos.x, e.pos.y + 0.5, e.pos.z, 4 + Math.min(5, Math.hypot(e.vel.x, e.vel.z) / 8 * 5) * 0.3, null); return; }
+    }
+    // an empty minecart picks up a creature that bumps into it
+    if (e.sp === "minecart" && !e.ridden && !e.riderE) {
+      const m = this.list.find(o => !o.dead && !o.gone && !o.def.object && !o.def.boss && !o.def.flies && !o.def.swims && !o.inCart && !o.ridden && o.w <= 1.4 && !o.static &&
+        Math.abs(o.pos.x - e.pos.x) < 0.7 && Math.abs(o.pos.z - e.pos.z) < 0.7 && Math.abs(o.pos.y - e.pos.y) < 0.8);
+      if (m && (Math.hypot(e.vel.x, e.vel.z) > 0.3 || Math.hypot(m.vel.x, m.vel.z) > 0.3)) { m.inCart = e; e.riderE = m; e.riderUid = m.uid; }
+    }
+    // a hopper cart picks up items and pulls from containers above it
+    if (e.sp === "hopper_cart" && !e.hopperOff && (e.pullT = (e.pullT || 0) - dt) <= 0) { e.pullT = 0.2; ctx.cartPull(e); }
+    // carts bump into each other and share their speed
+    for (const o of this.list) {
+      if (o === e || !o.def.cart || o.dead || o.gone) continue;
+      const dx = o.pos.x - e.pos.x, dz = o.pos.z - e.pos.z, d = Math.hypot(dx, dz);
+      if (d > 0.98 || d < 1e-3 || Math.abs(o.pos.y - e.pos.y) > 0.8) continue;
+      const nx = dx / d, nz = dz / d, rel = (e.vel.x - o.vel.x) * nx + (e.vel.z - o.vel.z) * nz;
+      if (rel > 0) { e.vel.x -= rel * nx; e.vel.z -= rel * nz; o.vel.x += rel * nx; o.vel.z += rel * nz; }
+      const push = (0.98 - d) / 2; e.pos.x -= nx * push; e.pos.z -= nz * push; o.pos.x += nx * push; o.pos.z += nz * push;
+    }
+    if (e.pos.y < -10) e.gone = true;
+  }
   boatPhysics(e, dt) {
     const top = this.waterTop(e.pos.x, e.pos.y, e.pos.z);
     if (top !== null) { e.vel.y += ((top - 0.12 - e.pos.y) * 6 - e.vel.y) * Math.min(1, dt * 8); e.vel.x *= 0.96; e.vel.z *= 0.96; }
@@ -1316,7 +1409,7 @@ export class Entities {
     }
     if (def.hostile && !def.boss && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
     if (def.pet && e.tame) return this.thinkPet(e, d, dmgMul);
-    if (def.boat) return;
+    if (def.boat || def.cart) return;
     if (def.swims) return this.thinkSwimmer(e, d, dmgMul);
     if (def.ai === "bee") return this.thinkBee(e, d, dmgMul, daylight);
     if (def.ai === "fox") return this.thinkFox(e, d, dmgMul, daylight);
@@ -2010,6 +2103,9 @@ export class Entities {
       for (const d of e.def.drops(e)) if (d && d[1] > 0) ctx.drop(d[0], d[1], e.pos.x, e.pos.y + 0.4, e.pos.z);
       if (!e.baby && e.def.xp) ctx.xp(e.def.xp * (e.def.ai === "slime" ? e.size : 1), e.pos.x, e.pos.y + 0.4, e.pos.z);
     } else if (e.held) ctx.drop(e.held, 1, e.pos.x, e.pos.y + 0.4, e.pos.z);   // a Pouncer always drops what it was carrying
+    if (e.inv) for (const q of e.inv.slots) if (q) ctx.drop(q.id, q.n, e.pos.x, e.pos.y + 0.4, e.pos.z, q);   // what was inside spills out
+    if (e.sp === "tnt_cart" && (attacker === "explosion" || e.fuseT > 0)) { e.gone = true; ctx.explode(e.pos.x, e.pos.y + 0.5, e.pos.z, 4, null); return; }
+    if (e.riderE) { e.riderE.inCart = null; e.riderE = null; }
     if (e.def.object) { e.gone = true; ctx.particles(e.pos.x, e.pos.y + 0.3, e.pos.z, "poof"); return; }   // boats just break apart
     if (e.def.ai === "slime" && e.size > 1) {   // big gloops split
       const n = randi(2, 4);
@@ -2035,6 +2131,8 @@ export class Entities {
   // ----- interacting (right-click) -----
   interact(e, slot) {
     const ctx = this.ctx, def = e.def, id = slot ? slot.id : 0;
+    if (def.cart) return ctx.useCart(e, slot);
+    if (e.sp === "chest_boat" && ctx.crouching()) return ctx.openCart(e);   // crouch + right-click opens a chest boat
     if (def.boat) return ctx.mount(e);
     if (e.sp === "dolphin" && (id === I.RAW_MINNOW || id === I.COOKED_MINNOW)) {
       ctx.consume(); e.angry = 0;
@@ -2388,6 +2486,8 @@ export class Entities {
         for (const q of def.model.parts) if (q.ang !== undefined) { P[q.name].rotation.z = Math.cos(q.ang) * spread; P[q.name].rotation.x = -Math.sin(q.ang) * spread; }
         e.root.rotation.x *= 0.4;
       }
+    } else if (t === "cart") {
+      e.root.rotation.z = 0;
     } else if (t === "boat") {
       e.root.rotation.z = Math.sin(e.age * 1.4) * 0.025;
     } else if (t === "bee") {

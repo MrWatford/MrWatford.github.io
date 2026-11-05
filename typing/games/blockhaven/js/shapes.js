@@ -27,7 +27,7 @@ export function supportOf(v) {
   const id = idOf(v), m = metaOf(v);
   if (id === B.SPARK_TORCH) { const a = m & 7; return a === 0 ? [0, -1, 0] : [DIR[a - 1][0], 0, DIR[a - 1][1]]; }
   if (id === B.LEVER || isButton(id)) { const a = m & 7; return a === 0 ? [0, -1, 0] : a === 1 ? [0, 1, 0] : [DIR[a - 2][0], 0, DIR[a - 2][1]]; }
-  if (id === B.SPARK_DUST || isPlate(id) || id === B.REPEATER || id === B.COMPARATOR || id === B.TRIPWIRE || id === B.BELL) return [0, -1, 0];
+  if (id === B.SPARK_DUST || isPlate(id) || id === B.REPEATER || id === B.COMPARATOR || id === B.TRIPWIRE || id === B.BELL || (id >= B.RAIL && id <= B.ACTIVATOR_RAIL)) return [0, -1, 0];
   if (id === B.TRIPWIRE_HOOK) { const d = m & 3; return [DIR[d][0], 0, DIR[d][1]]; }
   return null;
 }
@@ -40,7 +40,7 @@ export function dustLinks(v, d) {
   if (id === B.SPARK_DUST || id === B.SPARK_TORCH || id === B.LEVER || id === B.SPARK_BLOCK || id === B.DAYLIGHT || id === B.TARGET || id === B.COMPARATOR || isButton(id) || isPlate(id)) return true;
   if (id === B.REPEATER) return ((metaOf(v) & 3) % 2) === (d % 2);
   if (id === B.OBSERVER) return (metaOf(v) & 7) === 2 + d;   // only its output side
-  if (id === B.TRIPWIRE_HOOK || id === B.TRAPPED_CHEST || isHush(id)) return true;
+  if (id === B.TRIPWIRE_HOOK || id === B.TRAPPED_CHEST || isHush(id) || id === B.DETECTOR_RAIL) return true;
   return false;
 }
 // conn[d] for the 4 sides: 0 none, 1 flat (or stepping down), 2 climbing up the side block. get(dx, dy, dz) reads a neighbor.
@@ -172,6 +172,7 @@ export function shapeBoxes(v, get) {
 export function selectBox(v) {
   const id = idOf(v);
   if (id === B.SPARK_DUST) return [0, 0, 0, 1, S, 1];
+  if (id >= B.RAIL && id <= B.ACTIVATOR_RAIL) { const sh = metaOf(v) & 15; return sh >= 2 && sh <= 5 ? [0, 0, 0, 1, 0.6, 1] : [0, 0, 0, 1, 2 * S, 1]; }
   if (isFence(id)) return [6 * S, 0, 6 * S, 10 * S, 1, 10 * S];
   if (isGate(id)) return box(floorT(metaOf(v) & 3), [0, 5 * S, 7 * S, 1, 1, 9 * S]);
   const mo = model(v);

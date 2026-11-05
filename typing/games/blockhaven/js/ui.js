@@ -299,18 +299,20 @@ export const UI = {
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (panelKind === "chest") {
       const shell = isShellBox();
-      left = `<div class="inv-card"><h3>${shell ? "Shell Box" : "Chest"}</h3><div class="grid9">${slots("box", 0, 27)}</div><p class="help">${shell ? "A Shell Box keeps everything inside when you break it and carry it. Shell Boxes can't go inside other Shell Boxes." : "Things in a chest stay saved. Breaking the chest drops everything inside."}</p></div>`;
+      const cartChest = String(panelCtx).startsWith("cart:");
+      left = `<div class="inv-card"><h3>${shell ? "Shell Box" : cartChest ? "Storage" : "Chest"}</h3><div class="grid9">${slots("box", 0, 27)}</div><p class="help">${shell ? "A Shell Box keeps everything inside when you break it and carry it. Shell Boxes can't go inside other Shell Boxes." : "Things in a chest stay saved. Breaking the chest drops everything inside."}</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (panelKind === "machine") {
       const [mx, my, mz] = panelCtx.split(",").map(Number), id = G.world.id(mx, my, mz), box = G.world.containers.get(panelCtx);
       const n = box ? box.slots.length : 0, crafter = id === B.CRAFTER;
-      const title = { [B.HOPPER]: "Hopper", [B.DROPPER]: "Dropper", [B.DISPENSER]: "Dispenser", [B.CRAFTER]: "Crafter" }[id] || "Machine";
+      const cartBox = String(panelCtx).startsWith("cart:");
+      const title = cartBox ? "Minecart with Hopper" : { [B.HOPPER]: "Hopper", [B.DROPPER]: "Dropper", [B.DISPENSER]: "Dispenser", [B.CRAFTER]: "Crafter" }[id] || "Machine";
       const help = {
         [B.HOPPER]: "Moves 1 item every 0.4 s into whatever its spout points at, and pulls items from the container above it (or picks up items dropped on top). A signal locks it.",
         [B.DROPPER]: "Each time it gets a signal, it drops 1 random item out of its face, or puts it into a container in front.",
         [B.DISPENSER]: "Each time it gets a signal, it uses 1 random item: shoots arrows, places or scoops water and lava, lights Blast Blocks, uses bone meal, spawn eggs, shears, and more. Other items get dropped.",
         [B.CRAFTER]: "Fill the grid with a recipe's ingredients (any slots). Each signal crafts one result out of its face. Click an empty slot to lock it (hoppers won't fill locked slots)."
-      }[id] || "";
+      }[id] || (cartBox ? "Picks up items it rolls over and pulls from containers above the track. Hoppers under the track empty it. An activator rail switches it off." : "");
       let grid = "";
       if (n === 5) grid = `<div class="grid9" style="grid-template-columns:repeat(5,48px)">${slots("box", 0, 5)}</div>`;
       else grid = `<div class="grid9" style="grid-template-columns:repeat(3,48px)">${range("box", 0, 9).map(r => crafter && box.locked && box.locked[+r.slice(4)] && !getSlot(r) ? `<div class="slot locked" data-ref="${r}" title="Locked (click to unlock)" style="background:#5a3a3a"><span class="ghost" style="color:#e8b0a0">✖</span></div>` : slotHTML(r)).join("")}</div>`;

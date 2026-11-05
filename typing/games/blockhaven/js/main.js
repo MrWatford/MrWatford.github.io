@@ -1,7 +1,7 @@
 // Blockhaven: the game loop, 3D drawing, controls, mining and building, survival rules, and saving.
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
-  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor } from "./blocks.js";
+  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor, isRail } from "./blocks.js";
 import { initRedstone } from "./redstone.js";
 import { selectBox } from "./shapes.js";
 import { Entities, SPECIES, TRADES } from "./entities.js";
@@ -208,7 +208,12 @@ const ents = new Entities(scene, {
   world: () => G.world, player: () => G.player, settings: () => G.wset, creative: () => G.creative || G.spectator, alive: () => G.state !== "dead",
   hurtPlayer: (n, why, src, kind) => hurt(n, why, src, false, kind), effect: (k, t) => addEffect(k, t),
   explode: (x, y, z, power, src) => explode(x, y, z, power, src),
-  drop: (id, n, x, y, z) => spawnDrop(id, n, x, y, z), xp: (n, x, y, z) => spawnOrbs(n, x, y, z),
+  drop: (id, n, x, y, z, stack) => spawnDrop(id, n, x, y, z, stack),
+  // minecarts (Part D): a rider pressing W pushes the cart; right-click does what each cart is for
+  cartInput: () => G.state === "play" && keys.has("KeyW") ? (d => [d.x, d.z])(lookDir()) : null,
+  crouching: () => keys.has("KeyC"),
+  useCart: (e, slot) => useCart(e, slot), openCart: e => openCart(e), ejectCart: e => { if (G.riding === e) dismount(); },
+  cartPull: e => R.cartPull(e), xp: (n, x, y, z) => spawnOrbs(n, x, y, z),
   particles: (x, y, z, kind) => puff(x, y, z, kind), lookDir: () => lookDir(),
   // the item in the hand being used (main hand first; an empty main hand shows the offhand item)
   heldId: () => (G.inv.slots[G.useSlot] || G.inv.slots[OFF] || {}).id || 0,
@@ -248,6 +253,36 @@ function noteFx(x, y, z, pitch) {
 }
 // which of the 4 directions (0 +z, 1 +x, 2 −z, 3 −x) the player is looking along
 // 6-way version for pistons and observers: 0 up, 1 down, 2-5 the 4 sides
+// right-clicking a minecart
+function useCart(e, slot) {
+  const id = slot ? slot.id : 0;
+  if (e.sp === "minecart") return mount(e);
+  if (e.sp === "chest_cart" || e.sp === "hopper_cart") { openCart(e); return true; }
+  if (e.sp === "furnace_cart") {
+    if (id === I.COAL) {   // 1 coal = 3 minutes of pushing, away from you
+      e.fuel = Math.min(e.fuel + 180, 180 * 32); const dx = e.pos.x - G.player.pos.x, dz = e.pos.z - G.player.pos.z, l = Math.hypot(dx, dz) || 1;
+      e.pushX = dx / l; e.pushZ = dz / l;
+      if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
+      puff(e.pos.x, e.pos.y + 1, e.pos.z, "ash"); G.hudDirty = true; heldId = -1; return true;
+    }
+    UI.toast("Feed it coal to make it chug along (away from you).");
+    return true;
+  }
+  if (e.sp === "tnt_cart") {
+    if (id === I.FLINT_STEEL && !e.fuseT) { e.fuseT = 4; Sound.mob("fuse", 0); wearTool(slot, 1); return true; }
+    return false;
+  }
+  return false;
+}
+// a chest minecart, hopper minecart, or chest boat opens like a chest (its storage travels with it)
+function openCart(e) {
+  if (!e.inv) return false;
+  const k = "cart:" + e.uid;
+  G.world.containers.set(k, e.inv);
+  Sound.door(true); R.vibrate(e.pos.x, e.pos.y + 0.5, e.pos.z, 11);
+  openPanel(e.sp === "hopper_cart" ? "machine" : "chest", k);
+  return true;
+}
 function lookFacing3() { const d = lookDir(); return Math.abs(d.y) > Math.max(Math.abs(d.x), Math.abs(d.z)) ? (d.y > 0 ? 0 : 1) : 2 + lookFacing(); }
 // Blocks sliding out of a piston: drawn as their own little cubes for the 0.1 s the move takes
 const movers = [];
@@ -348,6 +383,14 @@ function updateFires(dt) {
 function mount(e) {
   const p = G.player;
   if (G.riding) return false;
+  if (e.def.cart) {   // sit in a minecart
+    if (e.riderE) { UI.toast("Something's already riding in that minecart."); return true; }
+    G.riding = e; e.ridden = true; p.cart = true; p.flying = false; p.gliding = false; p.crouch = false;
+    p.pos.x = e.pos.x; p.pos.y = e.pos.y + 0.2; p.pos.z = e.pos.z; p.vel.x = p.vel.y = p.vel.z = 0;
+    Sound.place("stone"); G.adv("cart");
+    UI.toast("In the minecart! Press W to give it a push. C to climb out.");
+    return true;
+  }
   if (e.def.boat) {   // climb into a boat
     G.riding = e; e.ridden = true; e.goal = null;
     p.boat = true; p.flying = false; p.gliding = false; p.crouch = false;
@@ -367,7 +410,7 @@ function mount(e) {
 function dismount(quiet) {
   const p = G.player, e = G.riding;
   if (!e) return;
-  G.riding = null; p.mount = false; p.boat = false; e.ridden = false; e.vel.x = e.vel.y = e.vel.z = 0;
+  G.riding = null; p.mount = false; p.boat = false; p.cart = false; e.ridden = false; if (!e.def.cart) { e.vel.x = e.vel.y = e.vel.z = 0; }
   if (e.def.boat && boatLanding(p)) { if (!quiet) Sound.place("wood"); return; }
   // step off to the side if there is room
   for (const s of [1, -1]) {
@@ -395,6 +438,11 @@ function tickRiding(dt) {
   const p = G.player, e = G.riding;
   if (!e) return;
   if (e.dead || e.gone || !ents.list.includes(e)) { dismount(true); return; }
+  if (e.def.cart) {   // the cart carries you
+    p.pos.x = e.pos.x; p.pos.y = e.pos.y + 0.2; p.pos.z = e.pos.z; p.vel.x = e.vel.x; p.vel.y = 0; p.vel.z = e.vel.z; p.airTop = null;
+    G.cartDist = (G.cartDist || 0) + Math.hypot(e.vel.x, e.vel.z) * dt; if (G.cartDist > 100 && !G.cartAdv) { G.cartAdv = true; G.adv("cartride"); }
+    return;
+  }
   e.pos.x = p.pos.x; e.pos.y = p.pos.y; e.pos.z = p.pos.z;
   e.vel.x = p.vel.x; e.vel.y = p.vel.y; e.vel.z = p.vel.z; e.yaw = p.yaw; e.onGround = p.onGround;
   if (e.tame || e.def.boat) return;
@@ -1325,7 +1373,7 @@ function dimSnapshot(w) {
   if (w === G.world) R.settle();   // finish any blocks a piston is still sliding
   const old = G.dimData[w.dim] || {};
   if (w.dim === "end") { const dr = ents.list.find(e => e.sp === "dragon" && !e.dead); if (dr) old.wyrmHp = dr.hp; }
-  return { ...old, mods: w.modsToJSON(), containers: [...w.containers], entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w) };
+  return { ...old, mods: w.modsToJSON(), containers: [...w.containers].filter(([k]) => !String(k).startsWith("cart:")), entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w) };
 }
 // Build (and draw) the land around a spot, with a progress bar
 async function loadArea(x, z, label) {
@@ -1488,6 +1536,7 @@ G.openAdvancements = () => openPanel("advancements");
 G.openNoteRaw = n => { if (G.state === "play" || G.state === "panel") openPanel("note", n); };
 G.closePanel = () => closePanel();
 function closePanel() {
+  if (G.panelCtx && String(G.panelCtx).startsWith("cart:")) { UI.closePanel(); G.world.containers.delete(G.panelCtx); }   // a minecart's or chest boat's storage was only borrowed for the panel
   UI.closePanel(); G.panelKind = null; G.panelCtx = null;
   G.state = "play"; UI.show("none");
   requestLock();
@@ -1809,10 +1858,10 @@ function placeBoat(slot) {
   else if (hit.ny === 1) y = hit.y + 1;
   else return false;
   if (SOLID[G.world.id(hit.x, Math.floor(y + 0.5), hit.z)]) return false;
-  ents.add("boat", x, y, z, { yaw: p.yaw });
+  ents.add(slot.id === I.CHEST_BOAT ? "chest_boat" : "boat", x, y, z, { yaw: p.yaw });
   if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
   Sound.place("wood"); G.swing = 0.01; G.hudDirty = true; heldId = -1;
-  UI.toast("Right-click the boat to climb in.");
+  UI.toast(slot.id === I.CHEST_BOAT ? "Right-click to climb in. Crouch (C) + right-click to open the chest." : "Right-click the boat to climb in.");
   return true;
 }
 
@@ -1843,7 +1892,11 @@ function useWith(offhand) {
   const hit = target(), w = G.world, slot = G.inv.slots[G.useSlot], crouch = keys.has("KeyC"), sd = slot ? itemDef(slot.id) : null;
   const take = () => { if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; } };
   if (slot && slot.id === I.FISHING_ROD) { useRod(slot); return true; }
-  if (slot && slot.id === I.BOAT && placeBoat(slot)) return true;
+  if (slot && (slot.id === I.BOAT || slot.id === I.CHEST_BOAT) && placeBoat(slot)) return true;
+  if (sd && sd.cart) {   // minecarts go on rails
+    if (hit && isRail(idOf(hit.v))) { ents.add(sd.cart, hit.x + 0.5, hit.y + 0.0625, hit.z + 0.5, { yaw: G.player.yaw }); take(); Sound.place("stone"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; }
+    UI.toast("Minecarts go on rails. Point at a rail and right-click.", "bad"); return true;
+  }
   // creatures first, then blocks you can open or use (only the main hand opens things)
   const ent = entityTarget();
   if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; } if (!offhand && !slot) return false; }

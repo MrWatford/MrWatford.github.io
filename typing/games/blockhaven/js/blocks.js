@@ -47,7 +47,9 @@ export const B = {
   PISTON: 185, STICKY_PISTON: 186, PISTON_HEAD: 187, MOVING: 188, GLOOP_BLOCK: 189, HONEY_BLOCK: 190, OBSERVER: 191,
   TRIPWIRE_HOOK: 192, TRIPWIRE: 193, TRAPPED_CHEST: 194, HUSH_SENSOR: 195, TUNED_SENSOR: 196, BELL: 197,
   // part C: item machines
-  HOPPER: 198, DROPPER: 199, DISPENSER: 200, CRAFTER: 201
+  HOPPER: 198, DROPPER: 199, DISPENSER: 200, CRAFTER: 201,
+  // part D: rails
+  RAIL: 202, POWERED_RAIL: 203, DETECTOR_RAIL: 204, ACTIVATOR_RAIL: 205
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -79,7 +81,7 @@ export const I = {
   TIDAL_HEART: 540, VERDANT_LENS: 541, SOLAR_SEAL: 542, RESONANCE_CORE: 543, STAB_ARCHIVE: 544, STAB_FOUNDRY: 545, STAB_GARDEN: 546, SURVEY_MAP: 547,
   ECHO_SHARD: 548, ECHO_COMPASS: 549, WARDEN_PLATE: 550, ECHO_MANTLE: 551, LUMEN_SHARD: 552,
   TIDE_CHARM: 553, LEAFSTEP_BOOTS: 554, SUNWARD_HELM: 555,
-  SPARKDUST: 556
+  SPARKDUST: 556, MINECART: 557, CHEST_CART: 558, HOPPER_CART: 559, FURNACE_CART: 560, TNT_CART: 561, CHEST_BOAT: 562
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -304,6 +306,11 @@ block(B.HOPPER, "Hopper", { shape: "model", render: "cutout", hardness: 3, tool:
 block(B.DROPPER, "Dropper", { hardness: 3.5, tool: "pick", tier: 1, interact: "dropper", tex: ["furnace_top", "furnace_side", "furnace_top"], front: "dropper_front", front6: true, category: MECH });
 block(B.DISPENSER, "Dispenser", { hardness: 3.5, tool: "pick", tier: 1, interact: "dispenser", tex: ["furnace_top", "furnace_side", "furnace_top"], front: "dispenser_front", front6: true, category: MECH });
 block(B.CRAFTER, "Crafter", { hardness: 1.5, tool: "pick", tier: 1, interact: "crafter", tex: ["crafter_top", "crafter_side", "crafter_bottom"], front: "crafter_front", front6: true, category: MECH });
+// part D. Rails: bits 0-3 shape (0 along z, 1 along x, 2-5 sloping up toward +x, −x, −z, +z, 6-9 curves +z/+x, +z/−x, −z/−x, −z/+x) + RAIL_ON.
+block(B.RAIL, "Rail", { shape: "rail", render: "cutout", solid: false, hardness: 0.7, tool: "pick", tex: "rail", category: MECH, icon: "tile:rail" });
+block(B.POWERED_RAIL, "Powered Rail", { shape: "rail", render: "cutout", solid: false, hardness: 0.7, tool: "pick", tex: "rail_powered", category: MECH, icon: "tile:rail_powered" });
+block(B.DETECTOR_RAIL, "Detector Rail", { shape: "rail", render: "cutout", solid: false, hardness: 0.7, tool: "pick", tex: "rail_detector", category: MECH, icon: "tile:rail_detector" });
+block(B.ACTIVATOR_RAIL, "Activator Rail", { shape: "rail", render: "cutout", solid: false, hardness: 0.7, tool: "pick", tex: "rail_activator", category: MECH, icon: "tile:rail_activator" });
 block(B.DAYLIGHT, "Daylight Sensor", { shape: "model", render: "cutout", hardness: 0.2, tool: "axe", interact: "daylight", tex: ["daylight_top", "daylight_side", "daylight_side"], category: MECH, iconBox: 6 / 16 });
 
 export const BEACON_BASE = [B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
@@ -329,6 +336,8 @@ for (const d of Object.values(defs)) {
 // Spark Ore and Spark Lamp: bit 0 = lit. Note Block: bits 0-4 pitch (0-24), NOTE_ON.
 // Part B: pistons EXTENDED, heads STICKY_HEAD, observers OBS_ON; tripwire hooks bits 0-1 support side + ATTACHED + HOOK_ON; strings ATTACHED + HOOK_ON + DISARMED;
 // trapped chest OPENED; Hush Sensors bits 0-1 phase (0 waiting, 1 active, 2 resting), bits 2-5 power, bits 6-7 facing (tuned); bells bits 0-1 facing + BELL_POWERED.
+export const RAIL_ON = 16;
+export const isRail = id => id >= B.RAIL && id <= B.ACTIVATOR_RAIL;
 export const HOPPER_LOCKED = 8, TRIGGERED = 8, CRAFTING = 16;
 export const isMachine = id => id === B.HOPPER || id === B.DROPPER || id === B.DISPENSER || id === B.CRAFTER;
 export const EXTENDED = 8, STICKY_HEAD = 8, OBS_ON = 8, ATTACHED = 4, HOOK_ON = 8, DISARMED = 16, OPENED = 16, BELL_POWERED = 4;
@@ -450,7 +459,13 @@ item(I.EMBER_HEART, "Ember Heart", { icon: "ember_heart", stack: 16 });
 item(I.CINDER_CROWN, "Cinder Crown", { icon: "armor_helmet", colors: ["#e0702a"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 0, points: 4, dur: 900 }, fireproof: true });
 item(I.COMPASS, "Compass", { icon: "compass", stack: 1, category: "Tools", offhand: true });
 item(I.GOLDEN_CARROT, "Golden Carrot", { icon: "carrot", colors: ["gold"], kind: "food", food: 6, category: "Food" });
-items[I.STRING].places = B.TRIPWIRE;   // string can be laid down as tripwire between two hooks
+items[I.STRING].places = B.TRIPWIRE;
+item(I.MINECART, "Minecart", { icon: "cart", stack: 1, category: "Mechanisms", cart: "minecart" });
+item(I.CHEST_CART, "Minecart with Chest", { icon: "cart", colors: ["chest"], stack: 1, category: "Mechanisms", cart: "chest_cart" });
+item(I.HOPPER_CART, "Minecart with Hopper", { icon: "cart", colors: ["hopper"], stack: 1, category: "Mechanisms", cart: "hopper_cart" });
+item(I.FURNACE_CART, "Minecart with Furnace", { icon: "cart", colors: ["furnace"], stack: 1, category: "Mechanisms", cart: "furnace_cart" });
+item(I.TNT_CART, "Minecart with Blast Block", { icon: "cart", colors: ["tnt"], stack: 1, category: "Mechanisms", cart: "tnt_cart" });
+item(I.CHEST_BOAT, "Boat with Chest", { icon: "boat", colors: ["chest"], stack: 1, category: "Tools" });   // string can be laid down as tripwire between two hooks
 item(I.SPARKDUST, "Sparkdust", { icon: "dust", colors: ["#ff5a2a", "#c2361a", "#ff8a4a"], category: "Mechanisms", places: B.SPARK_DUST });
 // Saturation ("fullness") from each food, following Minecraft Java Edition 1.20.1. Fullness is used up before the food bar drops.
 const SATURATION = { [I.APPLE]: 2.4, [I.BREAD]: 6, [I.CARROT]: 3.6, [I.RAW_BEEF]: 1.8, [I.STEAK]: 12.8, [I.RAW_PORK]: 1.8, [I.COOKED_PORK]: 12.8,
@@ -636,6 +651,16 @@ export const RECIPES = [
   { out: [B.TRAPPED_CHEST, 1], ins: [[B.CHEST, 1], [B.TRIPWIRE_HOOK, 1]] },
   { out: [B.TUNED_SENSOR, 1], ins: [[B.HUSH_SENSOR, 1], [I.LUMEN_SHARD, 3]], table: true },
   { out: [B.HOPPER, 1], ins: [[I.IRON_INGOT, 5], [B.CHEST, 1]], table: true },
+  { out: [B.RAIL, 16], ins: [[I.IRON_INGOT, 6], [I.STICK, 1]], table: true },
+  { out: [B.POWERED_RAIL, 6], ins: [[I.GOLD_INGOT, 6], [I.STICK, 1], [I.SPARKDUST, 1]], table: true },
+  { out: [B.DETECTOR_RAIL, 6], ins: [[I.IRON_INGOT, 6], [B.STONE_PLATE, 1], [I.SPARKDUST, 1]], table: true },
+  { out: [B.ACTIVATOR_RAIL, 6], ins: [[I.IRON_INGOT, 6], [I.STICK, 2], [B.SPARK_TORCH, 1]], table: true },
+  { out: [I.MINECART, 1], ins: [[I.IRON_INGOT, 5]], table: true },
+  { out: [I.CHEST_CART, 1], ins: [[I.MINECART, 1], [B.CHEST, 1]] },
+  { out: [I.HOPPER_CART, 1], ins: [[I.MINECART, 1], [B.HOPPER, 1]] },
+  { out: [I.FURNACE_CART, 1], ins: [[I.MINECART, 1], [B.FURNACE, 1]] },
+  { out: [I.TNT_CART, 1], ins: [[I.MINECART, 1], [B.TNT, 1]] },
+  { out: [I.CHEST_BOAT, 1], ins: [[I.BOAT, 1], [B.CHEST, 1]] },
   { out: [B.DROPPER, 1], ins: [[B.COBBLE, 7], [I.SPARKDUST, 1]], table: true },
   { out: [B.DISPENSER, 1], ins: [[B.DROPPER, 1], [I.BOW, 1]], table: true },
   { out: [B.DISPENSER, 1], ins: [[B.COBBLE, 7], [I.SPARKDUST, 1], [I.BOW, 1]], table: true },
@@ -690,7 +715,8 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "trap_oak", "trap_birch", "trap_crimson", "trap_warped", "trap_iron", "note_block", "target_top", "target_side", "daylight_top", "daylight_inv_top", "daylight_side",
   "piston_side", "piston_top", "piston_top_sticky", "piston_bottom", "piston_inner", "gloop_block", "honey_block", "observer_front", "observer_back", "observer_back_on", "observer_side", "observer_top",
   "hook", "tripwire", "trapped_front", "trapped_side", "hush_sensor_top", "hush_sensor_top_on", "hush_sensor_side", "tuned_sensor_top", "tendril", "tendril_on", "bell", "bell_post",
-  "hopper_outside", "hopper_top", "hopper_inside", "dropper_front", "dispenser_front", "crafter_front", "crafter_front_on", "crafter_top", "crafter_side", "crafter_bottom"];
+  "hopper_outside", "hopper_top", "hopper_inside", "dropper_front", "dispenser_front", "crafter_front", "crafter_front_on", "crafter_top", "crafter_side", "crafter_bottom",
+  "rail", "rail_curve", "rail_powered", "rail_powered_on", "rail_detector", "rail_detector_on", "rail_activator", "rail_activator_on"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -717,6 +743,7 @@ export function faceTile(v, dir, front) {
   if (idOf(v) === B.REPEATER && dir === 0) return TILE[metaOf(v) & ON ? "repeater_top_on" : "repeater_top"];
   if (idOf(v) === B.COMPARATOR && dir === 0) return TILE[metaOf(v) & CMP_ON ? "comparator_top_on" : "comparator_top"];
   if (idOf(v) === B.DAYLIGHT && dir === 0) return TILE[metaOf(v) & INVERT ? "daylight_inv_top" : "daylight_top"];
+  if (idOf(v) >= B.POWERED_RAIL && idOf(v) <= B.ACTIVATOR_RAIL && (metaOf(v) & RAIL_ON)) return TILE[t + "_on"];
   if (idOf(v) === B.HUSH_SENSOR && dir === 0) return TILE[(metaOf(v) & 3) === 1 ? "hush_sensor_top_on" : "hush_sensor_top"];
   if (idOf(v) === B.WHEAT || idOf(v) === B.CARROTS) return TILE[(idOf(v) === B.WHEAT ? "wheat" : "carrots") + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.FARMLAND && dir === 0) return TILE[metaOf(v) & WET ? "farmland_wet" : "farmland_dry"];
@@ -1130,6 +1157,14 @@ Object.assign(PAINT, {
   crafter_bottom(P) { P.fill(["#5a5a5a", "#545454"]); },
   crafter_top(P) { P.fill(["#9a9a9a"]); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) P.rect(1 + i * 5, 1 + j * 5, 4, 4, "#b98d55"); },
   crafter_front(P) { PAINT.crafter_side(P); P.rect(3, 4, 4, 3, "#1a1a1a"); P.rect(9, 4, 4, 3, "#1a1a1a"); P.rect(4, 5, 2, 1, "#5a1608"); P.rect(10, 5, 2, 1, "#5a1608"); P.rect(5, 10, 6, 2, "#2a2a2a"); },
+  rail(P) { railTies(P); railBars(P, "#a0a0a0", "#d8d8d8"); },
+  rail_curve(P) { for (let i = 0; i < 16; i += 4) { P.rect(i, 15 - i - 2, 3, 2, "#6a4825"); } for (let a = 0; a < 16; a++) { const r1 = 12.5, r2 = 6.5; for (const r of [r1, r2]) { const t = a / 15 * Math.PI / 2, x = Math.round(16 - Math.cos(t) * r), y = Math.round(16 - Math.sin(t) * r); P.rect(x - 1, y - 1, 2, 2, "#c0c0c0"); } } },
+  rail_powered(P) { railTies(P); railBars(P, "#b8901a", "#f0c020"); P.rect(7, 0, 2, 16, "#5a1608"); },
+  rail_powered_on(P) { railTies(P); railBars(P, "#b8901a", "#f0c020"); P.rect(7, 0, 2, 16, "#ff5a2a"); },
+  rail_detector(P) { railTies(P); railBars(P, "#a0a0a0", "#d8d8d8"); P.rect(5, 5, 6, 6, "#8a8a8a"); P.rect(6, 6, 4, 4, "#5a1608"); },
+  rail_detector_on(P) { railTies(P); railBars(P, "#a0a0a0", "#d8d8d8"); P.rect(5, 5, 6, 6, "#8a8a8a"); P.rect(6, 6, 4, 4, "#ff5a2a"); },
+  rail_activator(P) { railTies(P); railBars(P, "#a0a0a0", "#d8d8d8"); for (let y = 1; y < 16; y += 4) P.rect(7, y, 2, 2, "#5a1608"); },
+  rail_activator_on(P) { railTies(P); railBars(P, "#a0a0a0", "#d8d8d8"); for (let y = 1; y < 16; y += 4) P.rect(7, y, 2, 2, "#ff5a2a"); },
   crafter_front_on(P) { PAINT.crafter_front(P); P.rect(4, 5, 2, 1, "#ff5a2a"); P.rect(10, 5, 2, 1, "#ff5a2a"); P.rect(3, 4, 4, 1, "#ff8a4a"); P.rect(9, 4, 4, 1, "#ff8a4a"); }
 });
 for (let k = 0; k < 6; k++) {
@@ -1137,6 +1172,8 @@ for (let k = 0; k < 6; k++) {
   PAINT["dust_line" + k] = P => { P.rect(0, 6, 16, 4, c); for (let x = 0; x < 16; x += 3) P.px(x, 7, hi); P.rect(0, 6, 16, 1, DUST_COLS[Math.max(0, k - 1)]); };
   PAINT["dust_dot" + k] = P => { for (let y = 4; y < 12; y++) for (let x = 4; x < 12; x++) if ((x - 7.5) ** 2 + (y - 7.5) ** 2 < 11) P.px(x, y, (x + y) % 3 ? c : hi); };
 }
+function railTies(P) { for (let y = 1; y < 16; y += 4) P.rect(1, y, 14, 2, "#7d5a30"); }
+function railBars(P, dark, light) { for (const x of [2, 12]) { P.rect(x, 0, 2, 16, dark); P.rect(x, 0, 1, 16, light); } }
 function crop(P, h, pal) { for (let x = 1; x < 16; x += 2) { const hh = Math.max(2, h - Math.floor(P.r() * 3)); for (let y = 15; y > 15 - hh; y--) P.px(x + (y % 3 === 0 ? 0 : 0), y, P.pick(pal)); } }
 function oreSpots(P, pal) { for (let i = 0; i < 5; i++) { const x = 1 + Math.floor(P.r() * 12), y = 1 + Math.floor(P.r() * 12); P.px(x, y, pal[0]); P.px(x + 1, y, pal[1]); P.px(x, y + 1, pal[1]); if (P.r() < 0.7) P.px(x + 1, y + 1, pal[2]); } }
 function stem(P) { P.rect(7, 6, 2, 10, "#3f8a2c"); P.px(6, 11, "#4f9a33"); P.px(9, 9, "#4f9a33"); P.px(5, 10, "#4f9a33"); }
@@ -1222,7 +1259,7 @@ Object.assign(ICON_PAINT, {
   fish(P, c) { for (let y = 5; y < 12; y++) for (let x = 3; x < 12; x++) if ((x - 7.5) ** 2 / 20 + (y - 8.5) ** 2 / 9 < 1) P.px(x, y, y < 8 ? c[1] : c[0]); P.rect(11, 6, 2, 5, c[0]); P.rect(13, 5, 2, 7, c[0]); P.rect(5, 7, 1, 1, "#1a1a1a"); },
   puffer(P) { for (let y = 3; y < 14; y++) for (let x = 3; x < 14; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 24) P.px(x, y, y < 8 ? "#e8c840" : "#f4e8b0"); for (const [x, y] of [[2, 8], [14, 8], [8, 2], [8, 14], [4, 4], [12, 4], [4, 12], [12, 12]]) P.px(x, y, "#8a7a3a"); P.rect(5, 7, 2, 2, "#1a1a1a"); P.rect(10, 7, 2, 2, "#1a1a1a"); },
   inksac(P) { blob(P, ["#1a1a2a", "#24243a", "#101018"]); P.rect(6, 6, 2, 2, "#4a4a6a"); },
-  boat(P) { P.rect(1, 8, 14, 3, "#a87a48"); P.rect(2, 11, 12, 2, "#8a5e32"); P.rect(1, 6, 2, 2, "#a87a48"); P.rect(13, 6, 2, 2, "#a87a48"); P.rect(3, 9, 10, 1, "#6a4825"); P.rect(10, 2, 1, 7, "#6a4825"); P.rect(6, 4, 7, 1, "#6a4825"); },
+  boat(P, c) { if (c && c[0] === "chest") { P.rect(9, 3, 5, 5, "#9a6a35"); P.rect(9, 5, 5, 1, "#5a3a1a"); } P.rect(1, 8, 14, 3, "#a87a48"); P.rect(2, 11, 12, 2, "#8a5e32"); P.rect(1, 6, 2, 2, "#a87a48"); P.rect(13, 6, 2, 2, "#a87a48"); P.rect(3, 9, 10, 1, "#6a4825"); P.rect(10, 2, 1, 7, "#6a4825"); P.rect(6, 4, 7, 1, "#6a4825"); },
   berries(P) { for (const [x, y] of [[4, 7], [8, 5], [10, 9], [6, 10], [9, 12]]) { P.rect(x, y, 3, 3, "#c8203a"); P.px(x, y, "#f06070"); } P.rect(8, 2, 1, 3, "#3a7a30"); P.rect(6, 3, 2, 1, "#3a7a30"); },
   comb(P) { for (let y = 3; y < 14; y++) for (let x = 2; x < 14; x++) P.px(x, y, (x + (y % 4 < 2 ? 0 : 2)) % 4 === 0 || y % 4 === 0 ? "#c88a18" : P.pick(COMB)); },
   bottle(P, c) { P.rect(6, 2, 4, 2, "#a07040"); P.rect(7, 4, 2, 3, "rgba(220,240,255,.8)"); for (let y = 7; y < 15; y++) P.rect(4, y, 8, 1, "rgba(220,240,255,.75)"); if (c && c[0]) P.rect(5, 9, 6, 5, c[0]); P.rect(5, 8, 1, 4, "rgba(255,255,255,.9)"); }
@@ -1248,6 +1285,14 @@ Object.assign(ICON_PAINT, {
   lever(P) { P.rect(4, 11, 8, 3, "#8a8a8a"); P.rect(4, 13, 8, 1, "#5a5a5a"); for (let i = 0; i < 8; i++) { P.px(7 + Math.floor(i / 2), 11 - i, "#8a6235"); P.px(8 + Math.floor(i / 2), 11 - i, "#6a4825"); } P.rect(10, 2, 2, 2, "#5a5a5a"); },
   button(P, c) { P.rect(5, 6, 6, 4, c[0]); P.rect(5, 9, 6, 1, c[1]); P.rect(5, 6, 6, 1, "rgba(255,255,255,.35)"); },
   fence(P, c) { for (const x of [2, 12]) { P.rect(x, 2, 3, 13, c[0]); P.rect(x + 2, 2, 1, 13, c[1]); } P.rect(5, 4, 7, 2, c[0]); P.rect(5, 9, 7, 2, c[0]); P.rect(5, 5, 7, 1, c[1]); P.rect(5, 10, 7, 1, c[1]); },
+  cart(P, c) {
+    const k = c && c[0];
+    if (k === "chest") { P.rect(4, 1, 8, 7, "#9a6a35"); P.rect(4, 4, 8, 1, "#5a3a1a"); P.rect(7, 3, 2, 3, "#c8c8c8"); }
+    if (k === "hopper") { P.rect(3, 2, 10, 3, "#4a4a4e"); P.rect(5, 5, 6, 3, "#3a3a3e"); }
+    if (k === "furnace") { P.rect(4, 1, 8, 7, "#7a7a7a"); P.rect(6, 4, 4, 3, "#2a2a2a"); P.rect(7, 5, 2, 1, "#ff9a2a"); }
+    if (k === "tnt") { P.rect(4, 1, 8, 7, "#c83a2a"); P.rect(4, 3, 8, 2, "#e8e8e8"); }
+    P.rect(1, 7, 14, 6, "#8a8a8a"); P.rect(2, 8, 12, 4, "#5a5a5a"); P.rect(1, 7, 14, 1, "#c8c8c8"); P.rect(3, 13, 3, 2, "#3a3a3a"); P.rect(10, 13, 3, 2, "#3a3a3a");
+  },
   hopper(P) { P.rect(1, 2, 14, 4, "#4a4a4e"); P.rect(1, 2, 14, 1, "#6a6a70"); P.rect(3, 3, 10, 2, "#1e1e22"); P.rect(4, 6, 8, 4, "#424246"); P.rect(6, 10, 4, 4, "#3a3a3e"); },
   piston(P, c) { P.rect(2, 2, 12, 4, c && c[0] ? c[0] : "#b98d55"); P.rect(2, 6, 12, 8, "#7a7a7a"); P.rect(2, 6, 12, 1, "#5a5a5a"); P.rect(6, 4, 4, 2, "#d8d8d8"); P.rect(3, 9, 10, 1, "#6a6a6a"); },
   hook(P) { P.rect(6, 1, 4, 9, "#b98d55"); P.rect(7, 10, 2, 3, "#8a8a8a"); P.rect(5, 12, 6, 2, "#c8c8c8"); P.rect(5, 10, 1, 3, "#c8c8c8"); P.rect(10, 10, 1, 3, "#c8c8c8"); },
