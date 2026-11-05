@@ -301,6 +301,23 @@ export const UI = {
       const shell = isShellBox();
       left = `<div class="inv-card"><h3>${shell ? "Shell Box" : "Chest"}</h3><div class="grid9">${slots("box", 0, 27)}</div><p class="help">${shell ? "A Shell Box keeps everything inside when you break it and carry it. Shell Boxes can't go inside other Shell Boxes." : "Things in a chest stay saved. Breaking the chest drops everything inside."}</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
+    } else if (panelKind === "machine") {
+      const [mx, my, mz] = panelCtx.split(",").map(Number), id = G.world.id(mx, my, mz), box = G.world.containers.get(panelCtx);
+      const n = box ? box.slots.length : 0, crafter = id === B.CRAFTER;
+      const title = { [B.HOPPER]: "Hopper", [B.DROPPER]: "Dropper", [B.DISPENSER]: "Dispenser", [B.CRAFTER]: "Crafter" }[id] || "Machine";
+      const help = {
+        [B.HOPPER]: "Moves 1 item every 0.4 s into whatever its spout points at, and pulls items from the container above it (or picks up items dropped on top). A signal locks it.",
+        [B.DROPPER]: "Each time it gets a signal, it drops 1 random item out of its face, or puts it into a container in front.",
+        [B.DISPENSER]: "Each time it gets a signal, it uses 1 random item: shoots arrows, places or scoops water and lava, lights Blast Blocks, uses bone meal, spawn eggs, shears, and more. Other items get dropped.",
+        [B.CRAFTER]: "Fill the grid with a recipe's ingredients (any slots). Each signal crafts one result out of its face. Click an empty slot to lock it (hoppers won't fill locked slots)."
+      }[id] || "";
+      let grid = "";
+      if (n === 5) grid = `<div class="grid9" style="grid-template-columns:repeat(5,48px)">${slots("box", 0, 5)}</div>`;
+      else grid = `<div class="grid9" style="grid-template-columns:repeat(3,48px)">${range("box", 0, 9).map(r => crafter && box.locked && box.locked[+r.slice(4)] && !getSlot(r) ? `<div class="slot locked" data-ref="${r}" title="Locked (click to unlock)" style="background:#5a3a3a"><span class="ghost" style="color:#e8b0a0">✖</span></div>` : slotHTML(r)).join("")}</div>`;
+      let result = "";
+      if (crafter) { const r = G.rs.matchRecipe(box.slots); result = `<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">➜</span><div class="slot" title="${r ? escapeAttr(itemDef(r.out[0]).name) : "No recipe yet"}" style="cursor:default">${r ? stackInner({ id: r.out[0], n: r.out[1] }) : ""}</div></div>`; }
+      left = `<div class="inv-card"><h3>${title}</h3><div style="display:flex;gap:16px;align-items:center;justify-content:center;margin:6px 0 10px">${grid}${result}</div><p class="help">${help}</p></div>`;
+      p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (panelKind === "furnace") {
       const f = G.world.containers.get(panelCtx);
       const prog = f ? f.prog / SMELT_TIME : 0, burn = f && f.burnMax ? f.burn / f.burnMax : 0;
@@ -355,6 +372,8 @@ export const UI = {
       Sound.click(); this.renderPanel(true); this.hud(); return;
     }
     if (ref === "trash") { cursor = null; Sound.click(); this.renderPanel(true); return; }
+    const lockBox = panelKind === "machine" && ref.startsWith("box:") && !cursor && !getSlot(ref) ? G.world.containers.get(panelCtx) : null;
+    if (lockBox && lockBox.locked) { const i = +ref.slice(4); lockBox.locked[i] = !lockBox.locked[i]; Sound.click(); this.renderPanel(true); return; }
     if (e.shiftKey && !right) { quickMove(ref); }
     else {
       const s = getSlot(ref), max = cursor ? maxStack(cursor.id) : 0;
@@ -457,6 +476,7 @@ function accepts(ref, s) {
   if (ref.startsWith("box:") && s.id === B.SHELL_BOX && isShellBox()) return false;
   if ((ref.startsWith("box:") || ref.startsWith("void:")) && itemDef(s.id).quest) return false;   // story items stay with you
   if (panelKind === "beacon" && ref === "box:0") return G.beaconPay.includes(s.id);
+  if (panelKind === "machine" && ref.startsWith("box:")) { const c = G.world.containers.get(panelCtx); if (c && c.locked && c.locked[+ref.slice(4)]) return false; }
   if (ref === "fur:0") return SMELT[s.id] !== undefined;
   if (ref === "fur:1") return FUEL[s.id] !== undefined;
   if (ref === "fur:2") return false;
@@ -475,13 +495,14 @@ function quickMove(ref) {
   if (kind === "inv") {
     if (panelKind === "beacon") targets = G.beaconPay.includes(s.id) ? ["box:0"] : [];
     else if (panelKind === "chest") { targets = range("box", 0, 27); if (s.id === B.SHELL_BOX && isShellBox()) targets = []; }
+    else if (panelKind === "machine") { const c = G.world.containers.get(panelCtx); targets = c ? range("box", 0, c.slots.length) : []; }
     else if (panelKind === "voidchest") targets = range("void", 0, 27);
     else if (panelKind === "furnace") targets = SMELT[s.id] !== undefined ? ["fur:0"] : FUEL[s.id] !== undefined ? ["fur:1"] : [];
     else if (n >= 36) targets = [...range("inv", 9, 36), ...range("inv", 0, 9)];
     else if (itemDef(s.id).armor && panelKind === "inventory" && !G.inv.slots[36 + itemDef(s.id).armor.slot]) targets = ["inv:" + (36 + itemDef(s.id).armor.slot)];
     else targets = n < 9 ? range("inv", 9, 36) : range("inv", 0, 9);
   } else targets = [...range("inv", 0, 9), ...range("inv", 9, 36)];
-  if (!targets.length) { bad(panelKind === "chest" ? "box:0" : "fur:0"); return; }
+  if (!targets.length) { bad(panelKind === "chest" || panelKind === "machine" ? "box:0" : "fur:0"); return; }
   const max = maxStack(s.id);
   for (const t of targets) { const d = getSlot(t); if (d && d.id === s.id && d.n < max) { const k = Math.min(s.n, max - d.n); d.n += k; s.n -= k; if (!s.n) break; } }
   for (const t of targets) { if (!s.n) break; if (!getSlot(t) && accepts(t, s)) { setSlot(t, { ...s }); s.n = 0; } }

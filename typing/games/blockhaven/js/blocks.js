@@ -45,7 +45,9 @@ export const B = {
   NOTE_BLOCK: 182, TARGET: 183, DAYLIGHT: 184,
   // part B: movers and sensors
   PISTON: 185, STICKY_PISTON: 186, PISTON_HEAD: 187, MOVING: 188, GLOOP_BLOCK: 189, HONEY_BLOCK: 190, OBSERVER: 191,
-  TRIPWIRE_HOOK: 192, TRIPWIRE: 193, TRAPPED_CHEST: 194, HUSH_SENSOR: 195, TUNED_SENSOR: 196, BELL: 197
+  TRIPWIRE_HOOK: 192, TRIPWIRE: 193, TRAPPED_CHEST: 194, HUSH_SENSOR: 195, TUNED_SENSOR: 196, BELL: 197,
+  // part C: item machines
+  HOPPER: 198, DROPPER: 199, DISPENSER: 200, CRAFTER: 201
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -296,6 +298,12 @@ block(B.TRAPPED_CHEST, "Trapped Chest", { hardness: 2.5, tool: "axe", interact: 
 block(B.HUSH_SENSOR, "Hush Sensor", { shape: "model", render: "cutout", hardness: 1.5, tool: "hoe", light: 1, tex: ["hush_sensor_top", "hush_sensor_side", "hush_sensor_side"], category: LOST, iconBox: 8 / 16 });
 block(B.TUNED_SENSOR, "Tuned Hush Sensor", { shape: "model", render: "cutout", hardness: 1.5, tool: "hoe", light: 1, tex: ["tuned_sensor_top", "hush_sensor_side", "hush_sensor_side"], category: MECH, iconBox: 8 / 16 });
 block(B.BELL, "Bell", { shape: "model", render: "cutout", hardness: 5, tool: "pick", interact: "bell", tex: "bell", category: "Village", icon: "bell" });
+// part C. Hoppers point down or to a side (meta bits 0-2, same 6-way numbers as pistons) + HOPPER_LOCKED.
+// Droppers, dispensers, and crafters face 6 ways (bits 0-2) + TRIGGERED (and CRAFTING for the crafter's flash).
+block(B.HOPPER, "Hopper", { shape: "model", render: "cutout", hardness: 3, tool: "pick", tier: 1, interact: "hopper", tex: "hopper_outside", category: MECH, icon: "hopper" });
+block(B.DROPPER, "Dropper", { hardness: 3.5, tool: "pick", tier: 1, interact: "dropper", tex: ["furnace_top", "furnace_side", "furnace_top"], front: "dropper_front", front6: true, category: MECH });
+block(B.DISPENSER, "Dispenser", { hardness: 3.5, tool: "pick", tier: 1, interact: "dispenser", tex: ["furnace_top", "furnace_side", "furnace_top"], front: "dispenser_front", front6: true, category: MECH });
+block(B.CRAFTER, "Crafter", { hardness: 1.5, tool: "pick", tier: 1, interact: "crafter", tex: ["crafter_top", "crafter_side", "crafter_bottom"], front: "crafter_front", front6: true, category: MECH });
 block(B.DAYLIGHT, "Daylight Sensor", { shape: "model", render: "cutout", hardness: 0.2, tool: "axe", interact: "daylight", tex: ["daylight_top", "daylight_side", "daylight_side"], category: MECH, iconBox: 6 / 16 });
 
 export const BEACON_BASE = [B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
@@ -321,6 +329,8 @@ for (const d of Object.values(defs)) {
 // Spark Ore and Spark Lamp: bit 0 = lit. Note Block: bits 0-4 pitch (0-24), NOTE_ON.
 // Part B: pistons EXTENDED, heads STICKY_HEAD, observers OBS_ON; tripwire hooks bits 0-1 support side + ATTACHED + HOOK_ON; strings ATTACHED + HOOK_ON + DISARMED;
 // trapped chest OPENED; Hush Sensors bits 0-1 phase (0 waiting, 1 active, 2 resting), bits 2-5 power, bits 6-7 facing (tuned); bells bits 0-1 facing + BELL_POWERED.
+export const HOPPER_LOCKED = 8, TRIGGERED = 8, CRAFTING = 16;
+export const isMachine = id => id === B.HOPPER || id === B.DROPPER || id === B.DISPENSER || id === B.CRAFTER;
 export const EXTENDED = 8, STICKY_HEAD = 8, OBS_ON = 8, ATTACHED = 4, HOOK_ON = 8, DISARMED = 16, OPENED = 16, BELL_POWERED = 4;
 export const isPiston = id => id === B.PISTON || id === B.STICKY_PISTON;
 export const isHush = id => id === B.HUSH_SENSOR || id === B.TUNED_SENSOR;
@@ -625,6 +635,11 @@ export const RECIPES = [
   { out: [B.TRIPWIRE_HOOK, 2], ins: [[I.IRON_INGOT, 1], [I.STICK, 1], ["planks", 1]], table: true },
   { out: [B.TRAPPED_CHEST, 1], ins: [[B.CHEST, 1], [B.TRIPWIRE_HOOK, 1]] },
   { out: [B.TUNED_SENSOR, 1], ins: [[B.HUSH_SENSOR, 1], [I.LUMEN_SHARD, 3]], table: true },
+  { out: [B.HOPPER, 1], ins: [[I.IRON_INGOT, 5], [B.CHEST, 1]], table: true },
+  { out: [B.DROPPER, 1], ins: [[B.COBBLE, 7], [I.SPARKDUST, 1]], table: true },
+  { out: [B.DISPENSER, 1], ins: [[B.DROPPER, 1], [I.BOW, 1]], table: true },
+  { out: [B.DISPENSER, 1], ins: [[B.COBBLE, 7], [I.SPARKDUST, 1], [I.BOW, 1]], table: true },
+  { out: [B.CRAFTER, 1], ins: [[I.IRON_INGOT, 5], [B.TABLE, 1], [B.DROPPER, 1], [I.SPARKDUST, 2]], table: true },
   // upgrade Skyshard gear to Duskmetal (the best tier)
   ...["PICK", "AXE", "SHOVEL", "SWORD", "HOE", "HELMET", "CHEST", "LEGS", "BOOTS"].map(k => ({ out: [I["DUSK_" + k], 1], ins: [[I["SKY_" + k], 1], [I.DUSK_INGOT, 1]], table: true, upgrade: true })),
   ...["LEATHER", "GOLD", "IRON", "SKY"].flatMap(k => {
@@ -674,7 +689,8 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "repeater_top", "repeater_top_on", "comparator_top", "comparator_top_on", "slab_side", "lamp_off", "lamp_on", "iron_door_bottom", "iron_door_top",
   "trap_oak", "trap_birch", "trap_crimson", "trap_warped", "trap_iron", "note_block", "target_top", "target_side", "daylight_top", "daylight_inv_top", "daylight_side",
   "piston_side", "piston_top", "piston_top_sticky", "piston_bottom", "piston_inner", "gloop_block", "honey_block", "observer_front", "observer_back", "observer_back_on", "observer_side", "observer_top",
-  "hook", "tripwire", "trapped_front", "trapped_side", "hush_sensor_top", "hush_sensor_top_on", "hush_sensor_side", "tuned_sensor_top", "tendril", "tendril_on", "bell", "bell_post"];
+  "hook", "tripwire", "trapped_front", "trapped_side", "hush_sensor_top", "hush_sensor_top_on", "hush_sensor_side", "tuned_sensor_top", "tendril", "tendril_on", "bell", "bell_post",
+  "hopper_outside", "hopper_top", "hopper_inside", "dropper_front", "dispenser_front", "crafter_front", "crafter_front_on", "crafter_top", "crafter_side", "crafter_bottom"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -682,6 +698,7 @@ TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
 // texture tile for each face: dir 0 = top, 1 = side, 2 = bottom
 export function faceTile(v, dir, front) {
   const d = blockDef(v), t = d.tex;
+  if (front && idOf(v) === B.CRAFTER && (metaOf(v) & CRAFTING)) return TILE.crafter_front_on;
   if (front && d.front) return TILE[idOf(v) === B.FURNACE && (metaOf(v) & LIT) ? "furnace_front_lit" : (idOf(v) === B.BEE_NEST || idOf(v) === B.BEEHIVE) && honeyOf(v) >= HONEY_MAX ? d.front + "_honey" : d.front];
   if (idOf(v) === B.BERRY_BUSH) return TILE["berry" + (metaOf(v) & 3)];
   if (idOf(v) === B.RESPAWN_ANCHOR && dir === 0 && (metaOf(v) & 7)) return TILE.anchor_top_lit;
@@ -1102,8 +1119,19 @@ Object.assign(PAINT, {
   tuned_sensor_top(P) { PAINT.hush_sensor_top(P); for (const [x, y] of [[2, 2], [12, 2], [2, 12], [12, 12]]) P.rect(x, y, 2, 2, "#c8a8f0"); },
   tendril(P) { P.fill(["#1d5a60", "#2a6a70"]); },
   tendril_on(P) { P.fill(["#5af0e0", "#8af8f0"]); },
+  hopper(P) { P.rect(1, 2, 14, 4, "#4a4a4e"); P.rect(1, 2, 14, 1, "#6a6a70"); P.rect(3, 3, 10, 2, "#1e1e22"); P.rect(4, 6, 8, 4, "#424246"); P.rect(6, 10, 4, 4, "#3a3a3e"); },
   bell(P) { P.fill(["#f0c020", "#e0b018", "#f8d040"]); P.rect(0, 0, 16, 1, "#fff2a0"); P.rect(0, 15, 16, 1, "#a87a10"); P.rect(3, 4, 2, 6, "#fff2a0"); },
-  bell_post(P) { PAINT.stone(P); P.rect(0, 0, 16, 2, "#5a5a5a"); }
+  bell_post(P) { PAINT.stone(P); P.rect(0, 0, 16, 2, "#5a5a5a"); },
+  hopper_outside(P) { P.fill(["#4a4a4e", "#424246", "#505054"]); P.rect(0, 0, 16, 1, "#6a6a70"); P.rect(0, 15, 16, 1, "#2a2a2e"); for (const x of [2, 13]) P.rect(x, 2, 1, 12, "#5a5a60"); },
+  hopper_top(P) { P.fill(["#4a4a4e"]); P.rect(2, 2, 12, 12, "#1e1e22"); P.rect(4, 4, 8, 8, "#2a2a2e"); P.rect(0, 0, 16, 1, "#6a6a70"); },
+  hopper_inside(P) { P.fill(["#2a2a2e", "#26262a"]); },
+  dropper_front(P) { PAINT.furnace_side(P); P.rect(4, 4, 8, 8, "#3a3a3a"); P.rect(5, 5, 6, 6, "#1a1a1a"); },
+  dispenser_front(P) { PAINT.furnace_side(P); P.rect(4, 4, 8, 8, "#3a3a3a"); P.rect(5, 5, 6, 6, "#1a1a1a"); P.rect(7, 3, 2, 10, "#8a6235"); P.rect(3, 7, 10, 1, "#e8e8e8"); },
+  crafter_side(P) { P.fill(["#6a6a6a", "#646464", "#707070"]); P.rect(0, 0, 16, 2, "#9a9a9a"); P.rect(0, 14, 16, 2, "#3a3a3a"); P.rect(3, 5, 10, 6, "#b98d55"); P.rect(4, 6, 8, 4, "#8a6235"); },
+  crafter_bottom(P) { P.fill(["#5a5a5a", "#545454"]); },
+  crafter_top(P) { P.fill(["#9a9a9a"]); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) P.rect(1 + i * 5, 1 + j * 5, 4, 4, "#b98d55"); },
+  crafter_front(P) { PAINT.crafter_side(P); P.rect(3, 4, 4, 3, "#1a1a1a"); P.rect(9, 4, 4, 3, "#1a1a1a"); P.rect(4, 5, 2, 1, "#5a1608"); P.rect(10, 5, 2, 1, "#5a1608"); P.rect(5, 10, 6, 2, "#2a2a2a"); },
+  crafter_front_on(P) { PAINT.crafter_front(P); P.rect(4, 5, 2, 1, "#ff5a2a"); P.rect(10, 5, 2, 1, "#ff5a2a"); P.rect(3, 4, 4, 1, "#ff8a4a"); P.rect(9, 4, 4, 1, "#ff8a4a"); }
 });
 for (let k = 0; k < 6; k++) {
   const c = DUST_COLS[k], hi = DUST_COLS[Math.min(5, k + 1)];

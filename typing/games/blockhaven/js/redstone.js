@@ -3,7 +3,9 @@
 // Every change is handled from a queue with a hard budget per game tick, so clocks and feedback loops can never freeze the game.
 import { B, I, BLOCKS, OPAQUE, idOf, metaOf, make, isDoor, isTrapdoor, isGate, isButton, isPlate, isFence,
   DOT, UNLIT, AXIS_X, ON, LOCKED, SUBTRACT, CMP_ON, INVERT, POWERED, NOTE_ON, OPEN, TOP, EYE_IN, honeyOf, itemDef, ANCHOR_MAX,
-  EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED, HOOK_ON, DISARMED, OPENED, BELL_POWERED, isPiston, isHush, SOLID } from "./blocks.js";
+  EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED, HOOK_ON, DISARMED, OPENED, BELL_POWERED, isPiston, isHush, SOLID,
+  HOPPER_LOCKED, TRIGGERED, CRAFTING, isMachine, RECIPES, TAGS, SMELT, FUEL, HONEY_MAX } from "./blocks.js";
+import { maxStack, newStack } from "./inventory.js";
 import { DIR, PF, oppPF, conductor, dustConn, dustPoints, supportOf } from "./shapes.js";
 import { CHUNK } from "./blocks.js";
 
@@ -18,7 +20,7 @@ const key = (x, y, z) => x + "," + y + "," + z;
 // blocks that do something when their neighbors change (everything else is skipped quickly)
 const REACTS = id => id === B.SPARK_DUST || id === B.SPARK_TORCH || id === B.REPEATER || id === B.COMPARATOR || id === B.SPARK_LAMP || id === B.TNT || id === B.NOTE_BLOCK ||
   id === B.LEVER || isButton(id) || isPlate(id) || isDoor(id) || isTrapdoor(id) || isGate(id) ||
-  isPiston(id) || id === B.PISTON_HEAD || id === B.TRIPWIRE_HOOK || id === B.TRIPWIRE || id === B.BELL;
+  isPiston(id) || id === B.PISTON_HEAD || id === B.TRIPWIRE_HOOK || id === B.TRIPWIRE || id === B.BELL || isMachine(id);
 // Note block instruments (Java 1.20.1) and their octave shift from the harp
 const INSTRUMENT = id => {
   if ([B.SAND, B.GRAVEL].includes(id)) return "snare";
@@ -51,11 +53,13 @@ export function initRedstone(ctx) {
   function attach(w, data) {
     data = data || {};
     const st = w.rs = { tick: data.tick || 0, acc: 0, seq: 0, sched: new Map(), queue: [], head: 0, queued: new Set(), cmp: new Map(data.cmp || []), seen: new Map(), poll: new Set(), hist: new Map(), burnt: new Map(), used: 0, looks: 0, overload: false, ver: 0, netVer: new Map(),
-      moves: new Map(), pulse: new Map(), hush: new Set(), hushPend: new Map(), hushFreq: new Map(), openChest: null };
+      moves: new Map(), pulse: new Map(), hush: new Set(), hushPend: new Map(), hushFreq: new Map(), openChest: null,
+      hoppers: new Set(), hcd: new Map(), uiDirty: false };
     for (const [x, y, z, kind, dt] of data.sched || []) schedule(st, x, y, z, Math.max(1, dt), kind);
     // find comparators, sensors, and plates the player has placed (they're all in the change list)
     for (const [ck, m] of w.mods) {
       const [cx, cz] = ck.split(",").map(Number);
+      for (const [i, v] of m) if (idOf(v) === B.HOPPER) st.hoppers.add(key(cx * CHUNK + (i % CHUNK), Math.floor(i / (CHUNK * CHUNK)), cz * CHUNK + Math.floor(i / CHUNK) % CHUNK));
       for (const [i, v] of m) if (isHush(idOf(v))) st.hush.add(key(cx * CHUNK + (i % CHUNK), Math.floor(i / (CHUNK * CHUNK)), cz * CHUNK + Math.floor(i / CHUNK) % CHUNK));
       for (const [i, v] of m) if (POLLED(idOf(v))) st.poll.add(key(cx * CHUNK + (i % CHUNK), Math.floor(i / (CHUNK * CHUNK)), cz * CHUNK + Math.floor(i / CHUNK) % CHUNK));
     }
@@ -64,6 +68,7 @@ export function initRedstone(ctx) {
       if (POLLED(idOf(old)) && idOf(old) !== idOf(v)) { st.poll.delete(key(x, y, z)); st.cmp.delete(key(x, y, z)); }
       if (POLLED(idOf(v))) st.poll.add(key(x, y, z));
       if (isHush(idOf(v))) st.hush.add(key(x, y, z));
+      if (idOf(v) === B.HOPPER) st.hoppers.add(key(x, y, z));
       if (idOf(old) === B.TRIPWIRE && idOf(v) !== B.TRIPWIRE && (metaOf(old) & ATTACHED) && !(metaOf(old) & DISARMED)) stringCut(x, y, z);
       if (idOf(old) !== idOf(v) || !isHush(idOf(v))) watchers(x, y, z);   // observers see every change (a sensor's own timer doesn't count)
       if (!mute) changed(x, y, z);
@@ -180,7 +185,8 @@ export function initRedstone(ctx) {
   function readable(x, y, z) {
     const w = W(), v = w.get(x, y, z), id = idOf(v), m = metaOf(v);
     if (isHush(id)) return S().hushFreq.get(key(x, y, z)) || 0;
-    if (id === B.CHEST || id === B.TRAPPED_CHEST || id === B.FURNACE || id === B.SHELL_BOX) {
+    if (id === B.CRAFTER) { const box = W().containers.get(key(x, y, z)); return box ? box.slots.filter((s2, i) => s2 || (box.locked && box.locked[i])).length : 0; }
+    if (id === B.CHEST || id === B.TRAPPED_CHEST || id === B.FURNACE || id === B.SHELL_BOX || id === B.HOPPER || id === B.DROPPER || id === B.DISPENSER) {
       const box = w.containers.get(key(x, y, z));
       if (!box || !box.slots) return 0;
       let sum = 0, any = false;
@@ -209,6 +215,8 @@ export function initRedstone(ctx) {
     S().used++;
     const sup = supportOf(v);
     if (sup && !supports(v, w.get(x + sup[0], y + sup[1], z + sup[2]))) { ctx.breakBlock(x, y, z, true); return; }
+    if (id === B.HOPPER) return hopperCheck(x, y, z, v);
+    if (id === B.DROPPER || id === B.DISPENSER || id === B.CRAFTER) return machineCheck(x, y, z, v);
     if (isPiston(id)) return pistonCheck(x, y, z, v);
     if (id === B.PISTON_HEAD) return headCheck(x, y, z, v);
     if (id === B.TRIPWIRE_HOOK) return hookCheck(x, y, z, v);
@@ -273,6 +281,8 @@ export function initRedstone(ctx) {
         if (ny === null || !w.isLoaded(nx, nz)) continue;
         add(nx, ny, nz); const n = net.get(key(nx, ny, nz)); if (n) c.links.push(n);
       }
+      // wire one step up that comes down onto this one (over glass or another see-through block) feeds it too
+      if (!conductor(w.id(c.x, c.y + 1, c.z))) for (const [dx, dz] of DIR) if (w.id(c.x + dx, c.y + 1, c.z + dz) === B.SPARK_DUST && !conductor(w.id(c.x + dx, c.y, c.z + dz))) add(c.x + dx, c.y + 1, c.z + dz);
     }
     st.used += list.length;
     // strength = the best of what feeds each wire directly, or a linked wire's strength minus 1
@@ -309,15 +319,17 @@ export function initRedstone(ctx) {
     const s = supportOf(v), sx = x + s[0], sy = y + s[1], sz = z + s[2];
     const want = !(conductor(W().id(sx, sy, sz)) && blockPower(sx, sy, sz) > 0), lit = !(metaOf(v) & UNLIT);
     if (want === lit) return;
-    // a torch flipped more than 8 times in 3 seconds burns out for a while (Java's rule)
-    const h = (st.hist.get(k) || []).filter(t => t > st.tick - 60);
-    h.push(st.tick); st.hist.set(k, h);
-    if (h.length > 8) {
-      st.burnt.set(k, st.tick + 160); st.hist.delete(k);
-      setState(x, y, z, make(B.SPARK_TORCH, metaOf(v) | UNLIT));
-      ctx.puff(x + 0.5, y + 0.8, z + 0.5, "ash"); ctx.Sound.fizz(dist(x, y, z));
-      schedule(st, x, y, z, 161, "torch");
-      return;
+    // Java's rule: a torch that has turned OFF 8 times within 3 seconds burns out (and relights about 8 seconds later)
+    if (!want) {
+      const h = (st.hist.get(k) || []).filter(t => t > st.tick - 60);
+      h.push(st.tick); st.hist.set(k, h);
+      if (h.length >= 8) {
+        st.burnt.set(k, st.tick + 160); st.hist.delete(k);
+        setState(x, y, z, make(B.SPARK_TORCH, metaOf(v) | UNLIT));
+        ctx.puff(x + 0.5, y + 0.8, z + 0.5, "ash"); ctx.Sound.fizz(dist(x, y, z));
+        schedule(st, x, y, z, 161, "torch");
+        return;
+      }
     }
     setState(x, y, z, make(B.SPARK_TORCH, want ? metaOf(v) & ~UNLIT : metaOf(v) | UNLIT));
   }
@@ -378,7 +390,7 @@ export function initRedstone(ctx) {
 
   // ---------- Part B: pistons (Java rules: push up to 12 blocks, sticky blocks drag their neighbors, 2 game ticks to move) ----------
   const PUSH_LIMIT = 12;
-  const IMMOVABLE = new Set([B.OBSIDIAN, B.BEDROCK, B.PORTAL, B.END_PORTAL, B.GATEWAY, B.END_FRAME, B.CHEST, B.TRAPPED_CHEST, B.FURNACE, B.SHELL_BOX, B.VOID_CHEST, B.BEACON, B.RESPAWN_ANCHOR, B.PISTON_HEAD, B.MOVING]);
+  const IMMOVABLE = new Set([B.HOPPER, B.DROPPER, B.DISPENSER, B.CRAFTER, B.OBSIDIAN, B.BEDROCK, B.PORTAL, B.END_PORTAL, B.GATEWAY, B.END_FRAME, B.CHEST, B.TRAPPED_CHEST, B.FURNACE, B.SHELL_BOX, B.VOID_CHEST, B.BEACON, B.RESPAWN_ANCHOR, B.PISTON_HEAD, B.MOVING]);
   const SMASH = new Set([B.REPEATER, B.COMPARATOR, B.HUSH_SENSOR, B.TUNED_SENSOR, B.BELL, B.SKULL, B.BED, B.FIRE]);
   const STICKY = id => id === B.GLOOP_BLOCK || id === B.HONEY_BLOCK;
   const sticks = (a, b) => !((a === B.GLOOP_BLOCK && b === B.HONEY_BLOCK) || (a === B.HONEY_BLOCK && b === B.GLOOP_BLOCK));
@@ -611,6 +623,201 @@ export function initRedstone(ctx) {
     return false;
   }
 
+  // ---------- Part C: hoppers, droppers, dispensers, and the Crafter ----------
+  const BOX_SIZE = { [B.HOPPER]: 5, [B.DROPPER]: 9, [B.DISPENSER]: 9, [B.CRAFTER]: 9 };
+  const BOX_TYPE = { [B.HOPPER]: "hopper", [B.DROPPER]: "dropper", [B.DISPENSER]: "dispenser", [B.CRAFTER]: "crafter" };
+  const isContainerId = id => id === B.CHEST || id === B.TRAPPED_CHEST || id === B.SHELL_BOX || id === B.FURNACE || !!BOX_SIZE[id];
+  function boxAt(x, y, z, create) {
+    const w = W(), k = key(x, y, z), id = w.id(x, y, z);
+    let c = w.containers.get(k);
+    if (c || !create) return c || null;
+    if (BOX_SIZE[id]) c = { type: BOX_TYPE[id], slots: new Array(BOX_SIZE[id]).fill(null) };
+    else if (id === B.CHEST || id === B.TRAPPED_CHEST || id === B.SHELL_BOX) c = { type: "chest", slots: new Array(27).fill(null) };
+    else if (id === B.FURNACE) c = { type: "furnace", slots: [null, null, null], burn: 0, burnMax: 0, prog: 0 };
+    else return null;
+    if (id === B.CRAFTER) c.locked = new Array(9).fill(false);
+    w.containers.set(k, c);
+    return c;
+  }
+  // Which slots a machine may put into or take from. from = "top" when the machine is above, pointing down into it.
+  function access(x, y, z, from) {
+    const id = W().id(x, y, z);
+    if (!isContainerId(id) || !W().isLoaded(x, z)) return null;
+    const box = boxAt(x, y, z, true), all = box.slots.map((_, i) => i);
+    if (id === B.FURNACE) return { box, ins: from === "top" ? [0] : [1], outs: [2], accept: (i, s) => i === 0 ? SMELT[s.id] !== undefined : i === 1 ? FUEL[s.id] !== undefined : false };
+    if (id === B.CRAFTER) { box.locked = box.locked || new Array(9).fill(false); return { box, ins: all.filter(i => !box.locked[i]), outs: [], even: true, accept: () => true }; }
+    return { box, ins: all, outs: all, accept: (i, s) => !(id === B.SHELL_BOX && s.id === B.SHELL_BOX) && !(itemDef(s.id) || {}).quest };
+  }
+  const sameKind = (a, b) => a.id === b.id && maxStack(a.id) > 1;
+  // Put ONE item into a container (Java order: the first slot that can take it; the Crafter fills its emptiest slot). Returns the slot, or -1.
+  function insertOne(acc, one) {
+    const sl = acc.box.slots;
+    let best = -1;
+    for (const i of acc.ins) {
+      const s = sl[i], ok = s ? sameKind(s, one) && s.n < maxStack(s.id) : acc.accept(i, one);
+      if (!ok) continue;
+      if (!acc.even) { best = i; break; }
+      if (best < 0 || (s ? s.n : 0) < (sl[best] ? sl[best].n : 0)) best = i;
+    }
+    if (best < 0) return -1;
+    if (sl[best]) sl[best].n++; else sl[best] = { ...one, n: 1 };
+    return best;
+  }
+  const isEmptyBox = box => box.slots.every(s => !s);
+  function useOne(box, i) { const s = box.slots[i]; s.n--; if (s.n <= 0) box.slots[i] = null; }
+  // ----- hoppers: 1 item every 8 game ticks: push into what it points at, then pull from above (a container, or items lying there) -----
+  function hopperTick(x, y, z) {
+    const st = S(), w = W(), k = key(x, y, z), v = w.get(x, y, z), m = metaOf(v);
+    if (idOf(v) !== B.HOPPER) { st.hoppers.delete(k); return; }
+    if ((m & HOPPER_LOCKED) || (st.hcd.get(k) || 0) > st.tick) return;
+    const me = access(x, y, z, "side");
+    if (!me) return;
+    let moved = false;
+    const f = PF[m & 7], tx = x + f[0], ty = y + f[1], tz = z + f[2], target = access(tx, ty, tz, (m & 7) === 1 ? "top" : "side");
+    if (target) for (let i = 0; i < me.box.slots.length && !moved; i++) {
+      const s = me.box.slots[i];
+      if (!s) continue;
+      const wasEmpty = isEmptyBox(target.box);
+      if (insertOne(target, { ...s, n: 1 }) >= 0) {
+        useOne(me.box, i); moved = true;
+        if (w.id(tx, ty, tz) === B.HOPPER && wasEmpty) st.hcd.set(key(tx, ty, tz), Math.max(st.hcd.get(key(tx, ty, tz)) || 0, st.tick + 8));   // a hopper that just got its first item waits (this is what makes item sorters work)
+      }
+    }
+    const src = access(x, y + 1, z, "side");
+    if (src) { for (const i of src.outs) { const s = src.box.slots[i]; if (s && insertOne(me, { ...s, n: 1 }) >= 0) { useOne(src.box, i); moved = true; break; } } }
+    else if (!OPAQUE[w.id(x, y + 1, z)]) {
+      for (const d of [...G.drops]) {
+        if (d.x < x || d.x > x + 1 || d.z < z || d.z > z + 1 || d.y < y + 0.5 || d.y > y + 2) continue;
+        let n = d.n;
+        while (n > 0 && insertOne(me, d.stack ? { ...d.stack, n: 1 } : newStack(d.id, 1)) >= 0) n--;
+        if (n !== d.n) { moved = true; d.n = n; if (!n) ctx.dropGone(d); }
+      }
+    }
+    if (moved) { st.hcd.set(k, st.tick + 8); if (G.panelKind === "machine" || G.panelKind === "chest" || G.panelKind === "furnace") st.uiDirty = true; }
+  }
+  // ----- droppers and dispensers: on a new signal, 4 game ticks later, drop (or use) one random item -----
+  function machineCheck(x, y, z, v) {
+    const id = idOf(v), m = metaOf(v);
+    const p = isPowered(x, y, z) || (id !== B.CRAFTER && powerAt(x, y + 1, z, false) > 0);   // droppers and dispensers have Java's "powered from above" quirk too
+    if (p && !(m & TRIGGERED)) { setState(x, y, z, make(id, m | TRIGGERED)); schedule(S(), x, y, z, 4, id === B.CRAFTER ? "craft" : "dispense"); }
+    else if (!p && (m & TRIGGERED)) setState(x, y, z, make(id, m & ~TRIGGERED));
+  }
+  function hopperCheck(x, y, z, v) {
+    const m = metaOf(v), p = isPowered(x, y, z);
+    if (p !== !!(m & HOPPER_LOCKED)) setState(x, y, z, make(B.HOPPER, p ? m | HOPPER_LOCKED : m & ~HOPPER_LOCKED));
+  }
+  function frontOf(x, y, z, fi) { const f = PF[fi]; return { f, fx: x + f[0], fy: y + f[1], fz: z + f[2], cx: x + 0.5 + f[0] * 0.7, cy: y + 0.5 + f[1] * 0.7 - (f[1] ? 0 : 0.15), cz: z + 0.5 + f[2] * 0.7 }; }
+  function shootOut(id, n, stack, F) {
+    const vel = { x: F.f[0] * 3 + (Math.random() - 0.5) * 0.5, y: F.f[1] * 3 + (F.f[1] ? 0 : 1) + Math.random() * 0.3, z: F.f[2] * 3 + (Math.random() - 0.5) * 0.5 };
+    ctx.spawnDrop(id, n, F.cx, F.cy, F.cz, stack, vel);
+  }
+  function dispenseFire(x, y, z) {
+    const w = W(), v = w.get(x, y, z), id = idOf(v);
+    if (id !== B.DROPPER && id !== B.DISPENSER) return;
+    const box = boxAt(x, y, z, true), full = box.slots.map((s, i) => s ? i : -1).filter(i => i >= 0), F = frontOf(x, y, z, metaOf(v) & 7);
+    if (!full.length) { ctx.Sound.switchClick(false, dist(x, y, z)); return; }   // empty: just a click
+    const i = full[Math.floor(Math.random() * full.length)], s = box.slots[i];
+    if (id === B.DROPPER) {
+      const target = access(F.fx, F.fy, F.fz, F.f[1] === -1 ? "top" : "side");
+      if (target) { if (insertOne(target, { ...s, n: 1 }) >= 0) useOne(box, i); else { ctx.Sound.switchClick(false, dist(x, y, z)); return; } }
+      else { shootOut(s.id, 1, maxStack(s.id) === 1 ? s : null, F); useOne(box, i); }
+    } else if (!dispenseUse(x, y, z, box, i, F)) { shootOut(s.id, 1, maxStack(s.id) === 1 ? s : null, F); useOne(box, i); }
+    ctx.Sound.switchClick(true, dist(x, y, z)); vibrate(x + 0.5, y + 0.5, z + 0.5, 11);
+    G.adv && G.adv(id === B.DROPPER ? "dropper" : "dispenser");
+  }
+  // A dispenser USES some items (Java 1.20.1 behaviors for the items Blockhaven has). Returns false to just drop the item.
+  function dispenseUse(x, y, z, box, i, F) {
+    const w = W(), s = box.slots[i], fv = w.get(F.fx, F.fy, F.fz), fid = idOf(fv), air = !fid || !!(BLOCKS[fid] && BLOCKS[fid].replaceable);
+    const d = itemDef(s.id), [dx, dy, dz] = F.f;
+    const wear = () => { s.dur = (s.dur ?? (d.tool ? d.tool.dur : 1)) - 1; if (s.dur <= 0) box.slots[i] = null; };
+    const swap = to => {   // this one item turns into another (an empty bucket into a full one…)
+      if (s.n === 1) { box.slots[i] = newStack(to, 1); return; }
+      useOne(box, i);
+      if (insertOne(access(x, y, z, "side"), newStack(to, 1)) < 0) shootOut(to, 1, null, F);
+    };
+    const inFront = e => e.pos.x + e.w / 2 > F.fx && e.pos.x - e.w / 2 < F.fx + 1 && e.pos.z + e.w / 2 > F.fz && e.pos.z - e.w / 2 < F.fz + 1 && e.pos.y < F.fy + 1 && e.pos.y + e.h > F.fy;
+    switch (s.id) {
+      case I.ARROW: ctx.ents.addProjectile("arrow", F.cx, F.cy, F.cz, dx * 22 + (Math.random() - 0.5), dy * 22 + (dy ? 0 : 1.2), dz * 22 + (Math.random() - 0.5), { dmg: 3, dispensed: true }); useOne(box, i); ctx.Sound.mob("bow", dist(x, y, z)); return true;
+      case I.EGG: ctx.ents.addProjectile("egg", F.cx, F.cy, F.cz, dx * 14, dy * 14 + 2, dz * 14, { dispensed: true }); useOne(box, i); return true;
+      case I.WATER_BUCKET: case I.LAVA_BUCKET:
+        if (!air) return false;
+        ctx.placeLiquid(s.id === I.WATER_BUCKET ? B.WATER : B.LAVA, F.fx, F.fy, F.fz); box.slots[i] = newStack(I.BUCKET, 1); return true;
+      case I.BUCKET: if (fid !== B.WATER && fid !== B.LAVA) return false; w.set(F.fx, F.fy, F.fz, B.AIR); swap(fid === B.WATER ? I.WATER_BUCKET : I.LAVA_BUCKET); return true;
+      case I.FLINT_STEEL:
+        if (fid === B.TNT) { w.set(F.fx, F.fy, F.fz, B.AIR); ctx.primeTNT(F.fx, F.fy, F.fz); wear(); }
+        else if (air && ctx.ignite(F.fx, F.fy, F.fz)) wear();
+        return true;   // nothing to light: it just clicks
+      case B.TNT: if (!air) return false; ctx.primeTNT(F.fx, F.fy, F.fz); useOne(box, i); return true;
+      case I.BONE_MEAL: if (ctx.boneMeal(F.fx, F.fy, F.fz)) useOne(box, i); return true;
+      case I.SHEARS: {
+        const sheep = ctx.ents.list.find(e => e.sp === "sheep" && !e.dead && !e.sheared && !e.baby && inFront(e));
+        if (sheep) { sheep.sheared = true; ctx.spawnDrop(B.WOOL, 1 + Math.floor(Math.random() * 3), sheep.pos.x, sheep.pos.y + 1, sheep.pos.z); wear(); }
+        return true;
+      }
+      case I.SADDLE: {
+        const mount = ctx.ents.list.find(e => e.def && e.def.mount && e.tame && !e.baby && !e.saddled && !e.dead && inFront(e));
+        if (!mount) return false; mount.saddled = true; useOne(box, i); return true;
+      }
+      case I.BOAT: {
+        if (fid !== B.WATER) return false;
+        let t = F.fy; while (w.id(F.fx, t + 1, F.fz) === B.WATER) t++;
+        ctx.ents.add("boat", F.fx + 0.5, t + 1 - 0.12, F.fz + 0.5, {}); useOne(box, i); return true;
+      }
+      case I.BOTTLE:
+        if ((fid === B.BEE_NEST || fid === B.BEEHIVE) && honeyOf(fv) >= HONEY_MAX) { w.set(F.fx, F.fy, F.fz, make(fid, metaOf(fv) & 3)); swap(I.HONEY_BOTTLE); return true; }
+        return false;
+      case B.SHELL_BOX:
+        if (!air) return false;
+        w.set(F.fx, F.fy, F.fz, B.SHELL_BOX); w.containers.set(key(F.fx, F.fy, F.fz), { type: "chest", slots: s.contents ? s.contents.map(c => c && { ...c }) : new Array(27).fill(null) }); useOne(box, i); return true;
+      case I.BLIGHT_SKULL:
+        if (!air || !SOLID[w.id(F.fx, F.fy - 1, F.fz)]) return false;
+        w.set(F.fx, F.fy, F.fz, B.SKULL); useOne(box, i); ctx.checkBlightSummon(F.fx, F.fy, F.fz); return true;
+    }
+    if (d && d.kind === "spawn" && air) {
+      const sp = d.species === "villager" ? ["farmer", "fletcher", "shepherd", "cleric", "smith"][Math.floor(Math.random() * 5)] : d.species;
+      ctx.ents.add(sp, F.fx + 0.5, F.fy, F.fz + 0.5, sp === "golem" ? { home: [F.fx + 0.5, F.fy, F.fz + 0.5] } : {}); useOne(box, i); return true;
+    }
+    if (d && d.kind === "armor") {   // puts armor straight onto a player standing in front
+      const p = G.player, a = p.aabb();
+      if (a[0] < F.fx + 1 && a[3] > F.fx && a[2] < F.fz + 1 && a[5] > F.fz && a[1] < F.fy + 1 && a[4] > F.fy && !G.inv.slots[36 + d.armor.slot]) { G.inv.slots[36 + d.armor.slot] = { ...s, n: 1 }; useOne(box, i); G.hudDirty = true; return true; }
+    }
+    return false;
+  }
+  // ----- the Crafter: a 3×3 grid; each new signal crafts one result (Blockhaven recipes are shapeless: the right items in any slots) -----
+  function matchRecipe(slots) {
+    const have = new Map();
+    let total = 0;
+    for (const s of slots) if (s) { have.set(s.id, (have.get(s.id) || 0) + 1); total++; }
+    if (!total) return null;
+    for (const r of RECIPES) {
+      if (r.upgrade || r.ins.reduce((a, [, n]) => a + n, 0) !== total) continue;
+      const left = new Map(have);
+      let ok = true;
+      for (const [want, n] of [...r.ins].sort((a, b) => (typeof a[0] === "string") - (typeof b[0] === "string"))) {
+        if (typeof want === "number") { if ((left.get(want) || 0) < n) { ok = false; break; } left.set(want, left.get(want) - n); continue; }
+        let need = n;
+        for (const tid of TAGS[want]) { const k = Math.min(need, left.get(tid) || 0); if (k) { left.set(tid, left.get(tid) - k); need -= k; } }
+        if (need) { ok = false; break; }
+      }
+      if (ok && [...left.values()].every(c => c === 0)) return r;
+    }
+    return null;
+  }
+  function craftFire(x, y, z) {
+    const w = W(), v = w.get(x, y, z);
+    if (idOf(v) !== B.CRAFTER) return;
+    const box = boxAt(x, y, z, true), r = matchRecipe(box.slots), F = frontOf(x, y, z, metaOf(v) & 7);
+    if (!r) { ctx.Sound.switchClick(false, dist(x, y, z)); return; }
+    for (let i = 0; i < 9; i++) if (box.slots[i]) useOne(box, i);
+    const [oid, on] = r.out, target = access(F.fx, F.fy, F.fz, F.f[1] === -1 ? "top" : "side");
+    let left = on;
+    if (target) while (left > 0 && insertOne(target, newStack(oid, 1)) >= 0) left--;
+    if (left > 0) shootOut(oid, left, null, F);
+    setState(x, y, z, make(B.CRAFTER, metaOf(v) | CRAFTING)); schedule(S(), x, y, z, 6, "craftoff");
+    ctx.Sound.craft(); vibrate(x + 0.5, y + 0.5, z + 0.5, 11);
+    G.adv && G.adv("crafter", oid);
+  }
+
   // ---------- note blocks ----------
   function dist(x, y, z) { const p = G.player.pos; return Math.hypot(p.x - x - 0.5, p.y - y, p.z - z - 0.5); }
   function playNote(x, y, z) {
@@ -650,6 +857,9 @@ export function initRedstone(ctx) {
         setState(e.x, e.y, e.z, make(id, m & ~ON)); ctx.Sound.switchClick(false, dist(e.x, e.y, e.z)); break;
       case "target": if (id === B.TARGET && (m & 15)) setState(e.x, e.y, e.z, make(id, 0)); break;
       case "piston": pistonFire(e.x, e.y, e.z); break;
+      case "dispense": dispenseFire(e.x, e.y, e.z); break;
+      case "craft": craftFire(e.x, e.y, e.z); break;
+      case "craftoff": if (id === B.CRAFTER && (m & CRAFTING)) setState(e.x, e.y, e.z, make(id, m & ~CRAFTING)); break;
       case "pfin": { const rec = S().moves.get(key(e.x, e.y, e.z)); if (rec) finishMove(rec); break; }
       // Java observer: one timer. Off: turn on and check again in 2 ticks. On: turn off.
       case "obs": if (id === B.OBSERVER) { if (m & OBS_ON) setState(e.x, e.y, e.z, make(id, m & ~OBS_ON)); else { setState(e.x, e.y, e.z, make(id, m | OBS_ON)); schedule(S(), e.x, e.y, e.z, 2, "obs"); } } break;
@@ -679,6 +889,7 @@ export function initRedstone(ctx) {
       else if (id === B.DAYLIGHT && st.tick % 20 === 0) daylightCheck(x, y, z);
     }
     trappedTick();
+    for (const k of st.hoppers) { const [hx, hy, hz] = k.split(",").map(Number); if (w.isLoaded(hx, hz)) hopperTick(hx, hy, hz); }
     // creatures walking near Hush Sensors make vibrations (checked twice a second)
     if (st.hush.size && st.tick % 10 === 0) for (const e of ctx.ents.list) if (!e.dead && e.onGround !== false && Math.hypot(e.vel ? e.vel.x : 0, e.vel ? e.vel.z : 0) > 0.6) vibrate(e.pos.x, e.pos.y + 0.1, e.pos.z, 1);
     // stepping on Spark Ore makes it glow
@@ -768,7 +979,7 @@ export function initRedstone(ctx) {
   }
 
   // ---------- right-clicking Sparkworks blocks. Returns true if the click was used up. ----------
-  const KINDS = new Set(["sparkore", "dust", "lever", "button", "trapdoor", "irontrapdoor", "gate", "repeater", "comparator", "irondoor", "note", "daylight", "bell"]);
+  const KINDS = new Set(["sparkore", "dust", "lever", "button", "trapdoor", "irontrapdoor", "gate", "repeater", "comparator", "irondoor", "note", "daylight", "bell", "hopper", "dropper", "dispenser", "crafter"]);
   function interact(hit, kind) {
     const w = W(), { x, y, z } = hit, v = w.get(x, y, z), id = idOf(v), m = metaOf(v);
     switch (kind) {
@@ -792,6 +1003,7 @@ export function initRedstone(ctx) {
       case "comparator": setState(x, y, z, make(id, m ^ SUBTRACT)); ctx.Sound.click(); enqueue(x, y, z); return true;
       case "daylight": setState(x, y, z, make(id, m ^ INVERT)); daylightCheck(x, y, z); ctx.Sound.click(); return true;
       case "bell": ring(x, y, z); return true;
+      case "hopper": case "dropper": case "dispenser": case "crafter": boxAt(x, y, z, true); ctx.openMachine(key(x, y, z)); return true;
       case "note": setState(x, y, z, make(id, (m & ~31) | (((m & 31) + 1) % 25))); playNote(x, y, z); return true;
     }
     return false;
@@ -835,11 +1047,13 @@ export function initRedstone(ctx) {
     if (id === B.BELL) return SOLID[idOf(below)] ? make2(look) : "A Bell needs a solid block under it.";
     if (id === B.TUNED_SENSOR) return make2(((look + 2) % 4) << 6);
     if (id === B.HUSH_SENSOR) return make2(0);
+    if (id === B.HOPPER) return make2(ny === 0 && side >= 0 ? 2 + side : 1);   // points into the block you clicked (or down)
+    if (id === B.DROPPER || id === B.DISPENSER || id === B.CRAFTER) return make2(oppPF(ctx.lookFacing3()));   // the front faces you
     if (id === B.SPARK_LAMP || id === B.NOTE_BLOCK || id === B.TARGET || id === B.DAYLIGHT || id === B.SPARK_BLOCK || isFence(id) || id === B.SPARK_ORE || id === B.DARK_SPARK_ORE) return make2(0);
     return null;
   }
   // after placing: let the engine settle the new block (a torch next to power, a lamp already powered…)
   function placed(x, y, z) { if (S()) { changed(x, y, z); process(); } }
 
-  return { attach, toJSON, tick, interact, placeValue, placed, projectileHit, touchOre, kinds: KINDS, settle, vibrate, beforeBreak, chunkLoaded, reaction, isPowered: (x, y, z) => isPowered(x, y, z), powerAt: (x, y, z) => powerAt(x, y, z, false), blockPower, strongPower, comparatorOutput: (x, y, z) => (S().cmp.get(key(x, y, z)) || 0), process, state: S };
+  return { attach, toJSON, tick, interact, placeValue, placed, projectileHit, touchOre, kinds: KINDS, settle, vibrate, beforeBreak, chunkLoaded, reaction, matchRecipe, boxAt, readable, isPowered: (x, y, z) => isPowered(x, y, z), powerAt: (x, y, z) => powerAt(x, y, z, false), blockPower, strongPower, comparatorOutput: (x, y, z) => (S().cmp.get(key(x, y, z)) || 0), process, state: S };
 }

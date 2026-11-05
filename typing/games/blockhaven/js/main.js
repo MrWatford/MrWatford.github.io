@@ -2049,10 +2049,11 @@ function useBoneMeal(hit, slot) {
     used = true;
     for (let i = 0; i < 12; i++) { const x = hit.x + Math.floor(Math.random() * 7) - 3, z = hit.z + Math.floor(Math.random() * 7) - 3; if (w.id(x, hit.y, z) === B.GRASS && !w.id(x, hit.y + 1, z)) w.set(x, hit.y + 1, z, Math.random() < 0.8 ? B.TALL_GRASS : Math.random() < 0.5 ? B.FLOWER_RED : B.FLOWER_YELLOW); }
   }
-  if (!used) return;
+  if (!used) return false;
   puff(hit.x + 0.5, hit.y + 1, hit.z + 0.5, "xp");
-  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
+  if (slot && !G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
   G.hudDirty = true; heldId = -1;
+  return true;
 }
 const DIR = [[0, 1], [1, 0], [0, -1], [-1, 0]];   // facing 0..3 → (dx, dz)
 function placeBed(hit, slot) {
@@ -2196,7 +2197,9 @@ function fillLoot(box, hit) {
 // ---------- dropped items ----------
 function spawnDrop(id, n, x, y, z, stack = null, vel = null) {
   if (!id || n <= 0) return;
-  if (G.drops.length >= 90) removeDrop(G.drops.shift());
+  // a matching stack lying right here soaks it up (so dropper and dispenser machines don't fill the world with separate items)
+  if (maxStack(id) > 1) { const m = G.drops.find(d => d.id === id && !d.stack && d.n + n <= maxStack(id) && Math.abs(d.x - x) < 0.8 && Math.abs(d.y - y) < 0.8 && Math.abs(d.z - z) < 0.8); if (m) { m.n += n; return; } }
+  if (G.drops.length >= 150) removeDrop(G.drops.shift());
   const mesh = itemMesh(id, 0.25);
   mesh.position.set(x, y, z); scene.add(mesh);
   G.drops.push({ id, n, stack: stack && itemDef(id).stack === 1 ? { ...stack } : null, x, y, z, vx: vel ? vel.x : (Math.random() - 0.5) * 2, vy: vel ? vel.y : 3, vz: vel ? vel.z : (Math.random() - 0.5) * 2, age: 0, pickDelay: vel ? 1.2 : 0.3, mesh });
@@ -2694,7 +2697,7 @@ window.addEventListener("pagehide", () => { if (G.world && G.state !== "loading"
 let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, stepSoundT = 0;
 function loop(now) {
   requestAnimationFrame(loop);
-  const dt = Math.min(0.1, (now - last) / 1000); last = now;   // capped so a background tab doesn't cause a huge jump
+  const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = Math.max(last, now);   // capped so a background tab doesn't cause a huge jump (and never runs backwards)
   G.clock = (G.clock || 0) + dt;
   fpsT += dt; fpsN++; if (fpsT > 0.5) { fps = Math.round(fpsN / fpsT); fpsT = 0; fpsN = 0; }
   if (!G.world || G.state === "loading" || G.state === "title") { if (G.state === "title") renderer.clear(); return; }
@@ -2763,6 +2766,7 @@ function loop(now) {
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
+    else if (G.world.rs && G.world.rs.uiDirty && (G.panelT = (G.panelT || 0) + dt) > 0.2) { G.panelT = 0; G.world.rs.uiDirty = false; UI.refreshPanel(); }
   }
 
   // camera
@@ -2850,7 +2854,9 @@ G.forsaken = F;
 const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giveXp, placeSafely, hurt, lookDir, keys, victory: showVictory, devTools: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.search.includes("dev") });
 G.lost = L;
 // The Sparkworks signal engine (js/redstone.js)
-const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, lookFacing3, noteFx, moveFx, pushEntities });
+const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, lookFacing3, noteFx, moveFx, pushEntities,
+  spawnDrop, dropGone: d => { removeDrop(d); const i = G.drops.indexOf(d); if (i >= 0) G.drops.splice(i, 1); }, placeLiquid, ignite, checkBlightSummon,
+  boneMeal: (x, y, z) => useBoneMeal({ x, y, z, v: G.world.get(x, y, z), ny: 1 }, null), openMachine: k => { Sound.door(true); openPanel("machine", k); } });
 G.rs = R;
 Adv.init(G, SPECIES, { xp: n => spawnOrbs(n, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z), give: (id, n) => { if (G.inv.add(id, n)) G.dropItem(id, n); } });
 UI.init(G);

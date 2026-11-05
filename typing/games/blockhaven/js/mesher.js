@@ -23,6 +23,7 @@ const FACES = [
   { d: [0, 0, -1], c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], tex: 1, shade: 0.88 }
 ];
 const FACING_DIR = [4, 0, 5, 1];   // meta facing 0..3 → which face is the "front"
+const PF_FACE = [2, 3, 4, 0, 5, 1];   // 6-way facing (up, down, +z, +x, −z, −x) → face
 // For each face corner: offsets (in the layer in front of the face) of side1, side2, corner neighbors
 for (const f of FACES) {
   const axes = [0, 1, 2].filter(a => f.d[a] === 0);
@@ -121,7 +122,7 @@ export function buildChunk(world, chunk, fancy) {
     if (!id) continue;
     const def = blockDef(v);
     if (def.shape === "cube") {
-      const frontDir = def.front ? FACING_DIR[metaOf(v) & 3] : -1;
+      const frontDir = def.front6 ? PF_FACE[metaOf(v) & 7] : def.front ? FACING_DIR[metaOf(v) & 3] : -1;
       for (let f = 0; f < 6; f++) {
         const F = FACES[f];
         if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;

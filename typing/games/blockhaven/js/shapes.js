@@ -135,6 +135,11 @@ export function model(v, get) {
     if (id === B.TUNED_SENSOR) parts.push(p([6, 8, 6, 10, 13, 10], TILE.lumen_crystal));
     return { T: floorT(id === B.TUNED_SENSOR ? (m >> 6) & 3 : 0), parts };
   }
+  if (id === B.HOPPER) {
+    const f = m & 7, out = TILE.hopper_outside, parts = [p([0, 10, 0, 16, 16, 16], [TILE.hopper_top, out, out]), p([4, 4, 4, 12, 10, 12], out)];
+    if (f === 1) return { T: floorT(0), parts: [...parts, p([6, 0, 6, 10, 4, 10], out)] };
+    return { T: floorT(0), parts, arms: [{ T: floorT(f - 2), parts: [p([6, 4, 12, 10, 8, 16], out)] }] };
+  }
   if (id === B.BELL) return { T: floorT(m & 3), parts: [p([0, 0, 7, 2, 16, 9], TILE.bell_post), p([14, 0, 7, 16, 16, 9], TILE.bell_post), p([2, 13, 7, 14, 15, 9], TILE.bell_post), p([5, 5, 5, 11, 13, 11], TILE.bell), p([4, 4, 4, 12, 6, 12], TILE.bell)] };
   if (isGate(id)) {
     const parts = [p([0, 5, 7, 2, 16, 9], tex), p([14, 5, 7, 16, 16, 9], tex)];
