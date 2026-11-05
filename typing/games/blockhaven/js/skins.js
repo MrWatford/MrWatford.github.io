@@ -103,6 +103,12 @@ export const SKINS = [
       arm: (P, f) => { P.fill(pal(c.shirt)); if (f === "top") return; if (f === "bottom") { P.fill(pal(c.skin)); return; } P.rect(0, 12, 16, 4, c.skin); P.rect(0, 11, 16, 1, shade(c.shirt, 0.8)); },
       leg: pantsLeg(c) }; })()
 ];
+// Unlocked by banishing Herobrine: a wardkeeper's blue robes and softly glowing white eyes (looks only, like every skin)
+SKINS.push((() => { const c = { skin: "#d8b090", hair: "#e8e8f0", eye: "#ffffff", shirt: "#2a4a8a", pants: "#1e3060", shoes: "#2a2a34" };
+  return { id: "wardkeeper", name: "Wardkeeper", desc: "Blue robes and glowing white eyes, earned by banishing Herobrine", locked: true, unlock: "Banish Herobrine in the Forsaken World to unlock", c,
+    head: standardHead(c, (P, f) => { if (f === "front") { P.rect(3, 7, 3, 2, "#ffffff"); P.rect(10, 7, 3, 2, "#ffffff"); P.rect(2, 6, 5, 1, "rgba(200,230,255,.5)"); P.rect(9, 6, 5, 1, "rgba(200,230,255,.5)"); } if (f === "top") P.rect(5, 5, 6, 6, "#8ad8ff"); }),
+    body: shirtBody(c, (P, f) => { if (f === "front") { P.rect(7, 0, 2, 16, "#8ad8ff"); P.rect(4, 5, 8, 2, "#8ad8ff"); } }),
+    arm: sleeveArm(c, 14), leg: (P, f) => { P.fill(pal(c.shirt)); if (f !== "top" && f !== "bottom") P.rect(0, 13, 16, 3, c.shoes); } }; })());
 export const skinById = id => SKINS.find(s => s.id === id) || SKINS[0];
 
 // ---------- models ----------

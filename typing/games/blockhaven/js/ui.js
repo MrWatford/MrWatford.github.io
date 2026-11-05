@@ -96,12 +96,15 @@ export const UI = {
     $("confirmNo").focus();
   },
 
+  openNote(title, text, first) { G.openNoteRaw({ title, text, first }); },
   // ---------- skin chooser ----------
   openSkins(from) {
     skinFrom = from; skinPick = G.settings.skin; Sound.click();
     const grid = $("skinGrid"); grid.innerHTML = "";
     for (const s of G.skins) {
-      const b = document.createElement("button"); b.className = "skin-card"; b.type = "button"; b.dataset.skin = s.id;
+      const locked = s.locked && !(G.settings.unlocked || []).includes(s.id);
+      const b = document.createElement("button"); b.className = "skin-card" + (locked ? " locked" : ""); b.type = "button"; b.dataset.skin = s.id;
+      if (locked) { b.disabled = true; b.title = s.unlock; }
       b.setAttribute("aria-pressed", s.id === skinPick);
       b.appendChild(G.skinThumb(s.id));
       const n = document.createElement("span"); n.textContent = s.name; b.appendChild(n);
@@ -131,6 +134,9 @@ export const UI = {
     $("sMute").checked = s.muted; $("sDist").value = s.renderDist; $("oDist").textContent = s.renderDist + " chunks";
     $("sQuality").value = s.quality; $("sFov").value = s.fov; $("oFov").textContent = s.fov + "°"; $("sMotion").checked = s.reducedMotion;
     $("sSwap").textContent = keyName(s.keySwap);
+    $("sFwAmb").value = s.fwAmbient; $("oFwAmb").textContent = Math.round(s.fwAmbient * 100) + "%";
+    $("sFwSud").value = s.fwSudden; $("oFwSud").textContent = Math.round(s.fwSudden * 100) + "%";
+    $("sFwFx").checked = s.fwEffects !== false; $("sFwShake").checked = s.fwShake !== false; $("sFwWords").checked = s.fwWords !== false; $("sLostCalm").checked = !!s.lostReduced;
   },
   bindSettings() {
     const upd = (k, v) => { G.settings[k] = v; G.applySettings(k); this.syncSettings(); };
@@ -141,6 +147,12 @@ export const UI = {
     $("sQuality").onchange = e => upd("quality", e.target.value);
     $("sFov").oninput = e => upd("fov", +e.target.value);
     $("sMotion").onchange = e => upd("reducedMotion", e.target.checked);
+    $("sFwAmb").oninput = e => upd("fwAmbient", +e.target.value);
+    $("sFwSud").oninput = e => upd("fwSudden", +e.target.value);
+    $("sFwFx").onchange = e => upd("fwEffects", e.target.checked);
+    $("sFwShake").onchange = e => upd("fwShake", e.target.checked);
+    $("sFwWords").onchange = e => upd("fwWords", e.target.checked);
+    $("sLostCalm").onchange = e => upd("lostReduced", e.target.checked);
     // pick the swap-hands key: click, then press a key (keys the game already uses aren't allowed)
     const TAKEN = ["KeyW", "KeyA", "KeyS", "KeyD", "KeyE", "KeyQ", "KeyC", "KeyR", "KeyF", "KeyL", "Space", "Escape", "ShiftLeft", "ShiftRight", "Tab", "F3", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
     $("sSwap").onclick = () => {
@@ -239,6 +251,25 @@ export const UI = {
         <p class="help">${e && JOBS[e.def.prof] ? `Sold-out trades come back while this villager works at their ${JOBS[e.def.prof]} (up to twice a day).` : "The Wanderer only stays for a few minutes!"} Shift-click Trade to trade as many times as you can.</p></div>`;
       p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
       p.querySelectorAll("[data-trade]").forEach(b => b.onclick = ev => G.trade(panelCtx, +b.dataset.trade, ev.shiftKey));
+    } else if (panelKind === "journal") {
+      // two adventures, one journal: a tab for each (it opens on the one you're in)
+      if (!G.journalTab) G.journalTab = ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
+      const lost = G.journalTab === "lost";
+      const tabs = `<span class="jtabs"><button class="chip-btn ${lost ? "" : "on"}" data-jtab="fw">Forsaken World</button><button class="chip-btn ${lost ? "on" : ""}" data-jtab="lost">Lost Civilization</button></span>`;
+      p.innerHTML = `<div class="inv-card fw-card"><h3>Journal ${tabs} <span class="note" style="color:#444">Press J or Esc to close</span></h3>${lost ? G.lost.journalHTML() : G.forsaken.journalHTML()}</div>`;
+      p.querySelectorAll("[data-jtab]").forEach(b => b.onclick = () => { Sound.click(); G.journalTab = b.dataset.jtab; this.renderPanel(); });
+      if (!lost) G.forsaken.drawMap($("fwMap"));
+      p.querySelectorAll("[data-note]").forEach(b => b.onclick = () => G.forsaken.readNote(b.dataset.note));
+      p.querySelectorAll("[data-lore]").forEach(b => b.onclick = () => G.lost.readLore(b.dataset.lore));
+      p.querySelectorAll("[data-fwt]").forEach(b => b.onclick = () => { Sound.click(); G.forsaken.testControl(b.dataset.fwt); this.renderPanel(); });
+      p.querySelectorAll("[data-lt]").forEach(b => b.onclick = async () => { Sound.click(); await G.lost.testControl(b.dataset.lt); if (G.panelKind === "journal") this.renderPanel(); });
+      return;
+    } else if (panelKind === "note") {
+      const n = panelCtx || {};
+      p.innerHTML = `<div class="inv-card note-card"><h3></h3><div class="note-text"></div><p class="help">${n.first ? "Added to your journal (J). " : ""}Press Esc or E to close.</p><button class="btn small" id="noteClose">Close</button></div>`;
+      p.querySelector("h3").textContent = n.title || ""; p.querySelector(".note-text").textContent = n.text || "";
+      $("noteClose").onclick = () => G.closePanel();
+      return;
     } else if (panelKind === "advancements") {
       p.innerHTML = `<div style="display:grid;gap:12px">${Adv.html(advCat)}</div>`;
       p.querySelectorAll("[data-advcat]").forEach(b => b.onclick = () => { advCat = b.dataset.advcat; Sound.click(); this.renderPanel(); });
@@ -368,6 +399,12 @@ export const UI = {
     if (s.id === I.TOTEM) line("Hold it in either hand. If a hit would make you faint, it breaks instead and saves you: 1 heart left, then Regeneration II, golden hearts, and Fire Resistance. Doesn't work against the void");
     if (s.id === B.VOID_CHEST) line("Opens your personal storage. Every Void Chest, in every dimension, holds the same items. Breaking it never spills them");
     const DIMS = { overworld: "the Surface", nether: "the Ember Depths", end: "the Hollow" };
+    if (d.quest) line("A story item for the Forsaken World. It stays in your pack: it can't be dropped or stored, and you keep it if you faint");
+    if (s.id === I.PALE_SHARD) line("Found in Ember Depths fortresses and on Blight Rattlers. 4 shards + Shinestone + 2 iron ingots make a Pale Lantern");
+    if (s.id === I.PALE_LANTERN) line("Right-click on the Surface to enter the Forsaken World, Herobrine's optional adventure. It's never used up");
+    if (s.id === I.WARD_LANTERN) line("Hold it in either hand and monsters won't form near you. (Ones already around can still attack.)");
+    if (s.id === B.WARD_CANDLE) line("In the Forsaken World, a lit candle makes a small safe ring (5 blocks) for about 2 minutes. Elsewhere it's just a light");
+    if (s.id === B.PALE_EFFIGY) line("A trophy from banishing Herobrine");
     if (s.id === I.CINDER_EYE) line("Throw it in the Ember Depths: it flies toward the Cinder Citadel. Place one in the Cinder Altar to wake Cindermaw");
     if (s.id === I.EMBER_HEART) line("Cindermaw's burning heart. Combine with a Duskmetal Helmet at a workbench for the Cinder Crown");
     if (s.id === I.CINDER_CROWN) line("Helmet (4 armor). While you wear it, fire and lava can't burn you");
@@ -418,6 +455,7 @@ function isShellBox() {
 function accepts(ref, s) {
   if (/^inv:3[6-9]$/.test(ref)) { const d = itemDef(s.id); return !!(d && d.armor && d.armor.slot === +ref.slice(4) - 36); }
   if (ref.startsWith("box:") && s.id === B.SHELL_BOX && isShellBox()) return false;
+  if ((ref.startsWith("box:") || ref.startsWith("void:")) && itemDef(s.id).quest) return false;   // story items stay with you
   if (panelKind === "beacon" && ref === "box:0") return G.beaconPay.includes(s.id);
   if (ref === "fur:0") return SMELT[s.id] !== undefined;
   if (ref === "fur:1") return FUEL[s.id] !== undefined;
@@ -426,7 +464,7 @@ function accepts(ref, s) {
 }
 function bad(ref) {
   Sound.error();
-  UI.toast(ref === "fur:0" ? "That can't be cooked in a furnace." : ref === "fur:1" ? "That won't burn. Try coal or wood." : ref.startsWith("box:") && isShellBox() ? "A Shell Box can't go inside another Shell Box." : "That can't go there.", "bad");
+  UI.toast(cursor && itemDef(cursor.id).quest && !ref.startsWith("inv:") ? "Story items like sigils stay in your pack, so they can't get lost." : ref === "fur:0" ? "That can't be cooked in a furnace." : ref === "fur:1" ? "That won't burn. Try coal or wood." : ref.startsWith("box:") && isShellBox() ? "A Shell Box can't go inside another Shell Box." : "That can't go there.", "bad");
 }
 // Shift-click: send a stack to the other side
 function quickMove(ref) {

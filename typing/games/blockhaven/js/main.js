@@ -3,7 +3,7 @@ import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
   buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX } from "./blocks.js";
 import { Entities, SPECIES, TRADES } from "./entities.js";
-import { Generator, NetherGen, EndGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
+import { Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
 import { Player, raycast, blockBoxes, REACH } from "./player.js";
@@ -11,6 +11,8 @@ import { Inventory, newStack, maxStack, OFF } from "./inventory.js";
 import { Sound } from "./audio.js";
 import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.js";
 import { Adv } from "./advancements.js";
+import { initForsaken, isQuestItem } from "./forsaken.js";
+import { initLost, LOST_DIMS } from "./lost.js";
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
@@ -36,10 +38,10 @@ scene.add(camera);
 const atlasTex = new THREE.CanvasTexture(buildAtlas());
 atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestFilter; atlasTex.generateMipmaps = false;
 
-const uniforms = { map: { value: atlasTex }, daylight: { value: 1 }, ambient: { value: 0.11 }, fogColor: { value: new THREE.Color(0x8fd0f5) }, fogNear: { value: 40 }, fogFar: { value: 64 }, alphaTest: { value: 0.5 }, opacity: { value: 1 } };
+const uniforms = { map: { value: atlasTex }, desat: { value: 0 }, daylight: { value: 1 }, ambient: { value: 0.11 }, fogColor: { value: new THREE.Color(0x8fd0f5) }, fogNear: { value: 40 }, fogFar: { value: 64 }, alphaTest: { value: 0.5 }, opacity: { value: 1 } };
 const VERT = `attribute vec3 lt; varying vec2 vUv; varying vec3 vLt; varying float vDist;
 void main() { vUv = uv; vLt = lt; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDist = length(mv.xyz); gl_Position = projectionMatrix * mv; }`;
-const FRAG = `uniform sampler2D map; uniform float daylight, ambient, fogNear, fogFar, alphaTest, opacity; uniform vec3 fogColor;
+const FRAG = `uniform sampler2D map; uniform float daylight, ambient, fogNear, fogFar, alphaTest, opacity, desat; uniform vec3 fogColor;
 varying vec2 vUv; varying vec3 vLt; varying float vDist;
 void main() {
   vec4 t = texture2D(map, vUv);
@@ -49,6 +51,7 @@ void main() {
   l = ambient + (1.0 - ambient) * pow(l, 1.5);
   vec3 tint = mix(vec3(1.0), vec3(1.0, 0.85, 0.62), clamp((b - s) * 1.5, 0.0, 1.0));
   vec3 col = t.rgb * l * vLt.z * tint;
+  col = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))), desat);
   col = mix(col, fogColor, smoothstep(fogNear, fogFar, vDist));
   gl_FragColor = vec4(col, t.a * opacity);
 }`;
@@ -218,8 +221,10 @@ const ents = new Entities(scene, {
   cloud: (x, y, z) => addCloud(x, y, z),
   crystalGone: i => { const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
   bossLeft: e => { (G.dimData.end || (G.dimData.end = {})).wyrmHp = e.hp; },
-  bossDefeated: e => e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
+  bossDefeated: e => L.bossDefeated(e) ? null : e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
   arena: () => arena(), cinderPylons: () => G.cinderPylons(),
+  heroHit: (e, n) => F.heroHit(e, n), warded: (x, z) => F.warded(x, z),
+  lantern: () => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === I.WARD_LANTERN),
   pylonGone: i => { const c = cinderData(); if (!c.pylonsGone.includes(i)) c.pylonsGone.push(i); const left = CITADEL_PYLONS.length - c.pylonsGone.length; UI.toast(left ? `Ember Pylon broken! ${left} left.` : "All the Ember Pylons are broken! Cindermaw's shield is gone.", "good"); },
   push: (vx, vy, vz) => { const p = G.player; if (G.creative || G.spectator) return; p.vel.x += vx; p.vel.y = Math.max(p.vel.y, vy); p.vel.z += vz; },
   time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m),
@@ -232,7 +237,7 @@ const ents = new Entities(scene, {
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
-const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
+const PUFF_COLORS = { poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], pale: [0.88, 0.94, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
 function puff(x, y, z, kind) {
   const c = PUFF_COLORS[kind] || [1, 1, 1], n = kind === "heart" ? 6 : 14;
   for (let i = 0; i < n; i++) { if (parts.length >= PMAX) parts.shift(); parts.push({ x: x + (Math.random() - 0.5) * 0.8, y: y + Math.random() * 0.6, z: z + (Math.random() - 0.5) * 0.8, vx: (Math.random() - 0.5) * 2, vy: kind === "heart" ? 1.5 : Math.random() * 2, vz: (Math.random() - 0.5) * 2, life: 0.6 + Math.random() * 0.4, c, floaty: true }); }
@@ -654,7 +659,7 @@ function chorusBlink() {
 }
 
 // ---------- portals between the Surface and the Ember Depths ----------
-const DIM_NAMES = { overworld: "the Surface", nether: "the Ember Depths", end: "the Hollow" };
+const DIM_NAMES = { overworld: "the Surface", nether: "the Ember Depths", end: "the Hollow", forsaken: "the Forsaken World", deep: "the Deep", expanse: "the Echo Expanse", sea: "the Drowned Citadel", jungle: "the Verdant Labyrinth", desert: "the Sunken Pyramid of Aurelis" };
 const dimWhere = d => (d === "overworld" ? "on " : "in ") + (DIM_NAMES[d] || d);
 // Light a portal inside an obsidian frame. (x, y, z) is an empty spot inside the frame.
 function lightPortal(x, y, z) {
@@ -926,11 +931,13 @@ function cinderDefeated(e) {
 }
 // A short victory scene: the camera circles the altar; press Space, Esc, or click to skip
 function startVictoryScene(first) {
-  const A = arena();
-  G.cutscene = { t: 0, dur: 9, x: A.x, y: A.y, z: A.z };
+  showVictory(first ? "Cindermaw has fallen!" : "Cindermaw is defeated again!",
+    first ? "The Ember Depths are quiet at last. Your rewards: the Cindermaw Egg on the altar, an Ember Heart (combine it with a Duskmetal Helmet at a workbench for the Cinder Crown), and lots of experience. Your world goes on: keep exploring and building!" : "Another Ember Heart is yours. Place a Cinder Eye in the altar whenever you want a rematch.", arena());
+}
+function showVictory(title, text, at) {
+  G.cutscene = { t: 0, dur: 9, x: at.x, y: at.y, z: at.z };
   const el = document.getElementById("victory");
-  el.querySelector("h2").textContent = first ? "Cindermaw has fallen!" : "Cindermaw is defeated again!";
-  el.querySelector("p").textContent = first ? "The Ember Depths are quiet at last. Your rewards: the Cindermaw Egg on the altar, an Ember Heart (combine it with a Duskmetal Helmet at a workbench for the Cinder Crown), and lots of experience. Your world goes on: keep exploring and building!" : "Another Ember Heart is yours. Place a Cinder Eye in the altar whenever you want a rematch.";
+  el.querySelector("h2").textContent = title; el.querySelector("p").textContent = text;
   el.hidden = false;
 }
 function endVictoryScene() { G.cutscene = null; document.getElementById("victory").hidden = true; }
@@ -1018,7 +1025,12 @@ function bindCompass(hit) {
 // Where a held compass points: { yaw, text } (yaw = null means it spins)
 function compassReading() {
   const s = [G.inv.slots[G.selected], G.inv.slots[OFF]].find(q => q && q.id === I.COMPASS);
-  if (!s) return null;
+  if (!s) {   // the Lost Civilization's map and compass use the same dial
+    const held = [G.inv.slots[G.selected], G.inv.slots[OFF]].map(q => q && q.id);
+    if (held.includes(I.ECHO_COMPASS)) return L.echoReading();
+    if (held.includes(I.SURVEY_MAP)) return L.surveyReading();
+    return null;
+  }
   const p = G.player;
   let t = null, text;
   if (s.lode) {
@@ -1237,12 +1249,15 @@ function clearWorldMeshes() {
 // ---------- dimensions: each has its own generator, block changes, containers, and creatures ----------
 function makeWorld(dim) {
   const data = G.dimData[dim] || (G.dimData[dim] = {});
-  const gen = dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : new Generator(G.meta.seed, G.meta.gen || 1);
+  const gen = dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
   if (dim === "nether") gen.citadel = chooseCitadel();   // where Cindermaw's citadel stands in this world
+  if (dim === "overworld") L.prepareOverworld(gen, data);   // the Keeper excavation, stamped into land nobody has visited yet
   const w = new World(gen);
   w.dim = dim;
   w.modsFromJSON(data.mods);
   for (const [k, c] of data.containers || []) w.containers.set(k, c);
+  if (dim === "forsaken") F.setupWorld(w, data);   // the map's chests start full on the first visit
+  if (LOST_DIMS.includes(dim)) L.setupWorld(w, data);
   for (const k of Object.keys(data.entities || {})) w.entityStore.set(k, data.entities[k]);
   for (const k of data.visited || []) w.visited.add(k);
   for (const k of data.crops || []) w.crops.add(k);
@@ -1286,6 +1301,13 @@ async function startWorld(save) {
   G.voidInv = Array.from({ length: 27 }, (_, i) => (save.voidInv && save.voidInv[i] && itemDef(save.voidInv[i].id) ? { ...save.voidInv[i] } : null));
   Adv.load(save.adv); G.story = save.story || {}; G.stats = save.stats || {};
   if (save.hardcore) { G.wset.difficulty = "hard"; G.wset.keepInv = false; }
+  if (G.dim === "forsaken") {   // the Forsaken World's map has to be downloaded first
+    try { UI.setLoading(0.05, "Finding the Forsaken World…"); await F.loadTemplate(); }
+    catch (e) { G.dim = "overworld"; if (save.player) save.player.pos = { ...(save.player.spawn || { x: 0, y: 70, z: 0 }) }; UI.toast("The Forsaken World couldn't load right now, so you woke up on the Surface.", "bad"); }
+  }
+  // the Lost Civilization's maps (the Surface needs the excavation site's map too)
+  try { UI.setLoading(0.08, "Unrolling the Keepers' maps…"); await L.ready(); }
+  catch (e) { if (LOST_DIMS.includes(G.dim)) { G.dim = "overworld"; if (save.player) save.player.pos = { ...(save.player.spawn || { x: 0, y: 70, z: 0 }) }; UI.toast("The Deep couldn't load right now, so you woke up on the Surface.", "bad"); } }
   G.world = makeWorld(G.dim); G.gen = G.world.gen;
   G.inv = new Inventory(); G.inv.load(save.inventory);
   G.time = save.time ?? 0.02; G.tips = save.tips || {};
@@ -1408,6 +1430,8 @@ function openPanel(kind, ctx) {
   if (kind === "inventory" && G.creative) tipDone("craft");
 }
 G.openAdvancements = () => openPanel("advancements");
+G.openNoteRaw = n => { if (G.state === "play" || G.state === "panel") openPanel("note", n); };
+G.closePanel = () => closePanel();
 function closePanel() {
   UI.closePanel(); G.panelKind = null;
   G.state = "play"; UI.show("none");
@@ -1418,7 +1442,7 @@ function closePanel() {
 window.addEventListener("keydown", e => {
   if (G.state === "panel") {
     const typing = document.activeElement && document.activeElement.tagName === "INPUT";
-    if (e.code === "KeyE" || e.code === "Escape" || (e.code === "KeyL" && G.panelKind === "advancements")) { if (typing && e.code !== "Escape") return; e.preventDefault(); closePanel(); return; }
+    if (e.code === "KeyE" || e.code === "Escape" || (e.code === "KeyL" && G.panelKind === "advancements") || (e.code === "KeyJ" && G.panelKind === "journal")) { if (typing && e.code !== "Escape") return; e.preventDefault(); closePanel(); return; }
     if (/^Digit[1-9]$/.test(e.code) && !typing) { if (UI.hotkey(+e.code.slice(5) - 1)) e.preventDefault(); }
     if (e.code === G.settings.keySwap && !typing) { if (UI.hotkey(OFF)) e.preventDefault(); }   // swap the slot you point at with the offhand
     return;
@@ -1435,6 +1459,7 @@ window.addEventListener("keydown", e => {
   if (/^Digit[1-9]$/.test(e.code)) selectSlot(+e.code.slice(5) - 1);
   else if (e.code === G.settings.keySwap) swapHands();
   else if (e.code === "KeyL") openPanel("advancements");
+  else if (e.code === "KeyJ") openPanel("journal");
   else if (e.code === "KeyE" && G.spectator) UI.toast("Spectators can look around but can't use items.");
   else if (e.code === "KeyE") openPanel("inventory");
   else if (e.code === "KeyQ") dropSelected(e.ctrlKey);
@@ -1556,7 +1581,7 @@ function updateMining(dt, hit) {
   if (crack.userData.stage !== stage) { setBoxUV(crackGeo, () => TILE["crack" + stage]); crack.userData.stage = stage; }
   if (m.prog >= 1) {
     breakBlock(hit.x, hit.y, hit.z, m.info.drops);
-    G.player.exhaust += 0.005;
+    G.player.exhaust += 0.005; F.noise(hit.x, hit.y, hit.z); L.blockChanged(hit.x, hit.y, hit.z, true);
     const t = heldTool();
     if (t && blockDef(hit.v).hardness > 0) wearTool(t.stack, 1);
     G.mining = null; crack.visible = false;
@@ -1579,6 +1604,7 @@ const water = (x, y, z) => G.world.id(x, y, z) === B.WATER;
 function breakBlock(x, y, z, drops, quiet) {
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
+  F.blockBroken(x, y, z, id); L.blockBroken(x, y, z, id);
   w.crops.delete(x + "," + y + "," + z);
   if (id === B.OBSIDIAN || id === B.PORTAL) setTimeout(() => breakPortal(x, y, z), 0);
   if (id === B.DOOR) {   // doors are two blocks tall: remove both halves
@@ -1604,6 +1630,7 @@ function breakBlock(x, y, z, drops, quiet) {
     if (id === B.TALL_GRASS) drop = r < 0.12 ? I.SEEDS : r < 0.14 ? I.CARROT : 0;
     if (id === B.GRAVEL && r < 0.1) drop = I.FLINT;
     if (drop === "shine") drop = [I.SHINE_DUST, 2 + Math.floor(Math.random() * 3)];
+    if (drop === "lumen") drop = [I.LUMEN_SHARD, 1 + Math.floor(Math.random() * 2)];
     if (drop === "goldnuggets") drop = [I.GOLD_NUGGET, 2 + Math.floor(Math.random() * 4)];
     if (drop === "wart") drop = [I.WART, (metaOf(v) & 7) >= 7 ? 2 + Math.floor(Math.random() * 3) : 1];
     if (drop === "chorus") drop = Math.random() < 0.6 ? I.CHORUS_FRUIT : 0;
@@ -1657,6 +1684,7 @@ function attack() {
   }
   G.attackCd = d && d.tool && d.tool.type === "sword" ? 0.45 : 0.6; G.swing = 0.01;
   if (!G.creative) G.player.exhaust += 0.1;
+  F.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z); L.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z, 12, "fighting");
   return true;
 }
 function releaseBow() {
@@ -1782,6 +1810,8 @@ function useWith(offhand) {
   }
   if (slot.id === I.VOID_PEARL) { throwItem("pearl"); return true; }
   if (slot.id === I.EYE) { throwEye(); return true; }
+  if (slot.id === I.PALE_LANTERN) { F.enter(); return true; }
+  if (slot.id === I.ECHO_SHARD) { if (L.throwShard()) take(); G.hudDirty = true; return true; }
   if (slot.id === I.CINDER_EYE && !(hit && idOf(hit.v) === B.CINDER_ALTAR)) { throwCinderEye(); return true; }
   if (slot.id === I.EGG) { throwItem("egg"); return true; }
   // food you can plant (carrots on farmland, berries on grass, even through tall grass) gets planted when you point at the right ground
@@ -1824,6 +1854,7 @@ function useWith(offhand) {
   if (slot.id === I.FLINT_STEEL) {
     if (hitId === B.TNT) { w.set(hit.x, hit.y, hit.z, B.AIR); primeTNT(hit.x, hit.y, hit.z); wearTool(slot, 1); G.adv("tnt"); return true; }
     const ax = hit.x + hit.nx, ay = hit.y + hit.ny, az = hit.z + hit.nz;
+    if (hitId === B.OBSIDIAN && G.dim === "forsaken") { UI.toast("Portals won't light in the Forsaken World. Use the Return Gate at the refuge.", "bad"); return true; }
     if (hitId === B.OBSIDIAN && !w.id(ax, ay, az) && lightPortal(ax, ay, az)) { wearTool(slot, 1); G.adv("portal"); return true; }
     if (ignite(ax, ay, az)) { wearTool(slot, 1); Sound.mob("fireshoot", 0); }
     return true;
@@ -1852,7 +1883,7 @@ function useWith(offhand) {
   if (id === B.SAPLING) w.crops.add(x + "," + y + "," + z);
   if (id === B.WATER && G.world.gen.isNether()) { puff(x + 0.5, y + 0.5, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); return true; }
   if (id === B.LAVA || id === B.WATER) { placeLiquid(id, x, y, z); take(); G.hudDirty = true; return true; }
-  if (id === B.TORCH && !OPAQUE[idOf(hit.v)]) { Sound.error(); return true; }
+  if ((id === B.TORCH || id === B.WARD_CANDLE) && !OPAQUE[idOf(hit.v)]) { Sound.error(); return true; }
   if (id === B.DOOR) {
     if (!SOLID[w.id(x, y - 1, z)] || (w.id(x, y + 1, z) && !BLOCKS[w.id(x, y + 1, z)].replaceable)) { UI.toast("A door needs two empty blocks of space on solid ground.", "bad"); Sound.error(); return true; }
     const f = (facingFromYaw() + 2) % 4;
@@ -1868,6 +1899,8 @@ function useWith(offhand) {
   take();
   Sound.place(MATERIAL(id)); G.swing = 0.01; G.hudDirty = true; heldId = -1;
   G.adv("place", id);
+  if (id === B.WARD_CANDLE) F.placeCandle(x, y, z);
+  L.blockChanged(x, y, z, false);
   tipDone("place");
   return true;
 }
@@ -1983,6 +2016,8 @@ function blocksPlayer(v, x, y, z) {
 }
 function interact(hit, kind) {
   const w = G.world, key = hit.x + "," + hit.y + "," + hit.z;
+  if (F.interact(hit, kind)) return;   // the Forsaken World's notes, wards, shrines, gate, and altar
+  if (L.interact(hit, kind)) return;   // the Lost Civilization's tablets, lifts, puzzles, sockets, and beacons
   if (kind === "door") {
     const meta = metaOf(hit.v), by = meta & TOP ? hit.y - 1 : hit.y;
     const open = !(meta & OPEN);
@@ -2010,6 +2045,7 @@ function interact(hit, kind) {
   if (kind === "chest") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
     if (metaOf(hit.v) & LOOT) { fillLoot(w.containers.get(key), hit); w.set(hit.x, hit.y, hit.z, make(B.CHEST, metaOf(hit.v) & 3)); G.adv("loot"); }
+    L.chestOpened(key);
     Sound.door(true); openPanel("chest", key); return;
   }
   if (kind === "anchor") { useAnchor(hit); return; }
@@ -2066,6 +2102,7 @@ function fillLoot(box, hit) {
     if (r() < 0.3) put(I.GOLD_CHEST, 1);
     if (r() < 0.25) put(I.SKYSHARD, 1 + Math.floor(r() * 2));
     if (r() < 0.12) put(I.DUSK_SCRAP, 1);
+    if (r() < 0.4) put(I.PALE_SHARD, 1 + Math.floor(r() * 2));   // shards for the Pale Lantern (the way into the Forsaken World)
     if (r() < 0.15) put(I.TOTEM, 1);
     for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
     UI.toast("You found a treasure chest!", "good"); return;
@@ -2100,6 +2137,7 @@ G.dropItem = (id, n, stack) => { const p = G.player; spawnDrop(id, n, p.pos.x, p
 function dropSelected(all) {
   const s = G.inv.slots[G.selected];
   if (!s) return;
+  if (isQuestItem(s.id)) { UI.toast(`You can't drop the ${itemDef(s.id).name}. It's too important!`, "bad"); return; }
   const n = all ? s.n : 1, dir = lookDir(), p = G.player;
   spawnDrop(s.id, n, p.pos.x + dir.x * 0.4, p.pos.y + p.eye - 0.3, p.pos.z + dir.z * 0.4, s, { x: dir.x * 5, y: dir.y * 5 + 2, z: dir.z * 5 });
   s.n -= n; if (s.n <= 0) G.inv.slots[G.selected] = null;
@@ -2249,8 +2287,11 @@ function die(why) {
   cinderOnFaint();
   G.eat = null; G.blocking = false; G.bowT = -1;
   const p = G.player;
-  if ((!G.wset.keepInv || G.meta.hardcore) && !G.creative) {   // drop everything where you fell
-    for (let i = 0; i < G.inv.slots.length; i++) { const s = G.inv.slots[i]; if (s) spawnDrop(s.id, s.n, p.pos.x, p.pos.y + 1, p.pos.z, s); G.inv.slots[i] = null; }
+  F.onFaint(); L.onFaint();
+  if ((!G.wset.keepInv || G.meta.hardcore) && !G.creative) {   // drop everything where you fell (story items always stay with you)
+    const dropped = [];
+    for (let i = 0; i < G.inv.slots.length; i++) { const s = G.inv.slots[i]; if (s && !isQuestItem(s.id)) { dropped.push(s); G.inv.slots[i] = null; } }
+    if (G.meta.hardcore || !F.satchel(dropped, p.pos)) for (const s of dropped) spawnDrop(s.id, s.n, p.pos.x, p.pos.y + 1, p.pos.z, s);
     if (G.xp) { spawnOrbs(Math.min(100, Math.floor(G.xp / 2)), p.pos.x, p.pos.y + 1, p.pos.z); G.xp = 0; }
   }
   G.effects = {}; G.elv = {}; G.absorb = 0;
@@ -2277,6 +2318,17 @@ G.respawn = async () => {
   }
   p.health = 20; p.hunger = 20; p.sat = 5; p.air = 10; p.exhaust = 0; p.flying = false;
   G.respawnGuard = 3;   // a few seconds where nothing can hurt you right after waking up
+  if (G.dim === "forsaken") {   // in the Forsaken World you wake at your last restored shrine (or the refuge)
+    const s = F.respawnSpot();
+    placeSafely(p, s.x, s.z); G.respawnGuard = 6; F.onRespawn();
+    UI.toast(`You woke up at ${s.name}. He won't come near for a little while.`, "");
+    G.state = "pause"; G.resume(); return;
+  }
+  const ls = L.respawnSpot();
+  if (ls) {   // in the Deep or the Expanse you wake at the last Keeper Beacon you lit (or where you came in)
+    Object.assign(p.pos, { x: ls.x, y: ls.y, z: ls.z }); p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; G.respawnGuard = 6;
+    UI.toast(`You woke up at ${ls.name}.`, ""); G.state = "pause"; G.resume(); return;
+  }
   if (p.anchor && await respawnAtAnchor(p)) { G.state = "pause"; G.resume(); return; }
   if (G.dim !== "overworld") {   // otherwise you wake up on the Surface
     G.state = "loading"; UI.show("loading");
@@ -2383,7 +2435,26 @@ const END_SKY = new THREE.Color(0x140a1e);
 function updateSky() {
   const nether = G.world && G.world.gen.isNether();
   const hollow = G.world && G.world.gen.isEnd && G.world.gen.isEnd();
-  sun.visible = moon.visible = !nether && !hollow;
+  const forsaken = G.dim === "forsaken" && F.template(), lsky = L.sky();
+  sun.visible = moon.visible = !nether && !hollow && !forsaken && !lsky;
+  uniforms.desat.value = 0;
+  if (lsky) {   // the Deep is dark (only lamps and crystals light it); the Expanse has a dim violet sky
+    const R = G.settings.renderDist * CHUNK;
+    uniforms.daylight.value = lsky.daylight; uniforms.ambient.value = lsky.ambient;
+    skyCol.setHex(lsky.sky); if (G.player.headInWater) skyCol.set(0x1d3f5a);
+    scene.background = skyCol; uniforms.fogColor.value.copy(skyCol); stars.visible = G.dim === "expanse"; if (stars.visible) { stars.material.opacity = 0.7; stars.position.copy(camera.position); }
+    G.fwFog = [R * lsky.fogNear, R * lsky.fogFar];
+    return lsky.daylight || 0.3;
+  }
+  if (forsaken) {   // a dim, grey, misty sky (lighter once Herobrine is banished)
+    const s = F.sky(), R = G.settings.renderDist * CHUNK;
+    uniforms.daylight.value = s.daylight; uniforms.ambient.value = s.ambient; uniforms.desat.value = s.desat;
+    skyCol.setHex(s.sky); if (G.player.headInWater) skyCol.set(0x1d3f5a);
+    scene.background = skyCol; uniforms.fogColor.value.copy(skyCol); stars.visible = false;
+    G.fwFog = [R * s.fogNear, R * s.fogFar];
+    return s.daylight;
+  }
+  G.fwFog = null;
   if (hollow) {
     uniforms.daylight.value = 0.55; uniforms.ambient.value = 0.22;
     skyCol.copy(END_SKY); scene.background = skyCol; uniforms.fogColor.value.copy(skyCol);
@@ -2423,6 +2494,7 @@ function applyView() {
   uniforms.fogFar.value = waterUniforms.fogFar.value = R - 2;
   uniforms.fogNear.value = waterUniforms.fogNear.value = R * 0.55;
   if (G.world && G.world.gen.isNether()) { uniforms.fogNear.value = R * 0.3; uniforms.fogFar.value = R * 0.85; }
+  if (G.fwFog) { uniforms.fogNear.value = G.fwFog[0]; uniforms.fogFar.value = G.fwFog[1]; }   // the Forsaken World's mist
   if (G.player.headInWater) { uniforms.fogNear.value = 2; uniforms.fogFar.value = 18; }
   if (G.player.inLava) { uniforms.fogNear.value = 0.5; uniforms.fogFar.value = 4; uniforms.fogColor.value.set(0xff6a10); }
   camera.far = Math.max(120, R + 40); camera.updateProjectionMatrix();
@@ -2465,7 +2537,7 @@ function placeThirdPersonCamera(p) {
 }
 // Skin chooser: a grid of pictures and a turning 3D preview (its own small renderer, made only while the chooser is open)
 let chooser = null;
-G.skins = SKINS.map(s => ({ id: s.id, name: s.name, desc: s.desc }));
+G.skins = SKINS.map(s => ({ id: s.id, name: s.name, desc: s.desc, locked: !!s.locked, unlock: s.unlock }));
 G.skinThumb = id => thumbnail(id, 72);
 G.openSkinPreview = (canvasEl, skinId) => {
   if (!chooser) {
@@ -2553,6 +2625,7 @@ let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, stepSoundT =
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.1, (now - last) / 1000); last = now;   // capped so a background tab doesn't cause a huge jump
+  G.clock = (G.clock || 0) + dt;
   fpsT += dt; fpsN++; if (fpsT > 0.5) { fps = Math.round(fpsN / fpsT); fpsT = 0; fpsN = 0; }
   if (!G.world || G.state === "loading" || G.state === "title") { if (G.state === "title") renderer.clear(); return; }
   const p = G.player, running = G.state === "play" || G.state === "panel";
@@ -2610,6 +2683,7 @@ function loop(now) {
     if (G.dim === "end") ensureBoss();
     if (G.state === "play") checkPortal(dt);
     tickCinder(dt);
+    F.tick(dt); L.tick(dt);
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
@@ -2672,8 +2746,11 @@ function loop(now) {
 
   // the boss health bar
   const boss = ents.list.filter(e => e.def.boss && !e.gone).sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0], bar = document.getElementById("bossbar");
-  bar.hidden = !boss || Math.hypot(boss.pos.x - p.pos.x, boss.pos.z - p.pos.z) > (boss.sp === "dragon" ? 160 : 64);
-  if (!bar.hidden) {
+  const hb = F.bossInfo() || L.bossInfo();
+  bar.hidden = (!boss || Math.hypot(boss.pos.x - p.pos.x, boss.pos.z - p.pos.z) > (boss.sp === "dragon" ? 160 : 64)) && !hb;
+  if (hb) { bar.querySelector("i").style.width = Math.max(0, hb.frac * 100) + "%"; bar.querySelector("b").textContent = hb.label; bar.classList.remove("ember"); bar.classList.add("pale"); }
+  else if (!bar.hidden) {
+    bar.classList.remove("pale");
     let label = boss.def.name + (boss.armored ? " (armored: arrows bounce off)" : "");
     if (boss.sp === "cindermaw") { const ph = ents.cinderPhase(boss), py = ents.list.filter(o => o.sp === "pylon" && !o.dead).length; label = `Cindermaw • Phase ${ph}${py ? ` • Shielded by ${py} Ember Pylon${py > 1 ? "s" : ""}` : boss.tired ? " • Worn out!" : boss.perched ? " • Landed: hit it!" : ""}`; }
     bar.querySelector("i").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%"; bar.querySelector("b").textContent = label;
@@ -2689,6 +2766,12 @@ function loop(now) {
 }
 
 // ---------- start ----------
+// The Forsaken World adventure (js/forsaken.js) gets the game functions it needs
+const F = initForsaken({ G, THREE, scene, ents, UI, Sound, hurt, puff, saveNow, saveSettings, changeDim, lookDir, addEffect, giveItem, giveXp, OFF, placeSafely, keys, victory: showVictory });
+G.forsaken = F;
+// The Lost Civilization adventure (js/lost.js). Its test controls only show on a development copy (localhost or ?dev).
+const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giveXp, placeSafely, hurt, lookDir, keys, victory: showVictory, devTools: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.search.includes("dev") });
+G.lost = L;
 Adv.init(G, SPECIES, { xp: n => spawnOrbs(n, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z), give: (id, n) => { if (G.inv.add(id, n)) G.dropItem(id, n); } });
 UI.init(G);
 G.applySettings();

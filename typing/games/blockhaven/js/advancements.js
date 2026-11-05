@@ -9,7 +9,7 @@ import { Sound } from "./audio.js";
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
-export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Combat & Bosses"];
+export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Combat & Bosses", "Forsaken World", "Lost Civilization"];
 export const ADVANCEMENTS = [
   // building and getting started
   { id: "start", cat: "Getting Started", icon: B.LOG, title: "Blockhaven", desc: "Chop a log.", check: G => has(G, B.LOG, B.BIRCH_LOG, B.CRIMSON_STEM, B.WARPED_STEM) },
@@ -65,6 +65,30 @@ export const ADVANCEMENTS = [
   { id: "cindermaw", cat: "Combat & Bosses", icon: B.CINDER_EGG, title: "The Final Flame", desc: "Defeat Cindermaw, the Ember Dragon. You beat Blockhaven's Survival story!", parent: "cinderwake", ev: "boss", match: s => s === "cindermaw", reward: { xp: 200 } },
   { id: "crown", cat: "Combat & Bosses", icon: I.CINDER_CROWN, title: "Crowned in Fire", desc: "Make the Cinder Crown.", parent: "cindermaw", check: G => G.inv.slots.some(s => s && s.id === I.CINDER_CROWN) },
   { id: "rekindled", cat: "Combat & Bosses", icon: I.EMBER_HEART, title: "Rekindled", desc: "Defeat Cindermaw a second time.", parent: "cindermaw", ev: "boss", match: s => s === "cindermawAgain" },
+  { id: "lantern", cat: "Forsaken World", icon: I.PALE_LANTERN, title: "A Pale Light", desc: "Make a Pale Lantern from Pale Shards (found in Ember Depths fortresses).", check: G => G.inv.slots.some(s => s && s.id === I.PALE_LANTERN) },
+  { id: "forsaken", cat: "Forsaken World", icon: B.WARD_STONE, title: "Into the Mist", desc: "Enter the Forsaken World.", parent: "lantern", ev: "dim", match: d => d === "forsaken", reward: { xp: 20 } },
+  { id: "sighting", cat: "Forsaken World", icon: B.PALE_EFFIGY, title: "Someone Is Watching", desc: "See Herobrine for the first time.", parent: "forsaken", ev: "sighting" },
+  { id: "notes", cat: "Forsaken World", icon: B.NOTE_STAND, title: "Pieces of the Past", desc: "Read 8 notes left by the people of Hollowmere.", parent: "forsaken", ev: "note", count: 8, reward: { xp: 30 } },
+  { id: "explorer", cat: "Forsaken World", icon: I.COMPASS, title: "Vale Explorer", desc: "Find all 7 landmarks of the Forsaken World.", parent: "forsaken", ev: "landmark", count: 7, reward: { xp: 40 } },
+  { id: "shrine1", cat: "Forsaken World", icon: I.SIGIL_HEARTH, title: "Safe Ground", desc: "Restore a ward shrine.", parent: "forsaken", ev: "shrine" },
+  { id: "shrine3", cat: "Forsaken World", icon: I.WARD_HEART, title: "Wardkeeper", desc: "Restore all three ward shrines.", parent: "shrine1", ev: "shrine", count: 3, reward: { xp: 60 } },
+  { id: "confront", cat: "Forsaken World", icon: B.PALE_ALTAR, title: "Face Him", desc: "Set the Ward Heart in the Pale Altar.", parent: "shrine3", ev: "confront" },
+  { id: "banished", cat: "Forsaken World", icon: B.PALE_EFFIGY, title: "Banished", desc: "Banish Herobrine from the Forsaken World.", parent: "confront", ev: "banished", reward: { xp: 100 } },
+  { id: "lostdeep", cat: "Lost Civilization", icon: B.DEEP_LIFT, title: "Going Down", desc: "Ride the Keeper lift into the Deep.", ev: "lostdeep", reward: { xp: 20 } },
+  { id: "lostcity", cat: "Lost Civilization", icon: B.KEEPER_LAMP, title: "Echohold", desc: "Reach the Keepers' lost city.", parent: "lostdeep", ev: "lostcity", reward: { xp: 30 } },
+  { id: "lostlore", cat: "Lost Civilization", icon: B.LORE_TABLET, title: "The Keepers Remember", desc: "Read 12 Keeper tablets, murals, or memories.", parent: "lostdeep", ev: "lostlore", count: 12, reward: { xp: 40 } },
+  { id: "lostdistrict", cat: "Lost Civilization", icon: B.DARKSLATE_BRICKS, title: "City Surveyor", desc: "Discover all 12 districts of Echohold.", parent: "lostcity", ev: "lostdistrict", count: 12, reward: { xp: 50 } },
+  { id: "lostcache", cat: "Lost Civilization", icon: B.CHEST, title: "Finders, Keepers", desc: "Open 20 Keeper caches.", parent: "lostdeep", ev: "lostcache", count: 20, reward: { xp: 40 } },
+  { id: "lostpuzzle", cat: "Lost Civilization", icon: B.KEEPER_SWITCH, title: "Keeper Engineer", desc: "Solve 5 Keeper puzzles.", parent: "lostcity", ev: "lostpuzzle", count: 5, reward: { xp: 40 } },
+  { id: "lostsecret", cat: "Lost Civilization", icon: B.RESONANT_GLASS, title: "Off the Map", desc: "Find a secret place.", parent: "lostdeep", ev: "lostsecret" },
+  { id: "lostwarden", cat: "Lost Civilization", icon: B.WARDEN_TROPHY, title: "At Rest", desc: "Bring the First Warden to rest.", parent: "lostcity", ev: "lostwarden", reward: { xp: 100 } },
+  { id: "lostgate", cat: "Lost Civilization", icon: B.GATE_FRAME, title: "The First Gate", desc: "Fill, calibrate, and open the First Gate.", parent: "lostwarden", ev: "lostgate", reward: { xp: 60 } },
+  { id: "expanse", cat: "Lost Civilization", icon: B.ECHOSTONE, title: "The Other Side", desc: "Step into the Echo Expanse.", parent: "lostgate", ev: "expanse" },
+  { id: "lostanchor", cat: "Lost Civilization", icon: B.ANCHOR_STATION, title: "Loosening the Crown", desc: "Quiet all three forge anchors.", parent: "expanse", ev: "lostanchor", count: 3, reward: { xp: 60 } },
+  { id: "lostsovereign", cat: "Lost Civilization", icon: B.SOVEREIGN_TROPHY, title: "One Whole Note", desc: "Calm the Resonant Sovereign.", parent: "lostanchor", ev: "lostsovereign", reward: { xp: 200 } },
+  { id: "temple", cat: "Lost Civilization", icon: B.SUN_GLYPH, title: "Temple Explorer", desc: "Enter one of the three Keeper temples.", ev: "temple", reward: { xp: 20 } },
+  { id: "templeboss", cat: "Lost Civilization", icon: B.RELIC_PEDESTAL, title: "Guardians at Rest", desc: "Bring all three temple guardians to rest.", parent: "temple", ev: "templeboss", count: 3, reward: { xp: 150 } },
+  { id: "relics", cat: "Lost Civilization", icon: I.SOLAR_SEAL, title: "Keeper of Relics", desc: "Take the Tidal Heart, the Verdant Lens, and the Solar Seal.", parent: "temple", ev: "relic", count: 3, reward: { xp: 100 } },
   { id: "wyrm", cat: "Combat & Bosses", icon: B.WYRM_EGG, title: "Wyrm Slayer", desc: "Defeat the Hollow Wyrm.", parent: "kill", ev: "boss", match: s => s === "dragon", reward: { xp: 100 } }
 ];
 const BY_ID = Object.fromEntries(ADVANCEMENTS.map(a => [a.id, a]));

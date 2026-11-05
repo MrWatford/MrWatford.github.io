@@ -26,7 +26,15 @@ export const B = {
   // beacons, respawn anchors, lodestones
   SKY_BLOCK: 94, DUSK_BLOCK: 95, RESPAWN_ANCHOR: 96, LODESTONE: 97,
   // the Cinder Citadel and Cindermaw
-  CINDER_BRICKS: 98, CINDER_ALTAR: 99, CINDER_EGG: 100
+  CINDER_BRICKS: 98, CINDER_ALTAR: 99, CINDER_EGG: 100,
+  // the Forsaken World
+  WARD_STONE: 101, WARD_ALTAR: 102, NOTE_STAND: 103, RETURN_GATE: 104, PALE_BRICKS: 105, ARENA_WARD: 106, PALE_ALTAR: 107, PALE_EFFIGY: 108, WARD_CANDLE: 109,
+  // the Lost Civilization: the Deep, Echohold, and the Echo Expanse
+  DARKSLATE: 110, DARKSLATE_BRICKS: 111, HUSHMOSS: 112, HUSH_NODE: 113, KEEPER_LAMP: 114, KEEPER_COPPER: 115, RESONATOR: 116, GATE_SOCKET: 117, GATE_FRAME: 118, GATE_VEIL: 119,
+  LUMEN_CRYSTAL: 120, DRIPSTONE: 121, CAVE_MOSS: 122, ECHOSTONE: 123, RESONANT_GLASS: 124, ROOTWOOD: 125, LORE_TABLET: 126, KEEPER_STONE: 127, LUMEN_GRASS: 128, KEEPER_BEACON: 129,
+  DEEP_LIFT: 130, MURAL: 131, ANCHOR_STATION: 132, HUSH_CARPET: 133, WARDEN_TROPHY: 134, SOVEREIGN_TROPHY: 135, KEEPER_SWITCH: 136,
+  // the three temples
+  TIDE_BRICKS: 137, TIDE_LAMP: 138, VINE_BRICKS: 139, VINES: 140, SUN_BRICKS: 141, SUN_GLYPH: 142, SUN_MIRROR: 143, TRAP_VENT: 144, CRACKED_FLOOR: 145, RELIC_PEDESTAL: 146
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -53,7 +61,11 @@ export const I = {
   FISHING_ROD: 500, RAW_MINNOW: 501, COOKED_MINNOW: 502, SUNFIN: 503, PUFFER: 504, INK_SAC: 505, BOAT: 506, BERRIES: 507,
   HONEYCOMB: 508, BOTTLE: 509, HONEY_BOTTLE: 510,
   SHIELD: 520, TOTEM: 521, GOLDEN_APPLE: 522, GOLDEN_CARROT: 523, COMPASS: 524,
-  CINDER_EYE: 525, EMBER_HEART: 526, CINDER_CROWN: 527
+  CINDER_EYE: 525, EMBER_HEART: 526, CINDER_CROWN: 527,
+  PALE_SHARD: 528, PALE_LANTERN: 529, SIGIL_HEARTH: 530, SIGIL_STONE: 531, SIGIL_ROOT: 532, WARD_HEART: 533, WARD_LANTERN: 534,
+  TIDAL_HEART: 540, VERDANT_LENS: 541, SOLAR_SEAL: 542, RESONANCE_CORE: 543, STAB_ARCHIVE: 544, STAB_FOUNDRY: 545, STAB_GARDEN: 546, SURVEY_MAP: 547,
+  ECHO_SHARD: 548, ECHO_COMPASS: 549, WARDEN_PLATE: 550, ECHO_MANTLE: 551, LUMEN_SHARD: 552,
+  TIDE_CHARM: 553, LEAFSTEP_BOOTS: 554, SUNWARD_HELM: 555
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -179,6 +191,57 @@ block(B.LODESTONE, "Lodestone", { hardness: 3.5, tool: "pick", tier: 1, interact
 block(B.CINDER_BRICKS, "Cinder Bricks", { hardness: 40, tool: "pick", tier: 5, tex: "cinder_bricks", category: DEPTHS });
 block(B.CINDER_ALTAR, "Cinder Altar", { hardness: Infinity, drops: 0, light: 9, interact: "cinderaltar", tex: ["cinder_altar_top", "cinder_altar_side", "cinder_bricks"], category: DEPTHS });
 block(B.CINDER_EGG, "Cindermaw Egg", { hardness: 3, tool: "pick", tier: 1, light: 12, tex: "cinder_egg", category: DEPTHS });
+// The Forsaken World (Herobrine's adventure). Story blocks can't be broken so the adventure can always be finished.
+const FORSAKEN = "Forsaken World";
+block(B.WARD_STONE, "Ward Stone", { hardness: Infinity, drops: 0, light: 12, interact: "wardstone", tex: ["ward_top", "ward_side", "stone_bricks"], category: FORSAKEN });
+block(B.WARD_ALTAR, "Ward Altar", { hardness: Infinity, drops: 0, light: 4, interact: "wardaltar", tex: ["ward_altar_top", "ward_altar_side", "stone_bricks"], category: FORSAKEN });
+block(B.NOTE_STAND, "Old Note", { hardness: Infinity, drops: 0, interact: "note", tex: ["note_top", "planks", "planks"], category: FORSAKEN });
+block(B.RETURN_GATE, "Return Gate", { hardness: Infinity, drops: 0, light: 10, interact: "returngate", tex: "return_gate", category: FORSAKEN });
+block(B.PALE_BRICKS, "Pale Bricks", { hardness: 30, tool: "pick", tier: 4, tex: "pale_bricks", category: FORSAKEN });
+block(B.ARENA_WARD, "Arena Ward", { hardness: Infinity, drops: 0, interact: "arenaward", tex: ["arena_ward_top", "arena_ward_side", "pale_bricks"], category: FORSAKEN });
+block(B.PALE_ALTAR, "Pale Altar", { hardness: Infinity, drops: 0, light: 6, interact: "palealtar", tex: ["pale_altar_top", "pale_altar_side", "pale_bricks"], category: FORSAKEN });
+block(B.PALE_EFFIGY, "Pale Effigy", { hardness: 2, tool: "pick", tier: 1, light: 5, tex: ["pale_effigy_top", "pale_effigy", "pale_effigy_top"], front: "pale_effigy_front", category: FORSAKEN });
+block(B.WARD_CANDLE, "Ward Candle", { shape: "torch", render: "cutout", solid: false, hardness: 0, light: 11, interact: "candle", tex: "ward_candle", category: FORSAKEN });
+// The Lost Civilization. Keeper Stone, gate frames, sockets, tablets, beacons, and the lift can't be broken, so the adventure can't be softlocked.
+const LOST = "Lost Civilization";
+block(B.DARKSLATE, "Darkslate", { hardness: 3, tool: "pick", tier: 1, tex: "darkslate", category: LOST });
+block(B.DARKSLATE_BRICKS, "Darkslate Bricks", { hardness: 3.5, tool: "pick", tier: 1, tex: "darkslate_bricks", category: LOST });
+block(B.HUSHMOSS, "Hushmoss", { hardness: 0.6, tool: "shovel", tex: ["hushmoss", "hushmoss_side", "darkslate"], category: LOST });
+block(B.HUSH_NODE, "Hush Node", { hardness: 1.5, tool: "shovel", light: 4, tex: ["hush_node", "hushmoss_side", "darkslate"], category: LOST });
+block(B.KEEPER_LAMP, "Keeper Lamp", { hardness: 1, tool: "pick", light: 13, tex: "keeper_lamp", category: LOST });
+block(B.KEEPER_COPPER, "Keeper Copper", { hardness: 3, tool: "pick", tier: 1, tex: "keeper_copper", category: LOST });
+block(B.RESONATOR, "Resonator", { hardness: Infinity, drops: 0, light: 5, interact: "resonator", tex: ["resonator_top", "resonator_side", "keeper_copper"], category: LOST });
+block(B.GATE_SOCKET, "Gate Socket", { hardness: Infinity, drops: 0, light: 3, interact: "socket", tex: ["socket_top", "socket_side", "keeper_stone"], category: LOST });
+block(B.GATE_FRAME, "First Gate Frame", { hardness: Infinity, drops: 0, light: 2, tex: "gate_frame", category: LOST });
+block(B.GATE_VEIL, "First Gate", { shape: "water", render: "water", solid: false, hardness: Infinity, drops: 0, light: 6, tex: "gate_veil", noItem: true, category: LOST });
+block(B.LUMEN_CRYSTAL, "Lumen Crystal", { hardness: 1.5, tool: "pick", light: 12, render: "cutout", drops: "lumen", tex: "lumen_crystal", category: LOST });
+block(B.DRIPSTONE, "Dripstone", { hardness: 1.5, tool: "pick", tier: 1, tex: "dripstone", category: LOST });
+block(B.CAVE_MOSS, "Cave Moss", { hardness: 0.4, tool: "shovel", tex: "cave_moss", category: LOST });
+block(B.ECHOSTONE, "Echostone", { hardness: 2, tool: "pick", tier: 1, tex: "echostone", category: LOST });
+block(B.RESONANT_GLASS, "Resonant Glass", { hardness: 0.5, render: "cutout", drops: 0, tex: "resonant_glass", category: LOST });
+block(B.ROOTWOOD, "Pale Rootwood", { hardness: 2, tool: "axe", tex: ["rootwood_top", "rootwood", "rootwood_top"], category: LOST });
+block(B.LORE_TABLET, "Keeper Tablet", { hardness: Infinity, drops: 0, light: 3, interact: "lore", tex: ["tablet_top", "tablet_side", "keeper_stone"], category: LOST });
+block(B.KEEPER_STONE, "Keeper Stone", { hardness: Infinity, drops: 0, tex: "keeper_stone", category: LOST });
+block(B.LUMEN_GRASS, "Lumen Grass", { hardness: 0.6, tool: "shovel", drops: B.ECHOSTONE, tex: ["lumen_grass", "lumen_grass_side", "echostone"], category: LOST });
+block(B.KEEPER_BEACON, "Keeper Beacon", { hardness: Infinity, drops: 0, light: 11, interact: "checkpoint", tex: ["beacon_k_top", "beacon_k_side", "keeper_stone"], category: LOST });
+block(B.DEEP_LIFT, "Keeper Lift", { hardness: Infinity, drops: 0, light: 8, interact: "lift", tex: ["lift_top", "lift_side", "keeper_stone"], category: LOST });
+block(B.MURAL, "Keeper Mural", { hardness: Infinity, drops: 0, interact: "mural", tex: "mural", category: LOST });
+block(B.ANCHOR_STATION, "Resonance Anchor", { hardness: Infinity, drops: 0, light: 4, interact: "anchorstation", tex: ["anchor_top", "anchor_s_side", "echostone"], category: LOST });
+block(B.HUSH_CARPET, "Hush Carpet", { hardness: 0.3, tex: "hush_carpet", category: LOST });
+block(B.WARDEN_TROPHY, "First Warden Trophy", { hardness: 3, tool: "pick", tier: 1, light: 6, tex: ["warden_t_top", "warden_t_side", "darkslate"], front: "warden_t_front", category: LOST });
+block(B.SOVEREIGN_TROPHY, "Sovereign's Crown", { hardness: 3, tool: "pick", tier: 1, light: 10, tex: ["crown_top", "crown_side", "echostone"], category: LOST });
+block(B.KEEPER_SWITCH, "Keeper Switch", { hardness: Infinity, drops: 0, light: 2, interact: "switch", tex: ["switch_top", "switch_side", "keeper_stone"], category: LOST });
+// The temples (sea, jungle, desert). Vents, cracked floors, mirrors, and pedestals can't be broken, so no trap or puzzle can be skipped into a softlock.
+block(B.TIDE_BRICKS, "Tide Bricks", { hardness: 3, tool: "pick", tier: 1, tex: "tide_bricks", category: LOST });
+block(B.TIDE_LAMP, "Tide Lamp", { hardness: 1, tool: "pick", light: 13, tex: "tide_lamp", category: LOST });
+block(B.VINE_BRICKS, "Overgrown Temple Bricks", { hardness: 3, tool: "pick", tier: 1, tex: "vine_bricks", category: LOST });
+block(B.VINES, "Hanging Vines", { shape: "cross", render: "cutout", solid: false, hardness: 0.2, drops: 0, tex: "vines", replaceable: true, category: LOST });
+block(B.SUN_BRICKS, "Sun Bricks", { hardness: 3, tool: "pick", tier: 1, tex: "sun_bricks", category: LOST });
+block(B.SUN_GLYPH, "Carved Sun Glyph", { hardness: 3, tool: "pick", tier: 1, light: 4, tex: ["sun_bricks", "sun_glyph", "sun_bricks"], category: LOST });
+block(B.SUN_MIRROR, "Sun Mirror", { hardness: Infinity, drops: 0, light: 3, interact: "mirror", tex: ["mirror_top", "mirror_side", "sun_bricks"], category: LOST });
+block(B.TRAP_VENT, "Trap Vent", { hardness: Infinity, drops: 0, tex: "trap_vent", category: LOST });
+block(B.CRACKED_FLOOR, "Cracked Floor", { hardness: Infinity, drops: 0, tex: "cracked_floor", category: LOST });
+block(B.RELIC_PEDESTAL, "Relic Pedestal", { hardness: Infinity, drops: 0, light: 6, interact: "pedestal", tex: ["pedestal_top", "pedestal_side", "keeper_stone"], category: LOST });
 export const BEACON_BASE = [B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
 export const BLOCKS = defs;
@@ -193,7 +256,7 @@ for (const d of Object.values(defs)) {
   SOLID[d.id] = d.solid ? 1 : 0;
   EMIT[d.id] = d.light;
 }
-export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : EMIT[v & 255];
+export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & 255];
 
 // ---------- Items ----------
 const items = {};
@@ -273,6 +336,29 @@ item(I.HONEY_BOTTLE, "Honey Bottle", { icon: "bottle", colors: ["#f0a820"], kind
 item(I.SHIELD, "Shield", { icon: "shield", kind: "tool", stack: 1, category: "Tools", tool: { type: "shield", tier: 0, speed: 1, dur: 336, damage: 1 }, offhand: true });
 item(I.TOTEM, "Lifeward Totem", { icon: "totem", stack: 1, category: "Tools", offhand: true });
 item(I.GOLDEN_APPLE, "Golden Apple", { icon: "apple", colors: ["gold"], kind: "food", food: 4, category: "Food", sideEffect: "golden", alwaysEat: true });
+item(I.PALE_SHARD, "Pale Shard", { icon: "pale_shard" });
+item(I.PALE_LANTERN, "Pale Lantern", { icon: "pale_lantern", stack: 1, category: "Tools" });
+item(I.SIGIL_HEARTH, "Hearth Sigil", { icon: "sigil", colors: ["#f0a040"], stack: 1, quest: true });
+item(I.SIGIL_STONE, "Stone Sigil", { icon: "sigil", colors: ["#a0a8b8"], stack: 1, quest: true });
+item(I.SIGIL_ROOT, "Root Sigil", { icon: "sigil", colors: ["#6ac85a"], stack: 1, quest: true });
+item(I.WARD_HEART, "Ward Heart", { icon: "ward_heart", stack: 1, quest: true });
+item(I.WARD_LANTERN, "Wardlight Lantern", { icon: "pale_lantern", colors: ["#7ad8ff"], stack: 1, category: "Tools", offhand: true });
+item(I.TIDAL_HEART, "Tidal Heart", { icon: "relic", colors: ["#3ab0c8", "#c8f4ff"], stack: 1, quest: true });
+item(I.VERDANT_LENS, "Verdant Lens", { icon: "relic", colors: ["#4ac85a", "#e0ffc8"], stack: 1, quest: true });
+item(I.SOLAR_SEAL, "Solar Seal", { icon: "relic", colors: ["#f0b830", "#fff4c0"], stack: 1, quest: true });
+item(I.RESONANCE_CORE, "Warden's Resonance Core", { icon: "relic", colors: ["#2ad0c8", "#ffffff"], stack: 1, quest: true });
+item(I.STAB_ARCHIVE, "Archive Stabilizer", { icon: "stabilizer", colors: ["#8ab0e8"], stack: 1, quest: true });
+item(I.STAB_FOUNDRY, "Foundry Stabilizer", { icon: "stabilizer", colors: ["#e09a5a"], stack: 1, quest: true });
+item(I.STAB_GARDEN, "Garden Stabilizer", { icon: "stabilizer", colors: ["#9ae0a0"], stack: 1, quest: true });
+item(I.SURVEY_MAP, "Keeper Survey Map", { icon: "survey_map", stack: 1, category: "Tools", offhand: true });
+item(I.ECHO_SHARD, "Echo Shard", { icon: "echo_shard", stack: 16, category: "Tools" });
+item(I.ECHO_COMPASS, "Echo Compass", { icon: "compass", stack: 1, category: "Tools", offhand: true });
+item(I.WARDEN_PLATE, "Warden-Plate Chestplate", { icon: "armor_chest", colors: ["#2a5a6a"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 8, dur: 900 }, hush: true });
+item(I.ECHO_MANTLE, "Echo Mantle", { icon: "glider", colors: ["#2ad0c8"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 7, dur: 1200 }, mantle: true });
+item(I.LUMEN_SHARD, "Lumen Shard", { icon: "pale_shard" });
+item(I.TIDE_CHARM, "Tidecaller Charm", { icon: "relic", colors: ["#2a8aa8", "#8af0ff"], stack: 1, category: "Tools", offhand: true });
+item(I.LEAFSTEP_BOOTS, "Leafstep Boots", { icon: "armor_boots", colors: ["#4a9a3a"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 3, points: 4, dur: 900 }, leafstep: true });
+item(I.SUNWARD_HELM, "Sunward Helm", { icon: "armor_helmet", colors: ["#f0b830"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 0, points: 5, dur: 1100 }, fireproof: true });
 item(I.CINDER_EYE, "Cinder Eye", { icon: "eye_cinder", stack: 16, category: "Tools" });
 item(I.EMBER_HEART, "Ember Heart", { icon: "ember_heart", stack: 16 });
 item(I.CINDER_CROWN, "Cinder Crown", { icon: "armor_helmet", colors: ["#e0702a"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 0, points: 4, dur: 900 }, fireproof: true });
@@ -405,6 +491,15 @@ export const RECIPES = [
   { out: [B.BLACK_WOOL, 1], ins: [[B.WOOL, 1], [I.INK_SAC, 1]] },
   { out: [B.SHELL_BOX, 1], ins: [[I.SHELL, 2], [B.CHEST, 1]], table: true },
   { out: [I.SHIELD, 1], ins: [["planks", 6], [I.IRON_INGOT, 1]], table: true },
+  { out: [I.PALE_LANTERN, 1], ins: [[I.PALE_SHARD, 4], [B.SHINESTONE, 1], [I.IRON_INGOT, 2]], table: true },
+  { out: [B.WARD_CANDLE, 2], ins: [[I.PALE_SHARD, 1], [I.HONEYCOMB, 1], [I.STRING, 1]], table: true },
+  { out: [B.WARD_CANDLE, 1], ins: [[I.PALE_SHARD, 1], [I.STRING, 1], [I.COAL, 1]], table: true },
+  { out: [B.PALE_BRICKS, 4], ins: [[B.STONE_BRICKS, 4], [I.PALE_SHARD, 1]], table: true },
+  { out: [I.ECHO_SHARD, 4], ins: [[I.LUMEN_SHARD, 1], [B.DARKSLATE, 1]], table: true },
+  { out: [I.ECHO_COMPASS, 1], ins: [[I.COMPASS, 1], [I.LUMEN_SHARD, 2]], table: true },
+  { out: [B.KEEPER_LAMP, 2], ins: [[I.LUMEN_SHARD, 1], [B.DARKSLATE_BRICKS, 2]], table: true },
+  { out: [B.HUSH_CARPET, 3], ins: [[B.WOOL, 2], [B.HUSHMOSS, 1]], table: true },
+  { out: [B.RESONANT_GLASS, 4], ins: [[B.GLASS, 4], [I.LUMEN_SHARD, 1]], table: true },
   { out: [I.CINDER_EYE, 1], ins: [[I.WYRM_SCALE, 1], [I.EYE, 1], [I.MAGMA_CREAM, 1], [I.FLARE_POWDER, 2]], table: true },
   { out: [I.CINDER_CROWN, 1], ins: [[I.DUSK_HELMET, 1], [I.EMBER_HEART, 1]], table: true, upgrade: true },
   { out: [B.SKY_BLOCK, 1], ins: [[I.SKYSHARD, 9]], table: true },
@@ -451,7 +546,14 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "skull_face", "beacon", "jade_ore", "jade_block", "composter_top", "composter_side", "fletch_top", "fletch_side", "loom_top", "loom_side",
   "altar_top", "altar_side", "smith_top", "smith_side", "hay_top", "hay_side",
   "nest_top", "nest_side", "nest_front", "nest_front_honey", "hive_top", "hive_side", "hive_front", "hive_front_honey", "berry0", "berry1", "berry2", "berry3", "black_wool",
-  "voidchest_top", "voidchest_side", "voidchest_front", "sky_block", "dusk_block", "anchor_top", "anchor_top_lit", "anchor_side", "anchor_bottom", "lodestone_top", "lodestone_side", "cinder_bricks", "cinder_altar_top", "cinder_altar_side", "cinder_egg"];
+  "voidchest_top", "voidchest_side", "voidchest_front", "sky_block", "dusk_block", "anchor_top", "anchor_top_lit", "anchor_side", "anchor_bottom", "lodestone_top", "lodestone_side", "cinder_bricks", "cinder_altar_top", "cinder_altar_side", "cinder_egg",
+  "ward_top", "ward_side", "ward_altar_top", "ward_altar_side", "ward_altar_lit", "note_top", "return_gate", "pale_bricks", "arena_ward_top", "arena_ward_side", "arena_ward_lit",
+  "pale_altar_top", "pale_altar_side", "pale_effigy", "pale_effigy_top", "pale_effigy_front", "ward_candle",
+  "darkslate", "darkslate_bricks", "hushmoss", "hushmoss_side", "hush_node", "keeper_lamp", "keeper_copper", "resonator_top", "resonator_side", "socket_top", "socket_top_on", "socket_side",
+  "gate_frame", "gate_veil", "gate_veil_open", "lumen_crystal", "dripstone", "cave_moss", "echostone", "resonant_glass", "rootwood", "rootwood_top", "tablet_top", "tablet_side", "keeper_stone",
+  "lumen_grass", "lumen_grass_side", "beacon_k_top", "beacon_k_side", "lift_top", "lift_side", "mural", "anchor_top", "anchor_top_on", "anchor_s_side", "hush_carpet",
+  "warden_t_top", "warden_t_side", "warden_t_front", "crown_top", "crown_side", "switch_top", "switch_top_on", "switch_side",
+  "tide_bricks", "tide_lamp", "vine_bricks", "vines", "sun_bricks", "sun_glyph", "mirror_top", "mirror_top_on", "mirror_side", "trap_vent", "cracked_floor", "pedestal_top", "pedestal_side"];
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
 
@@ -461,6 +563,13 @@ export function faceTile(v, dir, front) {
   if (front && d.front) return TILE[idOf(v) === B.FURNACE && (metaOf(v) & LIT) ? "furnace_front_lit" : (idOf(v) === B.BEE_NEST || idOf(v) === B.BEEHIVE) && honeyOf(v) >= HONEY_MAX ? d.front + "_honey" : d.front];
   if (idOf(v) === B.BERRY_BUSH) return TILE["berry" + (metaOf(v) & 3)];
   if (idOf(v) === B.RESPAWN_ANCHOR && dir === 0 && (metaOf(v) & 7)) return TILE.anchor_top_lit;
+  if (idOf(v) === B.WARD_ALTAR && dir === 0 && (metaOf(v) & 1)) return TILE.ward_altar_lit;   // a restored shrine glows
+  if (idOf(v) === B.GATE_SOCKET && dir === 0 && (metaOf(v) & 1)) return TILE.socket_top_on;
+  if (idOf(v) === B.GATE_VEIL && (metaOf(v) & 1)) return TILE.gate_veil_open;
+  if (idOf(v) === B.ANCHOR_STATION && dir === 0 && (metaOf(v) & 1)) return TILE.anchor_top_on;
+  if (idOf(v) === B.KEEPER_SWITCH && dir === 0 && (metaOf(v) & 1)) return TILE.switch_top_on;
+  if (idOf(v) === B.SUN_MIRROR && dir === 0 && (metaOf(v) & 1)) return TILE.mirror_top_on;
+  if (idOf(v) === B.ARENA_WARD && dir !== 2 && (metaOf(v) & 1)) return TILE.arena_ward_lit;
   if (idOf(v) === B.DOOR) return TILE[metaOf(v) & TOP ? "door_top" : "door_bottom"];
   if (idOf(v) === B.WHEAT || idOf(v) === B.CARROTS) return TILE[(idOf(v) === B.WHEAT ? "wheat" : "carrots") + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.FARMLAND && dir === 0) return TILE[metaOf(v) & WET ? "farmland_wet" : "farmland_dry"];
@@ -701,6 +810,80 @@ Object.assign(PAINT, {
   black_wool(P) { P.fill(["#1e1e24", "#26262c", "#18181e", "#2c2c32"]); },
   voidchest_top(P) { PAINT.obsidian(P); P.rect(0, 0, 16, 1, "#0a0612"); P.rect(0, 15, 16, 1, "#0a0612"); P.rect(0, 0, 1, 16, "#0a0612"); P.rect(15, 0, 1, 16, "#0a0612"); P.rect(6, 6, 4, 4, "#2a7a6a"); },
   voidchest_side(P) { PAINT.voidchest_top(P); P.rect(0, 5, 16, 2, "#0a0612"); },
+  darkslate(P) { P.fill(["#3a3c44", "#34363e", "#40424a", "#2e3038"]); for (let y = 2; y < 16; y += 4) for (let x = 0; x < 16; x++) if (P.r() < 0.4) P.px(x, y, "#2a2c32"); },
+  darkslate_bricks(P) { P.fill(["#26282e"]); for (let r = 0; r < 4; r++) { const off = r % 2 ? 4 : 0; for (let b = -1; b < 3; b++) for (let yy = 0; yy < 3; yy++) for (let xx = 0; xx < 7; xx++) P.px(b * 8 + off + xx, r * 4 + yy, P.pick(["#3c3e46", "#44464e", "#383a42"])); } },
+  hushmoss(P) { P.fill(["#0e2a30", "#103036", "#0a2228"]); P.specks(10, ["#1a6a70", "#2a8a8a"]); P.specks(3, ["#5ae0d0"]); },
+  hushmoss_side(P) { PAINT.darkslate(P); for (let x = 0; x < 16; x++) { const h = 2 + Math.floor(P.r() * 4); for (let y = 0; y < h; y++) P.px(x, y, P.pick(["#0e2a30", "#103036", "#1a6a70"])); } },
+  hush_node(P) { PAINT.hushmoss(P); P.rect(4, 4, 8, 8, "#14454a"); P.rect(6, 6, 4, 4, "#5ae0d0"); P.rect(7, 7, 2, 2, "#e0fffa"); },
+  keeper_lamp(P) { P.fill(["#2a2c34"]); P.rect(2, 2, 12, 12, "#c8e8f0"); P.rect(4, 4, 8, 8, "#eef8ff"); P.rect(7, 2, 2, 12, "#9ac0d0"); P.rect(2, 7, 12, 2, "#9ac0d0"); },
+  keeper_copper(P) { P.fill(["#b8703a", "#a8642e", "#c87e44"]); P.specks(6, ["#4a9a7a", "#5aaa8a"], 2); P.rect(0, 0, 16, 1, "#d8925a"); P.rect(0, 15, 16, 1, "#7a4420"); },
+  resonator_side(P) { PAINT.keeper_copper(P); P.rect(5, 3, 6, 10, "#2a2c34"); for (let y = 4; y < 12; y += 2) P.rect(6, y, 4, 1, "#5ae0d0"); },
+  resonator_top(P) { PAINT.keeper_copper(P); for (let r = 6; r > 0; r -= 2) { P.rect(8 - r, 8 - r, r * 2, 1, "#5ae0d0"); P.rect(8 - r, 7 + r, r * 2, 1, "#5ae0d0"); P.rect(8 - r, 8 - r, 1, r * 2, "#5ae0d0"); P.rect(7 + r, 8 - r, 1, r * 2, "#5ae0d0"); } },
+  socket_side(P) { PAINT.keeper_stone(P); P.rect(4, 4, 8, 8, "#1a1c22"); P.rect(6, 6, 4, 4, "#3a4a5a"); },
+  socket_top(P) { PAINT.keeper_stone(P); P.rect(3, 3, 10, 10, "#1a1c22"); P.rect(5, 5, 6, 6, "#3a4a5a"); },
+  socket_top_on(P) { PAINT.keeper_stone(P); P.rect(3, 3, 10, 10, "#1a1c22"); P.rect(5, 5, 6, 6, "#5ae0d0"); P.rect(7, 7, 2, 2, "#ffffff"); },
+  gate_frame(P) { P.fill(["#1e2026", "#22242a"]); P.rect(0, 0, 16, 2, "#3a3c44"); P.rect(0, 14, 16, 2, "#3a3c44"); P.rect(7, 2, 2, 12, "#2a6a70"); P.px(7, 8, "#5ae0d0"); },
+  gate_veil(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, P.r() < 0.06 ? "rgba(140,220,230,.5)" : "rgba(20,30,40,.55)"); },
+  gate_veil_open(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, P.r() < 0.12 ? "rgba(255,255,255,.85)" : P.pick(["rgba(40,200,200,.75)", "rgba(60,140,220,.75)", "rgba(120,90,220,.7)"])); },
+  lumen_crystal(P) { for (let i = 0; i < 4; i++) { const x = 2 + Math.floor(P.r() * 10), h = 6 + Math.floor(P.r() * 8); for (let y = 15; y > 15 - h; y--) { P.px(x, y, "#7ab8ff"); P.px(x + 1, y, "#a8d8ff"); if (y < 15 - h + 2) P.px(x, y, "#e8f4ff"); } } },
+  dripstone(P) { P.fill(["#8a7258", "#7e6850", "#967c60"]); for (let x = 1; x < 16; x += 3) for (let y = 0; y < 16; y++) if (P.r() < 0.5) P.px(x, y, "#6a5440"); },
+  cave_moss(P) { P.fill(["#4a7a2a", "#548a30", "#3e6a24"]); P.specks(6, ["#6aa83a"]); },
+  echostone(P) { P.fill(["#5a6a8a", "#52627e", "#647494"]); P.specks(5, ["#7a8ab0", "#3a4a6a"]); },
+  resonant_glass(P) { P.fill(["rgba(120,220,230,.35)"]); P.rect(0, 0, 16, 1, "rgba(200,255,255,.9)"); P.rect(0, 15, 16, 1, "rgba(200,255,255,.9)"); P.rect(0, 0, 1, 16, "rgba(200,255,255,.9)"); P.rect(15, 0, 1, 16, "rgba(200,255,255,.9)"); P.rect(3, 3, 2, 2, "rgba(255,255,255,.8)"); },
+  rootwood(P) { for (let x = 0; x < 16; x++) { const c = x % 4 === 0 ? "#b8b0a0" : P.pick(["#d8d0c0", "#ccc4b4", "#e0d8c8"]); for (let y = 0; y < 16; y++) P.px(x, y, c); } },
+  rootwood_top(P) { P.fill(["#c8c0b0"]); P.rect(3, 3, 10, 10, "#e0d8c8"); P.rect(6, 6, 4, 4, "#b8b0a0"); },
+  tablet_side(P) { PAINT.keeper_stone(P); P.rect(3, 2, 10, 12, "#2a3a44"); for (let y = 4; y < 13; y += 2) P.rect(4, y, 8, 1, "#5ae0d0"); },
+  tablet_top(P) { PAINT.keeper_stone(P); P.rect(3, 3, 10, 10, "#2a3a44"); P.rect(5, 6, 6, 1, "#5ae0d0"); P.rect(5, 9, 6, 1, "#5ae0d0"); },
+  keeper_stone(P) { P.fill(["#4a4e58", "#464a54", "#50545e"]); P.rect(0, 0, 16, 1, "#5a5e68"); P.rect(0, 15, 16, 1, "#30343c"); P.rect(0, 7, 16, 1, "#3a3e46"); P.px(4, 3, "#2a6a70"); P.px(11, 11, "#2a6a70"); },
+  lumen_grass(P) { P.fill(["#2a8a9a", "#3a9aaa", "#24808e"]); P.specks(8, ["#8af0f0", "#c8ffff"]); },
+  lumen_grass_side(P) { PAINT.echostone(P); for (let x = 0; x < 16; x++) { const h = 3 + Math.floor(P.r() * 3); for (let y = 0; y < h; y++) P.px(x, y, P.pick(["#2a8a9a", "#3a9aaa"])); } },
+  beacon_k_side(P) { PAINT.keeper_stone(P); P.rect(5, 2, 6, 12, "#2a3a44"); P.rect(7, 3, 2, 10, "#8af0f0"); },
+  beacon_k_top(P) { PAINT.keeper_stone(P); P.rect(4, 4, 8, 8, "#8af0f0"); P.rect(6, 6, 4, 4, "#ffffff"); },
+  lift_side(P) { PAINT.keeper_copper(P); P.rect(3, 0, 2, 16, "#2a2c34"); P.rect(11, 0, 2, 16, "#2a2c34"); P.rect(6, 6, 4, 4, "#5ae0d0"); },
+  lift_top(P) { P.fill(["#2a2c34"]); P.rect(1, 1, 14, 14, "#b8703a"); P.rect(4, 4, 8, 8, "#2a2c34"); P.rect(7, 4, 2, 8, "#5ae0d0"); },
+  mural(P) { P.fill(["#3a3e48"]); P.rect(1, 1, 14, 14, "#c8b890"); P.rect(3, 9, 10, 4, "#4a6a8a"); P.rect(6, 3, 4, 6, "#2a6a70"); P.rect(7, 2, 2, 2, "#5ae0d0"); P.rect(2, 12, 12, 1, "#8a7a5a"); },
+  anchor_s_side(P) { PAINT.echostone(P); P.rect(5, 2, 6, 12, "#2a2c34"); P.rect(7, 3, 2, 10, "#5a6a8a"); },
+  anchor_top(P) { PAINT.echostone(P); P.rect(3, 3, 10, 10, "#2a2c34"); P.rect(6, 6, 4, 4, "#5a6a8a"); },
+  anchor_top_on(P) { PAINT.echostone(P); P.rect(3, 3, 10, 10, "#2a2c34"); P.rect(5, 5, 6, 6, "#5ae0d0"); P.rect(7, 7, 2, 2, "#ffffff"); },
+  hush_carpet(P) { P.fill(["#2a4a5a", "#264656", "#2e4e5e"]); for (let i = 0; i < 16; i += 4) P.rect(0, i, 16, 1, "#1e3a48"); },
+  warden_t_side(P) { P.fill(["#1a3a44", "#16343e"]); P.rect(5, 4, 6, 8, "#2a5a6a"); },
+  warden_t_top(P) { P.fill(["#1a3a44"]); P.rect(4, 4, 8, 8, "#5ae0d0"); },
+  warden_t_front(P) { P.fill(["#1a3a44", "#16343e"]); P.rect(3, 5, 10, 6, "#0a1a20"); P.rect(6, 6, 4, 4, "#5ae0d0"); P.rect(7, 7, 2, 2, "#ffffff"); },
+  crown_side(P) { P.fill(["#4a5a7a"]); for (let x = 0; x < 16; x += 4) P.rect(x, 0, 2, 6, "#c8e8ff"); P.rect(0, 8, 16, 3, "#5ae0d0"); },
+  crown_top(P) { P.fill(["#4a5a7a"]); P.rect(4, 4, 8, 8, "#c8e8ff"); P.rect(6, 6, 4, 4, "#ffffff"); },
+  switch_side(P) { PAINT.keeper_stone(P); P.rect(6, 3, 4, 10, "#2a2c34"); P.rect(7, 4, 2, 4, "#b8703a"); },
+  switch_top(P) { PAINT.keeper_stone(P); P.rect(5, 5, 6, 6, "#2a2c34"); P.rect(7, 4, 2, 6, "#b8703a"); },
+  tide_bricks(P) { P.fill(["#2a6a78"]); for (let r = 0; r < 4; r++) { const off = r % 2 ? 4 : 0; for (let b = -1; b < 3; b++) for (let yy = 0; yy < 3; yy++) for (let xx = 0; xx < 7; xx++) P.px(b * 8 + off + xx, r * 4 + yy, P.pick(["#3a8a96", "#4296a0", "#368290"])); } P.specks(4, ["#8af0e0"]); },
+  tide_lamp(P) { P.fill(["#2a6a78"]); P.rect(2, 2, 12, 12, "#a8f0f0"); P.rect(4, 4, 8, 8, "#e8ffff"); P.rect(6, 6, 4, 4, "#c8fff8"); },
+  vine_bricks(P) { P.fill(["#4a5446"]); for (let r = 0; r < 4; r++) { const off = r % 2 ? 4 : 0; for (let b = -1; b < 3; b++) for (let yy = 0; yy < 3; yy++) for (let xx = 0; xx < 7; xx++) P.px(b * 8 + off + xx, r * 4 + yy, P.pick(["#6a7462", "#727c6a", "#646e5c"])); } for (let x = 0; x < 16; x++) { const h = Math.floor(P.r() * 7); for (let y = 0; y < h; y++) P.px(x, y, P.pick(["#3f8a2c", "#4a9a33", "#357a25"])); } },
+  vines(P) { for (let i = 0; i < 6; i++) { const x = 1 + Math.floor(P.r() * 14), h = 8 + Math.floor(P.r() * 8); for (let y = 0; y < h; y++) { P.px(x, y, P.pick(["#3f8a2c", "#4a9a33", "#2f6a20"])); if (P.r() < 0.25) P.px(x + 1, y, "#56a63b"); } } },
+  sun_bricks(P) { P.fill(["#b8944a"]); for (let r = 0; r < 4; r++) { const off = r % 2 ? 4 : 0; for (let b = -1; b < 3; b++) for (let yy = 0; yy < 3; yy++) for (let xx = 0; xx < 7; xx++) P.px(b * 8 + off + xx, r * 4 + yy, P.pick(["#e0c47a", "#d8bc72", "#e8cc84"])); } },
+  sun_glyph(P) { PAINT.sun_bricks(P); P.rect(3, 3, 10, 10, "#c8a050"); for (let a = 0; a < 8; a++) { const t = a * Math.PI / 4; P.px(8 + Math.round(Math.cos(t) * 4), 8 + Math.round(Math.sin(t) * 4), "#7a4a10"); } P.rect(6, 6, 4, 4, "#f8d860"); },
+  mirror_side(P) { PAINT.sun_bricks(P); P.rect(5, 2, 6, 12, "#6a4a20"); },
+  mirror_top(P) { PAINT.sun_bricks(P); P.rect(2, 2, 12, 12, "#6a4a20"); P.rect(3, 3, 10, 10, "#a8b8c8"); P.rect(4, 4, 4, 2, "#e8f0f8"); },
+  mirror_top_on(P) { PAINT.sun_bricks(P); P.rect(2, 2, 12, 12, "#6a4a20"); P.rect(3, 3, 10, 10, "#fff4a0"); P.rect(5, 5, 6, 6, "#ffffff"); },
+  trap_vent(P) { P.fill(["#5a5a5a", "#545454"]); P.rect(2, 2, 12, 12, "#2a2a2a"); for (let y = 4; y < 13; y += 3) P.rect(3, y, 10, 1, "#141414"); P.rect(0, 0, 16, 1, "#7a6a3a"); P.rect(0, 15, 16, 1, "#7a6a3a"); },
+  cracked_floor(P) { P.fill(["#b8a070", "#b09868", "#c0a878"]); let x = 2, y = 1; for (let i = 0; i < 14; i++) { P.px(x, y, "#4a3a20"); x += P.r() < 0.5 ? 1 : 0; y += 1; if (x > 14) x = 14; } x = 13; y = 2; for (let i = 0; i < 10; i++) { P.px(x, y, "#4a3a20"); x -= P.r() < 0.6 ? 1 : 0; y += 1; } },
+  pedestal_top(P) { PAINT.keeper_stone(P); P.rect(3, 3, 10, 10, "#c8a050"); P.rect(5, 5, 6, 6, "#fff4c0"); },
+  pedestal_side(P) { PAINT.keeper_stone(P); P.rect(2, 0, 12, 3, "#c8a050"); P.rect(4, 3, 8, 13, "#5a5e68"); },
+  switch_top_on(P) { PAINT.keeper_stone(P); P.rect(5, 5, 6, 6, "#2a2c34"); P.rect(7, 6, 2, 6, "#5ae0d0"); },
+  ward_side(P) { PAINT.stone_bricks(P); P.rect(6, 3, 4, 10, "#2a5a8a"); P.rect(7, 4, 2, 8, "#8ad8ff"); },
+  ward_top(P) { P.fill(["#5f5f5f"]); P.rect(3, 3, 10, 10, "#2a5a8a"); P.rect(5, 5, 6, 6, "#8ad8ff"); P.rect(7, 7, 2, 2, "#ffffff"); },
+  ward_altar_side(P) { PAINT.stone_bricks(P); P.rect(5, 5, 6, 6, "#3a3a44"); P.rect(7, 7, 2, 2, "#6a6a7a"); },
+  ward_altar_top(P) { P.fill(["#6a6a6a"]); P.rect(3, 3, 10, 10, "#3a3a44"); P.rect(6, 6, 4, 4, "#1a1a22"); },
+  ward_altar_lit(P) { P.fill(["#6a6a6a"]); P.rect(3, 3, 10, 10, "#2a5a8a"); P.rect(5, 5, 6, 6, "#8ad8ff"); P.rect(7, 7, 2, 2, "#ffffff"); },
+  note_top(P) { PAINT.planks(P); P.rect(3, 2, 10, 12, "#e8dcc0"); for (let y = 4; y < 13; y += 2) P.rect(4, y, 8, 1, "#8a7a60"); },
+  return_gate(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, P.r() < 0.12 ? "#ffffff" : P.pick(["#4a8ac8", "#3a6ab0", "#5a9ad8"])); P.rect(0, 0, 16, 1, "#c8e8ff"); P.rect(0, 15, 16, 1, "#c8e8ff"); },
+  pale_bricks(P) { P.fill(["#1e1e24"]); for (let r = 0; r < 4; r++) { const off = r % 2 ? 4 : 0; for (let b = -1; b < 3; b++) for (let yy = 0; yy < 3; yy++) for (let xx = 0; xx < 7; xx++) P.px(b * 8 + off + xx, r * 4 + yy, P.pick(["#2a2a32", "#303038", "#26262e"])); } },
+  arena_ward_side(P) { PAINT.pale_bricks(P); P.rect(5, 3, 6, 10, "#14141a"); P.rect(7, 5, 2, 6, "#3a3a4a"); },
+  arena_ward_top(P) { P.fill(["#2a2a32"]); P.rect(3, 3, 10, 10, "#14141a"); P.rect(6, 6, 4, 4, "#3a3a4a"); },
+  arena_ward_lit(P) { P.fill(["#2a2a32"]); P.rect(3, 3, 10, 10, "#2a5a8a"); P.rect(5, 5, 6, 6, "#8ad8ff"); P.rect(7, 7, 2, 2, "#ffffff"); },
+  pale_altar_side(P) { PAINT.pale_bricks(P); P.rect(4, 4, 8, 8, "#0a0a0e"); P.rect(6, 6, 1, 1, "#ffffff"); P.rect(9, 6, 1, 1, "#ffffff"); },
+  pale_altar_top(P) { P.fill(["#14141a"]); P.rect(3, 3, 10, 10, "#26262e"); P.rect(6, 6, 4, 4, "#8ad8ff"); },
+  pale_effigy(P) { P.fill(["#2fa0a8", "#2a929a"]); P.rect(0, 0, 16, 4, "#5a3a20"); },
+  pale_effigy_top(P) { P.fill(["#5a3a20", "#4a2e18"]); },
+  pale_effigy_front(P) { P.fill(["#c8946a"]); P.rect(0, 0, 16, 4, "#5a3a20"); P.rect(3, 6, 3, 2, "#ffffff"); P.rect(10, 6, 3, 2, "#ffffff"); P.rect(6, 11, 4, 1, "#8a5a3a"); },
+  ward_candle(P) { P.rect(7, 7, 2, 9, "#e8e4d8"); P.rect(7, 7, 2, 1, "#c8c4b8"); P.rect(6, 3, 4, 4, "#8ad8ff"); P.rect(7, 2, 2, 2, "#ffffff"); },
   cinder_bricks(P) { P.fill(["#2a1a1a"]); for (let r = 0; r < 4; r++) { const off = r % 2 ? 4 : 0; for (let b = -1; b < 3; b++) for (let yy = 0; yy < 3; yy++) for (let xx = 0; xx < 7; xx++) P.px(b * 8 + off + xx, r * 4 + yy, P.pick(["#3a2420", "#42281f", "#34201c"])); } P.specks(4, ["#ff7a1a", "#c84a10"]); },
   cinder_altar_side(P) { PAINT.cinder_bricks(P); P.rect(5, 3, 6, 10, "#1a1010"); P.rect(7, 5, 2, 6, "#ff7a1a"); P.rect(6, 7, 4, 2, "#ff7a1a"); },
   cinder_altar_top(P) { P.fill(["#2a1a1a"]); P.rect(2, 2, 12, 12, "#3a2420"); P.rect(5, 5, 6, 6, "#120808"); P.rect(6, 6, 4, 4, "#ff9a2a"); P.rect(7, 7, 2, 2, "#fff2a0"); },
@@ -807,6 +990,14 @@ Object.assign(ICON_PAINT, {
 });
 Object.assign(ICON_PAINT, {
   shield(P) { for (let y = 1; y < 15; y++) { const w = y < 10 ? 6 : 6 - (y - 9); for (let x = 8 - w; x < 8 + w; x++) P.px(x, y, x === 8 - w || x === 7 + w || y === 1 ? "#9a9a9a" : (x + y) % 5 ? "#a87a48" : "#8a5e32"); } P.rect(7, 2, 2, 11, "#bcbcbc"); },
+  relic(P, c) { for (let y = 2; y < 15; y++) for (let x = 2; x < 15; x++) { const d = (x - 8.5) ** 2 + (y - 8.5) ** 2; if (d < 40) P.px(x, y, d > 26 ? "#2a2c34" : d > 12 ? c[0] : c[1]); } P.rect(7, 4, 2, 9, "#ffffff"); },
+  stabilizer(P, c) { P.rect(4, 2, 8, 12, "#2a2c34"); P.rect(5, 3, 6, 10, c[0]); P.rect(7, 5, 2, 6, "#ffffff"); P.rect(3, 13, 10, 2, "#b8703a"); },
+  survey_map(P) { P.rect(2, 3, 12, 10, "#e8dcc0"); P.rect(2, 3, 12, 1, "#a89870"); for (let i = 0; i < 8; i++) P.px(4 + i, 8 + Math.round(Math.sin(i) * 2), "#4a6a8a"); P.rect(10, 5, 2, 2, "#c83a2a"); },
+  echo_shard(P) { for (let i = 0; i < 8; i++) { P.px(5 + i, 11 - i, "#5ae0d0"); P.px(6 + i, 11 - i, "#2a8a8a"); } P.rect(4, 11, 2, 2, "#c8ffff"); },
+  pale_shard(P) { for (let i = 0; i < 9; i++) { P.px(5 + i, 12 - i, "#e8eef8"); P.px(6 + i, 12 - i, "#b8c4d8"); P.px(5 + i, 11 - i, "#ffffff"); } P.rect(4, 12, 2, 2, "#8a96a8"); },
+  pale_lantern(P, c) { const glow = c && c[0] ? c[0] : "#ffffff"; P.rect(6, 1, 4, 2, "#5a5a64"); P.rect(4, 3, 8, 11, "#3a3a44"); P.rect(5, 4, 6, 9, glow); P.rect(7, 6, 2, 5, "#ffffff"); P.rect(4, 14, 8, 1, "#5a5a64"); },
+  sigil(P, c) { for (let y = 2; y < 15; y++) for (let x = 2; x < 15; x++) { const d = Math.abs(x - 8.5) + Math.abs(y - 8.5); if (d < 7) P.px(x, y, d > 5 ? "#3a3a44" : c[0]); } P.rect(7, 5, 3, 7, "#ffffff"); P.rect(5, 7, 7, 3, "#ffffff"); },
+  ward_heart(P) { for (const [y, a, b] of [[3, 3, 6], [3, 9, 12], [4, 2, 13], [5, 2, 13], [6, 2, 13], [7, 3, 12], [8, 4, 11], [9, 5, 10], [10, 6, 9], [11, 7, 8]]) for (let x = a; x <= b; x++) P.px(x, y, P.pick(["#3a7ad8", "#5a9ae8", "#2a5ab8"])); P.rect(5, 5, 2, 2, "#ffffff"); P.rect(8, 6, 3, 1, "#c8e8ff"); },
   eye_cinder(P) { for (let y = 3; y < 14; y++) for (let x = 3; x < 14; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 25) P.px(x, y, x + y < 15 ? "#ff9a2a" : "#c84a10"); P.rect(7, 5, 3, 7, "#2a0a04"); P.rect(6, 7, 1, 3, "#2a0a04"); P.rect(10, 7, 1, 3, "#2a0a04"); P.rect(8, 7, 1, 2, "#fff2a0"); },
   ember_heart(P) { for (const [y, a, b] of [[3, 3, 6], [3, 9, 12], [4, 2, 13], [5, 2, 13], [6, 2, 13], [7, 3, 12], [8, 4, 11], [9, 5, 10], [10, 6, 9], [11, 7, 8]]) for (let x = a; x <= b; x++) P.px(x, y, P.pick(["#c83a10", "#e05a1a", "#a82a0a"])); P.rect(5, 5, 2, 2, "#ffd34d"); P.rect(8, 6, 3, 1, "#ffb030"); P.rect(6, 8, 2, 1, "#ffb030"); },
   compass(P) { for (let y = 2; y < 15; y++) for (let x = 2; x < 15; x++) { const d = (x - 8.5) ** 2 + (y - 8.5) ** 2; if (d < 42) P.px(x, y, d > 30 ? "#8a8a8a" : "#e8e8e8"); } P.rect(8, 4, 1, 5, "#e04030"); P.rect(8, 9, 1, 4, "#3a3a3a"); P.px(8, 8, "#222"); },

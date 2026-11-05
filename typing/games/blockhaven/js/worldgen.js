@@ -151,7 +151,7 @@ export class Generator {
     else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
     if (ver >= 4) for (const s of this.strongholds) if (Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
     if (ver >= 5) { const vp = this.villagePiece(cx, cz); if (vp) this.buildVillagePiece(data, vp, x0, z0); }
-    return data;
+    return applyStamps(this, data, cx, cz);   // hand-built sites (the Keeper excavation, temples) in never-visited land
   }
 
   // ----- villages: a 3×3 group of chunks around a plaza with a well -----
@@ -576,6 +576,80 @@ function citadelAt(dx, y, dz, d, seed) {
     if (u >= 18 && u < 26 && Math.abs(v) <= 1 && y <= F + Math.floor(u - 18) + 1) return B.BASALT;
   }
   return B.AIR;
+}
+// ----- dimensions made from a packed map (the Deep, the Echo Expanse). Chunks are unpacked only when loaded.
+// Outside the map: solid rock (the Deep) or empty sky (the Expanse).
+export class MapGen {
+  constructor(map, kind) { this.map = map; this.kind = kind; this.version = CURRENT_GEN; this.seed = 0x10571057; }
+  isNether() { return false; }
+  isMap() { return this.kind; }
+  column(x, z) { return { h: 40, biome: this.kind }; }
+  findSpawn() { const a = this.map.meta.arrival; return { x: a.x, z: a.z }; }
+  generate(cx, cz) {
+    const k = cx + "," + cz;
+    if (this.map.has(k)) return this.map.decode(k);
+    const data = new Uint16Array(CHUNK * CHUNK * HEIGHT);
+    if (this.kind !== "expanse") { data.fill(this.map.meta.fill || B.DARKSLATE); data.fill(B.BEDROCK, 0, CHUNK * CHUNK); data.fill(B.BEDROCK, CHUNK * CHUNK * (HEIGHT - 1)); }   // the Deep and the temples sit inside solid rock
+    return data;
+  }
+}
+// Hand-built structures stamped into the Surface (only in places nobody has visited yet). stamp: { x, z, cells (Uint16Array), size }
+export function applyStamps(gen, data, cx, cz) {
+  for (const st of gen.stamps || []) {
+    const x0 = cx * CHUNK, z0 = cz * CHUNK;
+    if (x0 >= st.x + st.size || x0 + CHUNK <= st.x || z0 >= st.z + st.size || z0 + CHUNK <= st.z) continue;
+    for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
+      const sx = x0 + lx - st.x, sz = z0 + lz - st.z;
+      if (sx < 0 || sz < 0 || sx >= st.size || sz >= st.size) continue;
+      for (let y = 1; y < HEIGHT; y++) { const v = st.cells[sx + sz * st.size + y * st.size * st.size]; if (v !== 65535) data[idx(lx, y, lz)] = v; }
+      // the edge slopes smoothly from the site's level down (or up) to the natural ground, so you can always walk in
+      const b = st.blend; if (!b) continue;
+      const d = Math.hypot(sx - st.size / 2 + 0.5, sz - st.size / 2 + 0.5);
+      if (d < b.r0 || d > b.r1) continue;
+      const h = gen.column(x0 + lx, z0 + lz).h; if (h < SEA) continue;
+      const target = Math.round(b.g + (h - b.g) * (d - b.r0) / (b.r1 - b.r0));
+      for (let y = Math.max(1, target - 3); y <= target; y++) data[idx(lx, y, lz)] = y === target ? b.top : b.under;
+      for (let y = target + 1; y <= Math.min(HEIGHT - 2, Math.max(h, b.g) + 8); y++) data[idx(lx, y, lz)] = B.AIR;
+    }
+  }
+  return data;
+}
+// ----- the Forsaken World: the packaged core map (maps/forsaken-v1.bin) plus plain misty scenery around it -----
+// The core is copied fresh from the template every time a chunk loads; the player's changes are saved separately
+// (dims.forsaken.mods) and laid on top, so the template itself never changes. Past 128 blocks a wall of mist-hidden
+// bedrock keeps the adventure bounded.
+export const FORSAKEN_EDGE = 128;
+export class ForsakenGen {
+  constructor(template) {
+    this.t = template; this.version = CURRENT_GEN;
+    this.seed = 0x5eed4f57; this.n = new Noise(this.seed);
+    this.r = template.meta.core.min; this.size = template.meta.core.size;
+  }
+  isNether() { return false; }
+  isForsaken() { return true; }
+  column(x, z) { return { h: 34, biome: x < -18 && z < -18 ? "pale" : "forsaken" }; }
+  findSpawn() { const a = this.t.meta.arrival; return { x: a.x, z: a.z }; }
+  inCore(cx, cz) { const lo = this.r / CHUNK, hi = (this.r + this.size) / CHUNK; return cx >= lo && cx < hi && cz >= lo && cz < hi; }
+  generate(cx, cz) {
+    if (this.inCore(cx, cz)) return this.t.chunks.get(cx + "," + cz).slice();
+    // scenery: low misty hills, bare trees, and the edge wall
+    const data = new Uint16Array(CHUNK * CHUNK * HEIGHT), x0 = cx * CHUNK, z0 = cz * CHUNK;
+    const r = rng(this.seed ^ Math.imul(cx, 83492791) ^ Math.imul(cz, 297121507));
+    for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
+      const x = x0 + lx, z = z0 + lz, edge = Math.max(Math.abs(x + 0.5), Math.abs(z + 0.5)) >= FORSAKEN_EDGE;
+      const h = Math.round(34 + this.n.n2(x / 46, z / 46) * 4 + this.n.n2(x / 16, z / 16) * 1.6);
+      data[idx(lx, 0, lz)] = B.BEDROCK;
+      for (let y = 1; y <= (edge ? HEIGHT - 2 : h); y++) data[idx(lx, y, lz)] = edge ? B.BEDROCK : y < h - 3 ? B.STONE : y < h ? B.DIRT : B.GRASS;
+    }
+    for (let t = 0; t < 4; t++) {   // bare trees
+      const lx = 2 + Math.floor(r() * 12), lz = 2 + Math.floor(r() * 12);
+      let y = HEIGHT - 2; while (y > 1 && data[idx(lx, y, lz)] === B.AIR) y--;
+      if (data[idx(lx, y, lz)] !== B.GRASS) continue;
+      const hgt = 5 + Math.floor(r() * 4); for (let k = 1; k <= hgt; k++) data[idx(lx, y + k, lz)] = B.LOG;
+      if (lx > 0) data[idx(lx - 1, y + hgt - 1, lz)] = B.LOG;
+    }
+    return data;
+  }
 }
 export const END_TOP = 48;
 export class EndGen {
