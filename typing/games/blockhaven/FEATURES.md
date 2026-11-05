@@ -238,12 +238,33 @@ Names: the realm is the **Echo Expanse** (our End is already "the Hollow"), and 
 | Relics and rewards | Done | Beating a guardian opens its vault: take the relic from the pedestal. Rewards: Tidecaller Charm (keeps your breath up underwater while held), Leafstep Boots (no fall damage), Sunward Helm (fire can't hurt you), 120 XP each. New creatures: Tide Crab, Vinewalker, Sun Scarab. |
 | Advancements | Done | Three more: Temple Explorer, Guardians at Rest, Keeper of Relics. |
 
+## Milestone 12: the Sparkworks Update (redstone). Part A: signals (built and browser-tested 2026-11-05, not published)
+Design: `MILESTONE-12-REDSTONE.md`. Rules follow Minecraft Java Edition 1.20.1. "Sparkdust" is Blockhaven's name for redstone. Code: `js/redstone.js` (signal engine), `js/shapes.js` (small shapes, wire connections, collision boxes).
+
+| Feature | Status | Notes |
+|---|---|---|
+| Bigger texture sheet | Done | 16 × 32 tiles (was 16 × 16, which was nearly full). 40 new textures |
+| Spark Ore, Darkslate Spark Ore | Done | Height 1 to 16, about 26 per chunk, only in land first visited after this update (land version 7). Darkslate version in the Deep. Iron pickaxe; drops 4 to 5 Sparkdust; smelts to 1. Glows when clicked, mined, or stepped on |
+| Sparkdust wire | Done | Strength 15 drops 1 per block; connects to parts, climbs up and down one block (not through a solid block above); a lone wire is a cross that powers all sides, right-click makes it a dot. Brighter when stronger. Pops off without a block under it |
+| Strong and weak power | Done | Torches under a block, switches on a block, plates on a block, and repeaters/comparators facing a block power it strongly (it then powers wire next to it). Wire on or pointing into a block powers it weakly (parts, not wire) |
+| Block of Sparkdust, Spark Torch | Done | Torch turns off 1 redstone tick after its block is powered; burns out after 8+ flips in 3 seconds, relights after 8 seconds. Floor and wall torches |
+| Lever, buttons, pressure plates | Done | Floor, wall, and ceiling. Stone button 1 s, wooden buttons 1.5 s (arrows press them). Wood plates: anything; stone: players and creatures; gold: count up to 15; iron: count ÷ 10. Plates stay down 1 s (weighted 0.5 s) after you step off |
+| Repeater | Done | Delay 1 to 4 (right-click), one way, refreshes to 15, stretches short pulses, locked by a powered repeater or comparator at its side |
+| Comparator | Done | Compare and subtract (right-click). Reads chests, Shell Boxes, furnaces (Java's fullness formula), Respawn Anchors, Hollow Portal Frames, bee nests and hives, also through one solid block |
+| Spark Lamp, Note Block, Target, Daylight Sensor | Done | Lamp: on at once, off 2 ticks later. Note block: 25 pitches, 16 instruments from the block below (snow, quartz, and crimson/warped caps stand in for packed ice, bone, and pumpkins), colored notes. Target: 15 for a bullseye down to 1 at the edge. Daylight sensor: follows the sun, right-click for night mode |
+| Powered doors, trapdoors, fence gates, Blast Blocks | Done | Iron Door and Iron Trapdoor (signal only); 4 wooden trapdoors, fences, and fence gates (4 woods). Doors open from power on either half. Blast Blocks light when powered |
+| Movement | Done | You step up onto low blocks (repeaters, sensors, beds) like Minecraft's 0.6-block step. Fences and closed gates are 1.5 tall |
+| Safety limit | Done | 6,000 real updates per game tick (plus a high cap on quick checks); a machine that goes over pauses a moment with a message. Tested: 20 clocks at once use 0.4 ms per tick; frames stayed under 16 ms. Signal-only redraws are spread over frames |
+| Saving | Done | Save version 4 (version 3 backup kept). Timers and comparator outputs are saved per dimension and resume after loading |
+| Creative tab, recipes, trade | Done | "Mechanisms" tab. Recipes from the design. Clerics sell 2 Sparkdust for 1 Jade |
+| Parts B to E (movers, items, rails, finish) | Missing | See the design |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
 | More wildlife (turtles, axolotls, wolves in snow, goats…) | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
-| Redstone-style mechanisms, minecarts | Missing |
+| Redstone-style mechanisms, minecarts | Part A done (Milestone 12); B to E next |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
 | Building palette (slabs, stairs, fences, colored blocks, signs…) | Missing |
 | Multiplayer | Blocked: the site is static (GitHub Pages). A shared world needs a real-time server (for example a WebSocket game server with an authoritative world state), a hosting account, and a privacy review, because it would collect player connections. |
