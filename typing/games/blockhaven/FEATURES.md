@@ -257,7 +257,7 @@ Design: `MILESTONE-12-REDSTONE.md`. Rules follow Minecraft Java Edition 1.20.1. 
 | Safety limit | Done | 6,000 real updates per game tick (plus a high cap on quick checks); a machine that goes over pauses a moment with a message. Tested: 20 clocks at once use 0.4 ms per tick; frames stayed under 16 ms. Signal-only redraws are spread over frames |
 | Saving | Done | Save version 4 (version 3 backup kept). Timers and comparator outputs are saved per dimension and resume after loading |
 | Creative tab, recipes, trade | Done | "Mechanisms" tab. Recipes from the design. Clerics sell 2 Sparkdust for 1 Jade |
-| Parts D and E (rails, finish) | Missing | See the design |
+| Part E (finish: advancements, guide, sounds) | Missing | See the design |
 
 ## Milestone 12, Part B: movers and sensors (built and browser-tested 2026-11-05, not published)
 
@@ -286,12 +286,30 @@ Design: `MILESTONE-12-REDSTONE.md`. Rules follow Minecraft Java Edition 1.20.1. 
 | Item counts | Done | Every transfer moves exactly one item and is checked before anything is taken, so items are never copied or lost (tested across sorter, smelter, dropper, dispenser, and Crafter runs). Dropped items now merge with a matching stack lying in the same spot, and up to 150 dropped stacks can lie around (was 90) |
 | Fixes found while testing | Done | Wire stepping down off glass now keeps its power when recalculated. Torch burnout counts only switch-offs (Java's rule). The game clock can't run backwards |
 
+## Milestone 12, Part D: rails and minecarts (built and browser-tested 2026-11-05, not published)
+Code: `js/rails.js` (rail shapes and cart movement), carts in `js/entities.js`, rail power in `js/redstone.js`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Rail | Done | 16 from 6 iron + a stick. Joins its neighbors automatically: straight, curves, and slopes up one block. A finished track keeps its shape; at a T-junction a signal flips which way it bends (unpowered toward +z/+x, powered the other way). Needs a solid block (or a hopper or glass) under it; pistons push rails |
+| Powered Rail | Done | 6 from gold + stick + Sparkdust. Powered: speeds carts up to 8 blocks/s, and kicks a stopped cart away from a wall. Unpowered: a brake. Power travels up to 8 rails along a straight line |
+| Detector Rail | Done | Gives a signal (and powers the block under it) while a cart is on it, for half a second after it leaves. A comparator reads a chest or hopper cart's contents through it |
+| Activator Rail | Done | When powered: throws riders (players and creatures) out, lights Blast Block carts, and switches hopper carts off (on again when unpowered) |
+| Minecart | Done | 5 iron. Place it on a rail; right-click to ride (W gives it a push, C climbs out). Follows the track and keeps its speed through curves, rolls downhill, stops at blocks, and rolls off the end of a track into open air. Ridden carts glide much farther than empty ones (Java's drag). Walking into a cart shoves it; carts bump and pass their speed along. A creature that bumps into an empty cart climbs in and rides along until an activator rail or a broken cart lets it out |
+| Minecart with Chest / with Hopper | Done | 27 / 5 slots (right-click to open). A hopper under the track empties them; a hopper pointing into the cart's spot fills them. The hopper cart picks up items it rolls over and pulls from containers above the track |
+| Minecart with Furnace | Done | Right-click with coal: 3 minutes of chugging away from you (smoke while it burns), pushing carts in front of it |
+| Minecart with Blast Block | Done | Lit by an activator rail or Flint and Steel; explodes 4 seconds later (bigger when moving fast). An explosion sets it off right away |
+| Boat with Chest | Done | Boat + chest. Right-click to ride (one seat), crouch + right-click to open its 27 slots |
+| Saving and breaking | Done | Carts and chest boats keep their position, contents, fuel, and riders when saved. Breaking one drops the cart item plus everything inside |
+| Dispensers | Done | Put minecarts onto the rail in front of them |
+| Speed | Done | 12 carts on a loop: median 0.6 ms per frame, worst 16.3 ms |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
 | More wildlife (turtles, axolotls, wolves in snow, goats…) | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
-| Redstone-style mechanisms, minecarts | Parts A to C done (Milestone 12); D and E next |
+| Redstone-style mechanisms, minecarts | Parts A to D done (Milestone 12); E next |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
 | Building palette (slabs, stairs, fences, colored blocks, signs…) | Missing |
 | Multiplayer | Blocked: the site is static (GitHub Pages). A shared world needs a real-time server (for example a WebSocket game server with an authoritative world state), a hosting account, and a privacy review, because it would collect player connections. |
