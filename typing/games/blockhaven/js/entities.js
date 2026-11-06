@@ -1038,6 +1038,172 @@ function applyEchoArtwork() {
 }
 applyEchoArtwork();
 
+// ----- Bestiary pass 2 (2026-11-06): the Ember Depths, wildlife, and legends, from Mr. Watford's bestiary sheets
+// (F "Ember Depths & the Hollow", G "Wildlife & Companions", C "Legacy Campaign Legends"). Colors and materials follow
+// the sheets; faces and details are Blockhaven's own. Animated part names stay the same; details ride on them.
+// Side faces: on a box's right (+x) face, x = 0 is the front (+z) end; on its left (-x) face, x = 15 is the front.
+function applyBestiaryPass2() {
+  const parts = id => SPECIES[id].model.parts;
+  const find = (id, name) => parts(id).find(p => p.name === name);
+  const add = (id, name, parent, size, pivot, paint) => parts(id).push({ name, parent, size, pivot, off: [0, 0, 0], paint });
+  const sides = draw => ({ right: P => draw(P, (x, w = 1) => x), left: P => draw(P, (x, w = 1) => 16 - x - w) });
+  const paint = (id, name, p) => { const q = find(id, name); if (q) q.paint = p; };
+
+  // ======================= the Ember Depths =======================
+  const CHAR = ["#2a2220", "#332a26", "#251e1c"], LAVA = ["#ff8a1a", "#ffb030", "#ff6a10"];
+  const seams = P => { P.fill(CHAR); P.rect(2, 3, 5, 1, LAVA[0]); P.rect(6, 3, 1, 5, LAVA[1]); P.rect(9, 9, 5, 1, LAVA[2]); P.rect(11, 6, 1, 4, LAVA[0]); P.rect(3, 12, 3, 1, LAVA[1]); };
+  // Flare: a charcoal block split by glowing seams, with molten rods
+  paint("flare", "head", { all: seams, front: P => { seams(P); P.rect(3, 6, 3, 3, "#ffe070"); P.rect(10, 6, 3, 3, "#ffe070"); P.rect(4, 7, 1, 1, "#fff8d0"); P.rect(11, 7, 1, 1, "#fff8d0"); } });
+  for (let i = 0; i < 10; i++) paint("flare", "rod" + i, { all: P => { P.fill(LAVA); for (let y = 3; y < 16; y += 5) P.rect(0, y, 16, 2, CHAR[0]); P.rect(0, 0, 16, 2, "#ffe070"); } });
+  // Wailer: a pale, sorrowful spirit with glowing tear trails
+  const PALE = ["#d8d0dc", "#ccc4d2", "#e2dae6"];
+  paint("wailer", "body", { all: P => { P.fill(PALE); spk(P, 10, ["#b8b0c0", "#c4bccc"]); }, front: P => {
+    P.fill(PALE); spk(P, 6, ["#b8b0c0"]);
+    for (const x of [3, 10]) { P.rect(x, 5, 3, 1, "#5a5262"); P.px(x - 1, 6, "#5a5262"); P.px(x + 3, 6, "#5a5262"); P.rect(x + 1, 6, 1, 6, "#8ad8f0"); }
+    P.rect(7, 11, 2, 2, "#4a4252");
+  } });
+  for (let i = 0; i < 9; i++) paint("wailer", "t" + i, { all: P => { P.fill(PALE); P.rect(0, 10, 16, 6, "#a8a0b0"); } });
+  // the Boarkin family: leather and gold (Boarkin), iron plates and a red sash (Brute), moss and rot (Rotboar)
+  const tuskP = { all: solid(["#efe4c8", "#e2d6b8"]) };
+  const boarHead = (skin, brow, eye) => ({ all: P => { P.fill(skin); P.rect(0, 0, 16, 3, brow); spk(P, 6, [brow]); }, front: face(skin, P => { P.rect(0, 0, 16, 3, brow); P.rect(3, 5, 3, 2, eye); P.rect(10, 5, 3, 2, eye); P.rect(2, 4, 4, 1, brow); P.rect(10, 4, 4, 1, brow); }) });
+  const snoutP = c => ({ all: solid([c]), front: P => { P.fill([c]); P.rect(3, 5, 3, 5, "#3a2018"); P.rect(10, 5, 3, 5, "#3a2018"); } });
+  for (const id of ["boarkin", "brute", "rotboar"]) for (const [side, s] of [["R", -1], ["L", 1]]) add(id, "tusk" + side, "head", [1, 2.5, 1], [s * 2.5, -2.5, 4.5], tuskP);
+  const SKIN = ["#a86a52", "#9c604a", "#b4765c"], LEATHER = ["#6a4a2e", "#5e4028", "#74522f"];
+  paint("boarkin", "head", boarHead(SKIN, "#6a3a28", "#2a1a10")); paint("boarkin", "snout", snoutP("#c8846a"));
+  for (const e of ["earR", "earL"]) paint("boarkin", e, { all: solid(SKIN) });
+  paint("boarkin", "body", { all: P => { P.fill(LEATHER); P.rect(0, 11, 16, 2, "#3a2414"); P.rect(6, 10, 4, 4, "#e8b83a"); }, front: P => { P.fill(LEATHER); for (let k = 0; k < 10; k++) P.rect(2 + k, k, 2, 1, "#3a2414"); P.rect(0, 11, 16, 2, "#3a2414"); P.rect(6, 10, 4, 4, "#e8b83a"); P.rect(7, 11, 2, 2, "#8a6a1a"); } });
+  for (const a of ["armR", "armL"]) paint("boarkin", a, { all: P => { P.fill(SKIN); P.rect(0, 10, 16, 6, "#4a3220"); } });
+  for (const l of ["legR", "legL"]) paint("boarkin", l, { all: P => { P.fill(["#4a4a2a", "#42422a"]); P.rect(0, 12, 16, 4, "#2a2018"); } });
+  const IRON = ["#3a3a42", "#44444c", "#34343a"];
+  paint("brute", "head", boarHead(["#9a5a44", "#8e5240"], "#4a2418", "#ffb030")); paint("brute", "snout", snoutP("#b87660"));
+  for (const e of ["earR", "earL"]) paint("brute", e, { all: solid(["#9a5a44"]) });
+  paint("brute", "body", { all: P => { P.fill(["#9a5a44", "#8e5240"]); P.rect(0, 10, 16, 4, "#9a1e1e"); P.rect(6, 10, 4, 4, "#e8b83a"); } });
+  for (const [side, s] of [["R", -1], ["L", 1]]) {
+    add("brute", "plate" + side, "arm" + side, [6, 4, 6], [0, 3, 0], { all: P => { P.fill(IRON); P.rect(0, 0, 16, 2, "#5a5a64"); P.rect(7, 6, 2, 2, "#e8b83a"); } });
+    paint("brute", "arm" + side, { all: P => { P.fill(["#9a5a44", "#8e5240"]); P.rect(0, 11, 16, 5, IRON[0]); } });
+    paint("brute", "leg" + side, { all: P => { P.fill(["#3a2a22"]); P.rect(0, 0, 16, 6, "#8a1a1a"); P.rect(0, 13, 16, 3, IRON[0]); } });
+  }
+  const ROT = ["#a8a888", "#9aa07a", "#8a9a6a"], MOSS = ["#4a6a24", "#5a7a2c", "#3a5a1c"];
+  paint("rotboar", "head", { all: P => { P.fill(ROT); spk(P, 10, MOSS); P.rect(0, 0, 16, 3, MOSS[2]); }, front: face(ROT, P => { P.rect(0, 0, 16, 3, MOSS[2]); P.rect(3, 5, 3, 2, "#e8c040"); P.rect(10, 5, 3, 2, "#e8c040"); spk(P, 4, MOSS); }) });
+  paint("rotboar", "snout", snoutP("#b8b094"));
+  for (const e of ["earR", "earL"]) paint("rotboar", e, { all: P => { P.fill(ROT); spk(P, 4, MOSS); } });
+  paint("rotboar", "body", { all: P => { P.fill(["#7a6a4a", "#6e5e40"]); spk(P, 12, MOSS); for (const y of [3, 6, 9]) P.rect(4, y, 8, 1, "#5a4a30"); P.rect(0, 12, 16, 2, "#3a2a18"); } });
+  for (const a of ["armR", "armL"]) paint("rotboar", a, { all: P => { P.fill(ROT); spk(P, 8, MOSS); } });
+  for (const l of ["legR", "legL"]) paint("rotboar", l, { all: P => { P.fill(["#4a4030", "#40382a"]); spk(P, 6, MOSS); } });
+  // Hogbeast: dark red hide, a ridge of black spikes, big ivory tusks
+  const HIDE = ["#8a3a2e", "#7a3228", "#9a4436"];
+  paint("hogbeast", "body", { all: P => { P.fill(HIDE); spk(P, 12, ["#6a2a20", "#a85040"]); }, top: P => { P.fill(["#4a2224", "#3a1c1e"]); spk(P, 8, HIDE); } });
+  paint("hogbeast", "head", { all: P => { P.fill(HIDE); spk(P, 8, ["#6a2a20"]); }, front: P => { P.fill(HIDE); P.rect(2, 3, 3, 2, "#ffb030"); P.rect(11, 3, 3, 2, "#ffb030"); P.rect(4, 8, 8, 6, "#b85a48"); P.rect(5, 10, 2, 2, "#3a1814"); P.rect(9, 10, 2, 2, "#3a1814"); } });
+  for (const t of ["tuskR", "tuskL"]) { const q = find("hogbeast", t); q.paint = tuskP; q.size = [2.5, 6, 2.5]; }
+  for (const l of ["legFR", "legFL", "legBR", "legBL"]) paint("hogbeast", l, { all: P => { P.fill(HIDE); P.rect(0, 12, 16, 4, "#2a1414"); } });
+  for (let i = 0; i < 5; i++) add("hogbeast", "spike" + i, "body", [3, 5 - (i % 2), 3], [0, 8, 9 - i * 4.5], { all: solid(["#2a1a1e", "#3a2228"]) });
+  // Magma Gloop: a cube of black crust split by lava, with glowing eyes
+  paint("magma", "body", { all: seams, front: P => { seams(P); P.rect(3, 5, 3, 3, "#ffd040"); P.rect(10, 5, 3, 3, "#ffd040"); } });
+  // Lavastrider: a red, ember-crusted walker with glowing whiskers of flame
+  paint("strider", "body", { all: P => { P.fill(["#a82a2a", "#962424", "#b03030"]); spk(P, 10, ["#7a1a1a"]); }, top: P => { P.fill(["#7a1a1a", "#6a1616"]); P.rect(3, 4, 8, 1, LAVA[0]); P.rect(9, 9, 4, 1, LAVA[1]); },
+    front: P => { P.fill(["#a82a2a", "#962424"]); P.rect(3, 6, 3, 2, "#ffd040"); P.rect(10, 6, 3, 2, "#ffd040"); P.rect(5, 11, 6, 1, "#4a0e0e"); } });
+  for (const l of ["legR", "legL"]) paint("strider", l, { all: P => { P.fill(["#4a3a4a", "#3e3240"]); P.rect(0, 13, 16, 3, "#2a2028"); } });
+  for (let i = 0; i < 6; i++) { const s = i % 2 ? 1 : -1; add("strider", "ember" + i, "body", [4, 1, 1], [s * 9, 2 + Math.floor(i / 2) * 3, 2 - Math.floor(i / 2) * 2], { all: solid(LAVA) }); }
+  // Sheller: a violet shell with a carved square spiral, a golden creature inside
+  const SHELL = ["#8a5a8a", "#7a4e7a", "#946494"];
+  paint("sheller", "lid", { all: P => { P.fill(SHELL); P.rect(0, 14, 16, 2, "#5e3a5e"); }, top: P => { P.fill(SHELL); for (const k of [1, 4, 7]) { P.rect(k, k, 16 - 2 * k, 1, "#c89ac8"); P.rect(k, 15 - k, 16 - 2 * k, 1, "#c89ac8"); P.rect(k, k, 1, 16 - 2 * k, "#c89ac8"); P.rect(15 - k, k, 1, 16 - 2 * k, "#c89ac8"); } } });
+  paint("sheller", "base", { all: P => { P.fill(["#6a4468", "#5e3a5e"]); P.rect(0, 0, 16, 2, "#946494"); } });
+  paint("sheller", "head", { all: solid(["#e8b83a", "#dcae34"]), front: P => { P.fill(["#e8b83a"]); P.rect(3, 6, 3, 3, "#3a2a10"); P.rect(10, 6, 3, 3, "#3a2a10"); } });
+
+  // ======================= wildlife =======================
+  // Scout: a grey wolf with a darker saddle, a pale belly, and a red collar with a golden tag
+  const WOLF = ["#a8a8a4", "#9c9c98", "#b2b2ae"];
+  paint("scout", "body", { all: P => { P.fill(WOLF); }, top: P => { P.fill(["#7a7a76", "#86867f"]); }, bottom: solid(["#d8d8d0"]) });
+  paint("scout", "head", { all: solid(WOLF), front: P => { P.fill(WOLF); P.rect(2, 5, 3, 2, "#2a2a28"); P.rect(11, 5, 3, 2, "#2a2a28"); P.rect(1, 3, 5, 1, "#7a7a76"); P.rect(10, 3, 5, 1, "#7a7a76"); } });
+  paint("scout", "snout", { all: solid(["#d0d0c8"]), front: P => { P.fill(["#d0d0c8"]); P.rect(5, 2, 6, 4, "#1a1a1a"); } });
+  for (const e of ["earR", "earL"]) paint("scout", e, { all: P => { P.fill(WOLF); P.rect(0, 0, 16, 5, "#5a5a56"); } });
+  paint("scout", "tail", { all: P => { P.fill(WOLF); }, back: solid(["#5a5a56"]) });
+  add("scout", "tag", "collar", [2, 2, 0.6], [0, -1.6, 1.3], { all: solid(["#f0c040", "#e0b030"]) });
+  // Whisker: an orange tabby with a cream belly, green-gold eyes, and a striped tail
+  const TABBY = ["#e0902a", "#d8862a", "#e89a34"], stripes = P => { P.fill(TABBY); for (let y = 1; y < 16; y += 4) P.rect(0, y, 16, 2, "#b0601a"); };
+  paint("whisker", "body", { all: stripes, bottom: solid(["#f4e8d8"]) });
+  paint("whisker", "head", { all: stripes, front: P => { P.fill(TABBY); P.rect(2, 5, 4, 3, "#c8d040"); P.rect(10, 5, 4, 3, "#c8d040"); P.rect(3, 5, 2, 3, "#1a1a10"); P.rect(11, 5, 2, 3, "#1a1a10"); P.rect(6, 10, 4, 4, "#f4e8d8"); P.rect(7, 10, 2, 1, "#e88a9a"); for (const y of [11, 13]) { P.rect(0, y, 4, 1, "#ffffff"); P.rect(12, y, 4, 1, "#ffffff"); } } });
+  for (const e of ["earR", "earL"]) paint("whisker", e, { all: solid(TABBY), front: P => { P.fill(TABBY); P.rect(4, 4, 8, 12, "#f0a0a8"); } });
+  paint("whisker", "tail", { all: stripes });
+  for (const l of ["legFR", "legFL", "legBR", "legBL"]) paint("whisker", l, { all: P => { P.fill(TABBY); P.rect(0, 12, 16, 4, "#f4e8d8"); } });
+  // Trotter: a chestnut with a white blaze, a dark mane, pinto patches, and a brown saddle with a golden buckle
+  paint("trotter", "head", { all: solid(["#8a5a32", "#80522c"]), front: P => { P.fill(["#8a5a32"]); P.rect(6, 0, 4, 16, "#f0e8dc"); } });
+  paint("trotter", "mane", { all: solid(["#2a1a10", "#34200f"]) });
+  paint("trotter", "tail", { all: solid(["#2a1a10", "#34200f"]) });
+  paint("trotter", "body", { all: P => { P.fill(["#8a5a32", "#80522c", "#94603a"]); }, ...sides((P, X) => { P.fill(["#8a5a32", "#80522c", "#94603a"]); P.rect(X(9, 5), 6, 5, 7, "#f0e8dc"); P.rect(X(11, 3), 3, 3, 3, "#f0e8dc"); }) });
+  paint("trotter", "saddle", { all: P => { P.fill(["#6a3a1a", "#5e3418"]); P.rect(0, 0, 16, 2, "#3a2010"); P.rect(6, 8, 4, 4, "#e8b83a"); } });
+  // Minnow: silver with a darker back and a pale belly
+  paint("minnow", "body", { all: solid(["#9aa8b0"]), top: solid(["#6a7a84"]), bottom: solid(["#e0e4e0"]), ...sides((P, X) => { P.fill(["#9aa8b0", "#a4b0b8"]); P.rect(0, 0, 16, 5, "#6a7a84"); P.rect(0, 11, 16, 5, "#e0e4e0"); P.rect(X(2, 3), 5, 3, 3, "#1a1a1a"); }) });
+  paint("minnow", "tail", { all: solid(["#8a98a2", "#7a8892"]) }); paint("minnow", "fin", { all: solid(["#7a8892"]) });
+  // Puffer: golden with a cream belly and stubby spikes all around
+  paint("puffer", "body", { all: solid(["#e8c840", "#dcbc38"]), bottom: solid(["#f4ecc8"]), front: P => { P.fill(["#e8c840"]); P.rect(2, 4, 4, 4, "#1a1a1a"); P.rect(10, 4, 4, 4, "#1a1a1a"); P.rect(3, 4, 1, 1, "#ffffff"); P.rect(11, 4, 1, 1, "#ffffff"); P.rect(6, 10, 4, 3, "#c86a2a"); } });
+  for (const [x, y, z] of [[0, 3, 0], [0, -3, 0], [3, 0, 0], [-3, 0, 0], [2.2, 2.2, 1.5], [-2.2, 2.2, 1.5], [2.2, -2.2, -1.5], [-2.2, -2.2, -1.5], [0, 2.4, -2.4], [0, -2.4, 2.4]]) add("puffer", `spine${x}_${y}_${z}`, "body", [0.8, 0.8, 0.8], [x, y, z], { all: solid(["#d8a020"]) });
+  // Inkling: deep indigo, pale eyes, lighter undersides on its tentacles
+  paint("squid", "body", { all: P => { P.fill(["#2a2a5a", "#323268", "#26264e"]); spk(P, 8, ["#3e3e7a"]); }, front: P => { P.fill(["#2a2a5a", "#323268"]); P.rect(2, 7, 4, 4, "#e8e8f8"); P.rect(10, 7, 4, 4, "#e8e8f8"); P.rect(3, 8, 2, 2, "#1a1a2a"); P.rect(11, 8, 2, 2, "#1a1a2a"); } });
+  for (let i = 0; i < 8; i++) paint("squid", "t" + i, { all: P => { P.fill(["#2a2a5a", "#323268"]); P.rect(0, 12, 16, 4, "#5a5a9a"); }, front: P => { P.fill(["#4a4a88"]); } });
+  // Splasher: blue-grey above, cream below
+  paint("dolphin", "body", { all: solid(["#7a8aa8"]), top: solid(["#6a7a98", "#72829e"]), bottom: solid(["#e8e4d8"]), ...sides((P, X) => { P.fill(["#7a8aa8", "#8494b0"]); P.rect(0, 10, 16, 6, "#e8e4d8"); P.rect(X(2, 2), 6, 2, 2, "#1a1a2a"); }) });
+  paint("dolphin", "snout", { all: solid(["#8494b0"]), bottom: solid(["#e8e4d8"]) });
+  for (const n of ["dorsal", "finR", "finL", "fluke"]) paint("dolphin", n, { all: solid(["#5a6a88", "#62728e"]) });
+  paint("dolphin", "tail", { all: solid(["#7a8aa8"]), bottom: solid(["#e8e4d8"]) });
+  // Pouncer: orange with a white chest and cheeks, dark socks, a white-tipped tail
+  const FOX = ["#e0782a", "#d87024", "#e88234"];
+  paint("fox", "body", { all: solid(FOX), bottom: solid(["#f4ece0"]) });
+  paint("fox", "head", { all: solid(FOX), front: P => { P.fill(FOX); P.rect(0, 9, 5, 7, "#f4ece0"); P.rect(11, 9, 5, 7, "#f4ece0"); P.rect(3, 5, 3, 2, "#2a1a10"); P.rect(10, 5, 3, 2, "#2a1a10"); } });
+  paint("fox", "snout", { all: solid(["#f4ece0"]), front: P => { P.fill(["#f4ece0"]); P.rect(5, 0, 6, 4, "#1a1a1a"); } });
+  for (const e of ["earR", "earL"]) paint("fox", e, { all: P => { P.fill(FOX); P.rect(0, 0, 16, 5, "#2a1a10"); } });
+  for (const l of ["legFR", "legFL", "legBR", "legBL"]) paint("fox", l, { all: P => { P.fill(FOX); P.rect(0, 6, 16, 10, "#2a1a14"); } });
+  paint("fox", "tail", { all: solid(FOX), back: solid(["#f8f4ec"]), ...sides((P, X) => { P.fill(FOX); P.rect(X(12, 4), 0, 4, 16, "#f8f4ec"); }) });
+  // Buzzer: yellow with two black bands, little antennae, frosted wings
+  paint("bee", "body", { all: P => { P.fill(["#f0c020", "#e8b818"]); }, ...sides((P, X) => { P.fill(["#f0c020", "#e8b818"]); P.rect(X(5, 3), 0, 3, 16, "#2a2018"); P.rect(X(10, 3), 0, 3, 16, "#2a2018"); }), top: P => { P.fill(["#f0c020"]); P.rect(0, 5, 16, 3, "#2a2018"); P.rect(0, 10, 16, 3, "#2a2018"); },
+    front: P => { P.fill(["#f0c020"]); P.rect(2, 5, 4, 5, "#1a1a20"); P.rect(10, 5, 4, 5, "#1a1a20"); P.rect(3, 6, 1, 1, "#ffffff"); P.rect(11, 6, 1, 1, "#ffffff"); } });
+  for (const w of ["wingR", "wingL"]) paint("bee", w, { all: P => { P.fill(["#e8f0f8", "#dce6f0"]); P.rect(0, 7, 16, 1, "#b8c4d0"); P.rect(7, 0, 1, 16, "#b8c4d0"); } });
+  for (const [side, s] of [["R", -1], ["L", 1]]) add("bee", "antenna" + side, "body", [0.6, 3, 0.6], [s * 1.5, 4, 4.2], { all: solid(["#2a2018"]) });
+
+  // ======================= legends =======================
+  // the Blightking: three grey skulls with green-lit eyes, a crown on the middle one, a ragged body cracked with blight
+  const BONE_D = ["#5a5a5a", "#4e4e4e", "#666666"], GLOW = "#a8e040";
+  const skull = { all: P => { P.fill(BONE_D); spk(P, 6, ["#3e3e3e"]); }, front: P => { P.fill(BONE_D); P.rect(2, 5, 4, 3, "#1a1a1a"); P.rect(10, 5, 4, 3, "#1a1a1a"); P.rect(3, 6, 2, 1, GLOW); P.rect(11, 6, 2, 1, GLOW); P.rect(4, 11, 8, 2, "#1a1a1a"); for (let x = 5; x < 12; x += 2) P.px(x, 11, "#8a8a8a"); } };
+  for (const h of ["head", "headL", "headR"]) paint("blightking", h, skull);
+  add("blightking", "crown", "head", [9, 3, 9], [0, 4.5, 0], { all: P => { P.fill(["#2a2a2a"]); for (let x = 0; x < 16; x += 5) P.rect(x, 0, 2, 8, GLOW); P.rect(0, 12, 16, 4, "#6a8a2a"); } });
+  const ragged = P => { P.fill(["#1e1e1e", "#262626", "#1a1a1a"]); P.rect(4, 2, 1, 6, GLOW); P.rect(5, 7, 3, 1, GLOW); P.rect(11, 5, 1, 7, GLOW); for (let x = 0; x < 16; x += 3) P.rect(x, 14, 2, 2, "#0e0e0e"); };
+  for (const n of ["ribs", "spine", "bar"]) paint("blightking", n, { all: ragged });
+  // Cindermaw: dark ember scales over a glowing underbelly, fiery wing membranes
+  const EMBER_S = ["#3a2420", "#44302a", "#342018"], scales = P => { P.fill(EMBER_S); for (let y = 2; y < 16; y += 4) for (let x = (y % 8 ? 0 : 2); x < 16; x += 4) P.rect(x, y, 2, 1, "#5a3a2e"); };
+  const belly = P => { P.fill(["#e86a1a", "#f08a2a", "#d85a14"]); for (let y = 3; y < 16; y += 4) P.rect(0, y, 16, 1, "#a8400e"); };
+  for (const n of ["body", "neck", "tail", "tail2", "tail3", "tail4"]) paint("cindermaw", n, { all: scales, bottom: belly });
+  paint("cindermaw", "head", { all: scales, bottom: belly, front: P => { scales(P); P.rect(2, 4, 4, 3, "#ffd040"); P.rect(10, 4, 4, 3, "#ffd040"); P.rect(3, 10, 10, 3, "#ff8a1a"); } });
+  paint("cindermaw", "jaw", { all: scales, top: belly });
+  for (const w of ["wingL", "wingR", "wingTipL", "wingTipR"]) paint("cindermaw", w, { all: P => { P.fill(["#c8501a", "#b8461a", "#d85a20"]); for (let x = 1; x < 16; x += 5) P.rect(x, 0, 1, 16, "#3a2420"); P.rect(0, 0, 16, 2, "#3a2420"); } });
+  for (const l of ["legFR", "legFL", "legBR", "legBL"]) paint("cindermaw", l, { all: P => { scales(P); P.rect(0, 13, 16, 3, "#1a100c"); } });
+  paint("cindermaw", "spikes", { all: P => { P.fill(["#ff8a1a", "#ffb030"]); P.rect(0, 10, 16, 6, "#3a2420"); } });
+  // the Pale Sentinel: a stone-grey head with white eyes under torn, pale cloth
+  const CLOTH = ["#d8ccb8", "#c8bca8", "#e0d4c0"], torn = P => { P.fill(CLOTH); spk(P, 8, ["#a89c88"]); for (let x = 0; x < 16; x += 3) P.rect(x, 13 + (x % 2), 2, 3, "#5a5a5e"); };
+  paint("sentinel", "head", { all: solid(["#6a6a6e", "#626266", "#727276"]), front: P => { P.fill(["#6a6a6e", "#626266"]); P.rect(2, 6, 4, 2, "#ffffff"); P.rect(10, 6, 4, 2, "#ffffff"); } });
+  paint("sentinel", "body", { all: torn });
+  for (const a of ["armR", "armL"]) paint("sentinel", a, { all: P => { P.fill(["#5a5a5e", "#525256"]); P.rect(0, 0, 16, 6, CLOTH[0]); } });
+  for (const l of ["legR", "legL"]) paint("sentinel", l, { all: P => { P.fill(["#4a4a4e", "#424246"]); spk(P, 5, CLOTH); } });
+  // the Hollow Wyrm: purple-black scales with glowing violet spots, violet wings
+  const VOIDS = ["#2a2230", "#332a3a", "#241e2a"], spots = P => { P.fill(VOIDS); for (const [x, y] of [[3, 3], [10, 5], [6, 10], [13, 12], [1, 13]]) P.rect(x, y, 2, 2, "#c050f0"); };
+  for (const n of ["body", "neck", "tail", "tail2", "legFR", "legFL", "legBR", "legBL", "jaw"]) paint("dragon", n, { all: spots });
+  paint("dragon", "head", { all: spots, front: P => { P.fill(VOIDS); P.rect(2, 4, 4, 2, "#e070ff"); P.rect(10, 4, 4, 2, "#e070ff"); P.rect(3, 11, 10, 2, "#1a141e"); } });
+  for (const w of ["wingL", "wingR", "wingTipL", "wingTipR"]) paint("dragon", w, { all: P => { P.fill(["#6a3a8a", "#7a4a9a", "#5e3280"]); for (let x = 1; x < 16; x += 5) P.rect(x, 0, 1, 16, "#2a2230"); P.rect(0, 0, 16, 2, "#2a2230"); } });
+  // the Blight Rattler: a charcoal skeleton with green-lit eyes in a tattered olive cloak
+  const OLIVE = ["#7a7a2a", "#6e6e24", "#86862e"];
+  paint("blight", "head", { all: solid(["#3a3a3a", "#333333"]), front: P => { P.fill(["#3a3a3a"]); P.rect(2, 5, 4, 3, "#101010"); P.rect(10, 5, 4, 3, "#101010"); P.rect(3, 6, 2, 1, GLOW); P.rect(11, 6, 2, 1, GLOW); P.rect(4, 11, 8, 2, "#101010"); } });
+  paint("blight", "body", { all: P => { P.fill(OLIVE); for (let x = 0; x < 16; x += 3) P.rect(x, 12 + (x % 2), 2, 4, "#2a2a2a"); }, front: P => { P.fill(["#2a2a2a"]); for (let y = 2; y < 12; y += 3) P.rect(3, y, 10, 1, "#5a5a5a"); P.rect(0, 0, 3, 16, OLIVE[0]); P.rect(13, 0, 3, 16, OLIVE[0]); } });
+  for (const n of ["armR", "armL", "legR", "legL"]) paint("blight", n, { all: solid(["#3a3a3a", "#2e2e2e"]) });
+  add("blight", "cloak", "body", [9, 13, 1], [0, 0, -2.6], { all: P => { P.fill(OLIVE); spk(P, 6, ["#5a5a1c"]); for (let x = 0; x < 16; x += 3) P.rect(x, 13 + (x % 3), 2, 3, "#1a1a1a"); } });
+  // the Resonant Sovereign: a navy robe with gold trim, slate stone, crystal crown points
+  const NAVY = ["#2a3a6a", "#24345e", "#304274"], GOLD = "#d8a840";
+  paint("sovereign", "body", { all: P => { P.fill(NAVY); P.rect(0, 0, 2, 16, GOLD); P.rect(14, 0, 2, 16, GOLD); P.rect(0, 0, 16, 2, GOLD); } });
+  paint("sovereign", "base", { all: P => { P.fill(NAVY); for (let x = 0; x < 16; x += 4) P.rect(x, 12, 2, 4, "#18223e"); P.rect(0, 0, 16, 1, GOLD); } });
+  paint("sovereign", "head", { all: solid(["#4a5260", "#424a58"]), front: P => { P.fill(["#4a5260"]); P.rect(3, 6, 3, 2, "#6af0f0"); P.rect(10, 6, 3, 2, "#6af0f0"); } });
+  for (const a of ["armR", "armL"]) paint("sovereign", a, { all: P => { P.fill(["#4a5260", "#424a58"]); P.rect(0, 2, 16, 2, GOLD); P.rect(0, 12, 16, 2, GOLD); } });
+  for (let i = 0; i < 4; i++) paint("sovereign", "crown" + i, { all: P => { P.fill(["#6ac8e8", "#8ae0f8", "#c0f4ff"]); P.rect(6, 0, 4, 16, "#e8ffff"); } });
+}
+applyBestiaryPass2();
+
 // Connect the articulated legs to the waist on the taller temple rigs.
 for (const id of ["regent", "vcolossus", "scolossus", "titan", "pharaoh"]) {
   const parts = SPECIES[id].model.parts;
@@ -1052,7 +1218,11 @@ for (const id of ["regent", "vcolossus", "scolossus", "titan", "pharaoh"]) {
 const BESTIARY_ART = new Set([
   "regent", "vcolossus", "scolossus", "titan", "pharaoh", "leviathan", "tidecrab", "vinewalker", "sunscarab",
   "crawler", "sentinel_e", "stalker", "mote", "guardian", "knight", "shard_scout", "burrower", "warden",
-  "zombie", "skeleton", "creeper", "spider", "cave_spider", "slime", "voidwalker", "golem", "wanderer"
+  "zombie", "skeleton", "creeper", "spider", "cave_spider", "slime", "voidwalker", "golem", "wanderer",
+  // pass 2 (2026-11-06)
+  "flare", "wailer", "boarkin", "brute", "rotboar", "hogbeast", "magma", "strider", "sheller",
+  "scout", "whisker", "trotter", "minnow", "puffer", "squid", "dolphin", "fox", "bee",
+  "blightking", "cindermaw", "sentinel", "dragon", "blight", "sovereign", "tempest"
 ]);
 
 export const SPAWN_SPECIES = SPAWN_EGGS.map(e => e[0]);
