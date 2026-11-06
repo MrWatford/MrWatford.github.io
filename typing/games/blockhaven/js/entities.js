@@ -654,6 +654,7 @@ export class Entity {
     this.tame = !!opts.tame;   // set before health, since tame pets have more
     this.hp = opts.hp ?? this.maxHp;
     this.breedCd = opts.breedCd || 0; this.love = 0; this.sheared = !!opts.sheared; this.eggT = opts.eggT ?? rand(300, 600);
+    this.npc = opts.npc || null;   // a named campaign character (js/campaign.js): talks instead of trading, can't be hurt
     this.name = opts.name || null; this.persist = !!(this.def.animal || this.def.persist || this.name);
     this.cid = opts.cid ?? null; this.phase = "circle"; this.phaseT = 8; this.ang = 0; this.open = 0;
     // villagers: home, job site, trades used, restocks
@@ -682,7 +683,7 @@ export class Entity {
   get eyeY() { return this.pos.y + this.h * 0.85; }
   toJSON() {
     return { uid: this.uid, sp: this.sp, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), yaw: +this.yaw.toFixed(2), hp: this.hp,
-      baby: this.baby, growT: Math.round(this.growT), breedCd: Math.round(this.breedCd), sheared: this.sheared, eggT: Math.round(this.eggT), size: this.size, name: this.name,
+      baby: this.baby, growT: Math.round(this.growT), breedCd: Math.round(this.breedCd), sheared: this.sheared, eggT: Math.round(this.eggT), size: this.size, name: this.name, npc: this.npc,
       home: this.home, job: this.job, uses: this.uses, restockT: this.restockT, restockDay: this.restockDay, restocks: this.restocks, summonT: this.summonT,
       tame: this.tame, sitting: this.sitting, saddled: this.saddled, temper: this.temper,
       variant: this.variant, trust: this.trust, held: this.held, pollen: this.pollen, inHive: this.inHive, stung: this.stung,
@@ -2060,6 +2061,7 @@ export class Entities {
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
     if (e.dead || e.iframes > 0 || n <= 0) return false;
+    if (e.npc) return false;   // campaign characters never get hurt
     if (e.tame && attacker === "player") return false;   // you can't hurt your own pets by accident
     if (attacker === "player" && !e.def.villager && !e.def.object) this.petFoe = e;   // your Scouts join in
     if (e.summonT > 0) return false;   // can't be hurt while it's being summoned
@@ -2175,6 +2177,7 @@ export class Entities {
     if (e.sp === "sheep" && id === I.SHEARS && !e.sheared && !e.baby) { e.sheared = true; ctx.drop(B.WOOL, randi(1, 3), e.pos.x, e.pos.y + 1, e.pos.z); ctx.wear(); Sound.mob("baa", 2); return true; }
     if (e.sp === "cow" && id === I.BUCKET && !e.baby) { ctx.swapHeld(I.MILK_BUCKET); Sound.mob("moo", 2); return true; }
     if (e.sp === "boarkin" && id === I.GOLD_INGOT && !(e.angry > 0) && e.barterT <= 0) { ctx.consume(); e.barterT = 4; e.goal = null; Sound.mob("snort", 2); return true; }
+    if (e.def.villager && !e.baby && e.npc && ctx.talk && ctx.talk(e)) { e.trading = 30; Sound.mob("hmm", 2); return true; }
     if (e.def.villager && !e.baby) { e.trading = 30; ctx.openTrade(e); Sound.mob("hmm", 2); return true; }
     return false;
   }

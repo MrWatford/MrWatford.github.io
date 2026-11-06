@@ -7,7 +7,7 @@ import { Sound } from "./audio.js";
 
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
-const screens = ["title", "worlds", "newWorld", "loading", "pause", "settings", "controls", "death", "panel", "skins"];
+const screens = ["title", "worlds", "newWorld", "loading", "pause", "settings", "controls", "death", "panel", "skins", "campaign"];
 let current = "title", backTo = "title", skinFrom = "title", skinPick = "explorer";
 let cursor = null, hoverRef = null, panelKind = null, panelCtx = null, craftFilter = "can", craftSearch = "", creativeCat = "All", creativeSearch = "", advCat = CATEGORIES[0];
 
@@ -19,6 +19,11 @@ export const UI = {
     $("btnPlay").onclick = () => { Sound.start(); Sound.click(); this.showWorlds(); };
     $("btnNew").onclick = $("btnNew2").onclick = () => { Sound.start(); Sound.click(); this.show("newWorld"); $("nwName").select(); };
     $("btnSettings").onclick = () => this.openSettings("title");
+    $("btnCampaign").onclick = () => { Sound.start(); Sound.click(); this.showCampaigns(); };
+    $("cpForm").onsubmit = e => {
+      e.preventDefault(); Sound.start();
+      G.newWorld({ name: $("cpName").value.trim() || "The Forgotten Kingdoms", seed: G.campaignSeed(), mode: "survival", settings: { difficulty: $("cpDiff").value, griefing: false, keepInv: $("cpKeep").checked }, campaign: { v: 1, chapter: 1, done: 0, quest: "A Traveler Arrives" } });
+    };
     $("btnSettings2").onclick = () => this.openSettings("pause");
     $("btnControls").onclick = () => { backTo = "title"; this.show("controls"); };
     $("btnSkins").onclick = () => this.openSkins("title");
@@ -75,7 +80,7 @@ export const UI = {
 
   async showWorlds() {
     this.show("worlds");
-    const list = $("worldList"), worlds = await G.listWorlds();
+    const list = $("worldList"), worlds = (await G.listWorlds()).filter(w => !w.campaign);
     $("storageWarn").hidden = await G.storageOK();
     list.innerHTML = worlds.length ? "" : `<p class="empty">No worlds yet. Make your first one!</p>`;
     for (const w of worlds) {
@@ -87,6 +92,22 @@ export const UI = {
       row.querySelector("[data-a=play]").onclick = () => { Sound.click(); G.loadWorld(w.id); };
       row.querySelector("[data-a=dl]").onclick = () => G.exportWorld(w.id);
       row.querySelector("[data-a=del]").onclick = () => this.confirm(`Delete "${w.name}"?`, "This removes the world from this device for good. Download it first if you might want it later.", async () => { await G.deleteWorld(w.id); this.showWorlds(); });
+      list.appendChild(row);
+    }
+  },
+  async showCampaigns() {
+    this.show("campaign");
+    const list = $("cpList"), worlds = (await G.listWorlds()).filter(w => w.campaign);
+    list.innerHTML = worlds.length ? "" : `<p class="empty">No campaigns yet. Start your adventure below!</p>`;
+    for (const w of worlds) {
+      const c = w.campaign || {}, row = document.createElement("div"); row.className = "world";
+      const when = w.played ? new Date(w.played).toLocaleDateString() : "";
+      row.innerHTML = `<div><b></b><small>Chapter ${c.chapter || 1} • ${c.done || 0} quests done • <span></span> • ${w.settings && w.settings.difficulty ? "" : ""}${when}</small></div>
+        <div class="acts"><button class="btn small primary" data-a="play">Continue</button><button class="btn small" data-a="dl">Download</button><button class="btn small danger" data-a="del">Delete</button></div>`;
+      row.querySelector("b").textContent = w.name; row.querySelector("small span").textContent = c.quest ? "Now: " + c.quest : "";
+      row.querySelector("[data-a=play]").onclick = () => { Sound.click(); G.loadWorld(w.id); };
+      row.querySelector("[data-a=dl]").onclick = () => G.exportWorld(w.id);
+      row.querySelector("[data-a=del]").onclick = () => this.confirm(`Delete "${w.name}"?`, "This removes the campaign and all its progress from this device for good. Download it first if you might want it later.", async () => { await G.deleteWorld(w.id); this.showCampaigns(); });
       list.appendChild(row);
     }
   },
@@ -254,16 +275,22 @@ export const UI = {
       p.querySelectorAll("[data-trade]").forEach(b => b.onclick = ev => G.trade(panelCtx, +b.dataset.trade, ev.shiftKey));
     } else if (panelKind === "journal") {
       // two adventures, one journal: a tab for each (it opens on the one you're in)
-      if (!G.journalTab) G.journalTab = ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
-      const lost = G.journalTab === "lost";
-      const tabs = `<span class="jtabs"><button class="chip-btn ${lost ? "" : "on"}" data-jtab="fw">Forsaken World</button><button class="chip-btn ${lost ? "on" : ""}" data-jtab="lost">Lost Civilization</button></span>`;
-      p.innerHTML = `<div class="inv-card fw-card"><h3>Journal ${tabs} <span class="note" style="color:#444">Press J or Esc to close</span></h3>${lost ? G.lost.journalHTML() : G.forsaken.journalHTML()}</div>`;
+      const cpOn = G.campaign && G.campaign.on();
+      if (!G.journalTab || (G.journalTab === "cp" && !cpOn)) G.journalTab = cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
+      const lost = G.journalTab === "lost", cp = G.journalTab === "cp";
+      const tabs = `<span class="jtabs">${cpOn ? `<button class="chip-btn ${cp ? "on" : ""}" data-jtab="cp">Campaign</button>` : ""}<button class="chip-btn ${!lost && !cp ? "on" : ""}" data-jtab="fw">Forsaken World</button><button class="chip-btn ${lost ? "on" : ""}" data-jtab="lost">Lost Civilization</button></span>`;
+      p.innerHTML = `<div class="inv-card fw-card"><h3>Journal ${tabs} <span class="note" style="color:#444">Press J or Esc to close</span></h3>${cp ? G.campaign.journalHTML() : lost ? G.lost.journalHTML() : G.forsaken.journalHTML()}</div>`;
       p.querySelectorAll("[data-jtab]").forEach(b => b.onclick = () => { Sound.click(); G.journalTab = b.dataset.jtab; this.renderPanel(); });
-      if (!lost) G.forsaken.drawMap($("fwMap"));
+      p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
+      if (!lost && !cp) G.forsaken.drawMap($("fwMap"));
       p.querySelectorAll("[data-note]").forEach(b => b.onclick = () => G.forsaken.readNote(b.dataset.note));
       p.querySelectorAll("[data-lore]").forEach(b => b.onclick = () => G.lost.readLore(b.dataset.lore));
       p.querySelectorAll("[data-fwt]").forEach(b => b.onclick = () => { Sound.click(); G.forsaken.testControl(b.dataset.fwt); this.renderPanel(); });
       p.querySelectorAll("[data-lt]").forEach(b => b.onclick = async () => { Sound.click(); await G.lost.testControl(b.dataset.lt); if (G.panelKind === "journal") this.renderPanel(); });
+      return;
+    } else if (panelKind === "talk") {
+      p.innerHTML = G.campaign.talkHTML(panelCtx);
+      G.campaign.mountTalk(p);
       return;
     } else if (panelKind === "xmap") {
       p.innerHTML = G.starter.mapHTML();

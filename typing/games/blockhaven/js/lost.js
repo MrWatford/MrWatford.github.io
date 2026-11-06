@@ -922,7 +922,7 @@ export function initLost(api) {
 
   // ---------- the main tick ----------
   L.tick = dt => {
-    if (G.dim === "overworld" && st().site && !st().mapGiven && G.mode === "survival" && G.state === "play" && !(G.story.starter && G.story.starter.house)) {   // worlds with a Starter Home get the Explorer's Map instead
+    if (G.dim === "overworld" && st().site && !st().mapGiven && G.mode === "survival" && G.state === "play" && !(G.story.starter && (G.story.starter.house || G.story.starter.campaign))) {   // worlds with a Starter Home (or a campaign) get the Explorer's Map instead
       st().mapGiven = true; giveItem(I.SURVEY_MAP, 1);
       UI.toast("A Survey Map was tucked into your pack. Hold it to see the way to a Keeper excavation.", "good");
     }

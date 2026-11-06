@@ -16,6 +16,7 @@ import { Adv } from "./advancements.js";
 import { initForsaken, isQuestItem } from "./forsaken.js";
 import { initLost, LOST_DIMS } from "./lost.js";
 import { initStarter } from "./starter.js";
+import { initCampaign, CAMPAIGN_SEED } from "./campaign.js";
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
@@ -201,7 +202,7 @@ const G = {
   get spectator() { return this.mode === "spectator"; },
   get useSlot() { return this.useHand ?? this.selected; }   // the hand being used right now: the main hand unless the offhand is acting
 };
-G.adv = (type, arg) => Adv.event(type, arg);
+G.adv = (type, arg) => { Adv.event(type, arg); if (G.campaign) G.campaign.event(type, arg); };
 window.__bh = G;   // handy for testing in the browser console
 
 // ---------- creatures ----------
@@ -221,7 +222,7 @@ const ents = new Entities(scene, {
   holds: id => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === id),
   consume: () => { const s = G.inv.slots[G.useSlot]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.useSlot] = null; } G.hudDirty = true; heldId = -1; },
   wear: () => { const s = G.inv.slots[G.useSlot]; if (s) wearTool(s, 1); },
-  adv: (type, arg) => Adv.event(type, arg),
+  adv: (type, arg) => G.adv(type, arg), talk: e => !!(G.campaign && G.campaign.talk(e)),
   swapHeld: id => swapHeld(id), give: (id, n) => G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
   wearingGold: () => [36, 37, 38, 39].some(i => G.inv.slots[i] && [I.GOLD_HELMET, I.GOLD_CHEST, I.GOLD_LEGS, I.GOLD_BOOTS].includes(G.inv.slots[i].id)),
   ignite: (x, y, z) => ignite(x, y, z),
@@ -1355,9 +1356,9 @@ function makeWorld(dim) {
   const gen = dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
   if (dim === "nether") gen.citadel = chooseCitadel();   // where Cindermaw's citadel stands in this world
   if (dim === "overworld") {
-    ST.plan(gen, data);              // the Starter Home's spot (chosen once per world, before any land is made)
+    if (!CP.plan(gen, data)) ST.plan(gen, data);   // campaign worlds get Legacy Village instead of the Starter Home's spot (chosen once per world, before any land is made)
     L.prepareOverworld(gen, data);   // the Keeper excavation and temple entrances, stamped into land nobody has visited yet
-    ST.stamp(gen);                   // the house goes in last, so nothing else draws over it
+    if (CP.on()) CP.stamp(gen); else ST.stamp(gen);   // the village (or the house) goes in last, so nothing else draws over it
   }
   const w = new World(gen);
   w.dim = dim;
@@ -1429,11 +1430,11 @@ async function startWorld(save) {
     G.elv = { ...(save.player.elv || {}) }; G.absorb = save.player.absorb || 0;
   }
   if (!p.spawn) {   // a new world: start on the path in front of the Starter Home (or at the natural spawn spot)
-    const h = G.dim === "overworld" ? ST.spawnPoint() : null, s = h || G.gen.findSpawn();
+    const h = G.dim === "overworld" ? (CP.spawnPoint() || ST.spawnPoint()) : null, s = h || G.gen.findSpawn();
     p.spawn = { x: s.x, y: h ? h.y : null, z: s.z }; Object.assign(p.pos, { x: s.x, y: h ? h.y : 70, z: s.z });
     if (h) p.yaw = h.yaw;
   }
-  ST.resetClock();
+  ST.resetClock(); CP.resetSession();
   p.air = 10; G.selected = 0; G.drops = []; G.mining = null; G.hudDirty = true;
   // the page was closed on the "You fainted" screen: wake up properly (Hardcore worlds go straight to Spectator)
   if (save.hardcoreOver && G.mode !== "spectator") G.mode = G.meta.mode = "spectator";
@@ -1555,6 +1556,7 @@ function openPanel(kind, ctx) {
   if (document.pointerLockElement) document.exitPointerLock();
   G.panelKind = kind; G.panelCtx = ctx;
   UI.openPanel(kind, ctx);
+  if (G.campaign) G.campaign.panelOpened(kind);
   if (kind === "table") tipDone("table");
   if (kind === "inventory" && G.creative) tipDone("craft");
 }
@@ -1739,7 +1741,7 @@ function breakBlock(x, y, z, drops, quiet) {
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
   R.vibrate(x + 0.5, y + 0.5, z + 0.5, 13);
-  F.blockBroken(x, y, z, id); L.blockBroken(x, y, z, id); ST.blockBroken(x, y, z, id);
+  F.blockBroken(x, y, z, id); L.blockBroken(x, y, z, id); ST.blockBroken(x, y, z, id); CP.blockBroken(x, y, z, id);
   w.crops.delete(x + "," + y + "," + z);
   if (id === B.OBSIDIAN || id === B.PORTAL) setTimeout(() => breakPortal(x, y, z), 0);
   if (isDoor(id)) {   // doors are two blocks tall: remove both halves
@@ -2750,11 +2752,12 @@ window.addEventListener("resize", resize);
 
 // ---------- world list actions (called from the menus) ----------
 G.listWorlds = () => Saves.list();
+G.campaignSeed = () => CAMPAIGN_SEED;
 G.storageOK = () => Saves.persistent();
-G.newWorld = ({ name, seed, mode, settings }) => {   // mode: survival | creative | hardcore
+G.newWorld = ({ name, seed, mode, settings, campaign }) => {   // mode: survival | creative | hardcore
   const hardcore = mode === "hardcore";
   if (hardcore) settings = { ...settings, difficulty: "hard", keepInv: false };
-  const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen: CURRENT_GEN, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings };
+  const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen: CURRENT_GEN, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaign || null };
   startWorld(save);
 };
 G.loadWorld = async id => {
@@ -2770,7 +2773,7 @@ G.toTitle = async () => {
   await saveNow(false);
   clearWorldMeshes();
   if (G.world) { G.world.chunks.clear(); G.world.dirtyQueue.clear(); }
-  G.world = null; G.meta = null; G.state = "title";
+  G.world = null; G.meta = null; G.state = "title"; CP.hideHud();
   document.body.classList.add("menu-bg");
   outline.visible = crack.visible = false;
   UI.show("title");
@@ -2846,7 +2849,7 @@ function loop(now) {
     if (G.dim === "end") ensureBoss();
     if (G.state === "play") checkPortal(dt);
     tickCinder(dt);
-    F.tick(dt); L.tick(dt); ST.tick(dt);
+    F.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt);
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
@@ -2939,6 +2942,7 @@ const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giv
 G.lost = L;
 // The Starter Home and the Explorer's Map (js/starter.js)
 const ST = initStarter({ G, UI, Sound, L, openPanel, closePanel });
+const CP = G.campaign = initCampaign({ G, UI, Sound, L, ents, openPanel, closePanel, giveXp });
 G.starter = ST;
 // The Sparkworks signal engine (js/redstone.js)
 const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, lookFacing3, noteFx, moveFx, pushEntities,

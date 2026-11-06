@@ -78,7 +78,7 @@ export const Saves = {
 
 export const newId = () => "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 function split(w) {
-  const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1, gen: w.gen || 1, hardcore: !!w.hardcore, hardcoreOver: !!w.hardcoreOver };
+  const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1, gen: w.gen || 1, hardcore: !!w.hardcore, hardcoreOver: !!w.hardcoreOver, campaign: w.campaign || null };
   const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips, voidInv: w.voidInv, adv: w.adv, story: w.story };
   return { meta, data };
 }

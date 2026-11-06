@@ -214,7 +214,7 @@ export function initStarter(api) {
     const s = data(); if (!s || !s.house || !s.fresh) return null;
     const p = world(0, s.house.g + 1, 7); return { x: p.x + 0.5, y: p.y, z: p.z + 0.5, yaw: 0 };
   };
-  S.house = () => { const s = data(); if (!s || !s.house) return null; const d = world(0, s.house.g + 1, 7); return { x: d.x + 0.5, y: d.y, z: d.z + 0.5, door: world(0, s.house.g + 1, 3) }; };
+  S.house = () => { const s = data(); if (!s || !s.house) return (G.campaign && G.campaign.home()) || null; const d = world(0, s.house.g + 1, 7); return { x: d.x + 0.5, y: d.y, z: d.z + 0.5, door: world(0, s.house.g + 1, 3) }; };
 
   // ---------- the one-time gift: chests filled once, a map in the hotbar ----------
   const hasMap = () => G.inv.slots.some(q => q && q.id === I.EXPLORER_MAP);
@@ -248,7 +248,7 @@ export function initStarter(api) {
 
   let startT = 0;
   S.tick = dt => {
-    const s = data(); if (!s || !s.house) return;
+    const s = data(); if (!s || (!s.house && !s.campaign)) return;
     if (!s.granted && G.dim === "overworld" && G.world && G.inv) grant();
     if (G.state === "play") startT += dt; else if (!s.welcomed) startT = Math.min(startT, 0.6);
     if (s.granted && !s.welcomed && G.state === "play" && startT > 0.8 && !G.spectator) { s.welcomed = true; showWelcome(); }
@@ -319,7 +319,7 @@ export function initStarter(api) {
       out.push(d);
     }
     const h = S.house();
-    if (h) out.push({ kind: "home", title: "Starter Home", name: "Your house", x: h.x, y: h.y, z: h.z });
+    if (h) out.push({ kind: "home", title: G.campaign && G.campaign.on() ? "Legacy Village" : "Starter Home", name: G.campaign && G.campaign.on() ? "The fountain" : "Your house", x: h.x, y: h.y, z: h.z });
     destCache = { t: ck, list: out.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind)) };
     return out;
   }
