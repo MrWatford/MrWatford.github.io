@@ -810,29 +810,64 @@ function painter(ctx, ox, oy, seed) {
   return P;
 }
 
-const STONE = ["#8b8b8b", "#7f7f7f", "#959595", "#868686", "#747474"];
-const DIRT = ["#8b5e3c", "#7c5233", "#966845", "#73492d"];
-const GREEN = ["#5ea83b", "#69b443", "#579c37", "#73bd4b", "#4f9132"];
-const PLANK = ["#b98d55", "#ad824c", "#c2965d"];
+const STONE = ["#898987", "#818180", "#929290", "#858584", "#777776"];
+const DIRT = ["#866047", "#78533c", "#926b50", "#6c4d39", "#9d785c"];
+const GREEN = ["#72a846", "#699c40", "#7bb44d", "#60923a", "#86b855"];
+const PLANK = ["#af8956", "#a68150", "#ba955f"];
+
+// Small clusters give a tile grain without the TV-static look of independent pixels.
+function patches(P, palette, count, wide, tall) {
+  P.rect(0, 0, 16, 16, palette[0]);
+  for (let i = 0; i < count; i++) {
+    const x = Math.floor(P.r() * 16), y = Math.floor(P.r() * 16);
+    const w = 1 + Math.floor(P.r() * wide), h = 1 + Math.floor(P.r() * tall);
+    const color = P.pick(palette);
+    for (let row = 0; row < h; row++) {
+      for (let col = 0; col < w - (row === h - 1 && w > 1 ? 1 : 0); col++) {
+        P.px((x + col) & 15, (y + row) & 15, color);
+      }
+    }
+  }
+}
+
+function foliage(P, palette) {
+  patches(P, palette, 56, 4, 3);
+  for (let i = 0; i < 15; i++) {
+    const x = Math.floor(P.r() * 16), y = Math.floor(P.r() * 16);
+    P.clear(x, y);
+    P.clear((x + 1) & 15, y);
+  }
+}
 
 const PAINT = {
-  grass_top(P) { P.fill(GREEN, [3, 3, 2, 1, 1]); P.specks(6, ["#7fca55", "#4a8a2f"]); },
+  grass_top(P) { patches(P, GREEN, 58, 4, 3); },
   grass_side(P) {
-    P.fill(DIRT); P.specks(5, ["#5e3e26", "#a3754f"]);
-    for (let x = 0; x < 16; x++) { const h = 3 + Math.floor(P.r() * 3); for (let y = 0; y < h; y++) P.px(x, y, P.pick(GREEN)); }
+    PAINT.dirt(P);
+    const fringe = [3, 4, 4, 5, 4, 3, 3, 4, 6, 5, 4, 3, 3, 5, 4, 3];
+    for (let x = 0; x < 16; x++) {
+      const h = fringe[x], blade = GREEN[Math.floor(P.r() * 3)];
+      P.rect(x, 0, 1, h - 1, blade);
+      P.px(x, h - 1, GREEN[3]);
+      P.px(x, h, DIRT[3]);
+    }
   },
-  dirt(P) { P.fill(DIRT); P.specks(7, ["#5e3e26", "#a3754f", "#6b6b6b"]); },
-  stone(P) {
-    P.fill(STONE, [3, 3, 2, 2, 1]);
-    for (let i = 0; i < 4; i++) { let x = Math.floor(P.r() * 16), y = Math.floor(P.r() * 16); for (let k = 0; k < 4; k++) { P.px(x, y, "#6a6a6a"); x += P.r() < 0.5 ? 1 : 0; y += 1; } }
-  },
+  dirt(P) { patches(P, DIRT, 67, 3, 3); P.specks(5, ["#77716a", "#a78362"]); },
+  stone(P) { patches(P, STONE, 56, 5, 3); },
   cobble(P) {
-    P.fill(["#6d6d6d"]);
-    const stones = [[1, 1, 6, 4], [8, 0, 7, 5], [0, 6, 5, 5], [6, 6, 6, 4], [12, 6, 4, 5], [2, 12, 7, 4], [10, 11, 6, 5]];
-    for (const [x, y, w, h] of stones) for (let yy = y; yy < y + h - 1; yy++) for (let xx = x; xx < x + w - 1; xx++) P.px(xx, yy, P.pick(["#9a9a9a", "#a5a5a5", "#8e8e8e"]));
-    for (const [x, y] of stones) P.px(x, y, "#bdbdbd");
+    P.rect(0, 0, 16, 16, "#656562");
+    const stones = [[0, 0, 5, 4], [6, 0, 6, 5], [13, 0, 4, 4], [1, 5, 4, 5], [5, 6, 5, 4],
+      [11, 5, 5, 6], [-2, 11, 6, 5], [5, 11, 6, 5], [12, 12, 5, 4]];
+    for (const [x, y, w, h] of stones) {
+      const base = P.pick(STONE);
+      for (let row = 0; row < h; row++) {
+        const inset = row === 0 || row === h - 1 ? 1 : 0;
+        for (let col = inset; col < w - inset; col++) {
+          P.px((x + col) & 15, y + row, row === 0 ? "#a3a3a0" : row === h - 1 ? "#747471" : base);
+        }
+      }
+    }
   },
-  sand(P) { P.fill(["#e2d39b", "#dbca8f", "#e9daa8", "#d6c487"]); },
+  sand(P) { patches(P, ["#dfd0a3", "#d7c89b", "#e8d9ae", "#d1bf92"], 64, 3, 2); },
   gravel(P) { P.fill(["#8a8480", "#7a7470"]); P.specks(22, ["#a39d98", "#5f5955", "#9a8670", "#bdb6ae"], 2); },
   log_top(P) {
     P.fill(["#6b4f2e"]);
@@ -841,17 +876,37 @@ const PAINT = {
       P.px(x, y, Math.round(d) % 3 === 0 ? "#9a7446" : P.pick(["#b88d58", "#c09560"]));
     }
   },
-  log_side(P) { for (let x = 0; x < 16; x++) { const c = P.pick(["#6b4f2e", "#5c4327", "#7a5a35", "#634929"]); for (let y = 0; y < 16; y++) P.px(x, y, P.r() < 0.12 ? "#4e3820" : c); } },
-  leaves(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { if (P.r() < 0.13) P.clear(x, y); else P.px(x, y, P.pick(["#3f8a2c", "#4a9a33", "#357a25", "#56a63b"])); } },
+  log_side(P) {
+    patches(P, ["#6a5237", "#5c452e", "#7c6242", "#705639", "#4f3b28"], 45, 2, 10);
+    for (const [x, y, h] of [[1, 1, 8], [5, 4, 7], [9, 9, 7], [13, 0, 11]]) {
+      P.rect(x, y, 1, h, "#4e3a26");
+      P.rect(x + 1, y + 2, 1, h - 3, "#896d4a");
+    }
+  },
+  leaves(P) { foliage(P, ["#4a8437", "#568e3c", "#39732d", "#659a45", "#30672a"]); },
   planks(P, pal = PLANK, seam = "#7f5a31") {
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, P.pick(pal));
-    for (let row = 0; row < 4; row++) { const y = row * 4 + 3; P.rect(0, y, 16, 1, seam); const off = (row * 7 + 3) % 16; P.px(off, y - 1, seam); P.px(off, y - 2, seam); P.px(off, y - 3, seam); }
+    patches(P, pal, 36, 7, 1);
+    for (let row = 0; row < 4; row++) {
+      const y = row * 4, joint = (row * 7 + 3) & 15;
+      P.rect(0, y, 16, 1, pal[2]);
+      P.rect(0, y + 3, 16, 1, seam);
+      P.rect(joint, y, 1, 3, seam);
+    }
   },
   glass(P) {
     P.rect(0, 0, 16, 1, "#dff3f7"); P.rect(0, 15, 16, 1, "#dff3f7"); P.rect(0, 0, 1, 16, "#dff3f7"); P.rect(15, 0, 1, 16, "#dff3f7");
     P.px(3, 3, "#ffffff"); P.px(4, 4, "#ffffff"); P.px(5, 5, "#eefbff"); P.px(11, 9, "#ffffff"); P.px(12, 10, "#eefbff");
   },
-  water(P) { P.fill(["rgba(52,110,214,.78)", "rgba(60,122,224,.78)", "rgba(46,100,200,.8)"]); for (let i = 0; i < 6; i++) { const x = Math.floor(P.r() * 12), y = Math.floor(P.r() * 16); P.rect(x, y, 3, 1, "rgba(130,180,255,.8)"); } },
+  water(P) {
+    P.rect(0, 0, 16, 16, "rgba(47,101,182,.62)");
+    for (const [x, y, w] of [[1, 2, 6], [11, 5, 8], [5, 8, 6], [14, 11, 7], [7, 14, 6]]) {
+      for (let i = 0; i < w; i++) {
+        const u = (x + i) & 15;
+        P.clear(u, y);
+        P.px(u, y, "rgba(85,150,220,.61)");
+      }
+    }
+  },
   coal_ore(P) { PAINT.stone(P); oreSpots(P, ["#262626", "#3a3a3a", "#1b1b1b"]); },
   iron_ore(P) { PAINT.stone(P); oreSpots(P, ["#d9a37e", "#c48a63", "#e8bf9f"]); },
   sky_ore(P) { PAINT.stone(P); oreSpots(P, ["#5fe3ea", "#9df4f7", "#2fb8c6"]); },
@@ -890,7 +945,7 @@ const PAINT = {
   iron_block(P) { P.fill(["#e2e2e2", "#d8d8d8"]); P.rect(0, 0, 16, 1, "#f5f5f5"); P.rect(0, 15, 16, 1, "#9a9a9a"); P.rect(0, 0, 1, 16, "#f5f5f5"); P.rect(15, 0, 1, 16, "#9a9a9a"); P.rect(3, 7, 10, 1, "#bdbdbd"); },
   birch_top(P) { P.fill(["#e9e3d3"]); for (let y = 1; y < 15; y++) for (let x = 1; x < 15; x++) { const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5)); P.px(x, y, Math.round(d) % 3 === 0 ? "#c6ab78" : P.pick(["#dcc58f", "#e2cd99"])); } },
   birch_side(P) { P.fill(["#ece8dc", "#e3dfd2", "#f2efe6"]); for (let i = 0; i < 7; i++) { const x = Math.floor(P.r() * 13), y = Math.floor(P.r() * 16); P.rect(x, y, 2 + Math.floor(P.r() * 3), 1, "#2f2f2f"); } },
-  birch_leaves(P) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { if (P.r() < 0.13) P.clear(x, y); else P.px(x, y, P.pick(["#7ab449", "#86c052", "#6aa33e", "#93c95e"])); } },
+  birch_leaves(P) { foliage(P, ["#739d42", "#81aa49", "#638d3b", "#90b653", "#587d33"]); },
   birch_planks(P) { PAINT.planks(P, ["#d9c591", "#d0bb85", "#e0cd9b"], "#a8925e"); },
   snow(P) { P.fill(["#f4f8fb", "#eaf1f6", "#ffffff"]); P.specks(5, ["#d8e4ee"]); },
   clay(P) { P.fill(["#a3aab8", "#9aa1b0", "#aab1bf"]); P.specks(6, ["#8d94a3"]); },

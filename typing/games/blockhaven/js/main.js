@@ -46,9 +46,24 @@ const uniforms = { map: { value: atlasTex }, desat: { value: 0 }, daylight: { va
 const VERT = `attribute vec3 lt; varying vec2 vUv; varying vec3 vLt; varying float vDist;
 void main() { vUv = uv; vLt = lt; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDist = length(mv.xyz); gl_Position = projectionMatrix * mv; }`;
 const FRAG = `uniform sampler2D map; uniform float daylight, ambient, fogNear, fogFar, alphaTest, opacity, desat; uniform vec3 fogColor;
+#ifdef RIPPLE_WATER
+uniform float rippleTime;
+const vec2 waterTile = vec2(${TILE.water % 16}.0, ${Math.floor(TILE.water / 16)}.0);
+const vec2 atlasPixels = vec2(${ATLAS_W}.0, ${ATLAS_H}.0);
+#endif
 varying vec2 vUv; varying vec3 vLt; varying float vDist;
 void main() {
-  vec4 t = texture2D(map, vUv);
+  vec2 uv = vUv;
+#ifdef RIPPLE_WATER
+  vec2 pixel = vec2(uv.x, 1.0 - uv.y) * atlasPixels;
+  if (all(equal(floor(pixel / 16.0), waterTile))) {
+    // Sample pixel centers after wrapping so nearby portal tiles never bleed into the water.
+    vec2 offset = vec2(floor(rippleTime * 4.0), floor(rippleTime * 2.0));
+    vec2 samplePixel = waterTile * 16.0 + mod(floor(pixel) + offset, 16.0) + 0.5;
+    uv = vec2(samplePixel.x / atlasPixels.x, 1.0 - samplePixel.y / atlasPixels.y);
+  }
+#endif
+  vec4 t = texture2D(map, uv);
   if (t.a < alphaTest) discard;
   float s = vLt.x * daylight, b = vLt.y;
   float l = max(s, b);
@@ -60,8 +75,43 @@ void main() {
   gl_FragColor = vec4(col, t.a * opacity);
 }`;
 const solidMat = new THREE.ShaderMaterial({ uniforms, vertexShader: VERT, fragmentShader: FRAG });
-const waterUniforms = { ...uniforms, alphaTest: { value: 0.01 } };
-const waterMat = new THREE.ShaderMaterial({ uniforms: waterUniforms, vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+const waterUniforms = { ...uniforms, alphaTest: { value: 0.01 }, rippleTime: { value: 0 } };
+const waterMat = new THREE.ShaderMaterial({ uniforms: waterUniforms, defines: { RIPPLE_WATER: 1 }, vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+
+// One background mesh draws both the Surface gradient and its distant, grid-shaped clouds.
+const surfaceSky = new THREE.Mesh(new THREE.SphereGeometry(105, 16, 8), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthTest: false, depthWrite: false,
+  uniforms: { horizon: { value: new THREE.Color() }, zenith: { value: new THREE.Color() }, cloudLight: { value: 0 }, cloudDrift: { value: 0 } },
+  vertexShader: `varying vec3 vRay;
+    void main() {
+      vRay = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }`,
+  fragmentShader: `uniform vec3 horizon, zenith;
+    uniform float cloudLight, cloudDrift;
+    varying vec3 vRay;
+    float cloudCell(vec2 p) {
+      vec3 h = fract(vec3(p.xyx) * 0.1031);
+      h += dot(h, h.yzx + 33.33);
+      return fract((h.x + h.y) * h.z);
+    }
+    void main() {
+      vec3 ray = normalize(vRay);
+      vec3 color = mix(horizon, zenith, smoothstep(0.0, 0.78, ray.y));
+      if (ray.y > 0.055 && cameraPosition.y < 108.0) {
+        float distanceToCloud = (108.0 - cameraPosition.y) / ray.y;
+        vec2 tile = floor((cameraPosition.xz + ray.xz * distanceToCloud + vec2(cloudDrift, 0.0)) / vec2(14.0, 9.0));
+        float shape = step(0.55, cloudCell(floor(tile / vec2(5.0, 3.0))) * 0.82 + cloudCell(tile) * 0.18);
+        float fade = (1.0 - smoothstep(85.0, 240.0, distanceToCloud)) * smoothstep(0.055, 0.19, ray.y);
+        vec3 cloud = mix(vec3(0.31, 0.37, 0.53), vec3(0.99, 0.99, 0.98), cloudLight);
+        color = mix(color, cloud, shape * fade * 0.86);
+      }
+      gl_FragColor = vec4(color, 1.0);
+    }`
+}));
+surfaceSky.visible = false;
+surfaceSky.renderOrder = -10;
+scene.add(surfaceSky);
 
 // sky: sun, moon, stars
 function discTexture(draw) { const c = document.createElement("canvas"); c.width = c.height = 32; draw(c.getContext("2d")); const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; return t; }
@@ -2599,7 +2649,10 @@ function updateTips() {
 function tipDone(k) { if (!G.tips[k]) { G.tips[k] = true; updateTips(); } }
 
 // ---------- sky ----------
-const SKY_DAY = new THREE.Color(0x8fd0f5), SKY_SET = new THREE.Color(0xf2a66a), SKY_NIGHT = new THREE.Color(0x0b1430), skyCol = new THREE.Color();
+// Surface sky swatches are in display space, like the terrain atlas used by the custom shader.
+const skySwatch = hex => new THREE.Color().setHex(hex, THREE.LinearSRGBColorSpace);
+const SKY_DAY = skySwatch(0xb8dcf8), SKY_SET = skySwatch(0xf4a878), SKY_NIGHT = skySwatch(0x182641);
+const SKY_TOP_DAY = skySwatch(0x649ce9), SKY_TOP_NIGHT = skySwatch(0x080e23), skyCol = new THREE.Color();
 const NETHER_SKY = new THREE.Color(0x3a0c0c);
 let ashT = 0, rumbleT = 8;
 const END_SKY = new THREE.Color(0x140a1e);
@@ -2607,6 +2660,8 @@ function updateSky() {
   const nether = G.world && G.world.gen.isNether();
   const hollow = G.world && G.world.gen.isEnd && G.world.gen.isEnd();
   const forsaken = G.dim === "forsaken" && F.template(), lsky = L.sky();
+  surfaceSky.visible = G.dim === "overworld" && !G.player.headInWater && !G.player.inLava;
+  waterUniforms.rippleTime.value = G.settings.reducedMotion ? 0 : G.clock % 8;
   sun.visible = moon.visible = !nether && !hollow && !forsaken && !lsky;
   uniforms.desat.value = 0;
   if (lsky) {   // the Deep is dark (only lamps and crystals light it); the Expanse has a dim violet sky
@@ -2654,6 +2709,14 @@ function updateSky() {
   if (p.headInWater) skyCol.set(0x1d3f7a);
   scene.background = skyCol; uniforms.fogColor.value.copy(skyCol);
   const cam = camera.position, R = 80;
+  if (surfaceSky.visible) {
+    surfaceSky.position.copy(cam);
+    const sky = surfaceSky.material.uniforms;
+    sky.horizon.value.copy(skyCol);
+    sky.zenith.value.copy(SKY_TOP_NIGHT).lerp(SKY_TOP_DAY, day);
+    sky.cloudLight.value = day;
+    sky.cloudDrift.value = G.settings.reducedMotion ? 0 : G.clock * 0.52;
+  }
   sun.position.set(cam.x + Math.cos(a) * R, cam.y + Math.sin(a) * R, cam.z + 18); sun.lookAt(cam);
   moon.position.set(cam.x - Math.cos(a) * R, cam.y - Math.sin(a) * R, cam.z - 18); moon.lookAt(cam);
   stars.position.copy(cam); stars.material.opacity = Math.max(0, 1 - day * 1.6);
@@ -2663,7 +2726,7 @@ function updateSky() {
 function applyView() {
   const R = G.settings.renderDist * CHUNK;
   uniforms.fogFar.value = waterUniforms.fogFar.value = R - 2;
-  uniforms.fogNear.value = waterUniforms.fogNear.value = R * 0.55;
+  uniforms.fogNear.value = waterUniforms.fogNear.value = R * (surfaceSky.visible ? 0.67 : 0.55);
   if (G.world && G.world.gen.isNether()) { uniforms.fogNear.value = R * 0.3; uniforms.fogFar.value = R * 0.85; }
   if (G.fwFog) { uniforms.fogNear.value = G.fwFog[0]; uniforms.fogFar.value = G.fwFog[1]; }   // the Forsaken World's mist
   if (G.player.headInWater) { uniforms.fogNear.value = 2; uniforms.fogFar.value = 18; }

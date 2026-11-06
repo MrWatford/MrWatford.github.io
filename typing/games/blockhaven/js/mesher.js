@@ -4,6 +4,7 @@
 import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL } from "./blocks.js";
 import { model, dustConn, dustPoints } from "./shapes.js";
 import { chunkKey } from "./world.js";
+import { hash3 } from "./noise.js";
 
 const M = 8, RW = CHUNK + 2 * M, AREA = RW * RW, SIZE = AREA * HEIGHT;
 const vals = new Uint16Array(SIZE), sky = new Uint8Array(SIZE), blk = new Uint8Array(SIZE), queue = new Int32Array(SIZE * 2);
@@ -50,6 +51,8 @@ function quad(buf, pts, tile, uvs, lights) {
   buf.n++;
 }
 const UV = [[0, 0], [1, 0], [1, 1], [0, 1]];
+const TURNED_UV = [UV, [UV[1], UV[2], UV[3], UV[0]], [UV[2], UV[3], UV[0], UV[1]], [UV[3], UV[0], UV[1], UV[2]]];
+const RANDOM_TOP = new Set([TILE.grass_top, TILE.dirt, TILE.stone, TILE.sand, TILE.leaves, TILE.birch_leaves]);
 
 // Spread light outward, losing one level per block
 function flood(L, start, end) {
@@ -130,6 +133,9 @@ export function buildChunk(world, chunk, fancy) {
         if (OPAQUE[nid]) continue;
         if (nid === id && def.render === "cutout" && (!fancy || id === B.GLASS)) continue;
         const tile = faceTile(v, F.tex, f === frontDir);
+        // Rotate natural surfaces without moving the texture on doors, walls, or placed devices.
+        const rotation = f === 2 && RANDOM_TOP.has(tile) ? Math.floor(hash3(0, cx * CHUNK + x, y, cz * CHUNK + z) * 4) : 0;
+        const uv = TURNED_UV[rotation];
         for (let k = 0; k < 4; k++) {
           const [a, b, c] = F.ao[k];
           const s1 = OPAQUE[vals[i + a] & 255], s2 = OPAQUE[vals[i + b] & 255], cc = OPAQUE[vals[i + c] & 255];
@@ -142,8 +148,8 @@ export function buildChunk(world, chunk, fancy) {
         }
         const pts = F.c.map(p => [x + p[0], y + p[1], z + p[2]]);
         // flip the square's diagonal so corner shadows look smooth
-        if (lights[0][2] + lights[2][2] < lights[1][2] + lights[3][2]) quad(solidBuf, [pts[1], pts[2], pts[3], pts[0]], tile, [UV[1], UV[2], UV[3], UV[0]], [lights[1], lights[2], lights[3], lights[0]].map(a => a.slice()));
-        else quad(solidBuf, pts, tile, UV, lights.map(a => a.slice()));
+        if (lights[0][2] + lights[2][2] < lights[1][2] + lights[3][2]) quad(solidBuf, [pts[1], pts[2], pts[3], pts[0]], tile, TURNED_UV[(rotation + 1) & 3], [lights[1], lights[2], lights[3], lights[0]]);
+        else quad(solidBuf, pts, tile, uv, lights);
       }
     } else if (def.shape === "water") {
       const above = vals[i + AREA];
