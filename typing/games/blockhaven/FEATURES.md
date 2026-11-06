@@ -364,6 +364,17 @@ New code: `js/campaign-towns2.js` (Ironhold + the Deep Mine, the Blight Citadel,
 | Bug fix | Done | The Sea Temple's Tidecaller Charm (553) had been replaced by the campaign's Tide Charm (both used the name TIDE_CHARM). Both items exist again |
 | Checks | Done | Walk check for every new place (all 3 galleries, citadel altar and runes, outpost portal, observatory, shrine altar and tunnels). Full chain 4–6 played through in a test world: dialogue at each step, skulls → Blightking → Tempest → relic, save/reload mid-chapter, portal lit and crossed, 3 seals → Cinder Eye, Cindermaw and Herobrine rewards. 408 item icons and the Creative inventory open without errors |
 
+## Creature art from the bestiary (2026-11-06)
+Mr. Watford's bestiary sheets (Blockhaven A–G). Pass 1 (Codex, published 2026-11-06): 27 creatures (Surface monsters, temple and Echohold creatures). Pass 2 (`applyBestiaryPass2` in `js/entities.js`, built and browser-tested 2026-11-06, not published): 24 more, plus the Blight Tempest, all with the same soft face shading. Colors and materials follow the sheets; faces and details are Blockhaven's own (no copied Minecraft faces).
+
+| Group | Creatures | Notes |
+|---|---|---|
+| Ember Depths | Flare, Wailer, Boarkin, Boarkin Brute, Rotboar, Hogbeast, Magma Gloop, Lavastrider, Sheller | Charcoal blocks split by glowing lava seams; a sorrowful pale Wailer with glowing tear trails; Boarkin in leather with gold buckles, the Brute in iron shoulder plates and a red sash, the mossy Rotboar (all three now have tusks); the Hogbeast's dark hide, black spike ridge, and big ivory tusks; the Lavastrider's ember crust and flame whiskers; the Sheller's carved square spiral |
+| Wildlife | Scout, Whisker, Trotter, Minnow, Puffer, Inkling, Splasher, Pouncer, Buzzer | Grey wolf with a dark saddle, red collar, and golden tag; orange tabby with stripes and whiskers; chestnut Trotter with a white blaze, pinto patches, and a saddle buckle; silver Minnow; spiky Puffer; indigo Inkling with pale eyes; two-tone Splasher; Pouncer with a white chest and white-tipped tail; Buzzer with bands, antennae, and frosted wings |
+| Legends | Blightking, Cindermaw, Pale Sentinel, Hollow Wyrm, Blight Rattler, Resonant Sovereign | Three dark skulls with green-lit eyes and a crown; Cindermaw's ember scales, glowing underbelly, and fiery wings; the Sentinel's torn pale cloth; the Wyrm's glowing violet spots; the Rattler's tattered olive cloak; the Sovereign's navy robe with gold trim and crystal crown |
+| Not changed | Sunfin and Chatterbird (their color variants stay), villagers (the sheet copies Minecraft's villager), farm animals (no Blockhaven sheet), Herobrine | |
+| Checks | Done | Every creature in the game builds its model with no errors; before/after photos of all three groups |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
