@@ -1078,6 +1078,7 @@ function cinderDefeated(e) {
   Sound.levelUp(); setTimeout(() => Sound.levelUp(), 400);
   G.adv("boss", first ? "cindermaw" : "cindermawAgain");
   saveNow(true);
+  CP.externalBoss("cindermaw");   // Legacy Campaign, Chapter 5: the Relic of Flame
   startVictoryScene(first);
 }
 // A short victory scene: the camera circles the altar; press Space, Esc, or click to skip
@@ -1405,7 +1406,7 @@ function makeWorld(dim) {
   const data = G.dimData[dim] || (G.dimData[dim] = {});
   const gen = dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
   if (LOST_DIMS.includes(dim)) CP.stampDim(dim, gen);   // campaign boss chambers behind the temple vaults
-  if (dim === "nether") gen.citadel = chooseCitadel();   // where Cindermaw's citadel stands in this world
+  if (dim === "nether") { gen.citadel = chooseCitadel(); CP.stampNether(gen, data); }   // where Cindermaw's citadel stands in this world (+ the campaign's seal shrines)
   if (dim === "overworld") {
     if (!CP.plan(gen, data)) ST.plan(gen, data);   // campaign worlds get Legacy Village instead of the Starter Home's spot (chosen once per world, before any land is made)
     L.prepareOverworld(gen, data);   // the Keeper excavation and temple entrances, stamped into land nobody has visited yet

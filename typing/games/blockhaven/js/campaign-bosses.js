@@ -10,7 +10,8 @@ export const BOSSES = {
   stoneguard: { sp: "stoneguard", name: "the Ancient Stone Guardian", minion: "cave_spider", deviceText: "Rune Stones", puff: "pale" },
   pharaoh: { sp: "pharaoh", name: "the Desert Pharaoh", minion: "skeleton", deviceText: "Rune Stones", puff: "ember" },
   titan: { sp: "titan", name: "the Jungle Titan", minion: "vinewalker", deviceText: "Rune Stones", puff: "xp" },
-  leviathan: { sp: "leviathan", name: "the Ocean Leviathan", minion: "tidecrab", deviceText: "Rune Stones", puff: "splash" }
+  leviathan: { sp: "leviathan", name: "the Ocean Leviathan", minion: "tidecrab", deviceText: "Rune Stones", puff: "splash" },
+  tempest: { sp: "tempest", name: "the Blight Tempest", minion: "blight", deviceText: "Rune Stones", puff: "pale" }
 };
 const cap = s => s[0].toUpperCase() + s.slice(1);
 
@@ -33,13 +34,14 @@ export function initBosses(api) {
     if (G.spectator) return;
     for (const A of arenas) {
       if (A.dim !== G.dim || isDefeated(A.id)) continue;
+      if (A.manual && !(api.canWake && api.canWake(A.id))) continue;   // some bosses only rise when the story says so
       const d = Math.hypot(p.pos.x - A.x, p.pos.z - A.z);
       if (d < A.r - 2 && Math.abs(p.pos.y - A.y) < 5) { wake(A); return; }
     }
   };
   function wake(A) {
     const def = BOSSES[A.id];
-    const at = A.id === "leviathan" ? { x: A.x + A.pool.r - 3, y: A.pool.y - 0.9, z: A.z } : A.id === "pharaoh" ? { x: A.x, y: A.y, z: A.z - A.r + 4 } : { x: A.x, y: A.y, z: A.z };
+    const at = A.id === "tempest" ? { x: A.x, y: A.y + 0.3, z: A.z } : A.id === "leviathan" ? { x: A.x + A.pool.r - 3, y: A.pool.y - 0.9, z: A.z } : A.id === "pharaoh" ? { x: A.x, y: A.y, z: A.z - A.r + 4 } : { x: A.x, y: A.y, z: A.z };
     const e = ents.add(def.sp, at.x, at.y, at.z); if (!e) return;
     bf = { id: A.id, e, A, dev: [false, false, false] };
     e.atkT = 3; e.next = 0; e.later = []; e.lstate = "circle"; e.lt = 5; e.submerged = A.id === "leviathan";
@@ -50,7 +52,8 @@ export function initBosses(api) {
       stoneguard: "The Ancient Stone Guardian rises from the floor! Watch the glowing ground: every attack warns you first.",
       pharaoh: "The Desert Pharaoh wakes from his long sleep! \"Who dares enter my tomb?\" Watch for glowing sand!",
       titan: "The Jungle Titan tears free of the roots! Stay out of the glowing rings.",
-      leviathan: "The water churns... the Ocean Leviathan rises! It can only be hurt when it surfaces. Stay on the stone ring."
+      leviathan: "The water churns... the Ocean Leviathan rises! It can only be hurt when it surfaces. Stay on the stone ring.",
+      tempest: "The courtyard tears loose and spins around the Blightking's crown: the Blight Tempest! Watch the glowing ground, and strike its glowing heart!"
     }[A.id];
     UI.toast(intro, "bad");
     if (api.bossIntro) api.bossIntro(A.id);
@@ -106,8 +109,9 @@ export function initBosses(api) {
       UI.toast(`${cap(BOSSES[bf.id].name)} raises a shield! Touch the three Rune Stones around the arena (right-click) to break it.`, "bad");
       if (bf.id === "pharaoh") summon(e, 2, "skeleton");
     }
-    if (ph === 3 && !bf.called) { bf.called = true; summon(e, 2, BOSSES[bf.id].minion); UI.toast(bf.id === "titan" ? "The Titan roars in fury and calls the jungle to help!" : "It calls for help!", "bad"); }
+    if (ph === 3 && !bf.called) { bf.called = true; summon(e, 2, BOSSES[bf.id].minion); UI.toast(bf.id === "titan" ? "The Titan roars in fury and calls the jungle to help!" : bf.id === "tempest" ? "Blight Rattlers climb out of the spinning earth!" : "It calls for help!", "bad"); }
     if (bf.id === "leviathan") return thinkLeviathan(E, e, d, ph, step, dmgMul);
+    if (bf.id === "tempest") return thinkTempest(E, e, d, ph, step, dmgMul);
     const fast = ph === 3 ? 0.72 : 1;
     if (e.wind > 0) {
       e.wind -= step; e.goal = null; e.raise = 1; e.charging = true;
@@ -161,6 +165,53 @@ export function initBosses(api) {
         UI.toast("Vines pull you in! Get away before the slam.", "");
       }
     }
+  }
+  // The Blight Tempest drifts toward you (never leaving its courtyard), winds up with a glow, then strikes the ground
+  function thinkTempest(E, e, d, ph, step, dmgMul) {
+    const A = bf.A, p = G.player;
+    e.vel.x = e.vel.y = e.vel.z = 0; e.goal = null;
+    const dx = p.pos.x - e.pos.x, dz = p.pos.z - e.pos.z, l = Math.hypot(dx, dz) || 1;
+    if (!(e.windT > 0) && l > 9) { const v = (ph === 3 ? 1.8 : 1.3) * step; e.pos.x += dx / l * v; e.pos.z += dz / l * v; }
+    const ox = e.pos.x - A.x, oz = e.pos.z - A.z, o = Math.hypot(ox, oz), lim = A.r - 11;
+    if (o > lim) { e.pos.x = A.x + ox / o * lim; e.pos.z = A.z + oz / o * lim; }
+    e.pos.y = A.y + 0.3 + Math.sin(e.age * 1.5) * 0.3;
+    e.yaw = Math.atan2(-dx, -dz);
+    if (Math.random() < 0.25) puff(e.pos.x + rand(-2, 2), e.pos.y + rand(0, 5), e.pos.z + rand(-2, 2), "pale");
+    if (e.windT > 0) {
+      e.windT -= step; e.charging = true;
+      if (e.windT <= 0) { e.charging = false; tempestAttack(E, e, ph, dmgMul); }
+      return;
+    }
+    e.atkT -= step;
+    if (e.atkT <= 0) { e.windT = (reduced() ? 1.3 : 0.9); e.atkT = ph === 3 ? 3 : 4; Sound.mob("roar", d); return; }
+    if (d < e.def.reach + 0.6 && e.attackCd <= 0 && E.targetable()) { E.ctx.hurtPlayer(e.def.dmg * dmgMul, "The spinning debris struck you. Don't stand right next to the storm!", e); e.attackCd = 1.8; }
+  }
+  function tempestAttack(E, e, ph, dmgMul) {
+    const A = bf.A, p = G.player, k = (e.next = (e.next || 0) + 1) % 4;
+    if (k === 1) {   // chunks of land rain down around you
+      for (let j = 0; j < (ph === 3 ? 7 : 5); j++) { const a = Math.random() * Math.PI * 2, r = j ? rand(1.5, 5) : 0; hz(E, p.pos.x + Math.cos(a) * r, p.pos.z + Math.sin(a) * r, 1.8, j * 0.18, 5, "A chunk of land fell out of the storm. Step out of the glowing circles!"); }
+      UI.toast("The storm hurls chunks of land into the sky! Watch the ground!", ""); Sound.noise(300, 0.8, 0.1, 0.5, "lowpass");
+    } else if (k === 2) {   // it pulls you in, then slams: run back out
+      const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, l = Math.hypot(dx, dz) || 1;
+      if (E.targetable() && l > 8) E.ctx.push(dx / l * 7, 3, dz / l * 7);
+      hz(E, e.pos.x, e.pos.z, 7.5, 0.55, 7, "The storm slammed down. After it pulls you in, run back out!");
+      UI.toast("The storm pulls you in! Run back out before it slams down!", "");
+    } else if (k === 3) {   // a ring of blight rolls out, with two gaps to stand in
+      const dist = Math.max(8, Math.min(A.r - 3, Math.hypot(p.pos.x - e.pos.x, p.pos.z - e.pos.z))), gap = Math.atan2(p.pos.z - e.pos.z, p.pos.x - e.pos.x) + rand(0.6, 1.4) * (Math.random() < 0.5 ? 1 : -1);
+      const n = Math.max(14, Math.round(dist * 1.6));
+      for (let j = 0; j < n; j++) {
+        const a = j / n * Math.PI * 2, off = q => Math.abs(Math.atan2(Math.sin(a - q), Math.cos(a - q)));
+        if (off(gap) < 0.42 || off(gap + Math.PI) < 0.42) continue;
+        hz(E, e.pos.x + Math.cos(a) * dist, e.pos.z + Math.sin(a) * dist, 1.7, 0.1, 5, "The ring of blight caught you. Look for the gaps!");
+      }
+      e.later.push({ t: (reduced() ? 1.6 : 1.15) + 0.2, fn: () => { const q = Math.hypot(G.player.pos.x - e.pos.x, G.player.pos.z - e.pos.z); if (Math.abs(q - dist) < 1.7 && E.targetable() && Math.random() < 0.5) E.ctx.effect("blight", 4); } });
+      UI.toast("A ring of blight spreads out! Stand in one of the gaps!", "");
+    } else {   // a stream of debris flies straight at you
+      const dx = p.pos.x - e.pos.x, dz = p.pos.z - e.pos.z, l = Math.hypot(dx, dz) || 1;
+      for (let j = 2; j <= 9; j++) hz(E, e.pos.x + dx / l * (2 + j * 2), e.pos.z + dz / l * j * 2, 1.4, j * 0.04, 5, "The stream of debris hit you. Step sideways out of the glowing line!");
+      UI.toast("A stream of debris flies at you! Step sideways!", ""); Sound.tone(260, 0.5, "sawtooth", 0.05, -120);
+    }
+    void dmgMul;
   }
   // the Leviathan circles in its pool (safe from swords), then surfaces beside you: that's when to strike
   function thinkLeviathan(E, e, d, ph, step, dmgMul) {

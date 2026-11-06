@@ -500,6 +500,28 @@ Object.assign(SPECIES, {
 // ----- the Lost Civilization: creatures of Echohold and the Echo Expanse. Listeners (hears) only notice you by sound
 // or when you come very close; they give up and go home (leash) if you get away.
 const HUSH = ["#0e2a30", "#103036", "#14404a"], GLOWT = ["#5ae0d0", "#8af0e8"], KSTONE = ["#3a3e48", "#444852", "#34383f"], COPPER = ["#b8703a", "#a8642e", "#c87e44"], ECHO = ["#5a6a8a", "#52627e", "#647494"];
+// The Blight Tempest (Legacy Campaign, Chapter 4), drawn from the "Legacy Campaign Legends" concept sheet: a giant of
+// cracked, blight-stained stone with the Blightking's crown, huge block fists, no legs (its lower body trails off into
+// floating rubble), and a tilted ring of rusty blocks spinning around it.
+function tempestParts() {
+  const ST = ["#5a5058", "#4e4650", "#655a62", "#544a52"], RUST = ["#7a4436", "#8a4e3c", "#6a3a2e"];
+  const crack = (P, seed) => { P.fill(ST); spk(P, 5, ["#3e363e", "#70646c"]); P.rect(2 + seed % 5, 3, 1, 5, "#a8e040"); P.rect(3 + seed % 5, 7, 1, 4, "#a8e040"); P.rect(10 - seed % 3, 9, 4, 1, "#c8f060"); P.rect(12, 2, 2, 2, RUST[seed % 3]); };
+  const stone = seed => ({ all: P => crack(P, seed) });
+  const mats = [stone(1), stone(4), { all: P => { P.fill(RUST); spk(P, 6, ["#5a2e24", "#a0604a"]); } }, { all: P => { P.fill(["#6a6068", "#5e5660"]); P.rect(0, 7, 16, 1, "#3e363e"); P.rect(7, 0, 1, 7, "#3e363e"); } }];
+  const parts = [
+    { name: "body", size: [28, 26, 16], pivot: [0, 56, 0], off: [0, 0, 0], paint: { all: P => crack(P, 2), front: P => { crack(P, 0); P.rect(7, 0, 2, 16, "#2a242a"); P.rect(7, 2, 1, 12, "#a8e040"); } } },
+    { name: "core", parent: "body", size: [4, 12, 1], pivot: [0, 0, 8], off: [0, 0, 0.6], paint: { all: P => { P.fill(["#b8f050"]); P.rect(5, 0, 6, 16, "#e8ff9a"); } } },
+    { name: "hips", size: [20, 10, 12], pivot: [0, 38, 0], off: [0, 0, 0], paint: stone(3) },
+    { name: "head", size: [14, 13, 14], pivot: [0, 69, 0], off: [0, 6.5, 0], paint: { all: P => crack(P, 1), front: face(ST, P => { P.rect(2, 6, 4, 2, "#ffb030"); P.rect(10, 6, 4, 2, "#ffb030"); P.rect(3, 6, 2, 1, "#ffe080"); P.rect(11, 6, 2, 1, "#ffe080"); P.rect(4, 11, 8, 2, "#2a242a"); }) } },
+    { name: "crown", parent: "head", size: [16, 5, 16], pivot: [0, 15, 0], off: [0, 0, 0], paint: { all: P => { P.fill(["#5e5660"]); for (let x = 0; x < 16; x += 5) P.rect(x, 0, 3, 7, "#7a6e76"); P.rect(0, 11, 16, 5, "#3e363e"); P.rect(7, 2, 2, 3, "#a8e040"); } } }
+  ];
+  for (const [side, sign] of [["R", -1], ["L", 1]]) parts.push(
+    { name: "arm" + side, size: [13, 13, 13], pivot: [sign * 21, 66, 0], off: [0, -2, 0], paint: stone(side === "R" ? 4 : 0) },
+    { name: "fore" + side, parent: "arm" + side, size: [9, 16, 9], pivot: [0, -10, 0], off: [0, -6, 0], paint: stone(2) },
+    { name: "fist" + side, parent: "arm" + side, size: [15, 13, 15], pivot: [0, -27, 0], off: [0, 0, 0], paint: { all: P => crack(P, side === "R" ? 3 : 1), bottom: solid(RUST) } });
+  for (let i = 0; i < 18; i++) { const n = i < 6 ? 6 + (i % 3) * 2 : 8 + (i * 5) % 7; parts.push({ name: "d" + i, size: [n, n, n], pivot: [0, 0, 0], off: [0, 0, 0], paint: mats[(i * 3 + (i >> 2)) % mats.length] }); }
+  return parts;
+}
 function verdantModel() {
   const bark = ["#694227", "#795031", "#875b38", "#59371f", "#74482b"];
   const foliage = ["#527717", "#688b20", "#799e24", "#8cb52b", "#3d5e14"];
@@ -700,6 +722,8 @@ Object.assign(SPECIES, {
       { name: "armL", size: [14, 3, 12], pivot: [12, 16, 6], off: [6, 0, 0], paint: { all: solid(["#3ab0c8", "#2a90a8"]) } },
       { name: "legR", size: [12, 10, 22], pivot: [0, 20, -20], off: [0, 0, -11], paint: { all: P => { P.fill(["#1a4a6a", "#164260"]); P.rect(0, 0, 16, 2, "#3ab0c8"); } } },
       { name: "legL", size: [18, 2, 10], pivot: [0, 20, -40], off: [0, 0, -4], paint: { all: solid(["#3ab0c8", "#2a90a8"]) } }] } },
+  tempest: { name: "The Blight Tempest", boss: true, lostBoss: true, cpBoss: true, noSave: true, hostile: true, hp: 300, speed: 1.3, w: 6.4, h: 10.6, scale: 2, ai: "cpboss", flies: true, noclip: true, fireproof: true, dmg: 7, reach: 5.6, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
+    model: { type: "tempest", parts: tempestParts() } },
   warden: { name: "The First Warden", boss: true, lostBoss: true, noSave: true, hostile: true, hears: true, hp: 400, speed: 2.4, w: 1.8, h: 4.2, ai: "warden", fireproof: true, dmg: 8, reach: 3, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
     model: { type: "warden", parts: [
       { name: "body", size: [20, 18, 12], pivot: [0, 40, 0], off: [0, 9, 0], paint: { all: P => { P.fill(["#14343c", "#10303a", "#183a44"]); for (let y = 2; y < 16; y += 4) P.rect(0, y, 16, 1, "#0a1a20"); } } },
@@ -2912,6 +2936,19 @@ export class Entities {
       if (P.core) { const k = 1 + Math.sin(e.age * (e.charging ? 14 : 3)) * 0.15; P.core.scale.setScalar(k); }
       if (t === "sovereign") { e.root.position.y = Math.sin(e.age * 1.2) * 0.3; for (let i = 0; i < 4; i++) { const a = e.age * 0.8 + i * Math.PI / 2; P["crown" + i].position.set(Math.cos(a) * 0.75, 96 / 16, Math.sin(a) * 0.75); } }
       if (e.shieldUp) { const k = 0.7 + Math.sin(e.age * 8) * 0.2; e.mat.color.setRGB(k, 1, 1.1); return; }
+    } else if (t === "tempest") {   // the rubble spins (faster when it winds up an attack, and when it's badly hurt); the fists rise before a strike
+      const spin = e.age * (e.charging ? 2.6 : 1.1) * (e.hp < e.maxHp * 0.33 ? 1.5 : 1);
+      for (let i = 0; i < 18; i++) {
+        const k = i % 6, P2 = P["d" + i];
+        if (i < 6) { const a = spin * 2 + k / 6 * Math.PI * 2; P2.position.set(Math.cos(a) * 0.9, 0.5 + k * 0.32 + Math.sin(e.age * 3 + i) * 0.1, Math.sin(a) * 0.9); }   // the trail of rubble under it
+        else { const ring = i < 12 ? 0 : 1, a = spin * (ring ? -0.8 : 1) + k / 6 * Math.PI * 2 + ring * 0.5, r = ring ? 3.4 : 4.3; P2.position.set(Math.cos(a) * r, (ring ? 4.9 : 3.3) + Math.sin(a) * (ring ? 0.5 : 0.9), Math.sin(a) * r); }
+        P2.rotation.set(e.age * (0.6 + (i % 3) * 0.4), e.age * 0.5, 0);
+      }
+      const lift = e.charging ? -1.6 : 0, sway = Math.sin(e.age * 1.4) * 0.12;
+      P.armR.rotation.x = lift + sway; P.armL.rotation.x = lift - sway; P.armR.rotation.z = -0.15; P.armL.rotation.z = 0.15;
+      e.root.position.y = Math.sin(e.age * 1.5) * 0.1;
+      if (P.core) P.core.scale.setScalar(1 + Math.sin(e.age * (e.charging ? 14 : 3)) * 0.18);
+      if (e.shieldUp) { const k = 0.7 + Math.sin(e.age * 8) * 0.2; e.mat.color.setRGB(k, 1.1, k); return; }
     } else if (t === "sheller") {
       P.lid.position.y = (8 + e.open * 6) / 16; P.head.visible = e.open > 0.2;
     } else if (t === "villager") {

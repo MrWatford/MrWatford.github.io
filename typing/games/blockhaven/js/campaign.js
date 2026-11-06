@@ -12,15 +12,19 @@ import { B, I, CHUNK, SEA, itemDef, make } from "./blocks.js";
 import { newStack } from "./inventory.js";
 import { buildVillage, VSIZE, VC, VILLAGE_V } from "./campaign-village.js";
 import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
+import { buildIronhold, buildBlightCitadel, buildOutpost, buildSealShrine, buildHollowmere, SIZES2, TOWNS2_V } from "./campaign-towns2.js";
 import { initBosses, BOSSES } from "./campaign-bosses.js";
-import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS } from "./campaign-data.js";
+import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS, BOSS_NAMES } from "./campaign-data.js";
 export { CAMPAIGN_SEED, CAMPAIGN_WORLD };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const k3 = (x, y, z) => x + "," + y + "," + z;
 const TEMPLE_DIMS = ["desert", "jungle", "sea"];
-const WAY_NAMES = { village: "Legacy Village", stonehaven: "Stonehaven", ruin: "The Ruined Watchtower", sandspire: "Sandspire", oakwood: "Oakwood", seabreak: "Seabreak" };
-const TOWN_SITES = ["stonehaven", "ruin", "sandspire", "oakwood", "seabreak"];
+const WAY_NAMES = { village: "Legacy Village", stonehaven: "Stonehaven", ruin: "The Ruined Watchtower", sandspire: "Sandspire", oakwood: "Oakwood", seabreak: "Seabreak",
+  ironhold: "Ironhold", blightcitadel: "The Blight Citadel", outpost: "The Ember Outpost", hollowmere: "Hollowmere" };
+const TOWN_SITES = ["stonehaven", "ruin", "sandspire", "oakwood", "seabreak", "ironhold", "blightcitadel", "outpost", "hollowmere"];
+const SZ = { ...SIZES, ...SIZES2 };   // every site kind's stamp size
+const SEAL_F = 38;   // the Dragon Seal shrines' floor height in the Ember Depths
 const RAID_WAVES = [["zombie", "zombie", "skeleton"], ["zombie", "spider", "skeleton", "zombie"], ["zombie", "zombie", "skeleton", "skeleton", "spider"]];
 
 export function initCampaign(api) {
@@ -72,13 +76,13 @@ export function initCampaign(api) {
     const occ = [{ x: v.cx, z: v.cz, r: 82 }];
     if (lost.site) occ.push({ x: lost.site.x + 16, z: lost.site.z + 16, r: 22 });
     for (const t of Object.values(ts)) if (t) occ.push({ x: t.x + 16, z: t.z + 16, r: t.lake ? t.lake.r1 + 4 : 22 });
-    for (const [id, q] of Object.entries(s.sites)) occ.push({ x: q.cx, z: q.cz, r: SIZES[q.kind || id] / 2 + 2 });
+    for (const [id, q] of Object.entries(s.sites)) occ.push({ x: q.cx, z: q.cz, r: SZ[q.kind || id] / 2 + 2 });
     const fresh = (x, z, half) => {
       for (let gx = Math.floor((x - half) / CHUNK); gx <= Math.floor((x + half - 1) / CHUNK); gx++) for (let gz = Math.floor((z - half) / CHUNK); gz <= Math.floor((z + half - 1) / CHUNK); gz++) { const k = gx + "," + gz; if (visited.has(k) || mods[k]) return false; }
       return true;
     };
     const search = (from, kind, rMin, rMax, scoreAt) => {
-      const half = SIZES[kind] / 2; let best = null;
+      const half = SZ[kind] / 2; let best = null;
       for (let r = rMin; r <= rMax; r += 12) {
         const n = r ? Math.max(8, Math.round(Math.PI * 2 * r / 16)) : 1;
         for (let a = 0; a < n; a++) {
@@ -99,7 +103,7 @@ export function initCampaign(api) {
       hs.sort((a, b) => a - b);
       return { s: (hs[8] - hs[0]) + water * 4 - match * 1.5 + r / 60, g: Math.max(SEA + 2, Math.min(SEA + 14, hs[4])) };
     };
-    const add = (id, kind, p, extra) => { if (!p) return; s.sites[id] = { cx: p.x, cz: p.z, g: p.g, kind, v: TOWNS_V, ...extra }; occ.push({ x: p.x, z: p.z, r: SIZES[kind] / 2 + 2 }); };
+    const add = (id, kind, p, extra) => { if (!p) return; s.sites[id] = { cx: p.x, cz: p.z, g: p.g, kind, v: TOWNS_V, ...extra }; occ.push({ x: p.x, z: p.z, r: SZ[kind] / 2 + 2 }); };
     const toward = (a, b, k) => ({ x: Math.round(a.x + (b.x - a.x) * k), z: Math.round(a.z + (b.z - a.z) * k) });
     const vc = { x: v.cx, z: v.cz }, desert = ts.desert && { x: ts.desert.x + 16, z: ts.desert.z + 16 }, jungle = ts.jungle && { x: ts.jungle.x + 16, z: ts.jungle.z + 16 }, sea = ts.sea && { x: ts.sea.x + 16, z: ts.sea.z + 16 };
     if (!s.sites.stonehaven) add("stonehaven", "stonehaven", search(desert ? toward(vc, desert, 0.75) : { x: vc.x - 200, z: vc.z }, "stonehaven", 0, 260, (x, z, h, r) => land(x, z, h, r, ["plains"])));
@@ -126,6 +130,15 @@ export function initCampaign(api) {
       const p = (sea && search(sea, "wreck", 30, 200, wet)) || search({ x: sb.cx, z: sb.cz }, "wreck", 30, 320, wet);
       add("wreck", "wreck", p);
     }
+    // Chapters 4–6: Ironhold sits away from the first three chapters' towns; the citadel and the outpost near it; Hollowmere off to one side
+    const v2 = { v: TOWNS2_V };
+    let ax = 0, az = 0; for (const q of Object.values(s.sites)) { ax += q.cx - vc.x; az += q.cz - vc.z; }
+    const al = Math.hypot(ax, az) || 1, away = { x: -ax / al, z: -az / al };
+    if (!s.sites.ironhold) add("ironhold", "ironhold", search({ x: Math.round(vc.x + away.x * 280), z: Math.round(vc.z + away.z * 280) }, "ironhold", 0, 260, (x, z, h, r) => land(x, z, h, r, ["plains", "forest"])), v2);
+    const ih = s.sites.ironhold;
+    if (ih && !s.sites.blightcitadel) add("blightcitadel", "blightcitadel", search({ x: Math.round(ih.cx + away.x * 130), z: Math.round(ih.cz + away.z * 130) }, "blightcitadel", 0, 200, (x, z, h, r) => land(x, z, h, r)), v2);
+    if (ih && !s.sites.outpost) add("outpost", "outpost", search(toward({ x: ih.cx, z: ih.cz }, vc, 0.3), "outpost", 0, 160, (x, z, h, r) => land(x, z, h, r)), v2);
+    if (!s.sites.hollowmere) add("hollowmere", "hollowmere", search({ x: Math.round(vc.x - away.z * 260), z: Math.round(vc.z + away.x * 260) }, "hollowmere", 0, 260, (x, z, h, r) => land(x, z, h, r, ["forest", "birch"])), v2);
   }
   // every built place (stamp) in a dimension: { id, kind, dim, cx, cz, size, built: { cells, info } }
   const builtCache = new Map();
@@ -141,7 +154,8 @@ export function initCampaign(api) {
     if (id === "village") return built(id, rec, () => buildVillage(rec.g, groundFor(gen, rec)));
     const k = rec.kind || id, gnd = groundFor(gen, rec);
     return built(id, rec, () => k === "stonehaven" ? buildStonehaven(rec.g, gnd) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd) : k === "oakwood" ? buildOakwood(rec.g, gnd)
-      : k === "seabreak" ? buildSeabreak(rec.g, gnd, rec.rot || 0) : k === "keyruin" ? buildKeyRuin(rec.n, rec.g, gnd) : buildWreck(rec.g));
+      : k === "seabreak" ? buildSeabreak(rec.g, gnd, rec.rot || 0) : k === "keyruin" ? buildKeyRuin(rec.n, rec.g, gnd)
+      : k === "ironhold" ? buildIronhold(rec.g, gnd) : k === "blightcitadel" ? buildBlightCitadel(rec.g, gnd) : k === "outpost" ? buildOutpost(rec.g, gnd) : k === "hollowmere" ? buildHollowmere(rec.g, gnd) : buildWreck(rec.g));
   }
   function sitesIn(dim) {
     const s = st(), out = [];
@@ -150,7 +164,9 @@ export function initCampaign(api) {
       const gen = genRef || (G.world && G.dim === "overworld" && G.world.gen);
       if (!gen) return out;
       out.push({ id: "village", kind: "village", dim, cx: s.village.cx, cz: s.village.cz, size: VSIZE, g: s.village.g, built: siteBuild("village", s.village, gen) });
-      for (const [id, rec] of Object.entries(s.sites || {})) out.push({ id, kind: rec.kind || id, dim, cx: rec.cx, cz: rec.cz, size: SIZES[rec.kind || id], g: rec.g, built: siteBuild(id, rec, gen) });
+      for (const [id, rec] of Object.entries(s.sites || {})) out.push({ id, kind: rec.kind || id, dim, cx: rec.cx, cz: rec.cz, size: SZ[rec.kind || id], g: rec.g, built: siteBuild(id, rec, gen) });
+    } else if (dim === "nether") {   // the three Dragon Seal shrines
+      for (const [id, rec] of Object.entries(s.nsites || {})) out.push({ id, kind: "sealshrine", dim, cx: rec.cx, cz: rec.cz, size: SZ.sealshrine, g: rec.F, built: built(id, rec, () => buildSealShrine(rec.n, rec.F)) });
     } else if (TEMPLE_DIMS.includes(dim)) {
       const gen = L.gen(dim); if (!gen) return out;
       const ped = gen.map.meta.pedestal, rec = { kind: "throne", t: dim, y: ped.y, z: ped.z, v: TOWNS_V };
@@ -172,7 +188,7 @@ export function initCampaign(api) {
       gen.villagePiece = function (gx, gz) {
         const hit = (ax, az, size) => gx * CHUNK < ax + size && gx * CHUNK + CHUNK > ax && gz * CHUNK < az + size && gz * CHUNK + CHUNK > az;
         if (hit(x0, z0, VSIZE)) return null;
-        for (const q of Object.values(st().sites || {})) { const sz = SIZES[q.kind]; if (hit(q.cx - sz / 2, q.cz - sz / 2, sz)) return null; }
+        for (const q of Object.values(st().sites || {})) { const sz = SZ[q.kind]; if (hit(q.cx - sz / 2, q.cz - sz / 2, sz)) return null; }
         return vp.call(this, gx, gz);
       };
       gen._cpWrapped = true;
@@ -195,6 +211,28 @@ export function initCampaign(api) {
     const site = sitesIn(dim)[0]; if (!site) return;
     gen.stamps = [{ x: site.cx - site.size / 2, z: site.cz - site.size / 2, size: site.size, cells: site.built.cells }];
     writeSigns(dim, G.dimData[dim] || (G.dimData[dim] = {}));
+  };
+  // the Ember Depths: three Dragon Seal shrines, chosen once (between the arrival area and the Cinder Citadel), in rock nobody has dug yet
+  C.stampNether = (gen, wdata) => {
+    if (!on() || !gen || !gen.citadel) return;
+    const s = st(), c = gen.citadel;
+    if (!s.nsites) {
+      const visited = new Set((wdata && wdata.visited) || []), mods = (wdata && wdata.mods) || {}, half = SZ.sealshrine / 2, out = {};
+      const clear = (x, z) => {
+        for (let gx = Math.floor((x - half) / CHUNK); gx <= Math.floor((x + half - 1) / CHUNK); gx++) for (let gz = Math.floor((z - half) / CHUNK); gz <= Math.floor((z + half - 1) / CHUNK); gz++) if (visited.has(gx + "," + gz) || mods[gx + "," + gz]) return false;
+        if (x + half > c.x - 40 && x - half < c.x + 80 && z + half > c.z - 40 && z - half < c.z + 40) return false;   // keep clear of the citadel and its tunnel
+        return Object.values(out).every(o => Math.hypot(o.cx - x, o.cz - z) > half * 2 + 8);
+      };
+      const base = Math.atan2(-c.z, -c.x);   // toward the middle of the Ember Depths, where travelers usually arrive
+      for (let n = 0; n < 3; n++) {
+        let spot = null;
+        for (let t = 0; t < 60 && !spot; t++) { const a = base + (n - 1) * 0.95 + (t % 2 ? 1 : -1) * Math.floor(t / 2) * 0.07, r = 90 + (t % 5) * 12, x = Math.round(c.x + Math.cos(a) * r), z = Math.round(c.z + Math.sin(a) * r); if (clear(x, z)) spot = { x, z }; }
+        if (spot) out["seal" + n] = { cx: spot.x, cz: spot.z, F: SEAL_F, n, v: TOWNS2_V };
+      }
+      s.nsites = out;
+    }
+    gen.stamps = sitesIn("nether").map(site => ({ x: site.cx - site.size / 2, z: site.cz - site.size / 2, size: site.size, cells: site.built.cells }));
+    writeSigns("nether", wdata || G.dimData.nether || {});
   };
   function writeSigns(dim, wdata) {
     const s = st(); s.signsDone = s.signsDone || {};
@@ -290,6 +328,7 @@ export function initCampaign(api) {
       case "templeboss": return lostT(step.kind).boss === "defeated";
       case "relic": return !!lostT(step.kind).relic;
       case "flag": return !!s.flags[step.flag];
+      case "dim": return G.dim === step.dim;
       case "have": return step.ids.reduce((a, id) => a + countItem(id), 0) >= step.n;
       default: return false;
     }
@@ -313,7 +352,7 @@ export function initCampaign(api) {
   function complete(q) {
     const s = st(), def = QUESTS[q];
     s.active = s.active.filter(x => x !== q); s.done[q] = Date.now();
-    if (def.reward) { if (def.reward.xp) giveXp(def.reward.xp); for (const [id, n] of def.reward.items || []) give(id, n); }
+    if (def.reward) { for (const [id, n] of def.reward.take || []) takeItem(id, n); if (def.reward.xp) giveXp(def.reward.xp); for (const [id, n] of def.reward.items || []) give(id, n); }
     UI.toast(`Quest complete: ${def.title}!${def.reward ? " Reward: " + def.reward.text + "." : ""}`, "good"); Sound.levelUp();
     G.adv && G.adv("cpquest", q);
     if (CHAPTER_AFTER[q]) { s.chapter = CHAPTER_AFTER[q]; titleCard(s.chapter); }
@@ -336,6 +375,7 @@ export function initCampaign(api) {
       case "kill": return type === "kill" && (!step.sp || arg === step.sp);
       case "flag": return type === "flag" && arg === step.flag;
       case "walk": return type === "walk";
+      case "dim": return type === "dim" && arg === step.dim;
       case "boss": return type === "boss" && arg === step.boss;
       case "temple": case "templeboss": case "relic": return type === step.ev && arg === step.kind;
       default: return false;
@@ -387,6 +427,7 @@ export function initCampaign(api) {
       else if (cur("village") === 0) text = "Go and see our village! Meet the people, look inside the buildings. Every chest in Legacy Village is yours to use. Come back to me when you've seen it.";
       else if (cur("prepare") >= 0) text = s.flags.elderRelics ? "Smith Garrick's forge is just west of the fountain. Iron tools first, then we'll talk about the road ahead." : "You've seen our little kingdom, and it has seen you.\n\nNow listen. Long ago, the First Builders made all of this, and much more. When their greatest work went wrong, they hid their power in eight Relics to seal away something terrible: the Forgotten King.\n\nThe seals are weakening. I can feel it. Before you can help, you'll need better gear. Go and see Smith Garrick.";
       else if (just("rumors", 1) || cur("rumors") === 1) text = "A traveler came through last night, pale as milk. The watchtower on the road to Stonehaven was smashed to rubble in a single night, and nobody saw what did it.\n\nGo to Stonehaven and speak with King Aldric. He is an old friend of this village." + placeDir(e, "stonehaven") + "\n\nTip: touch the Waystone on our plaza first. Waystones let you travel back here in an instant.";
+      else if (cur("ironhold") === 0 || just("ironhold", 1)) text = "Three Relics, safe in your pack. I knew you were the one.\n\nBut a rider came from Ironhold this morning, covered in black dust. The mining town under Mount Ferrum has dug into something old. Their stone is turning black, and the blight is spreading. Forgemaster Hilda asks for help." + placeDir(e, "ironhold");
       else if (s.relics.length) text = `You carry ${s.relics.length} of the eight Relics! I can feel their warmth from here. The First Builders would be proud.`;
       if (cur("prepare") >= 0) s.flags.elderRelics = true;
     } else if (id === "smith") {
@@ -438,9 +479,39 @@ export function initCampaign(api) {
     } else if (id === "mira") {
       if (just("seabreak", 2)) {
         text = "A drowned kingdom, eh? I've heard the stories. Before you go poking around under the sea, you'll want this: a Tide Charm. Keep it in your pack and you'll never run out of air.\n\nYears ago a ship called the Gull's Promise sank just off the coast with an ancient ocean map aboard. Find the wreck, find the map.";
-        if (!s.given.charm) { give(I.TIDE_CHARM, 1); give(I.BOAT, 1); s.given.charm = true; }
+        if (!s.given.charm) { give(I.CP_CHARM, 1); give(I.BOAT, 1); s.given.charm = true; }
       } else if (just("shipwreck", 3)) text = "That's it! The Drowned Citadel, right under the lighthouse rocks out on the open sea. And look: a grotto below it, marked with a sea serpent. Row out to the lighthouse and ride its lift down. Good luck, sailor.";
       else if (cur("shipwreck") >= 0) text = "The wreck lies in the shallows off the coast. Swim down; the Tide Charm will keep you breathing.";
+      opts.push(tradeOpt);
+    } else if (id === "hilda") {
+      if (just("ironhold", 3)) text = "Maren sent you? Then you're the one who brought back three Relics. Good. We need someone like that.\n\nThree nights ago my miners broke into old tunnels under the mountain. The stone down there is turning black, and it's spreading. My crews heard whispering and ran, and I don't blame them.\n\nThe stairs in the Mine Head lead to the Deep Mine. Find out what they found.";
+      else if (cur("blightmines") >= 0 && cur("blightmines") < 2) text = `The west, south, and east galleries. Each crew found something at the end of its tunnel. You have ${countItem(B.SKULL)} of 3 so far.`;
+      else if (just("blightmines", 3)) text = "Blight Skulls. Three of them. I've heard the old songs about these: the First Builders locked away a creature called the Blightking, in a citadel past the mountain.\n\nThe skulls are pulling toward it, like iron to a lodestone. As long as he sleeps, the blight will keep spreading. We end it the hard way: wake him on his own altar, and beat him." + placeDir(e, "blightcitadel") + "\n\nTake food. Take your best sword. Healer Rue will patch you up first.";
+      else if (cur("blightking") >= 0) text = "The Blight Citadel is past Mount Ferrum. Put the three skulls on the Wailing Sand altar in the middle of the courtyard, and be ready. Remember: the First Builders' Rune Stones are there for a reason.";
+      else if (cur("embers") === 0) text = "You did it! The stone in the mine is turning grey again. Ironhold owes you everything.\n\nThat crown of his was forged in fire from the Ember Depths, down below the world. A royal expedition has camped by an old portal frame, hunting for the fifth Relic. Go and find Expedition Leader Sable." + placeDir(e, "outpost");
+      opts.push(tradeOpt);
+    } else if (id === "dag") {
+      if (cur("blightmines") >= 0 && cur("blightmines") < 2) text = "The stairs are inside the Mine Head, right behind me. Down at the bottom, the main hall splits three ways: west, south, east. Take torches. And don't listen to the whispering. It's lying.";
+      else if (s.active.includes("ironVeins")) text = d.hello + " If you want real Ironhold iron, dig into Mount Ferrum behind the town. It's full of it.";
+      opts.push(tradeOpt);
+    } else if (id === "rue") {
+      if (cur("blightking") >= 0) text = "Going to the citadel? Eat well first, and carry golden apples. When the Blightking gets armored, arrows bounce off him: use your sword. And whatever rises after him, don't stand in the glowing places.";
+      opts.push(tradeOpt);
+    } else if (id === "sable") {
+      if (just("embers", 2)) text = "Hilda sent word you were coming. Good, I need someone brave and a little bit fireproof.\n\nThat obsidian frame is the Ember Gate. Light it with the Flint and Steel in our supply chest, and it opens a path to the Ember Depths. It's hot down there, and the Boarkin love gold, so wear the golden helmet.\n\nThe First Builders hid three Dragon Seals in shrines down below. Bring all three together and they'll open Cindermaw's altar.";
+      else if (cur("embers") === 2) text = "The Flint and Steel is in the supply chest by the tents. Strike the inside of the obsidian frame, then step in and wait a moment.";
+      else if (cur("seals") >= 0) text = `You have ${countItem(I.DRAGON_SEAL)} of 3 Dragon Seals. Quill says the shrines are carved into great caverns, with tunnels leading in from every side. Your marker will point to the nearest one once you're down there.`;
+      else if (cur("cindermaw") >= 0) text = "A Cinder Eye! Put it in the Cinder Altar in the dragon's citadel. Cindermaw is the most dangerous thing in the Depths, so watch for its warnings: a roar before it dives, glowing rings before fire.";
+      else if (s.bosses.cindermaw && !s.places.hollowmere) text = "The Relic of Flame! Quill nearly fainted.\n\nThere's something else, though. Travelers keep talking about a village called Hollowmere, swallowed by fog, and a tall stranger with white eyes who watches from the hills. I don't like it. Somebody should look." + placeDir(e, "hollowmere");
+      opts.push(tradeOpt);
+    } else if (id === "quill") {
+      text = s.bosses.cindermaw ? "The dragon guarded the First Builders' fire for a thousand years. Now that fire is ours to protect. I'm writing all of this down. Twice." : "Did you know the First Builders wrote everything twice? Once for people, once for dragons. The dragon version is mostly about fire.\n\nThe seal shrines are deep inside the rock of the Ember Depths, each in a cavern with four tunnels. If you see black stone and fiery pillars, you're close.";
+      opts.push(tradeOpt);
+    } else if (id === "ilsa") {
+      if (just("hollowmere", 2)) text = "A visitor! Nobody visits anymore. They're all scared of the fog, and of him.\n\nDr. Vell lived in the observatory on the hill. She studied the mist, and the tall man with the white eyes who walks in it. She called him Herobrine. One night she went into the fog with a lantern she'd built, and never came back.\n\nLook around: the Meeting Hall, the Old Well, and her observatory. You'll see what I mean.";
+      else if (cur("hollowmere") === 2) text = "The Meeting Hall is to the north-west, the Old Well is right in the middle of the village, and Dr. Vell's observatory is up on the hill.";
+      else if (cur("shadow") >= 0) text = "Dr. Vell's lantern opens the way into his valley, the Forsaken World. Inside a ward, he can't hurt you. Outside... keep your eyes open, and your lantern lit.\n\nIf the Relic of Shadows is anywhere, it's in his citadel.";
+      else if (s.bosses.herobrine) text = "The fog is lifting! I heard a bird this morning. A real one! Thank you, friend.";
       opts.push(tradeOpt);
     } else opts.push(tradeOpt);
     return { text, opts };
@@ -573,6 +644,7 @@ export function initCampaign(api) {
   const BS = initBosses({
     G, UI, Sound, ents, puff,
     isDefeated: id => !!st().bosses[id],
+    canWake: id => (id === "tempest" ? !!st().bosses.blightking : true),   // the Tempest only rises after the Blightking falls in its citadel
     runeBlock: lit => make(B.RUNE_STONE, lit ? 1 : 0),
     onDefeat: (id, e) => {
       const s = st(), R = BOSS_REWARDS[id]; if (!R) return;
@@ -589,7 +661,7 @@ export function initCampaign(api) {
     const out = [];
     for (const site of sitesIn(dim)) for (const [id, A] of Object.entries(site.built.info.arenas)) {
       const c = W(site, A.X, A.y, A.Z);
-      out.push({ id, dim, x: c.x + 0.5, y: A.y, z: c.z + 0.5, r: A.r, devices: A.devices.map(d => W(site, d.X, d.y, d.Z)), tele: (A.tele || []).map(t => W(site, t.X, t.y, t.Z)), pool: A.pool });
+      out.push({ id, dim, x: c.x + 0.5, y: A.y, z: c.z + 0.5, r: A.r, devices: A.devices.map(d => W(site, d.X, d.y, d.Z)), tele: (A.tele || []).map(t => W(site, t.X, t.y, t.Z)), pool: A.pool, manual: !!A.manual });
     }
     return out;
   };
@@ -598,10 +670,32 @@ export function initCampaign(api) {
     ents.bossAI.cpboss = BS.think;
     ents.bossAI.hit = (E, e, n, attacker) => (e.def.cpBoss ? BS.hit(E, e, n, attacker) : prevHit(E, e, n, attacker));
   }
-  C.bossDefeated = e => on() && BS.defeated(e);
+  C.bossDefeated = e => {
+    if (!on()) return false;
+    if (e.sp === "blightking" && e.cpCitadel) {   // Chapter 4: the Blightking falls in his citadel... and the land rises as the Blight Tempest
+      const s = st();
+      if (!s.bosses.blightking) { s.bosses.blightking = Date.now(); giveXp(60); }
+      for (let k = 0; k < 16; k++) puff(e.pos.x + (Math.random() - 0.5) * 3, e.pos.y + Math.random() * 3, e.pos.z + (Math.random() - 0.5) * 3, "pale");
+      Sound.mob("roar", 0);
+      UI.toast("The Blightking falls... but his crown keeps burning. The ground shakes, and the courtyard tears itself loose!", "bad");
+      C.event("boss", "blightking"); saveNow(false);
+      return true;   // no Radiant Star yet: it comes with the Relic, after the Tempest
+    }
+    return BS.defeated(e);
+  };
+  // Bosses with their own fights and victory scenes (Cindermaw, Herobrine): the campaign adds its Relic and a note
+  C.externalBoss = id => {
+    if (!on()) return;
+    const s = st(), R = BOSS_REWARDS[id]; if (!R || s.bosses[id]) return;
+    s.bosses[id] = Date.now();
+    if (R.relic) { give(R.relic, 1); if (!s.relics.includes(R.chapter)) s.relics.push(R.chapter); }
+    for (const [it, n] of R.items) give(it, n);
+    C.event("boss", id); summary(); saveNow(false);
+    setTimeout(() => { UI.toast(`You found the ${itemDef(R.relic).name}!`, "good"); openPanel("note", { title: R.title, text: R.text + `\n\nRelics recovered: ${s.relics.length} of 8.` }); }, 9800);
+  };
   C.bossInfo = () => (on() ? BS.info() : null);
   C.onFaint = () => { BS.onFaint(); stopRaid("You fainted, and the raiders scattered. Talk to Captain Brenna to try again."); };
-  C.breathes = () => on() && countItem(I.TIDE_CHARM) > 0;
+  C.breathes = () => on() && countItem(I.CP_CHARM) > 0;
   C._bosses = BS; C._raid = () => raid;
 
   // ======================= each frame =======================
@@ -610,7 +704,8 @@ export function initCampaign(api) {
     if (!on() || !G.world || !G.player) return;
     const s = st(), p = G.player;
     if (G.dim === "overworld" && G.world.gen) genRef = G.world.gen;
-    const sites = (G.dim === "overworld" && s.village) || TEMPLE_DIMS.includes(G.dim) ? sitesIn(G.dim) : [];
+    const sites = (G.dim === "overworld" && s.village) || TEMPLE_DIMS.includes(G.dim) || G.dim === "nether" ? sitesIn(G.dim) : [];
+    if (s.active.includes("next4")) { s.active = s.active.filter(q => q !== "next4"); start("ironhold"); }   // worlds saved before Chapter 4 existed
     if (G.dim === "overworld" && s.village && !s.kitGiven && G.inv) { s.kitGiven = true; if (!s.filled) giveStartKit(); }
     for (const site of sites) { if (!(site.id === "village" ? s.filled : s.filledSites[site.id])) fillSite(site); moveIn(site); }
     if ((placeT -= dt) <= 0) {
@@ -628,6 +723,11 @@ export function initCampaign(api) {
         if (P.tower && p.pos.y >= (pl.y != null ? pl.y : site.g + 16) - 0.5) C.event("visitHigh", pl.id);
       }
       for (const q of [...s.active]) { const step = stepOf(q); if (step && step.ev === "have" && already(step)) advance(q); }
+      C.event("dim", G.dim);
+      const cit = G.dim === "nether" && G.dimData.nether && G.dimData.nether.citadel;
+      if (cit && Math.hypot(p.pos.x - cit.x, p.pos.z - cit.z) < 60) { if (!s.places.cinderCitadel) { s.places.cinderCitadel = true; UI.toast("Discovered: The Cinder Citadel"); } C.event("visit", "cinderCitadel"); }
+      const T = arenaCache.list.find(a => a.id === "tempest");
+      if (T) for (const e of ents.list) if (e.sp === "blightking" && !e.cpCitadel && !e.dead && Math.hypot(e.pos.x - T.x, e.pos.z - T.z) < T.r + 4) { e.cpCitadel = true; C.event("flag", "blightWoke"); UI.toast("The Blightking rises in his own citadel! Stay inside the courtyard.", "bad"); }
       if (arenaCache.dim !== G.dim) arenaCache = { dim: G.dim, list: C.arenas(G.dim) };
     }
     BS.tick(dt, arenaCache.list);
@@ -673,6 +773,11 @@ export function initCampaign(api) {
       const kind = step.kind || (step.place || "").replace("throne_", ""), m = L.landmarks().find(x => x.kind === kind);
       if (m) return { x: m.x + 0.5, z: m.z + 0.5 };
     }
+    if (G.dim === "nether" && (step.place === "cinderCitadel" || step.boss === "cindermaw")) { const c = G.dimData.nether && G.dimData.nether.citadel; if (c) return { x: c.x + 0.5, z: c.z + 0.5 }; }
+    if (G.dim === "overworld" && ((step.ev === "dim" && step.dim === "nether") || (step.places || []).some(x => /^seal/.test(x)) || step.place === "cinderCitadel" || step.boss === "cindermaw")) {   // the way to the Ember Depths starts at the outpost's gate
+      const op = sitesIn("overworld").find(x => x.id === "outpost"), m = op && op.built.info.marks.portal;
+      if (m) return { x: op.cx + m.X + 0.5, z: op.cz + m.Z + 0.5 };
+    }
     const ids = step.place ? [step.place] : step.list || step.places || [];
     const seen = prog(q).seen || [], s = st();
     for (const site of sitesIn(G.dim)) for (const pl of site.built.info.places) {
@@ -710,7 +815,7 @@ export function initCampaign(api) {
     const ch = Math.min(8, s.chapter), chapters = CHAPTERS.map(c => `<li style="${c.n === ch ? "font-weight:700" : c.n > ch ? "color:#888" : ""}">${c.n > ch ? "🔒" : c.n === ch ? "▶" : "✔"} Chapter ${c.n}: ${esc(c.title)}${c.n <= ch ? ` <span class="note" style="color:#555">${esc(c.where)}</span>` : ""}</li>`).join("");
     const relics = CHAPTERS.map(c => `<span title="${esc(c.relic)}" style="display:inline-block;width:30px;height:30px;line-height:30px;margin:2px;border-radius:50%;text-align:center;border:2px solid ${s.relics.includes(c.n) ? "#c9a24a" : "#bbb"};background:${s.relics.includes(c.n) ? "#f5d36a" : "#eee"}">${s.relics.includes(c.n) ? "★" : "?"}</span>`).join("");
     const names = [...new Set(Object.keys(s.places).filter(k => PLACES[k] && !PLACES[k].tower && k !== "castleGate").map(k => PLACES[k].name))];
-    const bosses = Object.keys(s.bosses).map(k => esc(BOSSES[k] ? BOSSES[k].name.replace(/^the /, "The ") : k)).join(", ") || "None yet";
+    const bosses = Object.keys(s.bosses).map(k => esc(BOSSES[k] ? BOSSES[k].name.replace(/^the /, "The ") : BOSS_NAMES[k] || k)).join(", ") || "None yet";
     const ways = waystones().filter(w => s.ways[w.id]).map(w => esc(w.name)).join(", ") || "None yet (touch a Waystone to remember it)";
     return `<div style="color:#222">
       <h4 style="margin:4px 0">Chapter ${ch}: ${esc(CHAPTERS[ch - 1].title)}</h4>

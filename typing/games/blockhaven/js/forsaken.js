@@ -621,6 +621,7 @@ export function initForsaken(api) {
       (s.extraNotes = s.extraNotes || {}); s.notes.free = Date.now();
     } else giveXp(100);
     G.adv("banished", first ? 1 : 2);
+    if (G.campaign && G.campaign.externalBoss) G.campaign.externalBoss("herobrine");   // Legacy Campaign, Chapter 6: the Relic of Shadows
     saveNow(true);
     api.victory(first ? "Herobrine is banished!" : "Herobrine is banished again!", first ? "His watch is over. Your rewards: a Pale Effigy trophy, the Wardlight Lantern (hold it and monsters won't appear near you), 32 Pale Bricks, the new Wardkeeper skin, and experience. The mist is lifting. Visit any time." : "The Vale is quiet again. You earned more experience.", { x: C().x + 0.5, y: C().y, z: C().z + 0.5 });
     setTimeout(() => F.readNote("free"), 9500);

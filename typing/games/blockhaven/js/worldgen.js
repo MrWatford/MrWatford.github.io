@@ -457,7 +457,7 @@ export class NetherGen {
     this.fortressPiece(data, cx, cz, r);
     this.bastionPiece(data, cx, cz, r);
     if (this.citadel) this.citadelPiece(data, cx, cz);
-    return data;
+    return this.stamps ? applyStamps(this, data, cx, cz) : data;   // the campaign's Dragon Seal shrines (campaign worlds only)
   }
 
   // ----- the Cinder Citadel: Cindermaw's caldera, carved out of the rock wherever main.js placed it (this.citadel = { x, z }) -----

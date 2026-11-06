@@ -85,7 +85,17 @@ export const NPCS = {
   // Seabreak
   mira: { name: "Captain Mira", prof: "fletcher", role: "Harbor Captain", hello: "Fair winds, landlubber. The sea gives and the sea takes. Mostly it takes boats." },
   fishmonger: { name: "Fishmonger Dory", prof: "farmer", role: "Fishmonger", hello: "Fresh fish! Today's fish! Possibly yesterday's fish!" },
-  shipwright: { name: "Shipwright Tobin", prof: "smith", role: "Shipwright", hello: "A boat is just a house that learned to swim." }
+  shipwright: { name: "Shipwright Tobin", prof: "smith", role: "Shipwright", hello: "A boat is just a house that learned to swim." },
+  // Ironhold (Chapter 4)
+  hilda: { name: "Forgemaster Hilda", prof: "smith", role: "Leader of Ironhold", hello: "Ironhold doesn't bend and it doesn't break. Mostly it just makes a lot of noise." },
+  dag: { name: "Miner Dag", prof: "smith", role: "Mine Foreman", hello: "Forty years under the mountain and I never saw stone go black like that. Never." },
+  rue: { name: "Healer Rue", prof: "cleric", role: "Healer", hello: "Sit down, sit down. Nobody leaves my house hungry or bleeding. Ideally neither." },
+  orrin: { name: "Captain Orrin", prof: "fletcher", role: "Gate Captain", hello: "Ironhold's gates stay open to honest folk. The blight is not honest folk." },
+  // the Ember Outpost (Chapter 5)
+  sable: { name: "Expedition Leader Sable", prof: "fletcher", role: "Royal Expedition", hello: "Welcome to the hottest camp in the five kingdoms. Literally. Don't touch the portal frame." },
+  quill: { name: "Scholar Quill", prof: "cleric", role: "Expedition Scholar", hello: "Did you know the First Builders wrote everything twice? Once for people, once for dragons." },
+  // Hollowmere (Chapter 6)
+  ilsa: { name: "Watcher Ilsa", prof: "shepherd", role: "The Last Villager", hello: "Someone has to keep the lamps lit. The fog doesn't like light, and I don't like the fog." }
 };
 
 // Places in the other towns and dungeons (Chapters 1–3)
@@ -96,7 +106,13 @@ Object.assign(PLACES, {
   oakwood: { name: "Oakwood" }, camp: { name: "Explorers' Camp" }, tree0: { name: "Oakwood Treetops", tower: true }, tree1: { name: "Oakwood Treetops", tower: true }, tree2: { name: "Oakwood Treetops", tower: true }, tree3: { name: "Oakwood Treetops", tower: true },
   keyRuin0: { name: "The Overgrown Shrine" }, keyRuin1: { name: "The Abandoned Village" }, keyRuin2: { name: "The Vine Pillars" },
   seabreak: { name: "Seabreak" }, harbor: { name: "Seabreak Harbor" }, lighthouse: { name: "Seabreak Lighthouse" }, harborOffice: { name: "Harbor Office" }, wreck: { name: "The Shipwreck" },
-  throne_desert: { name: "The Pharaoh's Throne Room" }, throne_jungle: { name: "The Titan's Grove" }, throne_sea: { name: "The Leviathan's Grotto" }
+  throne_desert: { name: "The Pharaoh's Throne Room" }, throne_jungle: { name: "The Titan's Grove" }, throne_sea: { name: "The Leviathan's Grotto" },
+  // Chapters 4–6
+  ironhold: { name: "Ironhold" }, ihForge: { name: "The Forge Hall" }, ihMineHead: { name: "The Mine Head" }, blightMine: { name: "The Deep Mine" },
+  mineGallery0: { name: "The West Gallery" }, mineGallery1: { name: "The South Gallery" }, mineGallery2: { name: "The East Gallery" },
+  blightCitadel: { name: "The Blight Citadel" }, outpost: { name: "The Ember Outpost" },
+  seal0: { name: "The First Dragon Shrine" }, seal1: { name: "The Second Dragon Shrine" }, seal2: { name: "The Third Dragon Shrine" }, cinderCitadel: { name: "The Cinder Citadel" },
+  hollowmere: { name: "Hollowmere" }, hmHall: { name: "The Meeting Hall" }, hmWell: { name: "The Old Well" }, hmLab: { name: "Dr. Vell's Observatory" }
 });
 
 // Loot for the village's chests (early-game supplies only; nothing that skips ahead)
@@ -148,7 +164,30 @@ export const LOOT = {
   sbHome: [[I.COOKED_MINNOW, 4], [I.BREAD, 2], [B.TORCH, 4]],
   wreck: [[I.OCEAN_MAP, 1], [I.GOLD_INGOT, 8], [I.JADE, 6]],
   wreck2: [[I.IRON_INGOT, 6], [I.GOLDEN_APPLE, 1], [I.COOKED_MINNOW, 6]],
-  leviathanVault: [[I.SKYSHARD, 5], [I.SKY_CHEST, 1], [I.JADE, 16], [I.GOLDEN_APPLE, 2]]
+  leviathanVault: [[I.SKYSHARD, 5], [I.SKY_CHEST, 1], [I.JADE, 16], [I.GOLDEN_APPLE, 2]],
+  // Ironhold and its mine
+  ihForge: [[I.IRON_INGOT, 8], [I.IRON_PICK, 1], [I.IRON_AXE, 1], [I.COAL, 16]],
+  ihForge2: [[I.IRON_HELMET, 1], [I.IRON_BOOTS, 1], [I.SHIELD, 1], [I.IRON_INGOT, 4]],
+  ihYard: [[I.IRON_INGOT, 4], [I.COAL, 12], [B.RAIL, 16], [I.MINECART, 1]],
+  ihHome: [[I.BREAD, 3], [B.TORCH, 6], [I.COAL, 4]],
+  ihHealer: [[I.GOLDEN_APPLE, 1], [I.BREAD, 6], [I.HONEY_BOTTLE, 3], [I.GOLDEN_CARROT, 4]],
+  ihGuard: [[I.IRON_SWORD, 1], [I.BOW, 1], [I.ARROW, 24]],
+  ihMine: [[B.TORCH, 24], [I.BREAD, 4], [I.IRON_PICK, 1]],
+  mineSkull0: [[B.SKULL, 1], [I.IRON_INGOT, 4], [I.GOLD_INGOT, 2]],
+  mineSkull1: [[B.SKULL, 1], [I.JADE, 5], [I.BREAD, 4]],
+  mineSkull2: [[B.SKULL, 1], [I.IRON_INGOT, 3], [I.GOLDEN_APPLE, 1]],
+  citadelSupplies: [[I.GOLDEN_APPLE, 2], [I.ARROW, 32], [I.BREAD, 8], [I.GOLDEN_CARROT, 6]],
+  citadelSand: [[B.SOUL_SAND, 4], [B.TORCH, 8]],
+  // the Ember Outpost and the Dragon Seal shrines
+  outpost: [[I.FLINT_STEEL, 1], [I.GOLDEN_CARROT, 8], [B.TORCH, 24], [B.COBBLE, 32], [I.BREAD, 6]],
+  outpost2: [[I.GOLD_HELMET, 1], [I.ARROW, 32], [I.GOLDEN_APPLE, 1], [B.OBSIDIAN, 10]],
+  seal0: [[I.DRAGON_SEAL, 1], [I.GOLD_INGOT, 4], [I.JADE, 4]],
+  seal1: [[I.DRAGON_SEAL, 1], [I.GOLD_INGOT, 6], [I.GOLDEN_APPLE, 1]],
+  seal2: [[I.DRAGON_SEAL, 1], [I.JADE, 8], [I.GOLDEN_CARROT, 6]],
+  // Hollowmere
+  hmHome: [[I.BREAD, 2], [B.TORCH, 4], [I.STRING, 3]],
+  hmIlsa: [[I.BREAD, 6], [I.APPLE, 6], [I.COOKED_CHICKEN, 4]],
+  hmLab: [[I.PALE_LANTERN, 1], [I.PALE_SHARD, 3], [I.GOLDEN_APPLE, 1], [B.TORCH, 16]]
 };
 
 // What every new campaign starts with (the Explorer's Map goes in the hotbar)
@@ -264,9 +303,62 @@ export const QUESTS = {
       { ev: "visit", place: "throne_sea", text: "Follow the passage behind the pedestal down to the grotto" },
       { ev: "boss", boss: "leviathan", place: "throne_sea", text: "Defeat the Ocean Leviathan and claim the Relic of the Tides" }],
     reward: { xp: 160, items: [[I.GOLDEN_APPLE, 3]], text: "Three golden apples (and the Relic of the Tides)" } },
-  next4: { chapter: 4, main: true, title: "The Curse of the Blightking", giver: "elder",
-    text: "Three Relics are safe. But a blight is spreading beneath Ironhold, and its source is something terrible.",
-    steps: [{ ev: "soon", text: "Chapter 4 arrives in the next campaign update. Until then, explore, build, and finish your side quests!" }] },
+  // ======================= Chapter 4: The Curse of the Blightking =======================
+  ironhold: { chapter: 4, main: true, title: "Black Stone", giver: "elder",
+    text: "Three Relics are safe. But word has come from Ironhold, the mining town under Mount Ferrum: the stone in its deep mine is turning black, and the miners hear whispers in the dark.",
+    steps: [{ ev: "talk", npc: "elder", text: "Talk to Elder Maren about the news from Ironhold" },
+      { ev: "visit", place: "ironhold", text: "Travel to Ironhold, the mining town under Mount Ferrum" },
+      { ev: "talk", npc: "hilda", text: "Find Forgemaster Hilda in the Forge Hall" }],
+    reward: { xp: 40, items: [[I.IRON_INGOT, 6], [I.BREAD, 6]], text: "6 iron ingots and bread" } },
+  blightmines: { chapter: 4, main: true, title: "The Corrupted Mines", giver: "hilda",
+    text: "Hilda's three mining crews dug into something old under the mountain and fled. Whatever they found is where the blight comes from.",
+    steps: [{ ev: "visit", place: "blightMine", text: "Take the stairs in the Mine Head down to the Deep Mine" },
+      { ev: "have", ids: [B.SKULL], n: 3, places: ["mineGallery0", "mineGallery1", "mineGallery2"], text: "Search the west, south, and east galleries for three Blight Skulls" },
+      { ev: "talk", npc: "hilda", text: "Bring the Blight Skulls to Forgemaster Hilda" }],
+    reward: { xp: 80, items: [[I.GOLDEN_APPLE, 2], [I.ARROW, 32]], text: "Two golden apples and 32 arrows" } },
+  blightking: { chapter: 4, main: true, title: "The Curse of the Blightking", giver: "hilda",
+    text: "The skulls want to go home to the Blight Citadel, where the First Builders sealed the Blightking long ago. The only way to end the curse is to wake him there, and win.",
+    steps: [{ ev: "visit", place: "blightCitadel", text: "Find the Blight Citadel (follow the marker)" },
+      { ev: "flag", flag: "blightWoke", place: "blightCitadel", text: "Place the three Blight Skulls on top of the Wailing Sand altar in the courtyard" },
+      { ev: "boss", boss: "blightking", place: "blightCitadel", text: "Defeat the Blightking (stay inside the courtyard)" },
+      { ev: "boss", boss: "tempest", place: "blightCitadel", text: "Survive the Blight Tempest: dodge the glowing ground, light the three Rune Stones, and strike it" }],
+    reward: { xp: 200, items: [[I.GOLDEN_APPLE, 2]], text: "Two golden apples (and the Relic of Decay)" } },
+  ironVeins: { chapter: 4, side: true, title: "Ironhold Iron", giver: "dag",
+    text: "Miner Dag says no visitor leaves Ironhold without digging a little iron of their own. Mount Ferrum is full of it.",
+    steps: [{ ev: "break", ids: [B.IRON_ORE], n: 6, text: "Mine 6 iron ore (Mount Ferrum, behind the town, is full of it)" }],
+    reward: { xp: 30, items: [[I.JADE, 6]], text: "6 Jade" } },
+  // ======================= Chapter 5: Dragon of the Embers =======================
+  embers: { chapter: 5, main: true, title: "Fire Beneath the World", giver: "hilda",
+    text: "The Blightking's crown was forged in fire from the Ember Depths. The fifth Relic is down there too, guarded by Cindermaw. A royal expedition has set up camp beside a portal frame.",
+    steps: [{ ev: "visit", place: "outpost", text: "Travel to the Ember Outpost" },
+      { ev: "talk", npc: "sable", text: "Talk to Expedition Leader Sable" },
+      { ev: "dim", dim: "nether", place: "outpost", text: "Light the Ember Gate with Flint and Steel (from the supply chest) and step through" }],
+    reward: { xp: 40, items: [[I.GOLDEN_CARROT, 8]], text: "Golden carrots" } },
+  seals: { chapter: 5, main: true, title: "Three Dragon Seals", giver: "sable",
+    text: "The First Builders locked Cindermaw's altar with three Dragon Seals and hid them in shrines across the Ember Depths. Together, the seals become a key.",
+    steps: [{ ev: "have", ids: [I.DRAGON_SEAL], n: 3, places: ["seal0", "seal1", "seal2"], text: "Find the three Dragon Seal shrines in the Ember Depths (the marker shows the next one)" }],
+    reward: { xp: 80, items: [[I.CINDER_EYE, 1]], take: [[I.DRAGON_SEAL, 3]], text: "The three seals melt together into a Cinder Eye" } },
+  cindermaw: { chapter: 5, main: true, title: "Dragon of the Embers", giver: "sable",
+    text: "The Cinder Eye opens the altar in Cindermaw's citadel. Defeat the Ember Dragon, and the fifth Relic is yours.",
+    steps: [{ ev: "visit", place: "cinderCitadel", text: "Find the Cinder Citadel in the Ember Depths (follow the marker)" },
+      { ev: "boss", boss: "cindermaw", text: "Place the Cinder Eye in the Cinder Altar and defeat Cindermaw" }],
+    reward: { xp: 150, items: [[I.GOLDEN_APPLE, 3]], text: "Three golden apples (and the Relic of Flame)" } },
+  // ======================= Chapter 6: The Shadow of Herobrine =======================
+  hollowmere: { chapter: 6, main: true, title: "Whispers in the Fog", giver: "sable",
+    text: "Travelers speak of a village swallowed by fog, and of a tall stranger with white eyes who watches from the hills. Someone there may know where the sixth Relic is.",
+    steps: [{ ev: "visit", place: "hollowmere", text: "Travel to Hollowmere, the village in the fog" },
+      { ev: "talk", npc: "ilsa", text: "Talk to Watcher Ilsa, the last villager" },
+      { ev: "places", list: ["hmHall", "hmWell", "hmLab"], n: 3, text: "Search the Meeting Hall, the Old Well, and Dr. Vell's observatory on the hill" }],
+    reward: { xp: 50, items: [[I.BREAD, 6]], text: "Ilsa's bread" } },
+  shadow: { chapter: 6, main: true, title: "The Shadow of Herobrine", giver: "ilsa",
+    text: "Dr. Vell's lantern finds the way into the Forsaken World, where Herobrine waits. Ilsa is sure the Relic of Shadows is hidden there.",
+    steps: [{ ev: "have", ids: [I.PALE_LANTERN], n: 1, place: "hmLab", text: "Take Dr. Vell's Pale Lantern from the cabinet in the observatory" },
+      { ev: "dim", dim: "forsaken", text: "Hold the Pale Lantern and right-click to step into the Forsaken World" },
+      { ev: "boss", boss: "herobrine", text: "Restore the shrines, gather the three sigils, and banish Herobrine in his Pale Citadel (press J for the Forsaken World journal)" }],
+    reward: { xp: 200, items: [[I.GOLDEN_APPLE, 3]], text: "Three golden apples (and the Relic of Shadows)" } },
+  next7: { chapter: 7, main: true, title: "The Ancient City", giver: "elder",
+    text: "Six Relics are safe. The Relic of Shadows points to a city deep below the world, where the First Warden still keeps watch.",
+    steps: [{ ev: "soon", text: "Chapter 7 arrives in the next campaign update. Until then, explore, build, and finish your side quests!" }] },
   spireClimb: { chapter: 1, side: true, title: "Top of the World", giver: "potter",
     text: "Potter Nia says the view from the top of the Sandspire shows the whole desert.",
     steps: [{ ev: "places", list: ["spireTop"], n: 1, high: true, text: "Climb to the top of the Sandspire" }],
@@ -284,14 +376,22 @@ export const QUESTS = {
     steps: [{ ev: "places", list: ["watchSW", "watchSE", "watchNW", "watchNE"], n: 1, high: true, text: "Climb to the top of any watchtower" }],
     reward: { xp: 20, items: [[I.ARROW, 16]], text: "16 arrows" } }
 };
-export const QUEST_ORDER = ["welcome", "lessons", "village", "prepare", "rumors", "watchtower", "raid", "guardian", "sandspire", "pyramid", "oakwood", "keys", "jungletemple", "seabreak", "shipwreck", "seatemple", "next4", "secrets", "lookout", "spireClimb", "treetops"];
+export const QUEST_ORDER = ["welcome", "lessons", "village", "prepare", "rumors", "watchtower", "raid", "guardian", "sandspire", "pyramid", "oakwood", "keys", "jungletemple", "seabreak", "shipwreck", "seatemple",
+  "ironhold", "blightmines", "blightking", "embers", "seals", "cindermaw", "hollowmere", "shadow", "next7", "secrets", "lookout", "spireClimb", "treetops", "ironVeins"];
 // which quest each one leads to, and where a new chapter begins
-export const NEXT = { lessons: ["village", "secrets", "lookout"], village: ["prepare"], prepare: ["rumors"], rumors: ["watchtower"], watchtower: ["raid"], raid: ["guardian"], guardian: ["sandspire"], sandspire: ["pyramid", "spireClimb"], pyramid: ["oakwood"], oakwood: ["keys", "treetops"], keys: ["jungletemple"], jungletemple: ["seabreak"], seabreak: ["shipwreck"], shipwreck: ["seatemple"], seatemple: ["next4"] };
-export const CHAPTER_AFTER = { pyramid: 2, jungletemple: 3, seatemple: 4 };
+export const NEXT = { lessons: ["village", "secrets", "lookout"], village: ["prepare"], prepare: ["rumors"], rumors: ["watchtower"], watchtower: ["raid"], raid: ["guardian"], guardian: ["sandspire"], sandspire: ["pyramid", "spireClimb"], pyramid: ["oakwood"], oakwood: ["keys", "treetops"], keys: ["jungletemple"], jungletemple: ["seabreak"], seabreak: ["shipwreck"], shipwreck: ["seatemple"], seatemple: ["ironhold"],
+  ironhold: ["blightmines", "ironVeins"], blightmines: ["blightking"], blightking: ["embers"], embers: ["seals"], seals: ["cindermaw"], cindermaw: ["hollowmere"], hollowmere: ["shadow"], shadow: ["next7"] };
+export const CHAPTER_AFTER = { pyramid: 2, jungletemple: 3, seatemple: 4, blightking: 5, cindermaw: 6, shadow: 7 };
 // the chapter bosses: where they live and what they leave behind
 export const BOSS_REWARDS = {
   stoneguard: { chapter: 0, items: [[I.DESERT_MAP, 1], [I.IRON_INGOT, 6]], xp: 100, title: "The Guardian Falls", text: "The Ancient Stone Guardian crumbles into rubble. In the dust lies a rolled-up map, drawn by the First Builders: the Ancient Desert Map." },
   pharaoh: { chapter: 1, relic: I.RELIC_EARTH, items: [[I.GOLD_INGOT, 12]], xp: 200, title: "The Pharaoh Rests", text: "The Desert Pharaoh sinks back into his sarcophagus with a sigh of sand. On his throne lies the first Relic: the Relic of Earth." },
   titan: { chapter: 2, relic: I.RELIC_NATURE, items: [[I.SKYSHARD, 4]], xp: 250, title: "The Titan Sleeps", text: "The Jungle Titan kneels, and roots and moss cover it gently. Where its heart glowed, the second Relic waits: the Relic of Nature." },
-  leviathan: { chapter: 3, relic: I.RELIC_TIDES, items: [[I.SKYSHARD, 6]], xp: 300, title: "The Leviathan Returns to the Deep", text: "The Ocean Leviathan sinks into the dark water, calm at last. A wave carries the third Relic to your feet: the Relic of the Tides." }
+  leviathan: { chapter: 3, relic: I.RELIC_TIDES, items: [[I.SKYSHARD, 6]], xp: 300, title: "The Leviathan Returns to the Deep", text: "The Ocean Leviathan sinks into the dark water, calm at last. A wave carries the third Relic to your feet: the Relic of the Tides." },
+  tempest: { chapter: 4, relic: I.RELIC_DECAY, items: [[I.RADIANT_STAR, 1], [I.GOLDEN_APPLE, 2]], xp: 350, title: "The Storm Breaks", text: "The Blight Tempest tears itself apart. Stones, logs, and earth fall gently back to the ground, and the black stain fades from the land. Where the Blightking's crown fell lies the fourth Relic: the Relic of Decay." },
+  // bosses with their own victory scenes (the campaign only adds the Relic and a note afterward)
+  cindermaw: { chapter: 5, relic: I.RELIC_FLAME, items: [], xp: 0, external: true, title: "The Relic of Flame", text: "As Cindermaw falls, the altar cracks open. Inside, wrapped in cooling cinders, is the fifth Relic: the Relic of Flame. The First Builders' fire is safe at last." },
+  herobrine: { chapter: 6, relic: I.RELIC_SHADOWS, items: [], xp: 0, external: true, title: "The Relic of Shadows", text: "Where Herobrine stood, the mist leaves something behind: a cold, dark stone that hums like a far-off bell. The sixth Relic, the Relic of Shadows.\n\nCarved on it, in the First Builders' script: \"The last two Relics wait below the world and beyond it. Seek the city that listens.\"" }
 };
+// names for the journal's "Bosses defeated" line (bosses fought outside js/campaign-bosses.js)
+export const BOSS_NAMES = { blightking: "The Blightking", tempest: "The Blight Tempest", cindermaw: "Cindermaw", herobrine: "Herobrine" };

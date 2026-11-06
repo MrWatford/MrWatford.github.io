@@ -88,7 +88,8 @@ export const I = {
   SPARKDUST: 556, MINECART: 557, CHEST_CART: 558, HOPPER_CART: 559, FURNACE_CART: 560, TNT_CART: 561, CHEST_BOAT: 562,
   EXPLORER_MAP: 563,
   // the Legacy Campaign
-  RELIC_EARTH: 564, RELIC_NATURE: 565, RELIC_TIDES: 566, ANCIENT_KEY: 567, DESERT_MAP: 568, OCEAN_MAP: 569, EXPEDITION_MAP: 570, TIDE_CHARM: 571
+  RELIC_EARTH: 564, RELIC_NATURE: 565, RELIC_TIDES: 566, ANCIENT_KEY: 567, DESERT_MAP: 568, OCEAN_MAP: 569, EXPEDITION_MAP: 570, CP_CHARM: 571,
+  RELIC_DECAY: 572, RELIC_FLAME: 573, RELIC_SHADOWS: 574, DRAGON_SEAL: 575
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -485,7 +486,11 @@ item(I.ANCIENT_KEY, "Ancient Key", { icon: "ancient_key", stack: 3, quest: true 
 item(I.DESERT_MAP, "Ancient Desert Map", { icon: "survey_map", stack: 1, quest: true });
 item(I.OCEAN_MAP, "Ancient Ocean Map", { icon: "survey_map", stack: 1, quest: true });
 item(I.EXPEDITION_MAP, "Expedition Map", { icon: "survey_map", stack: 1, quest: true });
-item(I.TIDE_CHARM, "Tide Charm", { icon: "relic", colors: ["#3ab0c8", "#e8ffff"], stack: 1, quest: true });   // carry it and you never run out of air
+item(I.CP_CHARM, "Tide Charm", { icon: "relic", colors: ["#3ab0c8", "#e8ffff"], stack: 1, quest: true });   // carry it and you never run out of air
+item(I.RELIC_DECAY, "Relic of Decay", { icon: "relic", colors: ["#3a4a2a", "#b8e070"], stack: 1, quest: true });
+item(I.RELIC_FLAME, "Relic of Flame", { icon: "relic", colors: ["#b8301a", "#ffc850"], stack: 1, quest: true });
+item(I.RELIC_SHADOWS, "Relic of Shadows", { icon: "relic", colors: ["#2a2a3a", "#c8c8e8"], stack: 1, quest: true });
+item(I.DRAGON_SEAL, "Dragon Seal", { icon: "relic", colors: ["#6a1a10", "#ff8a3a"], stack: 3, quest: true });   // three of them fuse into a Cinder Eye
 item(I.EXPLORER_MAP, "Explorer's Map", { icon: "explorer_map", stack: 1, category: "Tools", offhand: true });   // press M (or right-click it) to open; see js/starter.js
 item(I.CHEST_BOAT, "Boat with Chest",{ icon: "boat", colors: ["chest"], stack: 1, category: "Tools" });   // string can be laid down as tripwire between two hooks
 item(I.SPARKDUST, "Sparkdust", { icon: "dust", colors: ["#ff5a2a", "#c2361a", "#ff8a4a"], category: "Mechanisms", places: B.SPARK_DUST });
