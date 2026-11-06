@@ -1,6 +1,6 @@
 # Milestone 13: Blockhaven: The Legacy Campaign (design + integration plan)
 
-Status: written 2026-11-05 from Mr. Watford's "Legacy Campaign" spec. **Parts A (foundation) and B (Legacy Village) built, browser-tested, and published 2026-11-05. Parts C (Waystones) and D (Chapters 1–3) built and browser-tested 2026-11-05, not published.** Details in FEATURES.md.
+Status: written 2026-11-05 from Mr. Watford's "Legacy Campaign" spec. **Parts A (foundation) and B (Legacy Village) built, browser-tested, and published 2026-11-05. Parts C (Waystones) and D (Chapters 1–3) built, browser-tested, and published 2026-11-05.** **Part E (Chapters 4–6) built and browser-tested 2026-11-06 (not published).** Details in FEATURES.md.
 
 ## 1. What already exists (audit)
 
@@ -47,7 +47,7 @@ Rule: existing places keep their maps, puzzles, loot, and fights. The campaign o
 - **Part B: Legacy Village.** Packed map: fountain spawn, floating BLOCKHAVEN letters, grand castle, blacksmith, farm, barn, library, enchanting tower, market, watchtowers, arena, mine entrance, dock, stable, homes, secret passages; furnished interiors and starter chests; Village Elder with dialogue; skippable tutorial.
 - **Part C: NPC dialogue + waystones** (named NPCs, dialogue boxes, quest givers, fast travel between discovered waystones).
 - **Part D: Chapters 1–3** (Stonehaven, Sandspire, Oakwood, Seabreak + hooks into the three temples + Stone Guardian).
-- **Part E: Chapters 4–6** (Ironhold + Blightking citadel, Ember Depths hooks, Herobrine hooks).
+- **Part E: Chapters 4–6** (Ironhold + Blightking citadel + Blight Tempest, Ember Outpost + Dragon Seal shrines + Cindermaw, Hollowmere + Herobrine). Built 2026-11-06.
 - **Part F: Chapter 7** (Echohold hooks).
 - **Part G: Chapter 8** (Skyreach, Sky Sovereign, Ruined Capital, Forgotten King, ending, credits).
 - **Part H: optional bosses, side quests, Frostholm, polish, full playthrough test.**

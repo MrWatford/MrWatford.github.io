@@ -332,7 +332,7 @@ Plan and decisions: `MILESTONE-13-CAMPAIGN.md`. Code: `js/campaign.js` (engine),
 | Saving | Done | Save/reload tested: people appear once, chests never refill, progress is kept |
 | Next | Missing | See Parts C + D below, then Chapters 4–8 |
 
-## Milestone 13, Parts C + D: Waystones and Chapters 1–3 (built and browser-tested 2026-11-05, not published)
+## Milestone 13, Parts C + D: Waystones and Chapters 1–3 (built, browser-tested, and published 2026-11-05)
 New code: `js/campaign-kit.js` (building helpers, quarter-turn rotation), `js/campaign-towns.js` (all new places), `js/campaign-bosses.js` (the four fights); `js/campaign.js` now handles many places across dimensions. New blocks 209 Waystone, 210 Rune Stone; items 564–571 (three Relics, Ancient Key, Ancient Desert Map, Ancient Ocean Map, Expedition Map, Tide Charm). The temple maps (`MapGen`) accept extra stamps, used only in campaign worlds.
 
 | Feature | Status | Notes |
@@ -347,6 +347,22 @@ New code: `js/campaign-kit.js` (building helpers, quarter-turn rotation), `js/ca
 | Old campaign saves | Done | A save waiting at "coming in the next update" continues straight to "Travel the road to Stonehaven" |
 | Checks | Done | Walk check: every tower top, upper floor, treehouse, pier, ship deck, chest, and arena reachable (Seabreak in all 4 turns; the Root Seal blocks the way until opened); the real temple maps connect to their chambers. All 4 fights played through to victory with the right rewards. Raid: 3 waves then victory. Waystone travel. Save/reload. The full quest chain 1–3 |
 | Explorer's Map fix | Done | It had refused to open in campaign worlds ("no Starter Home"); fixed |
+
+## Milestone 13, Part E: Chapters 4–6 (built and browser-tested 2026-11-06, not published)
+New code: `js/campaign-towns2.js` (Ironhold + the Deep Mine, the Blight Citadel, the Ember Outpost, the Dragon Seal shrines, Hollowmere). Changed: `campaign.js`, `campaign-data.js`, `campaign-bosses.js` (the Blight Tempest fight), `entities.js` (Blight Tempest species, model, animation), `blocks.js` (items 572–575), `worldgen.js` (the Ember Depths accept stamps), `main.js` (shrines stamped in, Cindermaw hook), `forsaken.js` (Herobrine hook). Items: 572 Relic of Decay, 573 Relic of Flame, 574 Relic of Shadows, 575 Dragon Seal; the campaign's Tide Charm is now `CP_CHARM` (571).
+
+| Feature | Status | Notes |
+|---|---|---|
+| Chapter 4: The Curse of the Blightking | Done | Black Stone → The Corrupted Mines → The Curse of the Blightking. Ironhold: walled mining town under Mount Ferrum (iron/coal veins), Anvil Square, Forge Hall, Mine Head, homes, healer, guard post, Waystone. The Deep Mine: stairs down to a timbered hall and three blight-corrupted galleries (Blackstone, Wailing Sand, Blight Rattlers), a Blight Skull in each. The Blight Citadel: open-sky courtyard with a broken ring wall, 4 towers, a Wailing Sand altar; placing the 3 skulls wakes the real Blightking. Side quest: Ironhold Iron |
+| The Blight Tempest | Done | Original giant final form (about 11 blocks tall), drawn from the "Legacy Campaign Legends" bestiary sheet: cracked blight-stained stone, the Blightking's crown, block fists, no legs, rings of rusty rubble spinning around it. Rises only after the Blightking falls in his citadel. Attacks (all glow first): falling chunks of land, pull-in then slam, a ring of blight with two gaps, a stream of debris. Phase 2 shield broken by 3 Rune Stones; phase 3 faster with Blight Rattlers. Rewards: Relic of Decay, Radiant Star, golden apples |
+| Chapter 5: Dragon of the Embers | Done | Fire Beneath the World → Three Dragon Seals → Dragon of the Embers. Ember Outpost: camp with an unlit obsidian portal frame (Flint and Steel + gold helmet in the chests), Waystone. Three Dragon Seal shrines carved into Ember Depths caverns (4 lit tunnels each, guards, lore), chosen once between the arrival area and the Cinder Citadel. The 3 seals fuse into a Cinder Eye (no Hollow Wyrm needed). Beating Cindermaw (its own fight and victory scene) adds the Relic of Flame |
+| Chapter 6: The Shadow of Herobrine | Done | Whispers in the Fog → The Shadow of Herobrine. Hollowmere: fog village with abandoned cottages, dead trees, the Meeting Hall, the Old Well, Ilsa's house, Dr. Vell's observatory on a hill (journal signs, the Pale Lantern in her cabinet), Waystone. Banishing Herobrine in the Forsaken World (its own adventure) adds the Relic of Shadows. Then "Chapter 7 arrives in the next update" |
+| New quest step | Done | "dim": enter a dimension. Quest rewards can take items back (the seals) |
+| Quest marker | Done | Points to the outpost's portal for Ember Depths steps on the Surface, to the next unvisited shrine, and to the Cinder Citadel |
+| People | Done | 7 new characters: Forgemaster Hilda, Miner Dag, Healer Rue, Captain Orrin, Expedition Leader Sable, Scholar Quill, Watcher Ilsa |
+| Old campaign saves | Done | A save waiting at "Chapter 4 arrives in the next update" continues straight to "Black Stone". Chapter 1–3 places stay exactly where they were |
+| Bug fix | Done | The Sea Temple's Tidecaller Charm (553) had been replaced by the campaign's Tide Charm (both used the name TIDE_CHARM). Both items exist again |
+| Checks | Done | Walk check for every new place (all 3 galleries, citadel altar and runes, outpost portal, observatory, shrine altar and tunnels). Full chain 4–6 played through in a test world: dialogue at each step, skulls → Blightking → Tempest → relic, save/reload mid-chapter, portal lit and crossed, 3 seals → Cinder Eye, Cindermaw and Herobrine rewards. 408 item icons and the Creative inventory open without errors |
 
 ## Later milestones
 | Feature | Status |
