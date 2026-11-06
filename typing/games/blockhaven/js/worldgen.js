@@ -610,11 +610,11 @@ export class MapGen {
       const data = this.map.decode(k);
       if (this.kind === "deep") sparkVeins(data, cx, cz);
       if (this.kind === "deep") hushSensors(data, cx, cz);
-      return data;
+      return this.stamps ? applyStamps(this, data, cx, cz) : data;
     }
     const data = new Uint16Array(CHUNK * CHUNK * HEIGHT);
     if (this.kind !== "expanse") { data.fill(this.map.meta.fill || B.DARKSLATE); data.fill(B.BEDROCK, 0, CHUNK * CHUNK); data.fill(B.BEDROCK, CHUNK * CHUNK * (HEIGHT - 1)); }   // the Deep and the temples sit inside solid rock
-    return data;
+    return this.stamps ? applyStamps(this, data, cx, cz) : data;   // campaign rooms (js/campaign.js) are stamped in campaign worlds only
   }
 }
 // Hand-built structures stamped into the Surface (only in places nobody has visited yet). stamp: { x, z, cells (Uint16Array), size }

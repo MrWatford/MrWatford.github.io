@@ -549,6 +549,49 @@ Object.assign(SPECIES, {
       { name: "armL", size: [8, 30, 8], pivot: [14, 60, 0], off: [0, -14, 0], paint: { all: solid(["#d8bc72", "#c8ac62"]) } },
       { name: "legR", size: [9, 22, 9], pivot: [-5, 22, 0], off: [0, -11, 0], paint: { all: solid(["#b8944a"]) } },
       { name: "legL", size: [9, 22, 9], pivot: [5, 22, 0], off: [0, -11, 0], paint: { all: solid(["#b8944a"]) } }] } },
+  // ----- the Legacy Campaign's chapter bosses (fights run in js/campaign-bosses.js) -----
+  stoneguard: { name: "The Ancient Stone Guardian", boss: true, lostBoss: true, cpBoss: true, noSave: true, hostile: true, hp: 240, speed: 1.9, w: 2.2, h: 4, ai: "cpboss", fireproof: true, dmg: 6, reach: 3, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
+    model: { type: "warden", parts: [
+      { name: "body", size: [22, 20, 14], pivot: [0, 40, 0], off: [0, 10, 0], paint: { all: P => { P.fill(["#8a8a8a", "#7a7a7a", "#949494"]); for (let y = 3; y < 16; y += 5) P.rect(0, y, 16, 1, "#5a5a5a"); P.rect(6, 4, 4, 1, "#f0c050"); P.rect(7, 4, 2, 8, "#f0c050"); } } },
+      { name: "core", parent: "body", size: [6, 6, 2], pivot: [0, 10, 7], off: [0, 0, 1], paint: { all: solid(["#f0c050", "#fff0a0"]) } },
+      { name: "head", size: [12, 10, 12], pivot: [0, 60, 0], off: [0, 5, 0], paint: { all: solid(["#8a8a8a", "#7a7a7a"]), front: face(["#8a8a8a"], P => { P.rect(3, 4, 3, 2, "#f0c050"); P.rect(10, 4, 3, 2, "#f0c050"); P.rect(4, 9, 8, 2, "#4a4a4a"); }) } },
+      { name: "armR", size: [9, 28, 9], pivot: [-15, 58, 0], off: [0, -13, 0], paint: { all: P => { P.fill(["#7a7a7a", "#6a6a6a"]); spk(P, 6, ["#5a8a4a"]); } } },
+      { name: "armL", size: [9, 28, 9], pivot: [15, 58, 0], off: [0, -13, 0], paint: { all: P => { P.fill(["#7a7a7a", "#6a6a6a"]); spk(P, 6, ["#5a8a4a"]); } } },
+      { name: "legR", size: [9, 20, 9], pivot: [-6, 20, 0], off: [0, -10, 0], paint: { all: solid(["#6a6a6a", "#5e5e5e"]) } },
+      { name: "legL", size: [9, 20, 9], pivot: [6, 20, 0], off: [0, -10, 0], paint: { all: solid(["#6a6a6a", "#5e5e5e"]) } }] } },
+  pharaoh: { name: "The Desert Pharaoh", boss: true, lostBoss: true, cpBoss: true, noSave: true, hostile: true, hp: 360, speed: 2.1, w: 1.6, h: 3.8, ai: "cpboss", fireproof: true, dmg: 7, reach: 2.6, xp: 0, sound: "roar", deathPuff: "ember", drops: () => [],
+    model: { type: "warden", parts: [
+      { name: "body", size: [16, 22, 10], pivot: [0, 40, 0], off: [0, 11, 0], paint: { all: P => { P.fill(["#e8dcc0", "#ded0b0"]); for (let y = 2; y < 16; y += 3) P.rect(0, y, 16, 1, "#c8b890"); P.rect(0, 0, 16, 3, "#2a6ab0"); P.rect(0, 1, 16, 1, "#f0c040"); } } },
+      { name: "core", parent: "body", size: [6, 6, 2], pivot: [0, 14, 5], off: [0, 0, 1], paint: { all: solid(["#3ac8e0", "#a8f8ff"]) } },
+      { name: "head", size: [12, 12, 12], pivot: [0, 62, 0], off: [0, 6, 0], paint: { all: P => { for (let x = 0; x < 16; x++) P.rect(x, 0, 1, 16, x % 4 < 2 ? "#f0c040" : "#2a5aa0"); }, front: face(["#c8a870"], P => { P.rect(0, 0, 16, 3, "#f0c040"); P.rect(3, 6, 3, 2, "#40e0ff"); P.rect(10, 6, 3, 2, "#40e0ff"); P.rect(7, 11, 2, 5, "#2a5aa0"); }) } },
+      { name: "finL", parent: "head", size: [3, 14, 6], pivot: [7, 4, 0], off: [1, -4, 0], paint: { all: P => { for (let y = 0; y < 16; y++) P.rect(0, y, 16, 1, y % 4 < 2 ? "#f0c040" : "#2a5aa0"); } } },
+      { name: "finR", parent: "head", size: [3, 14, 6], pivot: [-7, 4, 0], off: [-1, -4, 0], paint: { all: P => { for (let y = 0; y < 16; y++) P.rect(0, y, 16, 1, y % 4 < 2 ? "#f0c040" : "#2a5aa0"); } } },
+      { name: "armR", size: [6, 22, 6], pivot: [-11, 54, 0], off: [0, -10, 0], paint: { all: P => { P.fill(["#e8dcc0", "#d8c8a8"]); P.rect(0, 12, 16, 2, "#f0c040"); } } },
+      { name: "armL", size: [6, 22, 6], pivot: [11, 54, 0], off: [0, -10, 0], paint: { all: P => { P.fill(["#e8dcc0", "#d8c8a8"]); P.rect(0, 12, 16, 2, "#f0c040"); } } },
+      { name: "legR", size: [7, 18, 7], pivot: [-4, 18, 0], off: [0, -9, 0], paint: { all: P => { P.fill(["#e8dcc0", "#d8c8a8"]); for (let y = 1; y < 16; y += 3) P.rect(0, y, 16, 1, "#c8b890"); } } },
+      { name: "legL", size: [7, 18, 7], pivot: [4, 18, 0], off: [0, -9, 0], paint: { all: P => { P.fill(["#e8dcc0", "#d8c8a8"]); for (let y = 1; y < 16; y += 3) P.rect(0, y, 16, 1, "#c8b890"); } } }] } },
+  titan: { name: "The Jungle Titan", boss: true, lostBoss: true, cpBoss: true, noSave: true, hostile: true, hp: 420, speed: 1.7, w: 2.8, h: 5.2, ai: "cpboss", dmg: 8, reach: 3.6, xp: 0, sound: "roar", deathPuff: "xp", drops: () => [],
+    model: { type: "warden", parts: [
+      { name: "body", size: [26, 24, 16], pivot: [0, 50, 0], off: [0, 12, 0], paint: { all: P => { P.fill(["#6a6a5a", "#5e5e50", "#747464"]); spk(P, 24, ["#3f8a2c", "#56a63b", "#2f6a20"]); P.rect(5, 5, 6, 1, "#8af070"); P.rect(7, 3, 2, 6, "#8af070"); } } },
+      { name: "core", parent: "body", size: [8, 8, 2], pivot: [0, 12, 8], off: [0, 0, 1], paint: { all: solid(["#8af070", "#e0ffc8"]) } },
+      { name: "head", size: [14, 12, 14], pivot: [0, 74, 0], off: [0, 6, 0], paint: { all: P => { P.fill(["#6a6a5a"]); spk(P, 10, ["#3f8a2c"]); P.rect(0, 0, 16, 5, "#3f8a2c"); }, front: face(["#6a6a5a"], P => { P.rect(0, 0, 16, 4, "#3f8a2c"); P.rect(3, 6, 3, 3, "#8af070"); P.rect(10, 6, 3, 3, "#8af070"); P.rect(5, 12, 6, 2, "#3a3a30"); }) } },
+      { name: "finL", parent: "head", size: [3, 10, 3], pivot: [6, 10, 0], off: [0, 5, 0], paint: { all: solid(["#3f8a2c", "#56a63b"]) } },
+      { name: "finR", parent: "head", size: [3, 10, 3], pivot: [-6, 10, 0], off: [0, 5, 0], paint: { all: solid(["#3f8a2c", "#56a63b"]) } },
+      { name: "armR", size: [10, 36, 10], pivot: [-18, 72, 0], off: [0, -17, 0], paint: { all: P => { P.fill(["#6a6a5a", "#5e5e50"]); spk(P, 10, ["#3f8a2c", "#56a63b"]); } } },
+      { name: "armL", size: [10, 36, 10], pivot: [18, 72, 0], off: [0, -17, 0], paint: { all: P => { P.fill(["#6a6a5a", "#5e5e50"]); spk(P, 10, ["#3f8a2c", "#56a63b"]); } } },
+      { name: "legR", size: [11, 26, 11], pivot: [-7, 26, 0], off: [0, -13, 0], paint: { all: P => { P.fill(["#5e5e50"]); spk(P, 6, ["#3f8a2c"]); } } },
+      { name: "legL", size: [11, 26, 11], pivot: [7, 26, 0], off: [0, -13, 0], paint: { all: P => { P.fill(["#5e5e50"]); spk(P, 6, ["#3f8a2c"]); } } }] } },
+  leviathan: { name: "The Ocean Leviathan", boss: true, lostBoss: true, cpBoss: true, noSave: true, hostile: true, hp: 400, speed: 3, w: 3, h: 2.6, ai: "cpboss", flies: true, fireproof: true, dmg: 7, reach: 4, xp: 0, sound: "roar", deathPuff: "splash", drops: () => [],
+    model: { type: "warden", parts: [
+      { name: "body", size: [18, 16, 40], pivot: [0, 20, 0], off: [0, 0, 0], paint: { all: P => { P.fill(["#1a4a6a", "#1e5272", "#164260"]); for (let x = 1; x < 16; x += 4) P.rect(x, 0, 2, 3, "#3ab0c8"); }, bottom: solid(["#8ab8c8", "#7aa8b8"]) } },
+      { name: "core", parent: "body", size: [4, 4, 2], pivot: [0, 0, 20], off: [0, 0, 1], paint: { all: solid(["#a8f8ff", "#ffffff"]) } },
+      { name: "head", size: [16, 14, 16], pivot: [0, 22, 26], off: [0, 0, 6], paint: { all: solid(["#1a4a6a", "#1e5272"]), front: face(["#1a4a6a"], P => { P.rect(2, 4, 3, 3, "#a8f8ff"); P.rect(11, 4, 3, 3, "#a8f8ff"); P.rect(2, 11, 12, 2, "#0a2030"); for (let x = 3; x < 13; x += 2) P.px(x, 10, "#ffffff"); }) } },
+      { name: "finL", parent: "head", size: [2, 10, 8], pivot: [8, 6, -2], off: [1, 3, 0], paint: { all: solid(["#3ab0c8", "#2a90a8"]) } },
+      { name: "finR", parent: "head", size: [2, 10, 8], pivot: [-8, 6, -2], off: [-1, 3, 0], paint: { all: solid(["#3ab0c8", "#2a90a8"]) } },
+      { name: "armR", size: [14, 3, 12], pivot: [-12, 16, 6], off: [-6, 0, 0], paint: { all: solid(["#3ab0c8", "#2a90a8"]) } },
+      { name: "armL", size: [14, 3, 12], pivot: [12, 16, 6], off: [6, 0, 0], paint: { all: solid(["#3ab0c8", "#2a90a8"]) } },
+      { name: "legR", size: [12, 10, 22], pivot: [0, 20, -20], off: [0, 0, -11], paint: { all: P => { P.fill(["#1a4a6a", "#164260"]); P.rect(0, 0, 16, 2, "#3ab0c8"); } } },
+      { name: "legL", size: [18, 2, 10], pivot: [0, 20, -40], off: [0, 0, -4], paint: { all: solid(["#3ab0c8", "#2a90a8"]) } }] } },
   warden: { name: "The First Warden", boss: true, lostBoss: true, noSave: true, hostile: true, hears: true, hp: 400, speed: 2.4, w: 1.8, h: 4.2, ai: "warden", fireproof: true, dmg: 8, reach: 3, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
     model: { type: "warden", parts: [
       { name: "body", size: [20, 18, 12], pivot: [0, 40, 0], off: [0, 9, 0], paint: { all: P => { P.fill(["#14343c", "#10303a", "#183a44"]); for (let y = 2; y < 16; y += 4) P.rect(0, y, 16, 1, "#0a1a20"); } } },
@@ -1404,7 +1447,7 @@ export class Entities {
     const ctx = this.ctx, p = ctx.player(), w = this.world, def = e.def, d = this.dist(e);
     const dmgMul = { peaceful: 0, easy: 0.67, normal: 1, hard: 1.5 }[ctx.settings().difficulty] ?? 1;
     // undead burn in sunlight
-    if (def.burns && daylight > 0.75 && !e.inWater) {
+    if (def.burns && daylight > 0.75 && !e.inWater && !e.cpRaid) {   // (campaign raiders wear hoods)
       const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.eyeY), Math.floor(e.pos.z));
       if (L && L[0] >= 15) e.burning = Math.max(e.burning || 0, 3);
     }

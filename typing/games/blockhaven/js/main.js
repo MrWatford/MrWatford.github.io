@@ -230,7 +230,7 @@ const ents = new Entities(scene, {
   cloud: (x, y, z) => addCloud(x, y, z),
   crystalGone: i => { const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
   bossLeft: e => { (G.dimData.end || (G.dimData.end = {})).wyrmHp = e.hp; },
-  bossDefeated: e => L.bossDefeated(e) ? null : e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
+  bossDefeated: e => (G.campaign && G.campaign.bossDefeated(e)) ? null : L.bossDefeated(e) ? null : e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
   arena: () => arena(), cinderPylons: () => G.cinderPylons(),
   heroHit: (e, n) => F.heroHit(e, n), warded: (x, z) => F.warded(x, z),
   lantern: () => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === I.WARD_LANTERN),
@@ -1354,11 +1354,12 @@ function clearWorldMeshes() {
 function makeWorld(dim) {
   const data = G.dimData[dim] || (G.dimData[dim] = {});
   const gen = dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
+  if (LOST_DIMS.includes(dim)) CP.stampDim(dim, gen);   // campaign boss chambers behind the temple vaults
   if (dim === "nether") gen.citadel = chooseCitadel();   // where Cindermaw's citadel stands in this world
   if (dim === "overworld") {
     if (!CP.plan(gen, data)) ST.plan(gen, data);   // campaign worlds get Legacy Village instead of the Starter Home's spot (chosen once per world, before any land is made)
     L.prepareOverworld(gen, data);   // the Keeper excavation and temple entrances, stamped into land nobody has visited yet
-    if (CP.on()) CP.stamp(gen); else ST.stamp(gen);   // the village (or the house) goes in last, so nothing else draws over it
+    if (CP.on()) CP.stamp(gen, data); else ST.stamp(gen);   // the village (or the house) goes in last, so nothing else draws over it
   }
   const w = new World(gen);
   w.dim = dim;
@@ -1457,6 +1458,16 @@ async function startWorld(save) {
 const frame = () => new Promise(r => { requestAnimationFrame(() => r()); setTimeout(r, 60); });   // keeps loading even in a background tab
 
 // Put the player on solid ground with room to stand
+// Fast travel on the Surface (the campaign's Waystones): build the land there first, then stand on solid ground
+async function teleportTo(x, y, z, label) {
+  if (G.dim !== "overworld") return;
+  const p = G.player; dismount(true);
+  G.state = "loading"; UI.show("loading"); UI.setLoading(0, label || "Traveling…");
+  Object.assign(p.pos, { x, y, z }); p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null;
+  await loadArea(x, z, label || "Traveling…");
+  placeSafely(p, x, z);
+  UI.setLoading(1, "Ready!"); G.state = "pause"; UI.show("none"); UI.hud(); G.resume();
+}
 function placeSafely(p, x, z) {
   const w = G.world;
   // make sure the land there exists first (it may be far from where the player was)
@@ -2170,6 +2181,7 @@ function blocksPlayer(v, x, y, z) {
 }
 function interact(hit, kind) {
   const w = G.world, key = hit.x + "," + hit.y + "," + hit.z;
+  if (CP.interact(hit, kind)) return;  // the Legacy Campaign's Waystones and Rune Stones
   if (F.interact(hit, kind)) return;   // the Forsaken World's notes, wards, shrines, gate, and altar
   if (L.interact(hit, kind)) return;   // the Lost Civilization's tablets, lifts, puzzles, sockets, and beacons
   if (kind === "door") {
@@ -2446,7 +2458,7 @@ function die(why) {
   cinderOnFaint();
   G.eat = null; G.blocking = false; G.bowT = -1;
   const p = G.player;
-  F.onFaint(); L.onFaint();
+  F.onFaint(); L.onFaint(); CP.onFaint();
   if ((!G.wset.keepInv || G.meta.hardcore) && !G.creative) {   // drop everything where you fell (story items always stay with you)
     const dropped = [];
     for (let i = 0; i < G.inv.slots.length; i++) { const s = G.inv.slots[i]; if (s && !isQuestItem(s.id)) { dropped.push(s); G.inv.slots[i] = null; } }
@@ -2563,7 +2575,7 @@ function survival(dt) {
     if (starveT >= 4) { starveT = 0; const floor = diff === "easy" ? 10 : diff === "normal" ? 1 : 0; if (p.health > floor) hurt(1, "You were too hungry. Eat something to keep your food bar up!", null, true, "starve"); }
   } else starveT = 0;
   // breath underwater
-  if (p.headInWater) { p.air -= dt; if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
+  if (p.headInWater && !CP.breathes()) { p.air -= dt; if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
   else if (p.air < 10) { p.air = Math.min(10, p.air + dt * 4); G.hudDirty = true; }
 }
 
@@ -2914,7 +2926,7 @@ function loop(now) {
 
   // the boss health bar
   const boss = ents.list.filter(e => e.def.boss && !e.gone).sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0], bar = document.getElementById("bossbar");
-  const hb = F.bossInfo() || L.bossInfo();
+  const hb = CP.bossInfo() || F.bossInfo() || L.bossInfo();
   bar.hidden = (!boss || Math.hypot(boss.pos.x - p.pos.x, boss.pos.z - p.pos.z) > (boss.sp === "dragon" ? 160 : 64)) && !hb;
   if (hb) { bar.querySelector("i").style.width = Math.max(0, hb.frac * 100) + "%"; bar.querySelector("b").textContent = hb.label; bar.classList.remove("ember"); bar.classList.add("pale"); }
   else if (!bar.hidden) {
@@ -2942,7 +2954,7 @@ const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giv
 G.lost = L;
 // The Starter Home and the Explorer's Map (js/starter.js)
 const ST = initStarter({ G, UI, Sound, L, openPanel, closePanel });
-const CP = G.campaign = initCampaign({ G, UI, Sound, L, ents, openPanel, closePanel, giveXp });
+const CP = G.campaign = initCampaign({ G, UI, Sound, L, ents, openPanel, closePanel, giveXp, puff, victory: showVictory, saveNow, teleport: (x, y, z, label) => teleportTo(x, y, z, label) });
 G.starter = ST;
 // The Sparkworks signal engine (js/redstone.js)
 const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, lookFacing3, noteFx, moveFx, pushEntities,

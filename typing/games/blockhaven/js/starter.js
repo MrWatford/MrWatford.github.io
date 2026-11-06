@@ -301,7 +301,7 @@ export function initStarter(api) {
   S.openMap = () => { if (G.state === "play" || G.state === "panel") openPanel("xmap"); };
   S.canOpen = () => G.creative || hasMap();
   S.toggleWaypoint = () => {
-    const s = data(); if (!s || !s.house) return;
+    const s = data(); if (!s || (!s.house && !s.campaign)) return;
     s.waypoint = !s.waypoint;
     UI.toast(s.waypoint ? `Waypoint on: ${destOf(s.dest) ? destOf(s.dest).title : "Starter Home"}` : "Waypoint hidden. Press N to show it again.");
   };
@@ -317,6 +317,10 @@ export function initStarter(api) {
       const T = TYPES[m.kind], d = { kind: m.kind, title: T.label, name: m.name, x: m.x + 0.5, y: m.y, z: m.z + 0.5, center: m.center, visited: m.visited, relic: m.relic, lake: m.lake };
       if (m.kind === "sea") d.shore = shorePoint(m);
       out.push(d);
+    }
+    if (G.campaign && G.campaign.on()) for (const t of G.campaign.towns()) {   // the campaign's towns
+      TYPES[t.kind] = TYPES[t.kind] || { label: t.name, color: "#c9a24a", dark: "#5a4010", where: "Town" };
+      out.push({ kind: t.kind, title: t.name, name: "Waystone", x: t.x + 0.5, y: t.y, z: t.z + 0.5 });
     }
     const h = S.house();
     if (h) out.push({ kind: "home", title: G.campaign && G.campaign.on() ? "Legacy Village" : "Starter Home", name: G.campaign && G.campaign.on() ? "The fountain" : "Your house", x: h.x, y: h.y, z: h.z });
@@ -420,7 +424,8 @@ export function initStarter(api) {
   const view = { cx: 0, cz: 0, follow: true };
   S.mapHTML = () => {
     const s = data();
-    if (!s || !s.house) return `<div class="inv-card"><h3>Explorer's Map</h3><p class="help">This world has no Starter Home or map data yet.</p></div>`;
+    TYPES.home.label = s && s.campaign ? "Legacy Village" : "Starter Home";
+    if (!s || (!s.house && !s.campaign)) return `<div class="inv-card"><h3>Explorer's Map</h3><p class="help">This world has no Starter Home or map data yet.</p></div>`;
     const legend = ORDER.map(k => `<span><canvas class="xm-ico" data-ico="${k}" width="22" height="22"></canvas>${TYPES[k].label}</span>`).join("") +
       `<span><canvas class="xm-ico" data-ico="you" width="22" height="22"></canvas>You (arrow = facing)</span><span><canvas class="xm-ico" data-ico="shore" width="22" height="22"></canvas>Boat launch (shore)</span><span><i class="xm-dash"></i>Direction only, not a path</span>` +
       `<span><i class="xm-sw" style="background:#7cbd56"></i>Grass</span><span><i class="xm-sw" style="background:#3f8a2c"></i>Forest</span><span><i class="xm-sw" style="background:#e2d39b"></i>Sand</span><span><i class="xm-sw" style="background:#2f62b8"></i>Water</span><span><i class="xm-sw" style="background:#96988c"></i>Mountain</span><span><i class="xm-sw" style="background:#f2f2f2"></i>Snow</span>`;
@@ -435,7 +440,7 @@ export function initStarter(api) {
   };
   let mapEl = null, tickT = null;
   S.mountMap = root => {
-    mapEl = root; const s = data(); if (!s || !s.house) return;
+    mapEl = root; const s = data(); if (!s || (!s.house && !s.campaign)) return;
     if (view.follow) { view.cx = G.player.pos.x; view.cz = G.player.pos.z; }
     if (G.dim !== "overworld") { const h = S.house(); view.cx = h.x; view.cz = h.z; view.follow = false; }
     root.querySelectorAll("[data-ico]").forEach(c => drawIcon(c.getContext("2d"), c.dataset.ico, 11, 11, 9, false));
@@ -620,6 +625,9 @@ export function initStarter(api) {
     } else if (kind === "desert") {   // a gold pyramid
       ctx.fillStyle = T.color; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r, r * 0.8); ctx.lineTo(-r, r * 0.8); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.2, r * 0.8); ctx.stroke();
+    } else if (String(kind).startsWith("t_")) {   // a campaign town: a gold banner on a pole
+      ctx.fillStyle = "#5a4010"; ctx.fillRect(-r * 0.12, -r, r * 0.24, r * 1.9);
+      ctx.fillStyle = T ? T.color : "#c9a24a"; ctx.beginPath(); ctx.moveTo(r * 0.12, -r); ctx.lineTo(r, -r * 0.6); ctx.lineTo(r * 0.12, -r * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
     } else if (kind === "home") {   // a little house with a red roof
       ctx.fillStyle = "#f4ead8"; ctx.fillRect(-r * 0.7, -r * 0.1, r * 1.4, r * 0.95); ctx.strokeRect(-r * 0.7, -r * 0.1, r * 1.4, r * 0.95);
       ctx.fillStyle = T.color; ctx.beginPath(); ctx.moveTo(-r, -r * 0.05); ctx.lineTo(0, -r); ctx.lineTo(r, -r * 0.05); ctx.closePath(); ctx.fill(); ctx.stroke();

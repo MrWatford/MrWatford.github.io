@@ -30,7 +30,7 @@ const SIDE = { s: 0, e: 1, n: 2, w: 3 };   // facing meta (0 = +z, 1 = +x, 2 = -
 export function buildVillage(g, groundAt) {
   const S = VSIZE, C = VC;
   const cells = new Uint16Array(S * S * HEIGHT).fill(KEEP);
-  const info = { chests: [], signs: [], npcs: [], animals: [], crops: [], places: [], spawn: null };
+  const info = { chests: [], signs: [], npcs: [], animals: [], crops: [], places: [], waystones: [], arenas: {}, marks: {}, spawn: null };
   const inside = (X, y, Z) => X >= -C && Z >= -C && X < C && Z < C && y >= 1 && y < HEIGHT;
   const set = (X, y, Z, v) => { if (inside(X, y, Z)) cells[(C + X) + (C + Z) * S + y * S * S] = v; };
   const get = (X, y, Z) => (inside(X, y, Z) ? cells[(C + X) + (C + Z) * S + y * S * S] : KEEP);
@@ -214,6 +214,7 @@ export function buildVillage(g, groundAt) {
   info.spawn = { X: 0, y: g + 1, Z: 10, yaw: 0 };   // on the plaza, south of the fountain, looking north at the castle
   place("plaza", 0, 0, 11);
   sign(-3, g + 1, 9, 0, "Legacy Village\n\nWelcome, traveler! The castle stands to the north. Elder Maren waits by the fountain.");
+  set(-6, g, 10, B.STONE_BRICKS); set(-6, g + 1, 10, B.WAYSTONE); info.waystones.push({ id: "village", X: -6, y: g + 1, Z: 10 });   // fast travel (Part C)
   // market stalls on the plaza's corners
   const stall = (cx, cz, face, roofV) => {
     for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(cx + dx, g + 1, cz + dz, cx + dx, g + 2, cz + dz, B.OAK_FENCE);

@@ -51,7 +51,9 @@ export const B = {
   // part D: rails
   RAIL: 202, POWERED_RAIL: 203, DETECTOR_RAIL: 204, ACTIVATOR_RAIL: 205,
   // the Starter Home (js/starter.js)
-  SIGN: 206, BOOKSHELF: 207, MAP_TABLE: 208
+  SIGN: 206, BOOKSHELF: 207, MAP_TABLE: 208,
+  // the Legacy Campaign (js/campaign.js)
+  WAYSTONE: 209, RUNE_STONE: 210
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -84,7 +86,9 @@ export const I = {
   ECHO_SHARD: 548, ECHO_COMPASS: 549, WARDEN_PLATE: 550, ECHO_MANTLE: 551, LUMEN_SHARD: 552,
   TIDE_CHARM: 553, LEAFSTEP_BOOTS: 554, SUNWARD_HELM: 555,
   SPARKDUST: 556, MINECART: 557, CHEST_CART: 558, HOPPER_CART: 559, FURNACE_CART: 560, TNT_CART: 561, CHEST_BOAT: 562,
-  EXPLORER_MAP: 563
+  EXPLORER_MAP: 563,
+  // the Legacy Campaign
+  RELIC_EARTH: 564, RELIC_NATURE: 565, RELIC_TIDES: 566, ANCIENT_KEY: 567, DESERT_MAP: 568, OCEAN_MAP: 569, EXPEDITION_MAP: 570, TIDE_CHARM: 571
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -319,6 +323,8 @@ block(B.DAYLIGHT, "Daylight Sensor", { shape: "model", render: "cutout", hardnes
 block(B.SIGN, "Wooden Sign", { shape: "model", render: "cutout", solid: false, hardness: 1, tool: "axe", interact: "sign", tex: "sign", faces: true, category: "Useful", icon: "sign" });
 block(B.BOOKSHELF, "Bookshelf", { hardness: 1.5, tool: "axe", tex: ["planks", "bookshelf", "planks"], category: "Building" });
 block(B.MAP_TABLE, "Expedition Table", { hardness: 2.5, tool: "axe", interact: "maptable", tex: ["map_table_top", "map_table_side", "planks"], category: "Useful" });
+block(B.WAYSTONE, "Waystone", { hardness: Infinity, drops: 0, light: 10, interact: "waystone", tex: ["waystone_top", "waystone_side", "stone_bricks"], category: "Useful" });   // campaign fast travel (js/campaign.js)
+block(B.RUNE_STONE, "Rune Stone", { hardness: Infinity, drops: 0, light: 7, interact: "rune", tex: "rune_stone", category: "Useful" });             // a campaign boss arena device
 
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
@@ -472,6 +478,14 @@ item(I.CHEST_CART, "Minecart with Chest", { icon: "cart", colors: ["chest"], sta
 item(I.HOPPER_CART, "Minecart with Hopper", { icon: "cart", colors: ["hopper"], stack: 1, category: "Mechanisms", cart: "hopper_cart" });
 item(I.FURNACE_CART, "Minecart with Furnace", { icon: "cart", colors: ["furnace"], stack: 1, category: "Mechanisms", cart: "furnace_cart" });
 item(I.TNT_CART, "Minecart with Blast Block", { icon: "cart", colors: ["tnt"], stack: 1, category: "Mechanisms", cart: "tnt_cart" });
+item(I.RELIC_EARTH, "Relic of Earth", { icon: "relic", colors: ["#8a6a3a", "#e8c890"], stack: 1, quest: true });
+item(I.RELIC_NATURE, "Relic of Nature", { icon: "relic", colors: ["#2f8a2c", "#b8f0a0"], stack: 1, quest: true });
+item(I.RELIC_TIDES, "Relic of the Tides", { icon: "relic", colors: ["#1a5ab0", "#a8e0ff"], stack: 1, quest: true });
+item(I.ANCIENT_KEY, "Ancient Key", { icon: "ancient_key", stack: 3, quest: true });
+item(I.DESERT_MAP, "Ancient Desert Map", { icon: "survey_map", stack: 1, quest: true });
+item(I.OCEAN_MAP, "Ancient Ocean Map", { icon: "survey_map", stack: 1, quest: true });
+item(I.EXPEDITION_MAP, "Expedition Map", { icon: "survey_map", stack: 1, quest: true });
+item(I.TIDE_CHARM, "Tide Charm", { icon: "relic", colors: ["#3ab0c8", "#e8ffff"], stack: 1, quest: true });   // carry it and you never run out of air
 item(I.EXPLORER_MAP, "Explorer's Map", { icon: "explorer_map", stack: 1, category: "Tools", offhand: true });   // press M (or right-click it) to open; see js/starter.js
 item(I.CHEST_BOAT, "Boat with Chest",{ icon: "boat", colors: ["chest"], stack: 1, category: "Tools" });   // string can be laid down as tripwire between two hooks
 item(I.SPARKDUST, "Sparkdust", { icon: "dust", colors: ["#ff5a2a", "#c2361a", "#ff8a4a"], category: "Mechanisms", places: B.SPARK_DUST });
@@ -729,7 +743,9 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "hopper_outside", "hopper_top", "hopper_inside", "dropper_front", "dispenser_front", "crafter_front", "crafter_front_on", "crafter_top", "crafter_side", "crafter_bottom",
   "rail", "rail_curve", "rail_powered", "rail_powered_on", "rail_detector", "rail_detector_on", "rail_activator", "rail_activator_on",
   // the Starter Home
-  "sign", "bookshelf", "map_table_top", "map_table_side"];
+  "sign", "bookshelf", "map_table_top", "map_table_side",
+  // the Legacy Campaign
+  "waystone_top", "waystone_side", "rune_stone"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1191,6 +1207,9 @@ Object.assign(PAINT, {
     P.rect(4, 4, 3, 2, "#5a9a4a"); P.rect(9, 10, 3, 2, "#d8c070"); P.px(10, 5, "#c83a2a"); P.px(11, 4, "#c83a2a"); P.px(9, 4, "#c83a2a"); P.px(10, 3, "#c83a2a");
   },
   map_table_side(P) { PAINT.planks(P); P.rect(0, 0, 16, 2, "#e8dcc0"); P.rect(1, 2, 2, 14, "#6a4825"); P.rect(13, 2, 2, 14, "#6a4825"); },
+  waystone_top(P) { P.fill(["#8a8a8a", "#7e7e7e", "#949494"]); P.rect(3, 3, 10, 10, "#5a5a6a"); P.rect(5, 5, 6, 6, "#7ad8ff"); P.rect(7, 7, 2, 2, "#ffffff"); },
+  waystone_side(P) { P.fill(["#8a8a8a", "#7e7e7e", "#949494"]); P.rect(0, 0, 16, 2, "#5a5a6a"); P.rect(0, 14, 16, 2, "#5a5a6a"); P.rect(6, 4, 4, 8, "#3a5a7a"); P.rect(7, 5, 2, 2, "#7ad8ff"); P.rect(7, 8, 2, 3, "#7ad8ff"); },
+  rune_stone(P) { P.fill(["#5a5048", "#524840", "#625850"]); P.rect(4, 3, 8, 1, "#f0c050"); P.rect(7, 3, 2, 10, "#f0c050"); P.rect(4, 8, 8, 1, "#f0c050"); P.rect(5, 12, 6, 1, "#f0c050"); },
   crafter_front_on(P) { PAINT.crafter_front(P); P.rect(4, 5, 2, 1, "#ff5a2a"); P.rect(10, 5, 2, 1, "#ff5a2a"); P.rect(3, 4, 4, 1, "#ff8a4a"); P.rect(9, 4, 4, 1, "#ff8a4a"); }
 });
 for (let k = 0; k < 6; k++) {
@@ -1294,6 +1313,7 @@ Object.assign(ICON_PAINT, {
   shield(P) { for (let y = 1; y < 15; y++) { const w = y < 10 ? 6 : 6 - (y - 9); for (let x = 8 - w; x < 8 + w; x++) P.px(x, y, x === 8 - w || x === 7 + w || y === 1 ? "#9a9a9a" : (x + y) % 5 ? "#a87a48" : "#8a5e32"); } P.rect(7, 2, 2, 11, "#bcbcbc"); },
   relic(P, c) { for (let y = 2; y < 15; y++) for (let x = 2; x < 15; x++) { const d = (x - 8.5) ** 2 + (y - 8.5) ** 2; if (d < 40) P.px(x, y, d > 26 ? "#2a2c34" : d > 12 ? c[0] : c[1]); } P.rect(7, 4, 2, 9, "#ffffff"); },
   stabilizer(P, c) { P.rect(4, 2, 8, 12, "#2a2c34"); P.rect(5, 3, 6, 10, c[0]); P.rect(7, 5, 2, 6, "#ffffff"); P.rect(3, 13, 10, 2, "#b8703a"); },
+  ancient_key(P) { P.rect(3, 3, 5, 5, "#c8a040"); P.rect(4, 4, 3, 3, "#2a2c34"); P.rect(7, 5, 7, 2, "#c8a040"); P.rect(11, 7, 2, 3, "#c8a040"); P.rect(13, 7, 1, 2, "#c8a040"); P.px(5, 5, "#7ae070"); },
   survey_map(P) { P.rect(2, 3, 12, 10, "#e8dcc0"); P.rect(2, 3, 12, 1, "#a89870"); for (let i = 0; i < 8; i++) P.px(4 + i, 8 + Math.round(Math.sin(i) * 2), "#4a6a8a"); P.rect(10, 5, 2, 2, "#c83a2a"); },
   echo_shard(P) { for (let i = 0; i < 8; i++) { P.px(5 + i, 11 - i, "#5ae0d0"); P.px(6 + i, 11 - i, "#2a8a8a"); } P.rect(4, 11, 2, 2, "#c8ffff"); },
   pale_shard(P) { for (let i = 0; i < 9; i++) { P.px(5 + i, 12 - i, "#e8eef8"); P.px(6 + i, 12 - i, "#b8c4d8"); P.px(5 + i, 11 - i, "#ffffff"); } P.rect(4, 12, 2, 2, "#8a96a8"); },
