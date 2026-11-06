@@ -451,12 +451,12 @@ function mount(e) {
     UI.toast("In the boat! W A S D to row (Shift rows faster), C to climb out.");
     return true;
   }
-  if (e.tame && !e.saddled) { UI.toast("Put a Saddle on your Trotter first: hold it and right-click the Trotter."); return true; }
+  if (e.tame && !e.saddled) { UI.toast(`Hold a Saddle and right-click your ${e.def.name} to equip it.`); return true; }
   G.riding = e; e.ridden = true; e.rideT = 0; e.goal = null; e.path = null;
-  p.mount = true; p.flying = false; p.gliding = false; p.crouch = false;
+  p.mount = e; p.flying = false; p.gliding = false; p.crouch = false;
   p.pos.x = e.pos.x; p.pos.y = e.pos.y; p.pos.z = e.pos.z; p.vel.x = p.vel.y = p.vel.z = 0;
   Sound.mob("neigh", 0); if (e.tame) G.adv("ride");
-  UI.toast(e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : "Hold on! This Trotter is wild, so it may buck you off. Keep trying to tame it.");
+  UI.toast(e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : `Hold on! This ${e.def.name} is wild and may buck you off. Keep trying to tame it.`);
   return true;
 }
 function dismount(quiet) {
@@ -505,14 +505,14 @@ function tickRiding(dt) {
       e.tame = true; G.adv("tame", e.sp);
       for (let k = 0; k < 4; k++) puff(e.pos.x + (Math.random() - 0.5), e.pos.y + 2, e.pos.z + (Math.random() - 0.5), "heart");
       Sound.mob("neigh", 0); dismount(true);
-      UI.toast("You tamed the Trotter! Craft a Saddle (5 leather + 1 iron ingot), then right-click the Trotter with it to ride.", "good");
+      UI.toast(`You tamed the ${e.def.name}! Craft a Saddle (5 leather + 1 iron ingot), then right-click with it to equip it.`, "good");
       return;
     }
   }
   if (e.rideT > 4) {   // bucked off!
     e.temper = Math.min(100, (e.temper || 0) + 8);
     dismount(true); p.vel.y = 6; Sound.mob("neigh", 0);
-    UI.toast("The Trotter bucked you off! Try again. Feeding it wheat or apples calms it down.", "bad");
+    UI.toast(`The ${e.def.name} bucked you off! Feeding it wheat or apples calms it down.`, "bad");
   }
 }
 
@@ -2755,7 +2755,7 @@ function updatePlayerModel(dt) {
     if (a) a.userData.held = true; if (b) b.userData.held = true;
     holdItems(pmodel, a, b); pmMain = mainId; pmOff = offIdNow;
   }
-  pmodel.holder.position.set(p.pos.x, p.pos.y + (p.mount ? 0.85 : p.boat ? 0.1 : 0), p.pos.z);
+  pmodel.holder.position.set(p.pos.x, p.pos.y + (p.mount ? p.mount.h - 0.75 : p.boat ? 0.1 : 0), p.pos.z);
   pmodel.holder.rotation.y = p.yaw + Math.PI;
   poseModel(pmodel, { walkPhase: G.walkPhase, speed: Math.hypot(p.vel.x, p.vel.z), pitch: -p.pitch, crouch: p.crouch && !p.flying, swing: G.swing,
     eating: G.eat ? (G.eat.slot === OFF ? "L" : "R") : null, bow: G.bowT >= 0, blocking: G.blocking ? (G.blockHand === OFF ? "L" : "R") : null, riding: !!(p.mount || p.boat) });

@@ -675,7 +675,7 @@ export function initLost(api) {
       if (calm() && G.dim === "deep" && g.kind !== "guardian") continue;   // after the ending, the city's listeners rest
       if (Math.hypot(p.pos.x - g.x, p.pos.z - g.z) > 40 || !G.world.isLoaded(g.x, g.z)) continue;
       g.alive = [];
-      for (let i = 0; i < g.n; i++) { const a = i / g.n * Math.PI * 2, x = g.x + Math.cos(a) * Math.min(g.r, 3) + 0.5, z = g.z + Math.sin(a) * Math.min(g.r, 3) + 0.5; const e = ents.add(g.kind, x, g.y, z); if (e) { e.home = { x, y: g.y, z }; if (g.dormant) e.dormant = true; g.alive.push(e); } }
+      for (let i = 0; i < g.n; i++) { const a = i / g.n * Math.PI * 2, x = g.x + Math.cos(a) * Math.min(g.r, 3) + 0.5, z = g.z + Math.sin(a) * Math.min(g.r, 3) + 0.5; const e = ents.add(g.kind === "scout" ? "shard_scout" : g.kind, x, g.y, z); if (e) { e.home = { x, y: g.y, z }; if (g.dormant) e.dormant = true; g.alive.push(e); } }
     }
   }
 

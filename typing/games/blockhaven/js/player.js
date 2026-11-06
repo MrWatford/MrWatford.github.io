@@ -27,8 +27,8 @@ export class Player {
     this.health = 20; this.hunger = 20; this.sat = 5; this.exhaust = 0; this.airTop = null;
     this.spawn = null; this.hurtT = 0;
   }
-  get height() { return this.cart ? 1.2 : this.boat ? 1.2 : this.mount ? 2.6 : this.crouch && !this.flying ? 1.5 : 1.8; }
-  get eye() { return this.cart ? 1.1 : this.boat ? 1.0 : this.mount ? 2.45 : this.crouch && !this.flying ? 1.27 : 1.62; }   // riding a Trotter puts you up high; a boat sits low
+  get height() { return this.cart ? 1.2 : this.boat ? 1.2 : this.mount ? 1 + this.mount.h : this.crouch && !this.flying ? 1.5 : 1.8; }
+  get eye() { return this.cart ? 1.1 : this.boat ? 1.0 : this.mount ? 0.85 + this.mount.h : this.crouch && !this.flying ? 1.27 : 1.62; }   // riding a Trotter puts you up high; a boat sits low
   aabb(px = this.pos.x, py = this.pos.y, pz = this.pos.z, h = this.height) { return [px - 0.3, py, pz - 0.3, px + 0.3, py + h, pz + 0.3]; }
 
   boxesNear(world, a) {
@@ -82,7 +82,7 @@ export class Player {
       v.y -= 4 * dt;
       this.airTop = p.y;   // gliding never builds up fall damage
     } else {
-    let speed = this.flying ? (input.sprint ? 16 : 9) : this.mount ? (input.sprint ? 11 : 7.5) : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
+    let speed = this.flying ? (input.sprint ? 16 : 9) : this.mount ? (input.sprint ? 11 : 7.5) * this.mount.def.speed / 2 : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
     if (this.inWater && !this.flying) speed *= this.inLava ? 0.3 : 0.55 * (this.swimMul || 1);   // Splashers help you swim faster
     speed *= this.speedMul || 1;
     const under = this.onGround && !this.flying ? world.id(Math.floor(p.x), Math.floor(p.y - 0.1), Math.floor(p.z)) : 0;

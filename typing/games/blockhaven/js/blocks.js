@@ -528,7 +528,11 @@ export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skelet
   ["sheller", "Sheller", "#9a6aa8", "#e8d0f0"], ["villager", "Villager", "#8a5a3a", "#e8b890"], ["golem", "Ironwarden", "#d8d4cc", "#6a8a4a"], ["blightking", "Blightking", "#1a1a1a", "#5a5a5a"],
   ["scout", "Scout", "#a8a8a4", "#6a6a66"], ["whisker", "Whisker", "#e0902a", "#f4e8d8"], ["trotter", "Trotter", "#8a5a32", "#2a1a10"],
   ["minnow", "Minnow", "#9aa8b0", "#5a6a74"], ["sunfin", "Sunfin", "#f08a1a", "#ffffff"], ["puffer", "Puffer", "#e8c840", "#5a8ab0"], ["squid", "Inkling", "#2a3a5a", "#5a6a8a"],
-  ["dolphin", "Splasher", "#8a9ab0", "#e8ecf0"], ["fox", "Pouncer", "#e0782a", "#f4ece0"], ["bee", "Buzzer", "#f0c020", "#2a2018"], ["parrot", "Chatterbird", "#d8302a", "#2a8ad8"]];
+  ["dolphin", "Splasher", "#8a9ab0", "#e8ecf0"], ["fox", "Pouncer", "#e0782a", "#f4ece0"], ["bee", "Buzzer", "#f0c020", "#2a2018"], ["parrot", "Chatterbird", "#d8302a", "#2a8ad8"],
+  ["packass", "Long Ear", "#756258", "#c2af9a"], ["mule", "Trail Mule", "#814b31", "#af8f79"],
+  ["camel", "Dune Strider", "#bc843d", "#e4b66f"], ["camel_husk", "Dune Husk", "#9d8866", "#c6b591"],
+  ["llama", "Woolneck", "#dbc7a6", "#baa581"], ["trader_llama", "Caravan Woolneck", "#d7c49f", "#264887"],
+  ["bone_trotter", "Bone Trotter", "#bfb5a0", "#867e70"], ["rot_trotter", "Rot Trotter", "#546a38", "#819757"]];
 // Glider Wings go in the chest armor slot: jump while falling to glide
 item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));

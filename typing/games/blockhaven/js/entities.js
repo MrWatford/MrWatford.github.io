@@ -28,7 +28,8 @@ function makeSpecies(sp) {
   sp.geos = {}; sp.texs = [];
   const count = sp.variants ? sp.variants.length : 1;
   for (let vi = 0; vi < count; vi++) {
-    const canvas = document.createElement("canvas"); canvas.width = canvas.height = 128;
+    const canvas = document.createElement("canvas"); canvas.width = 128;
+    canvas.height = 16 * Math.ceil(sp.model.parts.length * FACE_ORDER.length / 8);
     const ctx = canvas.getContext("2d");
     let tile = 0;
     for (const part of sp.model.parts) {
@@ -38,7 +39,7 @@ function makeSpecies(sp) {
         const tx = (tile % 8) * 16, ty = Math.floor(tile / 8) * 16; tile++;
         const paint = part.paint[face] || part.paint.all;
         paint(painterFor(ctx, tx, ty), face, sp.variants && sp.variants[vi]);
-        if (uv) for (let k = 0; k < 4; k++) { const i = f * 4 + k, u = uv.getX(i), v = uv.getY(i); uv.setXY(i, (tx + 0.05 + u * 15.9) / 128, 1 - (ty + 0.05 + (1 - v) * 15.9) / 128); }
+        if (uv) for (let k = 0; k < 4; k++) { const i = f * 4 + k, u = uv.getX(i), v = uv.getY(i); uv.setXY(i, (tx + 0.05 + u * 15.9) / 128, 1 - (ty + 0.05 + (1 - v) * 15.9) / canvas.height); }
       });
       if (g) { uv.needsUpdate = true; sp.geos[part.name] = g; }
     }
@@ -291,7 +292,7 @@ Object.assign(SPECIES, {
   trotter: { name: "Trotter", animal: true, mount: true, hp: 22, speed: 2.0, w: 1.3, h: 1.6, ai: "animal", food: [I.WHEAT, I.APPLE], xp: 3, sound: "neigh",
     tameWith: [I.WHEAT, I.APPLE], drops: e => e.baby ? [] : [[I.LEATHER, randi(0, 2)], e.saddled ? [I.SADDLE, 1] : null],
     model: { type: "quad", parts: [...quadParts({ body: [10, 10, 22], head: [6, 14, 7], leg: 4, legH: 16, headUp: 7,
-      bodyPaint: { all: solid(CHESTNUT) }, legPaint: { all: P => { P.fill(CHESTNUT); P.rect(0, 12, 16, 4, "#3a2a1a"); } },
+      bodyPaint: { all: P => { P.fill(CHESTNUT); P.rect(2, 2, 12, 2, "#a47045"); P.rect(3, 12, 10, 3, "#754625"); } }, legPaint: { all: P => { P.fill(CHESTNUT); P.rect(0, 9, 16, 4, "#dec8a9"); P.rect(0, 13, 16, 3, "#3a2a1a"); } },
       headPaint: { all: solid(CHESTNUT) } }),
       { name: "muzzle", parent: "head", size: [5, 5, 9], pivot: [0, 4.5, 4], off: [0, 0, 1], paint: { all: solid(CHESTNUT), front: P => { P.fill(["#6a4226"]); P.rect(3, 9, 3, 2, "#2a1a10"); P.rect(10, 9, 3, 2, "#2a1a10"); }, right: P => { P.fill(CHESTNUT); P.rect(10, 3, 2, 2, "#111"); }, left: P => { P.fill(CHESTNUT); P.rect(4, 3, 2, 2, "#111"); } } },
       { name: "earR", parent: "head", size: [2, 3, 1], pivot: [-2, 8, 0], off: [0, 0, 0], paint: { all: solid(["#6a4226"]) } },
@@ -307,6 +308,42 @@ const fishEyes = pal => face(pal, P => { P.rect(0, 3, 5, 5, "#f4f4f4"); P.rect(1
 // ----- minecarts (Part D of the Sparkworks update) -----
 const IRONP = ["#8a8a8a", "#7e7e7e", "#949494"];
 const CHESTP = P => { P.fill(["#9a6a35", "#8e6230"]); P.rect(0, 5, 16, 2, "#5a3a1a"); P.rect(7, 4, 2, 4, "#c8c8c8"); };
+// Mounts share the Trotter controls and save fields. Their profiles set the silhouette and coat.
+function packMount(name, palette, { ears = 5, longNeck = false, hump = false, pack = false, trader = false, sterile = false, speed = 2, hp = 22 } = {}) {
+  const base = SPECIES.trotter;
+  const coat = { all: solid(palette) };
+  const hooves = { all: P => { P.fill(palette); P.rect(0, 13, 16, 3, "#3a3029"); } };
+  const parts = quadParts({ body: [10, 10, 21], head: longNeck ? [5, 17, 5] : [6, 13, 7], leg: 4,
+    legH: hump ? 19 : 16, headUp: hump ? 10 : 8, bodyPaint: coat, headPaint: coat, legPaint: hooves });
+  const detail = (name, size, pivot, paint, parent) => ({ name, size, pivot, paint, parent, off: [0, 0, 0] });
+  const snout = { all: solid([palette[1], palette[2]]), left: P => { P.fill(palette); P.rect(3, 4, 3, 3, "#211b16"); } };
+  snout.right = P => { P.fill(palette); P.rect(10, 4, 3, 3, "#211b16"); };
+  snout.front = face([palette[2]], P => { P.rect(3, 8, 2, 2, "#433428"); P.rect(11, 8, 2, 2, "#433428"); });
+  const headTop = longNeck ? 7 : 5;
+  parts.push(detail("muzzle", [5, 5, 8], [0, headTop, 4], snout, "head"),
+    detail("earL", [2, ears, 2], [-2, headTop + 2 + ears / 2, 0], coat, "head"),
+    detail("earR", [2, ears, 2], [2, headTop + 2 + ears / 2, 0], coat, "head"),
+    detail("tail", [2, longNeck ? 5 : 11, 2], [0, hump ? 23 : 20, -12], hooves),
+    { ...base.model.parts.find(part => part.name === "saddle"), pivot: [0, hump ? 34 : 27, hump ? -2 : 1] });
+  if (hump) parts.push(detail("hump", [8, 7, 10], [0, 30, -2], coat));
+  if (pack) for (const side of [-1, 1]) parts.push(detail("pack" + side, [4, 6, 7], [side * 6, 22, -3], { all: CHESTP }));
+  if (trader) parts.push(detail("blanket", [11, 2, 15], [0, 26, 0], { all: P => {
+    P.fill(["#264887", "#3059a0"]); P.rect(0, 2, 16, 2, "#e6a831"); P.rect(0, 12, 16, 2, "#e6a831");
+  } }));
+  return { ...base, name, speed, hp, h: hump ? 2.5 : longNeck ? 2.2 : 1.8, food: sterile ? [] : base.food,
+    invSize: pack ? 27 : 0, model: { type: "quad", parts } };
+}
+Object.assign(SPECIES, {
+  packass: packMount("Long Ear", ["#756258", "#584a44", "#c2af9a"], { ears: 7, pack: true, speed: 1.8 }),
+  mule: packMount("Trail Mule", ["#814b31", "#674031", "#af8f79"], { ears: 6, pack: true, sterile: true, hp: 26 }),
+  camel: packMount("Dune Strider", ["#bc843d", "#a97437", "#e4b66f"], { ears: 2, longNeck: true, hump: true, hp: 30 }),
+  camel_husk: packMount("Dune Husk", ["#9d8866", "#756651", "#c6b591"], { ears: 2, longNeck: true, hump: true, sterile: true, hp: 25 }),
+  llama: packMount("Woolneck", ["#dbc7a6", "#baa581", "#eee1c8"], { longNeck: true, pack: true, speed: 1.7 }),
+  trader_llama: packMount("Caravan Woolneck", ["#d7c49f", "#b9a27c", "#eee3c8"], { longNeck: true, pack: true, trader: true, sterile: true }),
+  bone_trotter: packMount("Bone Trotter", ["#bfb5a0", "#867e70", "#ded7c5"], { ears: 2, sterile: true, hp: 15 }),
+  rot_trotter: packMount("Rot Trotter", ["#546a38", "#354626", "#819757"], { ears: 3, sterile: true, hp: 20 })
+});
+
 function cartSpecies() {
   const base = [
     { name: "bottom", size: [14, 2, 18], pivot: [0, 2, 0], off: [0, 0, 0], paint: { all: solid(["#5a5a5a", "#525252"]) } },
@@ -495,7 +532,7 @@ Object.assign(SPECIES, {
     drops: () => [[I.LUMEN_SHARD, randi(1, 2)]],
     model: { type: "humanoid", parts: [...humanoidParts({ legLen: 12, limb: [4, 12, 4], head: { all: solid(ECHO), front: face(ECHO, P => { P.rect(2, 6, 12, 2, "#0a1a20"); P.rect(4, 6, 2, 2, "#8af0e8"); P.rect(10, 6, 2, 2, "#8af0e8"); }) }, body: { all: solid(ECHO) }, arm: { all: solid(ECHO) }, leg: { all: solid(["#3a4a6a"]) } }),
       { name: "shield", parent: "armL", size: [2, 14, 12], pivot: [3, -6, 3], off: [0, 0, 0], paint: { all: solid(["#2a3a5a"]), right: P => { P.fill(["#2a3a5a"]); P.rect(5, 3, 6, 10, "#5ae0d0"); } } }] } },
-  scout: { name: "Shard Scout", hostile: true, noSave: true, hp: 10, speed: 3.4, w: 0.8, h: 0.6, ai: "melee", flies: true, dmg: 3, reach: 1.6, xp: 5, sound: "crystal", leash: 18,
+  shard_scout: { name: "Shard Scout", hostile: true, noSave: true, hp: 10, speed: 3.4, w: 0.8, h: 0.6, ai: "melee", flies: true, dmg: 3, reach: 1.6, xp: 5, sound: "crystal", leash: 18,
     drops: () => [[I.LUMEN_SHARD, 1]],
     model: { type: "chicken", parts: [
       { name: "body", size: [6, 4, 8], pivot: [0, 6, 0], off: [0, 0, 0], paint: { all: solid(ECHO) } },
@@ -629,7 +666,7 @@ Object.assign(SPECIES, {
       head: { all: solid(["#9aa4a8", "#8e989c"]), top: solid(["#5a6064"]), front: face(["#9aa4a8", "#8e989c"], P => { blankEyes(P); P.rect(5, 11, 6, 1, "#5a6064"); }) },
       body: { all: solid(["#4a5458", "#424c50"]) }, arm: { all: P => { P.fill(["#9aa4a8"]); P.rect(0, 0, 16, 5, "#4a5458"); } }, leg: { all: solid(["#3a4044", "#343a3e"]) } }) } }
 });
-for (const sp of Object.values(SPECIES)) if (!sp.geos) makeSpecies(sp);
+
 export const SPAWN_SPECIES = SPAWN_EGGS.map(e => e[0]);
 
 // ---------- block helpers ----------
@@ -777,7 +814,9 @@ export class Entities {
     return e;
   }
   attachModel(e) {
-    const def = e.def, mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
+    const def = e.def;
+    if (!def.geos) makeSpecies(def);
+    const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
     const root = new THREE.Group(), parts = {};
     for (const p of def.model.parts) {
       const pivot = new THREE.Group(); pivot.position.set(p.pivot[0] / 16, p.pivot[1] / 16, p.pivot[2] / 16);
@@ -849,15 +888,19 @@ export class Entities {
     const biome = w.gen.column(x0 + 8, z0 + 8).biome;
     if (biome === "peak") return;
     const woods = biome === "forest" || biome === "birch";
-    const pool = biome === "sandy" ? [["rabbit", 1]] : [["cow", 25], ["sheep", 25], ["pig", 20], ["chicken", 20], ["rabbit", 10], ["whisker", 4],
-      ...(woods ? [["scout", 14], ["fox", 12], ["parrot", 8]] : []), ...(biome === "plains" ? [["trotter", 14]] : [])];
+    const pool = biome === "sandy" ? [["rabbit", 12], ["camel", 6], ["camel_husk", 1]] : [["cow", 25], ["sheep", 25], ["pig", 20], ["chicken", 20], ["rabbit", 10], ["whisker", 4],
+      ...(woods ? [["scout", 14], ["fox", 12], ["parrot", 8]] : []), ...(biome === "plains" ? [["trotter", 14], ["packass", 5], ["llama", 5], ["bone_trotter", 0.5], ["rot_trotter", 0.5]] : [])];
     let t = Math.random() * pool.reduce((s, p) => s + p[1], 0), sp = pool[0][0];
     for (const [k, wgt] of pool) { t -= wgt; if (t <= 0) { sp = k; break; } }
-    const n = sp === "whisker" ? 1 : sp === "fox" || sp === "parrot" ? randi(1, 2) : randi(2, 4);
+    const def = SPECIES[sp];
+    const n = sp === "whisker" || (def.mount && !def.food.length) ? 1 : sp === "fox" || sp === "parrot" ? randi(1, 2) : randi(2, 4);
     for (let i = 0; i < n; i++) {
       const x = x0 + randi(1, 14), z = z0 + randi(1, 14), y = w.surfaceY(x, z), top = w.id(x, y, z);
-      if (![B.GRASS, B.SAND, B.SNOW].includes(top) || solidCell(w, x, y + 1, z)) continue;
-      this.add(sp, x + 0.5, y + 1, z + 0.5, { baby: Math.random() < 0.15 });
+      if (![B.GRASS, B.SAND, B.SNOW].includes(top)) continue;
+      const baby = (!def.mount || def.food.length > 0) && Math.random() < 0.15;
+      const height = Math.ceil(def.h * (baby ? 0.5 : 1));
+      if (Array.from({ length: height }, (_, i) => i + 1).some(dy => solidCell(w, x, y + dy, z))) continue;
+      this.add(sp, x + 0.5, y + 1, z + 0.5, { baby });
     }
   }
 
@@ -874,7 +917,11 @@ export class Entities {
       this.wanderT = 300;
       if (Math.random() < 0.5 && !this.list.some(e => e.sp === "wanderer")) {
         const a = Math.random() * Math.PI * 2, x = Math.floor(p.pos.x + Math.cos(a) * 14), z = Math.floor(p.pos.z + Math.sin(a) * 14);
-        if (w.isLoaded(x, z)) { const y = w.surfaceY(x, z) + 1; if (SOLID[w.id(x, y - 1, z)] && !solidCell(w, x, y, z) && !solidCell(w, x, y + 1, z)) { this.add("wanderer", x + 0.5, y, z + 0.5); this.ctx.toast("A Wanderer has arrived to trade!"); } }
+        if (w.isLoaded(x, z)) { const y = w.surfaceY(x, z) + 1; if (SOLID[w.id(x, y - 1, z)] && !solidCell(w, x, y, z) && !solidCell(w, x, y + 1, z)) { this.add("wanderer", x + 0.5, y, z + 0.5);
+          const packY = w.surfaceY(x + 2, z) + 1;
+          if (w.isLoaded(x + 2, z) && Math.abs(packY - y) <= 1 && SOLID[w.id(x + 2, packY - 1, z)] &&
+              ![0, 1, 2].some(dy => solidCell(w, x + 2, packY + dy, z))) this.add("trader_llama", x + 2.5, packY, z + 0.5);
+          this.ctx.toast("A Wanderer has arrived to trade!"); } }
       }
     }
     if (plain && (this.waterT = (this.waterT || 0) - 1) <= 0) { this.waterT = 2; this.waterSpawn(w, p); }
@@ -2018,13 +2065,16 @@ export class Entities {
   // Two well-fed animals of a kind look for each other and make a baby (babies bred by you trust you)
   seekMate(e, d) {
     if (!(e.love > 0) || e.baby) return false;
-    const mate = this.list.find(o => o !== e && o.sp === e.sp && o.love > 0 && !o.baby && !o.dead && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 8);
+    const cross = { trotter: "packass", packass: "trotter" }[e.sp];
+    const mate = this.list.find(o => o !== e && (o.sp === e.sp || o.sp === cross) && o.love > 0 &&
+      !o.baby && !o.dead && !o.gone && !o.ridden && Math.abs(o.pos.y - e.pos.y) < 1.5 &&
+      Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 8);
     if (!mate) return false;
     const ctx = this.ctx, def = e.def, md = Math.hypot(mate.pos.x - e.pos.x, mate.pos.z - e.pos.z);
     e.goal = def.flies ? { x: mate.pos.x, y: mate.pos.y, z: mate.pos.z, speed: def.speed } : { x: mate.pos.x, z: mate.pos.z, speed: def.speed };
     if (md < 1.6) {
       e.love = mate.love = 0; e.breedCd = mate.breedCd = 300;
-      this.add(e.sp, (e.pos.x + mate.pos.x) / 2, e.pos.y + 0.2, (e.pos.z + mate.pos.z) / 2, { baby: true, trust: e.sp === "fox", home: e.home });
+      this.add(e.sp === mate.sp ? e.sp : "mule", (e.pos.x + mate.pos.x) / 2, e.pos.y + 0.2, (e.pos.z + mate.pos.z) / 2, { baby: true, trust: e.sp === "fox", home: e.home });
       if (this.ctx.adv) this.ctx.adv("breed", e.sp);
       ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); ctx.xp(randi(1, 7), e.pos.x, e.pos.y + 0.5, e.pos.z);
       Sound.mob(def.sound, d);
@@ -2177,7 +2227,7 @@ export class Entities {
   interact(e, slot) {
     const ctx = this.ctx, def = e.def, id = slot ? slot.id : 0;
     if (def.cart) return ctx.useCart(e, slot);
-    if (e.sp === "chest_boat" && ctx.crouching()) return ctx.openCart(e);   // crouch + right-click opens a chest boat
+    if (e.inv && (def.boat || (def.mount && e.tame && !e.baby)) && ctx.crouching()) return ctx.openCart(e);   // crouch + right-click opens a chest boat
     if (def.boat) return ctx.mount(e);
     if (e.sp === "dolphin" && (id === I.RAW_MINNOW || id === I.COOKED_MINNOW)) {
       ctx.consume(); e.angry = 0;
@@ -2192,7 +2242,7 @@ export class Entities {
         ctx.consume();
         if (def.mount) {   // treats calm a wild Trotter, so riding tames it sooner
           e.temper = Math.min(100, (e.temper || 0) + 15); e.hp = Math.min(e.maxHp, e.hp + 2); hearts(); Sound.mob(def.sound, 2);
-          ctx.toast("The Trotter liked that! It's calmer now, so it will be easier to tame by riding it.");
+          ctx.toast(`The ${def.name} liked that! It's calmer now, so it will be easier to tame by riding it.`);
           return true;
         }
         if (Math.random() < def.tameChance) {
@@ -2433,7 +2483,7 @@ export class Entities {
       if (P.wool) P.wool.visible = !e.sheared;
       if (P.collar) P.collar.visible = !!e.tame;
       if (P.saddle) P.saddle.visible = !!e.saddled;
-      if (def.mount && !(e.grazeT > 0)) P.head.rotation.x = e.ridden ? 1.05 : 0.45;   // the neck leans forward (further while ridden, so you can see past it)
+      if (def.mount && !(e.grazeT > 0)) P.head.rotation.x = e.sp === "trotter" ? (e.ridden ? 1.05 : 0.45) : (e.ridden ? 0.3 : 0.12);   // the neck leans forward (further while ridden, so you can see past it)
       if (P.tail) P.tail.rotation.x = def.mount ? 0.2 + Math.sin(e.age * 2) * 0.06 : (e.tame ? 0.9 : 0.3) + Math.sin(e.age * (e.tame ? 8 : 2)) * 0.12;
       if (def.pet) {   // sitting pets sit back on their haunches
         e.root.rotation.x = e.sitting ? -0.45 : 0;
