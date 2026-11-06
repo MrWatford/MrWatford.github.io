@@ -24,7 +24,7 @@ function painterFor(ctx, ox, oy) {
 }
 const FACE_ORDER = ["right", "left", "top", "bottom", "front", "back"];   // BoxGeometry order: +x −x +y −y +z −z
 // Species with `variants` (color sets) get one skin per variant; paint functions receive the variant as a third argument.
-function makeSpecies(sp) {
+function makeSpecies(sp, shaded) {
   sp.geos = {}; sp.texs = [];
   const count = sp.variants ? sp.variants.length : 1;
   for (let vi = 0; vi < count; vi++) {
@@ -41,9 +41,17 @@ function makeSpecies(sp) {
         paint(painterFor(ctx, tx, ty), face, sp.variants && sp.variants[vi]);
         if (uv) for (let k = 0; k < 4; k++) { const i = f * 4 + k, u = uv.getX(i), v = uv.getY(i); uv.setXY(i, (tx + 0.05 + u * 15.9) / 128, 1 - (ty + 0.05 + (1 - v) * 15.9) / canvas.height); }
       });
-      if (g) { uv.needsUpdate = true; sp.geos[part.name] = g; }
+      if (g) {
+        if (shaded) {
+          const colors = [0.65, 0.81, 1, 0.48, 0.92, 0.72].flatMap(tone => Array(12).fill(tone));
+          g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+        }
+        uv.needsUpdate = true;
+        sp.geos[part.name] = g;
+      }
     }
     const tex = new THREE.CanvasTexture(canvas);
+    if (shaded) tex.colorSpace = THREE.SRGBColorSpace;
     tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
     sp.texs.push(tex);
   }
@@ -55,7 +63,7 @@ const solid = pal => P => P.fill(pal);
 const face = (pal, draw) => (P, f) => { P.fill(pal); if (f === "front") draw(P); };
 const SKIN_G = ["#5c9a4a", "#548f43", "#63a352"], SHIRT = ["#2fa0a8", "#2a929a"], PANTS = ["#3a40a0", "#343a94"];
 const BONE = ["#d6d6ce", "#c8c8c0", "#e0e0d8"], CREEP = ["#4caf3a", "#3f9a30", "#5cc048", "#2f7a26", "#6ad055"];
-const SPIDER = ["#3a302a", "#2e2622", "#45392f"], CAVE = ["#1d4a5a", "#163e4c", "#255868"], VOID = ["#141414", "#1b1b1b", "#0e0e0e"];
+const SPIDER = ["#3a302a", "#2e2622", "#45392f"], CAVE = ["#1d4a5a", "#163e4c", "#255868"], VOID = ["#191528", "#241b36", "#302547", "#10101b"];
 const humanoidParts = (o) => [
   { name: "body", size: [8, 12, 4], pivot: [0, 12 + o.legLen - 12, 0], off: [0, 6, 0], paint: o.body },
   { name: "head", size: [8, 8, 8], pivot: [0, 24 + o.legLen - 12, 0], off: [0, 4, 0], paint: o.head },
@@ -492,6 +500,78 @@ Object.assign(SPECIES, {
 // ----- the Lost Civilization: creatures of Echohold and the Echo Expanse. Listeners (hears) only notice you by sound
 // or when you come very close; they give up and go home (leash) if you get away.
 const HUSH = ["#0e2a30", "#103036", "#14404a"], GLOWT = ["#5ae0d0", "#8af0e8"], KSTONE = ["#3a3e48", "#444852", "#34383f"], COPPER = ["#b8703a", "#a8642e", "#c87e44"], ECHO = ["#5a6a8a", "#52627e", "#647494"];
+function verdantModel() {
+  const bark = ["#694227", "#795031", "#875b38", "#59371f", "#74482b"];
+  const foliage = ["#527717", "#688b20", "#799e24", "#8cb52b", "#3d5e14"];
+  const grain = P => {
+    P.fill(bark);
+    for (const [x, y, h] of [[1, 0, 10], [5, 4, 12], [10, 0, 11], [14, 6, 10]]) {
+      P.rect(x, y, 1, h, "#492d1b");
+      P.rect(x + 1, y + 2, 1, h - 2, "#9b6940");
+    }
+  };
+  const leaf = P => {
+    P.fill(foliage);
+    P.rect(1, 0, 2, 13, "#94b938");
+    P.rect(7, 3, 3, 8, "#779e29");
+    P.rect(13, 9, 3, 7, "#395714");
+  };
+  const rings = P => {
+    P.fill(bark);
+    for (const [inset, color] of [[1, "#a67547"], [3, "#4e2e1c"], [5, "#9b6840"], [7, "#50301d"]]) {
+      P.rect(inset, inset, 16 - inset * 2, 16 - inset * 2, color);
+    }
+  };
+  const wood = { all: grain };
+  const leaves = { all: leaf, bottom: solid(["#405e15", "#47681a"]) };
+  const part = (name, size, pivot, paint = wood, parent, off = [0, 0, 0]) =>
+    ({ name, size, pivot, paint, parent, off });
+  const parts = [
+    part("body", [21, 20, 13], [0, 42, 0], wood, undefined, [0, 10, 0]),
+    part("chestFrame", [13, 13, 4], [0, 1, 7], { all: grain, front: rings }, "body"),
+    part("core", [8, 8, 1], [0, 1, 9.5], { all: P => {
+      P.rect(0, 0, 16, 16, "#297809");
+      P.rect(1, 1, 14, 14, "#73d212");
+      P.rect(3, 3, 10, 10, "#b9ff32");
+      P.rect(5, 5, 6, 6, "#e5ff8b");
+      P.rect(6, 6, 3, 3, "#f5ffd4");
+    } }, "body"),
+    part("head", [12, 11, 11], [0, 61, 0], { all: grain, front: P => {
+      grain(P);
+      for (const x of [2, 10]) {
+        P.rect(x - 1, 4, 5, 5, "#3b4318");
+        P.rect(x, 5, 3, 3, "#99ff2c");
+        P.rect(x, 5, 2, 2, "#ecffa8");
+      }
+      P.rect(5, 12, 6, 1, "#39251b");
+    } }, undefined, [0, 5.5, 0]),
+    part("browMoss", [13, 2, 10], [0, 5.5, 0], leaves, "head"),
+    part("waist", [14, 5, 11], [0, 41, 0]),
+    part("sash", [5, 8, 2], [0, 38, 6], leaves)
+  ];
+  for (const [side, sign] of [["R", -1], ["L", 1]]) {
+    const arm = "arm" + side, leg = "leg" + side;
+    parts.push(
+      part(arm, [8, 26, 8], [15 * sign, 59, 0], wood, undefined, [0, -12, 0]),
+      part("shoulder" + side, [12, 7, 12], [sign, 11, 0], wood, arm),
+      part("canopy" + side, [13, 3, 13], [sign, 15, 0], leaves, arm),
+      part("outerLeaves" + side, [4, 6, 10], [7 * sign, 11, 1], leaves, arm),
+      part("frontLeaves" + side, [7, 4, 2], [2 * sign, 11, 7], leaves, arm),
+      part("gauntlet" + side, [11, 11, 11], [sign, -10, 0], { all: grain, front: rings, left: rings, right: rings }, arm),
+      part("wristMoss" + side, [10, 3, 10], [sign, -4, 0], leaves, arm),
+      part(leg, [9, 21, 9], [6 * sign, 21, 0], wood, undefined, [0, -10.5, 0]),
+      part("boot" + side, [11, 5, 13], [0, -8, 2], wood, leg),
+      part("kneeMoss" + side, [7, 4, 2], [sign, 2, 5], leaves, leg),
+      part("branchBase" + side, [5, 3, 3], [5 * sign, 6, -1], wood, "head"),
+      part("branchMid" + side, [5, 3, 3], [8 * sign, 8, -1], wood, "head"),
+      part("branchTip" + side, [4, 5, 4], [10 * sign, 10, -1], leaves, "head"),
+      part("outerBud" + side, [3, 4, 3], [12 * sign, 12, -1], leaves, "head"),
+      part("innerBud" + side, [3, 6, 3], [4 * sign, 9, -2], leaves, "head")
+    );
+  }
+  return { type: "warden", parts };
+}
+
 const spk = (P, n, c) => { for (let i = 0; i < n; i++) P.px(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), c[i % c.length]); };
 const glowSpots = (pal) => P => { P.fill(pal); for (let i = 0; i < 5; i++) P.rect(Math.floor(Math.random() * 13), Math.floor(Math.random() * 13), 2, 2, GLOWT[i % 2]); };
 const coreFace = (pal, eye = "#5ae0d0") => face(pal, P => { P.rect(4, 5, 8, 6, "#0a1a20"); P.rect(6, 6, 4, 4, eye); });
@@ -565,16 +645,7 @@ Object.assign(SPECIES, {
       { name: "legR", size: [8, 18, 8], pivot: [-6, 18, 0], off: [0, -9, 0], paint: { all: solid(["#1a4a56"]) } },
       { name: "legL", size: [8, 18, 8], pivot: [6, 18, 0], off: [0, -9, 0], paint: { all: solid(["#1a4a56"]) } }] } },
   vcolossus: { name: "The Verdant Colossus", boss: true, lostBoss: true, noSave: true, hostile: true, hp: 320, speed: 1.8, w: 2.4, h: 4.4, ai: "templeboss", dmg: 8, reach: 3.2, xp: 0, sound: "roar", deathPuff: "xp", drops: () => [],
-    model: { type: "warden", parts: [
-      { name: "body", size: [22, 20, 14], pivot: [0, 42, 0], off: [0, 10, 0], paint: { all: P => { P.fill(["#5a4a2a", "#4a3a20", "#6a5430"]); spk(P, 14, ["#3f8a2c", "#56a63b", "#2f6a20"]); } } },
-      { name: "core", parent: "body", size: [8, 8, 2], pivot: [0, 10, 7], off: [0, 0, 1], paint: { all: solid(["#a0f070", "#e0ffc8"]) } },
-      { name: "head", size: [12, 12, 12], pivot: [0, 62, 0], off: [0, 6, 0], paint: { all: P => { P.fill(["#5a4a2a"]); P.rect(0, 0, 16, 4, "#3f8a2c"); }, front: face(["#5a4a2a"], P => { P.rect(0, 0, 16, 4, "#3f8a2c"); P.rect(3, 7, 3, 3, "#e8f070"); P.rect(10, 7, 3, 3, "#e8f070"); }) } },
-      { name: "finL", parent: "head", size: [3, 8, 3], pivot: [5, 8, 0], off: [0, 4, 0], paint: { all: solid(["#3f8a2c", "#56a63b"]) } },
-      { name: "finR", parent: "head", size: [3, 8, 3], pivot: [-5, 8, 0], off: [0, 4, 0], paint: { all: solid(["#3f8a2c", "#56a63b"]) } },
-      { name: "armR", size: [8, 30, 8], pivot: [-15, 60, 0], off: [0, -14, 0], paint: { all: P => { P.fill(["#5a4a2a", "#4a3a20"]); spk(P, 6, ["#3f8a2c"]); } } },
-      { name: "armL", size: [8, 30, 8], pivot: [15, 60, 0], off: [0, -14, 0], paint: { all: P => { P.fill(["#5a4a2a", "#4a3a20"]); spk(P, 6, ["#3f8a2c"]); } } },
-      { name: "legR", size: [9, 22, 9], pivot: [-6, 22, 0], off: [0, -11, 0], paint: { all: solid(["#4a3a20"]) } },
-      { name: "legL", size: [9, 22, 9], pivot: [6, 22, 0], off: [0, -11, 0], paint: { all: solid(["#4a3a20"]) } }] } },
+    model: verdantModel() },
   scolossus: { name: "The Solar Colossus", boss: true, lostBoss: true, noSave: true, hostile: true, hp: 340, speed: 1.6, w: 2.4, h: 4.6, ai: "templeboss", fireproof: true, dmg: 8, reach: 3.2, xp: 0, sound: "roar", deathPuff: "ember", drops: () => [],
     model: { type: "warden", parts: [
       { name: "body", size: [20, 20, 12], pivot: [0, 42, 0], off: [0, 10, 0], paint: { all: P => { P.fill(["#e0c47a", "#d8bc72"]); for (let y = 3; y < 16; y += 5) P.rect(0, y, 16, 1, "#a07a30"); } } },
@@ -666,6 +737,299 @@ Object.assign(SPECIES, {
       head: { all: solid(["#9aa4a8", "#8e989c"]), top: solid(["#5a6064"]), front: face(["#9aa4a8", "#8e989c"], P => { blankEyes(P); P.rect(5, 11, 6, 1, "#5a6064"); }) },
       body: { all: solid(["#4a5458", "#424c50"]) }, arm: { all: P => { P.fill(["#9aa4a8"]); P.rect(0, 0, 16, 5, "#4a5458"); } }, leg: { all: solid(["#3a4044", "#343a3e"]) } }) } }
 });
+
+// Surface bestiary silhouettes and materials. Add armor to the animated limb pivots.
+function applySurfaceArtwork() {
+  const plate = (name, parent, size, pivot, paint) => ({ name, parent, size, pivot, off: [0, 0, 0], paint });
+  const leather = ["#60412d", "#775038", "#8f6745"];
+  const moss = ["#3f501c", "#566924", "#708735", "#8a9f47"];
+  const cloth = ["#34545a", "#3f6367", "#54777b"];
+  const edge = (palette, trim) => ({ all: P => {
+    P.fill(palette);
+    P.rect(0, 0, 16, 2, trim);
+    P.rect(0, 13, 16, 1, palette[0]);
+  } });
+  const parts = key => SPECIES[key].model.parts;
+  const get = (key, name) => parts(key).find(part => part.name === name);
+  const limbSides = [["R", -1], ["L", 1]];
+  const groaner = get("zombie", "body");
+  groaner.paint = { all: P => {
+    P.fill(cloth);
+    P.rect(6, 0, 4, 5, "#28383b");
+    P.rect(0, 11, 16, 2, "#2d484d");
+    P.rect(2, 13, 5, 3, "#755940");
+  } };
+  for (const [side, sign] of limbSides) {
+    get("zombie", "leg" + side).paint = { all: P => {
+      P.fill(["#443832", "#51423a", "#635047"]);
+      P.rect(0, 13, 16, 3, moss[1]);
+      P.rect(3, 10, 5, 4, moss[2]);
+    } };
+    parts("zombie").push(plate("sleeve" + side, "arm" + side, [4.5, 5, 4.5], [0, 4, 0], edge(cloth, "#65858a")));
+    parts("golem").push(
+      plate("shoulder" + side, "arm" + side, [8, 8, 8], [0, 11, 0], edge(["#aaa494", "#c6bcaa", "#ded5c2"], "#e7ddca")),
+      plate("forearm" + side, "arm" + side, [6, 12, 6], [0, -7, 0], edge(["#aaa494", "#c6bcaa"], "#9a8165")),
+      plate("vine" + side, "body", [2, 7, 1], [sign * 5, 1, 6], { all: solid(moss) })
+    );
+  }
+
+  parts("skeleton").push(
+    plate("pauldron", "armR", [4, 4, 4], [0, 4, 0], edge(leather, "#a0754b")),
+    plate("hipPouch", "body", [3, 4, 2], [-3, -4, 2], edge(leather, "#a0754b"))
+  );
+  const ribs = get("skeleton", "body").paint.all;
+  get("skeleton", "body").paint.front = P => {
+    ribs(P);
+    for (let y = 0; y < 16; y += 2) P.rect(13 - Math.floor(y * 0.65), y, 3, 2, "#67462e");
+    P.rect(7, 7, 3, 2, "#a88a61");
+  };
+
+  for (const name of ["body", "head", "legFR", "legFL", "legBR", "legBL"]) {
+    const paint = get("creeper", name).paint;
+    paint.all = P => { P.fill(moss); P.rect(1, 1, 2, 11, moss[3]); P.rect(12, 7, 2, 9, moss[0]); };
+    if (name === "head") paint.front = P => {
+      paint.all(P);
+      // Keep the familiar black face while matching the olive body palette.
+      P.rect(3, 4, 3, 3, "#13170e"); P.rect(10, 4, 3, 3, "#13170e");
+      P.rect(6, 7, 4, 4, "#13170e"); P.rect(5, 9, 2, 4, "#13170e"); P.rect(9, 9, 2, 4, "#13170e");
+    };
+  }
+
+  for (const key of ["spider", "cave_spider"]) {
+    const stone = key === "spider" ? ["#372c29", "#483831", "#59443a"] : ["#283247", "#39445d", "#505b71"];
+    get(key, "body").paint.top = P => {
+      P.fill(stone);
+      P.rect(2, 2, 4, 6, key === "spider" ? "#625049" : moss[2]);
+      P.rect(9, 7, 5, 5, key === "spider" ? "#483631" : moss[1]);
+    };
+    for (const [side, sign] of limbSides) {
+      parts(key).push(plate("fang" + side, "head", [2, 3, 2], [sign * 2, -3, 4], edge(stone, "#77685e")));
+      for (let i = 0; i < 4; i++) {
+        const upper = get(key, "leg" + i + side);
+        upper.size = [10, 2.5, 2.5];
+        upper.off[0] = sign * 5;
+        upper.paint = edge(stone, stone[2]);
+        parts(key).push(plate("shin" + i + side, upper.name, [2.5, 5.5, 2.5], [sign * 4, -2, 0], edge(stone, stone[2])));
+      }
+    }
+  }
+
+  const gloop = get("slime", "body");
+  gloop.paint = { all: P => {
+    P.fill(["rgba(107,163,35,.52)", "rgba(132,190,40,.56)", "rgba(90,139,28,.52)"]);
+    P.rect(0, 0, 16, 1, "rgba(186,228,82,.75)");
+    P.rect(1, 1, 1, 14, "rgba(158,205,61,.68)");
+  } };
+  parts("slime").push(plate("innerCube", "body", [7, 7, 7], [0, 0, 0], {
+    all: solid(["#486824", "#547926", "#62852d"]),
+    front: face(["#547926"], P => {
+      P.rect(3, 4, 3, 3, "#29391a"); P.rect(10, 4, 3, 3, "#29391a"); P.rect(6, 10, 4, 2, "#31451c");
+    })
+  }));
+
+  const hood = ["#304d58", "#3b5c68", "#4e6f76"];
+  const wandererHead = get("wanderer", "head");
+  wandererHead.paint = { ...edge(hood, "#927e55"), front: P => {
+    P.fill(hood);
+    P.rect(2, 2, 12, 12, "#94805a");
+    P.rect(3, 3, 10, 11, "#202a2d");
+    P.rect(5, 7, 2, 2, "#fff0b3");
+    P.rect(10, 7, 2, 2, "#fff0b3");
+  } };
+  SPECIES.wanderer.model.parts = parts("wanderer").filter(part => part.name !== "nose");
+  parts("wanderer").push(
+    plate("hoodRim", "head", [9, 2, 9], [0, 5, 0], edge(hood, "#927e55")),
+    plate("mantle", "body", [10, 4, 7], [0, 6, 0], edge(hood, "#927e55")),
+    plate("satchel", "body", [4, 5, 2], [-3, -4, 3], edge(leather, "#a0754b"))
+  );
+}
+applySurfaceArtwork();
+
+function applyTempleArtwork() {
+  const model = id => SPECIES[id].model.parts;
+  const find = (id, name) => model(id).find(part => part.name === name);
+  const add = (id, name, parent, size, pivot, paint) =>
+    model(id).push({ name, parent, size, pivot, off: [0, 0, 0], paint });
+  const tiles = (palette, grout) => P => {
+    P.fill(palette);
+    for (let y = 4; y < 16; y += 5) {
+      P.rect(0, y, 16, 1, grout);
+      for (let x = y % 2 ? 3 : 6; x < 16; x += 7) P.rect(x, y - 4, 1, 4, grout);
+    }
+  };
+  const engraved = (base, rim, mark) => P => {
+    base(P);
+    P.rect(3, 3, 10, 10, rim);
+    P.rect(5, 5, 6, 6, mark);
+    P.rect(6, 6, 4, 4, rim);
+    P.rect(7, 7, 2, 2, mark);
+  };
+  const sea = tiles(["#32646b", "#3c7680", "#50818a"], "#254751");
+  const sand = tiles(["#c7aa74", "#d8bf8b", "#e4cd9d"], "#ab8a58");
+  const stone = tiles(["#54584f", "#63675c", "#797d72"], "#44483f");
+  const gold = tiles(["#c28a21", "#dfab36", "#f6cb56"], "#a56a17");
+  const vine = { all: solid(["#53751b", "#70931d", "#8cb12a", "#9aba34"]) };
+  const azure = { all: solid(["#378ba4", "#51b5ca", "#79d8e3"]) };
+  const sun = { all: solid(["#f1ad27", "#ffd252", "#fff195"]) };
+
+  for (const [id, base, trim, rune] of [
+    ["regent", sea, "#527f86", "#82bbc4"],
+    ["scolossus", sand, "#d19a2d", "#ffe084"],
+    ["titan", stone, "#596348", "#799b30"]
+  ]) {
+    const body = find(id, "body");
+    body.paint = { all: base };
+    const faceplate = engraved(base, trim, rune);
+    add(id, "coreFrame", "body", [12, 12, 1.5], [0, find(id, "core").pivot[1], body.size[2] / 2 + 0.6], { all: faceplate });
+    for (const [side, sign] of [["R", -1], ["L", 1]]) {
+      const arm = "arm" + side, leg = "leg" + side;
+      const armHeight = find(id, arm).size[1];
+      const limbWidth = find(id, arm).size[0];
+      add(id, "pauldron" + side, arm, [limbWidth + 4, 7, limbWidth + 3], [sign, armHeight / 2 - 4, 0], { all: base, front: faceplate });
+      add(id, "bracer" + side, arm, [limbWidth + 2, 9, limbWidth + 2], [sign, -armHeight / 2 + 5, 0],
+        { all: id === "scolossus" ? gold : base, front: faceplate });
+      add(id, "greave" + side, leg, [10, 7, 11], [0, -3, 1], { all: base });
+      if (id === "titan") {
+        add(id, "canopy" + side, arm, [16, 3, 14], [sign, 16, 0], vine);
+        add(id, "hangingVine" + side, arm, [3, 14, 2], [sign * 3, 7, 6], vine);
+        add(id, "kneeVine" + side, leg, [4, 8, 2], [sign, 2, 5.5], vine);
+      }
+    }
+  }
+  for (let i = 0; i < 8; i++) {
+    const angle = i * Math.PI / 4;
+    const x = Math.cos(angle), y = Math.sin(angle);
+    add("scolossus", "ray" + i, "head", [3, 3, 2], [x * 11, 5 + y * 11, -7], sun);
+  }
+
+  const linen = { all: P => {
+    P.fill(["#ddd0b2", "#eadcc0", "#c9b794"]);
+    for (let y = 3; y < 16; y += 4) P.rect(0, y, 16, 1, "#b4a483");
+  } };
+  const royal = { all: P => {
+    P.fill(["#23468b", "#3059a6", "#3d68b2"]);
+    P.rect(0, 0, 2, 16, "#dbab37"); P.rect(14, 0, 2, 16, "#dbab37");
+    P.rect(4, 3, 7, 2, "#ecbd47"); P.rect(7, 5, 2, 8, "#ecbd47");
+  } };
+  add("pharaoh", "diadem", "head", [3, 5, 2], [0, 5, 6], { all: gold });
+  add("pharaoh", "belt", "body", [17, 3, 11], [0, -9, 0], { all: gold });
+  add("pharaoh", "apron", "body", [6, 14, 1.5], [0, -16, 6], royal);
+  for (const [side, sign] of [["R", -1], ["L", 1]]) {
+    const arm = "arm" + side;
+    find("pharaoh", arm).paint = linen;
+    add("pharaoh", "bracelet" + side, arm, [7, 3, 7], [0, -7, 0], { all: gold });
+    add("pharaoh", "fingers" + side, arm, [4, 4, 2], [sign, -12, 1], linen);
+  }
+
+  const scales = tiles(["#224580", "#2c5795", "#386aaa"], "#1a396e");
+  find("leviathan", "body").paint = { all: scales, bottom: solid(["#86b8c6", "#a7d0d3"]) };
+  add("leviathan", "jaw", "head", [15, 4, 15], [0, -7, 1], { all: solid(["#82b6c7", "#a4cdd3"]) });
+  for (let i = 0; i < 5; i++) {
+    add("leviathan", "tooth" + i, "head", [1.5, 2.5, 1.5], [i * 2.6 - 5.2, -5, 8], { all: solid(["#dfedf0", "#f7fcff"]) });
+    add("leviathan", "crest" + i, "body", [2, 8 - i, 4], [0, 9, 15 - i * 7], azure);
+  }
+  add("leviathan", "tailCrest", "legL", [2, 10, 4], [0, 4, 0], azure);
+
+  const shell = { all: sea, top: engraved(sea, "#3d7278", "#74b2b7") };
+  add("tidecrab", "carapace", "body", [12, 4, 12], [0, 3, 0], shell);
+  for (const [side, sign] of [["R", -1], ["L", 1]]) {
+    add("tidecrab", "eyeStalk" + side, "head", [2, 4, 2], [sign * 3, 4, 2], shell);
+    add("tidecrab", "eye" + side, "head", [2.5, 2, 2.5], [sign * 3, 6, 2], azure);
+    add("tidecrab", "claw" + side, "head", [4, 3, 5], [sign * 6, -1, 4], shell);
+    add("tidecrab", "pincer" + side, "head", [2, 3, 3], [sign * 5, -1, 7], { all: solid(["#a6c3bf", "#73a8aa"]) });
+  }
+  add("sunscarab", "goldShell", "body", [12, 5, 12], [0, 3, 0],
+    { all: gold, top: engraved(gold, "#ffd26b", "#9e6418") });
+  add("sunscarab", "visor", "head", [7, 2, 1], [0, 0, 4], sun);
+  const wood = { all: tiles(["#68482d", "#795535", "#87623f"], "#523821") };
+  for (const part of model("vinewalker")) if (part.name !== "head") part.paint = wood;
+  add("vinewalker", "leafCrown", "head", [9, 2, 9], [0, 4, 0], vine);
+  for (const side of ["L", "R"]) {
+    add("vinewalker", "leafShoulder" + side, "arm" + side, [5, 3, 5], [0, 4, 0], vine);
+    add("vinewalker", "wristVine" + side, "arm" + side, [4, 4, 5], [0, -3, 0], vine);
+  }
+}
+applyTempleArtwork();
+
+function applyEchoArtwork() {
+  const slate = { all: solid(["#263840", "#354752", "#45565d", "#2d424a"]) };
+  const patina = { all: solid(["#325b60", "#437579", "#538889"]) };
+  const bronze = { all: solid(["#795940", "#98734d", "#ac8a61"]) };
+  const crystal = { all: solid(["#67bdd8", "#8cdef1", "#c1efff"]) };
+  const glow = { all: solid(["#65f4ee", "#9efff7", "#d1fffb"]) };
+  const parts = id => SPECIES[id].model.parts;
+  const find = (id, name) => parts(id).find(part => part.name === name);
+  const add = (id, name, parent, size, pivot, paint) =>
+    parts(id).push({ name, parent, size, pivot, off: [0, 0, 0], paint });
+  for (const id of ["crawler", "burrower"]) {
+    find(id, "body").paint = slate;
+    find(id, "head").paint = { ...slate, front: face(HUSH, P => {
+      for (const x of [2, 10]) { P.rect(x, 5, 4, 4, "#377e82"); P.rect(x + 1, 6, 2, 2, "#9cfff9"); }
+    }) };
+    for (let i = 0; i < 4; i++) {
+      add(id, "shellRib" + i, "body", [11, 3, 2], [0, 4, 4 - i * 3], i % 2 ? patina : slate);
+      add(id, "backShard" + i, "body", id === "burrower" ? [3, i === 1 ? 8 : 4, 3] : [2, 1, 2],
+        [i % 2 ? 2 : -2, id === "burrower" ? 6 : 5.5, 4 - i * 3], id === "burrower" ? crystal : glow);
+    }
+  }
+  for (const [side, sign] of [["R", -1], ["L", 1]]) {
+    const arm = "arm" + side, leg = "leg" + side;
+    for (const id of ["sentinel_e", "guardian", "knight"]) {
+      const width = find(id, arm).size[0];
+      const height = find(id, arm).size[1];
+      add(id, "shoulder" + side, arm, [width + 2, 4, width + 2], [sign, height / 2 - 2, 0], id === "sentinel_e" ? bronze : slate);
+      add(id, "bracer" + side, arm, [width + 1, 5, width + 1], [0, -height / 2 + 3, 0], patina);
+      add(id, "boot" + side, leg, [find(id, leg).size[0] + 1, 3, find(id, leg).size[2] + 2], [0, -find(id, leg).size[1] / 2 + 1.5, 1], id === "knight" ? slate : bronze);
+    }
+    add("stalker", "claw" + side, arm, [3, 6, 3], [0, -10, 0], patina);
+    add("stalker", "shoulder" + side, arm, [4, 4, 4], [sign, 9, 0], slate);
+    add("shard_scout", "hindWing" + side, "wing" + side, [8, 1, 3], [-sign, -0.5, -4], crystal);
+    add("warden", "fist" + side, arm, [10, 9, 10], [0, -12, 1], patina);
+    add("warden", "shoulder" + side, arm, [11, 9, 11], [sign, 10, 0], slate);
+    add("warden", "hornTip" + side, "fin" + side, [5, 3, 6], [sign * 2, 5, 0], patina);
+  }
+  const visor = P => {
+    P.fill(ECHO);
+    P.rect(1, 5, 14, 2, "#6ce7db");
+    P.rect(7, 2, 2, 11, "#7cf2e2");
+  };
+  find("knight", "head").paint.front = visor;
+  const shield = P => {
+    P.fill(ECHO);
+    P.rect(1, 1, 14, 14, "#63bcb7");
+    P.rect(2, 2, 12, 12, "#253b4d");
+    P.rect(7, 5, 2, 6, "#63bcb7"); P.rect(5, 7, 6, 2, "#63bcb7");
+  };
+  find("knight", "shield").paint = { all: solid(ECHO), left: shield, right: shield };
+  const cage = find("mote", "cage");
+  const frame = P => {
+    P.clear();
+    P.rect(0, 0, 16, 2, "#73c8c6"); P.rect(0, 14, 16, 2, "#428f92");
+    P.rect(0, 0, 2, 16, "#53a4a5"); P.rect(14, 0, 2, 16, "#53a4a5");
+  };
+  cage.paint = { all: frame };
+  for (let i = 0; i < 3; i++) {
+    add("warden", "rib" + i, "body", [15 - i * 2, 2, 2], [0, 5 - i * 3, 6.5], patina);
+  }
+}
+applyEchoArtwork();
+
+// Connect the articulated legs to the waist on the taller temple rigs.
+for (const id of ["regent", "vcolossus", "scolossus", "titan", "pharaoh"]) {
+  const parts = SPECIES[id].model.parts;
+  const body = parts.find(part => part.name === "body");
+  for (const side of ["L", "R"]) {
+    const leg = parts.find(part => part.name === "leg" + side);
+    const length = body.pivot[1] - leg.pivot[1] + 1;
+    parts.push({ name: "thigh" + side, parent: leg.name, size: [leg.size[0] - 1, length, leg.size[2] - 1],
+      pivot: [0, (leg.size[1] + length) / 2 - 1, 0], off: [0, 0, 0], paint: leg.paint });
+  }
+}
+const BESTIARY_ART = new Set([
+  "regent", "vcolossus", "scolossus", "titan", "pharaoh", "leviathan", "tidecrab", "vinewalker", "sunscarab",
+  "crawler", "sentinel_e", "stalker", "mote", "guardian", "knight", "shard_scout", "burrower", "warden",
+  "zombie", "skeleton", "creeper", "spider", "cave_spider", "slime", "voidwalker", "golem", "wanderer"
+]);
 
 export const SPAWN_SPECIES = SPAWN_EGGS.map(e => e[0]);
 
@@ -815,8 +1179,9 @@ export class Entities {
   }
   attachModel(e) {
     const def = e.def;
-    if (!def.geos) makeSpecies(def);
-    const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
+    const shaded = BESTIARY_ART.has(e.sp);
+    if (!def.geos) makeSpecies(def, shaded);
+    const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, vertexColors: shaded, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
     const root = new THREE.Group(), parts = {};
     for (const p of def.model.parts) {
       const pivot = new THREE.Group(); pivot.position.set(p.pivot[0] / 16, p.pivot[1] / 16, p.pivot[2] / 16);
