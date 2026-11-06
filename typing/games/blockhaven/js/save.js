@@ -55,7 +55,15 @@ export const Saves = {
   async remove(id) {
     const db = await openDB();
     if (!db) { memory.meta.delete(id); memory.data.delete(id); return; }
-    await new Promise((resolve) => { const t = db.transaction([META, DATA], "readwrite"); t.objectStore(META).delete(id); t.objectStore(DATA).delete(id); t.objectStore(DATA).delete("backup-v1-" + id); t.objectStore(DATA).delete("backup-v2-" + id); t.objectStore(DATA).delete("backup-v3-" + id); t.oncomplete = t.onerror = resolve; });
+    await new Promise((resolve, reject) => {
+      const t = db.transaction([META, DATA], "readwrite");
+      t.objectStore(META).delete(id);
+      const data = t.objectStore(DATA);
+      data.delete(id);
+      for (const version of [1, 2, 3]) data.delete("backup-v" + version + "-" + id);
+      t.oncomplete = resolve;
+      t.onabort = () => reject(t.error || new Error("The delete was interrupted."));
+    });
   },
   exportFile(world) {
     const blob = new Blob([JSON.stringify({ blockhaven: SAVE_VERSION, ...world })], { type: "application/json" });
@@ -70,6 +78,7 @@ export const Saves = {
     try { obj = JSON.parse(await file.text()); } catch (e) { throw new Error("That file isn't a Blockhaven world."); }
     if (!obj || !obj.blockhaven || !obj.seed || !obj.name) throw new Error("That file isn't a Blockhaven world.");
     const w = upgrade(obj);
+    validateDimensions(w.dims);
     w.id = newId(); w.played = Date.now();
     await this.save(w);
     return w;
@@ -79,9 +88,20 @@ export const Saves = {
 export const newId = () => "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 function split(w) {
   const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1, gen: w.gen || 1, hardcore: !!w.hardcore, hardcoreOver: !!w.hardcoreOver, campaign: w.campaign || null };
-  const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips, voidInv: w.voidInv, adv: w.adv, story: w.story };
+  const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips, voidInv: w.voidInv, adv: w.adv, story: w.story, stats: w.stats };
   return { meta, data };
 }
+function validateDimensions(dims) {
+  const record = v => v && typeof v === "object" && !Array.isArray(v);
+  const list = v => v == null || Array.isArray(v);
+  const pairs = v => list(v) && (!v || v.every(pair => Array.isArray(pair) && pair.length === 2));
+  if (!record(dims) || Object.values(dims).some(d =>
+    !record(d) || !pairs(d.containers) || !list(d.visited) || !list(d.crops) ||
+    !list(d.newGen) || !list(d.beacons) || !list(d.drops) ||
+    (d.mods != null && (!record(d.mods) || !Object.values(d.mods).every(pairs)))
+  )) throw new Error("This world file contains invalid dimension data.");
+}
+
 // Older save versions get converted here when the game is updated
 function upgrade(w) {
   // version 1 → 2: block changes and containers move into the "overworld" dimension; land shapes stay the same (gen 1)

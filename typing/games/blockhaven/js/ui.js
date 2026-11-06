@@ -86,12 +86,12 @@ export const UI = {
     for (const w of worlds) {
       const row = document.createElement("div"); row.className = "world";
       const when = w.played ? new Date(w.played).toLocaleDateString() : "";
-      row.innerHTML = `<div><b></b><small>${w.hardcore ? (w.hardcoreOver ? "💀 Hardcore (ended)" : "💀 Hardcore") : w.mode === "creative" ? "Creative" : "Survival"} • Day ${w.day || 1} • Seed <span></span> • ${when}</small></div>
+      row.innerHTML = `<div><b></b><small>${w.hardcore ? (w.hardcoreOver ? "💀 Hardcore (ended)" : "💀 Hardcore") : w.mode === "creative" ? "Creative" : "Survival"} • Day ${escapeAttr(w.day || 1)} • Seed <span></span> • ${when}</small></div>
         <div class="acts"><button class="btn small primary" data-a="play">Play</button><button class="btn small" data-a="dl">Download</button><button class="btn small danger" data-a="del">Delete</button></div>`;
       row.querySelector("b").textContent = w.name; row.querySelector("small span").textContent = w.seed;
       row.querySelector("[data-a=play]").onclick = () => { Sound.click(); G.loadWorld(w.id); };
       row.querySelector("[data-a=dl]").onclick = () => G.exportWorld(w.id);
-      row.querySelector("[data-a=del]").onclick = () => this.confirm(`Delete "${w.name}"?`, "This removes the world from this device for good. Download it first if you might want it later.", async () => { await G.deleteWorld(w.id); this.showWorlds(); });
+      row.querySelector("[data-a=del]").onclick = () => this.confirm(`Delete "${w.name}"?`, "This removes the world from this device for good. Download it first if you might want it later.", async () => { await G.deleteWorld(w.id); await this.showWorlds(); });
       list.appendChild(row);
     }
   },
@@ -102,18 +102,22 @@ export const UI = {
     for (const w of worlds) {
       const c = w.campaign || {}, row = document.createElement("div"); row.className = "world";
       const when = w.played ? new Date(w.played).toLocaleDateString() : "";
-      row.innerHTML = `<div><b></b><small>Chapter ${c.chapter || 1} • ${c.done || 0} quests done • <span></span> • ${w.settings && w.settings.difficulty ? "" : ""}${when}</small></div>
+      row.innerHTML = `<div><b></b><small>Chapter ${escapeAttr(c.chapter || 1)} • ${escapeAttr(c.done || 0)} quests done • <span></span> • ${w.settings && w.settings.difficulty ? "" : ""}${when}</small></div>
         <div class="acts"><button class="btn small primary" data-a="play">Continue</button><button class="btn small" data-a="dl">Download</button><button class="btn small danger" data-a="del">Delete</button></div>`;
       row.querySelector("b").textContent = w.name; row.querySelector("small span").textContent = c.quest ? "Now: " + c.quest : "";
       row.querySelector("[data-a=play]").onclick = () => { Sound.click(); G.loadWorld(w.id); };
       row.querySelector("[data-a=dl]").onclick = () => G.exportWorld(w.id);
-      row.querySelector("[data-a=del]").onclick = () => this.confirm(`Delete "${w.name}"?`, "This removes the campaign and all its progress from this device for good. Download it first if you might want it later.", async () => { await G.deleteWorld(w.id); this.showCampaigns(); });
+      row.querySelector("[data-a=del]").onclick = () => this.confirm(`Delete "${w.name}"?`, "This removes the campaign and all its progress from this device for good. Download it first if you might want it later.", async () => { await G.deleteWorld(w.id); await this.showCampaigns(); });
       list.appendChild(row);
     }
   },
   confirm(title, text, yes, yesLabel = "Delete") {
     $("confirmTitle").textContent = title; $("confirmText").textContent = text; $("confirm").hidden = false; $("confirmYes").textContent = yesLabel;
-    $("confirmYes").onclick = () => { $("confirm").hidden = true; yes(); };
+    $("confirmYes").onclick = async () => {
+      $("confirm").hidden = true;
+      try { await yes(); }
+      catch (err) { this.toast(err.message || "The action could not be completed.", "bad"); }
+    };
     $("confirmNo").onclick = () => { $("confirm").hidden = true; };
     $("confirmNo").focus();
   },
@@ -210,7 +214,7 @@ export const UI = {
     $("xpbar").querySelector("i").style.width = Math.round(lv.frac * 100) + "%"; $("xpbar").querySelector("b").textContent = lv.level ? lv.level : "";
     const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer", absorb: "💛 Absorption", fireRes: "🧯 Fire Resistance", haste: "⛏️ Haste", resist: "🛡️ Resistance", jump: "🐇 Jump Boost", strength: "💪 Strength" };
     const roman = k => (G.elv[k] || 1) > 1 ? " " + ["", "I", "II", "III", "IV"][G.elv[k]] : "";
-    $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${names[k] || k}${roman(k)} <small>${Math.ceil(G.effects[k])}s</small></span>`).join("");
+    $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${escapeAttr(names[k] || k)}${roman(k)} <small>${Math.ceil(G.effects[k])}s</small></span>`).join("");
     $("modeTag").textContent = G.mode === "spectator" ? "SPECTATOR • HARDCORE OVER" : survival ? (G.meta && G.meta.hardcore ? "HARDCORE" : "") : "CREATIVE" + (p.flying ? " • FLYING" : "");
   },
   itemName(text) { const el = $("itemName"); el.textContent = text; el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = 0, 1600); },
@@ -559,7 +563,7 @@ function stackInner(s) {
   if (!s) return "";
   const d = itemDef(s.id);
   let h = `<img src="${iconURL(s.id)}" alt="">`;
-  if (s.n > 1) h += `<b>${s.n}</b>`;
+  if (s.n > 1) h += `<b>${escapeAttr(s.n)}</b>`;
   if (d && d.tool && s.dur < d.tool.dur) { const f = s.dur / d.tool.dur; h += `<span class="dur"><i style="width:${Math.round(f * 100)}%;background:${f > 0.5 ? "#5fd35f" : f > 0.2 ? "#f5c431" : "#e0453a"}"></i></span>`; }
   return h;
 }

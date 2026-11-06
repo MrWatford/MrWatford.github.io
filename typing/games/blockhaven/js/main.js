@@ -1391,9 +1391,8 @@ function stream(budget) {
   }
 }
 function clearWorldMeshes() {
-  if (!G.world) return;
   clearBeams();
-  for (const c of G.world.chunks.values()) disposeMesh(c);
+  if (G.world) for (const c of G.world.chunks.values()) disposeMesh(c);
   for (const d of G.drops) removeDrop(d);
   G.drops = []; parts.length = 0;
   ents.clear();
@@ -1426,13 +1425,19 @@ function makeWorld(dim) {
   R.attach(w, data.rs);   // the signal engine's timers and comparator outputs
   w.onLoad = c => { ents.loadChunk(c); R.chunkLoaded(w, c); };
   w.onUnload = c => ents.unloadChunk(c);
+  for (const drop of (Array.isArray(data.drops) ? data.drops.slice(-150) : [])) {
+    if (drop && itemDef(drop.id) && Number.isInteger(drop.n) && drop.n > 0 &&
+        [drop.x, drop.y, drop.z, drop.vx, drop.vy, drop.vz, drop.age, drop.pickDelay].every(Number.isFinite)) {
+      addDrop(drop);
+    }
+  }
   return w;
 }
 function dimSnapshot(w) {
   if (w === G.world) R.settle();   // finish any blocks a piston is still sliding
   const old = G.dimData[w.dim] || {};
   if (w.dim === "end") { const dr = ents.list.find(e => e.sp === "dragon" && !e.dead); if (dr) old.wyrmHp = dr.hp; }
-  return { ...old, mods: w.modsToJSON(), containers: [...w.containers].filter(([k]) => !String(k).startsWith("cart:")), entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w) };
+  return { ...old, mods: w.modsToJSON(), containers: [...w.containers].filter(([k]) => !String(k).startsWith("cart:")), entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w), drops: G.drops.map(({ mesh, ...drop }) => drop) };
 }
 // Build (and draw) the land around a spot, with a progress bar
 async function loadArea(x, z, label) {
@@ -1487,19 +1492,26 @@ async function startWorld(save) {
     if (h) p.yaw = h.yaw;
   }
   ST.resetClock(); CP.resetSession();
-  p.air = 10; G.selected = 0; G.drops = []; G.mining = null; G.hudDirty = true;
+  p.air = 10; G.selected = 0; G.mining = null; G.hudDirty = true;
   // the page was closed on the "You fainted" screen: wake up properly (Hardcore worlds go straight to Spectator)
   if (save.hardcoreOver && G.mode !== "spectator") G.mode = G.meta.mode = "spectator";
-  if (p.health <= 0 && !G.spectator) { p.health = 20; p.hunger = 20; p.sat = 5; if (G.dim === "overworld") { p.pos.x = p.spawn.x; p.pos.z = p.spawn.z; p.pos.y = p.spawn.y ?? 70; } }
+  const needsRespawn = p.health <= 0 && !G.spectator;
   if (G.spectator) { p.flying = true; p.noclip = true; p.health = 20; }
   // build the land around the player before dropping them in
   await loadArea(p.pos.x, p.pos.z, G.dim === "nether" ? "Heating up the Ember Depths" : "Shaping hills and valleys");
   if (p.spawn.y == null) { placeSafely(p, p.spawn.x, p.spawn.z); p.spawn.y = p.pos.y; }
   else if (!save.player) placeSafely(p, p.pos.x, p.pos.z);
-  else if (p.collides(G.world, p.aabb())) placeSafely(p, p.pos.x, p.pos.z);
+  else if (!needsRespawn && p.collides(G.world, p.aabb())) placeSafely(p, p.pos.x, p.pos.z);
   G.autosaveT = 0; heldId = -1; offId = -1;
   portalCooldown = true; portalT = 0;   // waking up inside a portal doesn't send you through it until you step out
   UI.setLoading(1, "Ready!");
+  if (needsRespawn) {
+    document.body.classList.remove("menu-bg");
+    await G.respawn();
+    await saveNow(false);
+    updateTips();
+    return;
+  }
   await saveNow(false);
   G.state = "pause"; UI.show("none"); UI.hud();
   document.body.classList.remove("menu-bg");
@@ -1552,15 +1564,15 @@ function snapshot() {
   return {
     ...G.meta, mode: G.mode, version: SAVE_VERSION, played: Date.now(), time: G.time, day: G.meta.day || 1, tips: G.tips, mods: undefined, containers: undefined,
     player: { pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, health: p.health, hunger: p.hunger, sat: p.sat, exhaust: p.exhaust, spawn: p.spawn, anchor: p.anchor || null, flying: p.flying, dim: G.dim, effects: { ...G.effects }, elv: { ...G.elv }, absorb: G.absorb },
-    inventory: G.inv.toJSON(), dims: G.dimData, xp: G.xp, settings: G.wset, gen: G.meta.gen || 1,
-    voidInv: G.voidInv.map(s => s && { ...s }), adv: Adv.toJSON(), story: G.story, hardcore: !!G.meta.hardcore, hardcoreOver: !!G.meta.hardcoreOver, stats: G.stats
+    inventory: G.inv.toJSON(), dims: { ...G.dimData }, xp: G.xp, settings: G.wset, gen: G.meta.gen || 1,
+    voidInv: G.voidInv.map(s => s && { ...s }), adv: Adv.toJSON(), story: G.story, hardcore: !!G.meta.hardcore, hardcoreOver: !!G.meta.hardcoreOver, stats: { ...G.stats }
   };
 }
 async function saveNow(show) {
   if (!G.world || !G.meta) return;
-  const snap = snapshot();
-  G.meta.played = snap.played;
   try {
+    const snap = snapshot();
+    G.meta.played = snap.played;
     const ok = await Saves.save(snap);
     if (show) { UI.saved(); if (!ok) UI.toast("Saved for now. Use Download world to keep it after you close the page.", "bad"); }
   } catch (e) { UI.toast("Couldn't save: " + e.message, "bad"); }
@@ -2349,11 +2361,15 @@ function spawnDrop(id, n, x, y, z, stack = null, vel = null) {
   // a matching stack lying right here soaks it up (so dropper and dispenser machines don't fill the world with separate items)
   if (maxStack(id) > 1) { const m = G.drops.find(d => d.id === id && !d.stack && d.n + n <= maxStack(id) && Math.abs(d.x - x) < 0.8 && Math.abs(d.y - y) < 0.8 && Math.abs(d.z - z) < 0.8); if (m) { m.n += n; return; } }
   if (G.drops.length >= 150) removeDrop(G.drops.shift());
-  const mesh = itemMesh(id, 0.25);
-  mesh.position.set(x, y, z); scene.add(mesh);
-  G.drops.push({ id, n, stack: stack && itemDef(id).stack === 1 ? { ...stack } : null, x, y, z, vx: vel ? vel.x : (Math.random() - 0.5) * 2, vy: vel ? vel.y : 3, vz: vel ? vel.z : (Math.random() - 0.5) * 2, age: 0, pickDelay: vel ? 1.2 : 0.3, mesh });
+  addDrop({ id, n, stack: stack && itemDef(id).stack === 1 ? { ...stack } : null, x, y, z, vx: vel ? vel.x : (Math.random() - 0.5) * 2, vy: vel ? vel.y : 3, vz: vel ? vel.z : (Math.random() - 0.5) * 2, age: 0, pickDelay: vel ? 1.2 : 0.3 });
 }
-function removeDrop(d) { scene.remove(d.mesh); if (d.mesh.geometry.type === "PlaneGeometry") d.mesh.geometry.dispose(); d.mesh.material.dispose(); }
+function addDrop(drop) {
+  const mesh = itemMesh(drop.id, 0.25);
+  mesh.userData.shared = mesh.userData.shared || mesh.geometry.type !== "PlaneGeometry";
+  mesh.position.set(drop.x, drop.y, drop.z); scene.add(mesh);
+  G.drops.push({ ...drop, mesh });
+}
+function removeDrop(d) { scene.remove(d.mesh); disposeItemMesh(d.mesh); }
 G.dropItem = (id, n, stack) => { const p = G.player; spawnDrop(id, n, p.pos.x, p.pos.y + 1.2, p.pos.z, stack); };
 function dropSelected(all) {
   const s = G.inv.slots[G.selected];
@@ -2368,6 +2384,7 @@ function updateDrops(dt, bright) {
   const p = G.player, w = G.world;
   for (let i = G.drops.length - 1; i >= 0; i--) {
     const d = G.drops[i];
+    if (!w.isLoaded(d.x, d.z)) continue;
     d.age += dt; d.pickDelay -= dt;
     d.vy -= 18 * dt; d.vx *= 0.94; d.vz *= 0.94;
     const nx = d.x + d.vx * dt, nz = d.z + d.vz * dt;
@@ -2378,7 +2395,7 @@ function updateDrops(dt, bright) {
     if (SOLID[w.id(Math.floor(d.x), Math.floor(d.y), Math.floor(d.z))]) d.y += 4 * dt;   // pushed out if stuck in a block
     d.mesh.position.set(d.x, d.y + Math.sin(d.age * 3) * 0.06, d.z);
     d.mesh.rotation.y = d.age * 1.6;
-    d.mesh.material.color.setScalar(bright);
+    lightItem(d.mesh, bright);
     const dx = d.x - p.pos.x, dy = d.y - (p.pos.y + 0.8), dz = d.z - p.pos.z, dist2 = dx * dx + dy * dy + dz * dz;
     // nearby items drift toward the player
     if (d.pickDelay <= 0 && dist2 < 9 && G.state !== "dead") { const k = 6 * dt / Math.sqrt(dist2 + 0.01); d.x -= dx * k; d.z -= dz * k; d.y -= dy * k * 0.5; }
@@ -2522,8 +2539,8 @@ function die(why) {
   if (document.pointerLockElement) document.exitPointerLock();
   if (G.meta.hardcore) {   // Hardcore: the adventure is over for good. You can still look around as a Spectator.
     G.meta.hardcoreOver = true; G.deathSpot = { ...p.pos };
-    saveNow(false);
   }
+  saveNow(false);
   UI.death(!!G.meta.hardcore);
 }
 G.respawn = async () => {
@@ -2834,12 +2851,22 @@ G.newWorld = ({ name, seed, mode, settings, campaign }) => {   // mode: survival
   const hardcore = mode === "hardcore";
   if (hardcore) settings = { ...settings, difficulty: "hard", keepInv: false };
   const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen: CURRENT_GEN, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaign || null };
-  startWorld(save);
+  return openWorld(() => save);
 };
-G.loadWorld = async id => {
-  try { const w = await Saves.load(id); startWorld(w); }
-  catch (e) { UI.toast("That world couldn't be opened: " + e.message, "bad"); }
-};
+G.loadWorld = id => openWorld(() => Saves.load(id));
+async function openWorld(read) {
+  if (G.state === "loading") return;
+  const menu = UI.current;
+  G.state = "loading";
+  try { await startWorld(await read()); }
+  catch (e) {
+    clearWorldMeshes();
+    G.world = null; G.meta = null; G.state = "title";
+    document.body.classList.add("menu-bg");
+    CP.hideHud(); UI.show(menu);
+    UI.toast("That world couldn't be opened: " + e.message, "bad");
+  }
+}
 G.deleteWorld = id => Saves.remove(id);
 G.exportWorld = async id => { try { Saves.exportFile(await Saves.load(id)); } catch (e) { UI.toast(e.message, "bad"); } };
 G.exportCurrent = () => { Saves.exportFile(snapshot()); UI.toast("World file downloaded.", "good"); };
