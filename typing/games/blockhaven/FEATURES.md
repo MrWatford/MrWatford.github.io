@@ -316,7 +316,7 @@ Code: `js/rails.js` (rail shapes and cart movement), carts in `js/entities.js`, 
 | Saving, no duplicates | Done | Reload, death, mode switch tested. Old worlds: one-time migration builds the house only in never-visited, unmodified chunks and doesn't move spawn |
 | Limitations | Partial | No enchantments, ladders, scaffolding, or water-breathing potions exist in the game, so the chests use the best working items instead. No multiplayer. Movement still needs a keyboard |
 
-## Milestone 13: Blockhaven: The Legacy Campaign. Parts A + B (built and browser-tested 2026-11-05, not published)
+## Milestone 13: Blockhaven: The Legacy Campaign. Parts A + B (built, browser-tested, and published 2026-11-05)
 Plan and decisions: `MILESTONE-13-CAMPAIGN.md`. Code: `js/campaign.js` (engine), `js/campaign-data.js` (story, quests, people, loot), `js/campaign-village.js` (Legacy Village builder). Progress is saved in the world's story (`story.campaign`); campaign worlds have `meta.campaign`.
 
 | Feature | Status | Notes |
@@ -330,7 +330,23 @@ Plan and decisions: `MILESTONE-13-CAMPAIGN.md`. Code: `js/campaign.js` (engine),
 | Journal + tracker | Done | J journal opens on a new Campaign tab: chapter, current quests with ✔/▶ steps, 8 relic slots, all 8 chapters (locked ones show 🔒), places found, finished quests, options (hide tracker, skip lessons, reread the story). The current objective shows at the top of the screen with distance and direction |
 | Presentation | Done | Chapter title card, the story intro, "Discovered" pop-ups, quest toasts with sounds. The Explorer's Map calls the village "Legacy Village" |
 | Saving | Done | Save/reload tested: people appear once, chests never refill, progress is kept |
-| Next (Part C onward) | Missing | Waystones/fast travel, more dialogue, then Chapters 1–3 (Stonehaven, Sandspire, Desert Pharaoh, Jungle Titan, Ocean Leviathan), etc. See the plan |
+| Next | Missing | See Parts C + D below, then Chapters 4–8 |
+
+## Milestone 13, Parts C + D: Waystones and Chapters 1–3 (built and browser-tested 2026-11-05, not published)
+New code: `js/campaign-kit.js` (building helpers, quarter-turn rotation), `js/campaign-towns.js` (all new places), `js/campaign-bosses.js` (the four fights); `js/campaign.js` now handles many places across dimensions. New blocks 209 Waystone, 210 Rune Stone; items 564–571 (three Relics, Ancient Key, Ancient Desert Map, Ancient Ocean Map, Expedition Map, Tide Charm). The temple maps (`MapGen`) accept extra stamps, used only in campaign worlds.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Waystones | Done | One in Legacy Village, Stonehaven, the Ruined Watchtower, Sandspire, Oakwood, and Seabreak. Right-click to remember it, then pick any remembered Waystone to travel there (land loads first, you arrive beside the stone). Not during a boss fight or the raid |
+| Places (chosen once per world, in land nobody visited) | Done | Stonehaven (walled kingdom: castle + keep with throne, upstairs and roof, 4 towers, plaza well, 4 shops, barracks, 6 homes, inn, farm), the Ruined Watchtower + Old Watch Mine (stairs down to the Hall of the Guardian), Sandspire (sandstone walls, oasis, Sun Palace with golden dome, the tall Sandspire to climb, bazaar, homes), Oakwood (4 giant trees with spiral stairs, treehouses, walkways between them, stream, explorers' camp, cabins), Seabreak (harbor turned to face the real water, 3 piers, a docked ship, lighthouse, harbor office, homes), 3 jungle ruins (Overgrown Shrine, Abandoned Village, Vine Pillars; one Ancient Key each), and a shipwreck. Explorer's Map lists the towns (gold banners) |
+| Boss chambers | Done | Behind each temple's relic pedestal, a passage leads to a new chamber: the Pharaoh's Throne Room (desert), the Titan's Grove (jungle, behind the Root Seal that takes 3 Ancient Keys), the Leviathan's Grotto (sea: a deep pool ringed by stone, air everywhere). The existing temples, puzzles, guardians, and relics are unchanged |
+| Bosses | Done | Ancient Stone Guardian (slam, falling boulders, cave skitters), Desert Pharaoh (sand bolts, sandstorm, teleports between sarcophagi, calls Rattlers), Jungle Titan (ground slam, falling stones, poison spores, vine pull + slam, enraged phase), Ocean Leviathan (circles underwater where swords can't reach it, surfaces beside you to bite, tidal wave ring with gaps, whirlpool, shockwaves, calls Tidecrabs). Same fair rules as the temple guardians: attacks glow first; phase 2 shield broken by the arena's 3 Rune Stones; phase 3 faster with helpers; leaving or fainting resets. Boss bar shows phase/shield/underwater |
+| Quests | Done | Chapter 1: The Broken Watchtower → Footprints of Stone → Defend Stonehaven (3-wave raid) → The Guardian Below → Road to Sandspire → The Sunken Pyramid (temple, Solar Colossus, Solar Seal, Pharaoh) → Relic of Earth. Chapter 2: Into the Green → Three Ancient Keys → The Lost Jungle (Colossus, Lens, Root Seal, Titan) → Relic of Nature. Chapter 3: The Harbor at World's Edge (Tide Charm) → The Sunken Ship → Secrets Beneath the Sea (Regent, Tidal Heart, Leviathan) → Relic of the Tides. Then "Chapter 4 arrives in the next update". Side quests: Top of the World, Life in the Treetops. Steps already done earlier (a temple you already finished) count right away |
+| People | Done | 16 new named characters with dialogue that follows the story (King Aldric, Captain Brenna, Elder Rasha, Explorer Fenn, Captain Mira, and more) |
+| Tide Charm | Done | Carry it and your air never runs out |
+| Old campaign saves | Done | A save waiting at "coming in the next update" continues straight to "Travel the road to Stonehaven" |
+| Checks | Done | Walk check: every tower top, upper floor, treehouse, pier, ship deck, chest, and arena reachable (Seabreak in all 4 turns; the Root Seal blocks the way until opened); the real temple maps connect to their chambers. All 4 fights played through to victory with the right rewards. Raid: 3 waves then victory. Waystone travel. Save/reload. The full quest chain 1–3 |
+| Explorer's Map fix | Done | It had refused to open in campaign worlds ("no Starter Home"); fixed |
 
 ## Later milestones
 | Feature | Status |

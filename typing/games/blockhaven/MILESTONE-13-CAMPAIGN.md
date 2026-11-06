@@ -1,6 +1,6 @@
 # Milestone 13: Blockhaven: The Legacy Campaign (design + integration plan)
 
-Status: written 2026-11-05 from Mr. Watford's "Legacy Campaign" spec. **Parts A (foundation) and B (Legacy Village) built and browser-tested 2026-11-05, not published.** Details in FEATURES.md.
+Status: written 2026-11-05 from Mr. Watford's "Legacy Campaign" spec. **Parts A (foundation) and B (Legacy Village) built, browser-tested, and published 2026-11-05. Parts C (Waystones) and D (Chapters 1–3) built and browser-tested 2026-11-05, not published.** Details in FEATURES.md.
 
 ## 1. What already exists (audit)
 
