@@ -316,6 +316,22 @@ Code: `js/rails.js` (rail shapes and cart movement), carts in `js/entities.js`, 
 | Saving, no duplicates | Done | Reload, death, mode switch tested. Old worlds: one-time migration builds the house only in never-visited, unmodified chunks and doesn't move spawn |
 | Limitations | Partial | No enchantments, ladders, scaffolding, or water-breathing potions exist in the game, so the chests use the best working items instead. No multiplayer. Movement still needs a keyboard |
 
+## Milestone 13: Blockhaven: The Legacy Campaign. Parts A + B (built and browser-tested 2026-11-05, not published)
+Plan and decisions: `MILESTONE-13-CAMPAIGN.md`. Code: `js/campaign.js` (engine), `js/campaign-data.js` (story, quests, people, loot), `js/campaign-village.js` (Legacy Village builder). Progress is saved in the world's story (`story.campaign`); campaign worlds have `meta.campaign`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Legacy Campaign menu | Done | Gold "⚔️ Legacy Campaign" button on the title screen. Its own screen lists campaign saves (chapter, quests done, current quest) with Continue / Download / Delete, and starts new ones (save name, difficulty, keep items). Campaign saves don't show in "Your worlds", and ordinary worlds are untouched |
+| The Forgotten Kingdoms | Done | Fixed seed `the-forgotten-kingdoms`, so every campaign has the same land; monsters don't break blocks. Still a full sandbox. Temples and the Keeper excavation are placed well away from the village |
+| Legacy Village | Done | 160 × 160 blocks, built when the world opens (like the Starter Home), leveled and sloped into the land. Fountain plaza (spawn), floating BLOCKHAVEN letters over the castle, Castle Legacy (curtain walls, gatehouse, 4 climbable corner towers, two knight statues, a keep with Great Hall + throne, royal chambers, a roof with a dome), walls with 3 gates and 4 climbable watchtowers, canal with 4 bridges, blacksmith, library, enchanting tower, barn + pen with animals, farm, 6 homes, stable with 3 Trotters, fishing pond + dock + hut, training arena, Old Mine (stairs to a chamber with ores), tutorial grove, crafting pavilion, market stalls, lamp posts. 16 supply chests (early-game items only), 18 signs |
+| Secrets | Done | The King's Vault (break the bookshelf beside the throne) and the Forgotten Archive (trapdoor in the library). A walk check confirms every tower top, upper floor, the mine, and both secrets can be reached on foot (25 of 25 at 3 ground heights) |
+| People | Done | 9 named villagers (Elder Maren, Smith Garrick, Librarian Odessa, Farmer Hollis, Captain Rowan, Stablemaster Wren, Fisher Juno, Miner Brock, Merchant Pell). Right-click talks (dialogue changes with the story, Trade button); they can't be hurt; they move in once, when their part of the village first loads |
+| Quests | Done | Quest engine with automatic steps (talk, visit, walk, break, craft, open a screen, eat, defeat, trade, carry, visit several, story flags). Chapter 1 so far: A Traveler Arrives → Lessons of the Builder (13-step skippable tutorial) → The Legacy Village → Iron and Fire → The Broken Watchtower (ends at "coming in the next update"), plus side quests Secrets of Legacy and A View From Above. Rewards: XP and items |
+| Journal + tracker | Done | J journal opens on a new Campaign tab: chapter, current quests with ✔/▶ steps, 8 relic slots, all 8 chapters (locked ones show 🔒), places found, finished quests, options (hide tracker, skip lessons, reread the story). The current objective shows at the top of the screen with distance and direction |
+| Presentation | Done | Chapter title card, the story intro, "Discovered" pop-ups, quest toasts with sounds. The Explorer's Map calls the village "Legacy Village" |
+| Saving | Done | Save/reload tested: people appear once, chests never refill, progress is kept |
+| Next (Part C onward) | Missing | Waystones/fast travel, more dialogue, then Chapters 1–3 (Stonehaven, Sandspire, Desert Pharaoh, Jungle Titan, Ocean Leviathan), etc. See the plan |
+
 ## Later milestones
 | Feature | Status |
 |---|---|

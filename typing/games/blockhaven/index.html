@@ -44,6 +44,8 @@ button, input, select { font: inherit; }
 .btn:focus-visible { box-shadow: 0 0 0 3px var(--yellow); }
 .btn.primary { background: linear-gradient(#6bb544, #4f9a33); }
 .btn.primary:hover { background: linear-gradient(#7fca55, #5ea83b); }
+.btn.campaign-btn { background: linear-gradient(#c9a24a, #9a7428); }
+.btn.campaign-btn:hover { background: linear-gradient(#dbb55a, #ab8432); }
 .btn.danger { background: linear-gradient(#d4584d, #a83a31); }
 .btn.small { padding: 7px 10px; font-size: 15px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
@@ -338,6 +340,7 @@ details.more .set { margin-top: 10px; }
     <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
+    <button class="btn campaign-btn" id="btnCampaign">⚔️ Legacy Campaign</button>
     <div class="row"><button class="btn" id="btnSettings">Settings</button><button class="btn" id="btnControls">Controls</button></div>
     <button class="btn" id="btnSkins">👕 Skins</button>
     <a class="back-link" href="../../index.html">← Back to Mr. Watford's Games</a>
@@ -358,6 +361,23 @@ details.more .set { margin-top: 10px; }
       <button class="btn" data-back>Back</button>
     </div>
     <p class="note">Worlds are saved only on this device. To move a world to another computer, use <b>Download</b>, then <b>Load a world file</b> there.</p>
+  </div>
+</section>
+
+<!-- Legacy Campaign -->
+<section class="screen dim" id="campaign" hidden>
+  <div class="menu wide card">
+    <h2>Blockhaven: The Legacy Campaign</h2>
+    <p class="note">An eight-chapter adventure in a world called The Forgotten Kingdoms. It starts in Legacy Village, with its castle, its people, and a story about eight lost Relics. It is still a real sandbox: mine, build, and farm wherever you like. Campaign saves are kept apart from your other worlds.</p>
+    <div class="world-list" id="cpList"></div>
+    <form id="cpForm" autocomplete="off">
+      <h3 style="margin:10px 0 4px">Start a new campaign</h3>
+      <label class="field">Save name <input class="text-in" id="cpName" maxlength="32" value="The Forgotten Kingdoms"></label>
+      <label class="set"><span>Difficulty</span><select id="cpDiff" class="text-in"><option value="peaceful">Peaceful (no monsters roam)</option><option value="easy" selected>Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
+      <label class="set"><span>Keep your items when you faint</span><input type="checkbox" id="cpKeep" checked></label>
+      <p class="note">Now available: Chapter 1 begins (Legacy Village, the lessons, and the first quests). More chapters arrive in future updates, and your save carries on into them.</p>
+      <div class="row"><button class="btn primary" type="submit">Begin the Adventure</button><button class="btn" type="button" data-back>Back</button></div>
+    </form>
   </div>
 </section>
 
