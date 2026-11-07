@@ -4,6 +4,7 @@ import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
+import { installCreatures, animateCreature, thinkCreature, interactCreature, spawnCreatures } from "./creatures.js";
 import { Sound } from "./audio.js";
 
 const GRAV = 26, EPS = 1e-4;
@@ -1225,6 +1226,10 @@ const BESTIARY_ART = new Set([
   "blightking", "cindermaw", "sentinel", "dragon", "blight", "sovereign", "tempest"
 ]);
 
+installCreatures(SPECIES);
+for (const [id, def] of Object.entries(SPECIES)) if (def.expansion) BESTIARY_ART.add(id);
+for (const id of ["cow", "pig", "sheep", "rabbit", "chicken", "parrot", "sunfin"]) BESTIARY_ART.add(id);
+
 export const SPAWN_SPECIES = SPAWN_EGGS.map(e => e[0]);
 
 // ---------- block helpers ----------
@@ -1293,7 +1298,7 @@ export class Entity {
     this.hp = opts.hp ?? this.maxHp;
     this.breedCd = opts.breedCd || 0; this.love = 0; this.sheared = !!opts.sheared; this.eggT = opts.eggT ?? rand(300, 600);
     this.npc = opts.npc || null;   // a named campaign character (js/campaign.js): talks instead of trading, can't be hurt
-    this.name = opts.name || null; this.persist = !!(this.def.animal || this.def.persist || this.name);
+    this.name = opts.name || null; this.persist = !!(this.def.animal || this.def.persist || this.tame || this.name || opts.persist);
     this.cid = opts.cid ?? null; this.phase = "circle"; this.phaseT = 8; this.ang = 0; this.open = 0;
     // villagers: home, job site, trades used, restocks
     this.home = opts.home || null; this.job = opts.job || null; this.uses = opts.uses || null; this.restockT = opts.restockT || 0; this.restockDay = opts.restockDay || 0; this.restocks = opts.restocks || 0;
@@ -1304,6 +1309,7 @@ export class Entity {
     this.barterT = 0;
     // wildlife: color variant, a Pouncer's trust and the item in its mouth, a Buzzer's pollen and hive
     this.variant = opts.variant ?? (this.def.variants ? randi(0, this.def.variants.length - 1) : 0);
+    if (this.def.expansion) this.bestiary = { ...opts.bestiary };
     this.trust = !!opts.trust; this.held = opts.held || 0; this.pollen = !!opts.pollen; this.inHive = !!opts.inHive; this.stung = !!opts.stung; this.perched = 0;
     this.onGround = false; this.inWater = false; this.inLava = false; this.walkPhase = 0; this.hurtT = 0; this.iframes = 0;
     this.attackCd = 0; this.thinkT = Math.random() * 0.3; this.state = "idle"; this.target = null; this.goal = null; this.path = null; this.pathT = 0;
@@ -1324,6 +1330,7 @@ export class Entity {
       baby: this.baby, growT: Math.round(this.growT), breedCd: Math.round(this.breedCd), sheared: this.sheared, eggT: Math.round(this.eggT), size: this.size, name: this.name, npc: this.npc,
       home: this.home, job: this.job, uses: this.uses, restockT: this.restockT, restockDay: this.restockDay, restocks: this.restocks, summonT: this.summonT,
       tame: this.tame, sitting: this.sitting, saddled: this.saddled, temper: this.temper,
+      ...(this.def.expansion ? { bestiary: { ...this.bestiary, charge: 0, bounceUntil: 0 }, persist: this.persist } : {}),
       variant: this.variant, trust: this.trust, held: this.held, pollen: this.pollen, inHive: this.inHive, stung: this.stung,
       ...(this.def.cart || this.inv ? { inv: this.inv ? this.inv.slots.map(q => q && { ...q }) : undefined, fuel: Math.round(this.fuel), pushX: this.pushX, pushZ: this.pushZ, riderUid: this.riderE && !this.riderE.dead ? this.riderE.uid : null, fuseT: this.fuseT, hopperOff: this.hopperOff } : {}) };
   }
@@ -1398,7 +1405,7 @@ export class Entities {
     for (const e of this.list) {
       if (Math.floor(e.pos.x / CHUNK) !== c.cx || Math.floor(e.pos.z / CHUNK) !== c.cz) continue;
       if (e.sp === "dragon") { this.ctx.bossLeft(e); }
-      if (e.persist && !e.def.noSave) keep.push(e.toJSON());
+      if (e.persist && !e.dead && !e.def.noSave) keep.push(e.toJSON());
       e.gone = true;
     }
     if (keep.length) w.entityStore.set(c.key, keep);
@@ -1563,6 +1570,7 @@ export class Entities {
     else if (below === B.BLACKSTONE_BRICKS) pool = [["brute", 35], ["boarkin", 50], ["magma", 15]];
     else pool = { wastes: [["rotboar", 50], ["boarkin", 15], ["magma", 8], ["wailer", 12]], crimson: [["hogbeast", 30], ["boarkin", 30], ["rotboar", 15]],
       warped: [["voidwalker", 40]], soul: [["wailer", 20], ["skeleton", 40]], basalt: [["magma", 50], ["wailer", 10]] }[biome] || [["rotboar", 1]];
+    if (biome === "crimson" && this.list.filter(e => e.sp === "zoglin" && !e.dead).length < 2) pool.push(["zoglin", 4]);
     let t = Math.random() * pool.reduce((s, q) => s + q[1], 0);
     for (const [k, wgt] of pool) { t -= wgt; if (t <= 0) return k; }
     return pool[0][0];
@@ -1606,6 +1614,7 @@ export class Entities {
   update(dt, daylight, camera) {
     const ctx = this.ctx, p = ctx.player(), w = this.world;
     this.spawnTick(dt, daylight, camera);
+    spawnCreatures(this, dt, daylight, SPECIES);
     for (const e of this.list) {
       const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d2 = dx * dx + dz * dz;
       // far-away monsters wander off (despawn); animals and named creatures stay
@@ -1637,6 +1646,7 @@ export class Entities {
         this.physics(e, dt);
       }
       if (d2 < 64 * 64 || e.def.boss) this.animate(e, dt, d2, daylight);
+      else if (e.def.expansion && e.beam) e.beam.visible = false;
       e.mesh.visible = d2 < 64 * 64 || !!e.def.boss;
     }
     this.sweep();
@@ -2058,6 +2068,7 @@ export class Entities {
       if (L && L[0] >= 15) e.burning = Math.max(e.burning || 0, 3);
     }
     if (def.hostile && !def.boss && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
+    if (thinkCreature(this, e, daylight)) return;
     if (def.pet && e.tame) return this.thinkPet(e, d, dmgMul);
     if (def.boat || def.cart) return;
     if (def.swims) return this.thinkSwimmer(e, d, dmgMul);
@@ -2630,10 +2641,20 @@ export class Entities {
       Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 8);
     if (!mate) return false;
     const ctx = this.ctx, def = e.def, md = Math.hypot(mate.pos.x - e.pos.x, mate.pos.z - e.pos.z);
-    e.goal = def.flies ? { x: mate.pos.x, y: mate.pos.y, z: mate.pos.z, speed: def.speed } : { x: mate.pos.x, z: mate.pos.z, speed: def.speed };
+    e.goal = def.flies || def.swims ? { x: mate.pos.x, y: mate.pos.y, z: mate.pos.z, speed: def.speed } : { x: mate.pos.x, z: mate.pos.z, speed: def.speed };
     if (md < 1.6) {
+      let birth = { x: (e.pos.x + mate.pos.x) / 2, y: e.pos.y + 0.2, z: (e.pos.z + mate.pos.z) / 2 };
+      if (e.sp === "frog") {
+        const x = Math.floor(birth.x), y = Math.floor(birth.y), z = Math.floor(birth.z);
+        let water;
+        for (let dz = -3; dz <= 3 && !water; dz++) for (let dx = -3; dx <= 3 && !water; dx++) {
+          if (this.world.id(x + dx, y - 1, z + dz) === B.WATER) water = { x: x + dx + 0.5, y: y - 0.7, z: z + dz + 0.5 };
+        }
+        if (!water) { e.love = mate.love = 0; return false; }
+        birth = water;
+      }
       e.love = mate.love = 0; e.breedCd = mate.breedCd = 300;
-      this.add(e.sp === mate.sp ? e.sp : "mule", (e.pos.x + mate.pos.x) / 2, e.pos.y + 0.2, (e.pos.z + mate.pos.z) / 2, { baby: true, trust: e.sp === "fox", home: e.home });
+      this.add(e.sp === "frog" ? "tadpole" : e.sp === mate.sp ? e.sp : "mule", birth.x, birth.y, birth.z, { baby: e.sp !== "frog", trust: e.sp === "fox", home: e.home, persist: !!def.expansion });
       if (this.ctx.adv) this.ctx.adv("breed", e.sp);
       ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); ctx.xp(randi(1, 7), e.pos.x, e.pos.y + 0.5, e.pos.z);
       Sound.mob(def.sound, d);
@@ -2713,6 +2734,12 @@ export class Entities {
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
     if (e.dead || e.iframes > 0 || n <= 0) return false;
+    if (e.sp === "sulfur_cube" && attacker === "player" && e.bestiary.absorbed && knock) {
+      e.vel.x = knock.x * 11; e.vel.z = knock.z * 11; e.vel.y = 5;
+      e.knock = 0.65; e.bestiary.bounceUntil = e.age + 0.65; e.iframes = 0.35;
+      return true;
+    }
+    if (e.rolled) n *= 0.25;
     if (e.npc) return false;   // campaign characters never get hurt
     if (e.tame && attacker === "player") return false;   // you can't hurt your own pets by accident
     if (attacker === "player" && !e.def.villager && !e.def.object) this.petFoe = e;   // your Scouts join in
@@ -2740,6 +2767,7 @@ export class Entities {
       if (e.def.ai === "rotboar" || e.def.ai === "boarkin" || ["brute", "scout", "dolphin", "bee"].includes(e.sp)) for (const o of this.near(e.pos.x, e.pos.y, e.pos.z, 20, o => o.sp === e.sp && !o.tame && !o.stung)) { o.angry = 40; o.inHive = false; }
     }
     if (e.sp === "squid") { this.ctx.particles(e.pos.x, e.pos.y + 0.6, e.pos.z, "ink"); this.ctx.particles(e.pos.x, e.pos.y + 0.9, e.pos.z, "ink"); e.fleeT = 5; }   // a cloud of ink to hide in
+    if (e.sp === "glow_squid") this.ctx.particles(e.pos.x, e.pos.y + 0.6, e.pos.z, "crystal");
     if (e.def.object) Sound.place("wood");
     else Sound.mob(e.def.animal ? e.def.sound : "hurt", this.dist(e));
     if (e.sp === "voidwalker" && attacker === "player" && Math.random() < 0.3) this.teleport(e, this.ctx.player().pos);
@@ -2756,7 +2784,9 @@ export class Entities {
     if (attacker === "player" || e.burning || attacker === "explosion" || (attacker && (attacker.tame || attacker.sp === "fox"))) {
       for (const d of e.def.drops(e)) if (d && d[1] > 0) ctx.drop(d[0], d[1], e.pos.x, e.pos.y + 0.4, e.pos.z);
       if (!e.baby && e.def.xp) ctx.xp(e.def.xp * (e.def.ai === "slime" ? e.size : 1), e.pos.x, e.pos.y + 0.4, e.pos.z);
-    } else if (e.held) ctx.drop(e.held, 1, e.pos.x, e.pos.y + 0.4, e.pos.z);   // a Pouncer always drops what it was carrying
+    } else if (e.held && e.sp !== "allay") ctx.drop(e.held, 1, e.pos.x, e.pos.y + 0.4, e.pos.z);
+    if (e.sp === "allay" && e.held) ctx.drop(e.held, 1 + (e.bestiary.carry || 0), e.pos.x, e.pos.y + 0.4, e.pos.z);
+    if (e.sp === "sulfur_cube" && e.bestiary.absorbed) ctx.drop(e.bestiary.absorbed, 1, e.pos.x, e.pos.y + 0.4, e.pos.z);
     if (e.inv) for (const q of e.inv.slots) if (q) ctx.drop(q.id, q.n, e.pos.x, e.pos.y + 0.4, e.pos.z, q);   // what was inside spills out
     if (e.sp === "tnt_cart" && (attacker === "explosion" || e.fuseT > 0)) { e.gone = true; ctx.explode(e.pos.x, e.pos.y + 0.5, e.pos.z, 4, null); return; }
     if (e.riderE) { e.riderE.inCart = null; e.riderE = null; }
@@ -2785,6 +2815,7 @@ export class Entities {
   // ----- interacting (right-click) -----
   interact(e, slot) {
     const ctx = this.ctx, def = e.def, id = slot ? slot.id : 0;
+    if (interactCreature(this, e, slot)) return true;
     if (def.cart) return ctx.useCart(e, slot);
     if (e.inv && (def.boat || (def.mount && e.tame && !e.baby)) && ctx.crouching()) return ctx.openCart(e);   // crouch + right-click opens a chest boat
     if (def.boat) return ctx.mount(e);
@@ -2821,7 +2852,7 @@ export class Entities {
         return true;
       }
     }
-    if ((def.animal || def.breeds) && def.food.includes(id)) {
+    if ((def.animal || def.breeds || def.swims && def.expansion) && def.food.includes(id)) {
       if (e.baby) { e.growT -= 60; ctx.consume(); ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); return true; }
       if (e.breedCd <= 0 && e.love <= 0) { e.love = 30; ctx.consume(); ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); Sound.mob(def.sound, 2); return true; }
       return false;
@@ -2838,7 +2869,7 @@ export class Entities {
   shootArrow(from, target, dmgMul) {
     const sx = from.pos.x, sy = from.eyeY - 0.1, sz = from.pos.z;
     const tx = target.pos.x, ty = target.pos.y + 1.1, tz = target.pos.z;
-    const dx = tx - sx, dz = tz - sz, horiz = Math.hypot(dx, dz), speed = 20, t = horiz / speed;
+    const dx = tx - sx, dz = tz - sz, horiz = Math.hypot(dx, dz) || 0.01, speed = 20, t = Math.max(0.1, horiz / speed);
     const vy = (ty - sy) / t + 0.5 * 20 * t;   // aim a little high to make up for gravity
     const err = { easy: 0.12, normal: 0.07, hard: 0.04 }[this.ctx.settings().difficulty] || 0.08;
     this.addProjectile("arrow", sx, sy, sz, dx / horiz * speed + rand(-1, 1) * err * speed, vy + rand(-1, 1) * err * speed, dz / horiz * speed + rand(-1, 1) * err * speed, { owner: from, dmg: 3 * dmgMul });
@@ -2853,7 +2884,7 @@ export class Entities {
       const fl = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.01, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff })); fl.position.z = 0.22;
       mesh.add(shaft, tip, fl);
     } else {
-      const color = { pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, fireball: 0xff7a1a, bigfire: 0xffb030, breath: 0xb050ff, bullet: 0xf0e8b0, eye: 0x3ad0a0, skull: 0x2a2a2a, bobber: 0xd8302a }[kind] || 0xffffff;
+      const color = { pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, witchbrew: 0x93bd65, windburst: 0xbacafb, fireball: 0xff7a1a, bigfire: 0xffb030, breath: 0xb050ff, bullet: 0xf0e8b0, eye: 0x3ad0a0, skull: 0x2a2a2a, bobber: 0xd8302a }[kind] || 0xffffff;
       const s = kind === "bigfire" || kind === "breath" ? 0.6 : kind === "fireball" || kind === "bullet" || kind === "skull" ? 0.35 : kind === "bobber" ? 0.14 : 0.2;
       mesh = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), new THREE.MeshBasicMaterial({ color, fog: false }));
     }
@@ -2890,7 +2921,17 @@ export class Entities {
         }
         // hit the player?
         if (!pr.fromPlayer && nx > p.pos.x - 0.35 && nx < p.pos.x + 0.35 && ny > p.pos.y && ny < p.pos.y + 1.8 && nz > p.pos.z - 0.35 && nz < p.pos.z + 0.35) {
-          if (pr.kind === "arrow") ctx.hurtPlayer(pr.dmg, "A Rattler's arrow hit you!", { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } });
+          if (pr.kind === "arrow") {
+            const source = pr.owner?.def.name || "Rattler";
+            ctx.hurtPlayer(pr.dmg, `A ${source}'s arrow hit you!`, { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } });
+            if (pr.owner?.sp === "bogged") ctx.effect("poison", 5);
+            if (pr.owner?.sp === "stray" || pr.owner?.sp === "parched") ctx.effect("queasy", 6);
+          }
+          if (pr.kind === "witchbrew") { ctx.hurtPlayer(pr.dmg, "A Witch's brew hit you!", pr.owner); ctx.effect("poison", 6); }
+          if (pr.kind === "windburst") {
+            ctx.hurtPlayer(pr.dmg, "A Breeze's wind burst hit you!", pr.owner);
+            p.vel.x += pr.vx * 0.45; p.vel.z += pr.vz * 0.45; p.vel.y = Math.max(p.vel.y, 4);
+          }
           if (pr.kind === "fireball") { ctx.hurtPlayer(pr.dmg || 5, "A Flare's fireball got you!", { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } }); ctx.effect("fire", 4); }
           if (pr.kind === "bigfire") ctx.explode(nx, ny, nz, pr.power || 1.3, pr.owner);
           if (pr.kind === "breath") ctx.cloud(nx, ny, nz);
@@ -2907,7 +2948,7 @@ export class Entities {
           else if (pr.kind === "bigfire") { ctx.explode(pr.x, pr.y, pr.z, pr.power || 1.3, pr.owner); pr.gone = true; }
           else if (pr.kind === "fireball") { ctx.ignite(Math.floor(pr.x), Math.floor(pr.y), Math.floor(pr.z)); pr.gone = true; }
           else if (pr.kind === "breath") { ctx.cloud(pr.x, pr.y + 0.5, pr.z); pr.gone = true; }
-          else if (pr.kind === "bullet") { ctx.particles(pr.x, pr.y, pr.z, "poof"); pr.gone = true; }
+          else if (["bullet", "windburst", "witchbrew"].includes(pr.kind)) { ctx.particles(pr.x, pr.y, pr.z, "poof"); pr.gone = true; }
           else if (pr.kind === "skull") { ctx.explode(pr.x, pr.y, pr.z, 1, pr.owner); pr.gone = true; }
           else this.landThrown(pr);
           break;
@@ -3015,6 +3056,27 @@ export class Entities {
     e.mesh.position.set(e.pos.x, e.pos.y, e.pos.z);
     e.mesh.rotation.y = e.yaw + Math.PI;
     const s = e.scale * (e.perched ? 0.35 : 1); e.root.scale.setScalar(s);
+    animateCreature(e);
+    if (e.sp === "aquatic_guardian" || e.sp === "elder_guardian") {
+      const charge = e.bestiary.charge || 0;
+      if (charge && !e.beam) {
+        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+        const material = new THREE.LineBasicMaterial({ color: 0x8fe5cd, transparent: true });
+        e.beam = new THREE.Line(geometry, material);
+        e.beam.frustumCulled = false;
+        this.scene.add(e.beam);
+      }
+      if (e.beam) {
+        e.beam.visible = !!charge && !e.dead;
+        if (e.beam.visible) {
+          const p = this.ctx.player(), line = e.beam.geometry.attributes.position;
+          line.setXYZ(0, e.pos.x, e.eyeY, e.pos.z);
+          line.setXYZ(1, p.pos.x, p.pos.y + p.eye * 0.7, p.pos.z);
+          line.needsUpdate = true;
+          e.beam.material.opacity = 0.35 + Math.min(0.65, charge / 3);
+        }
+      }
+    }
     if (e.baby && P.head) P.head.scale.setScalar(1.45);
     else if (P.head) P.head.scale.setScalar(1);
     // head follows the player when close
@@ -3172,6 +3234,7 @@ export class Entities {
     let b = L ? Math.max(L[0] / 15 * daylight, L[1] / 15) : daylight;
     const amb = this.world.gen.isNether() ? 0.3 : 0.12;   // the Ember Depths glow a little everywhere
     b = amb + (1 - amb) * Math.pow(b, 1.5);
+    if (e.def.expansion && ["glow_squid", "allay", "vex", "breeze"].includes(e.sp)) b = Math.max(b, 0.55);
     if (e.def.lostBoss || (this.world.gen.isMap && this.world.gen.isMap())) b = Math.max(b, e.def.lostBoss ? 0.8 : 0.5);   // the Keepers' creatures glow faintly, so you can always see them in the dark
     if (e.fuse > 0 && Math.sin(e.age * 25) > 0) e.mat.color.setRGB(1, 1, 1);
     else if (e.hurtT > 0) e.mat.color.setRGB(1, 0.35 * b, 0.35 * b);

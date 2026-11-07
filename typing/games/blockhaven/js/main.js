@@ -292,6 +292,7 @@ const ents = new Entities(scene, {
   itemMesh: (id, size) => itemMesh(id, size),
   hitBlock: (pr, bx, by, bz, x, y, z) => { R.projectileHit(pr, bx, by, bz, x, y, z); R.vibrate(x, y, z, 2); },
   // Pouncers pick up food lying on the ground
+  droppedItems: () => G.drops,
   nearDrop: (pos, r) => G.drops.find(d => d.pickDelay <= 0 && itemDef(d.id).kind === "food" && Math.abs(d.y - pos.y) < 1.5 && Math.hypot(d.x - pos.x, d.z - pos.z) < r),
   takeDrop: d => { d.n--; if (d.n <= 0) { removeDrop(d); G.drops.splice(G.drops.indexOf(d), 1); } return d.id; },
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
@@ -455,13 +456,15 @@ function mount(e) {
   G.riding = e; e.ridden = true; e.rideT = 0; e.goal = null; e.path = null;
   p.mount = e; p.flying = false; p.gliding = false; p.crouch = false;
   p.pos.x = e.pos.x; p.pos.y = e.pos.y; p.pos.z = e.pos.z; p.vel.x = p.vel.y = p.vel.z = 0;
+  if (e.def.airMount && e.tame) p.flying = true;
   Sound.mob("neigh", 0); if (e.tame) G.adv("ride");
-  UI.toast(e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : `Hold on! This ${e.def.name} is wild and may buck you off. Keep trying to tame it.`);
+  UI.toast(e.def.airMount && e.tame ? "Flying! W A S D to steer, Space to rise, Shift to descend, C to get off." : e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : `Hold on! This ${e.def.name} is wild and may buck you off. Keep trying to tame it.`);
   return true;
 }
 function dismount(quiet) {
   const p = G.player, e = G.riding;
   if (!e) return;
+  if (e.def.airMount) p.flying = false;
   G.riding = null; p.mount = false; p.boat = false; p.cart = false; e.ridden = false; if (!e.def.cart) { e.vel.x = e.vel.y = e.vel.z = 0; }
   if (e.def.boat && boatLanding(p)) { if (!quiet) Sound.place("wood"); return; }
   // step off to the side if there is room
@@ -2019,7 +2022,7 @@ function useWith(offhand) {
   if (sd.kind === "spawn" && hit) {
     const x = hit.x + hit.nx + 0.5, y = hit.y + hit.ny, z = hit.z + hit.nz + 0.5;
     const sp = sd.species === "villager" ? ["farmer", "fletcher", "shepherd", "cleric", "smith"][Math.floor(Math.random() * 5)] : sd.species;
-    ents.add(sp, x, y, z, sp === "blightking" ? { summonT: 10 } : sp === "golem" ? { home: [x, y, z] } : {}); puff(x, y + 0.5, z, "poof");
+    ents.add(sp, x, y, z, sp === "blightking" ? { summonT: 10 } : sp === "golem" ? { home: [x, y, z] } : { persist: !!SPECIES[sp]?.expansion }); puff(x, y + 0.5, z, "poof");
     take(); G.hudDirty = true; return true;
   }
   if (sd.kind === "armor") {   // put it on
@@ -2643,7 +2646,7 @@ function survival(dt) {
     if (starveT >= 4) { starveT = 0; const floor = diff === "easy" ? 10 : diff === "normal" ? 1 : 0; if (p.health > floor) hurt(1, "You were too hungry. Eat something to keep your food bar up!", null, true, "starve"); }
   } else starveT = 0;
   // breath underwater
-  if (p.headInWater && !CP.breathes()) { p.air -= dt; if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
+  if (p.headInWater && !CP.breathes() && !G.riding?.def.waterMount) { p.air -= dt; if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
   else if (p.air < 10) { p.air = Math.min(10, p.air + dt * 4); G.hudDirty = true; }
 }
 
@@ -2747,7 +2750,11 @@ function applyView() {
   uniforms.fogNear.value = waterUniforms.fogNear.value = R * (surfaceSky.visible ? 0.67 : 0.55);
   if (G.world && G.world.gen.isNether()) { uniforms.fogNear.value = R * 0.3; uniforms.fogFar.value = R * 0.85; }
   if (G.fwFog) { uniforms.fogNear.value = G.fwFog[0]; uniforms.fogFar.value = G.fwFog[1]; }   // the Forsaken World's mist
-  if (G.player.headInWater) { uniforms.fogNear.value = 2; uniforms.fogFar.value = 18; }
+  if (G.player.headInWater) {
+    uniforms.fogNear.value = R * 0.67;
+    uniforms.fogFar.value = R - 2;
+    uniforms.ambient.value = Math.max(uniforms.ambient.value, 0.45);
+  }
   if (G.player.inLava) { uniforms.fogNear.value = 0.5; uniforms.fogFar.value = 4; uniforms.fogColor.value.set(0xff6a10); }
   camera.far = Math.max(120, R + 40); camera.updateProjectionMatrix();
 }
@@ -2905,7 +2912,9 @@ function loop(now) {
       flyUp: keys.has("Space"), flyDown: keys.has("KeyC")
     } : { f: 0, r: 0 };
     if (G.riding) { input.crouch = false; if (!G.riding.tame && !G.riding.def.boat) { input.f = input.r = 0; input.jump = false; } }   // a wild Trotter won't go where you steer
-    if (G.spectator) { p.flying = true; p.noclip = true; } else { p.noclip = false; if (!G.creative) p.flying = false; }
+    const flyingMount = G.riding?.tame && G.riding.def.airMount;
+    if (flyingMount) { input.flyDown = input.sprint; input.sprint = false; }
+    if (G.spectator) { p.flying = true; p.noclip = true; } else { p.noclip = false; if (flyingMount || !G.creative) p.flying = !!flyingMount; }
     acc += dt;
     const startX = p.pos.x, startZ = p.pos.z;
     while (acc >= 1 / 60) {

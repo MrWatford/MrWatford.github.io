@@ -1,5 +1,6 @@
 // Every block and item in Blockhaven: what it is, how it behaves, how it's crafted,
 // and the pixel-art textures (all drawn by code, so every picture is original).
+import { CREATURES } from "./creature-catalog.js";
 import { rng } from "./noise.js";
 
 export const CHUNK = 16, HEIGHT = 80, SEA = 30;
@@ -538,6 +539,7 @@ export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skelet
   ["camel", "Dune Strider", "#bc843d", "#e4b66f"], ["camel_husk", "Dune Husk", "#9d8866", "#c6b591"],
   ["llama", "Woolneck", "#dbc7a6", "#baa581"], ["trader_llama", "Caravan Woolneck", "#d7c49f", "#264887"],
   ["bone_trotter", "Bone Trotter", "#bfb5a0", "#867e70"], ["rot_trotter", "Rot Trotter", "#546a38", "#819757"]];
+SPAWN_EGGS.push(...CREATURES.map(([id, name, color, accent]) => [id, name, color, accent]));
 // Glider Wings go in the chest armor slot: jump while falling to glide
 item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
