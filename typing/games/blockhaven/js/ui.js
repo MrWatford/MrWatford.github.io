@@ -22,7 +22,7 @@ export const UI = {
     $("btnCampaign").onclick = () => { Sound.start(); Sound.click(); this.showCampaigns(); };
     $("cpForm").onsubmit = e => {
       e.preventDefault(); Sound.start();
-      G.newWorld({ name: $("cpName").value.trim() || "The Forgotten Kingdoms", seed: G.campaignSeed(), mode: "survival", settings: { difficulty: $("cpDiff").value, griefing: false, keepInv: $("cpKeep").checked }, campaign: { v: 1, chapter: 1, done: 0, quest: "A Traveler Arrives" } });
+      G.newWorld({ name: $("cpName").value.trim() || "The Forgotten Kingdoms", seed: G.campaignSeed(), mode: "survival", settings: { difficulty: $("cpDiff").value, griefing: false, keepInv: $("cpKeep").checked }, campaign: { v: 1, chapter: 1, done: 0, quest: "A Traveler Arrives", startAt: +$("cpStart").value || 1 } });
     };
     $("btnSettings2").onclick = () => this.openSettings("pause");
     $("btnControls").onclick = () => { backTo = "title"; this.show("controls"); };
@@ -102,7 +102,7 @@ export const UI = {
     for (const w of worlds) {
       const c = w.campaign || {}, row = document.createElement("div"); row.className = "world";
       const when = w.played ? new Date(w.played).toLocaleDateString() : "";
-      row.innerHTML = `<div><b></b><small>Chapter ${escapeAttr(c.chapter || 1)} • ${escapeAttr(c.done || 0)} quests done • <span></span> • ${w.settings && w.settings.difficulty ? "" : ""}${when}</small></div>
+      row.innerHTML = `<div><b></b><small>${c.fullRun ? "🏆 The Whole Story • " : ""}Chapter ${escapeAttr(c.chapter || 1)} • ${escapeAttr(c.done || 0)} quests done • <span></span> • ${w.settings && w.settings.difficulty ? "" : ""}${when}</small></div>
         <div class="acts"><button class="btn small primary" data-a="play">Continue</button><button class="btn small" data-a="dl">Download</button><button class="btn small danger" data-a="del">Delete</button></div>`;
       row.querySelector("b").textContent = w.name; row.querySelector("small span").textContent = c.quest ? "Now: " + c.quest : "";
       row.querySelector("[data-a=play]").onclick = () => { Sound.click(); G.loadWorld(w.id); };

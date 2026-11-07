@@ -274,7 +274,7 @@ export const QUESTS = {
     reward: { xp: 30, items: [[I.COOKED_CHICKEN, 8]], text: "Trail food" } },
   keys: { chapter: 2, main: true, title: "Three Ancient Keys", giver: "fenn",
     text: "Fenn's Expedition Map marks three ruins around the jungle temple. Each one hides an Ancient Key. Together they open the Root Seal.",
-    steps: [{ ev: "have", ids: [I.ANCIENT_KEY], n: 3, places: ["keyRuin0", "keyRuin1", "keyRuin2"], text: "Find the three Ancient Keys: the Overgrown Shrine, the Abandoned Village, and the Vine Pillars" }],
+    steps: [{ ev: "have", ids: [I.ANCIENT_KEY], n: 3, skip: "rootDoor", places: ["keyRuin0", "keyRuin1", "keyRuin2"], text: "Find the three Ancient Keys: the Overgrown Shrine, the Abandoned Village, and the Vine Pillars" }],
     reward: { xp: 60, items: [[I.IRON_LEGS, 1]], text: "Iron leggings" } },
   jungletemple: { chapter: 2, main: true, title: "The Lost Jungle", giver: "fenn",
     text: "The Verdant Labyrinth hides the Verdant Lens. Beyond its vault, behind a door sealed by roots, the Jungle Titan guards the second Relic.",
@@ -382,6 +382,11 @@ export const QUEST_ORDER = ["welcome", "lessons", "village", "prepare", "rumors"
 export const NEXT = { lessons: ["village", "secrets", "lookout"], village: ["prepare"], prepare: ["rumors"], rumors: ["watchtower"], watchtower: ["raid"], raid: ["guardian"], guardian: ["sandspire"], sandspire: ["pyramid", "spireClimb"], pyramid: ["oakwood"], oakwood: ["keys", "treetops"], keys: ["jungletemple"], jungletemple: ["seabreak"], seabreak: ["shipwreck"], shipwreck: ["seatemple"], seatemple: ["ironhold"],
   ironhold: ["blightmines", "ironVeins"], blightmines: ["blightking"], blightking: ["embers"], embers: ["seals"], seals: ["cindermaw"], cindermaw: ["hollowmere"], hollowmere: ["shadow"], shadow: ["next7"] };
 export const CHAPTER_AFTER = { pyramid: 2, jungletemple: 3, seatemple: 4, blightking: 5, cindermaw: 6, shadow: 7 };
+// Chapter select: the quest each playable chapter starts with, and the quest that ends the story so far
+// (finishing FINAL_QUEST without ever skipping ahead earns "The Whole Story"; move it when Chapters 7 and 8 arrive)
+export const CHAPTER_START = { 1: "welcome", 2: "oakwood", 3: "seabreak", 4: "ironhold", 5: "embers", 6: "hollowmere" };
+export const PLAYABLE = 6;
+export const FINAL_QUEST = "shadow";
 // the chapter bosses: where they live and what they leave behind
 export const BOSS_REWARDS = {
   stoneguard: { chapter: 0, items: [[I.DESERT_MAP, 1], [I.IRON_INGOT, 6]], xp: 100, title: "The Guardian Falls", text: "The Ancient Stone Guardian crumbles into rubble. In the dust lies a rolled-up map, drawn by the First Builders: the Ancient Desert Map." },

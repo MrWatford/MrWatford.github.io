@@ -14,7 +14,7 @@ import { buildVillage, VSIZE, VC, VILLAGE_V } from "./campaign-village.js";
 import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
 import { buildIronhold, buildBlightCitadel, buildOutpost, buildSealShrine, buildHollowmere, SIZES2, TOWNS2_V } from "./campaign-towns2.js";
 import { initBosses, BOSSES } from "./campaign-bosses.js";
-import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS, BOSS_NAMES } from "./campaign-data.js";
+import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS, BOSS_NAMES, CHAPTER_START, PLAYABLE, FINAL_QUEST } from "./campaign-data.js";
 export { CAMPAIGN_SEED, CAMPAIGN_WORLD };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -32,10 +32,15 @@ export function initCampaign(api) {
   const C = {};
   const on = () => !!(G.meta && G.meta.campaign);
   C.on = on;
-  const fresh = () => ({ v: 1, chapter: 1, active: ["welcome"], done: {}, prog: {}, places: {}, spawned: {}, filled: false, track: true, intro: false, walked: 0, given: {}, flags: {} });
+  // unbroken: still on track for "The Whole Story" (played from Chapter 1 without jumping ahead)   startAt: a chapter picked on the new-campaign screen
+  const fresh = () => {
+    const startAt = Math.max(1, Math.min(PLAYABLE, +((G.meta && G.meta.campaign && G.meta.campaign.startAt) || 1)));
+    return { v: 1, chapter: 1, active: ["welcome"], done: {}, prog: {}, places: {}, spawned: {}, filled: false, track: true, intro: false, walked: 0, given: {}, flags: {}, unbroken: true, startAt: startAt > 1 ? startAt : 0 };
+  };
   const st = () => {
     const s = G.story.campaign || (G.story.campaign = fresh());
-    s.bosses = s.bosses || {}; s.relics = s.relics || []; s.ways = s.ways || {}; s.filledSites = s.filledSites || {}; s.flags = s.flags || {}; s.given = s.given || {};
+    s.bosses = s.bosses || {}; s.relics = s.relics || []; s.ways = s.ways || {}; s.filledSites = s.filledSites || {}; s.flags = s.flags || {}; s.given = s.given || {}; s.paid = s.paid || {};
+    if (s.done[FINAL_QUEST] && s.unbroken !== false && !s.fullRun) s.fullRun = Date.now();   // saves that finished the story before chapter select existed
     return s;
   };
 
@@ -321,6 +326,7 @@ export function initCampaign(api) {
   const lostT = kind => ((G.story.lost || {}).temples || {})[kind] || {};
   function already(step) {   // things that may have happened before this step began
     const s = st();
+    if (step.skip && s.flags[step.skip]) return true;   // e.g. the Ancient Keys aren't needed once the Root Seal is open
     switch (step.ev) {
       case "visit": return !!s.places[step.place];
       case "boss": return !!s.bosses[step.boss];
@@ -351,7 +357,11 @@ export function initCampaign(api) {
   }
   function complete(q) {
     const s = st(), def = QUESTS[q];
-    s.active = s.active.filter(x => x !== q); s.done[q] = Date.now();
+    s.active = s.active.filter(x => x !== q); s.done[q] = Date.now(); s.paid[q] = true;
+    if (q === FINAL_QUEST && s.unbroken !== false && !s.fullRun) {
+      s.fullRun = Date.now();
+      setTimeout(() => UI.toast("🏆 The Whole Story! You played the Legacy Campaign from Chapter 1 without skipping a single chapter.", "good"), 3000);
+    }
     if (def.reward) { for (const [id, n] of def.reward.take || []) takeItem(id, n); if (def.reward.xp) giveXp(def.reward.xp); for (const [id, n] of def.reward.items || []) give(id, n); }
     UI.toast(`Quest complete: ${def.title}!${def.reward ? " Reward: " + def.reward.text + "." : ""}`, "good"); Sound.levelUp();
     G.adv && G.adv("cpquest", q);
@@ -362,8 +372,72 @@ export function initCampaign(api) {
   function summary() {   // a short progress line for the campaign list on the title screen
     if (!G.meta || !G.meta.campaign) return;
     const s = st(), main = QUEST_ORDER.find(q => s.active.includes(q) && QUESTS[q].main);
-    G.meta.campaign = { ...G.meta.campaign, chapter: s.chapter, done: Object.keys(s.done).length, quest: main ? QUESTS[main].title : "", relics: s.relics.length };
+    G.meta.campaign = { ...G.meta.campaign, chapter: s.chapter, done: Object.keys(s.done).length, quest: main ? QUESTS[main].title : "", relics: s.relics.length, fullRun: !!s.fullRun };
   }
+
+  // ======================= chapter select =======================
+  // Any playable chapter can be chosen at any time, on any save. Jumping AHEAD counts the earlier chapters as finished
+  // and hands over what they would have given (quest rewards, Relics, the Tide Charm), once per save, never twice.
+  // Jumping BACK forgets the main quests, bosses, and Relics from that chapter on, so they can be played (and fought) again;
+  // things the old quests used up (Blight Skulls, Dragon Seals, ...) come back so nothing gets stuck.
+  // Places you've found and doors you've opened stay found and open, so replayed steps can finish on their own.
+  const RELIC_CH = {}, BOSS_CH = {};
+  for (const R of Object.values(BOSS_REWARDS)) if (R.relic) RELIC_CH[R.chapter] = R.relic;
+  for (const d of Object.values(QUESTS)) for (const sp of d.steps) if (sp.ev === "boss") BOSS_CH[sp.boss] = d.chapter;
+  const KEEP_FLAGS = ["rootDoor"];   // the Root Seal's door is already open in the world
+  C.canJump = () => (BS.active() ? "You can't change chapters in the middle of a boss fight!" : raid ? "Finish the raid on Stonehaven first!" : "");
+  function jumpTo(n, quiet) {
+    const s = st(); n = Math.max(1, Math.min(PLAYABLE, Math.floor(+n) || 1));
+    const why = C.canJump(); if (why) { UI.toast(why, "bad"); return false; }
+    const mains = QUEST_ORDER.filter(q => QUESTS[q] && QUESTS[q].main);
+    s.skipped = s.skipped || {};
+    for (const q of Object.keys(s.done)) s.paid[q] = true;
+    // still a "whole story" run only if every earlier chapter was really played (Chapter 1 starts a new run)
+    s.unbroken = n === 1 || (s.unbroken !== false && mains.every(q => QUESTS[q].chapter >= n || (s.done[q] && !s.skipped[q])));
+    const forward = n > s.chapter;
+    // 1. this chapter and the ones after it: ready to be played again
+    let back = false;
+    for (const q of mains.filter(q => QUESTS[q].chapter >= n)) {
+      const d = QUESTS[q], reached = s.done[q] ? 99 : s.active.includes(q) ? prog(q).i : -1;
+      if (reached >= 0) back = true;
+      d.steps.forEach((sp, k) => {
+        if (k < reached && sp.ev === "have" && !(sp.skip && s.flags[sp.skip])) {
+          const id = sp.ids[0], need = sp.n - countItem(id);
+          if (need > 0) { const left = G.inv.add(id, need); if (left) G.dropItem(id, left); G.hudDirty = true; }   // not give(): Blight Skulls are a block with no item form
+        }
+        if (sp.ev === "flag" && !KEEP_FLAGS.includes(sp.flag)) delete s.flags[sp.flag];
+      });
+      delete s.done[q]; delete s.prog[q]; delete s.skipped[q];
+      s.active = s.active.filter(x => x !== q);
+    }
+    for (const [b, c] of Object.entries(BOSS_CH)) if (c >= n) delete s.bosses[b];
+    for (const [c, relic] of Object.entries(RELIC_CH)) if (+c >= n) { takeItem(relic, countItem(relic)); s.relics = s.relics.filter(x => x !== +c); }
+    // 2. the chapters before it: finished, with their rewards (only ones this save never got)
+    let caught = 0;
+    for (const q of mains.filter(q => QUESTS[q].chapter < n)) {
+      const d = QUESTS[q];
+      s.active = s.active.filter(x => x !== q);
+      if (s.done[q]) continue;
+      s.done[q] = Date.now(); s.skipped[q] = true;
+      if (q === "welcome") s.flags.chose = true;
+      if (q === "lessons") { s.tutorial = "skipped"; if (!s.paid.lessons) for (const [id, k] of SKIP_KIT) give(id, k); }
+      if (!s.paid[q] && d.reward) { for (const [id, k] of d.reward.items || []) give(id, k); caught++; }
+      s.paid[q] = true;
+    }
+    for (const q of QUEST_ORDER) if (QUESTS[q] && QUESTS[q].side && QUESTS[q].chapter < n) start(q, true);   // their side quests are open too
+    for (const [c, relic] of Object.entries(RELIC_CH)) if (+c < n && !s.relics.includes(+c)) { s.relics.push(+c); if (!countItem(relic)) give(relic, 1); }
+    if (n > 3 && !s.given.charm) { give(I.CP_CHARM, 1); s.given.charm = true; }   // Captain Mira's Tide Charm (breathe underwater)
+    // 3. begin
+    s.chapter = n;
+    start(CHAPTER_START[n], true);
+    hudDirty = true; summary();
+    const msg = forward ? `Welcome to Chapter ${n}! The earlier chapters count as finished${caught ? ", and you got their rewards and Relics" : ""}.`
+      : back ? `Chapter ${n} begins again. Its bosses, and every boss after it, are waiting to be fought.` : `Chapter ${n} begins.`;
+    if (quiet) setTimeout(() => UI.toast(msg, "good"), 6000);
+    else { titleCard(n); UI.toast(msg, "good"); Sound.levelUp(); saveNow(false); }
+    return true;
+  }
+  C.jumpTo = jumpTo;
   function matches(step, type, arg) {
     switch (step.ev) {
       case "talk": return type === "talk" && arg === step.npc;
@@ -649,7 +723,7 @@ export function initCampaign(api) {
     onDefeat: (id, e) => {
       const s = st(), R = BOSS_REWARDS[id]; if (!R) return;
       s.bosses[id] = Date.now();
-      if (R.relic) { give(R.relic, 1); if (!s.relics.includes(R.chapter)) s.relics.push(R.chapter); }
+      if (R.relic) { if (!countItem(R.relic)) give(R.relic, 1); if (!s.relics.includes(R.chapter)) s.relics.push(R.chapter); }
       for (const [it, n] of R.items) give(it, n);
       giveXp(R.xp); Sound.levelUp();
       C.event("boss", id); summary();
@@ -688,7 +762,7 @@ export function initCampaign(api) {
     if (!on()) return;
     const s = st(), R = BOSS_REWARDS[id]; if (!R || s.bosses[id]) return;
     s.bosses[id] = Date.now();
-    if (R.relic) { give(R.relic, 1); if (!s.relics.includes(R.chapter)) s.relics.push(R.chapter); }
+    if (R.relic) { if (!countItem(R.relic)) give(R.relic, 1); if (!s.relics.includes(R.chapter)) s.relics.push(R.chapter); }
     for (const [it, n] of R.items) give(it, n);
     C.event("boss", id); summary(); saveNow(false);
     setTimeout(() => { UI.toast(`You found the ${itemDef(R.relic).name}!`, "good"); openPanel("note", { title: R.title, text: R.text + `\n\nRelics recovered: ${s.relics.length} of 8.` }); }, 9800);
@@ -707,6 +781,7 @@ export function initCampaign(api) {
     const sites = (G.dim === "overworld" && s.village) || TEMPLE_DIMS.includes(G.dim) || G.dim === "nether" ? sitesIn(G.dim) : [];
     if (s.active.includes("next4")) { s.active = s.active.filter(q => q !== "next4"); start("ironhold"); }   // worlds saved before Chapter 4 existed
     if (G.dim === "overworld" && s.village && !s.kitGiven && G.inv) { s.kitGiven = true; if (!s.filled) giveStartKit(); }
+    if (s.startAt && s.kitGiven) { const n = s.startAt; s.startAt = 0; jumpTo(n, true); }   // a new campaign that starts at a later chapter
     for (const site of sites) { if (!(site.id === "village" ? s.filled : s.filledSites[site.id])) fillSite(site); moveIn(site); }
     if ((placeT -= dt) <= 0) {
       placeT = 0.4;
@@ -734,7 +809,7 @@ export function initCampaign(api) {
     raidTick(dt);
     if (last && G.state === "play") { const d = Math.hypot(p.pos.x - last.x, p.pos.z - last.z); if (d > 0.01 && d < 2) C.event("walk", d); }
     last = { x: p.pos.x, z: p.pos.z };
-    if (!s.intro && G.state === "play") { introT += dt; if (introT > 0.8) { s.intro = true; titleCard(1, () => { introPending = true; }); } }
+    if (!s.intro && G.state === "play") { introT += dt; if (introT > 0.8) { s.intro = true; titleCard(s.chapter || 1, () => { introPending = true; }); } }
     if (introPending && G.state === "play" && !G.panelKind) { introPending = false; openPanel("note", { title: INTRO.title, text: INTRO.text + "\n\n(Your quest journal is on J. The current objective is shown at the top of the screen.)" }); }
     if ((hudT -= dt) <= 0 || hudDirty) { hudT = 0.25; hudDirty = false; drawHud(); }
   };
@@ -812,7 +887,11 @@ export function initCampaign(api) {
     }).join("");
     const card = q => `<div style="border:1px solid #c9b48a;border-radius:6px;padding:6px 10px;margin:6px 0;background:#fffaf0"><b>${esc(QUESTS[q].title)}</b> ${QUESTS[q].side ? '<span class="note" style="color:#7a5a20">side quest</span>' : ""}${s.done[q] ? ' <span style="color:#4a7a2a">✔ complete</span>' : ""}<div class="note" style="color:#444;margin:2px 0">${esc(QUESTS[q].text)}</div><ul style="margin:4px 0 0 0;padding-left:18px;list-style:none">${stepRow(q)}</ul>${QUESTS[q].reward ? `<div class="note" style="color:#7a5a20">Reward: ${esc(QUESTS[q].reward.text)}</div>` : ""}</div>`;
     const active = QUEST_ORDER.filter(q => s.active.includes(q)), done = QUEST_ORDER.filter(q => s.done[q] && !(q === "lessons" && s.tutorial === "skipped"));
-    const ch = Math.min(8, s.chapter), chapters = CHAPTERS.map(c => `<li style="${c.n === ch ? "font-weight:700" : c.n > ch ? "color:#888" : ""}">${c.n > ch ? "🔒" : c.n === ch ? "▶" : "✔"} Chapter ${c.n}: ${esc(c.title)}${c.n <= ch ? ` <span class="note" style="color:#555">${esc(c.where)}</span>` : ""}</li>`).join("");
+    const ch = Math.min(8, s.chapter), chapters = CHAPTERS.map(c => {
+      const btn = c.n > PLAYABLE ? '<span class="note" style="color:#888">coming soon</span>' : `<button class="chip-btn" data-cp="ch${c.n}" style="padding:1px 8px">${c.n === ch ? "Restart" : "Play"}</button>`;
+      return `<li style="margin:3px 0;${c.n === ch ? "font-weight:700" : c.n > ch ? "color:#666" : ""}">${c.n > PLAYABLE ? "🔒" : c.n === ch ? "▶" : c.n < ch ? "✔" : "○"} Chapter ${c.n}: ${esc(c.title)} ${btn}<br><span class="note" style="color:#555;font-weight:400">${esc(c.where)}</span></li>`;
+    }).join("");
+    const run = s.fullRun ? "🏆 Earned! You played the whole story from Chapter 1 without skipping." : s.unbroken !== false ? "✔ Still on track: you haven't skipped any chapters. Finish Chapter 6 to earn it." : "✖ Not this time: you skipped ahead. Choose Play on Chapter 1 to start a new full run (your world, gear, and places found are kept).";
     const relics = CHAPTERS.map(c => `<span title="${esc(c.relic)}" style="display:inline-block;width:30px;height:30px;line-height:30px;margin:2px;border-radius:50%;text-align:center;border:2px solid ${s.relics.includes(c.n) ? "#c9a24a" : "#bbb"};background:${s.relics.includes(c.n) ? "#f5d36a" : "#eee"}">${s.relics.includes(c.n) ? "★" : "?"}</span>`).join("");
     const names = [...new Set(Object.keys(s.places).filter(k => PLACES[k] && !PLACES[k].tower && k !== "castleGate").map(k => PLACES[k].name))];
     const bosses = Object.keys(s.bosses).map(k => esc(BOSSES[k] ? BOSSES[k].name.replace(/^the /, "The ") : BOSS_NAMES[k] || k)).join(", ") || "None yet";
@@ -824,7 +903,8 @@ export function initCampaign(api) {
       <h4>Relics recovered (${s.relics.length} of 8)</h4><div>${relics}</div>
       <h4>Bosses defeated</h4><p class="note" style="color:#333">${bosses}</p>
       <h4>Waystones</h4><p class="note" style="color:#333">${ways}</p>
-      <h4>Chapters</h4><ul style="list-style:none;padding-left:4px;margin:4px 0">${chapters}</ul>
+      <h4>Chapters</h4><p class="note" style="color:#444;margin:2px 0">Pick any chapter to play from there. Earlier chapters count as finished (you get their rewards and Relics once), and going back lets you fight a chapter's bosses again.</p><ul style="list-style:none;padding-left:4px;margin:4px 0">${chapters}</ul>
+      <h4>The Whole Story</h4><p class="note" style="color:#333">${run}</p>
       <h4>Places found</h4><p class="note" style="color:#333">${names.map(esc).join(", ") || "None yet"}</p>
       ${done.length ? `<details><summary><b>Finished quests (${done.length})</b></summary>${done.map(card).join("")}</details>` : ""}
       <h4>Options</h4><p class="note" style="color:#333"><button class="chip-btn" data-cp="track">${s.track ? "Hide" : "Show"} the objective at the top of the screen</button>
@@ -836,9 +916,21 @@ export function initCampaign(api) {
     if (k === "track") { s.track = !s.track; hudDirty = true; }
     if (k === "skip") C.skipTutorial();
     if (k === "story") openPanel("note", { title: INTRO.title, text: INTRO.text });
+    if (/^ch\d$/.test(k)) {
+      const n = +k.slice(2), c = CHAPTERS[n - 1], why = C.canJump();
+      if (why) { UI.toast(why, "bad"); return; }
+      const ahead = mainsBefore(n).some(q => !s.done[q]), back = n <= s.chapter;
+      const text = (n === s.chapter ? `Start Chapter ${n} over from its first quest?` : `Jump to Chapter ${n}: ${c.title}?`)
+        + (ahead ? " The chapters before it will count as finished, and you'll get their quest rewards and Relics (only once per save)." : "")
+        + (back ? ` Quests, bosses, and Relics from Chapter ${n} on will be reset so you can play them again.` : "")
+        + " Your world, buildings, gear, and the places you've found stay the same."
+        + (n === 1 ? " Playing from here to the end without skipping earns The Whole Story." : ahead && !s.fullRun && s.unbroken !== false ? " Skipping ahead means this run can't earn The Whole Story (you can always start a new run at Chapter 1)." : "");
+      UI.confirm(n === s.chapter ? "Restart this chapter?" : `Play Chapter ${n}?`, text, () => { closePanel(); jumpTo(n); }, n === s.chapter ? "Restart" : "Play");
+    }
   };
+  const mainsBefore = n => QUEST_ORDER.filter(q => QUESTS[q] && QUESTS[q].main && QUESTS[q].chapter < n);
   C.resetSession = () => { last = null; introT = 0; hudDirty = true; arenaCache = { dim: null, list: [] }; raid = null; if (hudEl) hudEl.hidden = true; };
   C.hideHud = () => { if (hudEl) hudEl.hidden = true; };
-  C._test = { st, start, complete, sitesIn, waystones, travelTo, startRaid, planSites };
+  C._test = { st, start, complete, sitesIn, waystones, travelTo, startRaid, planSites, jumpTo };
   return C;
 }

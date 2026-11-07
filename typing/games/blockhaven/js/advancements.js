@@ -9,7 +9,7 @@ import { Sound } from "./audio.js";
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
-export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Combat & Bosses", "Forsaken World", "Lost Civilization"];
+export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
 export const ADVANCEMENTS = [
   // building and getting started
   { id: "start", cat: "Getting Started", icon: B.LOG, title: "Blockhaven", desc: "Chop a log.", check: G => has(G, B.LOG, B.BIRCH_LOG, B.CRIMSON_STEM, B.WARPED_STEM) },
@@ -89,7 +89,10 @@ export const ADVANCEMENTS = [
   { id: "temple", cat: "Lost Civilization", icon: B.SUN_GLYPH, title: "Temple Explorer", desc: "Enter one of the three Keeper temples.", ev: "temple", reward: { xp: 20 } },
   { id: "templeboss", cat: "Lost Civilization", icon: B.RELIC_PEDESTAL, title: "Guardians at Rest", desc: "Bring all three temple guardians to rest.", parent: "temple", ev: "templeboss", count: 3, reward: { xp: 150 } },
   { id: "relics", cat: "Lost Civilization", icon: I.SOLAR_SEAL, title: "Keeper of Relics", desc: "Take the Tidal Heart, the Verdant Lens, and the Solar Seal.", parent: "temple", ev: "relic", count: 3, reward: { xp: 100 } },
-  { id: "wyrm", cat: "Combat & Bosses", icon: B.WYRM_EGG, title: "Wyrm Slayer", desc: "Defeat the Hollow Wyrm.", parent: "kill", ev: "boss", match: s => s === "dragon", reward: { xp: 100 } }
+  { id: "wyrm", cat: "Combat & Bosses", icon: B.WYRM_EGG, title: "Wyrm Slayer", desc: "Defeat the Hollow Wyrm.", parent: "kill", ev: "boss", match: s => s === "dragon", reward: { xp: 100 } },
+  // the Legacy Campaign (story mode)
+  { id: "cplegend", cat: "Legacy Campaign", icon: I.RELIC_EARTH, title: "A Legend Begins", desc: "Defeat a Legacy Campaign chapter boss and claim its Relic.", check: G => !!(G.meta && G.meta.campaign && G.story.campaign && ["pharaoh", "titan", "leviathan", "tempest", "cindermaw", "herobrine"].some(b => (G.story.campaign.bosses || {})[b])), reward: { xp: 50 } },
+  { id: "cpwhole", cat: "Legacy Campaign", icon: I.RELIC_SHADOWS, title: "The Whole Story", desc: "Play the Legacy Campaign from Chapter 1 to the end of Chapter 6 without skipping a chapter.", parent: "cplegend", check: G => !!(G.meta && G.meta.campaign && G.story.campaign && G.story.campaign.fullRun), reward: { xp: 500 } },
 ];
 const BY_ID = Object.fromEntries(ADVANCEMENTS.map(a => [a.id, a]));
 
