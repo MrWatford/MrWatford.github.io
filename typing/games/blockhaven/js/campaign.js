@@ -275,7 +275,37 @@ export function initCampaign(api) {
       w.containers.set(key, { type: "chest", slots, label: c.label });
     }
     for (const c of info.crops) { const p = W(site, c.X, c.y, c.Z); w.crops.add(k3(p.x, p.y, p.z)); }
+    if (site.id === "ironhold") s.blightSkullsFixed = true;
     if (site.id === "village") s.filled = true; else s.filledSites[site.id] = true;
+  }
+  // Older chest tables used B.SKULL, which has no inventory definition and was skipped.
+  // Restore missing quest supplies without replacing existing loot or edited terrain.
+  function repairMineSkulls(site) {
+    const s = st(), w = G.world;
+    if (s.blightSkullsFixed || !G.inv) return;
+    for (const slot of G.inv.slots) if (slot && slot.id === B.SKULL) { slot.id = I.BLIGHT_SKULL; G.hudDirty = true; }
+    if (s.done.blightmines || (s.prog.blightmines && s.prog.blightmines.i >= 2) || s.flags.blightWoke || s.bosses.blightking) {
+      s.blightSkullsFixed = true; return;
+    }
+    const repaired = s.blightSkullRepairs || (s.blightSkullRepairs = {});
+    const boxes = site.built.info.chests.filter(c => /^mineSkull[0-2]$/.test(c.loot)).map(c => {
+      const p = W(site, c.X, c.y, c.Z);
+      const box = w.containers.get(k3(p.x, p.y, p.z));
+      return box && box.type === "chest" ? { box, p, loot: c.loot } : null;
+    }).filter(Boolean);
+    let total = countItem(I.BLIGHT_SKULL);
+    for (const { box, loot } of boxes) for (const slot of box.slots) if (slot) {
+      if (slot.id === B.SKULL) slot.id = I.BLIGHT_SKULL;
+      if (slot.id === I.BLIGHT_SKULL) { total += slot.n; repaired[loot] = true; }
+    }
+    for (const { box, p, loot } of boxes) {
+      if (total >= 3) break;
+      if (repaired[loot] || w.id(p.x, p.y, p.z) !== B.CHEST) continue;
+      const free = box.slots.findIndex(slot => !slot);
+      if (free < 0) continue; // Retry after space is freed; never replace a player's items.
+      box.slots[free] = newStack(I.BLIGHT_SKULL, 1); repaired[loot] = true; total++;
+    }
+    if (total >= 3 || Object.keys(repaired).length === 3) s.blightSkullsFixed = true;
   }
   function giveStartKit() {
     for (const [id, n] of START_KIT) if (itemDef(id)) {
@@ -403,7 +433,7 @@ export function initCampaign(api) {
       d.steps.forEach((sp, k) => {
         if (k < reached && sp.ev === "have" && !(sp.skip && s.flags[sp.skip])) {
           const id = sp.ids[0], need = sp.n - countItem(id);
-          if (need > 0) { const left = G.inv.add(id, need); if (left) G.dropItem(id, left); G.hudDirty = true; }   // not give(): Blight Skulls are a block with no item form
+          if (need > 0) { const left = G.inv.add(id, need); if (left) G.dropItem(id, left); G.hudDirty = true; }   // preserve any overflow as a world drop
         }
         if (sp.ev === "flag" && !KEEP_FLAGS.includes(sp.flag)) delete s.flags[sp.flag];
       });
@@ -559,7 +589,7 @@ export function initCampaign(api) {
       opts.push(tradeOpt);
     } else if (id === "hilda") {
       if (just("ironhold", 3)) text = "Maren sent you? Then you're the one who brought back three Relics. Good. We need someone like that.\n\nThree nights ago my miners broke into old tunnels under the mountain. The stone down there is turning black, and it's spreading. My crews heard whispering and ran, and I don't blame them.\n\nThe stairs in the Mine Head lead to the Deep Mine. Find out what they found.";
-      else if (cur("blightmines") >= 0 && cur("blightmines") < 2) text = `The west, south, and east galleries. Each crew found something at the end of its tunnel. You have ${countItem(B.SKULL)} of 3 so far.`;
+      else if (cur("blightmines") >= 0 && cur("blightmines") < 2) text = `The west, south, and east galleries. Each crew found something at the end of its tunnel. You have ${countItem(I.BLIGHT_SKULL)} of 3 so far.`;
       else if (just("blightmines", 3)) text = "Blight Skulls. Three of them. I've heard the old songs about these: the First Builders locked away a creature called the Blightking, in a citadel past the mountain.\n\nThe skulls are pulling toward it, like iron to a lodestone. As long as he sleeps, the blight will keep spreading. We end it the hard way: wake him on his own altar, and beat him." + placeDir(e, "blightcitadel") + "\n\nTake food. Take your best sword. Healer Rue will patch you up first.";
       else if (cur("blightking") >= 0) text = "The Blight Citadel is past Mount Ferrum. Put the three skulls on the Wailing Sand altar in the middle of the courtyard, and be ready. Remember: the First Builders' Rune Stones are there for a reason.";
       else if (cur("embers") === 0) text = "You did it! The stone in the mine is turning grey again. Ironhold owes you everything.\n\nThat crown of his was forged in fire from the Ember Depths, down below the world. A royal expedition has camped by an old portal frame, hunting for the fifth Relic. Go and find Expedition Leader Sable." + placeDir(e, "outpost");
@@ -782,7 +812,7 @@ export function initCampaign(api) {
     if (s.active.includes("next4")) { s.active = s.active.filter(q => q !== "next4"); start("ironhold"); }   // worlds saved before Chapter 4 existed
     if (G.dim === "overworld" && s.village && !s.kitGiven && G.inv) { s.kitGiven = true; if (!s.filled) giveStartKit(); }
     if (s.startAt && s.kitGiven) { const n = s.startAt; s.startAt = 0; jumpTo(n, true); }   // a new campaign that starts at a later chapter
-    for (const site of sites) { if (!(site.id === "village" ? s.filled : s.filledSites[site.id])) fillSite(site); moveIn(site); }
+    for (const site of sites) { if (!(site.id === "village" ? s.filled : s.filledSites[site.id])) fillSite(site); if (site.id === "ironhold") repairMineSkulls(site); moveIn(site); }
     if ((placeT -= dt) <= 0) {
       placeT = 0.4;
       for (const site of sites) for (const pl of site.built.info.places) {
