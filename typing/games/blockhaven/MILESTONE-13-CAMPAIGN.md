@@ -48,6 +48,7 @@ Rule: existing places keep their maps, puzzles, loot, and fights. The campaign o
 - **Part C: NPC dialogue + waystones** (named NPCs, dialogue boxes, quest givers, fast travel between discovered waystones).
 - **Part D: Chapters 1–3** (Stonehaven, Sandspire, Oakwood, Seabreak + hooks into the three temples + Stone Guardian).
 - **Part E: Chapters 4–6** (Ironhold + Blightking citadel + Blight Tempest, Ember Outpost + Dragon Seal shrines + Cindermaw, Hollowmere + Herobrine). Built 2026-11-06.
+- **Chapter select** (2026-11-06): pick any playable chapter at the start or from the journal; "The Whole Story" achievement for an unbroken Chapter 1-to-the-end run. When Chapters 7–8 arrive: add them to `CHAPTER_START`, raise `PLAYABLE`, move `FINAL_QUEST` to the real ending, and update the cpwhole description and the new-campaign "Start at" list.
 - **Part F: Chapter 7** (Echohold hooks).
 - **Part G: Chapter 8** (Skyreach, Sky Sovereign, Ruined Capital, Forgotten King, ending, credits).
 - **Part H: optional bosses, side quests, Frostholm, polish, full playthrough test.**

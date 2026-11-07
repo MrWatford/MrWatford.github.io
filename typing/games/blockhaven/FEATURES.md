@@ -364,6 +364,18 @@ New code: `js/campaign-towns2.js` (Ironhold + the Deep Mine, the Blight Citadel,
 | Bug fix | Done | The Sea Temple's Tidecaller Charm (553) had been replaced by the campaign's Tide Charm (both used the name TIDE_CHARM). Both items exist again |
 | Checks | Done | Walk check for every new place (all 3 galleries, citadel altar and runes, outpost portal, observatory, shrine altar and tunnels). Full chain 4–6 played through in a test world: dialogue at each step, skulls → Blightking → Tempest → relic, save/reload mid-chapter, portal lit and crossed, 3 seals → Cinder Eye, Cindermaw and Herobrine rewards. 408 item icons and the Creative inventory open without errors |
 
+## Milestone 13: Chapter select + "The Whole Story" (built, browser-tested, and published 2026-11-06)
+Mr. Watford's request: let players pick any chapter, whatever their save says, so the story doesn't have to take a long time, while still rewarding anyone who plays all the way through. Changed: `campaign.js`, `campaign-data.js`, `advancements.js`, `ui.js`, `index.html`
+
+| Feature | Status | Notes |
+|---|---|---|
+| Start at any chapter | Done | New "Start at" choice on the new-campaign screen (Chapters 1–6). Starting later gives the gear the earlier quests would have given, their Relics, and the Tide Charm |
+| Chapter select in the journal | Done | Journal (J) → Campaign → Chapters: a Play button on every chapter (Restart on the current one), with a confirm box that explains what changes. Chapters 7–8 say "coming soon". Not allowed during a boss fight or the Stonehaven raid |
+| Jumping ahead | Done | Earlier main quests count as finished; their rewards are given only once per save (jumping back and forth can't farm them); their side quests open |
+| Jumping back | Done | Main quests, bosses, and Relics from that chapter on are reset, so those bosses can be fought again (Cindermaw and Herobrine through their own rematches). Used-up quest items come back (Blight Skulls, Dragon Seals, the Ocean Map, the Pale Lantern). Places found and the open Root Seal stay, so those steps finish on their own |
+| The Whole Story | Done | New "Legacy Campaign" achievements tab: A Legend Begins (beat a chapter boss) and The Whole Story (Chapter 1 to the end of Chapter 6 with no skipping, 500 XP). Choosing Chapter 1 starts a fresh run. The journal shows whether the run is still on track; the campaign list shows 🏆. Older saves that already finished Chapter 6 without skipping get it automatically |
+| Fix | Done | Boss Relics aren't given twice if you already carry that Relic |
+
 ## Creature art from the bestiary (2026-11-06)
 Mr. Watford's bestiary sheets (Blockhaven A–G). Pass 1 (Codex, published 2026-11-06): 27 creatures (Surface monsters, temple and Echohold creatures). Pass 2 (`applyBestiaryPass2` in `js/entities.js`, built and browser-tested 2026-11-06, not published): 24 more, plus the Blight Tempest, all with the same soft face shading. Colors and materials follow the sheets; faces and details are Blockhaven's own (no copied Minecraft faces).
 
