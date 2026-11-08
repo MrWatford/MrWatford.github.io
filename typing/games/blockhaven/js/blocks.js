@@ -559,7 +559,7 @@ for (const [key, label, points, dur, set] of [
     icon: "armor_" + icon, colors: [LEVIATHAN_ARMOR_STYLE[set].base], kind: "armor", stack: 1, category: "Tools",
     armor: { slot, points: points[slot], dur }, leviathanSet: set,
     desc: set === "ancient" ? "2: 25% less sand and crystal hazard damage in Hollow Sands. 4: 20% less Leviathan damage. Crouch + use empty hand: shield and burst, 45s cooldown, 6 durability per piece." :
-      set === "sand" ? "2: lighter storm penalties. 4: faster on sand and 25% sand attack resistance. Crouch + use empty hand: shockwave, 20s cooldown, 3 durability per piece." :
+      set === "sand" ? "2: lighter storm and vortex drag. 4: faster on sand, no vortex drag and 25% sand attack resistance. Crouch + use empty hand: shockwave, 20s cooldown, 3 durability per piece." :
       "2: 25% less fire damage. 4: 60% less fire damage. Crouch + use empty hand: 5s shield, 30s cooldown, 3 durability per piece."
   });
 });

@@ -43,8 +43,14 @@ import { findQuicksandSite, insideQuicksand, QuicksandDrag } from "./abyssal-qui
 import { createQuicksandView } from "./abyssal-quicksand-view.js";
 import { HeatExposure, heatSite, findHeatSite, insideHeat } from "./forgotten-heat.js";
 import { createHeatView } from "./forgotten-heat-view.js";
-import { duneWarningCue } from "./dune-warning.js";
+import { duneWarningCue } from "./dune-warning.js?v=physical-2";
 import { createDuneWarningView } from "./dune-warning-view.js";
+import { DuneDevour, DUNE_DEVOUR_DURATION } from "./dune-devour.js";
+import { createDuneDevourView } from "./dune-devour-view.js";
+import { DuneSweep, DUNE_SWEEP_DURATION } from "./dune-sweep.js";
+import { createDuneSweepView } from "./dune-sweep-view.js";
+import { DuneVortex, DUNE_VORTEX_RADIUS, DUNE_VORTEX_DAMAGE, validDuneVortexSite, insideDuneVortex, duneVortexSpeed } from "./dune-vortex.js";
+import { createDuneVortexView } from "./dune-vortex-view.js";
 import { LEVIATHAN_BONDS, applyBondPreferences, updateBondPreference, thinkBondedLeviathan } from "./leviathan-bonds.js";
 import { clearRecallFootprint, planDesertRecall } from "./leviathan-recall.js";
 import { beginDuneMountedAttack, createDuneMountedWave } from "./leviathan-mounted-combat.js";
@@ -1492,6 +1498,9 @@ function stream(budget) {
 }
 function clearWorldMeshes() {
   clearDuneWarning();
+  clearDuneSweep();
+  clearDuneDevour();
+  clearDuneVortex();
   clearSandsHeat();
   clearQuicksand();
   clearCrystalResonance();
@@ -3176,13 +3185,14 @@ function useLeviathanBlade(slot) {
 }
 let iframes = 0;
 // Is the raised shield facing the thing that hit you? (it covers the front half of a circle around you)
-function shieldFaces(src) {
-  if (!G.blocking || !src || !src.pos) return false;
-  const p = G.player, dx = src.pos.x - p.pos.x, dz = src.pos.z - p.pos.z, l = Math.hypot(dx, dz) || 1, d = lookDir(), dl = Math.hypot(d.x, d.z) || 1;
+function shieldFaces(src, contact) {
+  const origin = contact || src?.pos;
+  if (!G.blocking || !origin) return false;
+  const p = G.player, dx = origin.x - p.pos.x, dz = origin.z - p.pos.z, l = Math.hypot(dx, dz) || 1, d = lookDir(), dl = Math.hypot(d.x, d.z) || 1;
   return (dx / l) * (d.x / dl) + (dz / l) * (d.z / dl) > 0.1;
 }
 // Damage kinds: undefined (hits, falls, explosions…), "fire", "poison", "void", "starve", "sand", "ancientEnergy"
-function hurt(n, why, src, bypassArmor, kind) {
+function hurt(n, why, src, bypassArmor, kind, noKnockback, contact) {
   const p = G.player;
   if (G.creative || G.spectator || G.state === "dead" || n <= 0) return;
   R.vibrate(p.pos.x, p.pos.y + 1, p.pos.z, 8);
@@ -3199,12 +3209,12 @@ function hurt(n, why, src, bypassArmor, kind) {
   if (guardian >= 2 && G.dim === HOLLOW_SANDS && (kind === "sand" || kind === "ancientEnergy")) n *= 0.75;
   if (guardian === 4 && src?.def.segmentedLeviathan) n *= 0.8;
   // a raised shield stops hits from the front (it wears down instead)
-  if (!bypassArmor && kind !== "void" && shieldFaces(src)) {
+  if (!bypassArmor && kind !== "void" && shieldFaces(src, contact)) {
     const sh = G.inv.slots[G.blockHand];
     if (sh && sh.id === I.SHIELD) {
       wearTool(sh, Math.max(1, Math.floor(n)));
       iframes = 0.5; Sound.place("wood"); G.adv("block");
-      if (src.def) { const l = Math.hypot(src.pos.x - p.pos.x, src.pos.z - p.pos.z) || 1; src.vel && (src.vel.x += (src.pos.x - p.pos.x) / l * 4, src.vel.z += (src.pos.z - p.pos.z) / l * 4); }
+      if (src.def && !noKnockback) { const l = Math.hypot(src.pos.x - p.pos.x, src.pos.z - p.pos.z) || 1; src.vel && (src.vel.x += (src.pos.x - p.pos.x) / l * 4, src.vel.z += (src.pos.z - p.pos.z) / l * 4); }
       return;
     }
   }
@@ -3225,8 +3235,9 @@ function hurt(n, why, src, bypassArmor, kind) {
     if (mountedBurrow.session.cancelElapsed === null) UI.toast("The hit interrupted your burrow. Returning to the surface.");
     mountedBurrow.session.requestCancel("hurt");
   }
-  if (src && src.pos) { const dx = p.pos.x - src.pos.x, dz = p.pos.z - src.pos.z, l = Math.hypot(dx, dz) || 1; p.vel.x += dx / l * 6; p.vel.z += dz / l * 6; p.vel.y = Math.max(p.vel.y, 4); }
-  if (src && src.def && src.def.knockUp) p.vel.y = 9;   // Hogbeasts toss you into the air
+  const hitOrigin = contact || src?.pos;
+  if (hitOrigin && !noKnockback) { const dx = p.pos.x - hitOrigin.x, dz = p.pos.z - hitOrigin.z, l = Math.hypot(dx, dz) || 1; p.vel.x += dx / l * 6; p.vel.z += dz / l * 6; p.vel.y = Math.max(p.vel.y, 4); }
+  if (src && src.def && src.def.knockUp && !noKnockback) p.vel.y = 9;   // Hogbeasts toss you into the air
   if (burrowInterrupted) p.vel.x = p.vel.y = p.vel.z = 0;   // the checked surface anchor holds the rider during emergence
   if (src && src.def && !src.tame) ents.petFoe = src;   // your Scouts go after whatever hurt you
   Sound.hurt(); UI.flash(); G.hudDirty = true;
@@ -3255,6 +3266,9 @@ function useTotem() {
 }
 function die(why) {
   clearDuneWarning();
+  clearDuneSweep();
+  clearDuneDevour();
+  clearDuneVortex();
   clearSandsHeat();
   clearQuicksand();
   clearCrystalResonance();
@@ -3421,6 +3435,9 @@ const STORM_DUST = [STORM_SKY.r, STORM_SKY.g, STORM_SKY.b];
 let stormStage = 0, stormSampleT = 0, stormDustT = 0;
 let stormVortex = null, stormVortexT = 10;
 let duneInterest = 0;
+function duneEncounterReview() {
+  return { storm: stormStage, interest: duneInterest, wild: ents.list.filter(e => e.sp === "leviathan_dune" && !e.tame && !e.gone).length };
+}
 function sandEncounterSite(x, z) {
   x = Math.floor(x); z = Math.floor(z);
   if (!G.world.chunkAt(x, z) || G.gen.column(x, z).biome !== "sandy") return null;
@@ -3936,22 +3953,40 @@ function safeDuneSummon(p) {
 }
 function updateDuneSurfaceAttack(e, phase, multiplier) {
   const c = e.duneCycle, p = G.player.pos;
+  if (c.attack?.phase === 4 && e.goal && Math.hypot(e.goal.x - e.pos.x, (e.goal.y ?? e.pos.y) - e.pos.y, e.goal.z - e.pos.z) < 0.6) {
+    e.goal = null; e.vel.x = e.vel.y = e.vel.z = 0;
+  }
   if (e.age < c.attackAt) return;
   if (!c.attack) {
     const s = sandEncounterSite(p.x, p.z);
     c.attackAt = c.until;
-    if (!s || Math.abs(p.y - s.y) > 2 || c.until - e.age < 1.5) return;
+    const activeWindow = phase === 2 ? DUNE_SWEEP_DURATION : phase === 4 ? DUNE_DEVOUR_DURATION : 0;
+    if (!s || Math.abs(p.y - s.y) > 2 || c.until - e.age < Math.max(1.5, 1.25 + activeWindow + 0.15)) return;
     c.attack = { ...s, phase, from: e.age };
+    if (phase === 2) c.attack.sweep = new DuneSweep(e);
+    if (phase === 4) c.attack.devour = new DuneDevour(e);
     c.attackAt = e.age + 1.25;
-    if (phase === 4) e.goal = { ...s, speed: 5 };
+    if (phase === 4) {
+      const dx = s.x - e.pos.x, dz = s.z - e.pos.z, distance = Math.hypot(dx, dz);
+      e.goal = distance > 2.5 ? { x: s.x - dx / distance * 2.2, y: s.y - 0.4, z: s.z - dz / distance * 2.2, speed: 5 } :
+        Math.abs(e.pos.y - (s.y - 0.4)) > 0.6 ? { x: e.pos.x, y: s.y - 0.4, z: e.pos.z, speed: 5 } : null;
+      if (!e.goal) e.vel.x = e.vel.y = e.vel.z = 0;
+    }
     puff(s.x, s.y + 0.5, s.z, "crumb");
-    UI.toast(["", "", "Tail sweep! Clear the dust marker.", "Sand vortex! Leave the marked area.", "Devouring strike! Move aside."][phase]);
+    UI.toast(["", "", "Tail sweep! Clear the glowing body segments.", "Sand vortex! Leave the marked area.", "Devouring strike! Sidestep the glowing jaws."][phase]);
     return;
   }
-  const s = c.attack, radius = s.phase === 3 ? 3.5 : s.phase === 4 ? 3 : 4;
+  const s = c.attack;
   puff(s.x, s.y + 0.7, s.z, "crumb");
-  if (Math.abs(p.y - s.y) < 2.5 && Math.hypot(p.x - s.x, p.z - s.z) < radius &&
-      sandEncounterSite(p.x, p.z)) hurt((s.phase + 3) * multiplier, "The Dune Leviathan caught you in its attack.", e);
+  if (s.phase === 2) {
+    c.sweep = s.sweep; c.sweep?.release();
+  } else if (s.phase === 3) {
+    c.vortex = new DuneVortex(s);
+    UI.toast("The vortex forms! Sprint beyond the amber ring or take cover.");
+  } else if (s.phase === 4) {
+    c.devour = s.devour; c.devour?.release();
+    e.goal = null; if (e.vel) e.vel.x = e.vel.y = e.vel.z = 0;
+  }
   c.attackAt = Infinity;
   c.attack = null;
 }
@@ -3975,6 +4010,131 @@ function updateDuneWarning() {
   }
   duneWarningFX.cue = cue;
   duneWarningFX.view?.update(cue.progress, G.settings.reducedMotion);
+}
+let duneSweepFX = null;
+function clearDuneSweep() {
+  duneSweepFX?.view.dispose(); duneSweepFX = null;
+  for (const e of ents.list) if (e.sp === "leviathan_dune" && e.duneCycle) {
+    delete e.duneCycle.sweep;
+    if (e.duneCycle.attack) delete e.duneCycle.attack.sweep;
+  }
+}
+function duneSweepReview() {
+  if (!duneSweepFX) return { active: false };
+  const { record, actor } = duneSweepFX;
+  return { active: true, released: record.released, age: record.age, spent: record.spent,
+    parts: record.parts.filter(p => p.visible).length,
+    progress: record.released ? 1 : Math.max(0, Math.min(1, (actor.age - (actor.duneCycle.attack?.from ?? actor.age)) / 1.25)) };
+}
+function updateDuneSweep(dt, running) {
+  if (G.dim !== "overworld" || G.creative || G.spectator || G.state === "dead" || G.wset.difficulty === "peaceful") { clearDuneSweep(); return; }
+  const actor = ents.list.find(e => e.sp === "leviathan_dune" && e.mesh && !e.dead && !e.gone && !e.tame && e.emerged &&
+    e.duneCycle?.step === "surface" && !e.duneCycle.preview && G.world.isLoaded(e.pos.x, e.pos.z) && G.world.isLoaded(G.player.pos.x, G.player.pos.z) && (e.duneCycle.attack?.sweep || e.duneCycle.sweep));
+  const record = actor && (actor.duneCycle.attack?.sweep || actor.duneCycle.sweep);
+  if (!(record instanceof DuneSweep) || !record.active) { clearDuneSweep(); return; }
+  if (duneSweepFX?.record !== record) {
+    duneSweepFX?.view.dispose(); duneSweepFX = null;
+    const view = createDuneSweepView(scene, record);
+    if (!view) { clearDuneSweep(); return; }
+    duneSweepFX = { actor, record, view };
+  }
+  if (record.sample(actor, G.player, G.world, lineOfSight, dt, running)) {
+    const multiplier = { easy: 0.67, normal: 1, hard: 1.5 }[G.wset.difficulty] ?? 1;
+    hurt(5 * multiplier, "The Dune Leviathan's sweeping body caught you.", actor, false, "sand", false, record.contact);
+  }
+  if (!record.active) { clearDuneSweep(); return; }
+  duneSweepFX?.view.update(duneSweepReview().progress, record.released);
+}
+let duneDevourFX = null;
+function clearDuneDevour() {
+  duneDevourFX?.view.dispose(); duneDevourFX = null;
+  for (const e of ents.list) if (e.sp === "leviathan_dune" && e.duneCycle) {
+    delete e.duneCycle.devour;
+    if (e.duneCycle.attack) delete e.duneCycle.attack.devour;
+  }
+}
+function duneDevourReview() {
+  if (!duneDevourFX) return { active: false };
+  const { record, actor } = duneDevourFX;
+  return { active: true, released: record.released, age: record.age, spent: record.spent,
+    visible: record.visible,
+    progress: record.released ? 1 : Math.max(0, Math.min(1, (actor.age - (actor.duneCycle.attack?.from ?? actor.age)) / 1.25)) };
+}
+function updateDuneDevour(dt, running) {
+  if (G.dim !== "overworld" || G.creative || G.spectator || G.state === "dead" || G.wset.difficulty === "peaceful") { clearDuneDevour(); return; }
+  const actor = ents.list.find(e => e.sp === "leviathan_dune" && e.mesh && !e.dead && !e.gone && !e.tame && e.emerged &&
+    e.duneCycle?.step === "surface" && !e.duneCycle.preview && G.world.isLoaded(e.pos.x, e.pos.z) && G.world.isLoaded(G.player.pos.x, G.player.pos.z) && (e.duneCycle.attack?.devour || e.duneCycle.devour));
+  const record = actor && (actor.duneCycle.attack?.devour || actor.duneCycle.devour);
+  if (!(record instanceof DuneDevour) || !record.active) { clearDuneDevour(); return; }
+  if (duneDevourFX?.record !== record) {
+    duneDevourFX?.view.dispose(); duneDevourFX = null;
+    const view = createDuneDevourView(scene, record);
+    if (!view) { clearDuneDevour(); return; }
+    duneDevourFX = { actor, record, view };
+  }
+  if (record.sample(actor, G.player, G.world, lineOfSight, dt, running)) {
+    const multiplier = { easy: 0.67, normal: 1, hard: 1.5 }[G.wset.difficulty] ?? 1;
+    hurt(7 * multiplier, "The Dune Leviathan's devouring jaws caught you.", actor, false, "sand", false, record.contact);
+  }
+  if (!record.active) { clearDuneDevour(); return; }
+  duneDevourFX?.view.update(duneDevourReview().progress, record.released);
+}
+let duneVortexFX = null;
+function clearDuneVortexView() { duneVortexFX?.view?.dispose(); duneVortexFX = null; }
+function clearDuneVortex() {
+  clearDuneVortexView();
+  for (const e of ents.list) if (e.sp === "leviathan_dune" && e.duneCycle) delete e.duneCycle.vortex;
+}
+function duneVortexEnabled() {
+  return G.dim === "overworld" && !G.creative && !G.spectator && G.state !== "dead" && G.wset.difficulty !== "peaceful";
+}
+function duneVortexOwner(e) {
+  return e.sp === "leviathan_dune" && e.mesh && !e.dead && !e.gone && !e.tame && !e.duneCycle?.preview;
+}
+function duneVortexDrag(input) {
+  const fx = duneVortexFX;
+  if (!fx || !duneVortexEnabled() || !duneVortexOwner(fx.actor) || !validDuneVortexSite(G.world, fx.record.site)) return;
+  if (insideDuneVortex(fx.record, G.player, G.world, lineOfSight))
+    input.walkMul = (input.walkMul ?? 1) * duneVortexSpeed(leviathanSetPieces("sand"));
+}
+function duneVortexReview() {
+  return duneVortexFX ? { active: true, age: duneVortexFX.record.age, ticks: duneVortexFX.record.ticks,
+    nextAt: duneVortexFX.record.nextAt, radius: DUNE_VORTEX_RADIUS, site: { ...duneVortexFX.record.site },
+    inside: duneVortexFX.inside, factor: duneVortexFX.inside ? duneVortexSpeed(leviathanSetPieces("sand")) : 1 } : { active: false };
+}
+function updateDuneVortex(dt, running) {
+  if (!duneVortexEnabled()) { clearDuneVortex(); return; }
+  let actor = null, record = null;
+  for (const e of ents.list) {
+    const v = e.duneCycle?.vortex;
+    if (!v) continue;
+    if (!duneVortexOwner(e) || !(v instanceof DuneVortex) || !v.active || !validDuneVortexSite(G.world, v.site)) {
+      delete e.duneCycle.vortex; continue;
+    }
+    if (!actor) { actor = e; record = v; }
+    else delete e.duneCycle.vortex; // Only one active boss vortex is ever simulated.
+  }
+  if (!record) { clearDuneVortexView(); return; }
+  const fast = G.settings.quality === "fast", now = G.clock || 0;
+  if (!duneVortexFX || duneVortexFX.record !== record || duneVortexFX.fast !== fast ||
+      duneVortexFX.edits !== G.world.editCount && now - duneVortexFX.builtAt >= 0.2) {
+    const inside = duneVortexFX?.record === record && duneVortexFX.inside;
+    clearDuneVortexView();
+    const view = createDuneVortexView(scene, G.world, record.site, fast);
+    if (!view) { delete actor.duneCycle.vortex; return; }
+    duneVortexFX = { actor, record, view, fast, edits: G.world.editCount, builtAt: now, inside };
+  }
+  const inside = insideDuneVortex(record, G.player, G.world, lineOfSight);
+  duneVortexFX.inside = inside;
+  if (running) {
+    const strike = record.step(dt, inside);
+    if (!record.active) { clearDuneVortex(); return; }
+    if (strike) {
+      const multiplier = { easy: 0.67, normal: 1, hard: 1.5 }[G.wset.difficulty] ?? 1;
+      hurt(DUNE_VORTEX_DAMAGE * multiplier, "The Dune Leviathan's sand vortex overwhelmed you. Leave the amber ring.", actor, false, "sand", true);
+    }
+  }
+  duneVortexFX?.view.update(record.age, G.settings.reducedMotion);
 }
 function updateStormVortex(dt) {
   if (stormStage < 3 || G.creative || G.spectator || G.wset.difficulty === "peaceful") {
@@ -4015,6 +4175,8 @@ function updateStormVortex(dt) {
 function updateSandstorm(dt) {
   const p = G.player;
   if (G.dim !== "overworld" || p.headInWater || p.inLava) {
+    // Quiet exits must not carry a nearly-complete attraction back into a storm.
+    duneInterest = 0;
     stormStage = 0; stormSampleT = 0;
     stormVortex = null; stormVortexT = 10;
     Sound.wind(0);
@@ -4442,6 +4604,7 @@ function loop(now) {
     if (flyingMount) { input.flyDown = input.sprint; input.sprint = false; }
     if (G.spectator) { p.flying = true; p.noclip = true; } else { p.noclip = false; if (flyingMount || !G.creative) p.flying = !!flyingMount; }
     updateQuicksand(dt, true, input);
+    duneVortexDrag(input);
     if (mountedBurrow) { updateMountedBurrow(dt); acc = 0; }
     else acc += dt;
     const startX = p.pos.x, startZ = p.pos.z;
@@ -4530,6 +4693,9 @@ function loop(now) {
     updateOrbs(dt);
   }
   updateDuneWarning();
+  updateDuneSweep(dt, running);
+  updateDuneDevour(dt, running);
+  updateDuneVortex(dt, running);
   if (G.state === "play" && mouseL && !G.creative && !G.spectator && G.attackCd <= 0 && entityTarget()) attack();
   document.getElementById("waterTint").hidden = !p.headInWater;
 
@@ -4622,4 +4788,4 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneWarningReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };

@@ -59,7 +59,8 @@ export class DuneTrail {
   }
 }
 
-// Transient visual state: never used for encounter decisions or saved progress.
+// Transient pose state. Combat can sample the resulting rendered transforms;
+// pose caches are never saved progress.
 export class DunePose {
   constructor(x, y, z, yaw, resting) {
     this.yaw = yaw; this.resting = resting;

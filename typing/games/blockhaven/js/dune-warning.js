@@ -13,6 +13,7 @@ export function duneWarningCue(entity){
     point=c.site;type='eruption';radius=3;deadline=c.until;
     from=Number.isFinite(c.warningFrom)?c.warningFrom:deadline-(1.8-dunePhase(entity.hp,entity.maxHp)*.15);
   }else if(c.step==='surface'&&c.attack&&[2,3,4].includes(c.attack.phase)){
+    if(c.attack.phase===2||c.attack.phase===4)return null; // Posed body/jaw cues own these contact areas.
     point=c.attack;type=['','','sweep','vortex','devour'][point.phase];radius=point.phase===2?4:point.phase===3?3.5:3;deadline=c.attackAt;
     from=Number.isFinite(point.from)?point.from:deadline-1.25;
   }else return null;
