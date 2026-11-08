@@ -1,5 +1,7 @@
 // Saves worlds on this device only (IndexedDB), with a fallback when the browser blocks storage.
 // Nothing is ever sent anywhere. Worlds can also be downloaded as a file and loaded back.
+import { validBondPreferences } from "./leviathan-bonds.js";
+import { validArmorShieldRecord } from "./leviathan-armor-effects.js";
 export const SAVE_VERSION = 4;
 const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
@@ -85,20 +87,89 @@ export const Saves = {
   }
 };
 
+function validateLeviathan(expansion) {
+  if (expansion === undefined) return;
+  if (!isRecord(expansion)) {
+    throw new Error("This world file contains invalid Leviathan progress.");
+  }
+  if (!validArmorShieldRecord(expansion.armorShield)) throw new Error("This world file contains an invalid legendary armor shield.");
+  const flags = ["discovered", "relics", "sandsLore", "sandsRegions", "solkaraLore"];
+  if (expansion.gatewayDim !== undefined && !["desert", "solkara_sanctuary"].includes(expansion.gatewayDim)) {
+    throw new Error("This world file contains an invalid Solkara gateway link.");
+  }
+  if (flags.some(key => expansion[key] !== undefined &&
+    (!isRecord(expansion[key]) || Object.values(expansion[key]).some(value => typeof value !== "boolean"))) ||
+    ["shrineRead", "stormWitnessed", "hornCrafted"].some(key =>
+      expansion[key] !== undefined && typeof expansion[key] !== "boolean") ||
+    ["bladeReadyAt", "armorReadyAt"].some(key =>
+      expansion[key] !== undefined && (!Number.isFinite(expansion[key]) || expansion[key] < 0))) {
+    throw new Error("This world file contains invalid Leviathan discoveries or cooldowns.");
+  }
+  const annex = expansion.annex;
+  if (annex !== undefined && (!isRecord(annex) ||
+    (annex.next !== undefined && (!Number.isInteger(annex.next) || annex.next < 0 || annex.next > 3)) ||
+    ["solved", "coreClaimed", "gateOpen"].some(key => annex[key] !== undefined && typeof annex[key] !== "boolean"))) {
+    throw new Error("This world file contains invalid Solkara puzzle progress.");
+  }
+  const wing = expansion.wing;
+  if (wing !== undefined && (!isRecord(wing) ||
+    ["trapDisabled", "vaultClaimed"].some(key => wing[key] !== undefined && typeof wing[key] !== "boolean") ||
+    (wing.trapReadyAt !== undefined && (!Number.isFinite(wing.trapReadyAt) || wing.trapReadyAt < 0)))) {
+    throw new Error("This world file contains invalid Solkara library progress.");
+  }
+  const sites = expansion.sites;
+  if (sites !== undefined && (!isRecord(sites) || Object.values(sites).some(s =>
+    !isRecord(s) || ![s.x, s.y, s.z].every(Number.isSafeInteger) ||
+    s.x % 16 !== 0 || s.z % 16 !== 0 || s.y < 2 || s.y > 68
+  ))) throw new Error("This world file contains invalid desert relic sites.");
+  const { dune, obsidian, ancient, companion } = expansion;
+  for (const record of [dune, obsidian]) if (isRecord(record) && !validBondPreferences(record)) {
+    throw new Error("This world file contains invalid Leviathan bond preferences.");
+  }
+  if (companion !== undefined && (!isRecord(companion) || typeof companion.uid !== "string" || !companion.uid ||
+      !Number.isFinite(companion.hp) || companion.hp <= 0 || companion.hp > 24 ||
+      typeof companion.sitting !== "boolean" ||
+      (companion.readyAt !== undefined && (!Number.isFinite(companion.readyAt) || companion.readyAt < 0)))) {
+    throw new Error("This world file contains invalid Ancient companion progress.");
+  }
+  if (ancient !== undefined && (!isRecord(ancient) || !Number.isFinite(ancient.hp) || ancient.hp < 0 || ancient.hp > 400 ||
+      (ancient.defeated !== undefined && typeof ancient.defeated !== "boolean") ||
+      (ancient.hp === 0) !== (ancient.defeated === true))) {
+    throw new Error("This world file contains invalid Ancient Leviathan progress.");
+  }
+  if (obsidian !== undefined && (!isRecord(obsidian) || !Number.isFinite(obsidian.hp) || obsidian.hp < 0 || obsidian.hp > 260 ||
+      (obsidian.defeated !== undefined && typeof obsidian.defeated !== "boolean") ||
+      ["bonded", "saddled", "ritualOffered"].some(k => obsidian[k] !== undefined && typeof obsidian[k] !== "boolean") ||
+      (obsidian.recallAt !== undefined && (!Number.isFinite(obsidian.recallAt) || obsidian.recallAt < 0)) ||
+      (obsidian.bonded && obsidian.defeated) ||
+      (obsidian.hp === 0) !== (obsidian.defeated === true))) {
+    throw new Error("This world file contains invalid Obsidian Leviathan progress.");
+  }
+  if (dune !== undefined && (!isRecord(dune) || !Number.isFinite(dune.hp) || dune.hp < 0 || dune.hp > 180 ||
+      (dune.defeated !== undefined && typeof dune.defeated !== "boolean") ||
+      (dune.bonded !== undefined && typeof dune.bonded !== "boolean") ||
+      (dune.saddled !== undefined && typeof dune.saddled !== "boolean") ||
+      (dune.recallAt !== undefined && (!Number.isFinite(dune.recallAt) || dune.recallAt < 0)) ||
+      (dune.bonded && dune.defeated) ||
+      (dune.hp === 0) !== (dune.defeated === true))) {
+    throw new Error("This world file contains invalid Dune Leviathan progress.");
+  }
+}
+
 export const newId = () => "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 function split(w) {
   const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1, gen: w.gen || 1, hardcore: !!w.hardcore, hardcoreOver: !!w.hardcoreOver, campaign: w.campaign || null };
   const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips, voidInv: w.voidInv, adv: w.adv, story: w.story, stats: w.stats };
   return { meta, data };
 }
+const isRecord = v => v && typeof v === "object" && !Array.isArray(v);
 function validateDimensions(dims) {
-  const record = v => v && typeof v === "object" && !Array.isArray(v);
   const list = v => v == null || Array.isArray(v);
   const pairs = v => list(v) && (!v || v.every(pair => Array.isArray(pair) && pair.length === 2));
-  if (!record(dims) || Object.values(dims).some(d =>
-    !record(d) || !pairs(d.containers) || !list(d.visited) || !list(d.crops) ||
+  if (!isRecord(dims) || Object.values(dims).some(d =>
+    !isRecord(d) || !pairs(d.containers) || !list(d.visited) || !list(d.crops) ||
     !list(d.newGen) || !list(d.beacons) || !list(d.drops) ||
-    (d.mods != null && (!record(d.mods) || !Object.values(d.mods).every(pairs)))
+    (d.mods != null && (!isRecord(d.mods) || !Object.values(d.mods).every(pairs)))
   )) throw new Error("This world file contains invalid dimension data.");
 }
 
@@ -113,6 +184,7 @@ function upgrade(w) {
   while (w.voidInv.length < 27) w.voidInv.push(null);
   w.adv = w.adv && typeof w.adv === "object" ? { done: {}, prog: {}, ...w.adv } : { done: {}, prog: {} };
   w.story = w.story && typeof w.story === "object" ? w.story : {};
+  validateLeviathan(w.story.leviathan);
   if (w.player && w.player.sat === undefined) w.player.sat = 5;
   w.hardcore = !!w.hardcore; w.hardcoreOver = !!w.hardcoreOver;
   // version 3 → 4: Sparkworks (signal timers and comparator outputs live in each dimension as dims[dim].rs; nothing old needs changing)

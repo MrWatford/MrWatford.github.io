@@ -4,7 +4,7 @@ import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, 
   buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor, isRail } from "./blocks.js";
 import { initRedstone } from "./redstone.js";
 import { selectBox } from "./shapes.js";
-import { Entities, SPECIES, TRADES } from "./entities.js";
+import { Entities, SPECIES, TRADES, lineOfSight } from "./entities.js";
 import { Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
@@ -20,6 +20,37 @@ import { initCampaign, CAMPAIGN_SEED } from "./campaign.js";
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
+import { nextLeviathanStorm, sandstormStage } from "./sandstorm.js";
+import { dunePhase, duneRitualWindow } from "./dune-leviathan.js";
+import { DESERT_SITES, RELIC_SITES, SHRINE_INSCRIPTION, buildRelicStamp, citadelArena, citadelCache, citadelTablet, cityCache, cityTablet, observatoryTablet, planRelicSites, relicCache, relicSiteAt, shrineSign } from "./desert-relic-sites.js";
+import { SOLKARA_ALTAR, SOLKARA_GATE, SOLKARA_RETURN, SOLKARA_SANCTUARY, SolkaraSanctuaryGen, isSolkaraRealm, SOLKARA_LIBRARY, SOLKARA_MARKS, SOLKARA_MURAL, SOLKARA_ORDER, SOLKARA_SAND_TRAP, SOLKARA_VAULT, SOLKARA_WING_SWITCH, annexFits, atSolkara, buildSolkaraAnnex, buildSolkaraWing, solkaraMarkAt } from "./solkara-annex.js";
+import { HOLLOW_SANDS, HollowSandsGen, SANDS_ARRIVAL, SANDS_REGIONS, SANDS_RETURN, SANDS_TABLETS } from "./hollow-sands.js";
+import { makeSolkaraGateView } from "./solkara-gate-view.js";
+import { BURIED_THRONE, THRONE_ALTAR, THRONE_TABLET } from "./buried-throne.js";
+import { createAncientSpikes } from "./ancient-spikes.js";
+import { hasDesertRelic, recordLeviathanDiscovery } from "./leviathan-journal.js";
+import { ArenaFractures } from "./arena-fractures.js";
+import { solkaraRecordAt } from "./solkara-lore.js";
+import { canMountLeviathan, findLeviathanExit, findLeviathanRecovery } from "./leviathan-riding.js";
+import { leviathanCameraDistance } from "./leviathan-camera.js";
+import { armorShieldState } from "./leviathan-armor-effects.js";
+import { createArmorShieldView } from "./leviathan-armor-shield-view.js";
+import { weaponSwing } from "./weapon-motion.js";
+import { createLeviathanWeaponMesh } from "./leviathan-weapon-view.js";
+import { CrystalResonance, crystalSite, findCrystalSite, insideCrystalPulse } from "./crystal-resonance.js";
+import { createCrystalResonanceView } from "./crystal-resonance-view.js";
+import { findQuicksandSite, insideQuicksand, QuicksandDrag } from "./abyssal-quicksand.js";
+import { createQuicksandView } from "./abyssal-quicksand-view.js";
+import { HeatExposure, heatSite, findHeatSite, insideHeat } from "./forgotten-heat.js";
+import { createHeatView } from "./forgotten-heat-view.js";
+import { duneWarningCue } from "./dune-warning.js";
+import { createDuneWarningView } from "./dune-warning-view.js";
+import { LEVIATHAN_BONDS, applyBondPreferences, updateBondPreference, thinkBondedLeviathan } from "./leviathan-bonds.js";
+import { clearRecallFootprint, planDesertRecall } from "./leviathan-recall.js";
+import { beginDuneMountedAttack, createDuneMountedWave } from "./leviathan-mounted-combat.js";
+import { beginObsidianMountedAttack, createObsidianMountedEruptions } from "./leviathan-obsidian-mounted.js";
+import { beginMountedBurrow } from "./leviathan-mounted-burrow.js";
+import { createBurrowView } from "./leviathan-burrow-view.js";
 
 THREE.ColorManagement.enabled = false;
 const DAY_LENGTH = 720;          // seconds for a full day and night (12 minutes)
@@ -192,6 +223,8 @@ function shieldMesh() {
 }
 function itemMesh(id, size) {
   const d = BLOCKS[id];
+  const legendary = id === I.FANGBLADE ? "fang" : id === I.INFERNO_GREATBLADE ? "inferno" : id === I.BURIED_SCEPTER ? "scepter" : null;
+  if (legendary) return createLeviathanWeaponMesh(legendary, size);
   if (id === I.SHIELD) return shieldMesh();
   if (isBlockItem(id) && d.shape === "cube") return new THREE.Mesh(blockGeometry(id, size), new THREE.MeshBasicMaterial({ map: atlasTex, transparent: d.render !== "opaque", alphaTest: 0.5 }));
   return new THREE.Mesh(new THREE.PlaneGeometry(size * 1.5, size * 1.5), new THREE.MeshBasicMaterial({ map: itemTexture(id), alphaTest: 0.5, side: THREE.DoubleSide }));
@@ -220,19 +253,21 @@ function updateHeld(bright) {
     if (oid) { offMesh = itemMesh(oid, 0.13); offMesh.userData.shared = offMesh.userData.shared || offMesh.geometry.type !== "PlaneGeometry"; prepHandMesh(offMesh); offHand.add(offMesh); }
   }
   hand.visible = offHand.visible = !G.spectator && !G.thirdPerson;
-  const sw = Math.sin(Math.min(1, G.swing) * Math.PI);
+  const heavy = !!itemDef(id)?.tool?.heavy;
+  const sw = weaponSwing(G.swing, heavy, G.settings.reducedMotion);
   const bob = G.settings.reducedMotion ? 0 : Math.sin(G.walkPhase * 2) * 0.012;
   const eating = G.eat && G.eat.slot === G.selected ? Math.min(1, G.eat.t * 4) : 0, chew = G.eat ? Math.sin(G.eat.t * 22) * 0.015 : 0;
   hand.position.set(0.4 - sw * 0.08 - eating * 0.3, -0.36 + bob - sw * 0.06 + eating * 0.12 + (eating ? chew : 0), -0.62 - sw * 0.06);
-  hand.rotation.set(-sw * 0.9, 0.5, 0);
+  hand.rotation.set(-sw * (heavy ? 1.15 : 0.9), 0.5, heavy ? sw * 0.2 : 0);
   if (heldMesh.userData.arm) heldMesh.rotation.set(-Math.PI / 2 + 0.25, 0.15, 0.1);
+  else if (heldMesh.userData.legendaryWeapon) heldMesh.rotation.set(-0.2, -0.25, Math.PI / 4);
   else if (heldMesh.userData.multi) heldMesh.rotation.set(0, -0.3, 0); else if (heldMesh.geometry.type === "PlaneGeometry") heldMesh.rotation.set(0, -0.6, 0.3); else heldMesh.rotation.set(0.1, 0.3, 0);
   lightItem(heldMesh, bright);
   // offhand: lower left; a raised shield moves in front of you
   const up = G.blocking && G.blockHand === OFF ? 1 : 0, offEat = G.eat && G.eat.slot === OFF ? Math.min(1, G.eat.t * 4) : 0;
   offHand.position.set(-0.42 + up * 0.22 + offEat * 0.3, -0.37 + bob + up * 0.12 + offEat * 0.12 + (offEat ? chew : 0), -0.7 + up * 0.08);
   offHand.rotation.set(0, -0.5 + up * 0.45, 0);
-  if (offMesh) { if (offMesh.userData.multi) offMesh.rotation.set(0, 0.3, 0); else if (offMesh.geometry.type === "PlaneGeometry") offMesh.rotation.set(0, 0.6, -0.3); else offMesh.rotation.set(0.1, -0.3, 0); lightItem(offMesh, bright); }
+  if (offMesh) { if (offMesh.userData.legendaryWeapon) { offMesh.scale.x = -1; offMesh.rotation.set(-0.2, 0.25, -Math.PI / 4); } else if (offMesh.userData.multi) offMesh.rotation.set(0, 0.3, 0); else if (offMesh.geometry.type === "PlaneGeometry") offMesh.rotation.set(0, 0.6, -0.3); else offMesh.rotation.set(0.1, -0.3, 0); lightItem(offMesh, bright); }
   if (G.blocking && G.blockHand === G.selected) { hand.position.x -= 0.18; hand.position.y += 0.1; hand.rotation.y = 0.05; }
 }
 
@@ -258,6 +293,43 @@ window.__bh = G;   // handy for testing in the browser console
 // ---------- creatures ----------
 const ents = new Entities(scene, {
   world: () => G.world, player: () => G.player, settings: () => G.wset, creative: () => G.creative || G.spectator, alive: () => G.state !== "dead",
+  desertContext: () => ({ dim: G.dim, storm: stormStage, sites: G.story.leviathan?.sites }),
+  reducedMotion: () => G.settings.reducedMotion,
+  companionChanged: e => {
+    const record = G.story.leviathan.companion;
+    record.hp = Math.max(1, e.hp); record.sitting = e.sitting;
+    if (e.hp <= 0) {
+      record.readyAt = worldSeconds() + 60;
+      record.hp = e.maxHp;
+      e.hp = 1; e.gone = true;
+      UI.toast("Runecrest retreats into the relic to recover.");
+    }
+  },
+  leviathanThink: (e, multiplier) => e.sp === "leviathan_ancient" ? thinkAncient(e, multiplier) : e.sp === "leviathan_obsidian" ? thinkObsidian(e, multiplier) : thinkDune(e, multiplier),
+  leviathanDamaged: e => {
+    if (e.sp === "leviathan_ancient") { damageAncient(e); return; }
+    if (e.sp === "leviathan_obsidian") { damageObsidian(e); return; }
+    if (e.duneCycle.preview) return;
+    const record = G.story.leviathan.dune;
+    if (e.tame) {
+      record.hp = Math.max(1, e.hp);
+      if (e.hp <= 0) {
+        e.hp = 1; e.gone = true;
+        UI.toast("Your wounded Leviathan retreats beneath the sand.");
+      }
+      return;
+    }
+    e.duneCycle.ritualMarks = 0;
+    e.duneCycle.ritualUsed = true;
+    record.hp = Math.max(0, e.hp);
+    if (e.hp <= 0) {
+      record.defeated = true;
+      const s = e.duneCycle.site;
+      spawnOrbs(160, s.x, s.y + 0.5, s.z);
+      spawnDrop(I.LEVIATHAN_SCALE, 6, s.x, s.y + 0.5, s.z);
+      spawnDrop(I.LEVIATHAN_FANG, 1, s.x, s.y + 0.5, s.z);
+    }
+  },
   hurtPlayer: (n, why, src, kind) => hurt(n, why, src, false, kind), effect: (k, t) => addEffect(k, t),
   explode: (x, y, z, power, src) => explode(x, y, z, power, src),
   drop: (id, n, x, y, z, stack) => spawnDrop(id, n, x, y, z, stack),
@@ -280,7 +352,7 @@ const ents = new Entities(scene, {
   cloud: (x, y, z) => addCloud(x, y, z),
   crystalGone: i => { const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
   bossLeft: e => { (G.dimData.end || (G.dimData.end = {})).wyrmHp = e.hp; },
-  bossDefeated: e => (G.campaign && G.campaign.bossDefeated(e)) ? null : L.bossDefeated(e) ? null : e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
+  bossDefeated: e => e.def.segmentedLeviathan ? UI.toast(`The ${e.def.name} is defeated!`, "good") : (G.campaign && G.campaign.bossDefeated(e)) ? null : L.bossDefeated(e) ? null : e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
   arena: () => arena(), cinderPylons: () => G.cinderPylons(),
   heroHit: (e, n) => F.heroHit(e, n), warded: (x, z) => F.warded(x, z),
   lantern: () => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === I.WARD_LANTERN),
@@ -453,19 +525,43 @@ function mount(e) {
     return true;
   }
   if (e.tame && !e.saddled) { UI.toast(`Hold a Saddle and right-click your ${e.def.name} to equip it.`); return true; }
+  if (e.def.segmentedLeviathan && !canMountLeviathan(G.world, p, e)) {
+    UI.toast("Your bonded Leviathan needs dry, clear footing and enough headroom before you can mount.");
+    return true;
+  }
   G.riding = e; e.ridden = true; e.rideT = 0; e.goal = null; e.path = null;
   p.mount = e; p.flying = false; p.gliding = false; p.crouch = false;
   p.pos.x = e.pos.x; p.pos.y = e.pos.y; p.pos.z = e.pos.z; p.vel.x = p.vel.y = p.vel.z = 0;
+  if (e.def.segmentedLeviathan) {
+    p.airTop = null; p.onGround = true; p.inWater = false; p.headInWater = false;
+    e.vel.x = e.vel.y = e.vel.z = 0;
+  }
   if (e.def.airMount && e.tame) p.flying = true;
-  Sound.mob("neigh", 0); if (e.tame) G.adv("ride");
-  UI.toast(e.def.airMount && e.tame ? "Flying! W A S D to steer, Space to rise, Shift to descend, C to get off." : e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : `Hold on! This ${e.def.name} is wild and may buck you off. Keep trying to tame it.`);
+  Sound.mob(e.def.segmentedLeviathan ? "rumble" : "neigh", 0); if (e.tame) G.adv("ride");
+  UI.toast(e.def.segmentedLeviathan && e.tame ? `Riding! W A S D to steer, Shift to gallop, B to burrow, G for ${e.sp === "leviathan_obsidian" ? "Cinder Lance" : "Sandbreaker"}, C to get off.` : e.def.airMount && e.tame ? "Flying! W A S D to steer, Space to rise, Shift to descend, C to get off." : e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : `Hold on! This ${e.def.name} is wild and may buck you off. Keep trying to tame it.`);
   return true;
 }
 function dismount(quiet) {
   const p = G.player, e = G.riding;
   if (!e) return;
+  if (e.burrowTravel) { clearMountedBurrow(); if (G.riding !== e) return true; }
+  const leviathanExit = e.def.segmentedLeviathan ? findLeviathanExit(G.world, p, e) : null;
+  if (e.def.segmentedLeviathan && !leviathanExit && !quiet) {
+    UI.toast("No safe landing nearby. Move onto open, dry ground before dismounting.");
+    return false;
+  }
   if (e.def.airMount) p.flying = false;
+  if (e.def.segmentedLeviathan) clearMountedLeviathanAttack();
   G.riding = null; p.mount = false; p.boat = false; p.cart = false; e.ridden = false; if (!e.def.cart) { e.vel.x = e.vel.y = e.vel.z = 0; }
+  if (e.def.segmentedLeviathan) {
+    // Lifecycle exits must detach even without nearby footing. Keep the current
+    // position in that case; dimension travel/death will place the player next.
+    if (leviathanExit) Object.assign(p.pos, leviathanExit);
+    p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null;
+    p.onGround = !!leviathanExit; p.inWater = false; p.headInWater = false;
+    if (!quiet) Sound.place("sand");
+    return true;
+  }
   if (e.def.boat && boatLanding(p)) { if (!quiet) Sound.place("wood"); return; }
   // step off to the side if there is room
   for (const s of [1, -1]) {
@@ -493,6 +589,7 @@ function tickRiding(dt) {
   const p = G.player, e = G.riding;
   if (!e) return;
   if (e.dead || e.gone || !ents.list.includes(e)) { dismount(true); return; }
+  if (e.burrowTravel) return;
   if (e.def.cart) {   // the cart carries you
     p.pos.x = e.pos.x; p.pos.y = e.pos.y + 0.2; p.pos.z = e.pos.z; p.vel.x = e.vel.x; p.vel.y = 0; p.vel.z = e.vel.z; p.airTop = null;
     G.cartDist = (G.cartDist || 0) + Math.hypot(e.vel.x, e.vel.z) * dt; if (G.cartDist > 100 && !G.cartAdv) { G.cartAdv = true; G.adv("cartride"); }
@@ -1394,6 +1491,27 @@ function stream(budget) {
   }
 }
 function clearWorldMeshes() {
+  clearDuneWarning();
+  clearSandsHeat();
+  clearQuicksand();
+  clearCrystalResonance();
+  clearArmorShieldView();
+  clearMountedBurrow(false);
+  clearMountedLeviathanAttack();
+  scarabVaultStarted = false;
+  clearArenaFractures();
+  leviathanJournalT = 0;
+  for (const effect of ancientSpikes) effect.dispose();
+  ancientSpikes.length = 0;
+  clearSolkaraCore();
+  clearSolkaraGateView();
+  sandsSampleT = 0;
+  sandsRegion = 0;
+  sandsHaze.setHex(SANDS_REGIONS[0].haze);
+  Sound.wind(0);
+  stormStage = 0; stormSampleT = 0; stormDustT = 0;
+  stormVortex = null; stormVortexT = 10;
+  duneInterest = 0;
   clearBeams();
   if (G.world) for (const c of G.world.chunks.values()) disposeMesh(c);
   for (const d of G.drops) removeDrop(d);
@@ -1406,13 +1524,36 @@ function clearWorldMeshes() {
 // ---------- dimensions: each has its own generator, block changes, containers, and creatures ----------
 function makeWorld(dim) {
   const data = G.dimData[dim] || (G.dimData[dim] = {});
-  const gen = dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
+  const gen = dim === SOLKARA_SANCTUARY ? new SolkaraSanctuaryGen() : dim === HOLLOW_SANDS ? new HollowSandsGen(G.meta.seed) : dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
   if (LOST_DIMS.includes(dim)) CP.stampDim(dim, gen);   // campaign boss chambers behind the temple vaults
+  if (dim === SOLKARA_SANCTUARY) { data.solkaraAnnex = 1; data.solkaraWing = 1; }
+  if (dim === "desert") {
+    const stamp = buildSolkaraAnnex();
+    gen.stamps ||= [];
+    if (data.solkaraAnnex === 1 || annexFits(stamp, data, gen.stamps)) {
+      data.solkaraAnnex = 1;
+      gen.stamps.push(stamp);
+      const wing = buildSolkaraWing();
+      if (data.solkaraWing === 1 || annexFits(wing, data, gen.stamps.filter(s => s !== stamp),
+          { x0: -62, x1: -23, z0: 34, z1: 58 })) {
+        data.solkaraWing = 1;
+        gen.stamps.push(wing);
+      }
+    }
+  }
   if (dim === "nether") { gen.citadel = chooseCitadel(); CP.stampNether(gen, data); }   // where Cindermaw's citadel stands in this world (+ the campaign's seal shrines)
   if (dim === "overworld") {
     if (!CP.plan(gen, data)) ST.plan(gen, data);   // campaign worlds get Legacy Village instead of the Starter Home's spot (chosen once per world, before any land is made)
     L.prepareOverworld(gen, data);   // the Keeper excavation and temple entrances, stamped into land nobody has visited yet
     if (CP.on()) CP.stamp(gen, data); else ST.stamp(gen);   // the village (or the house) goes in last, so nothing else draws over it
+    const expansion = G.story.leviathan ||= {};
+    const temple = G.story.lost?.tsites?.desert;
+    expansion.sites = planRelicSites(gen, data, expansion.sites, temple);
+    gen.stamps ||= [];
+    for (const def of DESERT_SITES) {
+      const site = expansion.sites[def.key];
+      if (site) gen.stamps.push(buildRelicStamp(def, site));
+    }
   }
   const w = new World(gen);
   w.dim = dim;
@@ -1562,6 +1703,8 @@ function placeSafely(p, x, z) {
 }
 
 function snapshot() {
+  if (mountedBurrow && !mountedBurrow.session.savePosition) clearMountedBurrow();
+  clearArenaFractures();
   const p = G.player;
   G.dimData[G.dim] = dimSnapshot(G.world);
   return {
@@ -1638,6 +1781,7 @@ function openPanel(kind, ctx) {
   if (kind === "inventory" && G.creative) tipDone("craft");
 }
 G.openAdvancements = () => openPanel("advancements");
+G.openJournal = () => { if (G.world && ["play", "pause", "panel"].includes(G.state)) openPanel("journal"); };
 G.openNoteRaw = n => { if (G.state === "play" || G.state === "panel") openPanel("note", n); };
 G.closePanel = () => closePanel();
 function closePanel() {
@@ -1656,6 +1800,7 @@ window.addEventListener("keydown", e => {
     if (e.code === G.settings.keySwap && !typing) { if (UI.hotkey(OFF)) e.preventDefault(); }   // swap the slot you point at with the offhand
     return;
   }
+  if (G.state === "play" && !locked && e.code === "Escape") { e.preventDefault(); pause(); return; }
   if (e.code === "Escape" && UI.current === "skins") { e.preventDefault(); UI.closeSkins(); return; }
   if (G.cutscene && (e.code === "Space" || e.code === "Escape" || e.code === "Enter")) { e.preventDefault(); G.skipVictory(); return; }
   if (G.state === "pause" && e.code === "Escape" && UI.current === "pause" && performance.now() - (G.pausedAt || 0) > 400) { e.preventDefault(); G.resume(); return; }
@@ -1665,7 +1810,12 @@ window.addEventListener("keydown", e => {
   if (e.repeat) { keys.add(e.code); return; }
   keys.add(e.code);
   if (!locked) return;
+  if (mountedBurrow) {
+    if (e.code === "KeyC" || e.code === "KeyB") { mountedBurrow.session.requestCancel(); UI.toast("Returning to the surface. Press C after emergence to dismount."); }
+    return;
+  }
   if (/^Digit[1-9]$/.test(e.code)) selectSlot(+e.code.slice(5) - 1);
+  else if (e.code === "KeyB" && e.altKey && G.riding?.def.segmentedLeviathan) { e.preventDefault(); useMountedBurrow(); }
   else if (e.code === G.settings.keySwap) swapHands();
   else if (e.code === "KeyL") openPanel("advancements");
   else if (e.code === "KeyJ") openPanel("journal");
@@ -1675,6 +1825,8 @@ window.addEventListener("keydown", e => {
   else if (e.code === "KeyE") openPanel("inventory");
   else if (e.code === "KeyQ") dropSelected(e.ctrlKey);
   else if (e.code === "KeyC" && G.riding) dismount();
+  else if (e.code === "KeyG" && ["leviathan_dune", "leviathan_obsidian"].includes(G.riding?.sp)) useMountedLeviathanAttack();
+  else if (e.code === "KeyB" && G.riding?.def.segmentedLeviathan) useMountedBurrow();
   else if (e.code === "F3") { G.debug = !G.debug; document.getElementById("debug").hidden = !G.debug; }
   else if (e.code === "KeyV" || e.code === "F5") { e.preventDefault(); G.view = ((G.view || 0) + 1) % 3; UI.toast(["First-person view", "Third-person view (behind)", "Third-person view (front)"][G.view]); }
   else if (e.code === "Space" && !G.player.onGround && !G.player.inWater && !G.player.flying && !G.player.gliding && G.player.vel.y < -1 && G.inv.slots[37] && G.inv.slots[37].id === I.GLIDER) {
@@ -1817,6 +1969,16 @@ function breakBlock(x, y, z, drops, quiet) {
   if (!quiet) R.beforeBreak(x, y, z, (heldTool() || {}).type);   // shears cut a tripwire without setting it off
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
+  if (id === B.SOLKARA_GATE) return;
+  if (G.dim === "overworld" && (id === B.CHEST || id === B.SIGN)) {
+    const sites = G.story.leviathan?.sites, hit = { x, y, z };
+    const protectedSite = id === B.CHEST ? relicSiteAt(sites, hit, relicCache) :
+      relicSiteAt(sites, hit, shrineSign)?.key === "shrine";
+    if (protectedSite) {
+      if (!quiet) UI.toast("This Solkara landmark is protected.");
+      return;
+    }
+  }
   R.vibrate(x + 0.5, y + 0.5, z + 0.5, 13);
   F.blockBroken(x, y, z, id); L.blockBroken(x, y, z, id); ST.blockBroken(x, y, z, id); CP.blockBroken(x, y, z, id);
   w.crops.delete(x + "," + y + "," + z);
@@ -1874,6 +2036,7 @@ function breakBlock(x, y, z, drops, quiet) {
 
 // ---------- fighting ----------
 function entityTarget() {
+  if (mountedBurrow) return null;
   const p = G.player, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z }, dir = lookDir();
   const eh = ents.raycast(eye, dir, G.creative ? 5 : 3.5);
   if (!eh) return null;
@@ -1883,6 +2046,7 @@ function entityTarget() {
 }
 // Hit whatever creature is in front of you. Returns true if something was hit.
 function attack() {
+  if (mountedBurrow) return true;
   { const p = G.player; if (ents.deflect({ x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z }, lookDir(), 4)) { G.swing = 0.01; return true; } }
   const e = entityTarget();
   if (!e) return false;
@@ -1897,7 +2061,7 @@ function attack() {
     if (crit) puff(e.pos.x, e.pos.y + e.h, e.pos.z, "poof");
     if (s && d.tool) wearTool(s, d.tool.type === "sword" ? 1 : 2);
   }
-  G.attackCd = d && d.tool && d.tool.type === "sword" ? 0.45 : 0.6; G.swing = 0.01;
+  G.attackCd = d?.tool?.attackCooldown ?? (d?.tool?.type === "sword" ? 0.45 : 0.6); G.swing = 0.01;
   if (!G.creative) G.player.exhaust += 0.1;
   F.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z); L.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z, 12, "fighting");
   return true;
@@ -1974,6 +2138,7 @@ function placeBoat(slot) {
 
 // ---------- placing and using ----------
 function target() {
+  if (mountedBurrow) return null;
   const p = G.player, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
   const dir = lookDir();
   return raycast(G.world, eye, dir, G.creative ? REACH + 1.5 : REACH);
@@ -1984,6 +2149,7 @@ function facingFromYaw() { const a = ((G.player.yaw % (Math.PI * 2)) + Math.PI *
 // Right-click: the main hand acts first; if it has nothing to do, the offhand gets a turn (Minecraft Java rules).
 // Left-click (mining and attacking) always uses the main hand.
 function useItem() {
+  if (mountedBurrow) return true;
   if (G.spectator || G.eat || G.bowT >= 0) return true;
   for (const si of [G.selected, OFF]) {
     if (si === OFF && !G.inv.slots[OFF]) break;
@@ -1998,6 +2164,11 @@ function useItem() {
 function useWith(offhand) {
   const hit = target(), w = G.world, slot = G.inv.slots[G.useSlot], crouch = keys.has("KeyC"), sd = slot ? itemDef(slot.id) : null;
   const take = () => { if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; } };
+  if (!slot && !offhand && crouch && useLeviathanArmor()) return true;
+  if (slot?.id === I.BURIED_SCEPTER) return useBuriedScepter(slot);
+  if (slot?.id === I.ANCIENT_COMPANION_RELIC) return useAncientCompanion();
+  if (slot && [I.FANGBLADE, I.INFERNO_GREATBLADE].includes(slot.id)) return useLeviathanBlade(slot);
+  if (slot?.id === I.SANDCALLER_HORN) return useSandcallerHorn();
   if (slot && slot.id === I.FISHING_ROD) { useRod(slot); return true; }
   if (slot && (slot.id === I.BOAT || slot.id === I.CHEST_BOAT) && placeBoat(slot)) return true;
   if (sd && sd.cart) {   // minecarts go on rails
@@ -2006,6 +2177,17 @@ function useWith(offhand) {
   }
   // creatures first, then blocks you can open or use (only the main hand opens things)
   const ent = entityTarget();
+  if (ent?.def.segmentedLeviathan && ent.tame) {
+    const record = G.story.leviathan[ent.sp === "leviathan_obsidian" ? "obsidian" : "dune"];
+    if (slot?.id === I.SADDLE && !ent.saddled) {
+      take(); ent.saddled = true; record.saddled = true; G.hudDirty = true;
+      UI.toast("Saddle equipped. Use an empty hand to ride.", "good");
+      return true;
+    }
+    if (!slot) {
+      return mount(ent);
+    }
+  }
   if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; } if (!offhand && !slot) return false; }
   if (hit && !crouch && !offhand) {
     const id = idOf(hit.v), d = BLOCKS[id];
@@ -2022,6 +2204,18 @@ function useWith(offhand) {
   if (sd.kind === "spawn" && hit) {
     const x = hit.x + hit.nx + 0.5, y = hit.y + hit.ny, z = hit.z + hit.nz + 0.5;
     const sp = sd.species === "villager" ? ["farmer", "fletcher", "shepherd", "cleric", "smith"][Math.floor(Math.random() * 5)] : sd.species;
+    if (sp === "leviathan_dune") {
+      if (!G.creative || G.dim !== "overworld") {
+        UI.toast("Use this egg on the Surface in Creative.", "bad");
+        return true;
+      }
+      if (ents.list.some(e => e.sp === sp && !e.gone)) return true;
+      const site = { x, y: G.world.surfaceY(Math.floor(x), Math.floor(z)) + 1, z };
+      const e = ents.add(sp, site.x, site.y, site.z);
+      e.emerged = true;
+      e.duneCycle = { step: "surface", site, preview: true };
+      return true;
+    }
     ents.add(sp, x, y, z, sp === "blightking" ? { summonT: 10 } : sp === "golem" ? { home: [x, y, z] } : { persist: !!SPECIES[sp]?.expansion }); puff(x, y + 0.5, z, "poof");
     take(); G.hudDirty = true; return true;
   }
@@ -2247,6 +2441,56 @@ function blocksPlayer(v, x, y, z) {
 }
 function interact(hit, kind) {
   const w = G.world, key = hit.x + "," + hit.y + "," + hit.z;
+  if (kind === "solkara_gate") { useSolkaraGate(hit); return; }
+  if (isSolkaraRealm(G.dim) && G.dimData[G.dim]?.solkaraWing === 1 && interactSolkaraWing(hit, kind)) return;
+  if (G.dim === HOLLOW_SANDS && kind === "lore" && atSolkara(hit, THRONE_TABLET)) {
+    UI.openNote("The Throne of the Buried King", `Six records survive beneath the sands. The keepers scattered them among the six regions so that no king could awaken the ancient one alone. Claim the Ancient Desert Core and read all six records to awaken the throne. The Core's attunement survives the loss of its physical form.\n\nThe inner court lies at X ${BURIED_THRONE.x}, Z ${BURIED_THRONE.z}.`, false);
+    return;
+  }
+  if (G.dim === HOLLOW_SANDS && kind === "pedestal" && atSolkara(hit, THRONE_ALTAR)) {
+    awakenAncient();
+    return;
+  }
+  const observatory = G.story.leviathan?.sites?.observatory;
+  if (kind === "lore" && G.dim === "overworld" && observatory && atSolkara(hit, observatoryTablet(observatory))) {
+    const day = G.meta.day || 1, forecast = nextLeviathanStorm(G.gen.seed, day, G.time);
+    const report = sandstormStage(G.gen.seed, day, G.time) === 4 ? "A Leviathan Storm is active now." :
+      forecast ? `The next Leviathan Storm is due on day ${forecast.day}, about ${Math.round(forecast.time * 100)}% through the day.` :
+        "The instrument detects no Leviathan Storm in the next sixty days.";
+    UI.openNote("Great Dune Observatory", report + "\n\nWhen the storm darkens and the dunes rumble, sprint across open sand to draw the Leviathan out. Slow down or take shelter to avoid its notice.", false);
+    return;
+  }
+  const city = G.story.leviathan?.sites?.city;
+  if (kind === "lore" && G.dim === "overworld" && city && atSolkara(hit, cityTablet(city))) {
+    const sites = G.story.leviathan.sites;
+    const directions = [["shrine", "Desert Shrine"], ["observatory", "Great Dune Observatory"]].flatMap(([id, name]) => {
+      const s = sites[id];
+      return s ? [`${name} — X ${s.x + 8}, Z ${s.z + 8}.`] : [];
+    });
+    UI.openNote("The Last Market Ledger", [
+      "The north road vanished overnight. Our last supplies are behind the rough cobble patch in this library.",
+      "The keepers copied these bearings before they left the city.",
+      ...directions
+    ].join("\n\n"), false);
+    return;
+  }
+  const citadel = G.story.leviathan?.sites?.citadel;
+  if (kind === "lore" && G.dim === "overworld" && citadel && atSolkara(hit, citadelTablet(citadel))) {
+    const arena = citadelArena(citadel);
+    UI.openNote("The Basalt Watch", `Cross by the dark stone causeway. The outer ring burns underfoot, but the basalt path leads through it. The inner court lies at X ${Math.floor(arena.x)}, Z ${Math.floor(arena.z)}. The quartermaster kept healing supplies in the chest opposite this tablet.\n\nHeart of the Inferno\nFirst earn the Dune Leviathan's trust. Bring 8 obsidian, 4 gold ingots and 2 Ember Quartz. Sound the Sandcaller Horn to offer them while the Obsidian Leviathan is awake. Survive its attacks, then answer four recoveries when its molten veins dim. Striking it breaks the sequence. Once bonded, recall it to the Citadel's clear inner court, or crouch while sounding the horn on wide, flat desert sand.`, false);
+    return;
+  }
+  if (kind === "lore" && G.dim === HOLLOW_SANDS) {
+    const tablet = SANDS_TABLETS.find(t => t.x === hit.x && t.z === hit.z && G.gen.column(t.x, t.z).h + 2 === hit.y);
+    if (tablet) {
+      const expansion = G.story.leviathan ||= {};
+      const lore = expansion.sandsLore ||= {};
+      if (!G.creative && !G.spectator) lore[tablet.region.name] = true;
+      UI.openNote(tablet.region.name, tablet.region.lore, false);
+      return;
+    }
+  }
+  if (isSolkaraRealm(G.dim) && G.dimData[G.dim]?.solkaraAnnex === 1 && interactSolkara(hit, kind)) return;
   if (CP.interact(hit, kind)) return;  // the Legacy Campaign's Waystones and Rune Stones
   if (F.interact(hit, kind)) return;   // the Forsaken World's notes, wards, shrines, gate, and altar
   if (L.interact(hit, kind)) return;   // the Lost Civilization's tablets, lifts, puzzles, sockets, and beacons
@@ -2258,7 +2502,14 @@ function interact(hit, kind) {
     Sound.door(open); R.vibrate(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5, open ? 11 : 10); return;
   }
   if (kind === "table") { openPanel("table"); return; }
-  if (kind === "sign") { ST.readSign(hit); return; }
+  if (kind === "sign") {
+    const expansion = G.story.leviathan;
+    if (G.dim === "overworld" && relicSiteAt(expansion?.sites, hit, shrineSign)?.key === "shrine") {
+      if (!G.creative) expansion.shrineRead = true;
+      UI.openNote("The Call of the Sands", SHRINE_INSCRIPTION, false);
+    } else ST.readSign(hit);
+    return;
+  }
   if (kind === "maptable") { ST.useTable(); return; }
   if (kind === "bed") { useBed(hit); return; }
   if (kind === "berries") {   // pick ripe berries (the bush keeps growing)
@@ -2291,6 +2542,218 @@ function interact(hit, kind) {
     openPanel("furnace", key);
   }
 }
+
+function interactSolkara(hit, kind) {
+  if (kind === "mural" && atSolkara(hit, SOLKARA_MURAL)) {
+    UI.openNote("The Leviathan Mural", "The Buried Kings crossed the dunes by following the old signs. First the sun gave them light. Then the river showed them the way. Last the star led them home. The chamber places the star at the north end, the sun in the middle, and the river to the south.", false);
+    return true;
+  }
+  const mark = kind === "switch" && solkaraMarkAt(hit);
+  const altar = kind === "pedestal" && atSolkara(hit, SOLKARA_ALTAR);
+  if (!mark && !altar) return false;
+  const expansion = G.story.leviathan ||= {};
+  const progress = expansion.annex ||= { next: 0 };
+  progress.next ??= 0;
+  if (mark) {
+    if (progress.solved) return true;
+    if (mark.name !== SOLKARA_ORDER[progress.next]) {
+      progress.next = mark.name === SOLKARA_ORDER[0] ? 1 : 0;
+      UI.toast(`The ${mark.name} glyph rings out. The echo sequence resets.`);
+    } else {
+      progress.next++;
+      if (progress.next === SOLKARA_ORDER.length) progress.solved = true;
+      UI.toast(progress.solved ? "The chamber answers. The Leviathan Altar awakens." : `The ${mark.name} glyph rings out.`, "good");
+      Sound.tone(240 + progress.next * 90, 0.35, "sine", 0.15);
+    }
+    for (const p of SOLKARA_MARKS) {
+      const on = SOLKARA_ORDER.indexOf(p.name) < progress.next;
+      const value = make(B.KEEPER_SWITCH, on ? 1 : 0);
+      const old = G.world.get(p.x, p.y, p.z);
+      if (idOf(old) === B.KEEPER_SWITCH && old !== value) G.world.set(p.x, p.y, p.z, value);
+    }
+    return true;
+  }
+  if (!progress.solved) UI.toast("Listen to the Chamber of Echoes before touching the altar.");
+  else if (!RELIC_SITES.every(def => hasDesertRelic(G, def))) UI.toast("Find and attune the three desert relics before returning to the altar.");
+  else if (progress.coreClaimed) UI.toast("Bring the Ancient Desert Core to the Sealed Gateway.");
+  else if (G.inv.add(I.ANCIENT_DESERT_CORE, 1)) UI.toast("Make one free inventory slot for the Ancient Desert Core.", "bad");
+  else {
+    progress.coreClaimed = true;
+    G.hudDirty = true;
+    Sound.levelUp();
+    UI.toast("You recovered the Ancient Desert Core.", "good");
+  }
+  return true;
+}
+let scarabVaultStarted = false;
+function tickSolkaraSandfall() {
+  if (!isSolkaraRealm(G.dim) || G.dimData[G.dim]?.solkaraWing !== 1 || G.creative || G.spectator ||
+      G.wset.difficulty === "peaceful") return;
+  const wing = (G.story.leviathan ||= {}).wing ||= {};
+  const t = SOLKARA_SAND_TRAP, p = G.player.pos, now = worldSeconds();
+  if (wing.trapDisabled || now < (wing.trapReadyAt || 0) || Math.abs(p.y - t.y) > 2 ||
+      Math.hypot(p.x - t.x, p.z - t.z) >= t.radius) return;
+  wing.trapReadyAt = now + 12;
+  ents.addHazard(t.x + 0.5, t.y, t.z + 0.5, t.radius, 1.8, 3, "Falling sand caught you. Use the dark edge paths.", 0.35,
+    { damageKind: "sand", statusEffect: null, particle: "crumb", color: 0xd7b77b,
+      owner: { get gone() { return wing.trapDisabled; } } });
+  for (let i = 0; i < 12 && parts.length < PMAX - 12; i++) {
+    parts.push({ x: t.x + (Math.random() - 0.5) * 3, y: t.y + 4.7, z: t.z + (Math.random() - 0.5) * 3,
+      vx: 0, vy: -0.6, vz: 0, life: 1.5, c: PUFF_COLORS.crumb, floaty: true });
+  }
+  UI.toast("Sand falls from the ceiling. Reach the dark edge paths!");
+}
+function interactSolkaraWing(hit, kind) {
+  const expansion = G.story.leviathan ||= {};
+  const wing = expansion.wing ||= {};
+  const record = kind === "lore" && solkaraRecordAt(hit);
+  if (record) {
+    if (!G.creative && !G.spectator) {
+      const lore = expansion.solkaraLore ||= {};
+      lore[record.id] = true;
+    }
+    UI.openNote(record.title, record.text, false);
+    return true;
+  }
+  if (kind === "lore" && atSolkara(hit, SOLKARA_LIBRARY)) {
+    UI.openNote("The Forgotten Library", "The last archivist diverted the falling sand through the dark drains at the edges of the passage. Stay on those edge paths when dust gathers overhead. The brass switch at the library's south end seals the sand ducts. Beyond the passage, two scarabs keep watch over the supply vault.", false);
+    return true;
+  }
+  if (kind === "switch" && atSolkara(hit, SOLKARA_WING_SWITCH)) {
+    wing.trapDisabled = true;
+    G.world.set(hit.x, hit.y, hit.z, make(B.KEEPER_SWITCH, 1));
+    UI.toast("The sand ducts close. The vault passage is safe.", "good");
+    return true;
+  }
+  if (kind !== "pedestal" || !atSolkara(hit, SOLKARA_VAULT)) return false;
+  if (wing.vaultClaimed) { UI.toast("The Scarab Vault has been claimed."); return true; }
+  if (!scarabVaultStarted) {
+    const points = [-1, 1].map(side => ({ x: hit.x + side * 3 + 0.5, y: hit.y, z: hit.z + 0.5 }));
+    if (points.some(p => [0, 1].some(dy => G.world.id(Math.floor(p.x), p.y + dy, Math.floor(p.z)) !== B.AIR))) {
+      UI.toast("Clear the scarabs' alcoves before opening the vault."); return true;
+    }
+    for (const p of points) {
+      const e = ents.add("sunscarab", p.x, p.y, p.z);
+      e.scarabVaultGuard = true;
+      puff(p.x, p.y + 0.5, p.z, "crumb");
+    }
+    scarabVaultStarted = true;
+    UI.toast("The vault scarabs awaken. Defeat them to claim the supplies.");
+    return true;
+  }
+  if (ents.list.some(e => e.scarabVaultGuard && !e.gone && !e.dead)) {
+    UI.toast("The scarabs still guard this vault."); return true;
+  }
+  const rewards = [[I.SKYSHARD, 3], [I.GOLD_INGOT, 6], [I.GOLDEN_APPLE, 2]];
+  const preview = new Inventory(); preview.load(G.inv.toJSON());
+  if (rewards.some(([id, n]) => preview.add(id, n) > 0)) {
+    UI.toast("Make room in your inventory, then claim the vault again.", "bad"); return true;
+  }
+  for (const [id, n] of rewards) G.inv.add(id, n);
+  wing.vaultClaimed = true; G.hudDirty = true;
+  UI.toast("You claimed the Scarab Vault.", "good");
+  return true;
+}
+
+function useSolkaraGate(hit) {
+  if (G.traveling) return;
+  const p = G.player;
+  if (G.dim === SOLKARA_SANCTUARY && atSolkara(hit, SOLKARA_RETURN)) {
+    const spawn = p.spawn || { x: 0, z: 0 };
+    changeDim("overworld", spawn.x, spawn.z, "Returning to the Surface…", () => placeSafely(p, spawn.x, spawn.z));
+    return;
+  }
+  const land = (x, y, z) => {
+    for (const [dx, dz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0]]) {
+      const px = x + dx, pz = z + dz;
+      if (!SOLID[G.world.id(Math.floor(px), y - 1, Math.floor(pz))] ||
+          G.world.id(Math.floor(px), y, Math.floor(pz)) !== B.AIR || p.collides(G.world, p.aabb(px, y, pz))) continue;
+      Object.assign(p.pos, { x: px, y, z: pz });
+      return;
+    }
+    throw new Error("Solkara arrival is blocked.");
+  };
+  if (G.dim === HOLLOW_SANDS && atSolkara(hit, SANDS_RETURN)) {
+    const origin = G.story.leviathan?.gatewayDim === SOLKARA_SANCTUARY ? SOLKARA_SANCTUARY : "desert";
+    changeDim(origin, -58, 27, "Returning to the Solkara halls…", () => land(-58.5, SOLKARA_ALTAR.y, 27.5));
+    return;
+  }
+  if (!isSolkaraRealm(G.dim) || G.dimData[G.dim]?.solkaraAnnex !== 1 || !atSolkara(hit, SOLKARA_GATE)) return;
+  const progress = G.story.leviathan?.annex;
+  if (!progress?.gateOpen) {
+    if (!progress?.coreClaimed) {
+      UI.toast("The gateway is sealed. Claim the Ancient Desert Core at the Leviathan Altar.");
+      return;
+    }
+    progress.gateOpen = true;
+    Sound.levelUp();
+    UI.toast("The Sealed Gateway opens. Interact again to cross.", "good");
+    return;
+  }
+  G.story.leviathan.gatewayDim = G.dim;
+  changeDim(HOLLOW_SANDS, SANDS_ARRIVAL.x, SANDS_ARRIVAL.z, "Entering the Hollow Sands…",
+    () => land(SANDS_ARRIVAL.x, SANDS_ARRIVAL.y, SANDS_ARRIVAL.z));
+}
+
+let solkaraCore = null;
+let solkaraGateView = null;
+function clearSolkaraGateView() {
+  if (!solkaraGateView) return;
+  scene.remove(solkaraGateView);
+  solkaraGateView.geometry.dispose();
+  solkaraGateView.material.dispose();
+  solkaraGateView = null;
+}
+function updateSolkaraGateView() {
+  const returning = G.dim === HOLLOW_SANDS;
+  const active = returning || (isSolkaraRealm(G.dim) && G.dimData[G.dim]?.solkaraAnnex === 1 &&
+    G.story.leviathan?.annex?.gateOpen);
+  const gate = returning ? SANDS_RETURN : SOLKARA_GATE;
+  const x = gate.x + (returning ? 0.5 : 1.025), y = gate.y + (returning ? 1.95 : 1.5);
+  const z = gate.z + (returning ? 1.025 : 0.5);
+  const p = G.player.pos;
+  const distance = active ? Math.hypot(x - p.x, y - p.y, z - p.z) : Infinity;
+  if (distance >= 24) {
+    clearSolkaraGateView();
+    return;
+  }
+  if (!solkaraGateView) {
+    solkaraGateView = makeSolkaraGateView(returning);
+    solkaraGateView.position.set(x, y, z);
+    scene.add(solkaraGateView);
+  }
+  const uniforms = solkaraGateView.material.uniforms;
+  uniforms.clock.value = G.settings.reducedMotion ? 0 : G.clock;
+  uniforms.visibility.value = Math.min(1, (24 - distance) / 8);
+}
+function clearSolkaraCore() {
+  if (!solkaraCore) return;
+  scene.remove(solkaraCore);
+  for (const mesh of solkaraCore.children) { mesh.geometry.dispose(); mesh.material.dispose(); }
+  solkaraCore = null;
+}
+function updateSolkaraCore() {
+  const altar = SOLKARA_ALTAR, progress = G.story.leviathan?.annex, p = G.player.pos;
+  if (!isSolkaraRealm(G.dim) || G.dimData[G.dim]?.solkaraAnnex !== 1 || !progress?.solved || progress.coreClaimed ||
+      Math.hypot(p.x - altar.x, p.y - altar.y, p.z - altar.z) > 24) {
+    clearSolkaraCore();
+    return;
+  }
+  if (!solkaraCore) {
+    solkaraCore = new THREE.Group();
+    const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.35), new THREE.MeshBasicMaterial({ color: 0x8be7cf }));
+    const cage = new THREE.Mesh(new THREE.OctahedronGeometry(0.46), new THREE.MeshBasicMaterial({ color: 0xffd08a, wireframe: true }));
+    const orbit = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.024, 5, 24), new THREE.MeshBasicMaterial({ color: 0xe7ae63 }));
+    solkaraCore.add(gem, cage, orbit);
+    scene.add(solkaraCore);
+  }
+  const t = G.settings.reducedMotion ? 0 : G.clock;
+  solkaraCore.position.set(altar.x + 0.5, altar.y + 1.55 + Math.sin(t * 2) * 0.16, altar.z + 0.5);
+  const [gem, cage, orbit] = solkaraCore.children;
+  gem.rotation.set(0.25, t * 0.85, 0.14);
+  cage.rotation.set(-0.28, -t * 0.53, -0.14);
+  orbit.rotation.set(1.15 + Math.sin(t) * 0.24, 0, t * 0.4);
+}
 // A full nest or hive (honey dripping from the front) gives a Honey Bottle (with a Glass Bottle) or 3 Honeycomb (with Shears)
 function torchNear(x, y, z) {
   for (let dy = -3; dy <= 3; dy++) for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) if (G.world.id(x + dx, y + dy, z + dz) === B.TORCH) return true;
@@ -2312,6 +2775,31 @@ function harvestHoney(hit) {
 function fillLoot(box, hit) {
   const r = rng(hashSeed(G.meta.seed) ^ (hit.x * 73856093) ^ (hit.z * 19349663));
   const put = (id, n) => { const i = box.slots.findIndex(s => !s); if (i >= 0 && n > 0) box.slots[i] = newStack(id, n); };
+  const city = G.dim === "overworld" && G.story.leviathan?.sites?.city;
+  if (city && atSolkara(hit, cityCache(city))) {
+    put(I.GOLD_INGOT, 4); put(I.BONE, 6); put(I.LEATHER, 2); put(I.ARROW, 12);
+    UI.toast("You found the old market supplies.", "good");
+    return;
+  }
+  const citadel = G.dim === "overworld" && G.story.leviathan?.sites?.citadel;
+  if (citadel && atSolkara(hit, citadelCache(citadel))) {
+    put(I.GOLDEN_APPLE, 2); put(I.ARROW, 16); put(B.OBSIDIAN, 4);
+    UI.toast("You found the Citadel's quartermaster supplies.", "good");
+    return;
+  }
+  const relic = G.dim === "overworld" && relicSiteAt(G.story.leviathan?.sites, hit, relicCache);
+  if (relic) {
+    if (!G.creative && !G.spectator) {
+      const expansion = G.story.leviathan;
+      expansion.relics ||= {};
+      expansion.relics[relic.key] = true;
+    }
+    put(relic.item, 1);
+    put(I.GOLD_INGOT, 2);
+    put(I.BONE, 3);
+    UI.toast(`You found the ${relic.name} cache.`, "good");
+    return;
+  }
   if (G.dim === "end") {   // Hollow tower treasure: the top chest always holds Glider Wings
     if ((metaOf(hit.v) & 3) === 1) put(I.GLIDER, 1);
     put(I.IRON_INGOT, 3 + Math.floor(r() * 6)); put(I.GOLD_INGOT, 2 + Math.floor(r() * 5)); put(I.VOID_PEARL, 1 + Math.floor(r() * 3));
@@ -2461,6 +2949,231 @@ function updateFurnaces(dt) {
 // ---------- survival ----------
 // armor points worn (each point blocks 4% of damage)
 function armorPoints() { let a = 0; for (let i = 36; i < 40; i++) { const s = G.inv.slots[i]; if (s && itemDef(s.id).armor) a += itemDef(s.id).armor.points; } return a; }
+function leviathanSetPieces(set) {
+  let count = 0;
+  for (let i = 36; i < 40; i++) {
+    const s = G.inv.slots[i], d = s && itemDef(s.id);
+    if (d?.leviathanSet === set && d.armor.slot === i - 36) count++;
+  }
+  return count;
+}
+function useLeviathanArmor() {
+  const set = ["sand", "obsidian", "ancient"].find(set => leviathanSetPieces(set) === 4);
+  if (!set || G.spectator) return false;
+  const expansion = G.story.leviathan ||= {}, now = worldSeconds();
+  const cooldown = set === "sand" ? 20 : set === "obsidian" ? 30 : 45;
+  const cost = set === "ancient" ? 6 : 3;
+  if (now < (expansion.armorReadyAt || 0)) {
+    UI.toast("Your armor is gathering strength.");
+    return true;
+  }
+  if (!G.creative && [36, 37, 38, 39].some(i => {
+    const s = G.inv.slots[i];
+    return (s.dur ?? itemDef(s.id).armor.dur) < cost;
+  })) {
+    UI.toast("Repair or replace the worn armor before using its ability.", "bad");
+    return true;
+  }
+  expansion.armorReadyAt = now + cooldown;
+  const p = G.player, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
+  const color = set === "sand" ? PUFF_COLORS.crumb : set === "obsidian" ? PUFF_COLORS.ember : PUFF_COLORS.pale;
+  if (set !== "sand") addEffect("resist", 5, set === "ancient" ? 3 : 2);
+  if (set !== "sand") expansion.armorShield = { set, until: now + 5 };
+  if (set !== "obsidian") {
+    for (const e of ents.near(p.pos.x, p.pos.y, p.pos.z, 5, e => e.def.hostile && !e.tame && !e.npc)) {
+      if (!lineOfSight(G.world, eye, { x: e.pos.x, y: e.pos.y + Math.min(e.h / 2, 1.5), z: e.pos.z })) continue;
+      const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, length = Math.hypot(dx, dz) || 1;
+      ents.damage(e, set === "ancient" ? 7 : 5, "player", { x: dx / length, z: dz / length });
+    }
+  }
+  for (let i = 0; set === "sand" && i < 18 && parts.length < PMAX - 12; i++) {
+    const a = i * Math.PI / 9, moving = !G.settings.reducedMotion;
+    parts.push({ x: p.pos.x + Math.cos(a) * 1.2, y: p.pos.y + 0.8, z: p.pos.z + Math.sin(a) * 1.2,
+      vx: moving ? Math.cos(a) * 3 : 0, vy: 0.25, vz: moving ? Math.sin(a) * 3 : 0, life: 0.6, c: color, floaty: true });
+  }
+  if (!G.creative) for (let i = 36; i < 40; i++) {
+    const s = G.inv.slots[i];
+    s.dur = (s.dur ?? itemDef(s.id).armor.dur) - cost;
+    if (s.dur <= 0) { G.inv.slots[i] = null; UI.toast(`Your ${itemDef(s.id).name} broke!`, "bad"); }
+  }
+  Sound.tone(set === "sand" ? 180 : set === "obsidian" ? 110 : 440, 0.4, "triangle", 0.15);
+  UI.toast(set === "sand" ? "Sand Shockwave" : set === "obsidian" ? "Molten Shield — 5 seconds" : "Ancient Shield and Energy Burst — 5 seconds", "good");
+  G.hudDirty = true;
+  saveNow(false);
+  return true;
+}
+let armorShieldFX = null;
+function clearArmorShieldView() {
+  if (!armorShieldFX) return;
+  armorShieldFX.view.dispose(); armorShieldFX = null;
+}
+function armorReview() {
+  const state = G.world && G.meta ? armorShieldState(G.story.leviathan, G.effects, worldSeconds(), G.creative) : null;
+  return { shown: !!armorShieldFX, set: state?.set || null, remaining: state?.remaining || 0,
+    resistance: G.effects.resist || 0, level: G.elv.resist || 0, thirdPerson: !!G.thirdPerson };
+}
+function updateArmorShieldView() {
+  const expansion = G.story.leviathan, state = armorShieldState(expansion, G.effects, worldSeconds(), G.creative);
+  if (!state || G.spectator || G.state === "dead") {
+    clearArmorShieldView();
+    if (expansion?.armorShield && !state) delete expansion.armorShield;
+    return;
+  }
+  const fast = G.settings.quality === "fast";
+  if (!armorShieldFX || armorShieldFX.set !== state.set || armorShieldFX.fast !== fast) {
+    clearArmorShieldView(); armorShieldFX = { set: state.set, fast, view: createArmorShieldView(scene, state.set, fast) };
+  }
+  const p = G.player;
+  armorShieldFX.view.update({ position: { x: p.pos.x, y: p.pos.y + (p.mount ? p.mount.h - 0.75 : p.boat ? 0.1 : 0) - (G.riding?.burrowDepth || 0), z: p.pos.z },
+    elapsed: state.elapsed, remaining: state.remaining, yaw: p.yaw, thirdPerson: !!G.thirdPerson, reducedMotion: G.settings.reducedMotion });
+}
+const ancientSpikes = [];
+let mountedLeviathanAttack = null, mountedBurrow = null;
+function clearMountedBurrow(recover = true) {
+  if (!mountedBurrow) return;
+  const { session, view } = mountedBurrow;
+  mountedBurrow = null;
+  const unsafe = recover && !session.savePosition;
+  session.stop(); view.dispose();
+  if (unsafe && G.riding === session.owner) {
+    // No checked surface anchor survived: detach before using the ordinary
+    // safe-placement fallback. Never save or resume inside terrain.
+    const owner = session.owner, p = G.player;
+    owner.ridden = false; owner.gone = true; G.riding = null; p.mount = false;
+    const landing = findLeviathanRecovery(G.world, p, [p.pos, p.spawn]);
+    if (landing) { Object.assign(p.pos, landing); p.vel.x = p.vel.y = p.vel.z = 0; }
+    else placeSafely(p, p.spawn.x, p.spawn.z);
+    p.onGround = false; p.airTop = null; p.inWater = p.headInWater = p.inLava = false;
+    UI.toast("The burrow route became unsafe. You returned to safe ground.");
+  }
+}
+function useMountedBurrow() {
+  if (mountedBurrow || mountedLeviathanAttack || G.state !== "play" || G.cutscene) return;
+  const key = G.riding?.sp === "leviathan_obsidian" ? "obsidian" : "dune";
+  const result = beginMountedBurrow({ world: G.world, gen: G.gen, mount: G.riding, riding: G.riding, player: G.player,
+    record: G.story.leviathan?.[key], now: worldSeconds(), yaw: G.player.yaw, dim: G.dim, spectator: G.spectator, entities: ents.list });
+  if (result.status !== "ready") {
+    UI.toast(result.status === "cooldown" ? `Burrow is ready in ${result.remaining}s.` : "Burrowing needs a wide, flat stretch of untouched desert sand with a clear route ahead.");
+    return;
+  }
+  const session = result.session;
+  mountedBurrow = { session, view: createBurrowView(scene, session.owner, G.settings.quality === "fast") };
+  G.mining = null; G.eat = null; G.blocking = false; G.bowT = -1; mouseL = mouseR = false;
+  G.player.vel.x = G.player.vel.y = G.player.vel.z = 0;
+  Sound.mob("rumble", 0); UI.toast("Diving beneath the sand. B or C cancels; the camera follows above the dunes.");
+  saveNow(false);
+}
+function updateMountedBurrow(dt) {
+  if (!mountedBurrow) return;
+  if (G.spectator) { clearMountedBurrow(); return; }
+  const { session } = mountedBurrow;
+  if (!session.update(dt, { active: G.state === "play" && !G.spectator, dim: G.dim, riding: G.riding, entities: ents.list })) {
+    const reason = session.journey.reason;
+    clearMountedBurrow();
+    if (reason === "route-blocked" || reason === "anchor-blocked") UI.toast("The route changed. Your Leviathan returned to the surface.");
+  }
+}
+function ridingReview() {
+  const owner = G.riding, p = G.player;
+  return { state: G.state, species: owner?.sp || null, burrowing: !!mountedBurrow,
+    stage: mountedBurrow?.session.visualState.stage || null, depth: owner?.burrowDepth || 0,
+    elapsed: mountedBurrow?.session.journey.elapsed || 0,
+    player: { ...p.pos }, mount: owner ? { ...owner.pos } : null,
+    camera: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+    geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures };
+}
+function clearMountedLeviathanAttack() {
+  if (!mountedLeviathanAttack) return;
+  mountedLeviathanAttack.strike.cancel(); mountedLeviathanAttack.view.dispose(); mountedLeviathanAttack = null;
+}
+function useMountedLeviathanAttack() {
+  if (mountedBurrow || mountedLeviathanAttack || G.state !== "play") return;
+  const obsidian = G.riding?.sp === "leviathan_obsidian", name = obsidian ? "Cinder Lance" : "Sandbreaker";
+  const begin = obsidian ? beginObsidianMountedAttack : beginDuneMountedAttack;
+  const result = begin({ world: G.world, mount: G.riding, riding: G.riding,
+    record: G.story.leviathan?.[obsidian ? "obsidian" : "dune"], now: worldSeconds(), yaw: G.player.yaw, dim: G.dim, spectator: G.spectator });
+  if (result.status !== "ready") {
+    UI.toast(result.status === "cooldown" ? `${name} is ready in ${result.remaining}s.` : `${name} needs your bonded, saddled Leviathan on solid ground with a clear route ahead.`);
+    return;
+  }
+  mountedLeviathanAttack = { strike: result.strike, view: obsidian ?
+    createObsidianMountedEruptions(scene, result.strike, G.settings.reducedMotion) :
+    createDuneMountedWave(scene, G.world, result.strike, G.settings.reducedMotion, G.settings.quality === "fast") };
+  UI.toast(obsidian ? "Cinder Lance! The marked fissures erupt in sequence." : "Sandbreaker! The marked sand will surge forward.");
+  Sound.mob("rumble", 0); G.hudDirty = true;
+  saveNow(false);
+}
+function updateMountedLeviathanAttack(dt) {
+  if (!mountedLeviathanAttack) return;
+  const { strike, view } = mountedLeviathanAttack;
+  if (!strike.update(dt, { active: G.state === "play" && !G.spectator, dim: G.dim, riding: G.riding,
+    entities: ents.list, damage: (e, n, source, knock) => ents.damage(e, n, source, knock) })) clearMountedLeviathanAttack();
+  else view.update(strike.elapsed, G.settings.reducedMotion);
+}
+function useBuriedScepter(slot) {
+  const expansion = G.story.leviathan ||= {}, now = worldSeconds();
+  if (now < (expansion.bladeReadyAt || 0)) { UI.toast("The scepter is gathering strength."); return true; }
+  if (!G.creative && (slot.dur ?? itemDef(slot.id).tool.dur) < 5) {
+    UI.toast("The scepter is too worn to call the ancient spikes.", "bad");
+    return true;
+  }
+  const p = G.player, w = G.world, direction = lookDir();
+  const eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z }, points = [];
+  const claimed = new Set();
+  for (let distance = 2; distance <= 12; distance += 2) {
+    const x = Math.floor(p.pos.x - Math.sin(p.yaw) * distance), z = Math.floor(p.pos.z - Math.cos(p.yaw) * distance);
+    if (!w.chunkAt(x, z)) break;
+    let found = null;
+    for (let y = Math.floor(p.pos.y) + 2; y >= Math.floor(p.pos.y) - 2; y--) {
+      if (SOLID[w.id(x, y - 1, z)] && w.id(x, y, z) === B.AIR && w.id(x, y + 1, z) === B.AIR) {
+        found = { x: x + 0.5, y, z: z + 0.5 }; break;
+      }
+    }
+    if (!found || !lineOfSight(w, eye, { ...found, y: found.y + 0.7 })) break;
+    points.push(found);
+  }
+  if (!points.length) { UI.toast("Aim along clear ground to call the spikes."); return true; }
+  expansion.bladeReadyAt = now + 14;
+  if (!G.creative) wearTool(slot, 5);
+  ancientSpikes.push(createAncientSpikes(scene, points, point => {
+    for (const e of ents.near(point.x, point.y, point.z, 1.8, e => e.def.hostile && !e.tame && !e.npc)) {
+      if (claimed.has(e.uid) || !lineOfSight(w, { ...point, y: point.y + 0.8 }, { x: e.pos.x, y: e.pos.y + Math.min(e.h / 2, 1.5), z: e.pos.z })) continue;
+      claimed.add(e.uid);
+      ents.damage(e, 9, "player", { x: direction.x, z: direction.z });
+    }
+  }, G.settings.reducedMotion));
+  Sound.tone(360, 0.45, "triangle", 0.15, 240);
+  G.swing = 0.01; G.hudDirty = true;
+  return true;
+}
+function useLeviathanBlade(slot) {
+  const fire = slot.id === I.INFERNO_GREATBLADE, cooldown = fire ? 12 : 8, cost = fire ? 4 : 3;
+  const expansion = G.story.leviathan ||= {};
+  const now = (G.meta.day || 1) * DAY_LENGTH + G.time * DAY_LENGTH;
+  if (now < (expansion.bladeReadyAt || 0)) { UI.toast("Your blade is gathering strength."); return true; }
+  if (!G.creative && (slot.dur ?? itemDef(slot.id).tool.dur) < cost) {
+    UI.toast("The blade is too worn to release a wave.", "bad");
+    return true;
+  }
+  expansion.bladeReadyAt = now + cooldown;
+  const p = G.player, dir = lookDir(), eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
+  for (const e of ents.near(p.pos.x, p.pos.y, p.pos.z, 7, e => !e.tame && !e.npc && e.def.hostile)) {
+    const x = e.pos.x - p.pos.x, z = e.pos.z - p.pos.z, len = Math.hypot(x, z) || 1;
+    const center = { x: e.pos.x, y: e.pos.y + Math.min(e.h * 0.5, 1.5), z: e.pos.z };
+    if ((x * dir.x + z * dir.z) / len < 0.55 || !lineOfSight(G.world, eye, center)) continue;
+    ents.damage(e, fire ? 7 : 5, "player", { x: x / len, z: z / len });
+  }
+  for (let i = 0; i < 15 && parts.length < PMAX - 12; i++) {
+    const spread = (i / 14 - 0.5) * 1.3, angle = p.yaw + spread;
+    parts.push({ x: p.pos.x - Math.sin(angle) * 1.5, y: p.pos.y + 0.7, z: p.pos.z - Math.cos(angle) * 1.5,
+      vx: -Math.sin(angle) * 7, vy: 0.1, vz: -Math.cos(angle) * 7, life: 0.55,
+      c: fire ? PUFF_COLORS.ember : PUFF_COLORS.crumb, floaty: true });
+  }
+  if (!G.creative) wearTool(slot, cost);
+  Sound.noise(fire ? 260 : 800, 0.35, 0.18);
+  G.swing = 0.01; G.hudDirty = true;
+  return true;
+}
 let iframes = 0;
 // Is the raised shield facing the thing that hit you? (it covers the front half of a circle around you)
 function shieldFaces(src) {
@@ -2468,7 +3181,7 @@ function shieldFaces(src) {
   const p = G.player, dx = src.pos.x - p.pos.x, dz = src.pos.z - p.pos.z, l = Math.hypot(dx, dz) || 1, d = lookDir(), dl = Math.hypot(d.x, d.z) || 1;
   return (dx / l) * (d.x / dl) + (dz / l) * (d.z / dl) > 0.1;
 }
-// Damage kinds: undefined (hits, falls, explosions…), "fire", "poison", "void", "starve"
+// Damage kinds: undefined (hits, falls, explosions…), "fire", "poison", "void", "starve", "sand", "ancientEnergy"
 function hurt(n, why, src, bypassArmor, kind) {
   const p = G.player;
   if (G.creative || G.spectator || G.state === "dead" || n <= 0) return;
@@ -2477,6 +3190,14 @@ function hurt(n, why, src, bypassArmor, kind) {
   if (G.respawnGuard > 0 && kind !== "void") return;   // just woke up   // a Lifeward Totem just saved you: a moment of safety
   if (iframes > 0 && !bypassArmor) return;
   if (kind === "fire" && G.effects.fireRes) return;
+  if (kind === "fire") {
+    const pieces = leviathanSetPieces("obsidian");
+    n *= pieces === 4 ? 0.4 : pieces >= 2 ? 0.75 : 1;
+  }
+  if ((kind === "sand" || src?.sp === "leviathan_dune") && leviathanSetPieces("sand") === 4) n *= 0.75;
+  const guardian = leviathanSetPieces("ancient");
+  if (guardian >= 2 && G.dim === HOLLOW_SANDS && (kind === "sand" || kind === "ancientEnergy")) n *= 0.75;
+  if (guardian === 4 && src?.def.segmentedLeviathan) n *= 0.8;
   // a raised shield stops hits from the front (it wears down instead)
   if (!bypassArmor && kind !== "void" && shieldFaces(src)) {
     const sh = G.inv.slots[G.blockHand];
@@ -2499,8 +3220,14 @@ function hurt(n, why, src, bypassArmor, kind) {
   p.exhaust += 0.1;
   if (n > 0 && p.health - n <= 0 && kind !== "void" && useTotem()) n = 0;
   p.health = Math.max(0, p.health - n); p.hurtT = 0.4;
+  const burrowInterrupted = !!mountedBurrow && n > 0;
+  if (burrowInterrupted) {
+    if (mountedBurrow.session.cancelElapsed === null) UI.toast("The hit interrupted your burrow. Returning to the surface.");
+    mountedBurrow.session.requestCancel("hurt");
+  }
   if (src && src.pos) { const dx = p.pos.x - src.pos.x, dz = p.pos.z - src.pos.z, l = Math.hypot(dx, dz) || 1; p.vel.x += dx / l * 6; p.vel.z += dz / l * 6; p.vel.y = Math.max(p.vel.y, 4); }
   if (src && src.def && src.def.knockUp) p.vel.y = 9;   // Hogbeasts toss you into the air
+  if (burrowInterrupted) p.vel.x = p.vel.y = p.vel.z = 0;   // the checked surface anchor holds the rider during emergence
   if (src && src.def && !src.tame) ents.petFoe = src;   // your Scouts go after whatever hurt you
   Sound.hurt(); UI.flash(); G.hudDirty = true;
   if (p.health <= 0) die(why);
@@ -2515,6 +3242,8 @@ function useTotem() {
   const p = G.player;
   p.health = 1;
   G.effects = {}; G.elv = {}; G.absorb = 0;
+  if (G.story.leviathan) delete G.story.leviathan.armorShield;
+  clearArmorShieldView();
   addEffect("regen", 45, 2); addEffect("absorb", 5, 2); addEffect("fireRes", 40);
   G.totemGuard = 0.5;   // any other damage arriving in the same moment can't use a second totem
   iframes = Math.max(iframes, 0.5);
@@ -2525,6 +3254,15 @@ function useTotem() {
   return true;
 }
 function die(why) {
+  clearDuneWarning();
+  clearSandsHeat();
+  clearQuicksand();
+  clearCrystalResonance();
+  clearArmorShieldView();
+  if (G.story.leviathan) delete G.story.leviathan.armorShield;
+  clearMountedBurrow(false);
+  clearMountedLeviathanAttack();
+  clearArenaFractures();
   dismount(true);
   cinderOnFaint();
   G.eat = null; G.blocking = false; G.bowT = -1;
@@ -2619,6 +3357,7 @@ function survival(dt) {
   tickEffects(dt);
   p.levitate = !!G.effects.levitation;
   p.speedMul = G.effects.swift ? 1 + 0.2 * (G.elv.swift || 1) : 1;
+  if (leviathanSetPieces("sand") === 4 && G.world.id(Math.floor(p.pos.x), Math.floor(p.pos.y - 0.1), Math.floor(p.pos.z)) === B.SAND) p.speedMul *= 1.12;
   p.jumpMul = G.effects.jump ? 1 + 0.16 * (G.elv.jump || 1) : 1;
   if (G.blocking) p.speedMul *= 0.3;   // you walk slowly behind a raised shield
   if (G.eat) p.speedMul *= 0.35;       // and while eating
@@ -2677,6 +3416,753 @@ const SKY_TOP_DAY = skySwatch(0x649ce9), SKY_TOP_NIGHT = skySwatch(0x080e23), sk
 const NETHER_SKY = new THREE.Color(0x3a0c0c);
 let ashT = 0, rumbleT = 8;
 const END_SKY = new THREE.Color(0x140a1e);
+const STORM_SKY = new THREE.Color(0xa97e54);
+const STORM_DUST = [STORM_SKY.r, STORM_SKY.g, STORM_SKY.b];
+let stormStage = 0, stormSampleT = 0, stormDustT = 0;
+let stormVortex = null, stormVortexT = 10;
+let duneInterest = 0;
+function sandEncounterSite(x, z) {
+  x = Math.floor(x); z = Math.floor(z);
+  if (!G.world.chunkAt(x, z) || G.gen.column(x, z).biome !== "sandy") return null;
+  const y = G.world.surfaceY(x, z);
+  if (G.world.id(x, y, z) !== B.SAND) return null;
+  return { x: x + 0.5, y: y + 1, z: z + 0.5 };
+}
+function updateDuneEncounter(dt) {
+  if (stormStage !== 4 || G.creative || G.spectator || G.wset.difficulty === "peaceful" ||
+      G.story.leviathan?.dune?.defeated || G.story.leviathan?.dune?.bonded ||
+      ents.list.some(e => e.sp === "leviathan_dune" && !e.gone)) {
+    duneInterest = 0;
+    return;
+  }
+  const p = G.player;
+  const vibrating = p.onGround && !p.crouch && !G.riding && Math.hypot(p.vel.x, p.vel.z) > 4.8;
+  duneInterest = vibrating ? duneInterest + dt : Math.max(0, duneInterest - dt);
+  if (duneInterest < 3) return;
+  duneInterest = 0;
+  const site = sandEncounterSite(p.pos.x - Math.sin(p.yaw) * 13, p.pos.z - Math.cos(p.yaw) * 13);
+  if (!site || Math.abs(site.y - p.pos.y) > 4) return;
+  const expansion = G.story.leviathan ||= {};
+  const record = expansion.dune ||= { hp: SPECIES.leviathan_dune.hp };
+  const e = ents.add("leviathan_dune", site.x, site.y - 8, site.z, { hp: record.hp });
+  e.duneCycle = { step: "buried", until: 1.4, site };
+  Sound.mob("rumble", 0);
+  UI.toast("Something is tracking your footsteps beneath the sand.");
+}
+function updateObsidianEncounter() {
+  const expansion = G.story.leviathan, site = expansion?.sites?.citadel;
+  if (G.dim !== "overworld" || !site || G.creative || G.spectator || G.wset.difficulty === "peaceful" ||
+      expansion.obsidian?.defeated || expansion.obsidian?.bonded) return;
+  const a = citadelArena(site), p = G.player.pos;
+  if (Math.abs(p.y - a.y) > 2 || Math.hypot(p.x - a.x, p.z - a.z) > 8 ||
+      ents.list.some(e => e.sp === "leviathan_obsidian" && !e.gone)) return;
+  const record = expansion.obsidian ||= { hp: SPECIES.leviathan_obsidian.hp };
+  const e = ents.add("leviathan_obsidian", a.x, a.y - 7, a.z - 4, { hp: record.hp });
+  e.duneCycle = { step: "warning", until: 2.2, site: a, count: 0 };
+  Sound.mob("rumble", 0);
+  UI.toast("The Citadel trembles. An Obsidian Leviathan is rising.");
+}
+function awakenAncient() {
+  const expansion = G.story.leviathan ||= {}, lore = expansion.sandsLore || {};
+  const read = SANDS_REGIONS.filter(region => lore[region.name]).length;
+  if (G.wset.difficulty === "peaceful") { UI.toast("The Buried King rests in Peaceful."); return; }
+  if (expansion.ancient?.defeated) { UI.toast("The Buried King has returned to the sands."); return; }
+  if (ents.list.some(e => e.sp === "leviathan_ancient" && !e.gone)) return;
+  if (read < 6 || !expansion.annex?.coreClaimed) {
+    UI.toast(`The throne remembers ${read}/6 records. Claim the Ancient Desert Core and read all six to awaken it.`);
+    return;
+  }
+  const a = BURIED_THRONE, record = expansion.ancient ||= { hp: SPECIES.leviathan_ancient.hp };
+  const e = ents.add("leviathan_ancient", a.x, a.y - 12, a.z - 8, { hp: record.hp });
+  e.duneCycle = { step: "awakening", until: 7, site: a, count: 0 };
+  e.goal = { x: a.x, y: a.y - 4, z: a.z - 8, speed: 2 };
+  Sound.mob("rumble", 0);
+  UI.toast("The Throne of the Buried King awakens. Leave the center of the court.");
+}
+function ancientPhase(e) {
+  return e.duneCycle.step === "awakening" ? 1 : Math.min(5, 2 + Math.floor((1 - e.hp / e.maxHp) * 4));
+}
+let arenaFractures = null;
+function clearArenaFractures() {
+  arenaFractures?.clear();
+  arenaFractures = null;
+}
+function thinkAncient(e, multiplier) {
+  const c = e.duneCycle, p = G.player.pos, a = BURIED_THRONE;
+  if (!c || G.dim !== HOLLOW_SANDS || G.wset.difficulty === "peaceful" || Math.hypot(p.x - a.x, p.z - a.z) > 43) {
+    e.gone = true; return;
+  }
+  if (e.age < c.until) return;
+  const phase = ancientPhase(e);
+  if (c.step === "awakening" || c.step === "buried") {
+    e.emerged = true;
+    e.goal = { x: a.x, y: a.y, z: a.z - 8, speed: 14 };
+    c.step = "recover"; c.until = e.age + 4;
+    Sound.mob("roar", 0);
+    puff(a.x, a.y + 2, a.z - 8, "pale");
+    UI.toast("The Ancient Leviathan rises. The Buried King has awakened.");
+  } else if (c.step === "recover") {
+    if (phase === 2 && c.count % 3 === 0 && ents.list.filter(o => o.encounterOwner === e && !o.dead && !o.gone).length < 4) {
+      c.step = "summoning"; c.until = e.age + 1.8;
+      c.summonSites = [-1, 1].map(side => ({ x: a.x + side * 10, y: a.y, z: a.z + 8, r: 1.5 }));
+      for (const point of c.summonSites) ancientRuneRing(point, point.y, 2);
+      UI.toast("The Buried King calls its guardians. Keep clear of the blue circles.");
+      return;
+    }
+    const central = phase === 2 || c.count % 3 === 0;
+    const inCourt = Math.hypot(p.x - a.x, p.z - a.z) < 25;
+    c.attack = { x: central || !inCourt ? a.x : p.x, z: central || !inCourt ? a.z : p.z, r: central ? 11 : phase === 5 ? 5 : 3.5, phase: 4 };
+    c.step = "judgment"; c.until = e.age + (phase === 5 ? 1.3 : 2);
+    c.attackAt = c.until;
+    ancientRuneRing(c.attack, a.y, 2.3);
+    UI.toast(central ? "Ancient shockwave! Leave the blue ring." : phase === 3 ? "The sand fractures beneath the rune marker. Move!" : "Ancient energy gathers. Leave the marked ground.");
+  } else if (c.step === "summoning") {
+    for (const point of c.summonSites || []) {
+      if (ents.list.filter(o => o.encounterOwner === e && !o.dead && !o.gone).length >= 4 ||
+          ents.list.filter(o => !o.dead && !o.gone).length >= 120) break;
+      const x = Math.floor(point.x), z = Math.floor(point.z), y = point.y;
+      if (!G.world.isLoaded(x, z) || !SOLID[G.world.id(x, y - 1, z)] ||
+          [0, 1, 2].some(dy => G.world.id(x, y + dy, z) !== B.AIR) ||
+          Math.hypot(p.x - point.x, p.z - point.z) < 2) continue;
+      const guardian = ents.add("ancient_sentinel", point.x + 0.5, y, point.z + 0.5);
+      guardian.encounterOwner = e;
+      guardian.persist = false;
+      puff(point.x, y + 0.5, point.z, "pale");
+    }
+    c.summonSites = null; c.count++;
+    c.step = "recover"; c.until = e.age + 2.5;
+  } else if (c.step === "judgment") {
+    const hit = c.attack;
+    ancientRuneRing(hit, a.y, 0.6);
+    if (Math.abs(p.y - a.y) < 3 && Math.hypot(p.x - hit.x, p.z - hit.z) < hit.r) {
+      hurt((5 + phase) * multiplier, "The Ancient Leviathan's judgment struck you.", e);
+    }
+    if (G.state !== "dead" && (phase === 3 || phase === 5)) {
+      arenaFractures ||= new ArenaFractures(G.world, G.player, BURIED_THRONE);
+      arenaFractures.fracture(hit.x, hit.z);
+    }
+    c.count++; c.attack = null;
+    if (phase >= 4 && c.count % 2) {
+      c.step = "recover"; c.until = e.age + (phase === 5 ? 1.9 : 2.8);
+    } else {
+      c.step = "buried"; c.until = e.age + 2.4;
+      e.emerged = false;
+      e.goal = { x: a.x, y: a.y - 12, z: a.z - 8, speed: 12 };
+    }
+  }
+}
+function ancientRuneRing(hit, y, life) {
+  for (let i = 0; i < 24 && parts.length < PMAX - 12; i++) {
+    const a = i * Math.PI / 12;
+    parts.push({ x: hit.x + Math.cos(a) * hit.r, y: y + 0.2, z: hit.z + Math.sin(a) * hit.r,
+      vx: 0, vy: 0.25, vz: 0, life, c: PUFF_COLORS.pale, floaty: true });
+  }
+}
+function damageAncient(e) {
+  const record = G.story.leviathan.ancient;
+  record.hp = Math.max(0, e.hp);
+  if (e.hp > 0 || record.defeated) return;
+  clearArenaFractures();
+  record.defeated = true;
+  const a = BURIED_THRONE;
+  for (const [id, n] of [[I.ANCIENT_HEART, 1], [I.ANCIENT_CROWN, 1], [I.ETERNAL_SAND_CORE, 1],
+    [I.ANCIENT_PLATE, 8], [I.ANCIENT_TROPHY, 1], [I.ANCIENT_COMPANION_RELIC, 1]]) {
+    spawnDrop(id, n, a.x, a.y + 0.5, a.z);
+  }
+  spawnOrbs(350, a.x, a.y + 0.5, a.z);
+}
+function worldSeconds() {
+  return (G.meta.day || 1) * DAY_LENGTH + G.time * DAY_LENGTH;
+}
+function useAncientCompanion() {
+  const expansion = G.story.leviathan;
+  if (!expansion?.ancient?.defeated) {
+    UI.toast("The relic answers after the Buried King has been defeated.");
+    return true;
+  }
+  const actor = ents.list.find(e => e.sp === "ancient_companion" && !e.gone && !e.dead);
+  const record = expansion.companion ||= { uid: newId(), hp: SPECIES.ancient_companion.hp, sitting: false };
+  if (actor) {
+    record.hp = actor.hp; record.sitting = actor.sitting;
+    actor.gone = true;
+    Sound.mob("shell", 0);
+    UI.toast("Runecrest rests within the relic.");
+    return true;
+  }
+  if (worldSeconds() < (record.readyAt || 0)) {
+    UI.toast("Runecrest is recovering. The relic will answer in a moment.");
+    return true;
+  }
+  const p = G.player, w = G.world;
+  for (const radius of [2, 3, 4]) for (let k = 0; k < 8; k++) {
+    const a = p.yaw + k * Math.PI / 4;
+    const x = Math.floor(p.pos.x + Math.cos(a) * radius), z = Math.floor(p.pos.z + Math.sin(a) * radius);
+    if (!w.chunkAt(x, z)) continue;
+    for (let y = Math.floor(p.pos.y) + 1; y >= Math.floor(p.pos.y) - 2; y--) {
+      const ground = w.id(x, y - 1, z);
+      if (!SOLID[ground] || ground === B.MAGMA || w.id(x, y, z) !== B.AIR || w.id(x, y + 1, z) !== B.AIR) continue;
+      const e = ents.add("ancient_companion", x + 0.5, y, z + 0.5, {
+        uid: record.uid, hp: record.hp, sitting: record.sitting, tame: true, name: "Runecrest"
+      });
+      puff(e.pos.x, e.pos.y + 0.5, e.pos.z, "pale");
+      Sound.mob("shell", 0);
+      UI.toast("Runecrest emerges. Right-click to sit or follow; Skyshards restore health.", "good");
+      return true;
+    }
+  }
+  UI.toast("Find clear, solid ground nearby before calling Runecrest.");
+  return true;
+}
+function thinkObsidian(e, multiplier) {
+  const c = e.duneCycle, p = G.player.pos;
+  if (e.tame) {
+    if (Math.hypot(p.x - e.pos.x, p.z - e.pos.z) > 52) e.gone = true;
+    else thinkBondedLeviathan(G.world, e, G.player, G.story.leviathan.obsidian);
+    return;
+  }
+  if (!c || G.wset.difficulty === "peaceful" || Math.hypot(p.x - c.site.x, p.z - c.site.z) > 28) {
+    e.gone = true;
+    return;
+  }
+  if (e.age < c.until) return;
+  const a = c.site, phase = dunePhase(e.hp, e.maxHp);
+  if (c.step === "buried" || c.step === "warning") {
+    e.emerged = true;
+    e.goal = { x: a.x, y: a.y, z: a.z - 4, speed: 10 };
+    c.step = "surface"; c.until = e.age + 1.6;
+    Sound.mob("roar", 0);
+    puff(a.x, a.y, a.z - 4, "ember");
+  } else if (c.step === "surface") {
+    if (phase >= 2 && c.count % 3 === 1) {
+      c.attack = { x: p.x, y: p.y + 1, z: p.z, phase: 4 };
+      c.step = "shrapnel"; c.until = e.age + 1.2; c.attackAt = c.until;
+      puff(e.pos.x, e.eyeY, e.pos.z, "ember");
+      Sound.mob("clank", 0);
+      UI.toast("Obsidian shrapnel! Move sideways or take cover.");
+      return;
+    }
+    const roar = phase >= 3 && c.count % 2 === 1;
+    const near = Math.hypot(p.x - a.x, p.z - a.z) < a.radius;
+    c.attack = { x: roar || !near ? a.x : p.x, z: roar || !near ? a.z : p.z, r: roar ? 6 : 2.8 + phase * 0.25 };
+    c.step = "attack"; c.until = e.age + (roar ? 1.75 : 1.3);
+    c.attackAt = c.until;
+    c.attack.phase = 4;
+    obsidianHeatRing(c.attack, a.y, 1.9);
+    UI.toast(roar ? "Inferno roar! Get beyond the ember ring." : "Magma eruption! Leave the marked ground.");
+  } else if (c.step === "shrapnel") {
+    const target = c.attack, y = e.eyeY - 1;
+    const dx = target.x - e.pos.x, dz = target.z - e.pos.z, horizontal = Math.hypot(dx, dz) || 1;
+    const angle = Math.atan2(dx, dz);
+    const pitch = (target.y - y) / horizontal;
+    for (let i = -2; i <= 2; i++) {
+      const yaw = angle + i * 0.15, length = Math.hypot(1, pitch), speed = 13;
+      ents.addProjectile("obsidianshard", e.pos.x, y, e.pos.z,
+        Math.sin(yaw) / length * speed, pitch / length * speed, Math.cos(yaw) / length * speed,
+        { owner: e, noGrav: true, dmg: 4 * multiplier });
+    }
+    c.count++; c.attack = null;
+    c.step = "recover"; c.until = e.age + 3.2 - phase * 0.2; c.ritualUsed = false;
+    UI.toast("The molten veins dim. Sound the horn during its recovery.");
+  } else if (c.step === "attack") {
+    const hit = c.attack;
+    obsidianHeatRing(hit, a.y, 0.6);
+    if (Math.abs(p.y - a.y) < 2.5 && Math.hypot(p.x - hit.x, p.z - hit.z) < hit.r) {
+      hurt((5 + phase) * multiplier, "The Obsidian Leviathan's heat overwhelmed you.", e, false, "fire");
+    }
+    if (phase >= 2) {
+      ents.addHazard(hit.x, a.y, hit.z, Math.min(hit.r, 3.2), 0.75, 2,
+        "The Citadel's scorched ground burned you. Leave the glowing patch.", 4,
+        { owner: e, damageKind: "fire" });
+      UI.toast("The ground is scorched. Stay clear of the glowing patch.");
+    }
+    c.count++;
+    c.attack = null;
+    c.step = "recover"; c.until = e.age + 3.2 - phase * 0.2;
+    c.ritualUsed = false;
+    UI.toast("The molten veins dim. Sound the horn during its recovery.");
+  } else {
+    e.emerged = false;
+    e.goal = { x: a.x, y: a.y - 7, z: a.z - 4, speed: 12 };
+    c.step = "buried"; c.until = e.age + 1.8;
+  }
+}
+function obsidianHeatRing(hit, y, life) {
+  for (let i = 0; i < 18 && parts.length < PMAX - 12; i++) {
+    const a = i * Math.PI / 9;
+    parts.push({ x: hit.x + Math.cos(a) * hit.r, y: y + 0.18, z: hit.z + Math.sin(a) * hit.r,
+      vx: 0, vy: 0.3, vz: 0, life, c: PUFF_COLORS.ember, floaty: true });
+  }
+}
+function damageObsidian(e) {
+  const record = G.story.leviathan.obsidian;
+  if (e.tame) {
+    record.hp = Math.max(1, e.hp);
+    if (e.hp <= 0) { e.hp = 1; e.gone = true; UI.toast("Your wounded Obsidian Leviathan retreats."); }
+    return;
+  }
+  e.duneCycle.ritualMarks = 0;
+  e.duneCycle.ritualUsed = true;
+  record.hp = Math.max(0, e.hp);
+  if (e.hp > 0 || record.defeated) return;
+  record.defeated = true;
+  const a = e.duneCycle.site;
+  for (const [id, n] of [[I.OBSIDIAN_SCALE, 6], [I.MOLTEN_HEART, 1], [I.INFERNO_FANG, 1], [I.VOLCANIC_ESSENCE, 3]]) {
+    spawnDrop(id, n, a.x, a.y + 0.5, a.z);
+  }
+  spawnOrbs(220, a.x, a.y + 0.5, a.z);
+}
+function thinkDune(e, damageMultiplier) {
+  const p = G.player.pos, cycle = e.duneCycle;
+  if (!cycle) { e.gone = true; return; }
+  if (e.tame) {
+    if (Math.hypot(p.x - e.pos.x, p.z - e.pos.z) > 52) e.gone = true;
+    else thinkBondedLeviathan(G.world, e, G.player, G.story.leviathan.dune);
+    return;
+  }
+  if (cycle.preview) {
+    if (!G.creative || Math.hypot(p.x - e.pos.x, p.z - e.pos.z) > 52) e.gone = true;
+    return;
+  }
+  if (G.wset.difficulty === "peaceful" || Math.hypot(p.x - e.pos.x, p.z - e.pos.z) > 52) {
+    e.gone = true;
+    return;
+  }
+  const phase = dunePhase(e.hp, e.maxHp);
+  if (cycle.step === "surface" && phase >= 2) updateDuneSurfaceAttack(e, phase, damageMultiplier);
+  if (e.age < cycle.until) return;
+  if (cycle.step === "buried") {
+    const site = sandEncounterSite(p.x, p.z);
+    if (!site || Math.abs(site.y - p.y) > 2) { e.gone = true; return; }
+    cycle.site = site; cycle.step = "warning"; cycle.until = e.age + 1.8 - phase * 0.15; cycle.warningFrom = e.age;
+    e.goal = { ...site, y: site.y - 5, speed: 15 };
+    puff(site.x, site.y, site.z, "crumb");
+    Sound.mob("rumble", 0);
+    UI.toast("Sand eruption! Move away from the rising dust.");
+  } else if (cycle.step === "warning") {
+    const s = cycle.site;
+    cycle.step = "rising"; cycle.until = e.age + 1.4; cycle.riseFrom = e.age;
+    e.goal = { ...s, y: s.y + 8, speed: 16 };
+    puff(s.x, s.y + 0.5, s.z, "crumb");
+    Sound.mob("roar", 0);
+    if (Math.abs(p.y - s.y) < 2.5 && Math.hypot(p.x - s.x, p.z - s.z) < 3) {
+      hurt((4 + phase) * damageMultiplier, "The Dune Leviathan erupted beneath you.", e);
+    }
+  } else if (cycle.step === "rising") {
+    const s = cycle.site;
+    cycle.step = "surface"; cycle.until = e.age + (phase === 1 ? 6 : 5);
+    cycle.attackAt = e.age + 1.1; cycle.attack = null;
+    cycle.ritualFrom = e.age + 0.75;
+    cycle.ritualUntil = e.age + 2.45;
+    cycle.ritualUsed = false;
+    e.emerged = true;
+    e.goal = { ...s, speed: 16 };
+    puff(s.x, s.y + 0.5, s.z, "crumb");
+  } else {
+    cycle.step = "buried"; cycle.until = e.age + (phase === 1 ? 2.7 : 2.2 - phase * 0.3);
+    e.emerged = false;
+    e.goal = { ...cycle.site, y: cycle.site.y - 8, speed: 12 };
+  }
+}
+function useSandcallerHorn() {
+  if (G.spectator) return true;
+  if (G.dim !== "overworld") {
+    UI.toast("The Sandcaller Horn answers only on the Surface.");
+    return true;
+  }
+  if (G.riding) { UI.toast("Dismount before using the Sandcaller Horn."); return true; }
+  if (useObsidianHorn()) return true;
+  const p = G.player, e = ents.list.find(e => e.sp === "leviathan_dune" && !e.dead && !e.gone && !e.duneCycle?.preview);
+  const record = G.story.leviathan?.dune;
+  const now = (G.meta.day || 1) * DAY_LENGTH + G.time * DAY_LENGTH;
+  if (record?.bonded) {
+    if (e) {
+      if (G.riding === e) { UI.toast("Dismount before dismissing your Leviathan."); return true; }
+      e.gone = true;
+      record.recallAt = now + 12;
+      saveNow(false);
+      UI.toast("Your Leviathan returns beneath the dunes.");
+      return true;
+    }
+    if (now < (record.recallAt || 0)) { UI.toast("The sands are still settling. Try the horn again shortly."); return true; }
+    const site = safeDuneSummon(p);
+    if (!site) { UI.toast("Find a wide, open stretch of sand before sounding the horn."); return true; }
+    const bond = ents.add("leviathan_dune", site.x, site.y - 5, site.z, { hp: record.hp, tame: true, saddled: record.saddled });
+    bond.emerged = true;
+    bond.goal = { ...site, speed: 8 };
+    bond.duneCycle = { step: "surface", site };
+    bond.bondArrival = { ...site };
+    applyBondPreferences(bond, record);
+    record.recallAt = now + 12;
+    saveNow(false);
+    puff(site.x, site.y, site.z, "crumb");
+    Sound.tone(130, 0.8, "triangle", 0.25, -40);
+    return true;
+  }
+  const expansion = G.story.leviathan;
+  const missing = RELIC_SITES.find(def => !hasDesertRelic(G, def) || (def.key === "shrine" && !expansion?.shrineRead));
+  if (missing) {
+    const site = expansion?.sites?.[missing.key];
+    UI.toast(site ? `Seek the ${missing.name} near X ${site.x + 8}, Z ${site.z + 8}.` : `Seek the ${missing.name} in unexplored desert.`);
+    return true;
+  }
+  if (!e || !record) {
+    const observatory = expansion?.sites?.observatory;
+    UI.toast(observatory ? `Check the Great Dune Observatory near X ${observatory.x + 8}, Z ${observatory.z + 8} for the next Leviathan Storm.` :
+      "Find a wild Dune Leviathan during a Leviathan Storm.");
+    return true;
+  }
+  if (Math.hypot(e.pos.x - p.pos.x, e.pos.y - p.pos.y, e.pos.z - p.pos.z) > 12 ||
+      !duneRitualWindow(e.duneCycle, e.age)) {
+    UI.toast("Wait for the Leviathan to rise, then sound the horn as the dust clears.");
+    return true;
+  }
+  const cycle = e.duneCycle;
+  cycle.ritualUsed = true;
+  cycle.ritualMarks = (cycle.ritualMarks || 0) + 1;
+  Sound.tone(130, 0.8, "triangle", 0.25, -40);
+  if (cycle.ritualMarks < 3) {
+    UI.toast(`The relics resonate (${cycle.ritualMarks}/3). Survive until it rises again.`, "good");
+    return true;
+  }
+  record.bonded = true;
+  record.hp = e.hp = e.maxHp;
+  spawnDrop(I.LEVIATHAN_SCALE, 6, p.pos.x, p.pos.y + 0.5, p.pos.z);
+  spawnDrop(I.LEVIATHAN_FANG, 1, p.pos.x, p.pos.y + 0.5, p.pos.z);
+  e.tame = true; e.goal = null;
+  applyBondPreferences(e, record);
+  e.vel.x = e.vel.y = e.vel.z = 0;
+  UI.toast("Legendary bond formed. The Dune Leviathan is yours!", "good");
+  return true;
+}
+function useObsidianHorn() {
+  const expansion = G.story.leviathan, site = expansion?.sites?.citadel;
+  const p = G.player.pos, a = site && citadelArena(site);
+  const nearCourt = a && Math.hypot(p.x - a.x, p.z - a.z) <= 18 && Math.abs(p.y - a.y) <= 3;
+  const e = ents.list.find(e => e.sp === "leviathan_obsidian" && !e.gone && !e.dead);
+  const record = expansion?.obsidian;
+  // Preserve the Citadel rite and ordinary Dune horn use. Crouching explicitly
+  // selects the Obsidian bond away from its court, even with two active bonds.
+  if (record?.bonded ? !nearCourt && !keys.has("KeyC") : !site || !e && !nearCourt) return false;
+  if (record?.defeated) return false;
+  const now = (G.meta.day || 1) * DAY_LENGTH + G.time * DAY_LENGTH;
+  if (record?.bonded) {
+    if (e) {
+      if (G.riding === e) UI.toast("Dismount before dismissing your Leviathan.");
+      else { e.gone = true; record.recallAt = now + 12; saveNow(false); UI.toast("Your Obsidian Leviathan returns beneath the sands."); }
+    } else if (now < (record.recallAt || 0)) UI.toast("The molten ground needs time to settle.");
+    else {
+      const body = SPECIES.leviathan_obsidian;
+      const occupants = [G.player, ...ents.list];
+      const arrival = nearCourt ? { x: a.x, y: a.y, z: a.z } : planDesertRecall(G.world, G.gen, G.player, body, occupants);
+      const clear = arrival && (nearCourt ? clearRecallFootprint(G.world, arrival, body, occupants) : true);
+      if (!clear) UI.toast(nearCourt ? "Step back and clear the Citadel's inner court and footing before recalling your Leviathan." : "Find wide, flat, untouched desert sand with open sky ahead. Keep clear of creatures and landmarks.");
+      else {
+        const bond = ents.add("leviathan_obsidian", arrival.x, arrival.y - 5, arrival.z, { hp: record.hp, tame: true, saddled: record.saddled });
+        bond.emerged = true; bond.goal = { ...arrival, speed: 8 }; bond.bondArrival = { ...arrival };
+        bond.duneCycle = { site: arrival, step: "surface" };
+        applyBondPreferences(bond, record);
+        record.recallAt = now + 12;
+        saveNow(false);
+        puff(arrival.x, arrival.y, arrival.z, "crumb");
+        Sound.mob("rumble", 0);
+        Sound.tone(90, 0.9, "triangle", 0.2, -30);
+      }
+    }
+    return true;
+  }
+  if (!e || !record) { UI.toast("Enter the inner court to awaken the Obsidian Leviathan."); return true; }
+  if (!expansion.dune?.bonded) { UI.toast("Earn the Dune Leviathan's bond before attempting the Inferno rite."); return true; }
+  if (!record.ritualOffered) {
+    const offerings = [[B.OBSIDIAN, 8], [I.GOLD_INGOT, 4], [I.QUARTZ, 2]];
+    if (!offerings.every(([id, n]) => G.inv.count(id) >= n)) {
+      UI.toast("The Inferno rite needs 8 obsidian, 4 gold ingots and 2 Ember Quartz.");
+      return true;
+    }
+    if (G.creative) return true;
+    for (const [id, n] of offerings) G.inv.remove(id, n);
+    record.ritualOffered = true; G.hudDirty = true;
+    UI.toast("The offering is accepted. Survive four attacks and answer each recovery with the horn.");
+    return true;
+  }
+  const c = e.duneCycle;
+  if (c.step !== "recover" || c.ritualUsed || Math.hypot(p.x - e.pos.x, p.z - e.pos.z) > 13) {
+    UI.toast("Wait for its molten veins to dim, then sound the horn nearby.");
+    return true;
+  }
+  c.ritualUsed = true; c.ritualMarks = (c.ritualMarks || 0) + 1;
+  Sound.tone(90 + c.ritualMarks * 16, 0.8, "triangle", 0.25, -30);
+  if (c.ritualMarks < 4) UI.toast(`The Inferno rite answers (${c.ritualMarks}/4).`, "good");
+  else {
+    record.bonded = true; record.hp = e.hp = e.maxHp;
+    for (const [id, n] of [[I.OBSIDIAN_SCALE, 6], [I.MOLTEN_HEART, 1], [I.INFERNO_FANG, 1], [I.VOLCANIC_ESSENCE, 3]]) {
+      spawnDrop(id, n, p.x, p.y + 0.5, p.z);
+    }
+    e.tame = true; e.goal = null; e.vel.x = e.vel.y = e.vel.z = 0;
+    applyBondPreferences(e, record);
+    UI.toast("Legendary bond formed. The Obsidian Leviathan is yours!", "good");
+  }
+  return true;
+}
+G.leviathanBondStatus = key => {
+  if (!Object.prototype.hasOwnProperty.call(LEVIATHAN_BONDS, key)) return "";
+  const def = LEVIATHAN_BONDS[key];
+  if (!def) return "";
+  const actor = ents.list.find(e => e.sp === def.species && e.tame && !e.gone && !e.dead);
+  return !actor ? "Resting beneath the sands" : actor.ridden ? "Riding" : actor.bondArrival ? actor.goal ? "Emerging" : "Emergence blocked · clear the surface" :
+    actor.bondCommand === "follow" ? actor.goal ? "Following" : "Following · waiting for a clear route" : "Waiting";
+};
+G.setLeviathanBond = (key, action, value) => {
+  if (!Object.prototype.hasOwnProperty.call(LEVIATHAN_BONDS, key)) return false;
+  const def = LEVIATHAN_BONDS[key];
+  if (!def) return false;
+  const record = G.story.leviathan?.[key];
+  try {
+    if (!updateBondPreference(record, action, value)) return false;
+  } catch (error) { UI.toast(error.message); return false; }
+  const actor = ents.list.find(e => e.sp === def.species && e.tame && !e.gone && !e.dead);
+  if (actor) {
+    applyBondPreferences(actor, record);
+    if (action !== "name" && !actor.ridden && !actor.bondArrival) {
+      actor.goal = null; actor.vel.x = actor.vel.y = actor.vel.z = 0;
+    }
+  }
+  UI.toast(action === "name" ? "Leviathan name saved." : actor?.ridden ? "Command saved. It takes effect after dismounting." : action === "follow" ? "Your Leviathan will follow where the surface is clear." : "Your Leviathan will wait here.");
+  G.hudDirty = true;
+  saveNow(true);
+  return true;
+};
+function safeDuneSummon(p) {
+  return planDesertRecall(G.world, G.gen, p, SPECIES.leviathan_dune, [p, ...ents.list]);
+}
+function updateDuneSurfaceAttack(e, phase, multiplier) {
+  const c = e.duneCycle, p = G.player.pos;
+  if (e.age < c.attackAt) return;
+  if (!c.attack) {
+    const s = sandEncounterSite(p.x, p.z);
+    c.attackAt = c.until;
+    if (!s || Math.abs(p.y - s.y) > 2 || c.until - e.age < 1.5) return;
+    c.attack = { ...s, phase, from: e.age };
+    c.attackAt = e.age + 1.25;
+    if (phase === 4) e.goal = { ...s, speed: 5 };
+    puff(s.x, s.y + 0.5, s.z, "crumb");
+    UI.toast(["", "", "Tail sweep! Clear the dust marker.", "Sand vortex! Leave the marked area.", "Devouring strike! Move aside."][phase]);
+    return;
+  }
+  const s = c.attack, radius = s.phase === 3 ? 3.5 : s.phase === 4 ? 3 : 4;
+  puff(s.x, s.y + 0.7, s.z, "crumb");
+  if (Math.abs(p.y - s.y) < 2.5 && Math.hypot(p.x - s.x, p.z - s.z) < radius &&
+      sandEncounterSite(p.x, p.z)) hurt((s.phase + 3) * multiplier, "The Dune Leviathan caught you in its attack.", e);
+  c.attackAt = Infinity;
+  c.attack = null;
+}
+let duneWarningFX = null;
+function clearDuneWarning() {
+  duneWarningFX?.view?.dispose(); duneWarningFX = null;
+}
+function duneWarningReview() {
+  return duneWarningFX ? { active: !!duneWarningFX.view, ...duneWarningFX.cue } : { active: false };
+}
+function updateDuneWarning() {
+  const actor = G.dim === "overworld" && !G.creative && !G.spectator && G.state !== "dead" && G.wset.difficulty !== "peaceful" &&
+    ents.list.find(e => e.sp === "leviathan_dune" && e.mesh && !e.dead && !e.gone && !e.tame && !e.duneCycle?.preview);
+  const cue = actor && duneWarningCue(actor);
+  if (!cue) { clearDuneWarning(); return; }
+  const now = G.clock || 0, fast = G.settings.quality === "fast";
+  if (!duneWarningFX || duneWarningFX.actor !== actor || duneWarningFX.fast !== fast || duneWarningFX.cue.type !== cue.type || duneWarningFX.cue.deadline !== cue.deadline ||
+      duneWarningFX.edits !== G.world.editCount && now - duneWarningFX.builtAt >= 0.2) {
+    clearDuneWarning();
+    duneWarningFX = { actor, cue, fast, edits: G.world.editCount, builtAt: now, view: createDuneWarningView(scene, G.world, cue, fast) };
+  }
+  duneWarningFX.cue = cue;
+  duneWarningFX.view?.update(cue.progress, G.settings.reducedMotion);
+}
+function updateStormVortex(dt) {
+  if (stormStage < 3 || G.creative || G.spectator || G.wset.difficulty === "peaceful") {
+    stormVortex = null; stormVortexT = 10;
+    return;
+  }
+  const p = G.player.pos;
+  if (!stormVortex) {
+    if ((stormVortexT -= dt) > 0) return;
+    stormVortexT = 12;
+    const angle = Math.random() * Math.PI * 2;
+    const x = Math.floor(p.x + Math.cos(angle) * 6), z = Math.floor(p.z + Math.sin(angle) * 6);
+    if (!G.world.chunkAt(x, z) || G.gen.column(x, z).biome !== "sandy") return;
+    const ground = G.world.surfaceY(x, z);
+    if (G.world.id(x, ground, z) !== B.SAND || Math.abs(ground + 1 - p.y) > 3) return;
+    stormVortex = { x: x + 0.5, y: ground + 1, z: z + 0.5, age: 0, dustT: 0 };
+    UI.toast("A sand vortex is forming nearby. Keep clear!");
+  }
+  const v = stormVortex;
+  v.age += dt;
+  if ((v.dustT -= dt) <= 0 && parts.length < PMAX - 24) {
+    v.dustT = G.settings.reducedMotion ? 0.35 : 0.12;
+    for (let i = 0; i < 6; i++) {
+      const angle = i * Math.PI / 3 + (G.settings.reducedMotion ? 0 : v.age * 3);
+      const dx = Math.cos(angle), dz = Math.sin(angle);
+      parts.push({ x: v.x + dx * 1.8, y: v.y + 0.3 + i * 0.32, z: v.z + dz * 1.8,
+        vx: G.settings.reducedMotion ? 0 : -dz, vy: 0.35,
+        vz: G.settings.reducedMotion ? 0 : dx, life: 0.4, c: STORM_DUST, floaty: true });
+    }
+  }
+  if (v.age >= 2.2) {
+    if (Math.abs(p.y - v.y) < 2.5 && Math.hypot(p.x - v.x, p.z - v.z) < 2) {
+      hurt(3, "A sand vortex swept you off your feet.", null, false, "sand");
+    }
+    stormVortex = null;
+  }
+}
+function updateSandstorm(dt) {
+  const p = G.player;
+  if (G.dim !== "overworld" || p.headInWater || p.inLava) {
+    stormStage = 0; stormSampleT = 0;
+    stormVortex = null; stormVortexT = 10;
+    Sound.wind(0);
+    return;
+  }
+  if ((stormSampleT -= dt) <= 0) {
+    stormSampleT = 0.25;
+    const stage = sandstormStage(G.gen.seed, G.meta.day || 1, G.time);
+    const x = Math.floor(p.pos.x), z = Math.floor(p.pos.z);
+    const exposed = stage && G.world.chunkAt(x, z) && G.gen.column(x, z).biome === "sandy" &&
+      p.pos.y >= G.world.surfaceY(x, z) + 0.5;
+    const next = exposed ? stage : 0;
+    if (next === 4 && stormStage !== 4) {
+      UI.toast("Something ancient stirs beneath the sands…");
+      Sound.mob("rumble", 0);
+    }
+    stormStage = next;
+  }
+  Sound.wind(stormStage);
+  updateDuneEncounter(dt);
+  if (!stormStage || G.settings.reducedMotion || (stormDustT -= dt) > 0) return;
+  stormDustT = G.settings.quality === "fast" ? 0.15 : 0.09;
+  if (parts.length >= PMAX - 24) return;
+  parts.push({
+    x: p.pos.x + (Math.random() - 0.5) * 18, y: p.pos.y + Math.random() * 4,
+    z: p.pos.z + (Math.random() - 0.5) * 18, vx: 5 + stormStage * 2, vy: 0.15,
+    vz: 1, life: 0.45 + stormStage * 0.12, c: STORM_DUST, floaty: true
+  });
+}
+
+let quicksand = null, quicksandSampleT = 0, quicksandEditCount = -1;
+function clearQuicksand() {
+  quicksand?.view.dispose(); quicksand = null; quicksandSampleT = 0; quicksandEditCount = -1;
+}
+function quicksandReview() {
+  return quicksand ? { active: true, site: { ...quicksand.site, floors: quicksand.site.floors.map(f => [...f]) }, depth: quicksand.clock.depth,
+    factor: quicksand.clock.factor, inside: quicksand.inside } : { active: false };
+}
+function updateQuicksand(dt, running, input = null) {
+  if (G.dim !== HOLLOW_SANDS || G.creative || G.spectator || G.state === "dead" || G.wset.difficulty === "peaceful") {
+    clearQuicksand(); return;
+  }
+  if (running) {
+    quicksandSampleT -= dt;
+    if (quicksandSampleT <= 0 || quicksandEditCount !== G.world.editCount) {
+      const site = findQuicksandSite(G.world, G.player.pos);
+      if (site?.key !== quicksand?.site.key) {
+        clearQuicksand();
+        if (site) quicksand = { site, clock: new QuicksandDrag(), inside: false, view: createQuicksandView(scene, site) };
+      }
+      quicksandSampleT = 0.4; quicksandEditCount = G.world.editCount;
+    }
+    if (quicksand) {
+      const inside = insideQuicksand(quicksand.site, G.player) && !input?.jump;
+      if (inside && !quicksand.inside) UI.toast("Soft sand! Keep moving or jump to escape.");
+      quicksand.inside = inside; quicksand.clock.step(dt, inside);
+      if (input && inside) input.walkMul = (input.walkMul ?? 1) * quicksand.clock.factor;
+    }
+  }
+  if (quicksand) quicksand.view.update(quicksand.clock.age, quicksand.clock.depth, G.settings.reducedMotion);
+}
+let sandsHeat = null, heatSampleT = 0, heatEditCount = -1;
+function clearSandsHeat() {
+  sandsHeat?.view.dispose(); sandsHeat = null; heatSampleT = 0; heatEditCount = -1;
+}
+function heatReview() {
+  return sandsHeat ? { active: true, site: { ...sandsHeat.site, floors: sandsHeat.site.floors.map(f => [...f]) },
+    elapsed: sandsHeat.clock.elapsed, ticks: sandsHeat.clock.ticks, inside: sandsHeat.inside } : { active: false };
+}
+function updateSandsHeat(dt, running) {
+  if (G.dim !== HOLLOW_SANDS || G.creative || G.spectator || G.state === "dead" || G.wset.difficulty === "peaceful") {
+    clearSandsHeat(); return;
+  }
+  if (running) {
+    heatSampleT -= dt;
+    if (heatSampleT <= 0 || heatEditCount !== G.world.editCount) {
+      const site = findHeatSite(G.world, G.player.pos);
+      if (site?.key !== sandsHeat?.site.key) {
+        clearSandsHeat();
+        if (site) sandsHeat = { site, clock: new HeatExposure(), inside: false, view: createHeatView(scene, site) };
+      }
+      heatSampleT = 0.4; heatEditCount = G.world.editCount;
+    }
+    if (sandsHeat) {
+      const { site, clock } = sandsHeat, inside = insideHeat(site, G.player);
+      if (inside && !sandsHeat.inside) UI.toast("Scorching ground! Leave the orange cracks before heat builds. Fire Resistance protects you.");
+      sandsHeat.inside = inside;
+      if (clock.step(dt, inside) && heatSite(G.world, site.bx, site.bz))
+        hurt(2, "Heat from the buried ruins overwhelmed you.", null, false, "fire");
+    }
+  }
+  if (sandsHeat) sandsHeat.view.update(sandsHeat.clock.age, sandsHeat.clock.elapsed, G.settings.reducedMotion);
+}
+const sandsHaze = new THREE.Color(SANDS_REGIONS[0].haze), sandsTarget = new THREE.Color();
+let crystalResonance = null, crystalSampleT = 0;
+function clearCrystalResonance() {
+  crystalResonance?.view.dispose(); crystalResonance = null; crystalSampleT = 0;
+}
+function crystalReview() {
+  return crystalResonance ? { active: true, site: { ...crystalResonance.site }, phase: crystalResonance.clock.phase, age: crystalResonance.clock.age } : { active: false };
+}
+function updateCrystalResonance(dt, running) {
+  if (G.dim !== HOLLOW_SANDS || G.creative || G.spectator || G.state === "dead" || G.wset.difficulty === "peaceful") {
+    clearCrystalResonance(); return;
+  }
+  if (running) {
+    crystalSampleT -= dt;
+    if (crystalSampleT <= 0) {
+      crystalSampleT = 0.4;
+      const site = findCrystalSite(G.world, G.player.pos);
+      if (site?.key !== crystalResonance?.site.key) {
+        clearCrystalResonance(); crystalSampleT = 0.4;
+        if (site) {
+          crystalResonance = { site, clock: new CrystalResonance(), view: createCrystalResonanceView(scene, site) };
+          UI.toast("Crystal resonance! Leave the blue ring before it fills.");
+        }
+      }
+    }
+    if (crystalResonance) {
+      const { site, clock } = crystalResonance, event = clock.step(dt);
+      if (event.warning) UI.toast("Crystal resonance! Leave the blue ring before it fills.");
+      if (event.strike && crystalSite(G.world, site.bx, site.bz) && insideCrystalPulse(site, G.player) &&
+          lineOfSight(G.world, { x: site.x, y: site.y + 1.5, z: site.z },
+            { x: G.player.pos.x, y: G.player.pos.y + G.player.eye, z: G.player.pos.z }))
+        hurt(2, "Ancient crystal energy overwhelmed you.", null, false, "ancientEnergy");
+    }
+  }
+  if (crystalResonance) crystalResonance.view.update(crystalResonance.clock.age, G.settings.reducedMotion);
+}
+let sandsRegion = 0, sandsSampleT = 0;
+function updateSandsDiscovery(dt) {
+  if (G.dim !== HOLLOW_SANDS) return;
+  if ((sandsSampleT -= dt) <= 0) {
+    sandsSampleT = 0.45;
+    const p = G.player.pos;
+    sandsRegion = G.gen.column(p.x, p.z).zone;
+    if (!G.creative && !G.spectator) {
+      const expansion = G.story.leviathan ||= {};
+      const regions = expansion.sandsRegions ||= {};
+      const { name } = SANDS_REGIONS[sandsRegion];
+      if (!regions[name]) {
+        regions[name] = true;
+        UI.toast(`Discovered: ${name}`, "good");
+      }
+    }
+  }
+  sandsHaze.lerp(sandsTarget.setHex(SANDS_REGIONS[sandsRegion].haze), 1 - Math.exp(-dt * 1.8));
+}
 function updateSky() {
   const nether = G.world && G.world.gen.isNether();
   const hollow = G.world && G.world.gen.isEnd && G.world.gen.isEnd();
@@ -2685,6 +4171,18 @@ function updateSky() {
   waterUniforms.rippleTime.value = G.settings.reducedMotion ? 0 : G.clock % 8;
   sun.visible = moon.visible = !nether && !hollow && !forsaken && !lsky;
   uniforms.desat.value = 0;
+  if (G.dim === HOLLOW_SANDS || G.dim === SOLKARA_SANCTUARY) {
+    const r = G.settings.renderDist * CHUNK;
+    uniforms.daylight.value = 0.48;
+    uniforms.ambient.value = 0.26;
+    skyCol.copy(sandsHaze);
+    if (G.dim === SOLKARA_SANCTUARY) skyCol.setHex(0x453b39);
+    if (G.player.headInWater) skyCol.setHex(0x1d3f5a);
+    scene.background = skyCol; uniforms.fogColor.value.copy(skyCol);
+    sun.visible = moon.visible = stars.visible = false;
+    G.fwFog = [r * 0.25, r * 0.74];
+    return 0.48;
+  }
   if (lsky) {   // the Deep is dark (only lamps and crystals light it); the Expanse has a dim violet sky
     const R = G.settings.renderDist * CHUNK;
     uniforms.daylight.value = lsky.daylight; uniforms.ambient.value = lsky.ambient;
@@ -2728,6 +4226,11 @@ function updateSky() {
   skyCol.lerp(SKY_SET, dusk * 0.45);
   const p = G.player;
   if (p.headInWater) skyCol.set(0x1d3f7a);
+  else if (G.dim === "overworld" && stormStage) {
+    skyCol.lerp(STORM_SKY, stormStage * 0.19).multiplyScalar(stormStage === 4 ? 0.65 : 1);
+    const distance = [1, 0.9, 0.64, 0.43, 0.32][stormStage] * G.settings.renderDist * CHUNK;
+    G.fwFog = [distance * 0.25, distance];
+  }
   scene.background = skyCol; uniforms.fogColor.value.copy(skyCol);
   const cam = camera.position, R = 80;
   if (surfaceSky.visible) {
@@ -2735,6 +4238,7 @@ function updateSky() {
     const sky = surfaceSky.material.uniforms;
     sky.horizon.value.copy(skyCol);
     sky.zenith.value.copy(SKY_TOP_NIGHT).lerp(SKY_TOP_DAY, day);
+    if (stormStage) sky.zenith.value.lerp(skyCol, stormStage * 0.22);
     sky.cloudLight.value = day;
     sky.cloudDrift.value = G.settings.reducedMotion ? 0 : G.clock * 0.52;
   }
@@ -2768,10 +4272,12 @@ function updatePlayerModel(dt) {
     if (pmodel) { scene.remove(pmodel.holder); for (const m of Object.values(pmodel.held)) if (m) disposeItemMesh(m); disposeModel(pmodel); }
     pmodel = makeModel(want); scene.add(pmodel.holder); pmMain = pmOff = -1; heldId = -1;
   }
-  pmodel.holder.visible = !!G.thirdPerson && G.state !== "title";
+  const tightMountView = G.riding?.def.segmentedLeviathan && Math.hypot(camera.position.x - p.pos.x, camera.position.y - (p.pos.y + p.eye), camera.position.z - p.pos.z) < 0.65;
+  pmodel.holder.visible = !!G.thirdPerson && G.state !== "title" && !tightMountView;
   if (!pmodel.holder.visible) return;
   // what you wear and hold
-  dressModel(pmodel, [36, 37, 38, 39].map(i => { const s = G.inv.slots[i], d = s && itemDef(s.id); return d ? (d.glider ? "#6a5a7a" : d.colors && d.colors[0]) : null; }));
+  dressModel(pmodel, [36, 37, 38, 39].map(i => { const s = G.inv.slots[i], d = s && itemDef(s.id); return d ? (d.glider ? "#6a5a7a" : d.colors && d.colors[0]) : null; }),
+    [36, 37, 38, 39].map(i => itemDef(G.inv.slots[i]?.id)?.leviathanSet));
   const mainId = (G.inv.slots[G.selected] || {}).id || 0, offIdNow = (G.inv.slots[OFF] || {}).id || 0;
   if (mainId !== pmMain || offIdNow !== pmOff) {
     for (const m of Object.values(pmodel.held)) if (m) disposeItemMesh(m);
@@ -2780,17 +4286,19 @@ function updatePlayerModel(dt) {
     if (a) a.userData.held = true; if (b) b.userData.held = true;
     holdItems(pmodel, a, b); pmMain = mainId; pmOff = offIdNow;
   }
-  pmodel.holder.position.set(p.pos.x, p.pos.y + (p.mount ? p.mount.h - 0.75 : p.boat ? 0.1 : 0), p.pos.z);
+  pmodel.holder.position.set(p.pos.x, p.pos.y + (p.mount ? p.mount.h - 0.75 : p.boat ? 0.1 : 0) - (G.riding?.burrowDepth || 0), p.pos.z);
   pmodel.holder.rotation.y = p.yaw + Math.PI;
   poseModel(pmodel, { walkPhase: G.walkPhase, speed: Math.hypot(p.vel.x, p.vel.z), pitch: -p.pitch, crouch: p.crouch && !p.flying, swing: G.swing,
+    heavySwing: !!itemDef(mainId)?.tool?.heavy, reducedMotion: G.settings.reducedMotion,
     eating: G.eat ? (G.eat.slot === OFF ? "L" : "R") : null, bow: G.bowT >= 0, blocking: G.blocking ? (G.blockHand === OFF ? "L" : "R") : null, riding: !!(p.mount || p.boat) });
 }
 // The camera sits behind you (or in front, looking back), pulled closer if a wall is in the way
 function placeThirdPersonCamera(p) {
-  const d = lookDir(), back = G.view === 1 ? -1 : 1, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
+  const d = lookDir(), back = G.view === 1 || (!G.view && p.mount?.def.segmentedLeviathan) ? -1 : 1, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
   const dir = { x: d.x * back, y: d.y * back, z: d.z * back };
-  const hit = raycast(G.world, eye, dir, 4.2, false);
-  const dist = hit ? Math.max(0.6, hit.dist - 0.3) : 4;
+  const reach = p.mount?.def.segmentedLeviathan ? Math.max(7, Math.min(10, p.mount.w + 1)) : 4;
+  const hit = p.mount?.def.segmentedLeviathan ? null : raycast(G.world, eye, dir, reach + 0.2, false);
+  const dist = p.mount?.def.segmentedLeviathan ? leviathanCameraDistance(G.world, eye, dir, reach, raycast) : hit ? Math.min(reach, Math.max(0.6, hit.dist - 0.3)) : reach;
   camera.position.set(eye.x + dir.x * dist, eye.y + dir.y * dist, eye.z + dir.z * dist);
   if (G.view === 2) camera.rotation.set(-p.pitch, p.yaw + Math.PI, 0, "YXZ");
 }
@@ -2853,6 +4361,14 @@ window.addEventListener("resize", resize);
 // ---------- world list actions (called from the menus) ----------
 G.listWorlds = () => Saves.list();
 G.campaignSeed = () => CAMPAIGN_SEED;
+G.visitSolkaraSanctuary = () => {
+  if (G.traveling || G.dim === SOLKARA_SANCTUARY || !G.story.leviathan?.shrineRead) return;
+  changeDim(SOLKARA_SANCTUARY, -26, 19, "Finding the Solkara sanctuary…", () => {
+    const p = G.player;
+    if (p.collides(G.world, p.aabb(-26.5, 22, 19.5))) throw new Error("The sanctuary arrival is blocked.");
+    Object.assign(p.pos, { x: -26.5, y: 22, z: 19.5 });
+  });
+};
 G.storageOK = () => Saves.persistent();
 G.newWorld = ({ name, seed, mode, settings, campaign }) => {   // mode: survival | creative | hardcore
   const hardcore = mode === "hardcore";
@@ -2891,7 +4407,7 @@ G.toTitle = async () => {
 window.addEventListener("pagehide", () => { if (G.world && G.state !== "loading") saveNow(false); Sound.stop(); });
 
 // ---------- main loop ----------
-let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, stepSoundT = 0;
+let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, stepSoundT = 0, leviathanJournalT = 0;
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = Math.max(last, now);   // capped so a background tab doesn't cause a huge jump (and never runs backwards)
@@ -2901,8 +4417,14 @@ function loop(now) {
   const p = G.player, running = G.state === "play" || G.state === "panel";
 
   if (running) {
+    if ((leviathanJournalT -= dt) <= 0) {
+      leviathanJournalT = 0.5;
+      recordLeviathanDiscovery(G, stormStage);
+      tickSolkaraSandfall();
+    }
     G.time = (G.time + dt / DAY_LENGTH) % 1;
     if (G.time < dt / DAY_LENGTH) { G.meta.day = (G.meta.day || 1) + 1; }
+    updateSandstorm(dt);
     const input = G.state === "play" && locked && !G.cutscene ? {
       f: (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) - (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0),
       r: (keys.has("KeyD") || keys.has("ArrowRight") ? 1 : 0) - (keys.has("KeyA") || keys.has("ArrowLeft") ? 1 : 0),
@@ -2911,11 +4433,17 @@ function loop(now) {
       sprint: (keys.has("ShiftLeft") || keys.has("ShiftRight")) && (G.creative || G.spectator || G.riding || p.hunger > 6) && !G.blocking && !G.eat,
       flyUp: keys.has("Space"), flyDown: keys.has("KeyC")
     } : { f: 0, r: 0 };
+    if (!G.creative && !G.spectator && stormStage >= 2) {
+      const pieces = leviathanSetPieces("sand"), penalty = stormStage === 2 ? 0.06 : 0.12;
+      input.walkMul = 1 - penalty * (pieces === 4 ? 0 : pieces >= 2 ? 0.5 : 1);
+    }
     if (G.riding) { input.crouch = false; if (!G.riding.tame && !G.riding.def.boat) { input.f = input.r = 0; input.jump = false; } }   // a wild Trotter won't go where you steer
     const flyingMount = G.riding?.tame && G.riding.def.airMount;
     if (flyingMount) { input.flyDown = input.sprint; input.sprint = false; }
     if (G.spectator) { p.flying = true; p.noclip = true; } else { p.noclip = false; if (flyingMount || !G.creative) p.flying = !!flyingMount; }
-    acc += dt;
+    updateQuicksand(dt, true, input);
+    if (mountedBurrow) { updateMountedBurrow(dt); acc = 0; }
+    else acc += dt;
     const startX = p.pos.x, startZ = p.pos.z;
     while (acc >= 1 / 60) {
       acc -= 1 / 60;
@@ -2972,16 +4500,36 @@ function loop(now) {
   const bob = G.settings.reducedMotion || !p.onGround || G.view ? 0 : Math.sin(G.walkPhase) * 0.04 * Math.min(1, Math.hypot(p.vel.x, p.vel.z) / 4);
   camera.position.set(p.pos.x, p.pos.y + p.eye + bob, p.pos.z);
   camera.rotation.set(p.pitch, p.yaw, p.hurtT > 0 && !G.settings.reducedMotion ? Math.sin(p.hurtT * 30) * 0.03 : 0, "YXZ");
-  G.thirdPerson = (!!G.view && !G.spectator) || !!G.cutscene;
+  G.thirdPerson = (!!G.view && !G.spectator) || !!G.cutscene || !!G.riding?.def.segmentedLeviathan;
   if (tickCutscene(dt)) { /* the victory scene moves the camera */ }
   else if (G.thirdPerson) placeThirdPersonCamera(p);
   updatePlayerModel(dt);
   if (p.hurtT > 0) p.hurtT -= dt;
 
   stream(G.state === "play" ? 7 : 4);
+  if (running) updateSandsDiscovery(dt);
   const daylight = updateSky();
+  updateSolkaraCore();
+  updateSolkaraGateView();
   applyView();
-  if (running) { ents.update(dt, daylight, camera); updateOrbs(dt); }
+  updateCrystalResonance(dt, running);
+  updateSandsHeat(dt, running);
+  if (!running) updateQuicksand(0, false);
+  updateArmorShieldView();
+  if (running && G.state !== "dead") {
+    if (arenaFractures) {
+      if (G.dim !== HOLLOW_SANDS || !ents.list.some(e => e.sp === "leviathan_ancient" && !e.dead && !e.gone)) clearArenaFractures();
+      else arenaFractures.update(dt);
+    }
+    for (let i = ancientSpikes.length - 1; i >= 0; i--) if (!ancientSpikes[i].update(dt)) ancientSpikes.splice(i, 1);
+    updateObsidianEncounter();
+    if (G.dim === "overworld") updateStormVortex(dt);
+    if (G.state !== "dead") ents.update(dt, daylight, camera);
+    if (mountedBurrow) mountedBurrow.view.update(mountedBurrow.session.visualState, G.settings.reducedMotion);
+    updateMountedLeviathanAttack(dt);
+    updateOrbs(dt);
+  }
+  updateDuneWarning();
   if (G.state === "play" && mouseL && !G.creative && !G.spectator && G.attackCd <= 0 && entityTarget()) attack();
   document.getElementById("waterTint").hidden = !p.headInWater;
 
@@ -3008,7 +4556,11 @@ function loop(now) {
   const skyOpen = G.world.surfaceY(Math.floor(p.pos.x), Math.floor(p.pos.z)) <= p.pos.y + 1;
   const bright = Math.max(skyOpen ? daylight : 0.35, 0.35);
   updateDrops(running ? dt : 0, bright);
-  if (G.swing > 0) { G.swing += dt * 4; if (G.swing >= 1) G.swing = mouseL && !G.creative && G.mining ? 0.01 : 0; }
+  if (G.swing > 0) {
+    const duration = itemDef(G.inv.slots[G.selected]?.id)?.tool?.swingDuration || 0.25;
+    G.swing += (running ? dt : 0) / duration;
+    if (G.swing >= 1) G.swing = mouseL && !G.creative && G.mining ? 0.01 : 0;
+  }
   updateHeld(bright);
   updateFishLine();
   updateCompassHud(dt);
@@ -3025,17 +4577,19 @@ function loop(now) {
   pGeo.setDrawRange(0, n); pGeo.attributes.position.needsUpdate = true; pGeo.attributes.color.needsUpdate = true;
 
   // the boss health bar
-  const boss = ents.list.filter(e => e.def.boss && !e.gone).sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0], bar = document.getElementById("bossbar");
+  const boss = ents.list.filter(e => e.def.boss && !e.gone && !e.tame && (!e.def.segmentedLeviathan || e.emerged || e.dead || e.sp === "leviathan_dune" && e.duneCycle?.step === "rising")).sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0], bar = document.getElementById("bossbar");
   const hb = CP.bossInfo() || F.bossInfo() || L.bossInfo();
   bar.hidden = (!boss || Math.hypot(boss.pos.x - p.pos.x, boss.pos.z - p.pos.z) > (boss.sp === "dragon" ? 160 : 64)) && !hb;
   if (hb) { bar.querySelector("i").style.width = Math.max(0, hb.frac * 100) + "%"; bar.querySelector("b").textContent = hb.label; bar.classList.remove("ember"); bar.classList.add("pale"); }
   else if (!bar.hidden) {
     bar.classList.remove("pale");
     let label = boss.def.name + (boss.armored ? " (armored: arrows bounce off)" : "");
+    if (boss.def.segmentedLeviathan) label += " • Phase " + (boss.sp === "leviathan_ancient" ? ancientPhase(boss) : dunePhase(boss.hp, boss.maxHp));
     if (boss.sp === "cindermaw") { const ph = ents.cinderPhase(boss), py = ents.list.filter(o => o.sp === "pylon" && !o.dead).length; label = `Cindermaw • Phase ${ph}${py ? ` • Shielded by ${py} Ember Pylon${py > 1 ? "s" : ""}` : boss.tired ? " • Worn out!" : boss.perched ? " • Landed: hit it!" : ""}`; }
     bar.querySelector("i").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%"; bar.querySelector("b").textContent = label;
     bar.classList.toggle("ember", boss.sp === "cindermaw");
   }
+  document.getElementById("waypoint").style.top = bar.hidden ? "" : "68px";
   if (G.hudDirty) { G.hudDirty = false; UI.hud(); }
   if (running) { G.autosaveT += dt; if (G.autosaveT > AUTOSAVE) { G.autosaveT = 0; saveNow(true); } }
   if (G.debug) {
@@ -3068,4 +4622,4 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneWarningReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };

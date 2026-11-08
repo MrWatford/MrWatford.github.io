@@ -1,7 +1,11 @@
 // Every block and item in Blockhaven: what it is, how it behaves, how it's crafted,
 // and the pixel-art textures (all drawn by code, so every picture is original).
 import { CREATURES } from "./creature-catalog.js";
+import { DESERT_MOBS } from "./desert-mob-catalog.js";
 import { rng } from "./noise.js";
+import { drawLeviathanWeapon } from "./leviathan-weapon-art.js";
+import { drawLeviathanArmor } from "./leviathan-armor-art.js";
+import { LEVIATHAN_ARMOR_STYLE } from "./leviathan-armor-style.js";
 
 export const CHUNK = 16, HEIGHT = 80, SEA = 30;
 
@@ -54,7 +58,7 @@ export const B = {
   // the Starter Home (js/starter.js)
   SIGN: 206, BOOKSHELF: 207, MAP_TABLE: 208,
   // the Legacy Campaign (js/campaign.js)
-  WAYSTONE: 209, RUNE_STONE: 210
+  WAYSTONE: 209, RUNE_STONE: 210, SOLKARA_GATE: 211
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -90,7 +94,15 @@ export const I = {
   EXPLORER_MAP: 563,
   // the Legacy Campaign
   RELIC_EARTH: 564, RELIC_NATURE: 565, RELIC_TIDES: 566, ANCIENT_KEY: 567, DESERT_MAP: 568, OCEAN_MAP: 569, EXPEDITION_MAP: 570, CP_CHARM: 571,
-  RELIC_DECAY: 572, RELIC_FLAME: 573, RELIC_SHADOWS: 574, DRAGON_SEAL: 575
+  RELIC_DECAY: 572, RELIC_FLAME: 573, RELIC_SHADOWS: 574, DRAGON_SEAL: 575,
+  LEVIATHAN_SCALE: 576, LEVIATHAN_FANG: 577, SANDCALLER_HORN: 578,
+  DUNE_RELIC: 579, SUN_RELIC: 580, TOMB_RELIC: 581, ANCIENT_DESERT_CORE: 582,
+  OBSIDIAN_SCALE: 583, MOLTEN_HEART: 584, INFERNO_FANG: 585, VOLCANIC_ESSENCE: 586,
+  SAND_HELMET: 587, SAND_CHEST: 588, SAND_LEGS: 589, SAND_BOOTS: 590,
+  OBSIDIAN_HELMET: 591, OBSIDIAN_CHEST: 592, OBSIDIAN_LEGS: 593, OBSIDIAN_BOOTS: 594,
+  FANGBLADE: 595, INFERNO_GREATBLADE: 596, ANCIENT_HEART: 597, ANCIENT_CROWN: 598,
+  ETERNAL_SAND_CORE: 599, ANCIENT_PLATE: 600, ANCIENT_TROPHY: 601, ANCIENT_COMPANION_RELIC: 602,
+  ANCIENT_HELMET: 603, ANCIENT_CHEST: 604, ANCIENT_LEGS: 605, ANCIENT_BOOTS: 606, BURIED_SCEPTER: 607
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -327,6 +339,7 @@ block(B.BOOKSHELF, "Bookshelf", { hardness: 1.5, tool: "axe", tex: ["planks", "b
 block(B.MAP_TABLE, "Expedition Table", { hardness: 2.5, tool: "axe", interact: "maptable", tex: ["map_table_top", "map_table_side", "planks"], category: "Useful" });
 block(B.WAYSTONE, "Waystone", { hardness: Infinity, drops: 0, light: 10, interact: "waystone", tex: ["waystone_top", "waystone_side", "stone_bricks"], category: "Useful" });   // campaign fast travel (js/campaign.js)
 block(B.RUNE_STONE, "Rune Stone", { hardness: Infinity, drops: 0, light: 7, interact: "rune", tex: "rune_stone", category: "Useful" });             // a campaign boss arena device
+block(B.SOLKARA_GATE, "Solkara Gateway", { hardness: Infinity, drops: 0, light: 12, interact: "solkara_gate", tex: "return_gate", category: LOST, noItem: true });
 
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
@@ -492,6 +505,18 @@ item(I.RELIC_DECAY, "Relic of Decay", { icon: "relic", colors: ["#3a4a2a", "#b8e
 item(I.RELIC_FLAME, "Relic of Flame", { icon: "relic", colors: ["#b8301a", "#ffc850"], stack: 1, quest: true });
 item(I.RELIC_SHADOWS, "Relic of Shadows", { icon: "relic", colors: ["#2a2a3a", "#c8c8e8"], stack: 1, quest: true });
 item(I.DRAGON_SEAL, "Dragon Seal", { icon: "relic", colors: ["#6a1a10", "#ff8a3a"], stack: 3, quest: true });   // three of them fuse into a Cinder Eye
+item(I.LEVIATHAN_SCALE, "Leviathan Scale", { icon: "relic", colors: ["#70482a", "#dca35a"], category: "Items" });
+item(I.LEVIATHAN_FANG, "Leviathan Fang", { icon: "relic", colors: ["#966647", "#ffe6a5"], category: "Items" });
+item(I.SANDCALLER_HORN, "Sandcaller Horn", { icon: "relic", colors: ["#8c5831", "#f1cc86"], stack: 1,
+  desc: "Use on wide, flat desert sand to call or dismiss Dune. Crouch + use selects your bonded Obsidian Leviathan. Near the Citadel court, selects Obsidian. Dismount first. 12s settling cooldown per bond." });
+item(I.DUNE_RELIC, "Relic of the Dunes", { icon: "relic", colors: ["#8d5736", "#ffd688"], quest: true });
+item(I.SUN_RELIC, "Relic of the Sun", { icon: "relic", colors: ["#a33f24", "#ffe064"], quest: true });
+item(I.TOMB_RELIC, "Relic of the Tomb", { icon: "relic", colors: ["#53484b", "#78d5cb"], quest: true });
+item(I.ANCIENT_DESERT_CORE, "Ancient Desert Core", { icon: "relic", colors: ["#855641", "#78e0d6"], stack: 1, quest: true });
+item(I.OBSIDIAN_SCALE, "Obsidian Leviathan Scale", { icon: "relic", colors: ["#302838", "#ad593a"] });
+item(I.MOLTEN_HEART, "Molten Heart", { icon: "relic", colors: ["#682c2e", "#ff9c44"], stack: 1 });
+item(I.INFERNO_FANG, "Inferno Fang", { icon: "relic", colors: ["#4a3541", "#ff7344"] });
+item(I.VOLCANIC_ESSENCE, "Volcanic Essence", { icon: "relic", colors: ["#773d3a", "#f6ac62"] });
 item(I.EXPLORER_MAP, "Explorer's Map", { icon: "explorer_map", stack: 1, category: "Tools", offhand: true });   // press M (or right-click it) to open; see js/starter.js
 item(I.CHEST_BOAT, "Boat with Chest",{ icon: "boat", colors: ["chest"], stack: 1, category: "Tools" });   // string can be laid down as tripwire between two hooks
 item(I.SPARKDUST, "Sparkdust", { icon: "dust", colors: ["#ff5a2a", "#c2361a", "#ff8a4a"], category: "Mechanisms", places: B.SPARK_DUST });
@@ -525,6 +550,32 @@ for (const [k, label, pts, dur, color] of ARMOR) PIECES.forEach(([p, pname, icon
   const nice = k === "LEATHER" ? label + " " + pname : label + " " + { HELMET: "Helmet", CHEST: "Chestplate", LEGS: "Leggings", BOOTS: "Boots" }[p];
   item(I[k + "_" + p], nice, { icon: "armor_" + icon, colors: [color], kind: "armor", stack: 1, category: "Tools", armor: { slot, points: pts[slot], dur } });
 });
+for (const [key, label, points, dur, set] of [
+  ["SAND", "Sand Warrior", [3, 7, 5, 3], 520, "sand"],
+  ["OBSIDIAN", "Obsidian Warden", [3, 8, 6, 3], 680, "obsidian"],
+  ["ANCIENT", "Ancient Guardian", [3, 8, 6, 3], 850, "ancient"]
+]) PIECES.forEach(([piece, , icon], slot) => {
+  item(I[key + "_" + piece], label + " " + ["Helmet", "Chestplate", "Leggings", "Boots"][slot], {
+    icon: "armor_" + icon, colors: [LEVIATHAN_ARMOR_STYLE[set].base], kind: "armor", stack: 1, category: "Tools",
+    armor: { slot, points: points[slot], dur }, leviathanSet: set,
+    desc: set === "ancient" ? "2: 25% less sand and crystal hazard damage in Hollow Sands. 4: 20% less Leviathan damage. Crouch + use empty hand: shield and burst, 45s cooldown, 6 durability per piece." :
+      set === "sand" ? "2: lighter storm penalties. 4: faster on sand and 25% sand attack resistance. Crouch + use empty hand: shockwave, 20s cooldown, 3 durability per piece." :
+      "2: 25% less fire damage. 4: 60% less fire damage. Crouch + use empty hand: 5s shield, 30s cooldown, 3 durability per piece."
+  });
+});
+item(I.FANGBLADE, "Leviathan Fangblade", { icon: "sword", colors: ["#efd092", "#97693c"], kind: "tool", stack: 1, category: "Tools",
+  tool: { type: "sword", tier: 4, speed: 9, dur: 900, damage: 7 }, desc: "Right-click: sand wave. 8 second cooldown. Costs 3 durability." });
+item(I.INFERNO_GREATBLADE, "Inferno Greatblade", { icon: "sword", colors: ["#e7864b", "#453040"], kind: "tool", stack: 1, category: "Tools",
+  tool: { type: "sword", tier: 5, speed: 10, dur: 1300, damage: 8, attackCooldown: 0.8, swingDuration: 0.6, heavy: true }, desc: "Heavy melee: 0.8s between strikes. Right-click: fiery wave. 12 second cooldown. Costs 4 durability." });
+item(I.BURIED_SCEPTER, "Scepter of the Buried King", { icon: "rod", colors: ["#d4c4b0", "#9fcde9"], kind: "tool", stack: 1, category: "Tools",
+  tool: { type: "staff", tier: 5, speed: 1, dur: 900, damage: 4 }, desc: "Right-click: six ancient energy spikes. 14 second cooldown. Costs 5 durability." });
+for (const [id, name] of [
+  [I.ANCIENT_HEART, "Heart of the Ancient"], [I.ANCIENT_CROWN, "Ancient Leviathan Crown"],
+  [I.ETERNAL_SAND_CORE, "Eternal Sand Core"], [I.ANCIENT_PLATE, "Ancient Guardian Plate"],
+  [I.ANCIENT_TROPHY, "Buried King's Trophy"], [I.ANCIENT_COMPANION_RELIC, "Ancient Companion Relic"]
+]) item(id, name, { icon: "relic", colors: ["#c9bda7", "#a5ccf0"], stack: id === I.ANCIENT_PLATE ? 64 : 1,
+  ...(id === I.ANCIENT_COMPANION_RELIC ? { desc: "Right-click to summon or dismiss Runecrest. Right-click the companion to sit or follow. Heal with Skyshards." } : {})
+});
 // spawn eggs (Creative only): key, name, two colors
 export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skeleton", "Rattler", "#d8d8d0", "#6a6a6a"], ["creeper", "Hisser", "#4caf3a", "#1d1d1d"],
   ["spider", "Skitter", "#3a302a", "#c0202a"], ["cave_spider", "Cave Skitter", "#1d4a5a", "#c0202a"], ["slime", "Gloop", "#6ac85a", "#3a8a3a"], ["voidwalker", "Voidwalker", "#161616", "#b050e0"],
@@ -540,6 +591,8 @@ export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skelet
   ["llama", "Woolneck", "#dbc7a6", "#baa581"], ["trader_llama", "Caravan Woolneck", "#d7c49f", "#264887"],
   ["bone_trotter", "Bone Trotter", "#bfb5a0", "#867e70"], ["rot_trotter", "Rot Trotter", "#546a38", "#819757"]];
 SPAWN_EGGS.push(...CREATURES.map(([id, name, color, accent]) => [id, name, color, accent]));
+SPAWN_EGGS.push(["leviathan_dune", "Dune Leviathan", "#a97540", "#ffc664"]);
+SPAWN_EGGS.push(...DESERT_MOBS);
 // Glider Wings go in the chest armor slot: jump while falling to glide
 item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
@@ -551,6 +604,17 @@ export const isBlockItem = id => id > 0 && id < 256;
 // Ingredient ids can be a tag like "planks" meaning any kind of planks.
 export const TAGS = { planks: [B.PLANKS, B.BIRCH_PLANKS], logs: [B.LOG, B.BIRCH_LOG] };
 export const RECIPES = [
+  ...["HELMET", "CHEST", "LEGS", "BOOTS"].map((piece, slot) => ({
+    out: [I["ANCIENT_" + piece], 1], ins: [[I.ANCIENT_PLATE, [1, 3, 2, 2][slot]], [I.SKYSHARD, [3, 5, 4, 2][slot]]], table: true
+  })),
+  { out: [I.BURIED_SCEPTER, 1], ins: [[I.ANCIENT_HEART, 1], [I.ETERNAL_SAND_CORE, 1], [I.STICK, 2]], table: true },
+  ...["HELMET", "CHEST", "LEGS", "BOOTS"].flatMap((piece, slot) => [
+    { out: [I["SAND_" + piece], 1], ins: [[I.LEVIATHAN_SCALE, [1, 2, 2, 1][slot]], [I.GOLD_INGOT, [3, 5, 4, 2][slot]]], table: true },
+    { out: [I["OBSIDIAN_" + piece], 1], ins: [[I.OBSIDIAN_SCALE, [1, 2, 2, 1][slot]], [B.OBSIDIAN, [3, 5, 4, 2][slot]]], table: true }
+  ]),
+  { out: [I.FANGBLADE, 1], ins: [[I.LEVIATHAN_FANG, 1], [I.GOLD_INGOT, 3], [I.STICK, 1]], table: true },
+  { out: [I.INFERNO_GREATBLADE, 1], ins: [[I.INFERNO_FANG, 1], [I.MOLTEN_HEART, 1], [I.DUSK_INGOT, 2]], table: true },
+  { out: [I.SANDCALLER_HORN, 1], ins: [[I.BONE, 3], [I.GOLD_INGOT, 2], [I.LEATHER, 1]], table: true },
   { out: [B.PLANKS, 4], ins: [[B.LOG, 1]] },
   { out: [B.BIRCH_PLANKS, 4], ins: [[B.BIRCH_LOG, 1]] },
   { out: [I.STICK, 4], ins: [["planks", 2]] },
@@ -1441,6 +1505,9 @@ export function iconCanvas(id) {
   return c;
 }
 function drawIcon(ctx, id, d, bdi) {
+  if (d.leviathanSet && d.armor) { drawLeviathanArmor(ctx, d.leviathanSet, d.armor.slot); return; }
+  const legendary = id === I.FANGBLADE ? "fang" : id === I.INFERNO_GREATBLADE ? "inferno" : id === I.BURIED_SCEPTER ? "scepter" : null;
+  if (legendary) { drawLeviathanWeapon(ctx, legendary); return; }
   if (d.kind !== "block" || (bdi.icon && !bdi.icon.startsWith("tile:"))) {
     const s = document.createElement("canvas"); s.width = s.height = 16;
     ICON_PAINT[d.icon || bdi.icon](painter(s.getContext("2d"), 0, 0, id), d.colors || (bdi && (bdi.colors || WOOD_ICON[bdi.tex])));

@@ -1,0 +1,12 @@
+# Working on BlockHaven
+
+These instructions apply to this game directory. The expansion specification is in [LEVIATHAN_EXPANSION.md](LEVIATHAN_EXPANSION.md), and the scoped work and acceptance checks are in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+
+- Begin gameplay work only after the owner approves implementation. Take one milestone or reviewable slice at a time. Get separate authorization before publishing, changing deployment configuration, or pushing to a branch that publishes the website.
+- Keep the existing static HTML and ES module entry point working. Use the registries, world and entity lifecycles, and story interfaces already in the game. Keep expansion-specific logic local to the feature and keep shared edits small.
+- Preserve existing IDs, spawn egg order, metadata semantics, authored map versions, world types, quest namespaces, and player data. Test migration with exported copies. Record generation version separately from save schema version and check serialization in both browser saves and exported JSON.
+- Protect visited or edited terrain, containers, map landmarks, gateways, and quest blocks across the full structure footprint. Check overlapping reservations before stamping. Never apply retroactive changes to released map templates. Favor visual effects for burrowing and storms.
+- Design reload, repeated interaction, chunk unload, death, and failed transitions together with the normal success path. Persist one authoritative record per unique encounter or bond. Verify rewards and portal activation are repeat-safe and inventory-full behavior preserves progression.
+- Bound per-frame AI, terrain edits, particles, and mesh work. Respect existing quality, reduced-motion and sound settings. Dispose of transient meshes, effects, and sounds on world exit or dimension change.
+- Follow LEVIATHAN_VISUAL_GUIDE.md for expansion material families, icon/model consistency and visual acceptance. Record actual runtime views and lighting/device limitations; keep shared armor palettes in leviathan-armor-style.js.
+- Serve the website locally over HTTP and use a separate browser origin or profile with disposable worlds. Preserve unrelated files. Verify ordinary Survival and Creative entry points plus any affected older-world, campaign, Hardcore, and save/export paths. Record seeds, browser, hardware, settings, results and failures. Keep documentation claims tied to checks actually run.

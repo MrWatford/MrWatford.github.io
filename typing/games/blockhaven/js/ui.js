@@ -4,6 +4,8 @@ import { TRADES } from "./entities.js";
 import { maxStack, newStack, OFF } from "./inventory.js";
 import { Adv, CATEGORIES } from "./advancements.js";
 import { Sound } from "./audio.js";
+import { leviathanJournalHTML, bindLeviathanBondControls } from "./leviathan-journal.js?v=bonds-1";
+import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
 
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
@@ -56,6 +58,7 @@ export const UI = {
     this.bindSettings();
     $("pDiff").onchange = e => { if (G.meta && G.meta.hardcore) { e.target.value = "hard"; return; } G.wset.difficulty = e.target.value; this.toast("Difficulty: " + e.target.value); };
     $("btnAdv").onclick = () => { Sound.click(); G.openAdvancements(); };
+    $("btnJournal")?.addEventListener("click", () => { Sound.click(); G.openJournal(); });
     $("nwModes").onchange = () => { const hc = document.querySelector("input[name=mode]:checked").value === "hardcore"; $("nwDiff").disabled = $("nwKeep").disabled = hc; if (hc) { $("nwDiff").value = "hard"; $("nwKeep").checked = false; } };
     $("pMode").onchange = e => { if (!G.setMode(e.target.value)) e.target.value = G.mode; };
     $("pGrief").onchange = e => { G.wset.griefing = e.target.checked; };
@@ -281,12 +284,18 @@ export const UI = {
       // two adventures, one journal: a tab for each (it opens on the one you're in)
       const cpOn = G.campaign && G.campaign.on();
       if (!G.journalTab || (G.journalTab === "cp" && !cpOn)) G.journalTab = cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
-      const lost = G.journalTab === "lost", cp = G.journalTab === "cp";
-      const tabs = `<span class="jtabs">${cpOn ? `<button class="chip-btn ${cp ? "on" : ""}" data-jtab="cp">Campaign</button>` : ""}<button class="chip-btn ${!lost && !cp ? "on" : ""}" data-jtab="fw">Forsaken World</button><button class="chip-btn ${lost ? "on" : ""}" data-jtab="lost">Lost Civilization</button></span>`;
-      p.innerHTML = `<div class="inv-card fw-card"><h3>Journal ${tabs} <span class="note" style="color:#444">Press J or Esc to close</span></h3>${cp ? G.campaign.journalHTML() : lost ? G.lost.journalHTML() : G.forsaken.journalHTML()}</div>`;
+      const lost = G.journalTab === "lost", cp = G.journalTab === "cp", leviathan = G.journalTab === "leviathan";
+      const tabs = `<span class="jtabs">${cpOn ? `<button class="chip-btn ${cp ? "on" : ""}" data-jtab="cp">Campaign</button>` : ""}<button class="chip-btn ${!lost && !cp && !leviathan ? "on" : ""}" data-jtab="fw">Forsaken World</button><button class="chip-btn ${lost ? "on" : ""}" data-jtab="lost">Lost Civilization</button><button class="chip-btn ${leviathan ? "on" : ""}" data-jtab="leviathan">Leviathan</button></span>`;
+      p.innerHTML = `<div class="inv-card fw-card"><h3>Journal ${tabs} <span class="note" style="color:#444">Press J or Esc to close</span></h3>${leviathan ? leviathanJournalHTML(G) : cp ? G.campaign.journalHTML() : lost ? G.lost.journalHTML() : G.forsaken.journalHTML()}</div>`;
       p.querySelectorAll("[data-jtab]").forEach(b => b.onclick = () => { Sound.click(); G.journalTab = b.dataset.jtab; this.renderPanel(); });
+      p.querySelectorAll("[data-solkara-sanctuary]").forEach(b => b.onclick = () => { Sound.click(); G.visitSolkaraSanctuary(); });
+      bindLeviathanBondControls(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
-      if (!lost && !cp) G.forsaken.drawMap($("fwMap"));
+      if (!lost && !cp && !leviathan) G.forsaken.drawMap($("fwMap"));
+      p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
+        const record = SOLKARA_RECORDS[Number(b.dataset.solkaraRecord)];
+        if (record && hasSolkaraRecord(G.story.leviathan, record)) this.openNote(record.title, record.text, false);
+      });
       p.querySelectorAll("[data-note]").forEach(b => b.onclick = () => G.forsaken.readNote(b.dataset.note));
       p.querySelectorAll("[data-lore]").forEach(b => b.onclick = () => G.lost.readLore(b.dataset.lore));
       p.querySelectorAll("[data-fwt]").forEach(b => b.onclick = () => { Sound.click(); G.forsaken.testControl(b.dataset.fwt); this.renderPanel(); });
@@ -449,6 +458,7 @@ export const UI = {
     tip.innerHTML = ""; tip.append(d.name);
     if (d.tool) { const sm = document.createElement("small"); sm.textContent = `Uses left: ${s.dur ?? d.tool.dur} / ${d.tool.dur}`; tip.append(sm); }
     const line = text => { const sm = document.createElement("small"); sm.textContent = text; tip.append(sm); };
+    if (d.desc) line(d.desc);
     if (d.kind === "food") {
       if (d.food) line(`Food +${d.food / 2} 🍗   Fullness +${(d.sat || 0).toFixed(1)}`);
       line(d.sat >= 9 ? "Very filling: keeps you healing for a long time" : d.sat >= 5 ? "Filling" : d.food ? "Not very filling: you'll be hungry again soon" : "Doesn't fill you up");

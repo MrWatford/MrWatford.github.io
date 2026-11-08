@@ -85,6 +85,7 @@ export class Player {
     let speed = this.flying ? (input.sprint ? 16 : 9) : this.mount ? (input.sprint ? 11 : 7.5) * this.mount.def.speed / 2 : this.crouch ? 1.6 : input.sprint ? 5.8 : 4.3;
     if (this.inWater && !this.flying) speed *= this.inLava ? 0.3 : 0.55 * (this.swimMul || 1);   // Splashers help you swim faster
     speed *= this.speedMul || 1;
+    if (!this.flying && !this.mount && !this.inWater) speed *= input.walkMul ?? 1;
     const under = this.onGround && !this.flying ? world.id(Math.floor(p.x), Math.floor(p.y - 0.1), Math.floor(p.z)) : 0;
     if (under === B.SOUL_SAND) speed *= 0.5;   // Wailing Sand slows you down
     if (under === B.HONEY_BLOCK) speed *= 0.4; else if (under === B.GLOOP_BLOCK) speed *= 0.6;   // Honey is sticky; Gloop is wobbly

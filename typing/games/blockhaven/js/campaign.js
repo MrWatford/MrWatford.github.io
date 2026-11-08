@@ -9,6 +9,7 @@
 //   bosses { id: time }    relics [chapter numbers]               flags { name: true }
 // The game reports events with G.campaign.event(type, arg); quests move forward on their own.
 import { B, I, CHUNK, SEA, itemDef, make } from "./blocks.js";
+import { untouchedFootprint } from "./structure-placement.js";
 import { newStack } from "./inventory.js";
 import { buildVillage, VSIZE, VC, VILLAGE_V } from "./campaign-village.js";
 import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
@@ -77,15 +78,12 @@ export function initCampaign(api) {
   function planSites(gen, wdata) {
     const s = st(), v = s.village, lost = G.story.lost || {}, ts = lost.tsites || {};
     s.sites = s.sites || {};
-    const visited = new Set(wdata.visited || []), mods = wdata.mods || {};
+    const untouched = untouchedFootprint(wdata);
     const occ = [{ x: v.cx, z: v.cz, r: 82 }];
     if (lost.site) occ.push({ x: lost.site.x + 16, z: lost.site.z + 16, r: 22 });
     for (const t of Object.values(ts)) if (t) occ.push({ x: t.x + 16, z: t.z + 16, r: t.lake ? t.lake.r1 + 4 : 22 });
     for (const [id, q] of Object.entries(s.sites)) occ.push({ x: q.cx, z: q.cz, r: SZ[q.kind || id] / 2 + 2 });
-    const fresh = (x, z, half) => {
-      for (let gx = Math.floor((x - half) / CHUNK); gx <= Math.floor((x + half - 1) / CHUNK); gx++) for (let gz = Math.floor((z - half) / CHUNK); gz <= Math.floor((z + half - 1) / CHUNK); gz++) { const k = gx + "," + gz; if (visited.has(k) || mods[k]) return false; }
-      return true;
-    };
+    const fresh = (x, z, half) => untouched(x - half, z - half, x + half, z + half);
     const search = (from, kind, rMin, rMax, scoreAt) => {
       const half = SZ[kind] / 2; let best = null;
       for (let r = rMin; r <= rMax; r += 12) {
@@ -222,9 +220,9 @@ export function initCampaign(api) {
     if (!on() || !gen || !gen.citadel) return;
     const s = st(), c = gen.citadel;
     if (!s.nsites) {
-      const visited = new Set((wdata && wdata.visited) || []), mods = (wdata && wdata.mods) || {}, half = SZ.sealshrine / 2, out = {};
+      const untouched = untouchedFootprint(wdata || {}), half = SZ.sealshrine / 2, out = {};
       const clear = (x, z) => {
-        for (let gx = Math.floor((x - half) / CHUNK); gx <= Math.floor((x + half - 1) / CHUNK); gx++) for (let gz = Math.floor((z - half) / CHUNK); gz <= Math.floor((z + half - 1) / CHUNK); gz++) if (visited.has(gx + "," + gz) || mods[gx + "," + gz]) return false;
+        if (!untouched(x - half, z - half, x + half, z + half)) return false;
         if (x + half > c.x - 40 && x - half < c.x + 80 && z + half > c.z - 40 && z - half < c.z + 40) return false;   // keep clear of the citadel and its tunnel
         return Object.values(out).every(o => Math.hypot(o.cx - x, o.cz - z) > half * 2 + 8);
       };
