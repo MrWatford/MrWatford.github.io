@@ -1,4 +1,6 @@
-# Leviathan Early Access 1
+# Leviathan Early Access 1 — historical release plan
+
+The current combat-update publication plan is in EARLY_ACCESS_2_RELEASE.md.
 
 The owner authorized publishing the current work as early access and continuing unfinished features afterward. This supersedes the earlier hold on publication for this release only. The full expansion remains unfinished; see RELEASE_READINESS.md and the player-facing early-access.html for the outstanding scope.
 
