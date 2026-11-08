@@ -1,5 +1,6 @@
 // Small sound effects made on the fly with the Web Audio API (no sound files needed).
 let ctx = null, master = null, noiseBuf = null, volume = 0.6, muted = false;
+let wind = null;
 
 export const Sound = {
   start() {   // must be called after a click or key press (browser rule)
@@ -14,9 +15,35 @@ export const Sound = {
     if (ctx.state === "suspended") ctx.resume();
   },
   pause() { if (ctx && ctx.state === "running") ctx.suspend(); },
-  stop() { if (ctx) { ctx.close(); ctx = null; master = null; } },
+  stop() { if (ctx) { this.wind(0); ctx.close(); ctx = null; master = null; } },
   setVolume(v) { volume = v; if (master) master.gain.value = muted ? 0 : v * 0.5; },
   setMuted(m) { muted = m; this.setVolume(volume); },
+
+  wind(stage) {
+    if (!ctx) return;
+    if (!stage) {
+      if (!wind) return;
+      wind.source.stop();
+      wind.source.disconnect();
+      wind.filter.disconnect();
+      wind.gain.disconnect();
+      wind = null;
+      return;
+    }
+    if (ctx.state !== "running" || wind?.stage === stage) return;
+    if (!wind) {
+      const source = ctx.createBufferSource(), filter = ctx.createBiquadFilter(), gain = ctx.createGain();
+      source.buffer = noiseBuf; source.loop = true;
+      filter.type = "bandpass"; filter.Q.value = 0.65;
+      gain.gain.value = 0;
+      source.connect(filter); filter.connect(gain); gain.connect(master);
+      source.start();
+      wind = { source, filter, gain };
+    }
+    wind.stage = stage;
+    wind.filter.frequency.setTargetAtTime(220 + stage * 130, ctx.currentTime, 0.18);
+    wind.gain.gain.setTargetAtTime(0.025 + stage * 0.024, ctx.currentTime, 0.18);
+  },
 
   noise(freq, dur, gain = 0.5, q = 1, type = "bandpass") {
     if (!ctx || ctx.state !== "running") return;

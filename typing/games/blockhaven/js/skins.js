@@ -1,6 +1,8 @@
 // Player skins: blocky player models, the skin chooser's pictures, and the first-person arm.
 // Skins only change how you look. Every skin has the same body size, collision box, and abilities.
 import * as THREE from "../lib/three.module.min.js";
+import { weaponSwing } from "./weapon-motion.js";
+import { LEVIATHAN_ARMOR_STYLE } from "./leviathan-armor-style.js";
 
 // ---------- painting helpers (each box face is a 16×16 square of the skin picture) ----------
 function seeded(seed) { let s = seed >>> 0 || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
@@ -159,8 +161,8 @@ export function makeModel(skinId) {
   return { holder, root, parts, mat, skinId: skin.id, armor: {}, held: {} };
 }
 // Show armor pieces (colors from the armor item) — rebuilt only when what you wear changes
-export function dressModel(model, armorColors) {
-  const key = armorColors.join("|");
+export function dressModel(model, armorColors, armorStyles = []) {
+  const key = armorColors.join("|") + ":" + armorStyles.join("|");
   if (model.armorKey === key) return;
   model.armorKey = key;
   for (const list of Object.values(model.armor)) for (const m of list) { m.parent.remove(m); m.geometry.dispose(); for (const x of [].concat(m.material)) x.dispose(); }
@@ -168,7 +170,7 @@ export function dressModel(model, armorColors) {
   ARMOR_FIT.forEach(([slot, names, grow]) => {
     const col = armorColors[slot];
     if (!col) return;
-    model.armor[slot] = names.map(n => {
+    model.armor[slot] = names.flatMap(n => {
       const p = PARTS.find(q => q.name === n), sx = (p.size[0] + grow) / 16, sy = (slot === 2 ? 7 : slot === 3 ? 4.5 : p.size[1] + grow) / 16, sz = (p.size[2] + grow) / 16;
       const solid = new THREE.MeshBasicMaterial({ color: col });
       // helmets leave the face open (the front side of the box is see-through)
@@ -180,9 +182,41 @@ export function dressModel(model, armorColors) {
       if (slot === 3) m.position.y -= (p.size[1] - 4.5) / 32;      // boots cover the bottom
       if (slot === 1 && n !== "body") { m.scale.y = 0.45; m.position.y += p.size[1] * 0.55 / 32; }   // chestplate shoulders
       model.parts[n].add(m);
-      return m;
+      return [m, ...legendaryArmorDetails(m, slot, n, armorStyles[slot], sx, sy, sz)];
     });
   });
+}
+
+function legendaryArmorDetails(shell, slot, name, style, width, height, depth) {
+  if (!["sand", "obsidian", "ancient"].includes(style)) return [];
+  const meshes = [], { dark, trim, glow } = LEVIATHAN_ARMOR_STYLE[style];
+  const plate = (sx, sy, sz, x, y, z, color) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), new THREE.MeshBasicMaterial({ color }));
+    mesh.position.set(x, y, z);
+    shell.add(mesh); meshes.push(mesh);
+    return mesh;
+  };
+  if (slot === 0) {
+    plate(width * 0.92, 0.055, depth * 1.06, 0, height * 0.4, 0, trim);
+    for (const side of [-1, 1]) {
+      const horn = plate(0.07, style === "sand" ? 0.1 : 0.2, 0.13, side * width * 0.4, height * 0.6, -depth * 0.2, dark);
+      horn.rotation.z = side * -0.22;
+    }
+    plate(0.065, 0.08, 0.035, 0, height * 0.31, depth * 0.53, glow);
+  } else if (slot === 1 && name === "body") {
+    for (let row = 0; row < 3; row++) {
+      plate(width * (0.92 - row * 0.05), height * 0.17, 0.045, 0, height * (0.25 - row * 0.24), depth * 0.53, row === 1 ? dark : trim);
+    }
+    const seal = plate(0.09, 0.09, 0.05, 0, height * 0.22, depth * 0.63, glow);
+    seal.rotation.z = Math.PI / 4;
+  } else if (slot === 1) {
+    plate(width * 1.08, height * 0.16, depth * 1.08, 0, height * 0.42, 0, dark);
+    plate(width * 0.8, height * 0.09, 0.04, 0, height * 0.12, depth * 0.54, trim);
+  } else {
+    plate(width * 0.85, height * 0.15, depth * 1.03, 0, height * 0.3, 0, trim);
+    plate(0.035, height * 0.45, 0.025, 0, 0, depth * 0.55, glow);
+  }
+  return meshes;
 }
 // The front of a helmet: a rim around an open face
 const rimCache = new Map();
@@ -204,7 +238,11 @@ export function poseModel(model, s) {
   P.head.rotation.set(-s.pitch, 0, 0);
   model.root.position.y = 0; P.body.rotation.x = 0;
   if (s.crouch) { P.body.rotation.x = 0.45; P.head.position.z = 0.12; model.root.position.y = -0.12; P.armR.rotation.x += 0.4; P.armL.rotation.x += 0.4; } else P.head.position.z = 0;
-  if (s.swing > 0) P.armR.rotation.x = -Math.sin(Math.min(1, s.swing) * Math.PI) * 1.6 - 0.3;
+  if (s.swing > 0) {
+    const swing = weaponSwing(s.swing, s.heavySwing, s.reducedMotion);
+    P.armR.rotation.x = -swing * 1.6 - 0.3;
+    if (s.heavySwing) { P.armR.rotation.y = -swing * 0.25; P.armR.rotation.z = -swing * 0.55; }
+  }
   if (s.eating === "R" || s.bow) P.armR.rotation.set(-1.3 - s.pitch, -0.3, 0);
   if (s.eating === "L" || s.bow) P.armL.rotation.set(-1.3 - s.pitch, 0.3, 0);
   if (s.blocking === "R") P.armR.rotation.set(-0.9, -0.5, 0);
@@ -219,7 +257,14 @@ export function holdItems(model, mainMesh, offMesh) {
     if (cur) model.parts[side].remove(cur);
     model.held[side] = mesh || null;
     // items stand upright in the fist, facing sideways (a shield's face points out from the arm)
-    if (mesh) { mesh.position.set(0, -0.7, -0.12); mesh.scale.setScalar(mesh.userData.multi ? 2.6 : 1.7); mesh.rotation.set(0, 0, 0); if (mesh.geometry.type === "PlaneGeometry") mesh.rotation.z = side === "armR" ? Math.PI / 4 : -Math.PI / 4; model.parts[side].add(mesh); }
+    if (mesh) {
+      mesh.position.set(0, -0.7, -0.12); mesh.scale.setScalar(mesh.userData.multi ? 2.6 : 1.7); mesh.rotation.set(0, 0, 0);
+      if (mesh.userData.legendaryWeapon) {
+        mesh.position.z = -0.25; mesh.rotation.set(-0.35, 0, side === "armR" ? Math.PI / 4 : -Math.PI / 4);
+        if (side === "armL") mesh.scale.x *= -1;
+      } else if (mesh.geometry.type === "PlaneGeometry") mesh.rotation.z = side === "armR" ? Math.PI / 4 : -Math.PI / 4;
+      model.parts[side].add(mesh);
+    }
   }
 }
 export function disposeModel(model) {

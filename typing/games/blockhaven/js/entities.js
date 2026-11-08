@@ -6,6 +6,15 @@ import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
 import { installCreatures, animateCreature, thinkCreature, interactCreature, spawnCreatures } from "./creatures.js";
 import { Sound } from "./audio.js";
+import { DUNE_SEGMENTS, DuneTrail, DunePose } from "./dune-leviathan.js?v=pose-1";
+import { animateDesertMob, installDesertMobs, spawnDesertMobs, thinkDesertMob } from "./desert-mobs.js";
+import { createLeviathanGlow } from "./leviathan-glow.js?v=charge-1";
+import { createMawShell } from "./leviathan-geometry.js";
+import { LeviathanCues } from "./leviathan-cues.js";
+import { DuneAttackMotion } from "./dune-attack-motion.js";
+import { segmentBoxTime, projectileBlockHit, MAX_DEFLECT_SPEED } from "./projectile-collision.js";
+import { usesLeviathanHitVolumes, createLeviathanHitVolumes, updateLeviathanHitVolumes, leviathanSegmentTime } from "./leviathan-hit-volumes.js";
+import { stepBondedLeviathan } from "./leviathan-bonds.js";
 
 const GRAV = 26, EPS = 1e-4;
 let nextId = 1;
@@ -34,17 +43,41 @@ function makeSpecies(sp, shaded) {
     const ctx = canvas.getContext("2d");
     let tile = 0;
     for (const part of sp.model.parts) {
-      const g = vi === 0 ? new THREE.BoxGeometry(part.size[0] / 16, part.size[1] / 16, part.size[2] / 16) : null;
+      const firstTile = tile;
+      const wrapped = part.rounded || part.mawShell;
+      const g = vi === 0 ? (part.mawShell ? createMawShell(part.size) : part.rounded ? new THREE.CylinderGeometry(1, 1, 1, 8, 1).rotateX(Math.PI / 2)
+        .scale(part.size[0] / 32, part.size[1] / 32, part.size[2] / 16) :
+        new THREE.BoxGeometry(part.size[0] / 16, part.size[1] / 16, part.size[2] / 16)) : null;
+      const originalUV = wrapped && g ? g.attributes.uv.array.slice() : null;
+      if (g && (part.taper || part.taperTop)) {
+        const positions = g.attributes.position;
+        for (let i = 0; i < positions.count; i++) if (part.taperTop ? positions.getY(i) > 0 : positions.getY(i) < 0) {
+          positions.setX(i, positions.getX(i) * (part.taperTop ? 0.32 : 0.12));
+          positions.setZ(i, positions.getZ(i) * (part.taperTop ? 0.65 : 0.12));
+        }
+        g.computeVertexNormals();
+      }
       const uv = g && g.attributes.uv;
       FACE_ORDER.forEach((face, f) => {
         const tx = (tile % 8) * 16, ty = Math.floor(tile / 8) * 16; tile++;
         const paint = part.paint[face] || part.paint.all;
         paint(painterFor(ctx, tx, ty), face, sp.variants && sp.variants[vi]);
-        if (uv) for (let k = 0; k < 4; k++) { const i = f * 4 + k, u = uv.getX(i), v = uv.getY(i); uv.setXY(i, (tx + 0.05 + u * 15.9) / 128, 1 - (ty + 0.05 + (1 - v) * 15.9) / canvas.height); }
+        if (uv && !wrapped) for (let k = 0; k < 4; k++) { const i = f * 4 + k, u = uv.getX(i), v = uv.getY(i); uv.setXY(i, (tx + 0.05 + u * 15.9) / 128, 1 - (ty + 0.05 + (1 - v) * 15.9) / canvas.height); }
       });
       if (g) {
+        if (wrapped) {
+          for (let i = 0; i < uv.count; i++) {
+            const atlasTile = firstTile + (g.userData.faceTiles?.[i] || 0);
+            const tx = (atlasTile % 8) * 16, ty = Math.floor(atlasTile / 8) * 16;
+            uv.setXY(i, (tx + 0.05 + originalUV[i * 2] * 15.9) / 128,
+              1 - (ty + 0.05 + (1 - originalUV[i * 2 + 1]) * 15.9) / canvas.height);
+          }
+        }
         if (shaded) {
-          const colors = [0.65, 0.81, 1, 0.48, 0.92, 0.72].flatMap(tone => Array(12).fill(tone));
+          const colors = wrapped ? Array.from({ length: g.attributes.position.count }, (_, i) => {
+            const tone = 0.58 + 0.42 * Math.max(0, (g.attributes.normal.getY(i) + 1) / 2);
+            return [tone, tone, tone];
+          }).flat() : [0.65, 0.81, 1, 0.48, 0.92, 0.72].flatMap(tone => Array(12).fill(tone));
           g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
         }
         uv.needsUpdate = true;
@@ -1230,7 +1263,152 @@ installCreatures(SPECIES);
 for (const [id, def] of Object.entries(SPECIES)) if (def.expansion) BESTIARY_ART.add(id);
 for (const id of ["cow", "pig", "sheep", "rabbit", "chicken", "parrot", "sunfin"]) BESTIARY_ART.add(id);
 
+const duneArmor = P => {
+  P.fill(["#ad773e", "#b88045", "#c18b4b"]);
+  P.rect(0, 0, 16, 2, "#ebbd76");
+  P.rect(0, 13, 16, 3, "#67432b");
+  P.rect(0, 2, 1, 11, "#dca762");
+  P.rect(15, 2, 1, 11, "#855329");
+  P.rect(3, 5, 5, 1, "#946030");
+  P.rect(7, 6, 1, 3, "#845229");
+  P.rect(8, 8, 4, 1, "#edaa4b");
+  P.rect(11, 9, 1, 3, "#ffd17b");
+};
+const duneBelly = solid(["#523930", "#664436", "#6f4a38"]);
+const duneIvory = P => {
+  P.fill(["#d9ad6a", "#d3a364"]);
+  P.rect(2, 0, 2, 16, "#edcb8b");
+  P.rect(12, 0, 4, 16, "#936436");
+};
+const duneFace = P => {
+  P.fill(["#24150f", "#2d1b12", "#301e16"]);
+  P.rect(1, 0, 1, 7, "#51301b");
+  P.rect(2, 6, 1, 4, "#432617");
+  P.rect(13, 8, 1, 7, "#3a2115");
+};
+function duneMawParts() {
+  const parts = [];
+  for (let i = 0; i < 12; i++) {
+    const angle = i * Math.PI / 6;
+    parts.push({
+      name: "mawRim" + i, parent: "head", size: [23, 15, 22],
+      pivot: [Math.sin(angle) * 40, Math.cos(angle) * 36, 33],
+      off: [0, 0, 0], rotation: [0, 0, -angle], paint: { all: duneArmor, front: duneArmor }
+    });
+    for (let row = 0; row < 2; row++) {
+      const a = angle + row * Math.PI / 12, radius = row ? 26 : 30;
+      parts.push({
+        name: "mawTooth" + row + "_" + i, parent: "head", size: [row ? 5 : 7, row ? 10 : 17, 9],
+        taper: true,
+        pivot: [Math.sin(a) * radius, Math.cos(a) * radius * 0.9, 45 - row * 8],
+        off: [0, -4, 0], rotation: [0.15, 0, -a], paint: { all: duneIvory }
+      });
+    }
+  }
+  return parts;
+}
+SPECIES.leviathan_dune = {
+  name: "Dune Leviathan", ai: "leviathan_dune", boss: true, hostile: true, noSave: true,
+  noclip: true, burrows: true, speed: 3, hp: 180, w: 6, h: 5, deathPuff: "crumb",
+  model: { parts: [
+    { name: "head", mawShell: true, size: [74, 64, 58], pivot: [0, 34, 0], off: [0, 0, 0],
+      paint: { all: duneArmor, front: duneFace, bottom: duneBelly } },
+    { name: "crest", taperTop: true, parent: "head", size: [46, 15, 51], pivot: [0, 36, -6], off: [0, 4, 0],
+      paint: { all: duneArmor } },
+    ...[-1, 1].map(side => ({
+      name: side < 0 ? "jawLeft" : "jawRight", parent: "head", size: [15, 35, 28],
+      pivot: [side * 35, -6, 24], off: [side * 3, 0, 15], paint: { all: duneArmor, bottom: duneBelly }
+    })),
+    ...["jawLeft", "jawRight"].flatMap((parent, side) => [0, 1].map(row => ({
+      name: parent + "fang" + row, parent, size: [12, row ? 11 : 16, 10],
+      pivot: [(side ? -1 : 1) * 13, row ? 11 : -9, row ? 6 : 13], off: [0, 0, 0], paint: { all: duneIvory }
+    }))),
+    ...duneMawParts(),
+    ...Array.from({ length: DUNE_SEGMENTS }, (_, i) => [
+      { name: "segment" + i, rounded: true, size: [94 - i * 7, 74 - i * 5, 76], pivot: [0, 0, 0],
+        off: [0, 35 - i * 2, 0], paint: { all: duneArmor, bottom: duneBelly } },
+      { name: "ridge" + i, taperTop: true, parent: "segment" + i, size: [48 - i * 4, 15 - i, 46],
+        pivot: [0, 36 - i * 2.5, -8], off: [0, 4, 0], paint: { all: duneArmor } },
+      ...[-1, 1].map(side => ({
+        name: "flank" + side + "_" + i, parent: "segment" + i,
+        size: [23 - i, 9, 48], pivot: [side * (35 - i * 2.5), 15 - i, -5], off: [0, 0, 0],
+        rotation: [0.12, 0, side * -0.6], paint: { all: duneArmor }
+      }))
+    ]).flat()
+  ] }
+};
+SPECIES.leviathan_obsidian = {
+  ...SPECIES.leviathan_dune,
+  name: "Obsidian Leviathan", ai: "leviathan_obsidian", hp: 260, w: 8, h: 6, scale: 1.22, fireproof: true, deathPuff: "ember",
+  model: { parts: SPECIES.leviathan_dune.model.parts.map(part => ({
+    ...part,
+    size: part.name.startsWith("ridge") ? [part.size[0] * 0.48, part.size[1] * 2.7, part.size[2] * 0.6] : part.size,
+    paint: { all: P => {
+      P.fill(["#28212e", "#342936", "#3e3039"]);
+      P.rect(1, 2, 14, 1, "#625060");
+      P.rect(3, 5, 2, 5, "#8f3128");
+      P.rect(4, 9, 8, 1, "#df5730");
+      P.rect(9, 10, 1, 4, "#ffa54c");
+      if (part.name.includes("fang")) P.rect(2, 3, 12, 2, "#655866");
+    }, ...(part.name === "head" ? { front: P => {
+      P.fill(["#171017", "#20131b"]);
+      P.rect(1, 0, 1, 7, "#6a2a22"); P.rect(2, 6, 1, 3, "#9f3b24");
+      P.rect(13, 9, 1, 6, "#40201e");
+    } } : {}) }
+  })) }
+};
+SPECIES.leviathan_dune.segmentedLeviathan = SPECIES.leviathan_obsidian.segmentedLeviathan = true;
+SPECIES.leviathan_ancient = {
+  ...SPECIES.leviathan_dune, name: "Ancient Leviathan", ai: "leviathan_ancient",
+  hp: 400, w: 10, h: 8, scale: 1.7, segmentSpacing: 9, fireproof: true, deathPuff: "pale",
+  model: { parts: [
+    ...SPECIES.leviathan_dune.model.parts.map(part => ({
+      ...part,
+      paint: { all: P => {
+        P.fill(["#c6baa3", "#d4c8b1", "#b5a992"]);
+        P.rect(0, 1, 16, 1, "#f1e7d1"); P.rect(1, 13, 14, 3, "#766a71");
+        P.rect(5, 3, 1, 7, "#675a83"); P.rect(6, 9, 5, 1, "#a2dbed");
+        P.rect(10, 5, 1, 5, "#91bde4");
+      }, ...(part.name === "head" ? { front: P => {
+        P.fill(["#242137", "#2a233c"]);
+        P.rect(1, 0, 1, 7, "#655481"); P.rect(2, 6, 1, 3, "#7e9eb9");
+        P.rect(13, 9, 1, 6, "#443656");
+      } } : {}) }
+    })),
+    ...[-1, 1].flatMap(side => [0, 1].map(row => ({
+      name: "crown" + side + row, taperTop: true, parent: "head", size: [9, 25 + row * 12, 13],
+      pivot: [side * (28 - row * 12), 38, -15 + row * 24], off: [0, 10, 0],
+      paint: { all: solid(["#e3d8bf", "#b8a8b4", "#c9b9cb"]) }
+    })))
+  ] }
+};
+
+installDesertMobs(SPECIES);
 export const SPAWN_SPECIES = SPAWN_EGGS.map(e => e[0]);
+
+SPECIES.ancient_companion = {
+  name: "Runecrest", pet: true, noSave: true, hp: 24, speed: 3.2, w: 0.8, h: 0.85,
+  ai: "animal", sound: "shell", tameWith: [], healWith: [I.SKYSHARD], drops: () => [], xp: 0,
+  model: { type: "quad", parts: [
+    ...quadParts({
+      body: [11, 7, 17], head: [8, 6, 8], leg: 3, legH: 5, headUp: 1,
+      bodyPaint: { all: P => {
+        P.fill(["#ccc0a8", "#b9ae9b", "#d9cfb8"]);
+        for (const y of [3, 8, 13]) P.rect(0, y, 16, 1, "#756982");
+        P.rect(6, 4, 2, 8, "#9cd8e6");
+      } },
+      legPaint: { all: solid(["#8d8190", "#aea0a4"]) },
+      headPaint: { all: solid(["#d5c9b1", "#bfb29d"]), front: P => {
+        P.fill(["#cfc2aa"]); P.rect(2, 5, 3, 2, "#544968"); P.rect(11, 5, 3, 2, "#544968");
+        P.rect(3, 5, 1, 1, "#b5eff2"); P.rect(12, 5, 1, 1, "#b5eff2");
+      } }
+    }),
+    { name: "crest", size: [4, 4, 12], pivot: [0, 12, -2], off: [0, 0, 0], paint: { all: solid(["#8b7c9a", "#b1a5c0"]) } },
+    { name: "tail", size: [5, 4, 11], pivot: [0, 7, -8], off: [0, 0, -5.5], paint: { all: solid(["#c2b39c", "#9c90a2"]) } },
+    ...[-1, 1].map(side => ({ name: "horn" + side, parent: "head", size: [2, 5, 2],
+      pivot: [side * 3, 4, -1], off: [0, 2, 0], paint: { all: solid(["#a4dcdf", "#ded3ba"]) } }))
+  ] }
+};
 
 // ---------- block helpers ----------
 function solidCell(world, x, y, z) {
@@ -1380,12 +1558,14 @@ export class Entities {
   }
   attachModel(e) {
     const def = e.def;
-    const shaded = BESTIARY_ART.has(e.sp);
+    const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan;
     if (!def.geos) makeSpecies(def, shaded);
     const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, vertexColors: shaded, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
     const root = new THREE.Group(), parts = {};
     for (const p of def.model.parts) {
       const pivot = new THREE.Group(); pivot.position.set(p.pivot[0] / 16, p.pivot[1] / 16, p.pivot[2] / 16);
+      if (p.rotation) pivot.rotation.set(...p.rotation);
+      if (p.name.startsWith("mawRim")) pivot.userData.mawRest = pivot.position.clone();
       const m = new THREE.Mesh(def.geos[p.name], mat); m.position.set(p.off[0] / 16, p.off[1] / 16, p.off[2] / 16);
       pivot.add(m); (p.parent ? parts[p.parent].children[0] : root).add(pivot); parts[p.name] = pivot;
     }
@@ -1393,10 +1573,25 @@ export class Entities {
     if (def.model.type === "spider") for (const p of def.model.parts.filter(q => q.side)) { const g = parts[p.name]; g.rotation.y = p.side * (0.6 - p.index * 0.4); g.rotation.z = p.side * 0.4; g.userData.base = { y: g.rotation.y, z: g.rotation.z }; }
     const holder = new THREE.Group(); holder.add(root);
     e.mesh = holder; e.root = root; e.parts = parts; e.mat = mat;
+    if (def.segmentedLeviathan) e.glow = createLeviathanGlow(e);
     this.scene.add(holder);
+    if (def.segmentedLeviathan) {
+      holder.position.set(e.pos.x, e.pos.y, e.pos.z); holder.rotation.y = e.yaw + Math.PI;
+      root.scale.setScalar(e.scale);
+      e.hitVolumes = createLeviathanHitVolumes(e); updateLeviathanHitVolumes(e);
+    }
   }
-  remove(e) { this.scene.remove(e.mesh); e.mat.dispose(); e.mesh = null; if (e.heldMesh) { e.heldMesh.material.dispose(); e.heldMesh = null; } if (e.beam) { this.scene.remove(e.beam); e.beam.geometry.dispose(); e.beam.material.dispose(); e.beam = null; } }
-  clear() { for (const e of this.list) this.remove(e); this.list = []; for (const p of this.projectiles) this.scene.remove(p.mesh); this.projectiles = []; }
+  remove(e) { e.glow?.dispose(); e.glow = null; this.scene.remove(e.mesh); e.mat.dispose(); e.mesh = null; e.hitVolumes = null; if (e.heldMesh) { e.heldMesh.material.dispose(); e.heldMesh = null; } if (e.beam) { this.scene.remove(e.beam); e.beam.geometry.dispose(); e.beam.material.dispose(); e.beam = null; } }
+  clear() {
+    for (const e of this.list) this.remove(e);
+    this.list = [];
+    for (const p of this.projectiles) {
+      this.scene.remove(p.mesh);
+      p.mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+    }
+    this.projectiles = [];
+    this.clearHazards();
+  }
 
   // ----- saving -----
   // Creatures in chunks that unload are tucked into the world's store, then brought back when the chunk loads again.
@@ -1615,7 +1810,13 @@ export class Entities {
     const ctx = this.ctx, p = ctx.player(), w = this.world;
     this.spawnTick(dt, daylight, camera);
     spawnCreatures(this, dt, daylight, SPECIES);
+    spawnDesertMobs(this, dt);
     for (const e of this.list) {
+      if (e.gone) continue;
+      if (e.encounterOwner && (e.encounterOwner.gone || e.encounterOwner.dead || !ctx.alive())) {
+        e.gone = true;
+        continue;
+      }
       const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d2 = dx * dx + dz * dz;
       // far-away monsters wander off (despawn); animals and named creatures stay
       if (!e.persist && !e.def.noSave && (d2 > 72 * 72 || (d2 > 36 * 36 && Math.random() < dt / 30))) { e.gone = true; continue; }
@@ -1647,7 +1848,7 @@ export class Entities {
       }
       if (d2 < 64 * 64 || e.def.boss) this.animate(e, dt, d2, daylight);
       else if (e.def.expansion && e.beam) e.beam.visible = false;
-      e.mesh.visible = d2 < 64 * 64 || !!e.def.boss;
+      e.mesh.visible = (d2 < 64 * 64 || !!e.def.boss) && !(e.def.desertMob && e.def.burrows && !e.emerged);
     }
     this.sweep();
     this.updateProjectiles(dt);
@@ -1827,23 +2028,27 @@ export class Entities {
     if (d < e.def.reach && e.attackCd <= 0 && this.targetable()) { this.ctx.hurtPlayer(e.def.dmg * dmgMul, "A Resonance Mote zapped you. Break motes with a quick hit!", e); e.attackCd = 1.4; }
   }
   // Marked danger rings on the floor: a warning glow, then damage to anyone inside (lasting `burn` seconds for breath)
-  addHazard(x, y, z, r, warn, dmg, why, burn) {
+  addHazard(x, y, z, r, warn, dmg, why, burn, options = {}) {
     if (!this.hazards) this.hazards = [];
-    if (this.hazards.length > 32) return;
+    if (this.hazards.length >= 32) return;
     const ring = new THREE.Mesh(new THREE.RingGeometry(r - 0.35, r, 28), new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false, fog: false }));
     const fill = new THREE.Mesh(new THREE.CircleGeometry(r, 28), new THREE.MeshBasicMaterial({ color: 0xff3a10, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false, fog: false }));
+    if (options.color !== undefined) { ring.material.color.setHex(options.color); fill.material.color.setHex(options.color); }
     for (const m of [ring, fill]) { m.rotation.x = -Math.PI / 2; m.position.set(x, y + 0.03, z); this.scene.add(m); }
-    this.hazards.push({ x, y, z, r, t: warn, warn, dmg, why, burn: burn || 0, ring, fill, hitT: 0 });
+    this.hazards.push({ x, y, z, r, t: warn, warn, dmg, why, burn: burn || 0, ring, fill, hitT: 0,
+      owner: options.owner, damageKind: options.damageKind, particle: options.particle || "fire",
+      statusEffect: options.statusEffect === undefined ? "fire" : options.statusEffect, color: options.color });
   }
   updateHazards(dt) {
     if (!this.hazards || !this.hazards.length) return;
     const p = this.ctx.player();
     for (const h of this.hazards) {
+      if (h.owner && (h.owner.gone || h.owner.dead || h.owner.tame)) { h.gone = true; continue; }
       h.t -= dt;
       const inside = Math.hypot(p.pos.x - h.x, p.pos.z - h.z) < h.r && Math.abs(p.pos.y - h.y) < 3;
       if (h.t > 0) { h.fill.material.opacity = 0.12 + (1 - h.t / h.warn) * 0.3; h.ring.material.opacity = 0.5 + Math.sin(h.t * 14) * 0.15; continue; }
-      if (!h.fired) { h.fired = true; for (let k = 0; k < 3; k++) this.ctx.particles(h.x + rand(-h.r, h.r) * 0.6, h.y + 0.3, h.z + rand(-h.r, h.r) * 0.6, "fire"); Sound.mob("fireshoot", this.dist({ pos: h })); h.fill.material.color.setHex(0xffb030); h.fill.material.opacity = 0.45; }
-      if (inside && (h.hitT -= dt) <= 0) { h.hitT = 0.5; this.ctx.hurtPlayer(h.dmg * ({ peaceful: 0, easy: 0.67, normal: 1, hard: 1.5 }[this.ctx.settings().difficulty] ?? 1), h.why, null); this.ctx.effect("fire", 3); }
+      if (!h.fired) { h.fired = true; for (let k = 0; k < 3; k++) this.ctx.particles(h.x + rand(-h.r, h.r) * 0.6, h.y + 0.3, h.z + rand(-h.r, h.r) * 0.6, h.particle); Sound.mob("fireshoot", this.dist({ pos: h })); h.fill.material.color.setHex(h.color ?? 0xffb030); h.fill.material.opacity = 0.45; }
+      if (inside && (h.hitT -= dt) <= 0) { h.hitT = 0.5; this.ctx.hurtPlayer(h.dmg * ({ peaceful: 0, easy: 0.67, normal: 1, hard: 1.5 }[this.ctx.settings().difficulty] ?? 1), h.why, h.owner || null, h.damageKind); if (h.statusEffect) this.ctx.effect(h.statusEffect, 3); }
       if (h.t < -Math.max(0.35, h.burn)) h.gone = true;
     }
     this.hazards = this.hazards.filter(h => { if (!h.gone) return true; for (const m of [h.ring, h.fill]) { this.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } return false; });
@@ -1855,6 +2060,7 @@ export class Entities {
     if (def.static || def.noclip) {   // crystals and shellers stay put; the wyrm flies straight through anything
       if (e.iframes > 0) e.iframes -= dt; if (e.hurtT > 0) e.hurtT -= dt; if (e.attackCd > 0) e.attackCd -= dt;
       if (def.noclip) {
+        if (def.segmentedLeviathan && stepBondedLeviathan(w, e, dt)) return;
         if (e.goal) {
           const gx = e.goal.x - e.pos.x, gy = (e.goal.y ?? e.pos.y) - e.pos.y, gz = e.goal.z - e.pos.z, gl = Math.hypot(gx, gy, gz) || 1, sp = e.goal.speed || def.speed;
           e.vel.x += (gx / gl * sp - e.vel.x) * 0.04; e.vel.y += (gy / gl * sp - e.vel.y) * 0.04; e.vel.z += (gz / gl * sp - e.vel.z) * 0.04;
@@ -2062,12 +2268,17 @@ export class Entities {
   think(e, daylight) {
     const ctx = this.ctx, p = ctx.player(), w = this.world, def = e.def, d = this.dist(e);
     const dmgMul = { peaceful: 0, easy: 0.67, normal: 1, hard: 1.5 }[ctx.settings().difficulty] ?? 1;
+    if (def.segmentedLeviathan) {
+      ctx.leviathanThink(e, dmgMul);
+      return;
+    }
     // undead burn in sunlight
     if (def.burns && daylight > 0.75 && !e.inWater && !e.cpRaid) {   // (campaign raiders wear hoods)
       const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.eyeY), Math.floor(e.pos.z));
       if (L && L[0] >= 15) e.burning = Math.max(e.burning || 0, 3);
     }
     if (def.hostile && !def.boss && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
+    if (thinkDesertMob(this, e, d, dmgMul)) return;
     if (thinkCreature(this, e, daylight)) return;
     if (def.pet && e.tame) return this.thinkPet(e, d, dmgMul);
     if (def.boat || def.cart) return;
@@ -2733,13 +2944,14 @@ export class Entities {
 
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
-    if (e.dead || e.iframes > 0 || n <= 0) return false;
+    if (e.gone || e.dead || e.iframes > 0 || n <= 0) return false;
     if (e.sp === "sulfur_cube" && attacker === "player" && e.bestiary.absorbed && knock) {
       e.vel.x = knock.x * 11; e.vel.z = knock.z * 11; e.vel.y = 5;
       e.knock = 0.65; e.bestiary.bounceUntil = e.age + 0.65; e.iframes = 0.35;
       return true;
     }
     if (e.rolled) n *= 0.25;
+    if (e.sp === "dune_scarab" && e.braced) n *= 0.5;
     if (e.npc) return false;   // campaign characters never get hurt
     if (e.tame && attacker === "player") return false;   // you can't hurt your own pets by accident
     if (attacker === "player" && !e.def.villager && !e.def.object) this.petFoe = e;   // your Scouts join in
@@ -2747,6 +2959,7 @@ export class Entities {
     if (e.sp === "dragon") { n *= e.perched ? 1 : 0.6; knock = null; if (attacker === "explosion") n *= 0.3; }
     if (e.def.shielded && attacker === "player") { const p = this.ctx.player(), f = Math.cos(e.yaw) * (e.pos.z - p.pos.z) + Math.sin(e.yaw) * (e.pos.x - p.pos.x); if (f > 0) { n *= 0.3; this.ctx.particles(e.pos.x, e.pos.y + 1.2, e.pos.z, "pale"); } }   // an Echo Knight's shield blocks hits from the front
     if (e.def.burrows && !e.emerged) return false;
+    if (e.def.segmentedLeviathan) knock = null;
     if (e.def.hears && attacker === "player") { e.alertT = Math.max(e.alertT || 0, 10); e.dormant = false; }
     if (e.def.lostBoss && this.bossAI) { n = this.bossAI.hit(this, e, n, attacker); knock = null; if (!n) return false; }
     if (e.sp === "herobrine") { n = this.ctx.heroHit ? this.ctx.heroHit(e, n) : 0; knock = null; if (!n) { e.iframes = 0.3; this.ctx.particles(e.pos.x, e.pos.y + 1.2, e.pos.z, "pale"); return false; } }
@@ -2760,6 +2973,8 @@ export class Entities {
     if (e.def.static || e.def.object) knock = null;
     if (e.sp === "voidwalker" && attacker && attacker.projectile) { this.teleport(e); return false; }   // dodges arrows
     e.hp -= n; e.hurtT = 0.3; e.iframes = 0.5;
+    if (e.sp === "ancient_companion") this.ctx.companionChanged(e);
+    if (e.def.segmentedLeviathan) this.ctx.leviathanDamaged(e);
     if (knock) { e.vel.x = knock.x * 7; e.vel.z = knock.z * 7; e.vel.y = 4.5; e.knock = 0.25; }
     if (attacker === "player") {
       e.angry = 40; if (e.def.animal || (e.def.swims && e.def.ai !== "dolphin")) e.fleeT = 5;
@@ -2777,6 +2992,7 @@ export class Entities {
   kill(e, attacker) {
     e.dead = e.def.boss ? 4 : 0.6; e.goal = null; e.path = null;
     const ctx = this.ctx;
+    if (e.encounterOwner) return;
     if (attacker === "player" && ctx.adv) ctx.adv("kill", e.sp);
     if (e.sp === "crystal") { e.gone = true; ctx.crystalGone(e.cid); ctx.explode(e.pos.x, e.pos.y + 1, e.pos.z, 3, null); return; }
     if (e.sp === "pylon") { e.gone = true; ctx.pylonGone(e.cid); for (let k = 0; k < 3; k++) ctx.particles(e.pos.x, e.pos.y + 1 + k * 0.4, e.pos.z, "fire"); Sound.mob("crystal", 0); return; }
@@ -2842,12 +3058,17 @@ export class Entities {
         } else ctx.particles(e.pos.x, e.pos.y + e.h, e.pos.z, "poof");
         return true;
       }
-      if (e.tame && (def.healWith || def.tameWith).includes(id) && e.hp < e.maxHp) { e.hp = Math.min(e.maxHp, e.hp + 4); ctx.consume(); hearts(); return true; }
+      if (e.tame && (def.healWith || def.tameWith).includes(id) && e.hp < e.maxHp) {
+        e.hp = Math.min(e.maxHp, e.hp + 4); ctx.consume(); hearts();
+        if (e.sp === "ancient_companion") ctx.companionChanged(e);
+        return true;
+      }
       if (def.mount) {
         if (id === I.SADDLE && e.tame && !e.saddled && !e.baby) { e.saddled = true; ctx.consume(); Sound.mob(def.sound, 2); ctx.toast("Saddled! Right-click it to ride. Press C to get off.", "good"); return true; }
         if (!e.baby && !def.food.includes(id)) return ctx.mount(e);
       } else if (e.tame && !e.baby) {
         e.sitting = !e.sitting; e.goal = null; e.path = null;
+        if (e.sp === "ancient_companion") ctx.companionChanged(e);
         ctx.toast(e.sitting ? `Your ${def.name} is sitting. It will stay here.` : `Your ${def.name} is following you.`);
         return true;
       }
@@ -2877,14 +3098,21 @@ export class Entities {
   }
   addProjectile(kind, x, y, z, vx, vy, vz, opts = {}) {
     let mesh;
-    if (kind === "arrow") {
+    if (kind === "obsidianshard") {
+      mesh = new THREE.Group();
+      const shell = new THREE.Mesh(new THREE.OctahedronGeometry(0.24), new THREE.MeshBasicMaterial({ color: 0x634555 }));
+      shell.scale.set(0.7, 1.8, 0.7); shell.rotation.z = 0.3;
+      const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.11), new THREE.MeshBasicMaterial({ color: 0xffb764 }));
+      core.position.x = 0.1;
+      mesh.add(shell, core);
+    } else if (kind === "arrow") {
       mesh = new THREE.Group();
       const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.5), new THREE.MeshBasicMaterial({ color: 0x8a6235 }));
       const tip = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.08), new THREE.MeshBasicMaterial({ color: 0x9a9a9a })); tip.position.z = -0.27;
       const fl = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.01, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff })); fl.position.z = 0.22;
       mesh.add(shaft, tip, fl);
     } else {
-      const color = { pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, witchbrew: 0x93bd65, windburst: 0xbacafb, fireball: 0xff7a1a, bigfire: 0xffb030, breath: 0xb050ff, bullet: 0xf0e8b0, eye: 0x3ad0a0, skull: 0x2a2a2a, bobber: 0xd8302a }[kind] || 0xffffff;
+      const color = { sandbolt: 0xc8b5ec, pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, witchbrew: 0x93bd65, windburst: 0xbacafb, fireball: 0xff7a1a, bigfire: 0xffb030, breath: 0xb050ff, bullet: 0xf0e8b0, eye: 0x3ad0a0, skull: 0x2a2a2a, bobber: 0xd8302a }[kind] || 0xffffff;
       const s = kind === "bigfire" || kind === "breath" ? 0.6 : kind === "fireball" || kind === "bullet" || kind === "skull" ? 0.35 : kind === "bobber" ? 0.14 : 0.2;
       mesh = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), new THREE.MeshBasicMaterial({ color, fog: false }));
     }
@@ -2895,6 +3123,7 @@ export class Entities {
     const w = this.world, ctx = this.ctx, p = ctx.player();
     for (const pr of this.projectiles) {
       pr.age += dt;
+      if (["sandbolt", "obsidianshard"].includes(pr.kind) && pr.age > 5) { pr.gone = true; continue; }
       if (pr.kind === "bobber") { this.updateBobber(pr, dt); continue; }
       if (pr.stuck) { if (pr.age > 30) pr.gone = true; if (pr.fromPlayer && !ctx.creative() && Math.hypot(pr.x - p.pos.x, pr.y - p.pos.y - 0.8, pr.z - p.pos.z) < 1.4 && pr.age > 0.5) { if (ctx.give(I.ARROW, 1)) pr.gone = true; } continue; }
       if (pr.kind === "eye") { this.flyEye(pr, dt); continue; }
@@ -2905,12 +3134,40 @@ export class Entities {
       }
       if (pr.kind === "breath" && Math.random() < 0.5) ctx.particles(pr.x, pr.y, pr.z, "void");
       if (!pr.noGrav) pr.vy -= 20 * dt;
+      if (pr.kind === "obsidianshard") { pr.mesh.rotation.x += dt * 3; pr.mesh.rotation.z += dt * 5; }
       if (pr.kind === "fireball" || pr.kind === "bigfire") { pr.mesh.rotation.x += dt * 5; pr.mesh.rotation.y += dt * 7; if (Math.random() < 0.3) ctx.particles(pr.x, pr.y, pr.z, "ember"); }
       const steps = Math.ceil(Math.hypot(pr.vx, pr.vy, pr.vz) * dt / 0.25);
       for (let s = 0; s < steps && !pr.gone && !pr.stuck; s++) {
         const nx = pr.x + pr.vx * dt / steps, ny = pr.y + pr.vy * dt / steps, nz = pr.z + pr.vz * dt / steps;
-        // hit a creature?
-        const hitE = this.list.find(e => !e.dead && e !== pr.owner && (pr.fromPlayer || pr.kind === "bigfire" || pr.kind === "arrow") && nx > e.pos.x - e.w / 2 - 0.1 && nx < e.pos.x + e.w / 2 + 0.1 && ny > e.pos.y && ny < e.pos.y + e.h && nz > e.pos.z - e.w / 2 - 0.1 && nz < e.pos.z + e.w / 2 + 0.1);
+        // Resolve the nearest swept contact, rather than favoring list order or
+        // a creature behind cover within the same quarter-block substep.
+        let hitE = null, entityTime = Infinity;
+        if (pr.kind !== "pearl" && (pr.fromPlayer || pr.kind === "bigfire" || pr.kind === "arrow")) for (const e of this.list) {
+          if (e.dead || e.gone || e === pr.owner || e.def.segmentedLeviathan && (!e.emerged || e.ridden)) continue;
+          if (pr.kind === "arrow" && !pr.fromPlayer && pr.owner?.def.hostile && e.def.hostile && !e.armored) continue;
+          const r = e.w / 2 + 0.1;
+          const t = usesLeviathanHitVolumes(e) ? leviathanSegmentTime(e, pr.x, pr.y, pr.z, nx, ny, nz) :
+            segmentBoxTime(pr.x, pr.y, pr.z, nx, ny, nz,
+              e.pos.x - r, e.pos.y, e.pos.z - r, e.pos.x + r, e.pos.y + e.h, e.pos.z + r);
+          if (t !== null && t < entityTime) { entityTime = t; hitE = e; }
+        }
+        const playerTime = pr.fromPlayer ? null : segmentBoxTime(pr.x, pr.y, pr.z, nx, ny, nz,
+          p.pos.x - 0.35, p.pos.y, p.pos.z - 0.35, p.pos.x + 0.35, p.pos.y + 1.8, p.pos.z + 0.35);
+        if (playerTime !== null && playerTime < entityTime) hitE = null;
+        this.projectileContact ||= {};
+        const blockHit = projectileBlockHit(w, pr.x, pr.y, pr.z, nx, ny, nz, this.projectileContact);
+        if (blockHit && blockHit.t <= Math.min(entityTime, playerTime ?? Infinity)) {
+          pr.x = blockHit.hx; pr.y = blockHit.hy; pr.z = blockHit.hz;
+          if (ctx.hitBlock) ctx.hitBlock(pr, blockHit.x, blockHit.y, blockHit.z, pr.x, pr.y, pr.z);
+          if (pr.kind === "arrow") { pr.stuck = true; pr.age = 0; Sound.mob("arrowhit", Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z)); }
+          else if (pr.kind === "bigfire") { ctx.explode(pr.x, pr.y, pr.z, pr.power || 1.3, pr.owner); pr.gone = true; }
+          else if (pr.kind === "fireball") { ctx.ignite(blockHit.x, blockHit.y, blockHit.z); pr.gone = true; }
+          else if (pr.kind === "breath") { ctx.cloud(pr.x, pr.y + 0.5, pr.z); pr.gone = true; }
+          else if (["bullet", "windburst", "witchbrew", "sandbolt", "obsidianshard"].includes(pr.kind)) { ctx.particles(pr.x, pr.y, pr.z, "poof"); pr.gone = true; }
+          else if (pr.kind === "skull") { ctx.explode(pr.x, pr.y, pr.z, 1, pr.owner); pr.gone = true; }
+          else this.landThrown(pr);
+          break;
+        }
         if (hitE && hitE.armored && pr.kind === "arrow") { pr.gone = true; ctx.particles(nx, ny, nz, "poof"); Sound.mob("clank", this.dist(hitE)); break; }   // arrows bounce off the Blightking's armor
         if (hitE && pr.kind === "skull" && hitE !== pr.owner) { this.damage(hitE, pr.dmg || 6, null); ctx.explode(nx, ny, nz, 1, pr.owner); pr.gone = true; break; }
         if (hitE && pr.kind !== "pearl" && pr.kind !== "skull" && (pr.fromPlayer || pr.kind !== "arrow" || !pr.owner || !pr.owner.def.hostile || !hitE.def.hostile)) {
@@ -2920,13 +3177,15 @@ export class Entities {
           pr.gone = true; Sound.mob("arrowhit", this.dist(hitE)); break;
         }
         // hit the player?
-        if (!pr.fromPlayer && nx > p.pos.x - 0.35 && nx < p.pos.x + 0.35 && ny > p.pos.y && ny < p.pos.y + 1.8 && nz > p.pos.z - 0.35 && nz < p.pos.z + 0.35) {
+        if (playerTime !== null) {
           if (pr.kind === "arrow") {
             const source = pr.owner?.def.name || "Rattler";
             ctx.hurtPlayer(pr.dmg, `A ${source}'s arrow hit you!`, { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } });
             if (pr.owner?.sp === "bogged") ctx.effect("poison", 5);
             if (pr.owner?.sp === "stray" || pr.owner?.sp === "parched") ctx.effect("queasy", 6);
           }
+          if (pr.kind === "sandbolt") ctx.hurtPlayer(pr.dmg, "A Sand Wraith's rune bolt hit you.", pr.owner, "sand");
+          if (pr.kind === "obsidianshard") ctx.hurtPlayer(pr.dmg, "The Obsidian Leviathan's shrapnel struck you.", pr.owner);
           if (pr.kind === "witchbrew") { ctx.hurtPlayer(pr.dmg, "A Witch's brew hit you!", pr.owner); ctx.effect("poison", 6); }
           if (pr.kind === "windburst") {
             ctx.hurtPlayer(pr.dmg, "A Breeze's wind burst hit you!", pr.owner);
@@ -2938,20 +3197,6 @@ export class Entities {
           if (pr.kind === "bullet") { ctx.hurtPlayer(pr.dmg || 4, "A Sheller's bullet got you!", null); ctx.effect("levitation", 6); }
           if (pr.kind === "skull") { ctx.hurtPlayer(pr.dmg || 6, "A Blightking skull hit you!", { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } }); ctx.effect("blight", 8); ctx.explode(nx, ny, nz, 1, pr.owner); }
           pr.gone = true; break;
-        }
-        // hit a block?
-        const v = w.get(Math.floor(nx), Math.floor(ny), Math.floor(nz));
-        const boxes = []; blockBoxes(v, Math.floor(nx), Math.floor(ny), Math.floor(nz), boxes);
-        if (boxes.some(b => nx > b[0] && nx < b[3] && ny > b[1] && ny < b[4] && nz > b[2] && nz < b[5])) {
-          if (ctx.hitBlock) ctx.hitBlock(pr, Math.floor(nx), Math.floor(ny), Math.floor(nz), nx, ny, nz);   // targets and wooden buttons
-          if (pr.kind === "arrow") { pr.stuck = true; pr.age = 0; Sound.mob("arrowhit", Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z)); }
-          else if (pr.kind === "bigfire") { ctx.explode(pr.x, pr.y, pr.z, pr.power || 1.3, pr.owner); pr.gone = true; }
-          else if (pr.kind === "fireball") { ctx.ignite(Math.floor(pr.x), Math.floor(pr.y), Math.floor(pr.z)); pr.gone = true; }
-          else if (pr.kind === "breath") { ctx.cloud(pr.x, pr.y + 0.5, pr.z); pr.gone = true; }
-          else if (["bullet", "windburst", "witchbrew"].includes(pr.kind)) { ctx.particles(pr.x, pr.y, pr.z, "poof"); pr.gone = true; }
-          else if (pr.kind === "skull") { ctx.explode(pr.x, pr.y, pr.z, 1, pr.owner); pr.gone = true; }
-          else this.landThrown(pr);
-          break;
         }
         pr.x = nx; pr.y = ny; pr.z = nz;
       }
@@ -3026,7 +3271,7 @@ export class Entities {
       if (t < 0 || t > reach) continue;
       const px = o.x + d.x * t - pr.x, py = o.y + d.y * t - pr.y, pz = o.z + d.z * t - pr.z;
       if (px * px + py * py + pz * pz > 0.8) continue;
-      const sp = Math.hypot(pr.vx, pr.vy, pr.vz) * 1.3;
+      const sp = Math.min(MAX_DEFLECT_SPEED, Math.hypot(pr.vx, pr.vy, pr.vz) * 1.3);
       pr.vx = d.x * sp; pr.vy = d.y * sp; pr.vz = d.z * sp; pr.fromPlayer = true; pr.owner = null;
       Sound.mob("arrowhit", 0);
       return true;
@@ -3037,7 +3282,12 @@ export class Entities {
   raycast(o, d, max) {
     let best = null;
     for (const e of this.list) {
-      if (e.dead || e.ridden) continue;
+      if (e.gone || e.dead || e.ridden || (e.def.segmentedLeviathan && !e.emerged)) continue;
+      if (usesLeviathanHitVolumes(e)) {
+        const t = leviathanSegmentTime(e, o.x, o.y, o.z, o.x + d.x * max, o.y + d.y * max, o.z + d.z * max);
+        if (t !== null && (!best || t * max < best.dist)) best = { ent: e, dist: t * max };
+        continue;
+      }
       const a = e.aabb(); let t0 = 0, t1 = max, ok = true;
       for (const [k, lo, hi] of [["x", a[0] - 0.05, a[3] + 0.05], ["y", a[1], a[4]], ["z", a[2] - 0.05, a[5] + 0.05]]) {
         if (Math.abs(d[k]) < 1e-9) { if (o[k] < lo || o[k] > hi) { ok = false; break; } continue; }
@@ -3048,14 +3298,84 @@ export class Entities {
     }
     return best;
   }
-  near(x, y, z, r, filter) { return this.list.filter(e => !e.dead && Math.hypot(e.pos.x - x, e.pos.y - y, e.pos.z - z) < r && (!filter || filter(e))); }
+  near(x, y, z, r, filter) { return this.list.filter(e => !e.gone && !e.dead && Math.hypot(e.pos.x - x, e.pos.y - y, e.pos.z - z) < r && (!filter || filter(e))); }
 
   // ----- animation -----
   animate(e, dt, d2, daylight) {
     const def = e.def, P = e.parts, sp = Math.hypot(e.vel.x, e.vel.z), swing = Math.sin(e.walkPhase * 2.2) * Math.min(1, sp / 2) * 0.9;
-    e.mesh.position.set(e.pos.x, e.pos.y, e.pos.z);
+    e.mesh.position.set(e.pos.x, e.pos.y - (def.segmentedLeviathan ? e.burrowDepth || 0 : 0), e.pos.z);
     e.mesh.rotation.y = e.yaw + Math.PI;
     const s = e.scale * (e.perched ? 0.35 : 1); e.root.scale.setScalar(s);
+    if (def.segmentedLeviathan) {
+      const spacing = def.segmentSpacing || 4, targetResting = Math.max(0, 1 - sp / 1.5);
+      e.dunePose ||= new DunePose(e.pos.x, e.pos.y, e.pos.z, e.yaw, targetResting);
+      const pose = e.dunePose;
+      const jumped = pose.update(e.pos.x, e.pos.y, e.pos.z, e.yaw, targetResting, dt, Math.max(12, spacing * 2));
+      e.mesh.rotation.y = pose.yaw + Math.PI;
+      e.trail ||= new DuneTrail(e.pos.x, e.pos.y, e.pos.z, pose.yaw, spacing, true);
+      if (jumped) e.trail.reset(e.pos.x, e.pos.y, e.pos.z, pose.yaw);
+      e.trail.follow(e.pos.x, e.pos.y, e.pos.z, pose.yaw);
+      const cycle = e.mountedCue || e.duneCycle;
+      const reducedMotion = !!this.ctx?.reducedMotion?.();
+      e.leviathanCues ||= new LeviathanCues();
+      const cue = e.leviathanCues.sample(cycle, e.age, e.emerged, reducedMotion);
+      e.duneAttackMotion ||= new DuneAttackMotion();
+      const motion = e.duneAttackMotion.sample(e.sp === "leviathan_dune" && !e.tame && !e.dead && !e.gone && !e.mountedCue ? cycle : null, e.age, reducedMotion);
+      const spread = cue.spread;
+      const blend = 1 - Math.exp(-8 * dt);
+      P.jawLeft.rotation.y += (-spread - P.jawLeft.rotation.y) * blend;
+      P.jawRight.rotation.y += (spread - P.jawRight.rotation.y) * blend;
+      P.head.rotation.x += (cue.pitch + motion.pitch - P.head.rotation.x) * blend;
+      P.head.rotation.z += (motion.roll - P.head.rotation.z) * blend;
+      for (let i = 0; i < 12; i++) {
+        const rim = P["mawRim" + i], base = rim.userData.mawRest;
+        const flare = 1 + spread * 0.15;
+        rim.position.x += (base.x * flare - rim.position.x) * blend;
+        rim.position.y += (base.y * flare - rim.position.y) * blend;
+        for (let row = 0; row < 2; row++) {
+          const tooth = P["mawTooth" + row + "_" + i];
+          tooth.visible = row === 0 || d2 < 32 * 32;
+          tooth.rotation.x += (cue.tooth - tooth.rotation.x) * blend;
+        }
+      }
+      const yaw = pose.yaw + Math.PI, sin = Math.sin(yaw), cos = Math.cos(yaw);
+      const backX = Math.sin(pose.yaw), backZ = Math.cos(pose.yaw);
+      // Keep neighboring shells overlapping, including the larger Ancient model.
+      const linkLimit = Math.min(spacing, def.model.parts.find(p => p.name === "segment0").size[2] / 16 * s * 0.92);
+      const resting = pose.resting;
+      let previousX = e.pos.x, previousY = e.pos.y, previousZ = e.pos.z;
+      for (let i = 0; i < DUNE_SEGMENTS; i++) {
+        const p = e.trail.segment(i), dx = p.x - e.pos.x, dz = p.z - e.pos.z;
+        const movingBack = Math.max((i + 1) * spacing, dx * backX + dz * backZ);
+        const back = movingBack * (1 - resting) + (1 + i * 0.8) * spacing * resting;
+        const wave = reducedMotion ? 0 : Math.sin(e.age * 1.2 - i * 0.55) * Math.min(1.2, i * 0.15);
+        const progress = (i + 1) / DUNE_SEGMENTS;
+        const restingSide = Math.sin(progress * Math.PI) * Math.min(12, spacing * 2);
+        const attackEnvelope = Math.sin(progress * Math.PI) * progress;
+        const side = (dx * backZ - dz * backX) * (1 - resting) + restingSide * resting + wave + motion.tail * attackEnvelope;
+        let x = back * backX + side * backZ, z = back * backZ - side * backX;
+        const restingY = e.pos.y + Math.sin(progress * Math.PI) * 5 - 7 * progress ** 1.15;
+        const part = P["segment" + i];
+        let py = Math.min(e.pos.y + 2, p.y * (1 - resting) + restingY * resting + motion.lift * Math.sin(progress * Math.PI));
+        const point = pose.segment(i, e.pos.x + x, py, e.pos.z + z, previousX, previousY, previousZ, linkLimit, dt);
+        x = point.x - e.pos.x; z = point.z - e.pos.z; py = point.y;
+        part.visible = d2 < 48 * 48 || i < 5;
+        part.position.set((cos * x - sin * z) / s, (py - e.pos.y) / s, (sin * x + cos * z) / s);
+        const px = e.pos.x + x, pz = e.pos.z + z;
+        part.rotation.y = Math.atan2(previousX - px, previousZ - pz) - yaw;
+        part.rotation.x = -Math.atan2(previousY - py, Math.hypot(previousX - px, previousZ - pz));
+        previousX = px; previousY = py; previousZ = pz;
+        P["ridge" + i].visible = d2 < 36 * 36;
+        for (const side of [-1, 1]) P["flank" + side + "_" + i].visible = d2 < 36 * 36;
+      }
+      e.glow?.update(e.age, d2, cue.charge, e.sp === "leviathan_obsidian" && cue.recovering, reducedMotion);
+      e.mat.color.setRGB(1, e.hurtT > 0 ? 0.55 : 0.92, e.hurtT > 0 ? 0.4 : 0.86);
+      if (e.sp === "leviathan_obsidian" && cycle?.step === "recover" && !e.hurtT) {
+        e.mat.color.setRGB(0.65, 0.72, 0.8);
+      }
+      updateLeviathanHitVolumes(e);
+      return;
+    }
     animateCreature(e);
     if (e.sp === "aquatic_guardian" || e.sp === "elder_guardian") {
       const charge = e.bestiary.charge || 0;
@@ -3229,6 +3549,7 @@ export class Entities {
       P.tail.rotation.x = e.onGround ? 0.3 : 0.6;
     }
     if (e.swing > 0) e.swing -= dt;
+    animateDesertMob(e);
     // brightness from the light where it stands, flash red when hurt, white when about to explode
     const L = this.world.lightAt(Math.floor(e.pos.x), Math.floor(e.pos.y + 0.5), Math.floor(e.pos.z));
     let b = L ? Math.max(L[0] / 15 * daylight, L[1] / 15) : daylight;

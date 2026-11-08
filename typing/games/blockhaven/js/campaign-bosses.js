@@ -221,7 +221,7 @@ export function initBosses(api) {
     if (e.lstate === "circle") {
       bf.ang = (bf.ang || 0) + step * (ph === 3 ? 0.6 : 0.42);
       const r = P.r - 3; e.pos.x = A.x + Math.cos(bf.ang) * r; e.pos.z = A.z + Math.sin(bf.ang) * r; e.pos.y = P.y - 1.4;
-      e.yaw = Math.PI - bf.ang; e.submerged = true;   // head points the way it swims (models face (-sin yaw, -cos yaw))
+      e.yaw = -bf.ang; e.submerged = true;
       if (Math.random() < 0.3) puff(e.pos.x, P.y + 1, e.pos.z, "splash");
       if (e.atkT <= 0) {
         e.atkT = ph === 3 ? 3.2 : 4.4;
@@ -238,7 +238,7 @@ export function initBosses(api) {
       }
       if (e.lt <= 0) {   // surface beside the player
         const a = Math.atan2(p.pos.z - A.z, p.pos.x - A.x), r = P.r - 2.4;   // (its body must stay clear of the stone rim)
-        e.pos.x = A.x + Math.cos(a) * r; e.pos.z = A.z + Math.sin(a) * r; e.pos.y = P.y - 0.2; e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z));
+        e.pos.x = A.x + Math.cos(a) * r; e.pos.z = A.z + Math.sin(a) * r; e.pos.y = P.y - 0.2; e.yaw = Math.atan2(p.pos.x - e.pos.x, p.pos.z - e.pos.z);
         e.lstate = "surface"; e.lt = ph === 3 ? 3.2 : 4.2; e.submerged = false; e.bit = false; e.anchor = { x: e.pos.x, y: e.pos.y, z: e.pos.z };
         for (let j = 0; j < 12; j++) puff(e.pos.x + rand(-2, 2), P.y + 1 + rand(0, 1.5), e.pos.z + rand(-2, 2), "splash");
         Sound.splash(); if (!bf.surfaceMsg) { bf.surfaceMsg = true; UI.toast("It surfaces! Strike it now, before it dives!", "good"); }
@@ -247,7 +247,7 @@ export function initBosses(api) {
     }
     // surfaced: it holds still (snapping at you once after a warning), then dives
     if (e.anchor) { e.pos.x = e.anchor.x; e.pos.y = e.anchor.y; e.pos.z = e.anchor.z; }
-    if (!e.bit && e.lt < (ph === 3 ? 2.2 : 3) && d < 5) { e.bit = true; hz(E, e.pos.x - Math.sin(e.yaw) * 2.5, e.pos.z - Math.cos(e.yaw) * 2.5, 2.5, 0, 6 * dmgMul, "The Leviathan's bite caught you. Step back when it opens its jaws!"); }
+    if (!e.bit && e.lt < (ph === 3 ? 2.2 : 3) && d < 5) { e.bit = true; hz(E, e.pos.x + Math.sin(e.yaw) * 2.5, e.pos.z + Math.cos(e.yaw) * 2.5, 2.5, 0, 6 * dmgMul, "The Leviathan's bite caught you. Step back when it opens its jaws!"); }
     if (e.lt <= 0) { e.lstate = "circle"; e.lt = rand(6, 8) * (ph === 3 ? 0.75 : 1); e.submerged = true; bf.ang = Math.atan2(e.pos.z - A.z, e.pos.x - A.x); Sound.splash(); }
   }
 
