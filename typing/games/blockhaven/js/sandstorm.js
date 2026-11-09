@@ -1,6 +1,6 @@
 import { hash3 } from "./noise.js";
 
-const LEVIATHAN_CHANCE = 1 / 15;
+const LEVIATHAN_CHANCE = 1 / 3;
 const stormStart = (seed, day) => 0.12 + hash3(seed, day, 23, 0) * 0.4;
 
 export function nextLeviathanStorm(seed, day, time) {
@@ -16,7 +16,7 @@ export function nextLeviathanStorm(seed, day, time) {
 export function sandstormStage(seed, day, time) {
   if (day < 2) return 0;
   const roll = hash3(seed, day, 17, 0);
-  if (roll >= 1 / 3) return 0;
+  if (roll >= 2 / 3) return 0;
   const start = stormStart(seed, day);
   const elapsed = time - start;
   if (elapsed < 0 || elapsed >= 0.22) return 0;

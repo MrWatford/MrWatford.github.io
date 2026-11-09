@@ -16,12 +16,13 @@ import { Adv } from "./advancements.js";
 import { initForsaken, isQuestItem } from "./forsaken.js";
 import { initLost, LOST_DIMS } from "./lost.js";
 import { initStarter } from "./starter.js";
-import { leviathanShrineBearings } from "./leviathan-navigation.js";
+import { leviathanShrineBearings, sandcallerPreparation } from "./leviathan-navigation.js";
 import { initCampaign, CAMPAIGN_SEED } from "./campaign.js";
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
 import { nextLeviathanStorm, sandstormStage } from "./sandstorm.js";
+import { StormActivity, stormCallStatus, stormDaytime, severalHostilesNearby, STORM_ACTIVITY_GUIDE } from "./leviathan-storm.js";
 import { dunePhase, duneRitualWindow } from "./dune-leviathan.js";
 import { DESERT_SITES, RELIC_SITES, SHRINE_INSCRIPTION, buildRelicStamp, citadelArena, citadelCache, citadelTablet, cityCache, cityTablet, observatoryTablet, planRelicSites, relicCache, relicSiteAt, shrineSign } from "./desert-relic-sites.js";
 import { SOLKARA_ALTAR, SOLKARA_GATE, SOLKARA_RETURN, SOLKARA_SANCTUARY, SolkaraSanctuaryGen, isSolkaraRealm, SOLKARA_LIBRARY, SOLKARA_MARKS, SOLKARA_MURAL, SOLKARA_ORDER, SOLKARA_SAND_TRAP, SOLKARA_VAULT, SOLKARA_WING_SWITCH, annexFits, atSolkara, buildSolkaraAnnex, buildSolkaraWing, solkaraMarkAt } from "./solkara-annex.js";
@@ -47,6 +48,10 @@ import { createHeatView } from "./forgotten-heat-view.js";
 import { duneWarningCue } from "./dune-warning.js?v=physical-2";
 import { createDuneWarningView } from "./dune-warning-view.js";
 import { obsidianWarningCue } from "./obsidian-warning.js";
+import { ancientWarningCue, ancientWarningLoadedKey } from "./ancient-warning.js";
+import { ancientArrivalCues } from "./ancient-arrival.js";
+import { ancientCombatPhase, ancientRewardPending, ancientRewardInventory, copyAncientProgress, ANCIENT_VICTORY_XP } from "./ancient-victory.js";
+import { createAncientWarningView } from "./ancient-warning-view.js";
 import { createObsidianWarningView } from "./obsidian-warning-view.js";
 import { planObsidianShrapnel, validObsidianVolley, obsidianVolleyLoadedKey } from "./obsidian-shrapnel.js";
 import { OBSIDIAN_OFFERINGS, OBSIDIAN_OFFERING_TEXT, obsidianRiteInReach, obsidianRitualWindow, obsidianEncounterPhase } from "./obsidian-rite.js";
@@ -1505,6 +1510,9 @@ function stream(budget) {
   }
 }
 function clearWorldMeshes() {
+  clearAncientArrival();
+  clearAncientWarning();
+  stormActivity.reset(); stormActivityElapsed = 0;
   clearObsidianWarning();
   clearDuneWarning();
   clearDuneSweep();
@@ -1729,7 +1737,7 @@ function snapshot() {
     ...G.meta, mode: G.mode, version: SAVE_VERSION, played: Date.now(), time: G.time, day: G.meta.day || 1, tips: G.tips, mods: undefined, containers: undefined,
     player: { pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, health: p.health, hunger: p.hunger, sat: p.sat, exhaust: p.exhaust, spawn: p.spawn, anchor: p.anchor || null, flying: p.flying, dim: G.dim, effects: { ...G.effects }, elv: { ...G.elv }, absorb: G.absorb },
     inventory: G.inv.toJSON(), dims: { ...G.dimData }, xp: G.xp, settings: G.wset, gen: G.meta.gen || 1,
-    voidInv: G.voidInv.map(s => s && { ...s }), adv: Adv.toJSON(), story: G.story, hardcore: !!G.meta.hardcore, hardcoreOver: !!G.meta.hardcoreOver, stats: { ...G.stats }
+    voidInv: G.voidInv.map(s => s && { ...s }), adv: Adv.toJSON(), story: copyAncientProgress(G.story), hardcore: !!G.meta.hardcore, hardcoreOver: !!G.meta.hardcoreOver, stats: { ...G.stats }
   };
 }
 async function saveNow(show) {
@@ -2462,20 +2470,26 @@ function interact(hit, kind) {
   if (kind === "solkara_gate") { useSolkaraGate(hit); return; }
   if (isSolkaraRealm(G.dim) && G.dimData[G.dim]?.solkaraWing === 1 && interactSolkaraWing(hit, kind)) return;
   if (G.dim === HOLLOW_SANDS && kind === "lore" && atSolkara(hit, THRONE_TABLET)) {
-    UI.openNote("The Throne of the Buried King", `Six records survive beneath the sands. The keepers scattered them among the six regions so that no king could awaken the ancient one alone. Claim the Ancient Desert Core and read all six records to awaken the throne. The Core's attunement survives the loss of its physical form.\n\nThe inner court lies at X ${BURIED_THRONE.x}, Z ${BURIED_THRONE.z}.`, false);
+    UI.openNote("The Throne of the Buried King", `Six records survive beneath the sands. The keepers scattered them among the six regions so that no king could awaken the ancient one alone. Claim the Ancient Desert Core and read all six records to awaken the throne. The Core's attunement survives the loss of its physical form. The blue runes build for seven seconds before the King rises. Later, small blue circles fill before its guardians arrive; keep clear of their centers.\n\nThe inner court lies at X ${BURIED_THRONE.x}, Z ${BURIED_THRONE.z}.`, false);
     return;
   }
   if (G.dim === HOLLOW_SANDS && kind === "pedestal" && atSolkara(hit, THRONE_ALTAR)) {
+    if (G.story.leviathan?.ancient?.defeated) { claimAncientVictory(); return; }
     awakenAncient();
     return;
   }
   const observatory = G.story.leviathan?.sites?.observatory;
   if (kind === "lore" && G.dim === "overworld" && observatory && atSolkara(hit, observatoryTablet(observatory))) {
     const day = G.meta.day || 1, forecast = nextLeviathanStorm(G.gen.seed, day, G.time);
-    const report = sandstormStage(G.gen.seed, day, G.time) === 4 ? "A Leviathan Storm is active now." :
+    const called = stormCallStatus(G.story.leviathan?.stormCall, worldSeconds());
+    const report = called.stage > 0 ? called.stage === 4 ? `A called Leviathan Storm is active. Its strongest winds last about ${Math.ceil(called.remainingPeak)} more seconds.` :
+      called.untilPeak > 0 ? `A storm is gathering. Its Leviathan phase begins in about ${Math.ceil(called.untilPeak)} seconds.` : "The called storm is easing." :
+      sandstormStage(G.gen.seed, day, G.time) === 4 ? "A Leviathan Storm is active now." :
       forecast ? `The next Leviathan Storm is due on day ${forecast.day}, about ${Math.round(forecast.time * 100)}% through the day.` :
         "The instrument detects no Leviathan Storm in the next sixty days.";
-    UI.openNote("Great Dune Observatory", report + "\n\nWhen the storm darkens and the dunes rumble, sprint across open sand to draw the Leviathan out. Slow down or take shelter to avoid its notice.", false);
+    UI.openNote("Great Dune Observatory", report + "\n\n" + STORM_ACTIVITY_GUIDE +
+      (called.stage === 0 && !called.ready ? `\n\nThe sands need about ${Math.ceil(called.cooldown)} seconds before another call.` : "") +
+      "\n\nWhen the storm darkens and the dunes rumble, sprint across open sand to draw the Leviathan out. Slow down or take shelter to avoid its notice.", false);
     return;
   }
   const city = G.story.leviathan?.sites?.city;
@@ -2523,10 +2537,15 @@ function interact(hit, kind) {
   if (kind === "sign") {
     const expansion = G.story.leviathan;
     if (G.dim === "overworld" && relicSiteAt(expansion?.sites, hit, shrineSign)?.key === "shrine") {
-      if (!G.creative) expansion.shrineRead = true;
+      if (!G.creative && !G.spectator && !expansion.shrineRead) {
+        expansion.shrineRead = true;
+        saveNow(false);
+      }
+      const prep = sandcallerPreparation(G);
       UI.openNote("The Call of the Sands", [SHRINE_INSCRIPTION,
         "Search this shrine's cache for the first relic. The keepers left bearings to the other relic ruins and the storm instrument:",
         ...leviathanShrineBearings(G.story),
+        ...[prep.instructions, prep.sources, prep.bearing].filter(Boolean),
         "Press J and choose Leviathan to reread these bearings. They mark the ruins, not a roaming Leviathan."
       ].join("\n\n"), false);
     } else ST.readSign(hit);
@@ -2551,7 +2570,14 @@ function interact(hit, kind) {
   }
   if (kind === "chest") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
-    if (metaOf(hit.v) & LOOT) { fillLoot(w.containers.get(key), hit); w.set(hit.x, hit.y, hit.z, make(B.CHEST, metaOf(hit.v) & 3)); G.adv("loot"); }
+    if (metaOf(hit.v) & LOOT) {
+      fillLoot(w.containers.get(key), hit);
+      w.set(hit.x, hit.y, hit.z, make(B.CHEST, metaOf(hit.v) & 3));
+      G.adv("loot");
+      // Save after the loot bit is cleared, so reopening cannot refill the cache.
+      if (!G.creative && !G.spectator && G.dim === "overworld" &&
+          relicSiteAt(G.story.leviathan?.sites, hit, relicCache)) saveNow(false);
+    }
     L.chestOpened(key);
     Sound.door(true); openPanel("chest", key); return;
   }
@@ -3298,6 +3324,8 @@ function useTotem() {
   return true;
 }
 function die(why) {
+  clearAncientArrival();
+  clearAncientWarning();
   clearObsidianWarning();
   clearDuneWarning();
   clearDuneSweep();
@@ -3469,8 +3497,11 @@ const STORM_DUST = [STORM_SKY.r, STORM_SKY.g, STORM_SKY.b];
 let stormStage = 0, stormSampleT = 0, stormDustT = 0;
 let stormVortex = null, stormVortexT = 10;
 let duneInterest = 0;
+const stormActivity = new StormActivity();
+let stormActivityElapsed = 0;
 function duneEncounterReview() {
-  return { storm: stormStage, interest: duneInterest, wild: ents.list.filter(e => e.sp === "leviathan_dune" && !e.tame && !e.gone).length };
+  return { storm: stormStage, interest: duneInterest, wild: ents.list.filter(e => e.sp === "leviathan_dune" && !e.tame && !e.gone).length,
+    activity: stormActivity.review(), called: stormCallStatus(G.story?.leviathan?.stormCall, G.meta ? worldSeconds() : 0) };
 }
 function sandEncounterSite(x, z) {
   x = Math.floor(x); z = Math.floor(z);
@@ -3525,13 +3556,15 @@ function awakenAncient() {
   }
   const a = BURIED_THRONE, record = expansion.ancient ||= { hp: SPECIES.leviathan_ancient.hp };
   const e = ents.add("leviathan_ancient", a.x, a.y - 12, a.z - 8, { hp: record.hp });
-  e.duneCycle = { step: "awakening", until: 7, site: a, count: 0 };
+  e.duneCycle = { step: "awakening", until: e.age + 7, site: a, count: 0,
+    arrivalFrom:e.age, arrival:{x:a.x,y:a.y,z:a.z-8,r:8} };
   e.goal = { x: a.x, y: a.y - 4, z: a.z - 8, speed: 2 };
+  saveNow(false);
   Sound.mob("rumble", 0);
   UI.toast("The Throne of the Buried King awakens. Leave the center of the court.");
 }
 function ancientPhase(e) {
-  return e.duneCycle.step === "awakening" ? 1 : Math.min(5, 2 + Math.floor((1 - e.hp / e.maxHp) * 4));
+  return e.duneCycle.step === "awakening" ? 1 : ancientCombatPhase(e.hp,e.maxHp);
 }
 let arenaFractures = null;
 function clearArenaFractures() {
@@ -3554,28 +3587,28 @@ function thinkAncient(e, multiplier) {
     UI.toast("The Ancient Leviathan rises. The Buried King has awakened.");
   } else if (c.step === "recover") {
     if (phase === 2 && c.count % 3 === 0 && ents.list.filter(o => o.encounterOwner === e && !o.dead && !o.gone).length < 4) {
-      c.step = "summoning"; c.until = e.age + 1.8;
-      c.summonSites = [-1, 1].map(side => ({ x: a.x + side * 10, y: a.y, z: a.z + 8, r: 1.5 }));
-      for (const point of c.summonSites) ancientRuneRing(point, point.y, 2);
+      c.step = "summoning"; c.summonFrom = e.age; c.until = e.age + 1.8;
+      c.summonSites = [-1, 1].map(side => ({ x: a.x + side * 10 + .5, y: a.y, z: a.z + 8 + .5, r: 1.5, warned:false }));
       UI.toast("The Buried King calls its guardians. Keep clear of the blue circles.");
       return;
     }
     const central = phase === 2 || c.count % 3 === 0;
     const inCourt = Math.hypot(p.x - a.x, p.z - a.z) < 25;
-    c.attack = { x: central || !inCourt ? a.x : p.x, z: central || !inCourt ? a.z : p.z, r: central ? 11 : phase === 5 ? 5 : 3.5, phase: 4 };
+    c.attack = { x: central || !inCourt ? a.x : p.x, y: a.y, z: central || !inCourt ? a.z : p.z,
+      r: central ? 11 : phase === 5 ? 5 : 3.5, from: e.age, warned: false };
     c.step = "judgment"; c.until = e.age + (phase === 5 ? 1.3 : 2);
     c.attackAt = c.until;
-    ancientRuneRing(c.attack, a.y, 2.3);
     UI.toast(central ? "Ancient shockwave! Leave the blue ring." : phase === 3 ? "The sand fractures beneath the rune marker. Move!" : "Ancient energy gathers. Leave the marked ground.");
   } else if (c.step === "summoning") {
     for (const point of c.summonSites || []) {
+      if (!point.warned || G.creative || G.spectator) continue;
       if (ents.list.filter(o => o.encounterOwner === e && !o.dead && !o.gone).length >= 4 ||
           ents.list.filter(o => !o.dead && !o.gone).length >= 120) break;
       const x = Math.floor(point.x), z = Math.floor(point.z), y = point.y;
       if (!G.world.isLoaded(x, z) || !SOLID[G.world.id(x, y - 1, z)] ||
           [0, 1, 2].some(dy => G.world.id(x, y + dy, z) !== B.AIR) ||
           Math.hypot(p.x - point.x, p.z - point.z) < 2) continue;
-      const guardian = ents.add("ancient_sentinel", point.x + 0.5, y, point.z + 0.5);
+      const guardian = ents.add("ancient_sentinel", point.x, y, point.z);
       guardian.encounterOwner = e;
       guardian.persist = false;
       puff(point.x, y + 0.5, point.z, "pale");
@@ -3584,9 +3617,14 @@ function thinkAncient(e, multiplier) {
     c.step = "recover"; c.until = e.age + 2.5;
   } else if (c.step === "judgment") {
     const hit = c.attack;
+    // An unsupported or disposed warning cannot release an invisible strike.
+    if (!hit?.warned || G.creative || G.spectator) {
+      c.attack = null; c.step = "buried"; c.until = e.age + 2.4;
+      e.emerged = false; e.goal = { x:a.x, y:a.y-12, z:a.z-8, speed:12 }; return;
+    }
     ancientRuneRing(hit, a.y, 0.6);
     if (Math.abs(p.y - a.y) < 3 && Math.hypot(p.x - hit.x, p.z - hit.z) < hit.r) {
-      hurt((5 + phase) * multiplier, "The Ancient Leviathan's judgment struck you.", e);
+      hurt((5 + phase) * multiplier, "The Ancient Leviathan's judgment struck you.", e, false, "ancientEnergy");
     }
     if (G.state !== "dead" && (phase === 3 || phase === 5)) {
       arenaFractures ||= new ArenaFractures(G.world, G.player, BURIED_THRONE);
@@ -3611,16 +3649,38 @@ function ancientRuneRing(hit, y, life) {
 }
 function damageAncient(e) {
   const record = G.story.leviathan.ancient;
+  if (!record || record.defeated || e.duneCycle?.preview) return;
+  const previousPhase = ancientCombatPhase(record.hp,e.maxHp);
   record.hp = Math.max(0, e.hp);
-  if (e.hp > 0 || record.defeated) return;
+  if (e.hp > 0) {
+    if (ancientCombatPhase(e.hp,e.maxHp) !== previousPhase) saveNow(false);
+    return;
+  }
+  clearAncientArrival();
+  clearAncientWarning();
   clearArenaFractures();
   record.defeated = true;
-  const a = BURIED_THRONE;
-  for (const [id, n] of [[I.ANCIENT_HEART, 1], [I.ANCIENT_CROWN, 1], [I.ETERNAL_SAND_CORE, 1],
-    [I.ANCIENT_PLATE, 8], [I.ANCIENT_TROPHY, 1], [I.ANCIENT_COMPANION_RELIC, 1]]) {
-    spawnDrop(id, n, a.x, a.y + 0.5, a.z);
+  record.rewardsClaimed = false;
+  saveNow(false);
+  UI.toast("The Buried King has fallen. Your treasures await safely at the Throne altar.","good");
+}
+function claimAncientVictory() {
+  const record = G.story.leviathan?.ancient;
+  if (!ancientRewardPending(record)) {
+    UI.toast("The Buried King has returned to the sands. Its treasures have already been granted."); return;
   }
-  spawnOrbs(350, a.x, a.y + 0.5, a.z);
+  if (G.creative || G.spectator || G.dim !== HOLLOW_SANDS) {
+    UI.toast("Return to the Throne altar in Survival to claim your treasures."); return;
+  }
+  const inventory = ancientRewardInventory(G.inv);
+  if (!inventory) {
+    UI.toast("Make room in your backpack for the full treasure set. Your rewards remain safe at this altar.","bad"); return;
+  }
+  G.inv.load(inventory); record.rewardsClaimed = true;
+  giveXp(ANCIENT_VICTORY_XP); G.hudDirty = true;
+  saveNow(false);
+  Sound.levelUp();
+  UI.toast("The King's treasures are yours, with 350 experience. The companion relic now answers your call.","good");
 }
 function worldSeconds() {
   return (G.meta.day || 1) * DAY_LENGTH + G.time * DAY_LENGTH;
@@ -3828,6 +3888,36 @@ function thinkDune(e, damageMultiplier) {
     e.goal = { ...cycle.site, y: cycle.site.y - 8, speed: 12 };
   }
 }
+function callDesertStorm(source) {
+  if (G.dim !== "overworld" || G.creative || G.spectator || G.wset.difficulty === "peaceful") return false;
+  const now = worldSeconds(), called = stormCallStatus(G.story.leviathan?.stormCall, now);
+  if (!called.ready) {
+    UI.toast(called.stage ? "A storm is already gathering. Read the instrument for its timing." : `The sands are settling. Try again in about ${Math.ceil(called.cooldown)} seconds.`);
+    return false;
+  }
+  if (sandstormStage(G.gen.seed, G.meta.day || 1, G.time) === 4) {
+    UI.toast("A Leviathan Storm is already active. Sprint on open sand to draw the creature out."); return false;
+  }
+  (G.story.leviathan ||= {}).stormCall = { at: now, source };
+  stormActivity.reset();
+  saveNow(false);
+  Sound.mob("rumble", 0);
+  UI.toast(source === "battle" ? "The clash awakens the desert. A storm is gathering!" : source === "observatory" ?
+    "The relics answer the horn. A storm is gathering!" : "Your footsteps stir the dunes. A storm is gathering!");
+  return true;
+}
+function useObservatoryStorm() {
+  const site = G.story.leviathan?.sites?.observatory;
+  if (!site) return false;
+  const at = observatoryTablet(site), p = G.player.pos;
+  if (Math.hypot(p.x-at.x-.5, p.z-at.z-.5) > 4.5 || Math.abs(p.y-at.y) > 2.5) return false;
+  if (G.world.id(at.x, at.y, at.z) !== B.LORE_TABLET || p.y < G.world.surfaceY(Math.floor(p.x), Math.floor(p.z))+.5 ||
+      !lineOfSight(G.world, { x:p.x, y:p.y+G.player.eye, z:p.z }, {x:at.x+.5,y:at.y+1.15,z:at.z+.5})) {
+    UI.toast("Stand on the open Observatory platform with a clear view of its instrument."); return true;
+  }
+  if (!callDesertStorm("observatory") && (G.creative || G.wset.difficulty === "peaceful")) UI.toast("Call storms in Survival with combat enabled.");
+  return true;
+}
 function useSandcallerHorn() {
   if (G.spectator) return true;
   if (G.dim !== "overworld") {
@@ -3870,6 +3960,7 @@ function useSandcallerHorn() {
     UI.toast(site ? `Seek the ${missing.name} near X ${site.x + 8}, Z ${site.z + 8}.` : `Seek the ${missing.name} in unexplored desert.`);
     return true;
   }
+  if (!e && useObservatoryStorm()) return true;
   if (!e || !record) {
     const observatory = expansion?.sites?.observatory;
     UI.toast(observatory ? `Check the Great Dune Observatory near X ${observatory.x + 8}, Z ${observatory.z + 8} for the next Leviathan Storm.` :
@@ -4048,6 +4139,60 @@ function updateDuneSurfaceAttack(e, phase, multiplier) {
   }
   c.attackAt = Infinity;
   c.attack = null;
+}
+let ancientArrivalFX = [];
+function clearAncientArrival() {
+  for (const fx of ancientArrivalFX) { fx.point.warned = false; fx.view?.dispose(); }
+  ancientArrivalFX = [];
+}
+function ancientArrivalReview() {
+  return ancientArrivalFX.map(fx => ({active:!!fx.view,type:fx.cue.type,x:fx.cue.x,y:fx.cue.y,z:fx.cue.z,
+    radius:fx.cue.radius,deadline:fx.cue.deadline,progress:fx.cue.progress,triangles:fx.view?.triangles || 0}));
+}
+function updateAncientArrival() {
+  const actor = G.dim === HOLLOW_SANDS && !G.creative && !G.spectator && G.state !== "dead" && G.wset.difficulty !== "peaceful" &&
+    ents.list.find(e => e.sp === "leviathan_ancient" && e.mesh && !e.dead && !e.gone && !e.tame && !e.duneCycle?.preview);
+  const cues = actor ? ancientArrivalCues(actor) : [];
+  if (!cues.length) { clearAncientArrival(); return; }
+  const now = G.clock || 0;
+  // At most two small guardian batches, or one awakening batch. No per-frame geometry.
+  if (cues.length !== ancientArrivalFX.length || cues.some((cue,i) => {
+    const fx = ancientArrivalFX[i];
+    return fx?.actor !== actor || fx.point !== cue.point ||
+      (fx.edits !== G.world.editCount || fx.loadedKey !== ancientWarningLoadedKey(G.world,cue)) && now-fx.builtAt >= .2;
+  })) {
+    clearAncientArrival();
+    ancientArrivalFX = cues.map(cue => ({actor,point:cue.point,cue,builtAt:now,edits:G.world.editCount,
+      loadedKey:ancientWarningLoadedKey(G.world,cue),view:createAncientWarningView(scene,G.world,cue)}));
+  }
+  ancientArrivalFX.forEach((fx,i) => {
+    fx.cue = cues[i]; fx.point.warned = !!fx.view;
+    fx.view?.update(cues[i].progress,G.settings.reducedMotion);
+  });
+}
+let ancientWarningFX = null;
+function clearAncientWarning() {
+  if (ancientWarningFX?.attack) ancientWarningFX.attack.warned = false;
+  ancientWarningFX?.view?.dispose(); ancientWarningFX = null;
+}
+function ancientWarningReview() {
+  return ancientWarningFX ? { active:!!ancientWarningFX.view, ...ancientWarningFX.cue,
+    triangles:ancientWarningFX.view?.triangles || 0 } : {active:false};
+}
+function updateAncientWarning() {
+  const actor = G.dim === HOLLOW_SANDS && !G.creative && !G.spectator && G.state !== "dead" && G.wset.difficulty !== "peaceful" &&
+    ents.list.find(e => e.sp === "leviathan_ancient" && e.mesh && !e.dead && !e.gone && !e.tame && !e.duneCycle?.preview);
+  const cue = actor && ancientWarningCue(actor);
+  if (!cue) { clearAncientWarning(); return; }
+  const attack = actor.duneCycle.attack, now = G.clock || 0, loadedKey = ancientWarningLoadedKey(G.world,cue);
+  if (!ancientWarningFX || ancientWarningFX.actor !== actor || ancientWarningFX.attack !== attack ||
+      (ancientWarningFX.edits !== G.world.editCount || ancientWarningFX.loadedKey !== loadedKey) && now-ancientWarningFX.builtAt >= .2) {
+    clearAncientWarning();
+    ancientWarningFX = {actor,attack,cue,loadedKey,edits:G.world.editCount,builtAt:now,
+      view:createAncientWarningView(scene,G.world,cue)};
+  }
+  ancientWarningFX.cue = cue; attack.warned = !!ancientWarningFX.view;
+  ancientWarningFX.view?.update(cue.progress,G.settings.reducedMotion);
 }
 let obsidianWarningFX = null;
 function clearObsidianWarning() {
@@ -4264,15 +4409,30 @@ function updateSandstorm(dt) {
     duneInterest = 0;
     stormStage = 0; stormSampleT = 0;
     stormVortex = null; stormVortexT = 10;
+    stormActivity.reset(); stormActivityElapsed = 0;
     Sound.wind(0);
     return;
   }
+  stormActivityElapsed += dt;
   if ((stormSampleT -= dt) <= 0) {
     stormSampleT = 0.25;
-    const stage = sandstormStage(G.gen.seed, G.meta.day || 1, G.time);
+    const natural = sandstormStage(G.gen.seed, G.meta.day || 1, G.time);
     const x = Math.floor(p.pos.x), z = Math.floor(p.pos.z);
-    const exposed = stage && G.world.chunkAt(x, z) && G.gen.column(x, z).biome === "sandy" &&
+    const exposed = G.world.chunkAt(x, z) && G.gen.column(x, z).biome === "sandy" &&
       p.pos.y >= G.world.surfaceY(x, z) + 0.5;
+    const called = stormCallStatus(G.story.leviathan?.stormCall, worldSeconds());
+    const enabled = !!exposed && G.state === "play" && !G.creative && !G.spectator && !p.flying && !G.riding &&
+      G.wset.difficulty !== "peaceful" && stormDaytime(G.time);
+    const activityReady = called.ready && natural < 4;
+    const combatInput = enabled && activityReady &&
+      (G.bowT >= 0 || G.blocking || p.hurtT > 0 || (mouseL && !!entityTarget()?.def.hostile));
+    const source = stormActivity.step(stormActivityElapsed, { enabled, ready: activityReady,
+      sprinting: p.onGround && !p.crouch && (keys.has("ShiftLeft") || keys.has("ShiftRight")) && Math.hypot(p.vel.x,p.vel.z)>4.8,
+      severalHostiles: combatInput && severalHostilesNearby(ents.list,p.pos), combatInput });
+    stormActivityElapsed = 0;
+    if (source) callDesertStorm(source);
+    const stage = Math.max(natural, !G.creative && !G.spectator && G.wset.difficulty !== "peaceful" ?
+      stormCallStatus(G.story.leviathan?.stormCall, worldSeconds()).stage : 0);
     const next = exposed ? stage : 0;
     if (next === 4 && stormStage !== 4) {
       UI.toast("Something ancient stirs beneath the sands…");
@@ -4779,6 +4939,8 @@ function loop(now) {
   }
   updateDuneWarning();
   updateObsidianWarning();
+  updateAncientWarning();
+  updateAncientArrival();
   updateDuneSweep(dt, running);
   updateDuneDevour(dt, running);
   updateDuneVortex(dt, running);
@@ -4879,3 +5041,5 @@ requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
 G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
 G._test.obsidianWarningReview = obsidianWarningReview;
+G._test.ancientWarningReview = ancientWarningReview;
+G._test.ancientArrivalReview = ancientArrivalReview;
