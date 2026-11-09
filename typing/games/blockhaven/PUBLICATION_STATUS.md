@@ -1,3 +1,50 @@
+# Current published release: Leviathan Early Access 4
+
+## Early Access 5 release preparation
+
+The owner authorized publishing the current new Ancient/Runecrest/recovery work, followed by continued local development. EARLY_ACCESS_5_RELEASE.md defines the frozen scope. Deployment is pending verification; prior unpublished labels below describe development history and will be superseded for the included scope once EA5 is verified. The full expansion remains unfinished.
+
+## Unpublished follow-up after Early Access 4: dropped equipment and Hardcore
+
+Six controlled death-mode groups pass: actual fatal judgments in Normal Survival with inventory retention off and Hard Hardcore, immediate unfinished-boss/death/drop saves, death-screen reopening, quest-item retention, equipment durability/quantity recovery through normal pickup, no duplicate drops, and persistent Hardcore Spectator status through reload/import. A reproduced shared pickup defect is fixed by excluding Spectator from item attraction and collection in two existing conditions. Five focused pickup regressions and six fresh mode/storage groups pass; final live/smoke runs capture no warnings/errors and 274 imports resolve. One fixture bypass of ordinary altar input was corrected without changing altar gameplay. Prepared prerequisites/travel/gear/XP/low health, controlled boss damage and ambient isolation are disclosed; natural fights, crash/power-loss, real old saves and broad graphics/device gates remain open. See `tools/review-results/local-ancient-death-modes.json` and companion smoke/source reports. All changes remain local; live EA4 is unchanged.
+
+## Unpublished follow-up after Early Access 4: Ancient recovery review
+
+Five controlled Normal Survival keep-inventory recovery groups pass: actual fatal judgment/death checkpoint, Surface respawn and encounter cleanup, journal/gateway return, one retry at saved 299 HP, warning cancellation on departure, awakening save/reload and version-four JSON preservation without rewards. Prepared prerequisites/travel/initial health, a controlled boss hit and ambient isolation are disclosed. No gameplay change was needed. Two fixture defects were corrected; three retained error messages document those earlier failed assertions/diagnostic replay, with no additional warnings/errors on the final route. Lost-inventory/Hardcore, death-screen reload/crash interruption, natural fights and real legacy-save/device gates remain open. Evidence: `tools/review-results/local-ancient-recovery.json` and source audit. This is local review work; live EA4 is unchanged.
+
+## Unpublished follow-up after Early Access 4: connected Ancient encounter
+
+Judgment now retains its cast phase through health changes, fixing a reproduced case where an existing warning gained stronger damage or different terrain/recovery behavior. Five focused transition checks and six connected groups pass through one actual altar-created boss's five phases, guardian arrivals, collapse/descent, full-inventory-safe once-only rewards, reload and JSON preservation. Player health stays 20→13→5 without healing/reset after entry; Final Judgment is escaped with ordinary sprint input. Prerequisites/travel/aim/damage amounts and guardian defeats are controlled, and ambient enemies excluded; this is not natural full-combat/death/retry/device acceptance. Eight warning, seven finale and six fresh mode/storage regression groups pass, with no captured warnings/errors in the connected/final smoke runs. Evidence: `tools/review-results/local-ancient-connected.json` and companion smoke/source reports. No publication occurred; live EA4 remains unchanged.
+
+## Unpublished follow-up after Early Access 4: staged Ancient awakening
+
+The seven-second buildup now stages the Ancient's rise from deeper below the arena, gradually charges its jaw/core and briefly holds the emergence roar pose. Loaded-ceiling sand composes with the rune clock in one bounded instanced batch (96 Fancy/48 Fast grains); reduced motion hides decorative rain while retaining essential rise/countdown. Normal movement stays available, and retry/cleanup add no saved fields or terrain edits. Seven focused/six live, seven guardian/eight Fury and six mode/storage groups pass; 274 imports resolve. Two fixture timing/save-shape errors were corrected; no boss HP/AI deadlines are assigned. Full fight/edited-ceiling/legacy-save/device and music/cinematic gates remain open. Evidence: `tools/review-results/local-ancient-awakening.json`. This work is local; live EA4 is unchanged.
+
+## Unpublished follow-up after Early Access 4: Ancient Fury
+
+The fourth phase now locks three three-block rune strikes, releasing at 1.8/2.6/3.4 seconds with nine Normal ancient-energy damage and a three-second surfaced recovery. All pending targets/countdowns show before release, do not chase the player, and retain necessary cues in reduced motion. Failed/mode-cancelled cues retreat safely. A real phase-five transition finishes the warned cast/recovery before Final Judgment. Eight focused/seven live, eight victory/seven finale and six mode/storage groups pass; 270 imports resolve. Actor/HP/travel/inputs and ambient isolation are controlled; natural full fights, broad occlusion/lighting/device, legacy saves and cinematic/music gates remain open. See `tools/review-results/local-ancient-fury.json` and IMPLEMENTATION_PLAN.md. This is local; live EA4 is unchanged.
+
+## Unpublished follow-up after Early Access 4: Final Judgment and descent
+
+Final Judgment now marks two temporary off-axis collapse patches with violet cracked-rune countdowns. The existing eighteen-cell cap, protected paths/edits/containers and safe restoration remain. Its large central shockwave keeps a fair two-second warning; targeted final strikes retain 1.3 seconds and ten damage. An Ancient-only four-second sinking/dimming/fading death replaces the generic rise/flash, with stationary reduced-motion fade and existing cleanup. Seven focused/seven live, eight judgment/eight victory and six mode/storage groups pass; 269 imports resolve. Actor/HP/travel/inputs are controlled; natural full fights, Ancient Fury, full cinematic/music, older saves and hardware gates remain open. The kid-friendly `LEVIATHAN_PLAYER_GUIDE.md` explains published EA4 routes. See `tools/review-results/local-ancient-finale.json`. This follow-up remains local; no new publication occurred.
+
+## Unpublished follow-up after Early Access 4: Runecrest checkpoints
+
+Runecrest summon/dismissal, changed health/healing and Sit/Follow preferences now checkpoint the existing record; healing saves its inventory deduction. Fatal retreat checkpoints its fixed sixty-second recovery, and stale/retired actors cannot overwrite identity or extend it. Snapshots copy companion data before asynchronous storage. Six focused/six controlled live, eight victory and six mode/storage groups pass; all 268 imports resolve. The full recovery runs on the normal clock without assigning time; a preliminary test arithmetic rounding mismatch was corrected in the fixture only. Prerequisites/items/damage/ambient isolation are controlled. Only two runtime files differ from EA4; no new save fields/schema, artwork or models. See IMPLEMENTATION_PLAN.md and `tools/review-results/local-ancient-companion.json`. **This follow-up is local/unpublished; live EA4 remains merge `f5ee2d39f50de56a640e487be6f84eb593d3b215`.**
+
+Early Access 4 is published and verified at [BlockHaven](https://mrwatford.github.io/typing/games/blockhaven/), with [EA4 notes](https://mrwatford.github.io/typing/games/blockhaven/early-access.html). The owner authorized this release and continuing locally afterward.
+
+- Pull request [#4](https://github.com/MrWatford/MrWatford.github.io/pull/4).
+- Published merge `f5ee2d39f50de56a640e487be6f84eb593d3b215`; tree `fc36bc57a0fce1bec1190209422eb6a99b99314b`.
+- Release head `eae34ad840b0ab63530e63ccaf86aaff336996db`; recovery branch `backup/pre-leviathan-early-access-4` preserves `893a2d7241d55a9fa2157b40eb76427c438763e5`.
+- Successful [Pages run 42659796176](https://github.com/MrWatford/MrWatford.github.io/actions/runs/42659796176) for that merge.
+
+All 17 frozen blobs match the reviewed and merged tree, with exactly the intended changed paths, no deletions or unrelated website changes. Six final fresh-mode/save/reload/import groups pass against EA4. Chrome verified the public EA4 title, ordinary fresh Easy Survival startup, live horn recipe/relic/storm guidance, save-to-title and retained named world `EA4 Public Deployment Check` (seed `ea4-public-deployment-check`). The existing three release-check worlds were preserved. Public notes show the new feature scope, unfinished gates and world backup guidance. No warnings/errors were captured in the checked final UI. GitHub integration writes remained 403; the signed-in browser upload/PR merge completed authorized publication.
+
+Evidence: `tools/review-results/leviathan-early-access-4-publication.json`, `leviathan-early-access-4-public-ui.json`, `leviathan-early-access-4-source.json` and `leviathan-early-access-4-smoke.json`. Frozen manifest: `/private/tmp/blockhaven-early-access-4/manifest.json`. This verification record is local post-publication documentation, not another deployment. Full expansion gates remain open. Subsequent gameplay work stays local until separately authorized for publication.
+
+# Historical EA4 candidate and development records
+
 # Early Access 4 publication candidate
 
 The owner authorized publishing all current follow-ups and then resuming local development. EARLY_ACCESS_4_RELEASE.md defines this candidate. The previous verified live release is Early Access 3 at merge `893a2d7241d55a9fa2157b40eb76427c438763e5`. The final merge/Pages/public verification record is maintained locally after publication; this frozen candidate document does not preclaim a deployment result.
