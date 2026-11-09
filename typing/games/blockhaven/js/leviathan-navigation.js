@@ -1,4 +1,27 @@
 import { DESERT_SITES } from "./desert-relic-sites.js";
+import { I, RECIPES, itemDef } from "./blocks.js";
+
+// Read the real recipe and current inventory; guidance never grants items or progress.
+export function sandcallerPreparation(G) {
+  const recipe = RECIPES.find(r => r.out[0] === I.SANDCALLER_HORN);
+  const ingredients = (recipe?.ins || []).map(([id, need]) => {
+    const have = G?.inv?.count(id) || 0;
+    return { id, name: itemDef(id).name, need, have, missing: Math.max(0, need - have) };
+  });
+  const owned = (G?.inv?.count(I.SANDCALLER_HORN) || 0) > 0;
+  const ready = ingredients.length > 0 && ingredients.every(row => row.missing === 0);
+  const materials = ingredients.map(row => `${row.need} × ${row.name}`).join(", ");
+  const instructions = `At a Workbench, craft the Sandcaller Horn with ${materials}. Choose All recipes and search for Sandcaller Horn if it is not listed under Can make.`;
+  const sources = "Relic caches contain bones and gold. Leather can drop from adult cows, or you can recover it from the old market supplies beneath the Abandoned Desert City's library. Bring a pickaxe to uncover the concealed cache.";
+  const s = G?.story?.leviathan, city = s?.sites?.city;
+  const bearing = s?.shrineRead && city && [city.x, city.z].every(Number.isFinite) ?
+    `The keepers' supply route: Abandoned Desert City market stair near X ${city.x + 12}, Z ${city.z + 20}. Descend into the library and search its north wall for a cobblestone plug.` : "";
+  const status = owned ? "Horn in your inventory · ready to carry on your journey." : ready ?
+    "Materials ready · return to a Workbench to craft your horn." : s?.hornCrafted ?
+      "No horn in this inventory · retrieve yours from storage or gather materials to craft another." :
+      "Gather the missing materials before crafting your horn.";
+  return { ingredients, owned, ready, materials, instructions, sources, bearing, status };
+}
 
 // Map bearings reference the saved structure plan; they never place or discover terrain.
 export const LEVIATHAN_MAP_TYPES = Object.fromEntries(DESERT_SITES.map(def => ["solkara_" + def.key, {
@@ -30,7 +53,7 @@ export function leviathanDestinations(story) {
       guide: def.key === "shrine" ?
         "Follow this bearing to the Desert Shrine and read its inscription. Press J and choose Leviathan for your objectives. Explore the ruins for three relics and the Great Dune Observatory; its instrument forecasts Leviathan Storms. During a Leviathan Storm, sprint on open desert sand to draw the Dune Leviathan out. This bearing marks the shrine, not the creature." :
         def.key === "observatory" ?
-          "Read the Observatory instrument for the next Leviathan Storm. During that storm, sprint across open desert sand to draw out the Dune Leviathan. Walking quietly or taking shelter avoids its notice." :
+        "Read the instrument for the next natural Leviathan Storm. With the shrine read, all three relics ready and a crafted horn, stand by the instrument and sound the horn to call a storm. Daytime sprinting and fights against several desert hostiles can also stir storms. During its strongest phase, sprint on open sand to draw out the Leviathan; walking quietly or sheltering avoids its notice." :
           def.key === "city" ?
             "Read the Last Market Ledger in the city's library for bearings to the Desert Shrine and Great Dune Observatory. Search the ruins and archive for more clues." :
             def.key === "citadel" ?

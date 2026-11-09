@@ -2,6 +2,7 @@
 // Nothing is ever sent anywhere. Worlds can also be downloaded as a file and loaded back.
 import { validBondPreferences } from "./leviathan-bonds.js";
 import { validArmorShieldRecord } from "./leviathan-armor-effects.js";
+import { validStormCall } from "./leviathan-storm.js";
 export const SAVE_VERSION = 4;
 const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
@@ -92,6 +93,7 @@ function validateLeviathan(expansion) {
   if (!isRecord(expansion)) {
     throw new Error("This world file contains invalid Leviathan progress.");
   }
+  if (!validStormCall(expansion.stormCall)) throw new Error("This world file contains an invalid called sandstorm.");
   if (!validArmorShieldRecord(expansion.armorShield)) throw new Error("This world file contains an invalid legendary armor shield.");
   const flags = ["discovered", "relics", "sandsLore", "sandsRegions", "solkaraLore"];
   if (expansion.gatewayDim !== undefined && !["desert", "solkara_sanctuary"].includes(expansion.gatewayDim)) {
@@ -133,6 +135,7 @@ function validateLeviathan(expansion) {
     throw new Error("This world file contains invalid Ancient companion progress.");
   }
   if (ancient !== undefined && (!isRecord(ancient) || !Number.isFinite(ancient.hp) || ancient.hp < 0 || ancient.hp > 400 ||
+      (ancient.rewardsClaimed !== undefined && (typeof ancient.rewardsClaimed !== "boolean" || ancient.defeated !== true)) ||
       (ancient.defeated !== undefined && typeof ancient.defeated !== "boolean") ||
       (ancient.hp === 0) !== (ancient.defeated === true))) {
     throw new Error("This world file contains invalid Ancient Leviathan progress.");

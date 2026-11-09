@@ -1,10 +1,12 @@
-import { I } from "./blocks.js";
+import { ancientRewardPending } from './ancient-victory.js';
+import { I, iconURL, itemDef } from "./blocks.js";
 import { DESERT_SITES, RELIC_SITES } from "./desert-relic-sites.js";
 import { SANDS_REGIONS } from "./hollow-sands.js";
 import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
 import { LEVIATHAN_BONDS } from "./leviathan-bonds.js";
-import { LEVIATHAN_ROUTE_GUIDE, leviathanShrineBearings } from "./leviathan-navigation.js";
+import { LEVIATHAN_ROUTE_GUIDE, leviathanShrineBearings, sandcallerPreparation } from "./leviathan-navigation.js";
 import { OBSIDIAN_OFFERING_TEXT } from "./obsidian-rite.js";
+import { STORM_ACTIVITY_GUIDE } from "./leviathan-storm.js";
 
 const escapeBondText = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -72,13 +74,15 @@ export function leviathanQuests(G) {
     ["The Forgotten Kingdom", !!regions["Forgotten Kingdom"], "Find the ruins of the Forgotten Kingdom."],
     ["The Bone Fields", !!regions["Bone Fields"], "Discover the Bone Fields."],
     ["The Last Sandcaller", SANDS_REGIONS.every(r => lore[r.name]), `Read all six Solkara region tablets (${SANDS_REGIONS.filter(r => lore[r.name]).length}/6).`],
-    ["The Throne of the Buried King", !!s.ancient?.defeated, "Bring the Core to the Throne altar and defeat the Ancient Leviathan."]
+    ["The Throne of the Buried King", !!s.ancient?.defeated, ancientRewardPending(s.ancient) ? "Victory is saved. Return to the Throne altar with backpack space to claim the full treasure set and 350 experience. Your unclaimed rewards remain safe across reloads." : s.ancient?.defeated ? "The Buried King is defeated and its treasures have been granted. Use the companion relic to call Runecrest." : "Bring the Core to the Throne altar and defeat the Ancient Leviathan. Newly entered combat phases are saved; return to the altar after victory for its treasures."]
   ];
 }
 
 export function leviathanJournalHTML(G) {
   const s = G.story.leviathan || {};
   const quests = leviathanQuests(G);
+  const prep = sandcallerPreparation(G);
+  const readyRelics = RELIC_SITES.filter(def => hasDesertRelic(G, def)).length;
   const sites = DESERT_SITES.flatMap(def => {
     const site = s.sites?.[def.key];
     if (!site || !s.discovered?.[def.key]) return [];
@@ -90,6 +94,29 @@ export function leviathanJournalHTML(G) {
     `<li>${r.title} · ${r.region || "Forgotten Library"}</li>`).join("");
   return `<div class="fw-journal leviathan-journal"><h4>Secrets Beneath the Sands</h4>
     <h4>Your route into Solkara</h4><p>${LEVIATHAN_ROUTE_GUIDE}</p>
+    <section class="leviathan-preparation" aria-label="Sandcaller Horn preparation">
+      <h4><img src="${iconURL(I.SANDCALLER_HORN)}" alt="">Prepare the Sandcaller Horn</h4>
+      <p class="preparation-status">${prep.status}</p>
+      <details class="preparation-recipe" ${prep.owned ? "" : "open"}><summary>${prep.owned ? "Recipe and sources for a spare horn" : "Recipe and material sources"}</summary>
+      <ul class="leviathan-ingredients">${prep.ingredients.map(row => `<li class="${row.missing ? "missing" : "ready"}">
+        <img src="${iconURL(row.id)}" alt=""><span>${row.name}<small>${row.missing ? `Need ${row.missing} more` : "Enough collected"}</small></span>
+        <strong aria-label="${row.name}: ${row.have} held, ${row.need} required">${row.have} / ${row.need}</strong></li>`).join("")}</ul>
+      <p>${prep.instructions}</p><p>${prep.sources}</p>${prep.bearing ? `<p class="preparation-bearing">${prep.bearing}</p>` : ""}
+      </details>
+      <p>Crafting the horn does not spend your relics. Read the shrine and attune all three relics before attempting the Dune bonding rite.</p>
+    </section>
+    <section class="leviathan-preparation" aria-label="Ancient relic preparations">
+      <h4>Three ancient relics · ${readyRelics}/3 ready</h4>
+      <p>${s.shrineRead ? "✓ Shrine inscription read. Its bearings remain below." : "Read the Desert Shrine inscription before attempting the bonding rite. Its starting bearing is on the Explorer's Map (M)."}</p>
+      <ul class="leviathan-ingredients leviathan-relics">${RELIC_SITES.map(def => {
+        const attuned = !!s.relics?.[def.key], held = G.inv.count(def.item) > 0;
+        return `<li class="${attuned || held ? "ready" : "missing"}"><img src="${iconURL(def.item)}" alt="">
+          <span>${itemDef(def.item).name}<small>${def.name}</small></span><b>${attuned ? "✓ Attuned" : held ? "Relic held" : "Not found"}</b></li>`;
+      }).join("")}</ul>
+      <p>${s.dune?.bonded ? "Your Dune bond is complete. These relic attunements also answer the Solkara altar; you do not need to collect them again." : s.dune?.defeated ? "The Dune Leviathan has been defeated. Keep these relic attunements for the Ancient Desert Core and gateway route." : readyRelics === 3 ? "All three relics are ready. Take your Sandcaller Horn to the Great Dune Observatory to forecast or call a Leviathan Storm, then follow its warnings into the open desert." : "Open each ruin's relic cache to attune its relic. Attunements remain yours even when the physical relic is stored or lost; the journal uses either an attunement or a relic you carry."}</p>
+      <p>${STORM_ACTIVITY_GUIDE}</p>
+      <p>During the rite, dodge without striking the Leviathan. Sound the horn once as the dust settles at each of three fresh surfacings. Striking it resets the sequence.</p>
+    </section>
     ${s.shrineRead ? `<h4>Bearings from the Desert Shrine</h4><p>Search the shrine's cache for its relic. The keepers' other bearings remain here for your journey; landmarks join the map when you reach them.</p><ul>${leviathanShrineBearings(G.story).map(text => `<li>${text}</li>`).join("")}</ul>` : ""}
     <p>Choose combat or bonding for the first two Leviathans. The journal records both paths.</p>
     <p>${quests.filter(q => q[1]).length} of ${quests.length} objectives complete.</p>

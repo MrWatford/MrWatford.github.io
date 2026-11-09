@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blockhaven | Mr. Watford's Free-Time Games</title>
 <meta name="description" content="Blockhaven: explore, mine, craft, and build in a block world. Saves on your own device.">
-<meta name="blockhaven-release" content="leviathan-early-access-3">
+<meta name="blockhaven-release" content="leviathan-early-access-4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -189,6 +189,22 @@ details.more .set { margin-top: 10px; }
 .fw-card { width: min(860px, 95vw); }
 .fw-journal { display: grid; grid-template-columns: 1fr 250px; gap: 12px; }
 .fw-journal.leviathan-journal { display: block; }
+.leviathan-preparation { margin: 14px 0; padding: 14px; border: 1px solid #9b8f75; border-left: 4px solid #b48b35; border-radius: 8px; background: #eee4d5; }
+.leviathan-preparation h4 { display: flex; align-items: center; gap: 8px; }
+.leviathan-preparation h4 img, .leviathan-ingredients img { width: 28px; height: 28px; image-rendering: pixelated; }
+.leviathan-preparation .preparation-status { font-weight: 800; color: #5d451b; }
+.preparation-recipe summary { cursor: pointer; font-weight: 700; }
+.preparation-recipe[open] summary { margin-bottom: 10px; }
+.fw-journal .leviathan-ingredients { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; padding: 0; list-style: none; }
+.leviathan-ingredients li { display: flex; align-items: center; gap: 7px; padding: 9px; border: 1px solid #aa9980; border-radius: 6px; background: #fff8e8; min-width: 0; }
+.leviathan-ingredients li.ready { border-color: #628256; background: #edf2df; }
+.leviathan-ingredients small { display: block; font-size: 11px; font-weight: 400; }
+.leviathan-ingredients strong { margin-left: auto; white-space: nowrap; }
+.leviathan-relics li { flex-wrap: wrap; }
+.leviathan-relics li > span { flex: 1; min-width: 90px; }
+.leviathan-relics b { margin-left: auto; font-size: 12px; }
+.leviathan-preparation .preparation-bearing { border-top: 1px solid #bdac8e; padding-top: 10px; }
+@media (max-width: 700px) { .fw-journal .leviathan-ingredients { grid-template-columns: 1fr; } }
 .leviathan-bonds { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 12px 0; }
 .leviathan-bonds section { padding: 14px; border: 1px solid #9b8f75; border-radius: 8px; background: #eee4d5; }
 .leviathan-bonds label { display: block; font-size: 13px; }
@@ -347,7 +363,7 @@ details.more .set { margin-top: 10px; }
   <div class="menu">
     <h1 class="logo">BLOCKHAVEN</h1>
     <p class="tagline">Explore • Mine • Craft • Build</p>
-    <p class="early-access"><strong>Leviathan · Early Access 3</strong>Still in development. Download a backup of important worlds before playing.<br><a href="early-access.html">What's included &amp; known limitations</a></p>
+    <p class="early-access"><strong>Leviathan · Early Access 4</strong>Still in development. Download a backup of important worlds before playing.<br><a href="early-access.html">What's included &amp; known limitations</a></p>
     <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
@@ -572,6 +588,6 @@ details.more .set { margin-top: 10px; }
 <div id="cursorItem" hidden></div>
 <div id="tooltip" hidden></div>
 <noscript><p style="padding:20px">Blockhaven needs JavaScript turned on.</p></noscript>
-<script type="module" src="js/main.js?v=leviathan-early-access-3"></script>
+<script type="module" src="js/main.js?v=leviathan-early-access-4"></script>
 </body>
 </html>
