@@ -11,6 +11,8 @@ import { animateDesertMob, installDesertMobs, spawnDesertMobs, thinkDesertMob } 
 import { createLeviathanGlow } from "./leviathan-glow.js?v=charge-1";
 import { createMawShell } from "./leviathan-geometry.js";
 import { LeviathanCues } from "./leviathan-cues.js";
+import { stepAncientFinale } from "./ancient-finale.js";
+import { stepAncientAwakening } from "./ancient-awakening.js";
 import { DuneAttackMotion } from "./dune-attack-motion.js";
 import { segmentBoxTime, projectileBlockHit, MAX_DEFLECT_SPEED } from "./projectile-collision.js";
 import { usesLeviathanHitVolumes, createLeviathanHitVolumes, updateLeviathanHitVolumes, leviathanSegmentTime } from "./leviathan-hit-volumes.js";
@@ -2060,6 +2062,7 @@ export class Entities {
     if (def.static || def.noclip) {   // crystals and shellers stay put; the wyrm flies straight through anything
       if (e.iframes > 0) e.iframes -= dt; if (e.hurtT > 0) e.hurtT -= dt; if (e.attackCd > 0) e.attackCd -= dt;
       if (def.noclip) {
+        if (e.sp === "leviathan_ancient" && stepAncientAwakening(e)) return;
         if (def.segmentedLeviathan && stepBondedLeviathan(w, e, dt)) return;
         if (e.goal) {
           const gx = e.goal.x - e.pos.x, gy = (e.goal.y ?? e.pos.y) - e.pos.y, gz = e.goal.z - e.pos.z, gl = Math.hypot(gx, gy, gz) || 1, sp = e.goal.speed || def.speed;
@@ -3014,6 +3017,10 @@ export class Entities {
     if (e.scarabVaultGuard) ctx.scarabVaultDefeated?.(e);
   }
   dying(e, dt) {
+    if (e.sp === "leviathan_ancient") {
+      if (stepAncientFinale(e,dt,!!this.ctx.reducedMotion?.())) { e.gone=true;this.ctx.bossDefeated(e); }
+      return;
+    }
     if (e.def.boss) {   // the wyrm rises, shudders, and bursts into light
       e.dead -= dt; e.pos.y += dt * (e.sp === "cindermaw" ? 0.6 : 2); e.root.rotation.z = Math.sin(e.dead * 20) * 0.08;
       if (e.sp === "cindermaw") { const k = 1 + Math.sin(e.dead * 25) * 0.4; e.mat.color.setRGB(1.3 * k, 0.8 * k, 0.5 * k); if (e.parts.wingL) { e.parts.wingL.rotation.z = -0.6 + e.dead * 0.1; e.parts.wingR.rotation.z = 0.6 - e.dead * 0.1; } }
