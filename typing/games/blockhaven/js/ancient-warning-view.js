@@ -21,9 +21,9 @@ export function createAncientWarningView(scene, world, cue) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3)); geometry.computeBoundingSphere();
   const material = new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
-    uniforms:{radius:{value:cue.radius},progress:{value:0},motion:{value:0}},
+    uniforms:{radius:{value:cue.radius},progress:{value:0},motion:{value:0},collapse:{value:cue.type==='collapse'?1:0},fury:{value:cue.type==='fury'?1:0}},
     vertexShader:'varying vec2 ground;void main(){ground=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:`varying vec2 ground;uniform float radius,progress,motion;
+    fragmentShader:`varying vec2 ground;uniform float radius,progress,motion,collapse,fury;
       void main(){float r=length(ground),q=r/radius,a=atan(ground.y,ground.x);
         if(r>radius+.08)discard;
         float edge=1.-smoothstep(.025,.08,abs(r-radius));
@@ -33,9 +33,11 @@ export function createAncientWarningView(scene, world, cue) {
         float cross=step(cell,.29)*(1.-smoothstep(.015,.035,abs(q-.685)));
         float inner=(1.-smoothstep(.02,.045,abs(q-.38)))*(.3+.3*progress);
         float pulse=(1.-smoothstep(.025,.055,abs(q-(.16+motion*.35))))*.18;
-        float alpha=edge*.92+clock*.9+(runes+cross)*(.3+.45*progress)+inner+pulse+(1.-smoothstep(.75,1.,q))*.035;
+        float cracks=(1.-smoothstep(.025,.07,abs(ground.x-ground.y*.5)))+(1.-smoothstep(.025,.07,abs(ground.y+ground.x*.4)));
+        float waves=(1.-smoothstep(.025,.06,abs(q-.5)))+(1.-smoothstep(.025,.06,abs(q-.7)));
+        float alpha=edge*.92+clock*.9+mix(mix(runes+cross,cracks*step(q,.8),collapse),waves*.7,fury)*(.3+.45*progress)+inner+pulse+(1.-smoothstep(.75,1.,q))*.035;
         if(alpha<.005)discard;
-        vec3 color=mix(vec3(.14,.57,1.),vec3(.72,.95,1.),progress);
+        vec3 color=mix(mix(vec3(.14,.57,1.),vec3(.55,.38,.95),collapse),vec3(.72,.95,1.),progress);
         gl_FragColor=vec4(color,min(alpha,.95));}`});
   const mesh = new THREE.Mesh(geometry,material); mesh.position.set(cue.x,cue.y+.045,cue.z); scene.add(mesh);
   let disposed = false;

@@ -9,17 +9,21 @@ export class LeviathanCues {
 
   sample(cycle, age, emerged, reducedMotion) {
     const step = cycle?.step;
-    const pending = cycle?.attack && (step === "surface" || step === "attack" || step === "shrapnel" || step === "judgment");
+    const pending = cycle?.attack && (step === "surface" || step === "attack" || step === "shrapnel" || step === "judgment" || step === "fury");
     const recovering = step === "recover";
     if (this.attack && !pending && age >= this.deadline && (recovering || step === "surface")) this.releasedAt = age;
     this.attack = pending ? cycle.attack : null;
     this.deadline = pending ? cycle.attackAt : Infinity;
-    const charge = pending ? Number.isFinite(cycle.attackAt) ? clamp(1 - (cycle.attackAt - age) / 1.25) : 1 : 0;
+    const awakening=step==="awakening"&&[cycle.arrivalFrom,cycle.until,age].every(Number.isFinite)&&cycle.until>cycle.arrivalFrom;
+    const awakenCharge=awakening?clamp((age-cycle.arrivalFrom)/(cycle.until-cycle.arrivalFrom)):0;
+    const roar=step==="recover"&&Number.isFinite(cycle.awakenedAt)&&age>=cycle.awakenedAt&&age<cycle.awakenedAt+1.2;
+    const roarCharge=roar?1-(age-cycle.awakenedAt)/1.2:0;
+    const charge = awakening ? awakenCharge*.75 : roar ? roarCharge*.75 : pending ? Number.isFinite(cycle.attackAt) ? clamp(1 - (cycle.attackAt - age) / 1.25) : 1 : 0;
     const recoilTime = (age - this.releasedAt) / 0.35;
     const recoil = !reducedMotion && recoilTime >= 0 && recoilTime < 1 ? Math.sin(recoilTime * Math.PI) : 0;
     const warning = step === "warning" ? 0.55 : 0.12;
     const value = this.value;
-    value.spread = pending ? 0.2 + charge * 0.58 : warning + recoil * 0.16;
+    value.spread = awakening ? .18+awakenCharge*.4 : roar ? .12+roarCharge*.58 : pending ? 0.2 + charge * 0.58 : warning + recoil * 0.16;
     value.pitch = (emerged || step === "rising" ? -0.12 : 0.24) - charge * 0.18 + recoil * 0.25;
     value.tooth = 0.15 - charge * 0.27;
     value.charge = charge;

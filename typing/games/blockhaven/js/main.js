@@ -48,8 +48,10 @@ import { createHeatView } from "./forgotten-heat-view.js";
 import { duneWarningCue } from "./dune-warning.js?v=physical-2";
 import { createDuneWarningView } from "./dune-warning-view.js";
 import { obsidianWarningCue } from "./obsidian-warning.js";
-import { ancientWarningCue, ancientWarningLoadedKey } from "./ancient-warning.js";
+import { ancientWarningCue, ancientCollapseCues, ancientWarningLoadedKey } from "./ancient-warning.js";
 import { ancientArrivalCues } from "./ancient-arrival.js";
+import { createAncientAwakeningView } from "./ancient-awakening-view.js";
+import { createAncientFury, ancientFuryCues } from "./ancient-fury.js";
 import { ancientCombatPhase, ancientRewardPending, ancientRewardInventory, copyAncientProgress, ANCIENT_VICTORY_XP } from "./ancient-victory.js";
 import { createAncientWarningView } from "./ancient-warning-view.js";
 import { createObsidianWarningView } from "./obsidian-warning-view.js";
@@ -314,16 +316,7 @@ const ents = new Entities(scene, {
   scarabVaultDefeated: e => {
     if (scarabVaultGuards?.includes(e)) checkpointScarabVaultVictory();
   },
-  companionChanged: e => {
-    const record = G.story.leviathan.companion;
-    record.hp = Math.max(1, e.hp); record.sitting = e.sitting;
-    if (e.hp <= 0) {
-      record.readyAt = worldSeconds() + 60;
-      record.hp = e.maxHp;
-      e.hp = 1; e.gone = true;
-      UI.toast("Runecrest retreats into the relic to recover.");
-    }
-  },
+  companionChanged: e => checkpointAncientCompanion(e),
   leviathanThink: (e, multiplier) => e.sp === "leviathan_ancient" ? thinkAncient(e, multiplier) : e.sp === "leviathan_obsidian" ? thinkObsidian(e, multiplier) : thinkDune(e, multiplier),
   leviathanDamaged: e => {
     if (e.sp === "leviathan_ancient") { damageAncient(e); return; }
@@ -1510,6 +1503,7 @@ function stream(budget) {
   }
 }
 function clearWorldMeshes() {
+  clearAncientFury();
   clearAncientArrival();
   clearAncientWarning();
   stormActivity.reset(); stormActivityElapsed = 0;
@@ -2957,8 +2951,8 @@ function updateDrops(dt, bright) {
     lightItem(d.mesh, bright);
     const dx = d.x - p.pos.x, dy = d.y - (p.pos.y + 0.8), dz = d.z - p.pos.z, dist2 = dx * dx + dy * dy + dz * dz;
     // nearby items drift toward the player
-    if (d.pickDelay <= 0 && dist2 < 9 && G.state !== "dead") { const k = 6 * dt / Math.sqrt(dist2 + 0.01); d.x -= dx * k; d.z -= dz * k; d.y -= dy * k * 0.5; }
-    if (d.pickDelay <= 0 && dist2 < 1.7 && G.state !== "dead") {
+    if (d.pickDelay <= 0 && dist2 < 9 && G.state !== "dead" && !G.spectator) { const k = 6 * dt / Math.sqrt(dist2 + 0.01); d.x -= dx * k; d.z -= dz * k; d.y -= dy * k * 0.5; }
+    if (d.pickDelay <= 0 && dist2 < 1.7 && G.state !== "dead" && !G.spectator) {
       const left = G.inv.add(d.id, d.n, d.stack);
       if (left < d.n) { Sound.pickup(); G.hudDirty = true; if (UI.panelOpen) UI.refreshPanel(); }
       d.n = left;
@@ -3324,6 +3318,7 @@ function useTotem() {
   return true;
 }
 function die(why) {
+  clearAncientFury();
   clearAncientArrival();
   clearAncientWarning();
   clearObsidianWarning();
@@ -3555,7 +3550,8 @@ function awakenAncient() {
     return;
   }
   const a = BURIED_THRONE, record = expansion.ancient ||= { hp: SPECIES.leviathan_ancient.hp };
-  const e = ents.add("leviathan_ancient", a.x, a.y - 12, a.z - 8, { hp: record.hp });
+  const e = ents.add("leviathan_ancient", a.x, a.y - 22, a.z - 8, { hp: record.hp });
+  e.yaw=Math.atan2(a.x-G.player.pos.x,a.z-8-G.player.pos.z);
   e.duneCycle = { step: "awakening", until: e.age + 7, site: a, count: 0,
     arrivalFrom:e.age, arrival:{x:a.x,y:a.y,z:a.z-8,r:8} };
   e.goal = { x: a.x, y: a.y - 4, z: a.z - 8, speed: 2 };
@@ -3579,6 +3575,7 @@ function thinkAncient(e, multiplier) {
   if (e.age < c.until) return;
   const phase = ancientPhase(e);
   if (c.step === "awakening" || c.step === "buried") {
+    if(c.step==="awakening")c.awakenedAt=e.age;
     e.emerged = true;
     e.goal = { x: a.x, y: a.y, z: a.z - 8, speed: 14 };
     c.step = "recover"; c.until = e.age + 4;
@@ -3586,6 +3583,11 @@ function thinkAncient(e, multiplier) {
     puff(a.x, a.y + 2, a.z - 8, "pale");
     UI.toast("The Ancient Leviathan rises. The Buried King has awakened.");
   } else if (c.step === "recover") {
+    if (phase === 4) {
+      c.attack=createAncientFury(e.age,p,a);c.furyIndex=0;
+      c.step="fury";c.attackAt=c.attack.strikes[0].at;c.until=c.attackAt;
+      UI.toast("Ancient Fury! Three rune strikes are locked. Leave the marked circles.");return;
+    }
     if (phase === 2 && c.count % 3 === 0 && ents.list.filter(o => o.encounterOwner === e && !o.dead && !o.gone).length < 4) {
       c.step = "summoning"; c.summonFrom = e.age; c.until = e.age + 1.8;
       c.summonSites = [-1, 1].map(side => ({ x: a.x + side * 10 + .5, y: a.y, z: a.z + 8 + .5, r: 1.5, warned:false }));
@@ -3595,10 +3597,27 @@ function thinkAncient(e, multiplier) {
     const central = phase === 2 || c.count % 3 === 0;
     const inCourt = Math.hypot(p.x - a.x, p.z - a.z) < 25;
     c.attack = { x: central || !inCourt ? a.x : p.x, y: a.y, z: central || !inCourt ? a.z : p.z,
-      r: central ? 11 : phase === 5 ? 5 : 3.5, from: e.age, warned: false };
-    c.step = "judgment"; c.until = e.age + (phase === 5 ? 1.3 : 2);
+      r: central ? 11 : phase === 5 ? 5 : 3.5, from: e.age, phase, warned: false };
+    if (phase === 5) c.attack.collapses = [-1,1].map(side => ({x:a.x+side*12+.5,y:a.y,
+      z:a.z+side*(c.count%2?-12:12)+.5,r:2.25,warned:false}));
+    c.step = "judgment"; c.until = e.age + (central ? 2 : phase === 5 ? 1.3 : 2);
     c.attackAt = c.until;
-    UI.toast(central ? "Ancient shockwave! Leave the blue ring." : phase === 3 ? "The sand fractures beneath the rune marker. Move!" : "Ancient energy gathers. Leave the marked ground.");
+    UI.toast(phase === 5 ? "Final Judgment! Leave the target ring and both violet cracked-rune patches." :
+      central ? "Ancient shockwave! Leave the blue ring." : phase === 3 ? "The sand fractures beneath the rune marker. Move!" : "Ancient energy gathers. Leave the marked ground.");
+  } else if (c.step === "fury") {
+    const strike=c.attack?.strikes?.[c.furyIndex];
+    if(!strike?.warned||G.creative||G.spectator){
+      c.attack=null;c.step="buried";c.until=e.age+2.4;e.emerged=false;
+      e.goal={x:a.x,y:a.y-12,z:a.z-8,speed:12};return;
+    }
+    ancientRuneRing(strike,strike.y,.45);
+    Sound.tone(220+c.furyIndex*80,.18,"triangle",.08);
+    if(Math.abs(p.y-strike.y)<3&&Math.hypot(p.x-strike.x,p.z-strike.z)<strike.r)
+      hurt(9*multiplier,"The Ancient Leviathan's rune strike hit you.",e,false,"ancientEnergy");
+    if(G.state==="dead"){c.attack=null;return;}
+    c.furyIndex++;
+    if(c.furyIndex<3){c.attackAt=c.attack.strikes[c.furyIndex].at;c.until=c.attackAt;}
+    else{c.attack=null;c.count++;c.step="recover";c.until=e.age+3;}
   } else if (c.step === "summoning") {
     for (const point of c.summonSites || []) {
       if (!point.warned || G.creative || G.spectator) continue;
@@ -3622,17 +3641,21 @@ function thinkAncient(e, multiplier) {
       c.attack = null; c.step = "buried"; c.until = e.age + 2.4;
       e.emerged = false; e.goal = { x:a.x, y:a.y-12, z:a.z-8, speed:12 }; return;
     }
+    // Damage, terrain effects and recovery belong to the warning already shown,
+    // even when a player hit has crossed a health threshold in the meantime.
+    const castPhase=Number.isInteger(hit.phase)&&hit.phase>=2&&hit.phase<=5?hit.phase:phase;
     ancientRuneRing(hit, a.y, 0.6);
     if (Math.abs(p.y - a.y) < 3 && Math.hypot(p.x - hit.x, p.z - hit.z) < hit.r) {
-      hurt((5 + phase) * multiplier, "The Ancient Leviathan's judgment struck you.", e, false, "ancientEnergy");
+      hurt((5 + castPhase) * multiplier, "The Ancient Leviathan's judgment struck you.", e, false, "ancientEnergy");
     }
-    if (G.state !== "dead" && (phase === 3 || phase === 5)) {
+    if (G.state !== "dead" && (castPhase === 3 || castPhase === 5)) {
       arenaFractures ||= new ArenaFractures(G.world, G.player, BURIED_THRONE);
-      arenaFractures.fracture(hit.x, hit.z);
+      if (castPhase === 3) arenaFractures.fracture(hit.x, hit.z);
+      else for (const point of (hit.collapses || []).slice(0,2)) if (point.warned) arenaFractures.fracture(point.x,point.z);
     }
     c.count++; c.attack = null;
-    if (phase >= 4 && c.count % 2) {
-      c.step = "recover"; c.until = e.age + (phase === 5 ? 1.9 : 2.8);
+    if (castPhase >= 4 && c.count % 2) {
+      c.step = "recover"; c.until = e.age + (castPhase === 5 ? 1.9 : 2.8);
     } else {
       c.step = "buried"; c.until = e.age + 2.4;
       e.emerged = false;
@@ -3656,6 +3679,7 @@ function damageAncient(e) {
     if (ancientCombatPhase(e.hp,e.maxHp) !== previousPhase) saveNow(false);
     return;
   }
+  clearAncientFury();
   clearAncientArrival();
   clearAncientWarning();
   clearArenaFractures();
@@ -3685,6 +3709,18 @@ function claimAncientVictory() {
 function worldSeconds() {
   return (G.meta.day || 1) * DAY_LENGTH + G.time * DAY_LENGTH;
 }
+function checkpointAncientCompanion(e) {
+  const record = G.story.leviathan?.companion;
+  if (!record || e.uid !== record.uid || e.gone) return;
+  const previousHp = record.hp, previousSitting = record.sitting;
+  record.hp = Math.max(1,e.hp); record.sitting = !!e.sitting;
+  if (e.hp <= 0) {
+    record.readyAt = worldSeconds() + 60; record.hp = e.maxHp;
+    e.hp = 1; e.gone = true;
+    saveNow(false);
+    UI.toast("Runecrest retreats into the relic to recover.");
+  } else if (record.hp !== previousHp || record.sitting !== previousSitting) saveNow(false);
+}
 function useAncientCompanion() {
   const expansion = G.story.leviathan;
   if (!expansion?.ancient?.defeated) {
@@ -3692,10 +3728,12 @@ function useAncientCompanion() {
     return true;
   }
   const actor = ents.list.find(e => e.sp === "ancient_companion" && !e.gone && !e.dead);
-  const record = expansion.companion ||= { uid: newId(), hp: SPECIES.ancient_companion.hp, sitting: false };
+  const record = expansion.companion || { uid: actor?.uid || newId(), hp: SPECIES.ancient_companion.hp, sitting: false };
   if (actor) {
     record.hp = actor.hp; record.sitting = actor.sitting;
+    expansion.companion = record;
     actor.gone = true;
+    saveNow(false);
     Sound.mob("shell", 0);
     UI.toast("Runecrest rests within the relic.");
     return true;
@@ -3715,6 +3753,8 @@ function useAncientCompanion() {
       const e = ents.add("ancient_companion", x + 0.5, y, z + 0.5, {
         uid: record.uid, hp: record.hp, sitting: record.sitting, tame: true, name: "Runecrest"
       });
+      expansion.companion = record;
+      saveNow(false);
       puff(e.pos.x, e.pos.y + 0.5, e.pos.z, "pale");
       Sound.mob("shell", 0);
       UI.toast("Runecrest emerges. Right-click to sit or follow; Skyshards restore health.", "good");
@@ -4140,59 +4180,96 @@ function updateDuneSurfaceAttack(e, phase, multiplier) {
   c.attackAt = Infinity;
   c.attack = null;
 }
+let ancientFuryFX=[];
+function clearAncientFury(){
+  for(const fx of ancientFuryFX){fx.point.warned=false;fx.view?.dispose();}ancientFuryFX=[];
+}
+function ancientFuryReview(){
+  return ancientFuryFX.map(fx=>({active:!!fx.view,x:fx.cue.x,y:fx.cue.y,z:fx.cue.z,radius:fx.cue.radius,
+    deadline:fx.cue.deadline,progress:fx.cue.progress,triangles:fx.view?.triangles||0}));
+}
+function updateAncientFury(){
+  const actor=G.dim===HOLLOW_SANDS&&!G.creative&&!G.spectator&&G.state!=="dead"&&G.wset.difficulty!=="peaceful"&&
+    ents.list.find(e=>e.sp==="leviathan_ancient"&&e.mesh&&!e.dead&&!e.gone&&!e.tame&&!e.duneCycle?.preview);
+  const cues=actor?ancientFuryCues(actor):[];
+  if(!cues.length){clearAncientFury();return;}
+  const now=G.clock||0;
+  if(cues.length!==ancientFuryFX.length||cues.some((cue,i)=>{
+    const fx=ancientFuryFX[i];return fx?.actor!==actor||fx.point!==cue.point||
+      (fx.edits!==G.world.editCount||fx.loadedKey!==ancientWarningLoadedKey(G.world,cue))&&now-fx.builtAt>=.2;
+  })){
+    clearAncientFury();ancientFuryFX=cues.map(cue=>({actor,point:cue.point,cue,edits:G.world.editCount,
+      loadedKey:ancientWarningLoadedKey(G.world,cue),builtAt:now,view:createAncientWarningView(scene,G.world,cue)}));
+  }
+  ancientFuryFX.forEach((fx,i)=>{fx.cue=cues[i];fx.point.warned=!!fx.view;
+    fx.view?.update(cues[i].progress,G.settings.reducedMotion);});
+}
 let ancientArrivalFX = [];
 function clearAncientArrival() {
-  for (const fx of ancientArrivalFX) { fx.point.warned = false; fx.view?.dispose(); }
+  for (const fx of ancientArrivalFX) { fx.point.warned = false; fx.view?.dispose();fx.sand?.dispose(); }
   ancientArrivalFX = [];
 }
 function ancientArrivalReview() {
   return ancientArrivalFX.map(fx => ({active:!!fx.view,type:fx.cue.type,x:fx.cue.x,y:fx.cue.y,z:fx.cue.z,
-    radius:fx.cue.radius,deadline:fx.cue.deadline,progress:fx.cue.progress,triangles:fx.view?.triangles || 0}));
+    radius:fx.cue.radius,deadline:fx.cue.deadline,progress:fx.cue.progress,triangles:fx.view?.triangles || 0,
+    sandColumns:fx.sand?.columns||0,sandGrains:fx.sand?.grains||0,sandTriangles:fx.sand?.triangles||0,
+    sandVisible:fx.sand?.mesh.visible||false}));
 }
 function updateAncientArrival() {
   const actor = G.dim === HOLLOW_SANDS && !G.creative && !G.spectator && G.state !== "dead" && G.wset.difficulty !== "peaceful" &&
     ents.list.find(e => e.sp === "leviathan_ancient" && e.mesh && !e.dead && !e.gone && !e.tame && !e.duneCycle?.preview);
   const cues = actor ? ancientArrivalCues(actor) : [];
   if (!cues.length) { clearAncientArrival(); return; }
-  const now = G.clock || 0;
+  const now = G.clock || 0,fast=G.settings.quality==="fast";
   // At most two small guardian batches, or one awakening batch. No per-frame geometry.
   if (cues.length !== ancientArrivalFX.length || cues.some((cue,i) => {
     const fx = ancientArrivalFX[i];
-    return fx?.actor !== actor || fx.point !== cue.point ||
+    return fx?.actor !== actor || fx.point !== cue.point ||fx.fast!==fast||
       (fx.edits !== G.world.editCount || fx.loadedKey !== ancientWarningLoadedKey(G.world,cue)) && now-fx.builtAt >= .2;
   })) {
     clearAncientArrival();
-    ancientArrivalFX = cues.map(cue => ({actor,point:cue.point,cue,builtAt:now,edits:G.world.editCount,
-      loadedKey:ancientWarningLoadedKey(G.world,cue),view:createAncientWarningView(scene,G.world,cue)}));
+    ancientArrivalFX = cues.map(cue => ({actor,point:cue.point,cue,builtAt:now,fast,edits:G.world.editCount,
+      loadedKey:ancientWarningLoadedKey(G.world,cue),view:createAncientWarningView(scene,G.world,cue),
+      sand:cue.type==="awakening"?createAncientAwakeningView(scene,G.world,cue,fast):null}));
   }
   ancientArrivalFX.forEach((fx,i) => {
     fx.cue = cues[i]; fx.point.warned = !!fx.view;
     fx.view?.update(cues[i].progress,G.settings.reducedMotion);
+    fx.sand?.update(cues[i].progress,G.settings.reducedMotion);
   });
 }
 let ancientWarningFX = null;
 function clearAncientWarning() {
   if (ancientWarningFX?.attack) ancientWarningFX.attack.warned = false;
+  for (const fx of ancientWarningFX?.collapses || []) { fx.point.warned = false; fx.view?.dispose(); }
   ancientWarningFX?.view?.dispose(); ancientWarningFX = null;
 }
 function ancientWarningReview() {
   return ancientWarningFX ? { active:!!ancientWarningFX.view, ...ancientWarningFX.cue,
-    triangles:ancientWarningFX.view?.triangles || 0 } : {active:false};
+    triangles:ancientWarningFX.view?.triangles || 0,
+    collapses:(ancientWarningFX.collapses || []).map(fx => ({active:!!fx.view,x:fx.cue.x,y:fx.cue.y,z:fx.cue.z,
+      radius:fx.cue.radius,progress:fx.cue.progress,triangles:fx.view?.triangles || 0})) } : {active:false};
 }
 function updateAncientWarning() {
   const actor = G.dim === HOLLOW_SANDS && !G.creative && !G.spectator && G.state !== "dead" && G.wset.difficulty !== "peaceful" &&
     ents.list.find(e => e.sp === "leviathan_ancient" && e.mesh && !e.dead && !e.gone && !e.tame && !e.duneCycle?.preview);
   const cue = actor && ancientWarningCue(actor);
   if (!cue) { clearAncientWarning(); return; }
-  const attack = actor.duneCycle.attack, now = G.clock || 0, loadedKey = ancientWarningLoadedKey(G.world,cue);
+  const attack = actor.duneCycle.attack, now = G.clock || 0, collapses = ancientCollapseCues(actor),
+    loadedKey = [cue,...collapses].map(c => ancientWarningLoadedKey(G.world,c)).join(':');
   if (!ancientWarningFX || ancientWarningFX.actor !== actor || ancientWarningFX.attack !== attack ||
       (ancientWarningFX.edits !== G.world.editCount || ancientWarningFX.loadedKey !== loadedKey) && now-ancientWarningFX.builtAt >= .2) {
     clearAncientWarning();
     ancientWarningFX = {actor,attack,cue,loadedKey,edits:G.world.editCount,builtAt:now,
-      view:createAncientWarningView(scene,G.world,cue)};
+      view:createAncientWarningView(scene,G.world,cue),
+      collapses:collapses.map(c => ({point:c.point,cue:c,view:createAncientWarningView(scene,G.world,c)}))};
   }
   ancientWarningFX.cue = cue; attack.warned = !!ancientWarningFX.view;
   ancientWarningFX.view?.update(cue.progress,G.settings.reducedMotion);
+  for (const fx of ancientWarningFX.collapses) {
+    fx.cue.progress = cue.progress; fx.point.warned = !!fx.view;
+    fx.view?.update(cue.progress,G.settings.reducedMotion);
+  }
 }
 let obsidianWarningFX = null;
 function clearObsidianWarning() {
@@ -4941,6 +5018,7 @@ function loop(now) {
   updateObsidianWarning();
   updateAncientWarning();
   updateAncientArrival();
+  updateAncientFury();
   updateDuneSweep(dt, running);
   updateDuneDevour(dt, running);
   updateDuneVortex(dt, running);
@@ -5043,3 +5121,4 @@ G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTote
 G._test.obsidianWarningReview = obsidianWarningReview;
 G._test.ancientWarningReview = ancientWarningReview;
 G._test.ancientArrivalReview = ancientArrivalReview;
+G._test.ancientFuryReview = ancientFuryReview;

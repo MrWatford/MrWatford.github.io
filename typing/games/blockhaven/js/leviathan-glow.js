@@ -29,11 +29,11 @@ export function createLeviathanGlow(entity) {
   entity.root.add(mesh);
   const matrix = new THREE.Matrix4();
   return {
-    update(age, distanceSquared, attack, recovering, reducedMotion) {
+    update(age, distanceSquared, attack, recovering, reducedMotion, fade=1) {
       const pulse = reducedMotion ? 0 : Math.sin(age * 1.4) * 0.045;
       const charge = Math.max(0, Math.min(1, Number(attack) || 0));
-      material.opacity = recovering ? 0.22 : 0.7 + pulse + (0.25 - pulse) * charge;
-      mesh.visible = distanceSquared < 42 * 42;
+      material.opacity = (recovering ? 0.22 : 0.7 + pulse + (0.25 - pulse) * charge)*Math.max(0,Math.min(1,fade));
+      mesh.visible = distanceSquared < 42 * 42 && fade>0;
       if (!mesh.visible) return;
       for (let i = 0; i < seams.length; i++) {
         const seam = seams[i];
