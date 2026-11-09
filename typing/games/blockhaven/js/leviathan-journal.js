@@ -3,6 +3,8 @@ import { DESERT_SITES, RELIC_SITES } from "./desert-relic-sites.js";
 import { SANDS_REGIONS } from "./hollow-sands.js";
 import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
 import { LEVIATHAN_BONDS } from "./leviathan-bonds.js";
+import { LEVIATHAN_ROUTE_GUIDE, leviathanShrineBearings } from "./leviathan-navigation.js";
+import { OBSIDIAN_OFFERING_TEXT } from "./obsidian-rite.js";
 
 const escapeBondText = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -61,7 +63,9 @@ export function leviathanQuests(G) {
     ["The Leviathan's Choice", !!resolved, "Defeat the Dune Leviathan or complete its three-surfacing bonding rite."],
     ["The Lost City of Solkara", !!found.city, "Explore the Abandoned Desert City and its buried archive."],
     ["The Three Ancient Relics", relics === 3, `Recover the shrine, graveyard and tomb relics (${relics}/3).`],
-    ["Heart of the Inferno", !!s.obsidian?.bonded, "Earn the Dune bond, offer volcanic materials and answer four recovery windows."],
+    ["Heart of the Inferno", !!s.obsidian?.bonded, s.obsidian?.bonded ? "The Obsidian Leviathan's bond is yours. Use its journal controls to name and command it." :
+      s.obsidian?.ritualOffered ? "Offering accepted. Sound the horn once in each of four fresh recoveries while nearby with a clear view. Each answer intensifies the trial. Striking it resets the sequence; your offering stays accepted across retries and reloads." :
+        `Earn the Dune bond, bring ${OBSIDIAN_OFFERING_TEXT}, then offer them with the horn near the awakened Obsidian Leviathan on the arena floor. Answer the next four recovery windows without striking it.`],
     ["The Obsidian Citadel", !!s.obsidian?.defeated || !!s.obsidian?.bonded, "Defeat or bond with the Obsidian Leviathan."],
     ["The Gate of the Forgotten", !!s.annex?.gateOpen, "Solve the Chamber of Echoes and bring the Ancient Desert Core to the gateway."],
     ["Into the Hollow Sands", Object.keys(regions).length > 0, "Cross the Sealed Gateway and explore the arrival sanctuary."],
@@ -85,6 +89,8 @@ export function leviathanJournalHTML(G) {
     `<li><button class="chip-btn" data-solkara-record="${index}">${r.title}</button></li>` :
     `<li>${r.title} · ${r.region || "Forgotten Library"}</li>`).join("");
   return `<div class="fw-journal leviathan-journal"><h4>Secrets Beneath the Sands</h4>
+    <h4>Your route into Solkara</h4><p>${LEVIATHAN_ROUTE_GUIDE}</p>
+    ${s.shrineRead ? `<h4>Bearings from the Desert Shrine</h4><p>Search the shrine's cache for its relic. The keepers' other bearings remain here for your journey; landmarks join the map when you reach them.</p><ul>${leviathanShrineBearings(G.story).map(text => `<li>${text}</li>`).join("")}</ul>` : ""}
     <p>Choose combat or bonding for the first two Leviathans. The journal records both paths.</p>
     <p>${quests.filter(q => q[1]).length} of ${quests.length} objectives complete.</p>
     <h4>Your Leviathan bonds</h4><div class="leviathan-bonds">${leviathanBondCardsHTML(G) || "<p>Complete a bonding rite to unlock names and commands.</p>"}</div>

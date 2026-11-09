@@ -113,7 +113,7 @@ function validateLeviathan(expansion) {
   }
   const wing = expansion.wing;
   if (wing !== undefined && (!isRecord(wing) ||
-    ["trapDisabled", "vaultClaimed"].some(key => wing[key] !== undefined && typeof wing[key] !== "boolean") ||
+    ["trapDisabled", "vaultCleared", "vaultClaimed"].some(key => wing[key] !== undefined && typeof wing[key] !== "boolean") ||
     (wing.trapReadyAt !== undefined && (!Number.isFinite(wing.trapReadyAt) || wing.trapReadyAt < 0)))) {
     throw new Error("This world file contains invalid Solkara library progress.");
   }

@@ -3011,6 +3011,7 @@ export class Entities {
       const n = randi(2, 4);
       for (let i = 0; i < n; i++) this.add(e.sp, e.pos.x + rand(-0.5, 0.5), e.pos.y + 0.3, e.pos.z + rand(-0.5, 0.5), { size: e.size / 2 });
     }
+    if (e.scarabVaultGuard) ctx.scarabVaultDefeated?.(e);
   }
   dying(e, dt) {
     if (e.def.boss) {   // the wyrm rises, shudders, and bursts into light
