@@ -25,3 +25,7 @@ These are controlled checks: prerequisites, long-distance travel, gear/initial p
 Natural full fights and bonding routes, mixed-enemy/difficulty balance, complete cinematic/music and environmental/puzzle/creature polish, real older-save copies and representative graphics/performance checks remain open. Current acceptance details are in IMPLEMENTATION_PLAN.md and RELEASE_READINESS.md.
 
 Keep the existing game address and browser-world backup guidance. Recover with a normal revert/recovery commit preserving later unrelated work, then verify deployment. Website rollback does not roll back browser saves; retain exported backups.
+
+## Returning-browser module cache correction
+
+Public startup exposed a cached EA4 dependency missing the new Ancient collapse export. An inline import map gives every changed dependency a common EA5 revision URL, including the existing glow query alias, and the entry URL advances to the same correction revision. Imports of Entities from the main loop, UI and Forsaken resolve to one module identity. Unchanged modules retain their URLs. This alters no gameplay or saved data. The public browser that reproduced the error must pass ordinary refresh/startup/save checks before the corrected release is called verified.
