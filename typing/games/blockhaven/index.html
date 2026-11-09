@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blockhaven | Mr. Watford's Free-Time Games</title>
 <meta name="description" content="Blockhaven: explore, mine, craft, and build in a block world. Saves on your own device.">
-<meta name="blockhaven-release" content="leviathan-early-access-2">
+<meta name="blockhaven-release" content="leviathan-early-access-3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -235,7 +235,7 @@ details.more .set { margin-top: 10px; }
 .xmap .xm-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .xmap .xm-sw { display: inline-block; width: 12px; height: 12px; border: 1px solid #555; }
 .xmap .xm-dash { display: inline-block; width: 22px; border-top: 3px dashed #333; }
-.xmap .xm-list { display: grid; gap: 5px; }
+.xmap .xm-list { display: grid; gap: 5px; max-height: 350px; overflow-y: auto; padding: 2px; }
 .xmap .xm-dest { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center; text-align: left; padding: 6px 8px; border: 2px solid #8a7a5a; border-radius: 6px; background: #f4ecd8; cursor: pointer; font: inherit; color: #222; }
 .xmap .xm-dest.on { border-color: #d8a000; background: #fff3b0; box-shadow: 0 0 0 2px #ffd84a; }
 .xmap .xm-dest small { display: block; color: #555; font-size: 11px; }
@@ -347,7 +347,7 @@ details.more .set { margin-top: 10px; }
   <div class="menu">
     <h1 class="logo">BLOCKHAVEN</h1>
     <p class="tagline">Explore • Mine • Craft • Build</p>
-    <p class="early-access"><strong>Leviathan · Early Access 2</strong>Still in development. Download a backup of important worlds before playing.<br><a href="early-access.html">What's included &amp; known limitations</a></p>
+    <p class="early-access"><strong>Leviathan · Early Access 3</strong>Still in development. Download a backup of important worlds before playing.<br><a href="early-access.html">What's included &amp; known limitations</a></p>
     <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
@@ -572,6 +572,6 @@ details.more .set { margin-top: 10px; }
 <div id="cursorItem" hidden></div>
 <div id="tooltip" hidden></div>
 <noscript><p style="padding:20px">Blockhaven needs JavaScript turned on.</p></noscript>
-<script type="module" src="js/main.js?v=leviathan-early-access-2"></script>
+<script type="module" src="js/main.js?v=leviathan-early-access-3"></script>
 </body>
 </html>

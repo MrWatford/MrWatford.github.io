@@ -8,6 +8,7 @@ import { B, I, CHUNK, HEIGHT, SEA, make, idOf, itemDef, OPEN, TOP, HEAD, WET } f
 import { newStack, OFF } from "./inventory.js";
 import { hash3 } from "./noise.js";
 import { Generator } from "./worldgen.js";
+import { LEVIATHAN_MAP_TYPES, leviathanDestinations } from "./leviathan-navigation.js";
 
 const KEEP = 65535;
 const SIZE = 40, C = 20, R0 = 15, R1 = 20;   // the house stamp: 40 × 40, leveled ground out to 15 blocks, blended out to 20
@@ -15,13 +16,14 @@ export const HOUSE_V = 1;                     // raise only with a new builder t
 
 // The landmark types the map knows, in the order the list shows them
 const TYPES = {
+  ...LEVIATHAN_MAP_TYPES,
   excavation: { label: "Ancient City", color: "#3fc8c0", dark: "#155a5a", where: "Underground" },
   sea: { label: "Sea Temple", color: "#3a8ae8", dark: "#163a6a", where: "Under the sea" },
   jungle: { label: "Jungle Temple", color: "#4cbf3a", dark: "#1d5a16", where: "Forest clearing" },
   desert: { label: "Desert Temple", color: "#f0b830", dark: "#6a4a10", where: "Buried in sand" },
   home: { label: "Starter Home", color: "#e8553a", dark: "#6a1e10", where: "Your house" }
 };
-const ORDER = ["excavation", "sea", "jungle", "desert", "home"];
+const ORDER = ["excavation", "sea", "jungle", "desert", "home", ...Object.keys(LEVIATHAN_MAP_TYPES)];
 const ZOOMS = [0.5, 1, 2, 4, 8];   // blocks per map pixel
 
 // ---------- what goes in the four starter chests ----------
@@ -322,6 +324,7 @@ export function initStarter(api) {
       TYPES[t.kind] = TYPES[t.kind] || { label: t.name, color: "#c9a24a", dark: "#5a4010", where: "Town" };
       out.push({ kind: t.kind, title: t.name, name: "Waystone", x: t.x + 0.5, y: t.y, z: t.z + 0.5 });
     }
+    out.push(...leviathanDestinations(G.story));
     const h = S.house();
     if (h) out.push({ kind: "home", title: G.campaign && G.campaign.on() ? "Legacy Village" : "Starter Home", name: G.campaign && G.campaign.on() ? "The fountain" : "Your house", x: h.x, y: h.y, z: h.z });
     destCache = { t: ck, list: out.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind)) };
@@ -379,6 +382,7 @@ export function initStarter(api) {
     return notes;
   }
   function guide(d) {
+    if (d.guide) return d.guide;
     if (d.kind === "excavation") return `Echohold, the Ancient City, is deep underground: you can't walk to it across the Surface. Its only entrance is the Keeper excavation, a round dig site with a tall dark stone obelisk and a timber crane. Walk down the steps into the pit and right-click the Keeper Lift (at ${pos(d)}). The lift takes you to the Deep; follow the caverns from there to the city. Bring torches and food, and walk on Hush Carpet or crouch so the city doesn't hear you.`;
     if (d.kind === "sea") {
       const sh = d.shore;
@@ -426,7 +430,8 @@ export function initStarter(api) {
     const s = data();
     TYPES.home.label = s && s.campaign ? "Legacy Village" : "Starter Home";
     if (!s || (!s.house && !s.campaign)) return `<div class="inv-card"><h3>Explorer's Map</h3><p class="help">This world has no Starter Home or map data yet.</p></div>`;
-    const legend = ORDER.map(k => `<span><canvas class="xm-ico" data-ico="${k}" width="22" height="22"></canvas>${TYPES[k].label}</span>`).join("") +
+    const visibleKinds = new Set(destinations().map(d => d.kind));
+    const legend = ORDER.filter(k => !LEVIATHAN_MAP_TYPES[k] || visibleKinds.has(k)).map(k => `<span><canvas class="xm-ico" data-ico="${k}" width="22" height="22"></canvas>${TYPES[k].label}</span>`).join("") +
       `<span><canvas class="xm-ico" data-ico="you" width="22" height="22"></canvas>You (arrow = facing)</span><span><canvas class="xm-ico" data-ico="shore" width="22" height="22"></canvas>Boat launch (shore)</span><span><i class="xm-dash"></i>Direction only, not a path</span>` +
       `<span><i class="xm-sw" style="background:#7cbd56"></i>Grass</span><span><i class="xm-sw" style="background:#3f8a2c"></i>Forest</span><span><i class="xm-sw" style="background:#e2d39b"></i>Sand</span><span><i class="xm-sw" style="background:#2f62b8"></i>Water</span><span><i class="xm-sw" style="background:#96988c"></i>Mountain</span><span><i class="xm-sw" style="background:#f2f2f2"></i>Snow</span>`;
     return `<div class="inv-card xmap"><h3>Explorer's Map <span class="note" style="color:#444">M or Esc to close</span></h3>
@@ -513,6 +518,7 @@ export function initStarter(api) {
   }
   let toPx = () => ({ x: 0, y: 0 });
   let lastTerrain = null;
+  const labelSlots = [];
   function draw(markersOnly) {
     const cv = mapEl && mapEl.querySelector("#xmCanvas"); if (!cv) return;
     const s = data(), ctx = cv.getContext("2d"), W = cv.width, bpp = ZOOMS[s.zoom ?? 2];
@@ -537,6 +543,7 @@ export function initStarter(api) {
       lastTerrain = { key: terrainKey, img: off };
     }
     ctx.clearRect(0, 0, W, W);
+    labelSlots.length = 0;
     ctx.drawImage(lastTerrain.img, 0, 0);
     // grid every 100 blocks (in a light ink)
     ctx.strokeStyle = "rgba(255,255,255,.12)"; ctx.lineWidth = 1;
@@ -558,12 +565,14 @@ export function initStarter(api) {
       if (inside(a)) { drawIcon(ctx, "shore", a.x, a.y, 7, false); if (bpp <= 1 || d.kind === s.dest) label(ctx, "Boat launch", a.x, a.y + 18, "#cfe8ff"); }
     }
     // landmarks and home (the selected one gets a bright ring and a bold label)
-    for (const d of destinations()) {
-      const q = toPx(d.x, d.z), on = d.kind === s.dest;
-      if (!inside(q)) continue;
+    const markers = destinations().map(d => ({ d, q: toPx(d.x, d.z), on: d.kind === s.dest })).filter(m => inside(m.q));
+    for (const { d, q, on } of markers) {
       if (on) { ctx.beginPath(); ctx.arc(q.x, q.y, 16 + Math.sin(performance.now() / 300) * 2, 0, Math.PI * 2); ctx.strokeStyle = "#fff36a"; ctx.lineWidth = 3; ctx.stroke(); }
       drawIcon(ctx, d.kind, q.x, q.y, on ? 11 : 9, on);
-      label(ctx, d.title + (d.kind === "excavation" ? " (entrance; city is underground)" : ""), q.x, q.y - (on ? 20 : 17), on ? "#fff36a" : "#fff", on);
+    }
+    // Reserve the selected caption first; nearby captions shift rather than overlap.
+    for (const { d, q, on } of markers.sort((a, b) => Number(b.on) - Number(a.on))) {
+      label(ctx, d.title + (d.kind === "excavation" ? " entrance" : ""), q.x, q.y - (on ? 20 : 17), on ? "#fff36a" : "#fff", on, true);
     }
     // the selected destination is off this view: an arrow on the edge pointing at it
     if (here && sel) {
@@ -603,10 +612,17 @@ export function initStarter(api) {
     const k = Math.max(0.72, Math.min(1.12, 1 + Math.max(-0.2, Math.min(0.2, slope * 0.06)) - (c.h - SEA - 8) * 0.004));   // higher ground a little darker, slopes shaded
     return `rgb(${base.map(v => Math.max(0, Math.min(255, Math.round(v * k)))).join(",")})`;
   }
-  function label(ctx, text, x, y, color, bold) {
+  function label(ctx, text, x, y, color, bold, avoidOverlap = false) {
     ctx.font = `${bold ? "bold " : ""}12px system-ui, sans-serif`; ctx.textAlign = "center";
     const w = ctx.measureText(text).width + 10;
     const lx = Math.max(w / 2 + 2, Math.min(ctx.canvas.width - w / 2 - 2, x));
+    if (avoidOverlap) {
+      const slot = [0, -22, 22, -44, 44].map(offset => ({ x: lx - w / 2, y: Math.max(4, Math.min(ctx.canvas.height - 22, y + offset - 12)), w, h: 17 }))
+        .find(a => labelSlots.every(b => a.x + a.w + 3 <= b.x || b.x + b.w + 3 <= a.x || a.y + a.h + 3 <= b.y || b.y + b.h + 3 <= a.y));
+      // Dense clusters keep their clickable icons and sidebar entries even if no caption fits.
+      if (!slot) return;
+      labelSlots.push(slot); y = slot.y + 12;
+    }
     ctx.fillStyle = "rgba(10,12,14,.78)"; ctx.fillRect(lx - w / 2, y - 12, w, 17);
     ctx.fillStyle = color; ctx.fillText(text, lx, y + 1);
   }
@@ -614,7 +630,12 @@ export function initStarter(api) {
   function drawIcon(ctx, kind, x, y, r, big) {
     ctx.save(); ctx.translate(x, y); ctx.lineWidth = big ? 2.5 : 2; ctx.strokeStyle = "#111";
     const T = TYPES[kind];
-    if (kind === "excavation") {   // a dark diamond with a downward arrow: the way in goes down
+    if (LEVIATHAN_MAP_TYPES[kind]) {   // a sun seal: Solkara's gold, distinct from the original pyramid
+      ctx.fillStyle = T.dark; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = T.color; ctx.lineWidth = 2;
+      for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * .6, Math.sin(a) * r * .6); ctx.lineTo(Math.cos(a) * r * .85, Math.sin(a) * r * .85); ctx.stroke(); }
+      ctx.fillStyle = T.color; ctx.beginPath(); ctx.arc(0, 0, r * .4, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === "excavation") {   // a dark diamond with a downward arrow: the way in goes down
       ctx.fillStyle = T.color; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r, 0); ctx.lineTo(0, r); ctx.lineTo(-r, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.fillStyle = "#082a2a"; ctx.beginPath(); ctx.moveTo(-r * 0.45, -r * 0.2); ctx.lineTo(r * 0.45, -r * 0.2); ctx.lineTo(0, r * 0.55); ctx.closePath(); ctx.fill();
     } else if (kind === "sea") {   // a lighthouse on blue

@@ -16,6 +16,7 @@ import { Adv } from "./advancements.js";
 import { initForsaken, isQuestItem } from "./forsaken.js";
 import { initLost, LOST_DIMS } from "./lost.js";
 import { initStarter } from "./starter.js";
+import { leviathanShrineBearings } from "./leviathan-navigation.js";
 import { initCampaign, CAMPAIGN_SEED } from "./campaign.js";
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
@@ -45,6 +46,10 @@ import { HeatExposure, heatSite, findHeatSite, insideHeat } from "./forgotten-he
 import { createHeatView } from "./forgotten-heat-view.js";
 import { duneWarningCue } from "./dune-warning.js?v=physical-2";
 import { createDuneWarningView } from "./dune-warning-view.js";
+import { obsidianWarningCue } from "./obsidian-warning.js";
+import { createObsidianWarningView } from "./obsidian-warning-view.js";
+import { planObsidianShrapnel, validObsidianVolley, obsidianVolleyLoadedKey } from "./obsidian-shrapnel.js";
+import { OBSIDIAN_OFFERINGS, OBSIDIAN_OFFERING_TEXT, obsidianRiteInReach, obsidianRitualWindow, obsidianEncounterPhase } from "./obsidian-rite.js";
 import { DuneDevour, DUNE_DEVOUR_DURATION } from "./dune-devour.js";
 import { createDuneDevourView } from "./dune-devour-view.js";
 import { DuneSweep, DUNE_SWEEP_DURATION } from "./dune-sweep.js";
@@ -301,6 +306,9 @@ const ents = new Entities(scene, {
   world: () => G.world, player: () => G.player, settings: () => G.wset, creative: () => G.creative || G.spectator, alive: () => G.state !== "dead",
   desertContext: () => ({ dim: G.dim, storm: stormStage, sites: G.story.leviathan?.sites }),
   reducedMotion: () => G.settings.reducedMotion,
+  scarabVaultDefeated: e => {
+    if (scarabVaultGuards?.includes(e)) checkpointScarabVaultVictory();
+  },
   companionChanged: e => {
     const record = G.story.leviathan.companion;
     record.hp = Math.max(1, e.hp); record.sitting = e.sitting;
@@ -1497,6 +1505,7 @@ function stream(budget) {
   }
 }
 function clearWorldMeshes() {
+  clearObsidianWarning();
   clearDuneWarning();
   clearDuneSweep();
   clearDuneDevour();
@@ -1507,7 +1516,7 @@ function clearWorldMeshes() {
   clearArmorShieldView();
   clearMountedBurrow(false);
   clearMountedLeviathanAttack();
-  scarabVaultStarted = false;
+  scarabVaultGuards = null;
   clearArenaFractures();
   leviathanJournalT = 0;
   for (const effect of ancientSpikes) effect.dispose();
@@ -2486,7 +2495,7 @@ function interact(hit, kind) {
   const citadel = G.story.leviathan?.sites?.citadel;
   if (kind === "lore" && G.dim === "overworld" && citadel && atSolkara(hit, citadelTablet(citadel))) {
     const arena = citadelArena(citadel);
-    UI.openNote("The Basalt Watch", `Cross by the dark stone causeway. The outer ring burns underfoot, but the basalt path leads through it. The inner court lies at X ${Math.floor(arena.x)}, Z ${Math.floor(arena.z)}. The quartermaster kept healing supplies in the chest opposite this tablet.\n\nHeart of the Inferno\nFirst earn the Dune Leviathan's trust. Bring 8 obsidian, 4 gold ingots and 2 Ember Quartz. Sound the Sandcaller Horn to offer them while the Obsidian Leviathan is awake. Survive its attacks, then answer four recoveries when its molten veins dim. Striking it breaks the sequence. Once bonded, recall it to the Citadel's clear inner court, or crouch while sounding the horn on wide, flat desert sand.`, false);
+    UI.openNote("The Basalt Watch", `Cross by the dark stone causeway. The outer ring burns underfoot, but the basalt path leads through it. The inner court lies at X ${Math.floor(arena.x)}, Z ${Math.floor(arena.z)}. The quartermaster kept healing supplies in the chest opposite this tablet.\n\nHeart of the Inferno\nFirst earn the Dune Leviathan's trust. Bring ${OBSIDIAN_OFFERING_TEXT}. Approach the awakened creature on the arena floor with a clear view and sound the Sandcaller Horn to offer them. Then answer the next four recoveries when its molten veins dim. Each answer intensifies the trial. Striking it resets the sequence, but the offering stays accepted across retries. Once bonded, recall it to the Citadel's clear inner court, or crouch while sounding the horn on wide, flat desert sand.`, false);
     return;
   }
   if (kind === "lore" && G.dim === HOLLOW_SANDS) {
@@ -2515,7 +2524,11 @@ function interact(hit, kind) {
     const expansion = G.story.leviathan;
     if (G.dim === "overworld" && relicSiteAt(expansion?.sites, hit, shrineSign)?.key === "shrine") {
       if (!G.creative) expansion.shrineRead = true;
-      UI.openNote("The Call of the Sands", SHRINE_INSCRIPTION, false);
+      UI.openNote("The Call of the Sands", [SHRINE_INSCRIPTION,
+        "Search this shrine's cache for the first relic. The keepers left bearings to the other relic ruins and the storm instrument:",
+        ...leviathanShrineBearings(G.story),
+        "Press J and choose Leviathan to reread these bearings. They mark the ruins, not a roaming Leviathan."
+      ].join("\n\n"), false);
     } else ST.readSign(hit);
     return;
   }
@@ -2590,11 +2603,23 @@ function interactSolkara(hit, kind) {
     progress.coreClaimed = true;
     G.hudDirty = true;
     Sound.levelUp();
+    saveNow(false);
     UI.toast("You recovered the Ancient Desert Core.", "good");
   }
   return true;
 }
-let scarabVaultStarted = false;
+let scarabVaultGuards = null;
+function checkpointScarabVaultVictory() {
+  if (!scarabVaultGuards || !scarabVaultGuards.every(e => e && e.hp <= 0)) return false;
+  const wing = (G.story.leviathan ||= {}).wing ||= {};
+  if (!wing.vaultCleared) {
+    wing.vaultCleared = true;
+    scarabVaultGuards = null;
+    saveNow(false);
+    UI.toast("The Scarab Vault is clear. Claim its supplies at the altar.", "good");
+  }
+  return true;
+}
 function tickSolkaraSandfall() {
   if (!isSolkaraRealm(G.dim) || G.dimData[G.dim]?.solkaraWing !== 1 || G.creative || G.spectator ||
       G.wset.difficulty === "peaceful") return;
@@ -2625,33 +2650,39 @@ function interactSolkaraWing(hit, kind) {
     return true;
   }
   if (kind === "lore" && atSolkara(hit, SOLKARA_LIBRARY)) {
-    UI.openNote("The Forgotten Library", "The last archivist diverted the falling sand through the dark drains at the edges of the passage. Stay on those edge paths when dust gathers overhead. The brass switch at the library's south end seals the sand ducts. Beyond the passage, two scarabs keep watch over the supply vault.", false);
+    UI.openNote("The Forgotten Library", "The last archivist diverted the falling sand through the dark drains at the edges of the passage. Jump onto the raised dark stone edges when dust gathers overhead, and keep clear of the falling sand in the middle. The brass switch at the library's south end seals the sand ducts. Beyond the passage, two scarabs keep watch over the supply vault.", false);
     return true;
   }
   if (kind === "switch" && atSolkara(hit, SOLKARA_WING_SWITCH)) {
-    wing.trapDisabled = true;
-    G.world.set(hit.x, hit.y, hit.z, make(B.KEEPER_SWITCH, 1));
+    if (!wing.trapDisabled) {
+      wing.trapDisabled = true;
+      G.world.set(hit.x, hit.y, hit.z, make(B.KEEPER_SWITCH, 1));
+      saveNow(false);
+    }
     UI.toast("The sand ducts close. The vault passage is safe.", "good");
     return true;
   }
   if (kind !== "pedestal" || !atSolkara(hit, SOLKARA_VAULT)) return false;
   if (wing.vaultClaimed) { UI.toast("The Scarab Vault has been claimed."); return true; }
-  if (!scarabVaultStarted) {
+  if (!wing.vaultCleared && !checkpointScarabVaultVictory()) {
     const points = [-1, 1].map(side => ({ x: hit.x + side * 3 + 0.5, y: hit.y, z: hit.z + 0.5 }));
-    if (points.some(p => [0, 1].some(dy => G.world.id(Math.floor(p.x), p.y + dy, Math.floor(p.z)) !== B.AIR))) {
+    scarabVaultGuards ||= [null, null];
+    const missing = points.map((p, i) => i).filter(i => {
+      const e = scarabVaultGuards[i];
+      return !e || (e.hp > 0 && (e.gone || !ents.list.includes(e)));
+    });
+    if (missing.some(i => [0, 1].some(dy => G.world.id(Math.floor(points[i].x), points[i].y + dy, Math.floor(points[i].z)) !== B.AIR))) {
       UI.toast("Clear the scarabs' alcoves before opening the vault."); return true;
     }
-    for (const p of points) {
-      const e = ents.add("sunscarab", p.x, p.y, p.z);
+    for (const i of missing) {
+      const p = points[i], previous = scarabVaultGuards[i];
+      const e = ents.add("sunscarab", p.x, p.y, p.z, previous ? { hp: previous.hp } : {});
       e.scarabVaultGuard = true;
+      scarabVaultGuards[i] = e;
       puff(p.x, p.y + 0.5, p.z, "crumb");
     }
-    scarabVaultStarted = true;
-    UI.toast("The vault scarabs awaken. Defeat them to claim the supplies.");
+    UI.toast(missing.length ? "The vault scarabs awaken. Defeat them to claim the supplies." : "The scarabs still guard this vault.");
     return true;
-  }
-  if (ents.list.some(e => e.scarabVaultGuard && !e.gone && !e.dead)) {
-    UI.toast("The scarabs still guard this vault."); return true;
   }
   const rewards = [[I.SKYSHARD, 3], [I.GOLD_INGOT, 6], [I.GOLDEN_APPLE, 2]];
   const preview = new Inventory(); preview.load(G.inv.toJSON());
@@ -2660,6 +2691,7 @@ function interactSolkaraWing(hit, kind) {
   }
   for (const [id, n] of rewards) G.inv.add(id, n);
   wing.vaultClaimed = true; G.hudDirty = true;
+  saveNow(false);
   UI.toast("You claimed the Scarab Vault.", "good");
   return true;
 }
@@ -2696,6 +2728,7 @@ function useSolkaraGate(hit) {
     }
     progress.gateOpen = true;
     Sound.levelUp();
+    saveNow(false);
     UI.toast("The Sealed Gateway opens. Interact again to cross.", "good");
     return;
   }
@@ -3265,6 +3298,7 @@ function useTotem() {
   return true;
 }
 function die(why) {
+  clearObsidianWarning();
   clearDuneWarning();
   clearDuneSweep();
   clearDuneDevour();
@@ -3637,12 +3671,16 @@ function thinkObsidian(e, multiplier) {
     else thinkBondedLeviathan(G.world, e, G.player, G.story.leviathan.obsidian);
     return;
   }
+  if (G.creative || G.spectator || G.dim !== "overworld" || G.state === "dead") {
+    if (c) { c.attack = null; c.step = "buried"; c.until = e.age + 1.8; }
+    return;
+  }
   if (!c || G.wset.difficulty === "peaceful" || Math.hypot(p.x - c.site.x, p.z - c.site.z) > 28) {
     e.gone = true;
     return;
   }
   if (e.age < c.until) return;
-  const a = c.site, phase = dunePhase(e.hp, e.maxHp);
+  const a = c.site, phase = obsidianEncounterPhase(e, G.story.leviathan?.obsidian);
   if (c.step === "buried" || c.step === "warning") {
     e.emerged = true;
     e.goal = { x: a.x, y: a.y, z: a.z - 4, speed: 10 };
@@ -3651,7 +3689,10 @@ function thinkObsidian(e, multiplier) {
     puff(a.x, a.y, a.z - 4, "ember");
   } else if (c.step === "surface") {
     if (phase >= 2 && c.count % 3 === 1) {
-      c.attack = { x: p.x, y: p.y + 1, z: p.z, phase: 4 };
+      const target = { x: p.x, y: p.y + 1, z: p.z };
+      c.attack = { ...target, kind: "shrapnel", from: e.age, volley: planObsidianShrapnel(e, target), warned: false, phase: 4 };
+      e.goal = null; e.vel.x = e.vel.y = e.vel.z = 0;
+      e.yaw = Math.atan2(e.pos.x - p.x, e.pos.z - p.z);
       c.step = "shrapnel"; c.until = e.age + 1.2; c.attackAt = c.until;
       puff(e.pos.x, e.eyeY, e.pos.z, "ember");
       Sound.mob("clank", 0);
@@ -3660,28 +3701,35 @@ function thinkObsidian(e, multiplier) {
     }
     const roar = phase >= 3 && c.count % 2 === 1;
     const near = Math.hypot(p.x - a.x, p.z - a.z) < a.radius;
-    c.attack = { x: roar || !near ? a.x : p.x, z: roar || !near ? a.z : p.z, r: roar ? 6 : 2.8 + phase * 0.25 };
+    c.attack = { x: roar || !near ? a.x : p.x, z: roar || !near ? a.z : p.z, r: roar ? 6 : 2.8 + phase * 0.25,
+      kind: roar ? "roar" : "eruption", from: e.age, warned: false };
     c.step = "attack"; c.until = e.age + (roar ? 1.75 : 1.3);
     c.attackAt = c.until;
     c.attack.phase = 4;
-    obsidianHeatRing(c.attack, a.y, 1.9);
     UI.toast(roar ? "Inferno roar! Get beyond the ember ring." : "Magma eruption! Leave the marked ground.");
   } else if (c.step === "shrapnel") {
-    const target = c.attack, y = e.eyeY - 1;
-    const dx = target.x - e.pos.x, dz = target.z - e.pos.z, horizontal = Math.hypot(dx, dz) || 1;
-    const angle = Math.atan2(dx, dz);
-    const pitch = (target.y - y) / horizontal;
-    for (let i = -2; i <= 2; i++) {
-      const yaw = angle + i * 0.15, length = Math.hypot(1, pitch), speed = 13;
-      ents.addProjectile("obsidianshard", e.pos.x, y, e.pos.z,
-        Math.sin(yaw) / length * speed, pitch / length * speed, Math.cos(yaw) / length * speed,
+    const target = c.attack;
+    if (!target?.warned || !validObsidianVolley(target.volley)) {
+      c.attack = null; c.step = "buried"; c.until = e.age + 1.8;
+      e.emerged = false; e.goal = { x: a.x, y: a.y - 7, z: a.z - 4, speed: 12 };
+      return;
+    }
+    const origin = target.volley.origin;
+    for (const shot of target.volley.shots) {
+      ents.addProjectile("obsidianshard", origin.x, origin.y, origin.z,
+        shot.vx, shot.vy, shot.vz,
         { owner: e, noGrav: true, dmg: 4 * multiplier });
     }
     c.count++; c.attack = null;
-    c.step = "recover"; c.until = e.age + 3.2 - phase * 0.2; c.ritualUsed = false;
+    c.step = "recover"; c.until = e.age + 3.2 - phase * 0.2; c.ritualUsed = false; c.ritualFrom = e.age;
     UI.toast("The molten veins dim. Sound the horn during its recovery.");
   } else if (c.step === "attack") {
     const hit = c.attack;
+    if (!hit?.warned) {
+      c.attack = null; c.step = "buried"; c.until = e.age + 1.8;
+      e.emerged = false; e.goal = { x: a.x, y: a.y - 7, z: a.z - 4, speed: 12 };
+      return;
+    }
     obsidianHeatRing(hit, a.y, 0.6);
     if (Math.abs(p.y - a.y) < 2.5 && Math.hypot(p.x - hit.x, p.z - hit.z) < hit.r) {
       hurt((5 + phase) * multiplier, "The Obsidian Leviathan's heat overwhelmed you.", e, false, "fire");
@@ -3695,7 +3743,7 @@ function thinkObsidian(e, multiplier) {
     c.count++;
     c.attack = null;
     c.step = "recover"; c.until = e.age + 3.2 - phase * 0.2;
-    c.ritualUsed = false;
+    c.ritualUsed = false; c.ritualFrom = e.age;
     UI.toast("The molten veins dim. Sound the horn during its recovery.");
   } else {
     e.emerged = false;
@@ -3848,18 +3896,20 @@ function useSandcallerHorn() {
   e.tame = true; e.goal = null;
   applyBondPreferences(e, record);
   e.vel.x = e.vel.y = e.vel.z = 0;
+  saveNow(false);
   UI.toast("Legendary bond formed. The Dune Leviathan is yours!", "good");
   return true;
 }
 function useObsidianHorn() {
+  if (G.dim !== "overworld" || G.spectator || G.riding) return false;
   const expansion = G.story.leviathan, site = expansion?.sites?.citadel;
   const p = G.player.pos, a = site && citadelArena(site);
   const nearCourt = a && Math.hypot(p.x - a.x, p.z - a.z) <= 18 && Math.abs(p.y - a.y) <= 3;
-  const e = ents.list.find(e => e.sp === "leviathan_obsidian" && !e.gone && !e.dead);
+  const e = ents.list.find(e => e.sp === "leviathan_obsidian" && !e.gone && !e.dead && !e.duneCycle?.preview);
   const record = expansion?.obsidian;
   // Preserve the Citadel rite and ordinary Dune horn use. Crouching explicitly
   // selects the Obsidian bond away from its court, even with two active bonds.
-  if (record?.bonded ? !nearCourt && !keys.has("KeyC") : !site || !e && !nearCourt) return false;
+  if (record?.bonded ? !nearCourt && !keys.has("KeyC") : !site || !nearCourt) return false;
   if (record?.defeated) return false;
   const now = (G.meta.day || 1) * DAY_LENGTH + G.time * DAY_LENGTH;
   if (record?.bonded) {
@@ -3888,21 +3938,29 @@ function useObsidianHorn() {
     return true;
   }
   if (!e || !record) { UI.toast("Enter the inner court to awaken the Obsidian Leviathan."); return true; }
+  if (G.creative || G.wset.difficulty === "peaceful") {
+    UI.toast("Undertake the Inferno rite in Survival with combat enabled."); return true;
+  }
   if (!expansion.dune?.bonded) { UI.toast("Earn the Dune Leviathan's bond before attempting the Inferno rite."); return true; }
+  if (!obsidianRiteInReach(e, G.player) || !lineOfSight(G.world,
+      { x: p.x, y: p.y + G.player.eye, z: p.z }, { x: e.pos.x, y: e.pos.y + 1.5, z: e.pos.z })) {
+    UI.toast("Approach the awakened Leviathan on the arena floor with a clear view."); return true;
+  }
   if (!record.ritualOffered) {
-    const offerings = [[B.OBSIDIAN, 8], [I.GOLD_INGOT, 4], [I.QUARTZ, 2]];
+    const offerings = OBSIDIAN_OFFERINGS;
     if (!offerings.every(([id, n]) => G.inv.count(id) >= n)) {
-      UI.toast("The Inferno rite needs 8 obsidian, 4 gold ingots and 2 Ember Quartz.");
+      UI.toast(`The Inferno rite needs ${OBSIDIAN_OFFERING_TEXT}.`);
       return true;
     }
-    if (G.creative) return true;
     for (const [id, n] of offerings) G.inv.remove(id, n);
     record.ritualOffered = true; G.hudDirty = true;
-    UI.toast("The offering is accepted. Survive four attacks and answer each recovery with the horn.");
+    e.duneCycle.ritualMarks = 0; e.duneCycle.ritualUsed = true;
+    saveNow(false);
+    UI.toast("Offering accepted. After each of the next four attacks, sound the horn while its veins dim.");
     return true;
   }
   const c = e.duneCycle;
-  if (c.step !== "recover" || c.ritualUsed || Math.hypot(p.x - e.pos.x, p.z - e.pos.z) > 13) {
+  if (!obsidianRitualWindow(e)) {
     UI.toast("Wait for its molten veins to dim, then sound the horn nearby.");
     return true;
   }
@@ -3916,6 +3974,7 @@ function useObsidianHorn() {
     }
     e.tame = true; e.goal = null; e.vel.x = e.vel.y = e.vel.z = 0;
     applyBondPreferences(e, record);
+    saveNow(false);
     UI.toast("Legendary bond formed. The Obsidian Leviathan is yours!", "good");
   }
   return true;
@@ -3989,6 +4048,32 @@ function updateDuneSurfaceAttack(e, phase, multiplier) {
   }
   c.attackAt = Infinity;
   c.attack = null;
+}
+let obsidianWarningFX = null;
+function clearObsidianWarning() {
+  if (obsidianWarningFX?.attack) obsidianWarningFX.attack.warned = false;
+  obsidianWarningFX?.view?.dispose(); obsidianWarningFX = null;
+}
+function obsidianWarningReview() {
+  return obsidianWarningFX ? { active: !!obsidianWarningFX.view, ...obsidianWarningFX.cue,
+    triangles: obsidianWarningFX.view?.triangles || 0, paths: obsidianWarningFX.view?.paths } : { active: false };
+}
+function updateObsidianWarning() {
+  const actor = G.dim === "overworld" && !G.creative && !G.spectator && G.state !== "dead" && G.wset.difficulty !== "peaceful" &&
+    ents.list.find(e => e.sp === "leviathan_obsidian" && e.mesh && !e.dead && !e.gone && !e.tame && !e.duneCycle?.preview);
+  const cue = actor && obsidianWarningCue(actor);
+  if (!cue) { clearObsidianWarning(); return; }
+  const attack = actor.duneCycle.attack, now = G.clock || 0;
+  const loadedKey = cue.type === "shrapnel" ? obsidianVolleyLoadedKey(G.world, cue.volley) : null;
+  if (!obsidianWarningFX || obsidianWarningFX.actor !== actor || obsidianWarningFX.attack !== attack ||
+      (obsidianWarningFX.edits !== G.world.editCount || obsidianWarningFX.loadedKey !== loadedKey) && now - obsidianWarningFX.builtAt >= .2) {
+    clearObsidianWarning();
+    obsidianWarningFX = { actor, attack, cue, loadedKey, edits: G.world.editCount, builtAt: now,
+      view: createObsidianWarningView(scene, G.world, cue) };
+  }
+  obsidianWarningFX.cue = cue;
+  attack.warned = !!obsidianWarningFX.view;
+  obsidianWarningFX.view?.update(cue.progress, G.settings.reducedMotion);
 }
 let duneWarningFX = null;
 function clearDuneWarning() {
@@ -4693,6 +4778,7 @@ function loop(now) {
     updateOrbs(dt);
   }
   updateDuneWarning();
+  updateObsidianWarning();
   updateDuneSweep(dt, running);
   updateDuneDevour(dt, running);
   updateDuneVortex(dt, running);
@@ -4750,7 +4836,10 @@ function loop(now) {
   else if (!bar.hidden) {
     bar.classList.remove("pale");
     let label = boss.def.name + (boss.armored ? " (armored: arrows bounce off)" : "");
-    if (boss.def.segmentedLeviathan) label += " • Phase " + (boss.sp === "leviathan_ancient" ? ancientPhase(boss) : dunePhase(boss.hp, boss.maxHp));
+    if (boss.def.segmentedLeviathan) label += " • Phase " + (boss.sp === "leviathan_ancient" ? ancientPhase(boss) :
+      boss.sp === "leviathan_obsidian" ? obsidianEncounterPhase(boss, G.story.leviathan?.obsidian) : dunePhase(boss.hp, boss.maxHp));
+    if (boss.sp === "leviathan_obsidian" && G.story.leviathan?.obsidian?.ritualOffered && !boss.tame)
+      label += ` • Trust ${Math.max(0, Math.min(4, boss.duneCycle?.ritualMarks || 0))}/4`;
     if (boss.sp === "cindermaw") { const ph = ents.cinderPhase(boss), py = ents.list.filter(o => o.sp === "pylon" && !o.dead).length; label = `Cindermaw • Phase ${ph}${py ? ` • Shielded by ${py} Ember Pylon${py > 1 ? "s" : ""}` : boss.tired ? " • Worn out!" : boss.perched ? " • Landed: hit it!" : ""}`; }
     bar.querySelector("i").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%"; bar.querySelector("b").textContent = label;
     bar.classList.toggle("ember", boss.sp === "cindermaw");
@@ -4789,3 +4878,4 @@ UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
 G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test.obsidianWarningReview = obsidianWarningReview;

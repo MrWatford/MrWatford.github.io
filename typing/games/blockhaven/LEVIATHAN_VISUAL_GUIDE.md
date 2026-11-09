@@ -1,10 +1,18 @@
 # Leviathan visual direction
 
+Release update: the owner authorized publishing the current exploration/Inferno follow-ups as **Early Access 3**, then resuming development later. See EARLY_ACCESS_3_RELEASE.md for the exact included scope and PUBLICATION_STATUS.md for verified deployment. Earlier local/unpublished labels below are historical; the full expansion's remaining acceptance gates stay open.
+
+The local Heart of the Inferno trial preserves the approved Obsidian model, scale and attack warnings. Its existing boss bar now shows the actual trial phase and Trust 0–4/4 before bonding. The tablet/journal explain the exact offering and fresh dim-vein recovery timing. Six controlled live groups verify all four actual attacks, ownership and named companion return in Fancy at render distance 4. The close court screenshot and scoped results are in `tools/review-results/local-obsidian-rite.json`; ambient mobs are excluded, and natural route, mixed threats, broader lighting/device acceptance remain open. This slice is unpublished.
+
 The supplied expansion illustration sets the direction: monumental voxel silhouettes, layered stone/bone plates, warm desert gold, restrained luminous cores and readable equipment detailing. Preserve BlockHaven's existing voxel language while developing that material richness. Review actual runtime models and animation alongside the reference.
 
 The owner approved the current Leviathan appearance on November 7. The second reference guides emergence, debris, low camera angles and the creature's scale beside the player. Preserve the current creature mesh and dimensions; this reference does not request a redesign or enlargement. Keep emergence readable and threatening without hiding the escape route.
 
 ## Material families
+
+The local Obsidian Shrapnel warning uses five narrow amber/orange directional rails and shard-shaped tips, sharing the immutable launch origin/vectors of the actual volley. Rails stop at solid or partial-block cover and unloaded boundaries, with a 32-block directional preview cap; this cap does not change projectile lifetime/range. Charge remains readable in reduced motion while decorative dash travel stops. One batch uses at most 20 triangles and two resources, with cached/throttled terrain/streaming updates and no lights/textures/particles/terrain writes from the warning. Fast/Fancy controlled Citadel presentation, dodging, cover/window contact and lifecycle checks are in `tools/review-results/local-obsidian-shrapnel.json`. The approved model/scale are preserved. Broader lighting, natural full fights/bonding and device acceptance remain open; this work is unpublished.
+
+The local Obsidian heat-warning pass uses amber-to-orange terrain contours, molten radial fissures for Magma Eruption and concentric heat bands for Inferno Roar. The boundary follows the existing radius and loaded solid floors/steps; progress fills from the authoritative encounter deadline and stays fully charged until AI release. Necessary progress remains visible in reduced motion while decorative fissure movement freezes. One batch uses at most 338 triangles/two resources and adds no lights/textures/particles or terrain writes. The creature geometry and dimensions remain unchanged. Controlled Citadel gameplay and renderer evidence is in `tools/review-results/local-obsidian-warnings.json`; complete natural fights, shrapnel presentation, broader night/ash/storm lighting and hardware acceptance remain open. This follow-up is unpublished.
 
 Use `js/leviathan-armor-style.js` as the shared source for armor icon and equipped-model colors.
 
