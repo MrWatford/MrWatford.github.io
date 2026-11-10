@@ -1,6 +1,8 @@
 # How to Meet and Fight the Three Leviathans
 
-For the live **BlockHaven: Leviathan Early Access 4**.
+For the **BlockHaven: Leviathan Early Access 6** release candidate. Deployment must be verified before treating this version as live.
+
+**Ancient opening:** After the Ancient wakes, it makes a ten-second lap around the court, comes back down, then roars before its first attack. You can keep moving and attack during the lap. Watch for the blue danger circles when the fight starts.
 
 Play: https://mrwatford.github.io/typing/games/blockhaven/
 

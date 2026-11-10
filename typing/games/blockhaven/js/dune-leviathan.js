@@ -82,7 +82,7 @@ export class DunePose {
     return jumped;
   }
 
-  segment(index, x, y, z, previousX, previousY, previousZ, limit, dt) {
+  segment(index, x, y, z, previousX, previousY, previousZ, limit, dt, wrap = false) {
     const point = this.points[index];
     const blend = point.ready ? 1 - Math.exp(-10 * dt) : 1;
     point.x += (x - point.x) * blend;
@@ -92,7 +92,7 @@ export class DunePose {
     const backX = Math.sin(this.yaw), backZ = Math.cos(this.yaw);
     const back = (point.x - this.head.x) * backX + (point.z - this.head.z) * backZ;
     const clearance = limit * 0.9;
-    if (back < clearance) { point.x += (clearance - back) * backX; point.z += (clearance - back) * backZ; }
+    if ((!wrap || index === 0) && back < clearance) { point.x += (clearance - back) * backX; point.z += (clearance - back) * backZ; }
     if (index === 0) {
       const axial = Math.min(limit, Math.max(clearance, back));
       const side = (point.x - this.head.x) * backZ - (point.z - this.head.z) * backX;

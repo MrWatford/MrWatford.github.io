@@ -51,6 +51,12 @@ import { obsidianWarningCue } from "./obsidian-warning.js";
 import { ancientWarningCue, ancientCollapseCues, ancientWarningLoadedKey } from "./ancient-warning.js";
 import { ancientArrivalCues } from "./ancient-arrival.js";
 import { createAncientAwakeningView } from "./ancient-awakening-view.js";
+import { ancientAwakeningRoll } from "./ancient-tremor.js";
+import { createAncientBuriedController } from "./ancient-buried-view.js";
+import { createAncientOpeningController } from "./ancient-opening-view.js";
+import { ANCIENT_CIRCLE_SECONDS, ANCIENT_CIRCLE_SETTLE_SECONDS } from "./ancient-circle.js";
+import { ancientIntroCue, createAncientIntroView } from "./ancient-intro.js";
+import { ancientArenaLoadedKey, createAncientArenaView } from "./ancient-arena-view.js";
 import { createAncientFury, ancientFuryCues } from "./ancient-fury.js";
 import { ancientCombatPhase, ancientRewardPending, ancientRewardInventory, copyAncientProgress, ANCIENT_VICTORY_XP } from "./ancient-victory.js";
 import { createAncientWarningView } from "./ancient-warning-view.js";
@@ -1503,6 +1509,10 @@ function stream(budget) {
   }
 }
 function clearWorldMeshes() {
+  ancientIntroView?.dispose(); ancientIntroView = null;
+  ancientTremorRoll = 0;
+  ancientBuriedView.clear();
+  ancientOpeningView.clear();
   clearAncientFury();
   clearAncientArrival();
   clearAncientWarning();
@@ -1529,6 +1539,7 @@ function clearWorldMeshes() {
   sandsRegion = 0;
   sandsHaze.setHex(SANDS_REGIONS[0].haze);
   Sound.wind(0);
+  Sound.ancientMusic(null);
   stormStage = 0; stormSampleT = 0; stormDustT = 0;
   stormVortex = null; stormVortexT = 10;
   duneInterest = 0;
@@ -3318,6 +3329,7 @@ function useTotem() {
   return true;
 }
 function die(why) {
+  Sound.ancientMusic(null);
   clearAncientFury();
   clearAncientArrival();
   clearAncientWarning();
@@ -3575,14 +3587,22 @@ function thinkAncient(e, multiplier) {
   if (e.age < c.until) return;
   const phase = ancientPhase(e);
   if (c.step === "awakening" || c.step === "buried") {
-    if(c.step==="awakening")c.awakenedAt=e.age;
+    const first = c.step === "awakening";
+    if(first){
+      c.awakenedAt=e.age;
+      c.introCircle={from:e.age+1.2,until:e.age+1.2+ANCIENT_CIRCLE_SECONDS};
+    }
     e.emerged = true;
     e.goal = { x: a.x, y: a.y, z: a.z - 8, speed: 14 };
-    c.step = "recover"; c.until = e.age + 4;
+    c.step = "recover"; c.until = first ? c.introCircle.until + ANCIENT_CIRCLE_SETTLE_SECONDS : e.age + 4;
     Sound.mob("roar", 0);
     puff(a.x, a.y + 2, a.z - 8, "pale");
-    UI.toast("The Ancient Leviathan rises. The Buried King has awakened.");
+    UI.toast(first ? "The Ancient rises! It will circle the court before attacking. You can keep moving." : "The Ancient Leviathan rises. The Buried King has awakened.");
   } else if (c.step === "recover") {
+    if(c.introCircle&&!c.introCircle.roared){
+      c.introCircle.roared=true;c.introCircle.roaredAt=e.age;c.until=e.age+1.2;
+      Sound.mob("roar",0);UI.toast("The Ancient has circled the court. Its first attack is coming.");return;
+    }
     if (phase === 4) {
       c.attack=createAncientFury(e.age,p,a);c.furyIndex=0;
       c.step="fury";c.attackAt=c.attack.strikes[0].at;c.until=c.attackAt;
@@ -3679,6 +3699,7 @@ function damageAncient(e) {
     if (ancientCombatPhase(e.hp,e.maxHp) !== previousPhase) saveNow(false);
     return;
   }
+  Sound.ancientMusic(null);
   clearAncientFury();
   clearAncientArrival();
   clearAncientWarning();
@@ -4204,16 +4225,38 @@ function updateAncientFury(){
   ancientFuryFX.forEach((fx,i)=>{fx.cue=cues[i];fx.point.warned=!!fx.view;
     fx.view?.update(cues[i].progress,G.settings.reducedMotion);});
 }
+let ancientIntroView = null;
+let ancientTremorRoll = 0;
+const ancientBuriedView = createAncientBuriedController(scene);
+const ancientOpeningView = createAncientOpeningController(scene);
+function updateAncientPresentation(running) {
+  const actor = running && G.state !== "dead" && G.dim === HOLLOW_SANDS &&
+    !G.creative && !G.spectator && G.wset.difficulty !== "peaceful" &&
+    ents.list.find(e => e.sp === "leviathan_ancient" && !e.dead && !e.gone &&
+      !e.tame && e.duneCycle && !e.duneCycle.preview);
+  Sound.ancientMusic(actor ? { id: actor.uid, age: actor.age, phase: ancientPhase(actor) } : null);
+  const cue = actor && G.state === "play" ? ancientIntroCue(actor) : null;
+  if (cue && !ancientIntroView) ancientIntroView = createAncientIntroView(document.getElementById("hud"));
+  ancientIntroView?.update(cue, G.settings.reducedMotion);
+  ancientTremorRoll = G.state === "play" && !G.thirdPerson && !G.cutscene
+    ? ancientAwakeningRoll(actor, G.player.pos, G.settings.reducedMotion) : 0;
+  camera.rotation.z += ancientTremorRoll;
+  const awakeningActor = ancientArrivalFX.find(fx => fx.cue.type === "awakening")?.actor;
+  const awakeningOptions = { fast:G.settings.quality === "fast", reducedMotion:G.settings.reducedMotion, now:G.clock || 0 };
+  ancientBuriedView.update(awakeningActor, G.world, awakeningOptions);
+  ancientOpeningView.update(awakeningActor, G.world, awakeningOptions);
+}
 let ancientArrivalFX = [];
 function clearAncientArrival() {
-  for (const fx of ancientArrivalFX) { fx.point.warned = false; fx.view?.dispose();fx.sand?.dispose(); }
+  for (const fx of ancientArrivalFX) { fx.point.warned = false; fx.view?.dispose();fx.sand?.dispose();fx.arena?.dispose(); }
   ancientArrivalFX = [];
 }
 function ancientArrivalReview() {
   return ancientArrivalFX.map(fx => ({active:!!fx.view,type:fx.cue.type,x:fx.cue.x,y:fx.cue.y,z:fx.cue.z,
     radius:fx.cue.radius,deadline:fx.cue.deadline,progress:fx.cue.progress,triangles:fx.view?.triangles || 0,
     sandColumns:fx.sand?.columns||0,sandGrains:fx.sand?.grains||0,sandTriangles:fx.sand?.triangles||0,
-    sandVisible:fx.sand?.mesh.visible||false}));
+    sandVisible:fx.sand?.mesh.visible||false,arenaGlyphs:fx.arena?.glyphs||0,
+    arenaTriangles:fx.arena?.triangles||0,arenaVisible:fx.arena?.mesh.visible||false}));
 }
 function updateAncientArrival() {
   const actor = G.dim === HOLLOW_SANDS && !G.creative && !G.spectator && G.state !== "dead" && G.wset.difficulty !== "peaceful" &&
@@ -4221,21 +4264,26 @@ function updateAncientArrival() {
   const cues = actor ? ancientArrivalCues(actor) : [];
   if (!cues.length) { clearAncientArrival(); return; }
   const now = G.clock || 0,fast=G.settings.quality==="fast";
-  // At most two small guardian batches, or one awakening batch. No per-frame geometry.
+  for(const cue of cues)cue.arenaLoadedKey=cue.type==="awakening"?ancientArenaLoadedKey(G.world,actor.duneCycle.site,fast):0;
+  // Awakening: countdown, ceiling sand and one small arena glyph batch.
   if (cues.length !== ancientArrivalFX.length || cues.some((cue,i) => {
     const fx = ancientArrivalFX[i];
     return fx?.actor !== actor || fx.point !== cue.point ||fx.fast!==fast||
-      (fx.edits !== G.world.editCount || fx.loadedKey !== ancientWarningLoadedKey(G.world,cue)) && now-fx.builtAt >= .2;
+      (fx.edits !== G.world.editCount || fx.loadedKey !== ancientWarningLoadedKey(G.world,cue) ||
+        fx.arenaLoadedKey!==cue.arenaLoadedKey) && now-fx.builtAt >= .2;
   })) {
     clearAncientArrival();
     ancientArrivalFX = cues.map(cue => ({actor,point:cue.point,cue,builtAt:now,fast,edits:G.world.editCount,
       loadedKey:ancientWarningLoadedKey(G.world,cue),view:createAncientWarningView(scene,G.world,cue),
-      sand:cue.type==="awakening"?createAncientAwakeningView(scene,G.world,cue,fast):null}));
+      sand:cue.type==="awakening"?createAncientAwakeningView(scene,G.world,cue,fast):null,
+      arenaLoadedKey:cue.arenaLoadedKey,
+      arena:cue.type==="awakening"?createAncientArenaView(scene,G.world,actor.duneCycle.site,fast):null}));
   }
   ancientArrivalFX.forEach((fx,i) => {
     fx.cue = cues[i]; fx.point.warned = !!fx.view;
     fx.view?.update(cues[i].progress,G.settings.reducedMotion);
     fx.sand?.update(cues[i].progress,G.settings.reducedMotion);
+    fx.arena?.update(cues[i].progress,G.settings.reducedMotion,fx.arenaLoadedKey===cues[i].arenaLoadedKey);
   });
 }
 let ancientWarningFX = null;
@@ -5019,6 +5067,7 @@ function loop(now) {
   updateAncientWarning();
   updateAncientArrival();
   updateAncientFury();
+  updateAncientPresentation(running);
   updateDuneSweep(dt, running);
   updateDuneDevour(dt, running);
   updateDuneVortex(dt, running);
@@ -5122,3 +5171,21 @@ G._test.obsidianWarningReview = obsidianWarningReview;
 G._test.ancientWarningReview = ancientWarningReview;
 G._test.ancientArrivalReview = ancientArrivalReview;
 G._test.ancientFuryReview = ancientFuryReview;
+G._test.ancientMusicReview = () => Sound.ancientMusicReview();
+G._test.ancientTremorReview = () => ({ roll: ancientTremorRoll, cameraRoll: camera.rotation.z });
+G._test.ancientBuriedReview = () => ancientBuriedView.review();
+G._test.ancientOpeningReview = () => ancientOpeningView.review();
+// On-demand snapshots only; no per-frame collection or saved diagnostics.
+G._test.renderReview = () => ({
+  memory: { ...renderer.info.memory },
+  programs: renderer.info.programs?.length || 0,
+  render: { ...renderer.info.render },
+  viewport: { width: renderer.domElement.clientWidth, height: renderer.domElement.clientHeight,
+    bufferWidth: renderer.domElement.width, bufferHeight: renderer.domElement.height, pixelRatio: renderer.getPixelRatio() },
+  settings: { quality: G.settings.quality, renderDist: G.settings.renderDist, reducedMotion: G.settings.reducedMotion },
+  chunks: G.world?.chunks.size || 0,
+  entities: ents.list.length,
+  arrivals: ancientArrivalReview(),
+  music: Sound.ancientMusicReview(),
+  introVisible: !!document.querySelector('.ancient-intro:not([hidden])')
+});

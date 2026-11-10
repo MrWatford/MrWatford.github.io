@@ -1,6 +1,9 @@
+import { createAncientScore } from "./ancient-score.js";
 // Small sound effects made on the fly with the Web Audio API (no sound files needed).
 let ctx = null, master = null, noiseBuf = null, volume = 0.6, muted = false;
 let wind = null;
+let ancientScore = null;
+let ancientMusicState = null;
 
 export const Sound = {
   start() {   // must be called after a click or key press (browser rule)
@@ -14,10 +17,23 @@ export const Sound = {
     }
     if (ctx.state === "suspended") ctx.resume();
   },
-  pause() { if (ctx && ctx.state === "running") ctx.suspend(); },
-  stop() { if (ctx) { this.wind(0); ctx.close(); ctx = null; master = null; } },
-  setVolume(v) { volume = v; if (master) master.gain.value = muted ? 0 : v * 0.5; },
+  pause() { this.ancientMusic(null); if (ctx && ctx.state === "running") ctx.suspend(); },
+  stop() { this.ancientMusic(null); if (ctx) { this.wind(0); ctx.close(); ctx = null; master = null; } },
+  setVolume(v) { volume = v; if (master) master.gain.value = muted ? 0 : v * 0.5;
+    if (muted || volume <= 0) this.ancientMusic(null); },
   setMuted(m) { muted = m; this.setVolume(volume); },
+
+  ancientMusic(state) {
+    if (!state || muted || volume <= 0) {
+      ancientScore?.dispose(); ancientScore = null; ancientMusicState = null; return;
+    }
+    if (!ctx || ctx.state !== "running") return;
+    ancientScore ||= createAncientScore(ctx, master);
+    ancientScore.update(state);
+    ancientMusicState = { ...state };
+  },
+  ancientMusicReview() { return { active: !!ancientScore, voices: ancientScore?.voiceCount || 0,
+    context: ctx?.state || "closed", ...ancientMusicState }; },
 
   wind(stage) {
     if (!ctx) return;
@@ -108,6 +124,11 @@ export const Sound = {
       case "fireshoot": this.noise(900, 0.3, g(0.35), 0.8); break;
       case "portal": this.tone(200, 2.5, "sine", g(0.08), 300); this.noise(1200, 2, g(0.06), 0.5); break;
       case "rumble": this.noise(80, 3, g(0.18), 0.5, "lowpass"); break;
+      case "roar":
+        this.noise(180, 1.15, g(.22), .7, "lowpass");
+        this.tone(95 * r(), .95, "sawtooth", g(.055), -45);
+        this.tone(142, .8, "triangle", g(.07), -60);
+        break;
       case "blub": this.tone(260 * r(), 0.09, "sine", g(0.08), 220); break;
       case "buzz": this.tone(190 * r(), 0.5, "sawtooth", g(0.025), 15); break;
       case "yip": this.tone(900 * r(), 0.08, "triangle", g(0.06), 300); setTimeout(() => this.tone(1000 * r(), 0.07, "triangle", g(0.05), 200), 110); break;
