@@ -6,13 +6,15 @@ import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
 import { installCreatures, animateCreature, thinkCreature, interactCreature, spawnCreatures } from "./creatures.js";
 import { Sound } from "./audio.js";
-import { DUNE_SEGMENTS, DuneTrail, DunePose } from "./dune-leviathan.js?v=pose-1";
+import { DUNE_SEGMENTS, DuneTrail, DunePose } from "./dune-leviathan.js?v=pose-2";
 import { animateDesertMob, installDesertMobs, spawnDesertMobs, thinkDesertMob } from "./desert-mobs.js";
 import { createLeviathanGlow } from "./leviathan-glow.js?v=charge-1";
 import { createMawShell } from "./leviathan-geometry.js";
 import { LeviathanCues } from "./leviathan-cues.js";
 import { stepAncientFinale } from "./ancient-finale.js";
 import { stepAncientAwakening } from "./ancient-awakening.js";
+import { ancientCoilWeight, applyAncientCoil } from "./ancient-coil.js";
+import { stepAncientCircle } from "./ancient-circle.js";
 import { DuneAttackMotion } from "./dune-attack-motion.js";
 import { segmentBoxTime, projectileBlockHit, MAX_DEFLECT_SPEED } from "./projectile-collision.js";
 import { usesLeviathanHitVolumes, createLeviathanHitVolumes, updateLeviathanHitVolumes, leviathanSegmentTime } from "./leviathan-hit-volumes.js";
@@ -2063,6 +2065,7 @@ export class Entities {
       if (e.iframes > 0) e.iframes -= dt; if (e.hurtT > 0) e.hurtT -= dt; if (e.attackCd > 0) e.attackCd -= dt;
       if (def.noclip) {
         if (e.sp === "leviathan_ancient" && stepAncientAwakening(e)) return;
+        if (e.sp === "leviathan_ancient" && stepAncientCircle(e)) return;
         if (def.segmentedLeviathan && stepBondedLeviathan(w, e, dt)) return;
         if (e.goal) {
           const gx = e.goal.x - e.pos.x, gy = (e.goal.y ?? e.pos.y) - e.pos.y, gz = e.goal.z - e.pos.z, gl = Math.hypot(gx, gy, gz) || 1, sp = e.goal.speed || def.speed;
@@ -3325,6 +3328,8 @@ export class Entities {
       e.trail.follow(e.pos.x, e.pos.y, e.pos.z, pose.yaw);
       const cycle = e.mountedCue || e.duneCycle;
       const reducedMotion = !!this.ctx?.reducedMotion?.();
+      const coil = ancientCoilWeight(e, reducedMotion);
+      e.ancientCoilPoint ||= { x:0, y:0, z:0 };
       e.leviathanCues ||= new LeviathanCues();
       const cue = e.leviathanCues.sample(cycle, e.age, e.emerged, reducedMotion);
       e.duneAttackMotion ||= new DuneAttackMotion();
@@ -3365,7 +3370,10 @@ export class Entities {
         const restingY = e.pos.y + Math.sin(progress * Math.PI) * 5 - 7 * progress ** 1.15;
         const part = P["segment" + i];
         let py = Math.min(e.pos.y + 2, p.y * (1 - resting) + restingY * resting + motion.lift * Math.sin(progress * Math.PI));
-        const point = pose.segment(i, e.pos.x + x, py, e.pos.z + z, previousX, previousY, previousZ, linkLimit, dt);
+        const desired = e.ancientCoilPoint;
+        desired.x = e.pos.x + x; desired.y = py; desired.z = e.pos.z + z;
+        applyAncientCoil(e, i, coil, reducedMotion, desired);
+        const point = pose.segment(i, desired.x, desired.y, desired.z, previousX, previousY, previousZ, linkLimit, dt, coil > 0);
         x = point.x - e.pos.x; z = point.z - e.pos.z; py = point.y;
         part.visible = d2 < 48 * 48 || i < 5;
         part.position.set((cos * x - sin * z) / s, (py - e.pos.y) / s, (sin * x + cos * z) / s);

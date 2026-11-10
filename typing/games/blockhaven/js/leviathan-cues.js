@@ -16,8 +16,9 @@ export class LeviathanCues {
     this.deadline = pending ? cycle.attackAt : Infinity;
     const awakening=step==="awakening"&&[cycle.arrivalFrom,cycle.until,age].every(Number.isFinite)&&cycle.until>cycle.arrivalFrom;
     const awakenCharge=awakening?clamp((age-cycle.arrivalFrom)/(cycle.until-cycle.arrivalFrom)):0;
-    const roar=step==="recover"&&Number.isFinite(cycle.awakenedAt)&&age>=cycle.awakenedAt&&age<cycle.awakenedAt+1.2;
-    const roarCharge=roar?1-(age-cycle.awakenedAt)/1.2:0;
+    const roarAt=Number.isFinite(cycle?.introCircle?.roaredAt)?cycle.introCircle.roaredAt:cycle?.awakenedAt;
+    const roar=step==="recover"&&Number.isFinite(roarAt)&&age>=roarAt&&age<roarAt+1.2;
+    const roarCharge=roar?1-(age-roarAt)/1.2:0;
     const charge = awakening ? awakenCharge*.75 : roar ? roarCharge*.75 : pending ? Number.isFinite(cycle.attackAt) ? clamp(1 - (cycle.attackAt - age) / 1.25) : 1 : 0;
     const recoilTime = (age - this.releasedAt) / 0.35;
     const recoil = !reducedMotion && recoilTime >= 0 && recoilTime < 1 ? Math.sin(recoilTime * Math.PI) : 0;
