@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blockhaven | Mr. Watford's Free-Time Games</title>
 <meta name="description" content="Blockhaven: explore, mine, craft, and build in a block world. Saves on your own device.">
-<meta name="blockhaven-release" content="leviathan-early-access-5">
+<meta name="blockhaven-release" content="leviathan-early-access-6">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -363,7 +363,7 @@ details.more .set { margin-top: 10px; }
   <div class="menu">
     <h1 class="logo">BLOCKHAVEN</h1>
     <p class="tagline">Explore • Mine • Craft • Build</p>
-    <p class="early-access"><strong>Leviathan · Early Access 5</strong>Still in development. Download a backup of important worlds before playing.<br><a href="early-access.html">What's included &amp; known limitations</a></p>
+    <p class="early-access"><strong>Leviathan · Early Access 6</strong>Still in development. Download a backup of important worlds before playing.<br><a href="early-access.html">What's included &amp; known limitations</a></p>
     <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
@@ -590,19 +590,121 @@ details.more .set { margin-top: 10px; }
 <noscript><p style="padding:20px">Blockhaven needs JavaScript turned on.</p></noscript>
 <script type="importmap">{
   "imports": {
-    "./js/entities.js": "./js/entities.js?v=leviathan-early-access-5-1",
-    "./js/ancient-victory.js": "./js/ancient-victory.js?v=leviathan-early-access-5-1",
-    "./js/ancient-warning-view.js": "./js/ancient-warning-view.js?v=leviathan-early-access-5-1",
-    "./js/ancient-warning.js": "./js/ancient-warning.js?v=leviathan-early-access-5-1",
-    "./js/leviathan-cues.js": "./js/leviathan-cues.js?v=leviathan-early-access-5-1",
-    "./js/leviathan-glow.js": "./js/leviathan-glow.js?v=leviathan-early-access-5-1",
-    "./js/ancient-fury.js": "./js/ancient-fury.js?v=leviathan-early-access-5-1",
-    "./js/ancient-finale.js": "./js/ancient-finale.js?v=leviathan-early-access-5-1",
-    "./js/ancient-awakening.js": "./js/ancient-awakening.js?v=leviathan-early-access-5-1",
-    "./js/ancient-awakening-view.js": "./js/ancient-awakening-view.js?v=leviathan-early-access-5-1",
-    "./js/leviathan-glow.js?v=charge-1": "./js/leviathan-glow.js?v=leviathan-early-access-5-1"
+    "./js/abyssal-quicksand-view.js": "./js/abyssal-quicksand-view.js?v=leviathan-early-access-6",
+    "./js/abyssal-quicksand.js": "./js/abyssal-quicksand.js?v=leviathan-early-access-6",
+    "./js/advancements.js": "./js/advancements.js?v=leviathan-early-access-6",
+    "./js/ancient-arena-view.js": "./js/ancient-arena-view.js?v=leviathan-early-access-6",
+    "./js/ancient-arrival.js": "./js/ancient-arrival.js?v=leviathan-early-access-6",
+    "./js/ancient-awakening-view.js": "./js/ancient-awakening-view.js?v=leviathan-early-access-6",
+    "./js/ancient-awakening.js": "./js/ancient-awakening.js?v=leviathan-early-access-6",
+    "./js/ancient-buried-view.js": "./js/ancient-buried-view.js?v=leviathan-early-access-6",
+    "./js/ancient-circle.js": "./js/ancient-circle.js?v=leviathan-early-access-6",
+    "./js/ancient-coil.js": "./js/ancient-coil.js?v=leviathan-early-access-6",
+    "./js/ancient-finale.js": "./js/ancient-finale.js?v=leviathan-early-access-6",
+    "./js/ancient-fury.js": "./js/ancient-fury.js?v=leviathan-early-access-6",
+    "./js/ancient-intro.js": "./js/ancient-intro.js?v=leviathan-early-access-6",
+    "./js/ancient-opening-view.js": "./js/ancient-opening-view.js?v=leviathan-early-access-6",
+    "./js/ancient-score.js": "./js/ancient-score.js?v=leviathan-early-access-6",
+    "./js/ancient-spikes.js": "./js/ancient-spikes.js?v=leviathan-early-access-6",
+    "./js/ancient-tremor.js": "./js/ancient-tremor.js?v=leviathan-early-access-6",
+    "./js/ancient-victory.js": "./js/ancient-victory.js?v=leviathan-early-access-6",
+    "./js/ancient-warning-view.js": "./js/ancient-warning-view.js?v=leviathan-early-access-6",
+    "./js/ancient-warning.js": "./js/ancient-warning.js?v=leviathan-early-access-6",
+    "./js/arena-fractures.js": "./js/arena-fractures.js?v=leviathan-early-access-6",
+    "./js/audio.js": "./js/audio.js?v=leviathan-early-access-6",
+    "./js/blocks.js": "./js/blocks.js?v=leviathan-early-access-6",
+    "./js/buried-throne.js": "./js/buried-throne.js?v=leviathan-early-access-6",
+    "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=leviathan-early-access-6",
+    "./js/campaign-data.js": "./js/campaign-data.js?v=leviathan-early-access-6",
+    "./js/campaign-kit.js": "./js/campaign-kit.js?v=leviathan-early-access-6",
+    "./js/campaign-towns.js": "./js/campaign-towns.js?v=leviathan-early-access-6",
+    "./js/campaign-towns2.js": "./js/campaign-towns2.js?v=leviathan-early-access-6",
+    "./js/campaign-village.js": "./js/campaign-village.js?v=leviathan-early-access-6",
+    "./js/campaign.js": "./js/campaign.js?v=leviathan-early-access-6",
+    "./js/creature-catalog.js": "./js/creature-catalog.js?v=leviathan-early-access-6",
+    "./js/creatures.js": "./js/creatures.js?v=leviathan-early-access-6",
+    "./js/crystal-resonance-view.js": "./js/crystal-resonance-view.js?v=leviathan-early-access-6",
+    "./js/crystal-resonance.js": "./js/crystal-resonance.js?v=leviathan-early-access-6",
+    "./js/desert-mob-catalog.js": "./js/desert-mob-catalog.js?v=leviathan-early-access-6",
+    "./js/desert-mobs.js": "./js/desert-mobs.js?v=leviathan-early-access-6",
+    "./js/desert-relic-sites.js": "./js/desert-relic-sites.js?v=leviathan-early-access-6",
+    "./js/dune-attack-motion.js": "./js/dune-attack-motion.js?v=leviathan-early-access-6",
+    "./js/dune-devour-view.js": "./js/dune-devour-view.js?v=leviathan-early-access-6",
+    "./js/dune-devour.js": "./js/dune-devour.js?v=leviathan-early-access-6",
+    "./js/dune-leviathan.js": "./js/dune-leviathan.js?v=leviathan-early-access-6",
+    "./js/dune-sweep-view.js": "./js/dune-sweep-view.js?v=leviathan-early-access-6",
+    "./js/dune-sweep.js": "./js/dune-sweep.js?v=leviathan-early-access-6",
+    "./js/dune-vortex-view.js": "./js/dune-vortex-view.js?v=leviathan-early-access-6",
+    "./js/dune-vortex.js": "./js/dune-vortex.js?v=leviathan-early-access-6",
+    "./js/dune-warning-view.js": "./js/dune-warning-view.js?v=leviathan-early-access-6",
+    "./js/dune-warning.js": "./js/dune-warning.js?v=leviathan-early-access-6",
+    "./js/entities.js": "./js/entities.js?v=leviathan-early-access-6",
+    "./js/forgotten-heat-view.js": "./js/forgotten-heat-view.js?v=leviathan-early-access-6",
+    "./js/forgotten-heat.js": "./js/forgotten-heat.js?v=leviathan-early-access-6",
+    "./js/forsaken-author.js": "./js/forsaken-author.js?v=leviathan-early-access-6",
+    "./js/forsaken.js": "./js/forsaken.js?v=leviathan-early-access-6",
+    "./js/hollow-sands-footprint.js": "./js/hollow-sands-footprint.js?v=leviathan-early-access-6",
+    "./js/hollow-sands-ground-view.js": "./js/hollow-sands-ground-view.js?v=leviathan-early-access-6",
+    "./js/hollow-sands.js": "./js/hollow-sands.js?v=leviathan-early-access-6",
+    "./js/inventory.js": "./js/inventory.js?v=leviathan-early-access-6",
+    "./js/leviathan-armor-art.js": "./js/leviathan-armor-art.js?v=leviathan-early-access-6",
+    "./js/leviathan-armor-effects.js": "./js/leviathan-armor-effects.js?v=leviathan-early-access-6",
+    "./js/leviathan-armor-shield-view.js": "./js/leviathan-armor-shield-view.js?v=leviathan-early-access-6",
+    "./js/leviathan-armor-style.js": "./js/leviathan-armor-style.js?v=leviathan-early-access-6",
+    "./js/leviathan-bonds.js": "./js/leviathan-bonds.js?v=leviathan-early-access-6",
+    "./js/leviathan-burrow-view.js": "./js/leviathan-burrow-view.js?v=leviathan-early-access-6",
+    "./js/leviathan-burrow.js": "./js/leviathan-burrow.js?v=leviathan-early-access-6",
+    "./js/leviathan-camera.js": "./js/leviathan-camera.js?v=leviathan-early-access-6",
+    "./js/leviathan-cues.js": "./js/leviathan-cues.js?v=leviathan-early-access-6",
+    "./js/leviathan-geometry.js": "./js/leviathan-geometry.js?v=leviathan-early-access-6",
+    "./js/leviathan-glow.js": "./js/leviathan-glow.js?v=leviathan-early-access-6",
+    "./js/leviathan-hit-volumes.js": "./js/leviathan-hit-volumes.js?v=leviathan-early-access-6",
+    "./js/leviathan-journal.js": "./js/leviathan-journal.js?v=leviathan-early-access-6",
+    "./js/leviathan-mounted-burrow.js": "./js/leviathan-mounted-burrow.js?v=leviathan-early-access-6",
+    "./js/leviathan-mounted-combat.js": "./js/leviathan-mounted-combat.js?v=leviathan-early-access-6",
+    "./js/leviathan-navigation.js": "./js/leviathan-navigation.js?v=leviathan-early-access-6",
+    "./js/leviathan-obsidian-mounted.js": "./js/leviathan-obsidian-mounted.js?v=leviathan-early-access-6",
+    "./js/leviathan-recall.js": "./js/leviathan-recall.js?v=leviathan-early-access-6",
+    "./js/leviathan-riding.js": "./js/leviathan-riding.js?v=leviathan-early-access-6",
+    "./js/leviathan-storm.js": "./js/leviathan-storm.js?v=leviathan-early-access-6",
+    "./js/leviathan-weapon-art.js": "./js/leviathan-weapon-art.js?v=leviathan-early-access-6",
+    "./js/leviathan-weapon-view.js": "./js/leviathan-weapon-view.js?v=leviathan-early-access-6",
+    "./js/lost-author.js": "./js/lost-author.js?v=leviathan-early-access-6",
+    "./js/lost-lore.js": "./js/lost-lore.js?v=leviathan-early-access-6",
+    "./js/lost-temples.js": "./js/lost-temples.js?v=leviathan-early-access-6",
+    "./js/lost.js": "./js/lost.js?v=leviathan-early-access-6",
+    "./js/main.js": "./js/main.js?v=leviathan-early-access-6",
+    "./js/maps.js": "./js/maps.js?v=leviathan-early-access-6",
+    "./js/mesher.js": "./js/mesher.js?v=leviathan-early-access-6",
+    "./js/noise.js": "./js/noise.js?v=leviathan-early-access-6",
+    "./js/obsidian-rite.js": "./js/obsidian-rite.js?v=leviathan-early-access-6",
+    "./js/obsidian-shrapnel-view.js": "./js/obsidian-shrapnel-view.js?v=leviathan-early-access-6",
+    "./js/obsidian-shrapnel.js": "./js/obsidian-shrapnel.js?v=leviathan-early-access-6",
+    "./js/obsidian-warning-view.js": "./js/obsidian-warning-view.js?v=leviathan-early-access-6",
+    "./js/obsidian-warning.js": "./js/obsidian-warning.js?v=leviathan-early-access-6",
+    "./js/player.js": "./js/player.js?v=leviathan-early-access-6",
+    "./js/projectile-collision.js": "./js/projectile-collision.js?v=leviathan-early-access-6",
+    "./js/rails.js": "./js/rails.js?v=leviathan-early-access-6",
+    "./js/redstone.js": "./js/redstone.js?v=leviathan-early-access-6",
+    "./js/sandstorm.js": "./js/sandstorm.js?v=leviathan-early-access-6",
+    "./js/save.js": "./js/save.js?v=leviathan-early-access-6",
+    "./js/shapes.js": "./js/shapes.js?v=leviathan-early-access-6",
+    "./js/skins.js": "./js/skins.js?v=leviathan-early-access-6",
+    "./js/solkara-annex.js": "./js/solkara-annex.js?v=leviathan-early-access-6",
+    "./js/solkara-gate-view.js": "./js/solkara-gate-view.js?v=leviathan-early-access-6",
+    "./js/solkara-lore.js": "./js/solkara-lore.js?v=leviathan-early-access-6",
+    "./js/starter.js": "./js/starter.js?v=leviathan-early-access-6",
+    "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-early-access-6",
+    "./js/ui.js": "./js/ui.js?v=leviathan-early-access-6",
+    "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-early-access-6",
+    "./js/world.js": "./js/world.js?v=leviathan-early-access-6",
+    "./js/worldgen.js": "./js/worldgen.js?v=leviathan-early-access-6",
+    "./js/dune-leviathan.js?v=pose-2": "./js/dune-leviathan.js?v=leviathan-early-access-6",
+    "./js/leviathan-glow.js?v=charge-1": "./js/leviathan-glow.js?v=leviathan-early-access-6",
+    "./js/dune-warning.js?v=physical-2": "./js/dune-warning.js?v=leviathan-early-access-6",
+    "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-early-access-6"
   }
 }</script>
-<script type="module" src="js/main.js?v=leviathan-early-access-5-1"></script>
+<script type="module" src="js/main.js?v=leviathan-early-access-6"></script>
 </body>
 </html>

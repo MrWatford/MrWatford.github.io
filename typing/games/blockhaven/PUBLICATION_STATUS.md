@@ -1,4 +1,22 @@
-# Current published release: Leviathan Early Access 4
+# Early Access 6 prepared; deployment pending
+
+November 10: the owner authorized publishing all current work and continuing development. EARLY_ACCESS_6_RELEASE.md defines the candidate. The prior EA5 correction remains queued in Pages; no public startup fix has yet been verified. Current local graphics/audio and opening-circuit work are now included in the candidate, superseding historical local-only labels for that scope once deployment succeeds. Narrow-screen HUD polish is intentionally deferred until after this frozen release.
+
+# Current deployment: EA5 startup correction merged; hosting retry queued
+
+## November 9 follow-up (UTC November 10)
+
+The previously authorized two-file correction in PR #6 is now merged as 4f0f53971f41e9c017e18086cf125b81bb6eb8fa. Its merged tree exactly matches reviewed tree 7cfc03b9fc1db56dcf86124da4e60cc65e65f10c. The only changed paths are index.html and EARLY_ACCESS_5_RELEASE.md; both remote blob IDs match the frozen manifest. No subsequent local graphics, audio, diagnostics or review files were published.
+
+Pages run 42745311015 built successfully but failed in deployment after repeated deployment_queued statuses, reporting “Deployment failed, try again later.” Retried that deployment through GitHub's existing Re-run this job flow. The UI shows Latest #2 / Re-run triggered / Queued; the last API snapshot also reports queued, although run_attempt remains 1 and the attempt-two endpoint returns 404. Do not claim successful correction deployment. Browser transport disconnected after the retry and older-world download, so public ordinary-refresh/start/save/reopen/notes acceptance remains unrun.
+
+Original EA5 PR #5 merge ab82f457ad92d1c119a3ab5f1692ca95f3031193 and Pages run 42687507665 succeeded; returning-browser startup then reproduced the missing ancientCollapseCues export from an older cached dependency. The correction versions changed dependencies together through the native import map. The remaining publication work is to verify the retry outcome, then ordinary-refresh the same returning Chrome page and verify startup, Survival, save/reopen, world preservation, notes and new console messages. The earlier locked-Mac blocker is superseded by the current hosting/browser blockers.
+
+The four existing public deployment-check worlds (EA1 through EA4) were visible before refresh. The ordinary Download control successfully exported EA1 Public Deployment Check; the download event wait timed out and reset browser control, but the actual downloaded file was subsequently located and verified on disk. Its original public record was not opened for gameplay or saved. A local copy now supplies genuine older-release data checks: three groups pass using the current save API with Node File and memory fallback. Subsequent local browser verification now passes three live and three shared data groups with IndexedDB persistence confirmed, including all 105 actual loaded modified blocks, save/reopen and JSON roundtrip. See local-older-world-live.json. This covers one older test world; pre-expansion and long-play compatibility remain open.
+
+Follow-up: the deployment API still reports queued; the returning Chrome page debugger was unattached. Local older-world review resumed successfully in the in-app browser. Public refresh acceptance remains incomplete. Evidence: tools/review-results/leviathan-early-access-5-publication.json. The full expansion remains unfinished. All post-EA5 graphics/audio and new review work remain local.
+
+# Historical EA4 and EA5 preparation records
 
 ## Early Access 5 release preparation
 
