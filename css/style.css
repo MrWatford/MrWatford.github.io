@@ -2064,15 +2064,15 @@ body.dialog-open { overflow: hidden; }
 .kg-back { margin: 14px 0 0; font-weight: 700; }
 .kg-next { display: inline-block; margin-left: 8px; padding: 2px 10px; border-radius: 999px; background: #fdf0d2; color: #8a5a00; font-size: 0.8rem; font-weight: 800; vertical-align: middle; }
 .kg-grade-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 22px; }
-.kg-grade-tabs button {
-  font: inherit; font-family: "Fredoka", sans-serif; font-size: 1.25rem; font-weight: 600; cursor: pointer;
+.kg-grade-tabs button, .kg-grade-tabs a {
+  font: inherit; text-decoration: none; font-family: "Fredoka", sans-serif; font-size: 1.25rem; font-weight: 600; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 14px 10px; border-radius: 16px;
   border: 3px solid var(--green-700); background: var(--white); color: var(--green-900);
   box-shadow: var(--shadow);
 }
-.kg-grade-tabs button:hover { background: var(--green-100); }
+.kg-grade-tabs button:hover, .kg-grade-tabs a:hover { background: var(--green-100); }
 .kg-grade-tabs button[aria-selected="true"] { background: var(--green-700); color: #fff; }
 .kg-grade-section[hidden] { display: none; }
 .kg-grade-section > .kg-grade { margin-top: 10px; }
-@media (max-width: 560px) { .kg-grade-tabs button { font-size: 1rem; padding: 12px 6px; flex-direction: column; gap: 2px; } }
+@media (max-width: 560px) { .kg-grade-tabs button, .kg-grade-tabs a { font-size: 1rem; padding: 12px 6px; flex-direction: column; gap: 2px; } }
