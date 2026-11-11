@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blockhaven | Mr. Watford's Free-Time Games</title>
 <meta name="description" content="Blockhaven: explore, mine, craft, and build in a block world. Saves on your own device.">
-<meta name="blockhaven-release" content="leviathan-early-access-6">
+<meta name="blockhaven-release" content="leviathan-1.0.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -189,6 +189,25 @@ details.more .set { margin-top: 10px; }
 .fw-card { width: min(860px, 95vw); }
 .fw-journal { display: grid; grid-template-columns: 1fr 250px; gap: 12px; }
 .fw-journal.leviathan-journal { display: block; }
+.inv-card.sands-map { box-sizing: border-box; width: min(850px, 94vw); max-height: 88vh; overflow: auto; padding: clamp(10px, 2.5vw, 22px); border: 1px solid #647284; background: #192431; color: #e7eced; box-shadow: 0 10px 30px #090e16b0; }
+.sands-map header h3 { margin: 0; color: #f1dbad; }
+.sands-map header p { margin: 5px 0 14px; color: #cbd9e4; }
+.sands-map-body { display: grid; grid-template-columns: minmax(180px, 0.85fr) minmax(0, 1.15fr); gap: 14px; }
+.sands-chart { position: relative; min-height: 300px; border: 1px solid #465d72; border-radius: 6px; overflow: hidden; background: radial-gradient(ellipse at 50% 36%, #345165 0%, #1b2a3d 64%); }
+.sands-chart::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 23px, #bacfed22 23px 24px), repeating-linear-gradient(90deg, transparent 0 23px, #bacfed22 23px 24px); }
+.sands-north, .sands-chart-key { position: absolute; left: 9px; color: #d2e0ed; font-size: 12px; }
+.sands-north { top: 8px; } .sands-chart-key { bottom: 8px; color: #ffd992; }
+.sands-pin, .sands-you { position: absolute; left: var(--map-x); top: var(--map-y); transform: translate(-50%, -50%); }
+.sands-pin, .sands-stop-marker { display: grid; place-items: center; width: 23px; height: 23px; border: 1px solid #a7c7e3; border-radius: 4px; background: #1c3146; color: #e5f5ff; font-size: 12px; font-weight: 800; flex: none; }
+.sands-pin.selected, .sands-stop[aria-pressed=true] .sands-stop-marker { border-color: #f3d58b; background: #f3d58b; color: #262031; }
+.sands-you { width: 7px; height: 7px; border: 1px solid #382832; border-radius: 50%; background: #ffd992; z-index: 1; }
+.sands-stops { display: grid; gap: 5px; }
+.sands-stop { display: flex; gap: 9px; align-items: center; padding: 7px 8px; min-height: 44px; text-align: left; font: inherit; border: 1px solid #495f73; border-radius: 5px; background: #263749; color: inherit; cursor: pointer; }
+.sands-stop:is(:hover, :focus-visible, [aria-pressed=true]) { border-color: #e6c982; }
+.sands-stop small { display: block; color: #c3d3e3; }
+.sands-stop .sands-stop-clue { color: #ead8b1; }
+.sands-map .help { margin: 10px 0; color: #cbd9e4; }
+@media (max-width: 560px) { .sands-map-body { grid-template-columns: minmax(0, 1fr); } .sands-chart { min-height: 215px; } }
 .leviathan-preparation { margin: 14px 0; padding: 14px; border: 1px solid #9b8f75; border-left: 4px solid #b48b35; border-radius: 8px; background: #eee4d5; }
 .leviathan-preparation h4 { display: flex; align-items: center; gap: 8px; }
 .leviathan-preparation h4 img, .leviathan-ingredients img { width: 28px; height: 28px; image-rendering: pixelated; }
@@ -317,10 +336,69 @@ details.more .set { margin-top: 10px; }
   .recipes { max-height: 30vh; }
 }
 @media (max-width: 520px) {
-  .grid9, .palette { grid-template-columns: repeat(9, 34px); }
+  #panel { --inventory-slot: clamp(22px, calc((100vw - 72px) / 10), 34px); padding: 10px; }
+  #panel .inv-wrap { width: 100%; max-width: max-content; grid-template-columns: minmax(0, 1fr); }
+  #panel .inv-wrap .inv-card { padding: 8px; }
+  #panel .grid9, #panel .palette { grid-template-columns: repeat(9, var(--inventory-slot)); gap: 2px; }
+  #panel .inv-row { gap: 5px; }
+  #panel .slot { width: var(--inventory-slot); height: var(--inventory-slot); }
+  #panel .slot img { inset: 12%; width: 76%; height: 76%; }
+  #panel .slot b { font-size: 11px; }
   .slot { width: 34px; height: 34px; } .slot img { inset: 3px; width: 26px; height: 26px; }
   .modes { grid-template-columns: 1fr; }
   .set { grid-template-columns: 1fr; }
+}
+
+/* Shared top rail lets wrapped boss names, waypoints and tips size themselves. */
+#hudTop { position: absolute; inset: 12px 14px auto; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
+#hudTop #bossbar, #hudTop #waypoint, #hudTop #toasts { position: static; transform: none; }
+#hudTop #bossbar { width: min(520px, 100%); }
+#leviathanWarning { --warning-ink: #ffe0a2; box-sizing: border-box; position: relative; width: min(370px, 100%); display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 9px; overflow: hidden; padding: 6px 10px 9px; border: 1px solid var(--warning-ink); border-radius: 7px; background: #18181bee; color: #fff6e8; }
+#leviathanWarning[data-family=obsidian] { --warning-ink: #ffba84; }
+#leviathanWarning[data-family=ancient] { --warning-ink: #c5e4ff; }
+#leviathanWarning .warning-symbol { display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid currentColor; color: var(--warning-ink); border-radius: 4px; font-weight: 800; }
+#leviathanWarning b, #leviathanWarning small { display: block; line-height: 1.2; }
+#leviathanWarning b { color: var(--warning-ink); font-size: 14px; }
+#leviathanWarning small { margin-top: 2px; font-size: 12px; }
+#leviathanWarning i { position: absolute; inset: auto 0 0; height: 3px; background: var(--warning-ink); transform: scaleX(0); transform-origin: left; }
+#leviathanWarning[data-stage=impact] .warning-symbol { background: var(--warning-ink); color: #25222b; }
+#hudTop #waypoint { max-width: 100%; }
+#hudTop #tip { left: 0; top: 0; max-width: min(330px, 100%); }
+#hudTop #effects { right: 0; top: 32px; }
+#hudTop #toasts { max-width: min(520px, 100%); text-align: center; }
+#hudTop #toasts:empty { display: none; }
+.hollow-arrival { position: absolute; top: 63%; left: 50%; transform: translateX(-50%); width: min(570px, calc(100% - 24px)); padding: 9px 16px 11px; text-align: center; color: #fff1cc; background: linear-gradient(90deg, transparent, #251c2ae8 18%, #251c2ae8 82%, transparent); border-block: 1px solid #b4915b9c; text-shadow: 0 2px 3px #0e090c; }
+.hollow-arrival strong { display: block; font: 700 clamp(18px, 4vw, 32px)/1.25 var(--display, serif); }
+.hollow-arrival span { color: #e5d3b0; font: 700 14px/1.35 var(--body, system-ui); }
+@media (max-width: 1260px) {
+  #hudTop #tip { position: static; align-self: flex-start; font-size: 14px; padding: 8px 10px; }
+  #hudTop #bossbar b { font-size: clamp(13px, 2.4vw, 16px); overflow-wrap: anywhere; }
+}
+@media (max-width: 760px), (max-height: 500px) {
+  #hudTop { inset: 8px 10px auto; gap: 6px; }
+  #hudTop #effects { position: static; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; max-width: 100%; }
+  #hudTop #effects:empty { display: none; }
+  #hudTop #effects span { font-size: 11px; padding: 3px 7px; }
+  #hudTop:has(#leviathanWarning:not([hidden])) #tip,
+  #hudTop:has(#leviathanWarning:not([hidden])) #toasts .toast:not(:last-child) { display: none; }
+}
+@media (min-width: 761px) and (max-height: 500px) {
+  #hudTop #effects { position: absolute; top: 36px; display: grid; justify-items: end; }
+}
+@media (max-width: 560px) {
+  #bottom { --quick-slot: clamp(21px, calc((100vw - 44px) / 10), 48px); --hud-icon: clamp(11px, calc((100vw - 42px) / 27), 18px); bottom: 8px; gap: 3px; }
+  #bottom .hotrow-wrap { gap: 4px; }
+  #hotbar { gap: 2px; padding: 2px; }
+  #bottom .slot { width: var(--quick-slot); height: var(--quick-slot); border-radius: 4px; }
+  #bottom .slot img { inset: 13%; width: 74%; height: 74%; }
+  #bottom .slot b { right: 1px; font-size: 11px; }
+  #bottom .icons { flex-wrap: wrap; }
+  #bottom .icons i { width: var(--hud-icon); height: var(--hud-icon); }
+  #bottom #stats { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 2px 4px; align-items: end; }
+  #air { grid-column: 1 / -1; grid-row: 1; justify-content: flex-end; }
+  #air:empty { display: none; }
+  #food { justify-content: flex-end; }
+  #itemName { bottom: 103px; max-width: calc(100% - 16px); text-align: center; font-size: 13px; }
 }
 </style>
   <script src="../../../js/play-counter.js"></script>
@@ -330,21 +408,27 @@ details.more .set { margin-top: 10px; }
 
 <div id="hud" hidden>
   <div id="crosshair"></div>
+  <div id="hollowArrival" class="hollow-arrival" hidden><strong>THE HOLLOW SANDS</strong><span>The kingdom beneath the world</span></div>
   <div id="flash"></div>
   <div id="waterTint" hidden></div>
   <div id="portalTint" style="position:absolute;inset:0;background:radial-gradient(circle,rgba(170,80,255,.35),rgba(90,20,170,.85));opacity:0;transition:opacity .2s;pointer-events:none"></div>
-  <div id="tip" hidden></div>
-  <div id="toasts" aria-live="polite"></div>
   <div id="saveDot">💾 Saved</div>
-  <div id="effects"></div>
   <div id="advToasts"></div>
   <div id="totemPop" hidden></div>
   <div id="fwHud" hidden><span class="fw-eye"><i></i><b></b></span><span class="fw-ward"></span><span class="fw-task"></span></div>
   <div id="victory" hidden><h2></h2><p></p><button class="btn small" onclick="window.__bh.skipVictory()">Skip (Space)</button></div>
   <div id="lostHud" hidden><span class="meter"><span class="bar"><i></i></span><b></b></span><em></em></div>
   <div id="compass" hidden><span class="dial"><i></i></span><b></b></div>
-  <div id="waypoint" hidden><span class="wp-arrow"><i></i></span><span class="wp-text"><b></b><em></em></span></div>
-  <div id="bossbar" hidden><b>Hollow Wyrm</b><span><i></i></span></div>
+  <div id="hudTop">
+    <div id="bossbar" hidden><b>Hollow Wyrm</b><span><i></i></span></div>
+    <div id="leviathanWarning" role="status" aria-atomic="true" hidden>
+      <span class="warning-symbol" aria-hidden="true">!</span><span><b></b><small></small></span><i aria-hidden="true"></i>
+    </div>
+    <div id="waypoint" hidden><span class="wp-arrow"><i></i></span><span class="wp-text"><b></b><em></em></span></div>
+    <div id="tip" hidden></div>
+    <div id="toasts" aria-live="polite"></div>
+    <div id="effects"></div>
+  </div>
   <div id="itemName"></div>
   <div id="bottom">
     <div class="icons" id="armor" style="align-self:flex-start"></div>
@@ -363,7 +447,7 @@ details.more .set { margin-top: 10px; }
   <div class="menu">
     <h1 class="logo">BLOCKHAVEN</h1>
     <p class="tagline">Explore • Mine • Craft • Build</p>
-    <p class="early-access"><strong>Leviathan · Early Access 6</strong>Still in development. Download a backup of important worlds before playing.<br><a href="early-access.html">What's included &amp; known limitations</a></p>
+    <p class="early-access"><strong>Leviathan Expansion · 1.0</strong>Three legendary Leviathans, ancient ruins and a world beneath the dunes.<br><a href="early-access.html">Release notes and getting started</a></p>
     <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
@@ -590,121 +674,130 @@ details.more .set { margin-top: 10px; }
 <noscript><p style="padding:20px">Blockhaven needs JavaScript turned on.</p></noscript>
 <script type="importmap">{
   "imports": {
-    "./js/abyssal-quicksand-view.js": "./js/abyssal-quicksand-view.js?v=leviathan-early-access-6",
-    "./js/abyssal-quicksand.js": "./js/abyssal-quicksand.js?v=leviathan-early-access-6",
-    "./js/advancements.js": "./js/advancements.js?v=leviathan-early-access-6",
-    "./js/ancient-arena-view.js": "./js/ancient-arena-view.js?v=leviathan-early-access-6",
-    "./js/ancient-arrival.js": "./js/ancient-arrival.js?v=leviathan-early-access-6",
-    "./js/ancient-awakening-view.js": "./js/ancient-awakening-view.js?v=leviathan-early-access-6",
-    "./js/ancient-awakening.js": "./js/ancient-awakening.js?v=leviathan-early-access-6",
-    "./js/ancient-buried-view.js": "./js/ancient-buried-view.js?v=leviathan-early-access-6",
-    "./js/ancient-circle.js": "./js/ancient-circle.js?v=leviathan-early-access-6",
-    "./js/ancient-coil.js": "./js/ancient-coil.js?v=leviathan-early-access-6",
-    "./js/ancient-finale.js": "./js/ancient-finale.js?v=leviathan-early-access-6",
-    "./js/ancient-fury.js": "./js/ancient-fury.js?v=leviathan-early-access-6",
-    "./js/ancient-intro.js": "./js/ancient-intro.js?v=leviathan-early-access-6",
-    "./js/ancient-opening-view.js": "./js/ancient-opening-view.js?v=leviathan-early-access-6",
-    "./js/ancient-score.js": "./js/ancient-score.js?v=leviathan-early-access-6",
-    "./js/ancient-spikes.js": "./js/ancient-spikes.js?v=leviathan-early-access-6",
-    "./js/ancient-tremor.js": "./js/ancient-tremor.js?v=leviathan-early-access-6",
-    "./js/ancient-victory.js": "./js/ancient-victory.js?v=leviathan-early-access-6",
-    "./js/ancient-warning-view.js": "./js/ancient-warning-view.js?v=leviathan-early-access-6",
-    "./js/ancient-warning.js": "./js/ancient-warning.js?v=leviathan-early-access-6",
-    "./js/arena-fractures.js": "./js/arena-fractures.js?v=leviathan-early-access-6",
-    "./js/audio.js": "./js/audio.js?v=leviathan-early-access-6",
-    "./js/blocks.js": "./js/blocks.js?v=leviathan-early-access-6",
-    "./js/buried-throne.js": "./js/buried-throne.js?v=leviathan-early-access-6",
-    "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=leviathan-early-access-6",
-    "./js/campaign-data.js": "./js/campaign-data.js?v=leviathan-early-access-6",
-    "./js/campaign-kit.js": "./js/campaign-kit.js?v=leviathan-early-access-6",
-    "./js/campaign-towns.js": "./js/campaign-towns.js?v=leviathan-early-access-6",
-    "./js/campaign-towns2.js": "./js/campaign-towns2.js?v=leviathan-early-access-6",
-    "./js/campaign-village.js": "./js/campaign-village.js?v=leviathan-early-access-6",
-    "./js/campaign.js": "./js/campaign.js?v=leviathan-early-access-6",
-    "./js/creature-catalog.js": "./js/creature-catalog.js?v=leviathan-early-access-6",
-    "./js/creatures.js": "./js/creatures.js?v=leviathan-early-access-6",
-    "./js/crystal-resonance-view.js": "./js/crystal-resonance-view.js?v=leviathan-early-access-6",
-    "./js/crystal-resonance.js": "./js/crystal-resonance.js?v=leviathan-early-access-6",
-    "./js/desert-mob-catalog.js": "./js/desert-mob-catalog.js?v=leviathan-early-access-6",
-    "./js/desert-mobs.js": "./js/desert-mobs.js?v=leviathan-early-access-6",
-    "./js/desert-relic-sites.js": "./js/desert-relic-sites.js?v=leviathan-early-access-6",
-    "./js/dune-attack-motion.js": "./js/dune-attack-motion.js?v=leviathan-early-access-6",
-    "./js/dune-devour-view.js": "./js/dune-devour-view.js?v=leviathan-early-access-6",
-    "./js/dune-devour.js": "./js/dune-devour.js?v=leviathan-early-access-6",
-    "./js/dune-leviathan.js": "./js/dune-leviathan.js?v=leviathan-early-access-6",
-    "./js/dune-sweep-view.js": "./js/dune-sweep-view.js?v=leviathan-early-access-6",
-    "./js/dune-sweep.js": "./js/dune-sweep.js?v=leviathan-early-access-6",
-    "./js/dune-vortex-view.js": "./js/dune-vortex-view.js?v=leviathan-early-access-6",
-    "./js/dune-vortex.js": "./js/dune-vortex.js?v=leviathan-early-access-6",
-    "./js/dune-warning-view.js": "./js/dune-warning-view.js?v=leviathan-early-access-6",
-    "./js/dune-warning.js": "./js/dune-warning.js?v=leviathan-early-access-6",
-    "./js/entities.js": "./js/entities.js?v=leviathan-early-access-6",
-    "./js/forgotten-heat-view.js": "./js/forgotten-heat-view.js?v=leviathan-early-access-6",
-    "./js/forgotten-heat.js": "./js/forgotten-heat.js?v=leviathan-early-access-6",
-    "./js/forsaken-author.js": "./js/forsaken-author.js?v=leviathan-early-access-6",
-    "./js/forsaken.js": "./js/forsaken.js?v=leviathan-early-access-6",
-    "./js/hollow-sands-footprint.js": "./js/hollow-sands-footprint.js?v=leviathan-early-access-6",
-    "./js/hollow-sands-ground-view.js": "./js/hollow-sands-ground-view.js?v=leviathan-early-access-6",
-    "./js/hollow-sands.js": "./js/hollow-sands.js?v=leviathan-early-access-6",
-    "./js/inventory.js": "./js/inventory.js?v=leviathan-early-access-6",
-    "./js/leviathan-armor-art.js": "./js/leviathan-armor-art.js?v=leviathan-early-access-6",
-    "./js/leviathan-armor-effects.js": "./js/leviathan-armor-effects.js?v=leviathan-early-access-6",
-    "./js/leviathan-armor-shield-view.js": "./js/leviathan-armor-shield-view.js?v=leviathan-early-access-6",
-    "./js/leviathan-armor-style.js": "./js/leviathan-armor-style.js?v=leviathan-early-access-6",
-    "./js/leviathan-bonds.js": "./js/leviathan-bonds.js?v=leviathan-early-access-6",
-    "./js/leviathan-burrow-view.js": "./js/leviathan-burrow-view.js?v=leviathan-early-access-6",
-    "./js/leviathan-burrow.js": "./js/leviathan-burrow.js?v=leviathan-early-access-6",
-    "./js/leviathan-camera.js": "./js/leviathan-camera.js?v=leviathan-early-access-6",
-    "./js/leviathan-cues.js": "./js/leviathan-cues.js?v=leviathan-early-access-6",
-    "./js/leviathan-geometry.js": "./js/leviathan-geometry.js?v=leviathan-early-access-6",
-    "./js/leviathan-glow.js": "./js/leviathan-glow.js?v=leviathan-early-access-6",
-    "./js/leviathan-hit-volumes.js": "./js/leviathan-hit-volumes.js?v=leviathan-early-access-6",
-    "./js/leviathan-journal.js": "./js/leviathan-journal.js?v=leviathan-early-access-6",
-    "./js/leviathan-mounted-burrow.js": "./js/leviathan-mounted-burrow.js?v=leviathan-early-access-6",
-    "./js/leviathan-mounted-combat.js": "./js/leviathan-mounted-combat.js?v=leviathan-early-access-6",
-    "./js/leviathan-navigation.js": "./js/leviathan-navigation.js?v=leviathan-early-access-6",
-    "./js/leviathan-obsidian-mounted.js": "./js/leviathan-obsidian-mounted.js?v=leviathan-early-access-6",
-    "./js/leviathan-recall.js": "./js/leviathan-recall.js?v=leviathan-early-access-6",
-    "./js/leviathan-riding.js": "./js/leviathan-riding.js?v=leviathan-early-access-6",
-    "./js/leviathan-storm.js": "./js/leviathan-storm.js?v=leviathan-early-access-6",
-    "./js/leviathan-weapon-art.js": "./js/leviathan-weapon-art.js?v=leviathan-early-access-6",
-    "./js/leviathan-weapon-view.js": "./js/leviathan-weapon-view.js?v=leviathan-early-access-6",
-    "./js/lost-author.js": "./js/lost-author.js?v=leviathan-early-access-6",
-    "./js/lost-lore.js": "./js/lost-lore.js?v=leviathan-early-access-6",
-    "./js/lost-temples.js": "./js/lost-temples.js?v=leviathan-early-access-6",
-    "./js/lost.js": "./js/lost.js?v=leviathan-early-access-6",
-    "./js/main.js": "./js/main.js?v=leviathan-early-access-6",
-    "./js/maps.js": "./js/maps.js?v=leviathan-early-access-6",
-    "./js/mesher.js": "./js/mesher.js?v=leviathan-early-access-6",
-    "./js/noise.js": "./js/noise.js?v=leviathan-early-access-6",
-    "./js/obsidian-rite.js": "./js/obsidian-rite.js?v=leviathan-early-access-6",
-    "./js/obsidian-shrapnel-view.js": "./js/obsidian-shrapnel-view.js?v=leviathan-early-access-6",
-    "./js/obsidian-shrapnel.js": "./js/obsidian-shrapnel.js?v=leviathan-early-access-6",
-    "./js/obsidian-warning-view.js": "./js/obsidian-warning-view.js?v=leviathan-early-access-6",
-    "./js/obsidian-warning.js": "./js/obsidian-warning.js?v=leviathan-early-access-6",
-    "./js/player.js": "./js/player.js?v=leviathan-early-access-6",
-    "./js/projectile-collision.js": "./js/projectile-collision.js?v=leviathan-early-access-6",
-    "./js/rails.js": "./js/rails.js?v=leviathan-early-access-6",
-    "./js/redstone.js": "./js/redstone.js?v=leviathan-early-access-6",
-    "./js/sandstorm.js": "./js/sandstorm.js?v=leviathan-early-access-6",
-    "./js/save.js": "./js/save.js?v=leviathan-early-access-6",
-    "./js/shapes.js": "./js/shapes.js?v=leviathan-early-access-6",
-    "./js/skins.js": "./js/skins.js?v=leviathan-early-access-6",
-    "./js/solkara-annex.js": "./js/solkara-annex.js?v=leviathan-early-access-6",
-    "./js/solkara-gate-view.js": "./js/solkara-gate-view.js?v=leviathan-early-access-6",
-    "./js/solkara-lore.js": "./js/solkara-lore.js?v=leviathan-early-access-6",
-    "./js/starter.js": "./js/starter.js?v=leviathan-early-access-6",
-    "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-early-access-6",
-    "./js/ui.js": "./js/ui.js?v=leviathan-early-access-6",
-    "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-early-access-6",
-    "./js/world.js": "./js/world.js?v=leviathan-early-access-6",
-    "./js/worldgen.js": "./js/worldgen.js?v=leviathan-early-access-6",
-    "./js/dune-leviathan.js?v=pose-2": "./js/dune-leviathan.js?v=leviathan-early-access-6",
-    "./js/leviathan-glow.js?v=charge-1": "./js/leviathan-glow.js?v=leviathan-early-access-6",
-    "./js/dune-warning.js?v=physical-2": "./js/dune-warning.js?v=leviathan-early-access-6",
-    "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-early-access-6"
+    "./js/abyssal-quicksand-view.js": "./js/abyssal-quicksand-view.js?v=leviathan-1.0.0",
+    "./js/abyssal-quicksand.js": "./js/abyssal-quicksand.js?v=leviathan-1.0.0",
+    "./js/advancements.js": "./js/advancements.js?v=leviathan-1.0.0",
+    "./js/ancient-arena-view.js": "./js/ancient-arena-view.js?v=leviathan-1.0.0",
+    "./js/ancient-arrival.js": "./js/ancient-arrival.js?v=leviathan-1.0.0",
+    "./js/ancient-awakening-view.js": "./js/ancient-awakening-view.js?v=leviathan-1.0.0",
+    "./js/ancient-awakening.js": "./js/ancient-awakening.js?v=leviathan-1.0.0",
+    "./js/ancient-buried-view.js": "./js/ancient-buried-view.js?v=leviathan-1.0.0",
+    "./js/ancient-circle.js": "./js/ancient-circle.js?v=leviathan-1.0.0",
+    "./js/ancient-coil.js": "./js/ancient-coil.js?v=leviathan-1.0.0",
+    "./js/ancient-finale.js": "./js/ancient-finale.js?v=leviathan-1.0.0",
+    "./js/ancient-fury.js": "./js/ancient-fury.js?v=leviathan-1.0.0",
+    "./js/ancient-intro.js": "./js/ancient-intro.js?v=leviathan-1.0.0",
+    "./js/ancient-opening-view.js": "./js/ancient-opening-view.js?v=leviathan-1.0.0",
+    "./js/ancient-score.js": "./js/ancient-score.js?v=leviathan-1.0.0",
+    "./js/ancient-spikes.js": "./js/ancient-spikes.js?v=leviathan-1.0.0",
+    "./js/ancient-tremor.js": "./js/ancient-tremor.js?v=leviathan-1.0.0",
+    "./js/ancient-victory.js": "./js/ancient-victory.js?v=leviathan-1.0.0",
+    "./js/ancient-warning-view.js": "./js/ancient-warning-view.js?v=leviathan-1.0.0",
+    "./js/ancient-warning.js": "./js/ancient-warning.js?v=leviathan-1.0.0",
+    "./js/arena-fractures.js": "./js/arena-fractures.js?v=leviathan-1.0.0",
+    "./js/audio.js": "./js/audio.js?v=leviathan-1.0.0",
+    "./js/blocks.js": "./js/blocks.js?v=leviathan-1.0.0",
+    "./js/buried-throne.js": "./js/buried-throne.js?v=leviathan-1.0.0",
+    "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=leviathan-1.0.0",
+    "./js/campaign-data.js": "./js/campaign-data.js?v=leviathan-1.0.0",
+    "./js/campaign-kit.js": "./js/campaign-kit.js?v=leviathan-1.0.0",
+    "./js/campaign-towns.js": "./js/campaign-towns.js?v=leviathan-1.0.0",
+    "./js/campaign-towns2.js": "./js/campaign-towns2.js?v=leviathan-1.0.0",
+    "./js/campaign-village.js": "./js/campaign-village.js?v=leviathan-1.0.0",
+    "./js/campaign.js": "./js/campaign.js?v=leviathan-1.0.0",
+    "./js/creature-catalog.js": "./js/creature-catalog.js?v=leviathan-1.0.0",
+    "./js/creatures.js": "./js/creatures.js?v=leviathan-1.0.0",
+    "./js/crystal-resonance-view.js": "./js/crystal-resonance-view.js?v=leviathan-1.0.0",
+    "./js/crystal-resonance.js": "./js/crystal-resonance.js?v=leviathan-1.0.0",
+    "./js/desert-mob-catalog.js": "./js/desert-mob-catalog.js?v=leviathan-1.0.0",
+    "./js/desert-mobs.js": "./js/desert-mobs.js?v=leviathan-1.0.0",
+    "./js/desert-relic-sites.js": "./js/desert-relic-sites.js?v=leviathan-1.0.0",
+    "./js/desert-vaults.js": "./js/desert-vaults.js?v=leviathan-1.0.0",
+    "./js/dune-attack-motion.js": "./js/dune-attack-motion.js?v=leviathan-1.0.0",
+    "./js/dune-devour-view.js": "./js/dune-devour-view.js?v=leviathan-1.0.0",
+    "./js/dune-devour.js": "./js/dune-devour.js?v=leviathan-1.0.0",
+    "./js/dune-leviathan.js": "./js/dune-leviathan.js?v=leviathan-1.0.0",
+    "./js/dune-sweep-view.js": "./js/dune-sweep-view.js?v=leviathan-1.0.0",
+    "./js/dune-sweep.js": "./js/dune-sweep.js?v=leviathan-1.0.0",
+    "./js/dune-vortex-view.js": "./js/dune-vortex-view.js?v=leviathan-1.0.0",
+    "./js/dune-vortex.js": "./js/dune-vortex.js?v=leviathan-1.0.0",
+    "./js/dune-warning-view.js": "./js/dune-warning-view.js?v=leviathan-1.0.0",
+    "./js/dune-warning.js": "./js/dune-warning.js?v=leviathan-1.0.0",
+    "./js/entities.js": "./js/entities.js?v=leviathan-1.0.0",
+    "./js/forgotten-heat-view.js": "./js/forgotten-heat-view.js?v=leviathan-1.0.0",
+    "./js/forgotten-heat.js": "./js/forgotten-heat.js?v=leviathan-1.0.0",
+    "./js/forsaken-author.js": "./js/forsaken-author.js?v=leviathan-1.0.0",
+    "./js/forsaken.js": "./js/forsaken.js?v=leviathan-1.0.0",
+    "./js/hollow-sands-footprint.js": "./js/hollow-sands-footprint.js?v=leviathan-1.0.0",
+    "./js/hollow-sands-ground-view.js": "./js/hollow-sands-ground-view.js?v=leviathan-1.0.0",
+    "./js/hollow-sands.js": "./js/hollow-sands.js?v=leviathan-1.0.0",
+    "./js/hollow-sands-landmarks.js": "./js/hollow-sands-landmarks.js?v=leviathan-1.0.0",
+    "./js/hollow-sands-map.js": "./js/hollow-sands-map.js?v=leviathan-1.0.0",
+    "./js/inventory.js": "./js/inventory.js?v=leviathan-1.0.0",
+    "./js/leviathan-armor-art.js": "./js/leviathan-armor-art.js?v=leviathan-1.0.0",
+    "./js/leviathan-armor-effects.js": "./js/leviathan-armor-effects.js?v=leviathan-1.0.0",
+    "./js/leviathan-armor-shield-view.js": "./js/leviathan-armor-shield-view.js?v=leviathan-1.0.0",
+    "./js/leviathan-armor-style.js": "./js/leviathan-armor-style.js?v=leviathan-1.0.0",
+    "./js/leviathan-bonds.js": "./js/leviathan-bonds.js?v=leviathan-1.0.0",
+    "./js/leviathan-burrow-view.js": "./js/leviathan-burrow-view.js?v=leviathan-1.0.0",
+    "./js/leviathan-burrow.js": "./js/leviathan-burrow.js?v=leviathan-1.0.0",
+    "./js/leviathan-camera.js": "./js/leviathan-camera.js?v=leviathan-1.0.0",
+    "./js/leviathan-cues.js": "./js/leviathan-cues.js?v=leviathan-1.0.0",
+    "./js/leviathan-geometry.js": "./js/leviathan-geometry.js?v=leviathan-1.0.0",
+    "./js/leviathan-glow.js": "./js/leviathan-glow.js?v=leviathan-1.0.0",
+    "./js/leviathan-warning-hud.js": "./js/leviathan-warning-hud.js?v=leviathan-1.0.0",
+    "./js/leviathan-hit-volumes.js": "./js/leviathan-hit-volumes.js?v=leviathan-1.0.0",
+    "./js/leviathan-journal.js": "./js/leviathan-journal.js?v=leviathan-1.0.0",
+    "./js/leviathan-mounted-burrow.js": "./js/leviathan-mounted-burrow.js?v=leviathan-1.0.0",
+    "./js/leviathan-mounted-combat.js": "./js/leviathan-mounted-combat.js?v=leviathan-1.0.0",
+    "./js/leviathan-mounted-contact.js": "./js/leviathan-mounted-contact.js?v=leviathan-1.0.0",
+    "./js/leviathan-navigation.js": "./js/leviathan-navigation.js?v=leviathan-1.0.0",
+    "./js/leviathan-obsidian-mounted.js": "./js/leviathan-obsidian-mounted.js?v=leviathan-1.0.0",
+    "./js/leviathan-recall.js": "./js/leviathan-recall.js?v=leviathan-1.0.0",
+    "./js/leviathan-riding.js": "./js/leviathan-riding.js?v=leviathan-1.0.0",
+    "./js/leviathan-storm.js": "./js/leviathan-storm.js?v=leviathan-1.0.0",
+    "./js/leviathan-weapon-art.js": "./js/leviathan-weapon-art.js?v=leviathan-1.0.0",
+    "./js/leviathan-weapon-view.js": "./js/leviathan-weapon-view.js?v=leviathan-1.0.0",
+    "./js/lost-author.js": "./js/lost-author.js?v=leviathan-1.0.0",
+    "./js/lost-lore.js": "./js/lost-lore.js?v=leviathan-1.0.0",
+    "./js/lost-temples.js": "./js/lost-temples.js?v=leviathan-1.0.0",
+    "./js/lost.js": "./js/lost.js?v=leviathan-1.0.0",
+    "./js/main.js": "./js/main.js?v=leviathan-1.0.0",
+    "./js/maps.js": "./js/maps.js?v=leviathan-1.0.0",
+    "./js/mesher.js": "./js/mesher.js?v=leviathan-1.0.0",
+    "./js/noise.js": "./js/noise.js?v=leviathan-1.0.0",
+    "./js/obsidian-badlands.js": "./js/obsidian-badlands.js?v=leviathan-1.0.0",
+    "./js/obsidian-vent.js": "./js/obsidian-vent.js?v=leviathan-1.0.0",
+    "./js/obsidian-rite.js": "./js/obsidian-rite.js?v=leviathan-1.0.0",
+    "./js/obsidian-shrapnel-view.js": "./js/obsidian-shrapnel-view.js?v=leviathan-1.0.0",
+    "./js/obsidian-shrapnel.js": "./js/obsidian-shrapnel.js?v=leviathan-1.0.0",
+    "./js/obsidian-warning-view.js": "./js/obsidian-warning-view.js?v=leviathan-1.0.0",
+    "./js/obsidian-warning.js": "./js/obsidian-warning.js?v=leviathan-1.0.0",
+    "./js/player.js": "./js/player.js?v=leviathan-1.0.0",
+    "./js/projectile-collision.js": "./js/projectile-collision.js?v=leviathan-1.0.0",
+    "./js/rails.js": "./js/rails.js?v=leviathan-1.0.0",
+    "./js/redstone.js": "./js/redstone.js?v=leviathan-1.0.0",
+    "./js/sandstorm.js": "./js/sandstorm.js?v=leviathan-1.0.0",
+    "./js/save.js": "./js/save.js?v=leviathan-1.0.0",
+    "./js/shapes.js": "./js/shapes.js?v=leviathan-1.0.0",
+    "./js/skins.js": "./js/skins.js?v=leviathan-1.0.0",
+    "./js/solkara-annex.js": "./js/solkara-annex.js?v=leviathan-1.0.0",
+    "./js/solkara-gate-view.js": "./js/solkara-gate-view.js?v=leviathan-1.0.0",
+    "./js/solkara-lore.js": "./js/solkara-lore.js?v=leviathan-1.0.0",
+    "./js/solkara-scenery.js": "./js/solkara-scenery.js?v=leviathan-1.0.0",
+    "./js/solkara-mural-view.js": "./js/solkara-mural-view.js?v=leviathan-1.0.0",
+    "./js/starter.js": "./js/starter.js?v=leviathan-1.0.0",
+    "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
+    "./js/ui.js": "./js/ui.js?v=leviathan-1.0.0",
+    "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
+    "./js/world.js": "./js/world.js?v=leviathan-1.0.0",
+    "./js/worldgen.js": "./js/worldgen.js?v=leviathan-1.0.0",
+    "./js/dune-leviathan.js?v=pose-2": "./js/dune-leviathan.js?v=leviathan-1.0.0",
+    "./js/leviathan-glow.js?v=charge-1": "./js/leviathan-glow.js?v=leviathan-1.0.0",
+    "./js/dune-warning.js?v=physical-2": "./js/dune-warning.js?v=leviathan-1.0.0",
+    "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=leviathan-early-access-6"></script>
+<script type="module" src="js/main.js?v=leviathan-1.0.0"></script>
 </body>
 </html>
