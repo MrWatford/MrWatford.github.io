@@ -2,6 +2,7 @@ import { B, CHUNK } from "./blocks.js";
 import { Grid, KEEP } from "./maps.js";
 import { idx, MapGen } from "./worldgen.js";
 import { SOLKARA_LIBRARY_RECORDS } from "./solkara-lore.js";
+import { SOLKARA_SCENERY_LAYOUT, stampSolkaraStatue } from "./solkara-scenery.js";
 
 const X = -64, Z = 16, SIZE = 48, Y = 22;
 const BRICK = B.SUN_BRICKS;
@@ -23,16 +24,16 @@ export const SOLKARA_RETURN = { x: -21, y: Y, z: 19 };
 export const isSolkaraRealm = dim => dim === "desert" || dim === SOLKARA_SANCTUARY;
 
 export class SolkaraSanctuaryGen extends MapGen {
-  constructor() {
+  constructor(scenery) {
     super({ meta: { fill: B.SANDSTONE, arrival: { x: -26, z: 19 } }, has: () => false }, SOLKARA_SANCTUARY);
-    const annex = buildSolkaraAnnex(), wing = buildSolkaraWing();
+    const annex = buildSolkaraAnnex(scenery), wing = buildSolkaraWing();
     annex.cells[(SOLKARA_RETURN.x - annex.x) + (SOLKARA_RETURN.z - annex.z) * annex.size +
       SOLKARA_RETURN.y * annex.size * annex.size] = B.SOLKARA_GATE;
     this.stamps = [annex, wing];
   }
 }
 
-export function buildSolkaraAnnex() {
+export function buildSolkaraAnnex(scenery) {
   const g = new Grid(X, Z, SIZE, SIZE, KEEP);
   const room = (x0, z0, x1, z1, h) => {
     g.box(x0, Y - 1, z0, x1, Y + h, z1, BRICK);
@@ -47,6 +48,10 @@ export function buildSolkaraAnnex() {
     g.box(x0, Y, 26, x1, Y + 3, 28, B.AIR);
   }
   for (const x of [-33, -28]) for (const z of [21, 31]) {
+    if (z === 31 && scenery === SOLKARA_SCENERY_LAYOUT) {
+      stampSolkaraStatue(g, x, Y, z, -1);
+      continue;
+    }
     g.box(x, Y, z, x, Y + 4, z, B.SUN_GLYPH);
     g.set(x, Y + 5, z, B.SHINESTONE);
   }

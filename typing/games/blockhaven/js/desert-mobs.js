@@ -190,6 +190,11 @@ export function thinkDesertMob(manager, e, distance, multiplier) {
   return false;
 }
 
+function sandsRefuge(world, x, z) {
+  return Math.hypot(x, z) < 12 || world.gen.stamps?.some(s => s.sandsLandmark === 5 &&
+    x >= s.x && x < s.x + s.size && z >= s.z && z < s.z + s.size);
+}
+
 export function spawnDesertMobs(manager, dt) {
   manager.desertSpawnT = (manager.desertSpawnT || 0) - dt;
   if (manager.desertSpawnT > 0) return;
@@ -198,6 +203,7 @@ export function spawnDesertMobs(manager, dt) {
   if (!["overworld", "desert", "hollow_sands"].includes(c.dim) || manager.ctx.settings().difficulty === "peaceful" ||
       manager.list.filter(e => !e.gone && !e.dead).length >= 120 ||
       manager.list.filter(e => e.def.desertMob && !e.gone && !e.dead).length >= 8) return;
+  if (c.dim === "hollow_sands" && sandsRefuge(w, p.pos.x, p.pos.z)) return;
   const angle = p.yaw + Math.PI + (Math.random() - 0.5) * 1.5, r = 14 + Math.random() * 8;
   const x = Math.floor(p.pos.x - Math.sin(angle) * r), z = Math.floor(p.pos.z - Math.cos(angle) * r);
   if (!w.isLoaded(x, z)) return;
@@ -212,7 +218,7 @@ export function spawnDesertMobs(manager, dt) {
   } else {
     y = Math.floor(p.pos.y);
     for (let n = 0; n < 3 && y > 2 && !SOLID[w.id(x, y - 1, z)]; n++) y--;
-    if (c.dim === "hollow_sands" && Math.hypot(x, z) < 12) return;
+    if (c.dim === "hollow_sands" && sandsRefuge(w, x, z)) return;
     candidates = c.dim === "desert" ? ["ancient_sentinel", "tomb_guardian"] : ["ancient_sentinel", "desert_burrower", "sand_wraith"];
   }
   const floor = w.id(x, y - 1, z);

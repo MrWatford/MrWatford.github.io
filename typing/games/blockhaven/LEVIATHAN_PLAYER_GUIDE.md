@@ -1,6 +1,6 @@
 # How to Meet and Fight the Three Leviathans
 
-For the **BlockHaven: Leviathan Early Access 6** release candidate. Deployment must be verified before treating this version as live.
+For **BlockHaven: Leviathan Expansion 1.0**.
 
 **Ancient opening:** After the Ancient wakes, it makes a ten-second lap around the court, comes back down, then roars before its first attack. You can keep moving and attack during the lap. Watch for the blue danger circles when the fight starts.
 
@@ -62,7 +62,7 @@ If it does not wake, check that you are inside the inner court rather than on th
 
 ### Wake the boss
 
-7. Explore the six underground regions and read the large record tablet in each: **Pale Dunes**, **Crystal Wastes**, **Bone Fields**, **Forgotten Kingdom**, **Abyssal Sands** and **Eternal Oasis**.
+7. Press **M** for the Hollow Sands survey. Use it to find the large record tablet in each region. Visit **Pale Dunes**, **Crystal Wastes**, **Bone Fields**, **Forgotten Kingdom**, **Abyssal Sands** and **Eternal Oasis**.
 8. Check **J → Leviathan → The Last Sandcaller**. You need **6/6** of these records. Extra library stories do not replace these six region records.
 9. Go to the **Throne of the Buried King**. The court is centered around **X 0, Z 192**. Its activation altar is at **X 0, Z 213**, on the court's floor.
 10. Right-click the Throne altar. With the Core claimed and all six records read, the Ancient Leviathan will wake after a seven-second buildup!
@@ -73,7 +73,7 @@ If the altar says it remembers fewer than six records, keep exploring the six re
 
 ### Optional coordinate help
 
-Press **F3** while playing to show X and Z. Some laptops need **Fn + F3**. The Surface map does not show Hollow Sands.
+Press **F3** while playing to show X and Z. Some laptops need **Fn + F3**.
 
 | Underground record | X | Z |
 | --- | ---: | ---: |
@@ -86,6 +86,13 @@ Press **F3** while playing to show X and Z. Some laptops need **Fn + F3**. The S
 
 Look for each region's large tablet near those coordinates. Climb or descend safely to reach it.
 
+## Creative practice
+
+1. Open the Creative inventory with **E** and search for **Leviathan**. Pick the Dune, Obsidian or Ancient spawn egg and use it on top of a solid block in a wide open area. Each egg replaces the previous preview.
+2. On the Surface, Dune and Obsidian previews hatch with a saddle. With an empty hand, right-click near the head. Steer with **W A S D**, press **B** to burrow through clear, flat desert sand, **G** to practice the mounted attack, and **C** to get off. A practice strike marks the target with particles and leaves its health intact. The preview ends when you reload, leave the dimension, or switch to Survival.
+3. Press **J** and choose **Leviathan**. While above ground in the desert, select **Preview sandstorm** to see 45 seconds of peak storm weather.
+4. From the same tab, choose **Visit Solkara sanctuary**. Use the glowing gateway inside to reach Hollow Sands, then press **M** for the survey. The Hollow Sands Return Gate takes you back to the sanctuary. The gate near the sanctuary entrance takes you to the Surface.
+
 ## Remember
 
 - **Dune:** make a strong desert storm, then sprint on open sand.
@@ -93,4 +100,3 @@ Look for each region's large tablet near those coordinates. Climb or descend saf
 - **Ancient:** claim the Core, read six underground records, then use the Throne altar.
 - **Fighting and taming are different paths.** The Ancient Leviathan cannot be tamed; its victory rewards include the small Runecrest companion relic.
 
-This guide describes the published EA4 game. Later local development changes are not assumed to be live.

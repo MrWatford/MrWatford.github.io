@@ -23,11 +23,14 @@ export function ancientRewardInventory(inv) {
   return preview.toJSON();
 }
 
-// Storage opens asynchronously. Keep earlier boss/companion flags and HP
-// independent of a claim, command or hit before IndexedDB takes its own clone.
+// Storage opens asynchronously. Keep checkpointed progress independent of
+// later claims, commands, hits and newly read records until IndexedDB clones it.
 export function copyAncientProgress(story) {
-  if (!story?.leviathan?.ancient && !story?.leviathan?.companion) return story;
+  if (!story?.leviathan) return story;
   return {...story,leviathan:{...story.leviathan,
+    ...(story.leviathan.dune ? {dune:{...story.leviathan.dune}} : {}),
+    ...(story.leviathan.obsidian ? {obsidian:{...story.leviathan.obsidian}} : {}),
     ...(story.leviathan.ancient ? {ancient:{...story.leviathan.ancient}} : {}),
+    ...(story.leviathan.vaults ? {vaults:{...story.leviathan.vaults}} : {}),
     ...(story.leviathan.companion ? {companion:{...story.leviathan.companion}} : {})}};
 }

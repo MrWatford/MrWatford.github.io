@@ -1,7 +1,8 @@
 import { ancientRewardPending } from './ancient-victory.js';
 import { I, iconURL, itemDef } from "./blocks.js";
 import { DESERT_SITES, RELIC_SITES } from "./desert-relic-sites.js";
-import { SANDS_REGIONS } from "./hollow-sands.js";
+import { HOLLOW_SANDS, SANDS_REGIONS } from "./hollow-sands.js";
+import { SOLKARA_SANCTUARY } from "./solkara-annex.js";
 import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
 import { LEVIATHAN_BONDS } from "./leviathan-bonds.js";
 import { LEVIATHAN_ROUTE_GUIDE, leviathanShrineBearings, sandcallerPreparation } from "./leviathan-navigation.js";
@@ -73,12 +74,24 @@ export function leviathanQuests(G) {
     ["Into the Hollow Sands", Object.keys(regions).length > 0, "Cross the Sealed Gateway and explore the arrival sanctuary."],
     ["The Forgotten Kingdom", !!regions["Forgotten Kingdom"], "Find the ruins of the Forgotten Kingdom."],
     ["The Bone Fields", !!regions["Bone Fields"], "Discover the Bone Fields."],
-    ["The Last Sandcaller", SANDS_REGIONS.every(r => lore[r.name]), `Read all six Solkara region tablets (${SANDS_REGIONS.filter(r => lore[r.name]).length}/6).`],
+    ["The Last Sandcaller", SANDS_REGIONS.every(r => lore[r.name]), `Read all six Solkara region tablets (${SANDS_REGIONS.filter(r => lore[r.name]).length}/6). In Hollow Sands, press M to find the unread records and the Return Gate.`],
     ["The Throne of the Buried King", !!s.ancient?.defeated, ancientRewardPending(s.ancient) ? "Victory is saved. Return to the Throne altar with backpack space to claim the full treasure set and 350 experience. Your unclaimed rewards remain safe across reloads." : s.ancient?.defeated ? "The Buried King is defeated and its treasures have been granted. Use the companion relic to call Runecrest." : "Bring the Core to the Throne altar and defeat the Ancient Leviathan. Newly entered combat phases are saved; return to the altar after victory for its treasures."]
   ];
 }
 
 export function leviathanJournalHTML(G) {
+  if (G.creative) return `<div class="fw-journal leviathan-journal">
+    <h4>Leviathan Creative previews</h4>
+    <p>Open the Creative inventory (E) and search for Leviathan spawn eggs. Use an egg on top of a solid block in a wide open area. Each new preview replaces the previous one.</p>
+    ${G.dim === "overworld" ? `<h4>Practice riding</h4><p>Dune and Obsidian eggs hatch with a saddle on the Surface. Right-click near the head with an empty hand. Steer with W A S D, press B to burrow through clear desert sand, G to practice the mounted attack, and C to get off. Practice strikes mark their targets without hurting them.</p>
+      <p>See a peak sandstorm for 45 seconds while above ground in a desert.</p>
+      <p><button type="button" class="btn small" data-leviathan-storm-preview="start">Preview sandstorm</button>
+      <button type="button" class="btn small" data-leviathan-storm-preview="stop">End preview</button></p>
+      <h4>Explore Hollow Sands</h4><p>Visit Solkara sanctuary and use the glowing gateway inside the halls.</p>
+      <button type="button" class="btn small" data-solkara-sanctuary>Visit Solkara sanctuary</button>` : ""}
+    ${G.dim === SOLKARA_SANCTUARY ? "<p>Use the glowing gateway deeper in the halls to explore Hollow Sands. The gate near the sanctuary entrance returns to the Surface.</p>" : ""}
+    ${G.dim === HOLLOW_SANDS ? '<p>Use the survey to find the six regions and the Return Gate.</p><button type="button" class="btn small" data-hollow-sands-map>Open Hollow Sands survey</button>' : ""}
+    <p>Earn bonds, boss victories and their rewards in Survival.</p></div>`;
   const s = G.story.leviathan || {};
   const quests = leviathanQuests(G);
   const prep = sandcallerPreparation(G);
@@ -93,6 +106,7 @@ export function leviathanJournalHTML(G) {
     `<li><button class="chip-btn" data-solkara-record="${index}">${r.title}</button></li>` :
     `<li>${r.title} · ${r.region || "Forgotten Library"}</li>`).join("");
   return `<div class="fw-journal leviathan-journal"><h4>Secrets Beneath the Sands</h4>
+    ${G.dim === HOLLOW_SANDS ? '<button type="button" class="btn small" data-hollow-sands-map>Open Hollow Sands survey</button>' : ""}
     <h4>Your route into Solkara</h4><p>${LEVIATHAN_ROUTE_GUIDE}</p>
     <section class="leviathan-preparation" aria-label="Sandcaller Horn preparation">
       <h4><img src="${iconURL(I.SANDCALLER_HORN)}" alt="">Prepare the Sandcaller Horn</h4>
@@ -121,6 +135,7 @@ export function leviathanJournalHTML(G) {
     <p>Choose combat or bonding for the first two Leviathans. The journal records both paths.</p>
     <p>${quests.filter(q => q[1]).length} of ${quests.length} objectives complete.</p>
     <h4>Your Leviathan bonds</h4><div class="leviathan-bonds">${leviathanBondCardsHTML(G) || "<p>Complete a bonding rite to unlock names and commands.</p>"}</div>
+    <p>Craft one Saddle per mount at a workbench using five leather and one iron ingot. Let your Leviathan finish emerging, then right-click near its head with the saddle. Right-click with an empty hand to climb aboard.</p>
     <p>Follow uses clear surface routes and stops at obstacles. The horn summons or dismisses a bond; names and commands remain saved. On open desert sand, use the horn normally for Dune, or crouch + use for your bonded Obsidian Leviathan. Near the Citadel's inner court, the horn selects Obsidian. Both recalls need clear footing and space; step back from the court's center. Recall and dismissal share a 12-second settling cooldown for each bond.</p>
     <p>While riding a Dune Leviathan on solid ground, press G for Sandbreaker: a forward shockwave with a 12-second cooldown. Dismounting cancels its wind-up.</p>
     <p>On an Obsidian Leviathan, G releases Cinder Lance: up to three warned volcanic eruptions along a clear surface route, with an 18-second cooldown. Each enemy can be hit once per cast.</p>

@@ -1,11 +1,12 @@
 import { B, HEIGHT } from "./blocks.js";
 import { Grid, KEEP } from "./maps.js";
+import { SOLKARA_SCENERY_LAYOUT, stampSolkaraStatue } from "./solkara-scenery.js";
 
 export const BURIED_THRONE = { x: 0, y: 24, z: 192, radius: 28 };
 export const THRONE_ALTAR = { x: 0, y: 24, z: 213 };
 export const THRONE_TABLET = { x: -4, y: 24, z: 215 };
 
-export function buildBuriedThrone() {
+export function buildBuriedThrone(scenery) {
   const size = 80, minX = -40, minZ = 152, floor = BURIED_THRONE.y - 1;
   const g = new Grid(minX, minZ, size, size, KEEP);
   for (let z = minZ; z < minZ + size; z++) for (let x = minX; x < minX + size; x++) {
@@ -45,5 +46,6 @@ export function buildBuriedThrone() {
   }
   g.set(THRONE_ALTAR.x, THRONE_ALTAR.y, THRONE_ALTAR.z, B.RELIC_PEDESTAL);
   g.set(THRONE_TABLET.x, THRONE_TABLET.y, THRONE_TABLET.z, B.LORE_TABLET);
+  if (scenery === SOLKARA_SCENERY_LAYOUT) for (const x of [-22, 22]) stampSolkaraStatue(g, x, floor + 1, 207, 1, true);
   return { x: minX, z: minZ, size, cells: g.data };
 }

@@ -1,6 +1,7 @@
 import * as THREE from "../lib/three.module.min.js";
 import { B, BLOCKS, SOLID } from "./blocks.js";
 import { clearStrikeLine, hostileMountedTarget, mountedAttackRejection, validMountedContext } from "./leviathan-mounted-combat.js";
+import { mountedBodyContact } from "./leviathan-mounted-contact.js";
 
 export const OBSIDIAN_MOUNT_COOLDOWN = 18;
 export const OBSIDIAN_MOUNT_WINDUP = 1;
@@ -29,15 +30,19 @@ export function planObsidianEruptions(world, origin, yaw) {
 }
 
 export function obsidianMountedTargets(world, origin, point, entities, owner, hit) {
+  if (hit.size >= 6) return [];
   const targets = [], seen = new Set();
+  const from = { x: origin.x, y: origin.y + 1, z: origin.z };
   for (let i = 0; i < Math.min(120, entities.length); i++) {
     const entity = entities[i];
     if (seen.has(entity) || hit.has(entity) || !hostileMountedTarget(entity, owner)) continue;
     seen.add(entity);
-    const dx = entity.pos.x - point.x, dz = entity.pos.z - point.z, distance = Math.hypot(dx, dz);
-    if (distance > 1.8 || Math.abs(entity.pos.y - point.y) > 2.5 ||
-        !clearStrikeLine(world, { x: origin.x, y: origin.y + 1, z: origin.z },
-          { x: entity.pos.x, y: entity.pos.y + Math.min(entity.h * 0.5, 1.5), z: entity.pos.z })) continue;
+    const body = entity.def.segmentedLeviathan ? mountedBodyContact(entity, point, 1.8, 2.5) : null;
+    if (entity.def.segmentedLeviathan && !body) continue;
+    const location = body || entity.pos;
+    const dx = location.x - point.x, dz = location.z - point.z, distance = body?.distance ?? Math.hypot(dx, dz);
+    if (!body && (distance > 1.8 || Math.abs(entity.pos.y - point.y) > 2.5)) continue;
+    if (!clearStrikeLine(world, from, body || { x: entity.pos.x, y: entity.pos.y + Math.min(entity.h * 0.5, 1.5), z: entity.pos.z })) continue;
     targets.push({ entity, distance, x: dx / (distance || 1) * 0.5, z: dz / (distance || 1) * 0.5 });
   }
   return targets.sort((a, b) => a.distance - b.distance).slice(0, Math.max(0, 6 - hit.size));

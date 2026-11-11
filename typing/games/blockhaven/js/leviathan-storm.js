@@ -6,6 +6,21 @@ export const STORM_PEAK_END = 90;
 export const STORM_END = 110;
 export const STORM_COOLDOWN = 60;
 const SOURCES = ["sprint", "battle", "observatory"];
+const DUNE_APPROACH_DISTANCES = [13, 9];
+const DUNE_APPROACH_OFFSETS = [0, -4, 4];
+
+export function findDuneApproach(position, velocity, siteAt) {
+  const speed = Math.hypot(velocity.x, velocity.z);
+  if (!Number.isFinite(speed) || speed <= 0) return null;
+  const x = velocity.x / speed, z = velocity.z / speed;
+  for (const distance of DUNE_APPROACH_DISTANCES) {
+    for (const offset of DUNE_APPROACH_OFFSETS) {
+      const site = siteAt(position.x + x * distance - z * offset, position.z + z * distance + x * offset);
+      if (site && Math.abs(site.y - position.y) <= 4) return site;
+    }
+  }
+  return null;
+}
 
 export function validStormCall(record) {
   return record === undefined || !!record && typeof record === "object" && !Array.isArray(record) &&

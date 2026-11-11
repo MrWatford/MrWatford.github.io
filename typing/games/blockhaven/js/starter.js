@@ -250,11 +250,11 @@ export function initStarter(api) {
 
   let startT = 0;
   S.tick = dt => {
+    hudTick();
     const s = data(); if (!s || (!s.house && !s.campaign)) return;
     if (!s.granted && G.dim === "overworld" && G.world && G.inv) grant();
     if (G.state === "play") startT += dt; else if (!s.welcomed) startT = Math.min(startT, 0.6);
     if (s.granted && !s.welcomed && G.state === "play" && startT > 0.8 && !G.spectator) { s.welcomed = true; showWelcome(); }
-    hudTick();
   };
   S.resetClock = () => { startT = 0; };
 
@@ -414,12 +414,15 @@ export function initStarter(api) {
   function hudTick() {
     hudEl = hudEl || document.getElementById("waypoint");
     if (!hudEl) return;
-    const s = data(), d = s && s.waypoint && G.dim === "overworld" && (G.state === "play" || G.state === "panel") && !G.cutscene ? destOf(s.dest) : null;
+    const s = data();
+    const active = (G.state === "play" || G.state === "panel") && !G.cutscene;
+    const sands = active && G.dim === "hollow_sands" && !G.sandsWaypointHidden ? G.sandsWaypoint : null;
+    const d = sands || (active && G.dim === "overworld" && s?.waypoint && (s.house || s.campaign) ? destOf(s.dest) : null);
     hudEl.hidden = !d;
     if (!d) return;
     const p = G.player, dist = Math.hypot(d.x - p.pos.x, d.z - p.pos.z), ang = Math.atan2(-(d.x - p.pos.x), -(d.z - p.pos.z)) - p.yaw;
     hudEl.querySelector("i").style.transform = `rotate(${-ang}rad)`;
-    hudEl.querySelector("i").style.background = TYPES[d.kind].color;
+    hudEl.querySelector("i").style.background = sands ? "#b9ddfa" : TYPES[d.kind].color;
     hudEl.querySelector("b").textContent = d.title + (d.kind === "excavation" ? " (entrance)" : "");
     hudEl.querySelector("em").textContent = dist < 8 ? "You're here!" : `${fmt(dist)} blocks ${compass8(d.x - p.pos.x, d.z - p.pos.z)}` + (d.kind === "excavation" ? " · underground" : "");
   }
