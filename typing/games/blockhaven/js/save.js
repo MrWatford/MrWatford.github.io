@@ -3,6 +3,11 @@
 import { validBondPreferences } from "./leviathan-bonds.js";
 import { validArmorShieldRecord } from "./leviathan-armor-effects.js";
 import { validStormCall } from "./leviathan-storm.js";
+import { DESERT_VAULT_LAYOUT, validDesertVaultProgress } from "./desert-vaults.js";
+import { SANDS_LANDMARK_LAYOUT } from "./hollow-sands-landmarks.js";
+import { OBSIDIAN_BADLANDS_LAYOUT } from "./obsidian-badlands.js";
+import { OBSIDIAN_VENT_LAYOUT } from "./obsidian-vent.js";
+import { SOLKARA_SCENERY_LAYOUT } from "./solkara-scenery.js";
 export const SAVE_VERSION = 4;
 const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
@@ -33,8 +38,13 @@ export const Saves = {
   },
   async load(id) {
     const db = await openDB();
-    const meta = db ? await tx(db, META, "readonly", s => s.get(id)) : memory.meta.get(id);
-    const data = db ? await tx(db, DATA, "readonly", s => s.get(id)) : memory.data.get(id);
+    // Read both halves from one committed version, even while autosave runs.
+    const [meta, data] = db ? await new Promise((resolve, reject) => {
+      const t = db.transaction([META, DATA], "readonly");
+      const metaRequest = t.objectStore(META).get(id), dataRequest = t.objectStore(DATA).get(id);
+      t.oncomplete = () => resolve([metaRequest.result, dataRequest.result]);
+      t.onerror = t.onabort = () => reject(t.error || new Error("The world load was interrupted."));
+    }) : structuredClone([memory.meta.get(id), memory.data.get(id)]);
     if (!meta || !data) throw new Error("This world could not be found.");
     // keep an untouched copy of an older save before it is converted to the new format
     if ((meta.version || 1) < SAVE_VERSION && db) {
@@ -47,7 +57,11 @@ export const Saves = {
   async save(world) {
     const { meta, data } = split(world);
     const db = await openDB();
-    if (!db) { memory.meta.set(meta.id, meta); memory.data.set(meta.id, data); return false; }
+    if (!db) {
+      const [metaCopy, dataCopy] = structuredClone([meta, data]);
+      memory.meta.set(meta.id, metaCopy); memory.data.set(meta.id, dataCopy);
+      return false;
+    }
     await new Promise((resolve, reject) => {
       const t = db.transaction([META, DATA], "readwrite");
       t.objectStore(META).put(meta); t.objectStore(DATA).put(data);
@@ -120,10 +134,14 @@ function validateLeviathan(expansion) {
     throw new Error("This world file contains invalid Solkara library progress.");
   }
   const sites = expansion.sites;
-  if (sites !== undefined && (!isRecord(sites) || Object.values(sites).some(s =>
+  if (sites !== undefined && (!isRecord(sites) || Object.entries(sites).some(([key, s]) =>
     !isRecord(s) || ![s.x, s.y, s.z].every(Number.isSafeInteger) ||
-    s.x % 16 !== 0 || s.z % 16 !== 0 || s.y < 2 || s.y > 68
+    s.x % 16 !== 0 || s.z % 16 !== 0 || s.y < 2 || s.y > 68 ||
+    (s.vaultLayout !== undefined && s.vaultLayout !== DESERT_VAULT_LAYOUT) ||
+    (s.volcanicLayout !== undefined && (key !== "citadel" || s.volcanicLayout !== OBSIDIAN_BADLANDS_LAYOUT)) ||
+    (s.ventLayout !== undefined && (key !== "citadel" || s.ventLayout !== OBSIDIAN_VENT_LAYOUT || s.volcanicLayout !== OBSIDIAN_BADLANDS_LAYOUT))
   ))) throw new Error("This world file contains invalid desert relic sites.");
+  if (!validDesertVaultProgress(expansion.vaults, sites)) throw new Error("This world file contains invalid desert vault progress.");
   const { dune, obsidian, ancient, companion } = expansion;
   for (const record of [dune, obsidian]) if (isRecord(record) && !validBondPreferences(record)) {
     throw new Error("This world file contains invalid Leviathan bond preferences.");
@@ -174,6 +192,12 @@ function validateDimensions(dims) {
     !list(d.newGen) || !list(d.beacons) || !list(d.drops) ||
     (d.mods != null && (!isRecord(d.mods) || !Object.values(d.mods).every(pairs)))
   )) throw new Error("This world file contains invalid dimension data.");
+  const layout = dims.hollow_sands?.sandsLandmarks;
+  if (layout !== undefined && layout !== SANDS_LANDMARK_LAYOUT) throw new Error("This world file contains an unsupported Hollow Sands layout.");
+  if (Object.entries(dims).some(([dim, data]) => data.solkaraScenery !== undefined &&
+      (!["desert", "solkara_sanctuary", "hollow_sands"].includes(dim) || data.solkaraScenery !== SOLKARA_SCENERY_LAYOUT))) {
+    throw new Error("This world file contains an unsupported Solkara scenery layout.");
+  }
 }
 
 // Older save versions get converted here when the game is updated

@@ -58,7 +58,8 @@ export const B = {
   // the Starter Home (js/starter.js)
   SIGN: 206, BOOKSHELF: 207, MAP_TABLE: 208,
   // the Legacy Campaign (js/campaign.js)
-  WAYSTONE: 209, RUNE_STONE: 210, SOLKARA_GATE: 211
+  WAYSTONE: 209, RUNE_STONE: 210, SOLKARA_GATE: 211,
+  BLACK_SAND: 212, EMBER_CRYSTAL: 213, OBSIDIAN_TROPHY: 214
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -340,6 +341,9 @@ block(B.MAP_TABLE, "Expedition Table", { hardness: 2.5, tool: "axe", interact: "
 block(B.WAYSTONE, "Waystone", { hardness: Infinity, drops: 0, light: 10, interact: "waystone", tex: ["waystone_top", "waystone_side", "stone_bricks"], category: "Useful" });   // campaign fast travel (js/campaign.js)
 block(B.RUNE_STONE, "Rune Stone", { hardness: Infinity, drops: 0, light: 7, interact: "rune", tex: "rune_stone", category: "Useful" });             // a campaign boss arena device
 block(B.SOLKARA_GATE, "Solkara Gateway", { hardness: Infinity, drops: 0, light: 12, interact: "solkara_gate", tex: "return_gate", category: LOST, noItem: true });
+block(B.BLACK_SAND, "Black Sand", { hardness: 0.55, tool: "shovel", tex: "black_sand" });
+block(B.EMBER_CRYSTAL, "Ember Crystal", { hardness: 1.8, tool: "pick", light: 13, render: "cutout", tex: "ember_crystal" });
+block(B.OBSIDIAN_TROPHY, "Obsidian Leviathan Trophy", { hardness: 2, tool: "pick", light: 6, tex: ["basalt_top", "obsidian_trophy", "blackstone"] });
 
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
@@ -560,7 +564,7 @@ for (const [key, label, points, dur, set] of [
     armor: { slot, points: points[slot], dur }, leviathanSet: set,
     desc: set === "ancient" ? "2: 25% less sand and crystal hazard damage in Hollow Sands. 4: 20% less Leviathan damage. Crouch + use empty hand: shield and burst, 45s cooldown, 6 durability per piece." :
       set === "sand" ? "2: lighter storm and vortex drag. 4: faster on sand, no vortex drag and 25% sand attack resistance. Crouch + use empty hand: shockwave, 20s cooldown, 3 durability per piece." :
-      "2: 25% less fire damage. 4: 60% less fire damage. Crouch + use empty hand: 5s shield, 30s cooldown, 3 durability per piece."
+      "2: 25% less fire damage. 4: 60% less fire damage and +2 melee damage to Sand Stalkers, Sand Wraiths, Desert Burrowers and Obsidian Crawlers. Crouch + use empty hand: 5s shield, 30s cooldown, 3 durability per piece."
   });
 });
 item(I.FANGBLADE, "Leviathan Fangblade", { icon: "sword", colors: ["#efd092", "#97693c"], kind: "tool", stack: 1, category: "Tools",
@@ -593,6 +597,10 @@ export const SPAWN_EGGS = [["zombie", "Groaner", "#3d8a4a", "#2d5a9a"], ["skelet
 SPAWN_EGGS.push(...CREATURES.map(([id, name, color, accent]) => [id, name, color, accent]));
 SPAWN_EGGS.push(["leviathan_dune", "Dune Leviathan", "#a97540", "#ffc664"]);
 SPAWN_EGGS.push(...DESERT_MOBS);
+SPAWN_EGGS.push(
+  ["leviathan_obsidian", "Obsidian Leviathan", "#382b3a", "#ff7942"],
+  ["leviathan_ancient", "Ancient Leviathan", "#c6baa3", "#8cc8ff"]
+);
 // Glider Wings go in the chest armor slot: jump while falling to glide
 item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
@@ -820,7 +828,8 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   // the Starter Home
   "sign", "bookshelf", "map_table_top", "map_table_side",
   // the Legacy Campaign
-  "waystone_top", "waystone_side", "rune_stone"];
+  "waystone_top", "waystone_side", "rune_stone",
+  "black_sand", "ember_crystal", "obsidian_trophy"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1058,6 +1067,28 @@ Object.assign(PAINT, {
   basalt_side(P) { for (let x = 0; x < 16; x++) { const c = P.pick(["#4a4a50", "#3e3e44", "#56565c"]); for (let y = 0; y < 16; y++) P.px(x, y, P.r() < 0.1 ? "#2e2e34" : c); } },
   basalt_top(P) { P.fill(["#4a4a50", "#3e3e44"]); P.rect(2, 2, 12, 12, "#56565c"); P.rect(4, 4, 8, 8, "#4a4a50"); },
   blackstone(P) { P.fill(["#2a2630", "#221e28", "#34303a", "#1c1820"]); P.specks(6, ["#4a4452"]); },
+  black_sand(P) {
+    P.fill(["#252029", "#2d2830", "#332c32", "#393037"]);
+    P.specks(28, ["#51434a", "#66505a", "#1b171f"]);
+    P.specks(4, ["#805442", "#a36d4c"]);
+  },
+  ember_crystal(P) {
+    for (const [left, tip, width] of [[2, 8, 4], [6, 1, 5], [11, 6, 4]]) {
+      P.rect(left, tip + 3, width, 13 - tip, "#8d302b");
+      P.rect(left + 1, tip, width - 2, 15 - tip, "#ed7738");
+      P.rect(left + 2, tip + 2, 1, 13 - tip, "#ffbc68");
+      P.rect(left + 2, tip + 2, 1, 3, "#ffe3a3");
+    }
+    P.rect(1, 14, 14, 2, "#382b39");
+  },
+  obsidian_trophy(P) {
+    P.fill(["#231e28", "#2d2530", "#352933"]);
+    P.rect(1, 1, 14, 1, "#69505a"); P.rect(1, 14, 14, 1, "#60454b");
+    P.rect(3, 4, 10, 8, "#784438"); P.rect(4, 3, 8, 10, "#b66442");
+    P.rect(5, 5, 6, 6, "#20141b");
+    for (const x of [5, 7, 9]) { P.rect(x, 5, 1, 2, "#fbd295"); P.rect(x, 9, 1, 2, "#df9c63"); }
+    P.rect(7, 7, 2, 2, "#e86c40");
+  },
   magma(P) { P.fill(["#5a1a10", "#4a140c"]); for (let i = 0; i < 9; i++) { const x = Math.floor(P.r() * 13), y = Math.floor(P.r() * 13); P.rect(x, y, 3, 2, P.pick(["#ff7a1a", "#ffb030", "#e85a10"])); } },
   crimson_nylium(P) { P.fill(["#a01e1e", "#b42828", "#8c1818", "#c43232"]); },
   crimson_nylium_side(P) { P.fill(RACK); for (let x = 0; x < 16; x++) { const h = 3 + Math.floor(P.r() * 3); for (let y = 0; y < h; y++) P.px(x, y, P.pick(["#a01e1e", "#b42828"])); } },

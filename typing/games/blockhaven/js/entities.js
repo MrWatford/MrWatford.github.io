@@ -17,8 +17,9 @@ import { ancientCoilWeight, applyAncientCoil } from "./ancient-coil.js";
 import { stepAncientCircle } from "./ancient-circle.js";
 import { DuneAttackMotion } from "./dune-attack-motion.js";
 import { segmentBoxTime, projectileBlockHit, MAX_DEFLECT_SPEED } from "./projectile-collision.js";
-import { usesLeviathanHitVolumes, createLeviathanHitVolumes, updateLeviathanHitVolumes, leviathanSegmentTime } from "./leviathan-hit-volumes.js";
+import { usesLeviathanHitVolumes, createLeviathanHitVolumes, updateLeviathanHitVolumes, leviathanSegmentTime, leviathanAreaContact } from "./leviathan-hit-volumes.js";
 import { stepBondedLeviathan } from "./leviathan-bonds.js";
+import { stepObsidianVent } from "./obsidian-vent.js";
 
 const GRAV = 26, EPS = 1e-4;
 let nextId = 1;
@@ -2066,6 +2067,7 @@ export class Entities {
       if (def.noclip) {
         if (e.sp === "leviathan_ancient" && stepAncientAwakening(e)) return;
         if (e.sp === "leviathan_ancient" && stepAncientCircle(e)) return;
+        if (e.sp === "leviathan_obsidian" && stepObsidianVent(e)) return;
         if (def.segmentedLeviathan && stepBondedLeviathan(w, e, dt)) return;
         if (e.goal) {
           const gx = e.goal.x - e.pos.x, gy = (e.goal.y ?? e.pos.y) - e.pos.y, gz = e.goal.z - e.pos.z, gl = Math.hypot(gx, gy, gz) || 1, sp = e.goal.speed || def.speed;
@@ -2287,6 +2289,15 @@ export class Entities {
     if (thinkDesertMob(this, e, d, dmgMul)) return;
     if (thinkCreature(this, e, daylight)) return;
     if (def.pet && e.tame) return this.thinkPet(e, d, dmgMul);
+    if (e.leviathanFlee?.until > e.age && !e.tame) {
+      const threat = e.leviathanFlee;
+      const dx = e.pos.x - threat.x, dz = e.pos.z - threat.z, length = Math.hypot(dx, dz);
+      e.sleeping = false; e.hunt = null; e.path = null;
+      e.goal = { x: e.pos.x + (length ? dx / length * 5 : 5),
+        z: e.pos.z + (length ? dz / length * 5 : 0), speed: def.speed * 1.65 };
+      if (def.hops) e.wantJump = true;
+      return;
+    }
     if (def.boat || def.cart) return;
     if (def.swims) return this.thinkSwimmer(e, d, dmgMul);
     if (def.ai === "bee") return this.thinkBee(e, d, dmgMul, daylight);
@@ -2628,8 +2639,9 @@ export class Entities {
       else e.goal = null;
       return;
     }
+    const followDistance = e.sp === "ancient_companion" ? 3 : 5;
     if (d > 24) this.petTeleport(e, p);
-    else if (d > 5) this.moveTo(e, p.pos, def.speed * (d > 10 ? 1.7 : 1.2), 2.5);
+    else if (d > followDistance) this.moveTo(e, p.pos, def.speed * (d > 10 ? 1.7 : 1.2), 2.5);
     else { e.goal = null; e.path = null; }
   }
   // ----- Chatterbirds [parrots] -----
@@ -2950,7 +2962,7 @@ export class Entities {
 
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
-    if (e.gone || e.dead || e.iframes > 0 || n <= 0) return false;
+    if (e.gone || e.dead || e.duneCycle?.preview || e.iframes > 0 || n <= 0) return false;
     if (e.sp === "sulfur_cube" && attacker === "player" && e.bestiary.absorbed && knock) {
       e.vel.x = knock.x * 11; e.vel.z = knock.z * 11; e.vel.y = 5;
       e.knock = 0.65; e.bestiary.bounceUntil = e.age + 0.65; e.iframes = 0.35;
@@ -3018,6 +3030,7 @@ export class Entities {
       for (let i = 0; i < n; i++) this.add(e.sp, e.pos.x + rand(-0.5, 0.5), e.pos.y + 0.3, e.pos.z + rand(-0.5, 0.5), { size: e.size / 2 });
     }
     if (e.scarabVaultGuard) ctx.scarabVaultDefeated?.(e);
+    if (e.desertVaultGuard) ctx.desertVaultDefeated?.(e.desertVaultGuard);
   }
   dying(e, dt) {
     if (e.sp === "leviathan_ancient") {
@@ -3072,6 +3085,10 @@ export class Entities {
       if (e.tame && (def.healWith || def.tameWith).includes(id) && e.hp < e.maxHp) {
         e.hp = Math.min(e.maxHp, e.hp + 4); ctx.consume(); hearts();
         if (e.sp === "ancient_companion") ctx.companionChanged(e);
+        return true;
+      }
+      if (e.tame && e.sp === "ancient_companion" && id === I.SKYSHARD) {
+        ctx.toast("Runecrest is already at full health.");
         return true;
       }
       if (def.mount) {
@@ -3133,6 +3150,7 @@ export class Entities {
   updateProjectiles(dt) {
     const w = this.world, ctx = this.ctx, p = ctx.player();
     for (const pr of this.projectiles) {
+      if (pr.gone || pr.kind === "obsidianshard" && pr.owner?.gone) { pr.gone = true; continue; }
       pr.age += dt;
       if (["sandbolt", "obsidianshard"].includes(pr.kind) && pr.age > 5) { pr.gone = true; continue; }
       if (pr.kind === "bobber") { this.updateBobber(pr, dt); continue; }
@@ -3310,6 +3328,22 @@ export class Entities {
     return best;
   }
   near(x, y, z, r, filter) { return this.list.filter(e => !e.gone && !e.dead && Math.hypot(e.pos.x - x, e.pos.y - y, e.pos.z - z) < r && (!filter || filter(e))); }
+  // Preserve root-distance proximity for sleeping, AI and ordinary creatures.
+  // Combat areas alone use the nearest visible Leviathan body contact.
+  areaNear(x, y, z, r, filter) {
+    const hits = [];
+    for (const e of this.list) {
+      if (e.gone || e.dead || (filter && !filter(e))) continue;
+      if (usesLeviathanHitVolumes(e)) {
+        const point = new THREE.Vector3(), distance = leviathanAreaContact(e, x, y, z, r, point);
+        if (distance !== null && distance < r) hits.push({ ent: e, point, distance });
+      } else {
+        const distance = Math.hypot(e.pos.x - x, e.pos.y - y, e.pos.z - z);
+        if (distance < r) hits.push({ ent: e, point: { x: e.pos.x, y: e.pos.y + Math.min(e.h / 2, 1.5), z: e.pos.z }, distance });
+      }
+    }
+    return hits;
+  }
 
   // ----- animation -----
   animate(e, dt, d2, daylight) {
@@ -3336,9 +3370,12 @@ export class Entities {
       const motion = e.duneAttackMotion.sample(e.sp === "leviathan_dune" && !e.tame && !e.dead && !e.gone && !e.mountedCue ? cycle : null, e.age, reducedMotion);
       const spread = cue.spread;
       const blend = 1 - Math.exp(-8 * dt);
+      const bowAge = e.age - (e.bondBowAt ?? -Infinity);
+      const bow = e.tame && !e.ridden && !e.bondArrival && bowAge >= 0 && bowAge < 2.4 ?
+        (reducedMotion ? 0.26 : 0.64 * Math.sin(Math.PI * bowAge / 2.4)) : 0;
       P.jawLeft.rotation.y += (-spread - P.jawLeft.rotation.y) * blend;
       P.jawRight.rotation.y += (spread - P.jawRight.rotation.y) * blend;
-      P.head.rotation.x += (cue.pitch + motion.pitch - P.head.rotation.x) * blend;
+      P.head.rotation.x += (cue.pitch + motion.pitch + bow - P.head.rotation.x) * blend;
       P.head.rotation.z += (motion.roll - P.head.rotation.z) * blend;
       for (let i = 0; i < 12; i++) {
         const rim = P["mawRim" + i], base = rim.userData.mawRest;

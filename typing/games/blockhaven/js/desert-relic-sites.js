@@ -3,6 +3,9 @@ import { Grid, KEEP } from "./maps.js";
 import { hash3 } from "./noise.js";
 import { untouchedFootprint } from "./structure-placement.js";
 import { LOOT } from "./worldgen.js";
+import { DESERT_VAULT_LAYOUT, stampDesertVault } from "./desert-vaults.js";
+import { OBSIDIAN_BADLANDS_LAYOUT, canPlaceObsidianBadlands, obsidianBadlandsBounds } from "./obsidian-badlands.js";
+import { OBSIDIAN_VENT_LAYOUT, stampObsidianVent } from "./obsidian-vent.js";
 
 const SIZE = 16;
 export const RELIC_SITES = [
@@ -24,11 +27,13 @@ export function planRelicSites(gen, data, previous = {}, origin = gen.findSpawn(
   const reserved = (gen.stamps || []).map(({ x, z, size }) => ({ x, z, size }));
   for (const def of DESERT_SITES) {
     const s = sites[def.key];
-    if (s) reserved.push({ x: s.x, z: s.z, size: def.size || SIZE });
+    if (s) reserved.push(s.volcanicLayout === OBSIDIAN_BADLANDS_LAYOUT ?
+      obsidianBadlandsBounds(s) : { x: s.x, z: s.z, size: def.size || SIZE });
   }
   for (const def of DESERT_SITES) {
     if (sites[def.key]) continue;
     const size = def.size || SIZE, half = size / 2;
+    let fallback = null;
     const offset = hash3(gen.seed, def.item ?? def.salt, 6, 0) * Math.PI * 2;
     for (let radius = 64; radius <= 1800 && !sites[def.key]; radius += 32) {
       const samples = Math.ceil(2 * Math.PI * radius / 48);
@@ -48,12 +53,20 @@ export function planRelicSites(gen, data, previous = {}, origin = gen.findSpawn(
         if (!clear) continue;
         const edge = size - 2, corners = [[1, 1], [1, edge], [edge, 1], [edge, edge]];
         if (corners.some(([dx, dz]) => Math.abs(gen.column(x + dx, z + dz).h - center.h) > 2)) continue;
-        const y = center.h;
-        sites[def.key] = { x, y, z };
-        reserved.push({ x, z, size });
+        const site = { x, y: center.h, z };
+        if (def.key === "tomb" || def.key === "citadel") site.vaultLayout = DESERT_VAULT_LAYOUT;
+        if (def.key === "citadel") {
+          fallback ||= site;
+          if (!canPlaceObsidianBadlands(gen, site, untouched, reserved)) continue;
+          site.volcanicLayout = OBSIDIAN_BADLANDS_LAYOUT;
+          site.ventLayout = OBSIDIAN_VENT_LAYOUT;
+        }
+        sites[def.key] = site;
+        reserved.push(site.volcanicLayout ? obsidianBadlandsBounds(site) : { x, z, size });
         break;
       }
     }
+    if (!sites[def.key] && fallback) sites[def.key] = fallback;
   }
   return sites;
 }
@@ -117,6 +130,8 @@ function buildObsidianCitadel(site) {
   }
   g.set(20, y + 1, 34, B.LORE_TABLET);
   g.set(29, y + 1, 34, make(B.CHEST, LOOT));
+  stampDesertVault(g, "citadel", site);
+  stampObsidianVent(g, site);
   return { x, z, size, cells: g.data };
 }
 
@@ -213,6 +228,7 @@ export function buildRelicStamp(def, site) {
   }
   g.set(8, y + 1, 5, make(B.CHEST, LOOT));
   g.set(8, y + 2, 4, B.SHINESTONE);
+  stampDesertVault(g, def.key, site);
   return { x, z, size: SIZE, cells: g.data };
 }
 

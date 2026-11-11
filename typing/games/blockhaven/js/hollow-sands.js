@@ -2,6 +2,8 @@ import { B, CHUNK, HEIGHT } from "./blocks.js";
 import { Noise, hash3, hashSeed } from "./noise.js";
 import { CURRENT_GEN, applyStamps, idx } from "./worldgen.js";
 import { buildBuriedThrone } from "./buried-throne.js";
+import { buildSandsLandmarks, SANDS_LANDMARK_LAYOUT } from "./hollow-sands-landmarks.js";
+import { buildSolkaraScenery, SOLKARA_SCENERY_LAYOUT } from "./solkara-scenery.js";
 
 export const HOLLOW_SANDS = "hollow_sands";
 export const SANDS_ARRIVAL = { x: 0.5, y: 33, z: 4.5 };
@@ -27,11 +29,13 @@ export const SANDS_TABLETS = SANDS_REGIONS.map((region, zone) => {
 });
 
 export class HollowSandsGen {
-  constructor(seed) {
+  constructor(seed, landmarkLayout, scenery) {
     this.seed = hashSeed(seed) ^ 0x16ba93d;
     this.noise = new Noise(this.seed);
     this.version = CURRENT_GEN;
-    this.stamps = [buildBuriedThrone()];
+    this.stamps = [buildBuriedThrone(scenery)];
+    if (landmarkLayout === SANDS_LANDMARK_LAYOUT) this.stamps.push(...buildSandsLandmarks(this, SANDS_TABLETS));
+    if (scenery === SOLKARA_SCENERY_LAYOUT) this.stamps.push(...buildSolkaraScenery(this));
   }
   isNether() { return false; }
   isMap() { return HOLLOW_SANDS; }

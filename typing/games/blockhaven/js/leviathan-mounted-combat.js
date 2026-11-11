@@ -1,5 +1,6 @@
 import * as THREE from "../lib/three.module.min.js";
 import { B, SOLID } from "./blocks.js";
+import { mountedBodyContact } from "./leviathan-mounted-contact.js";
 
 export const DUNE_MOUNT_COOLDOWN = 12;
 export const DUNE_MOUNT_WINDUP = 0.85;
@@ -40,15 +41,18 @@ export function validMountedContext(world, mount, origin, dim, context) {
 
 export function duneMountedTargets(world, origin, yaw, entities, owner) {
   const targets = [], seen = new Set(), forwardX = -Math.sin(yaw), forwardZ = -Math.cos(yaw);
+  const from = { x: origin.x, y: origin.y + 1, z: origin.z }, sector = { yaw, inner: 2, halfAngle: 0.6 };
   for (let i = 0; i < Math.min(120, entities.length); i++) {
     const entity = entities[i];
     if (seen.has(entity) || !hostileMountedTarget(entity, owner)) continue;
     seen.add(entity);
-    const dx = entity.pos.x - origin.x, dz = entity.pos.z - origin.z, distance = Math.hypot(dx, dz);
-    if (distance < 2 || distance > 10 || Math.abs(entity.pos.y - origin.y) > 3 ||
-        (dx * forwardX + dz * forwardZ) / distance < Math.cos(0.6)) continue;
-    const from = { x: origin.x, y: origin.y + 1, z: origin.z };
-    const to = { x: entity.pos.x, y: entity.pos.y + Math.min(entity.h * 0.5, 1.5), z: entity.pos.z };
+    const body = entity.def.segmentedLeviathan ? mountedBodyContact(entity, origin, 10, 3, sector) : null;
+    if (entity.def.segmentedLeviathan && !body) continue;
+    const location = body || entity.pos;
+    const dx = location.x - origin.x, dz = location.z - origin.z, distance = body?.distance ?? Math.hypot(dx, dz);
+    if (!body && (distance < 2 || distance > 10 || Math.abs(entity.pos.y - origin.y) > 3 ||
+        (dx * forwardX + dz * forwardZ) / distance < Math.cos(0.6))) continue;
+    const to = body || { x: entity.pos.x, y: entity.pos.y + Math.min(entity.h * 0.5, 1.5), z: entity.pos.z };
     if (!clearStrikeLine(world, from, to)) continue;
     targets.push({ entity, distance, x: dx / distance * 0.65, z: dz / distance * 0.65 });
   }

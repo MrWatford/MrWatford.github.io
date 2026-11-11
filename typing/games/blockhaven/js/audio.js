@@ -76,6 +76,22 @@ export const Sound = {
     g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
   },
+  leviathanWarning(family, strength) {
+    if (!ctx || ctx.state !== "running" || muted || volume <= 0 || !Number.isFinite(strength) || strength <= 0) return;
+    const gain = Math.min(1, strength);
+    if (family === "dune") {
+      this.noise(1350, .34, .21 * gain, .8, "bandpass");
+      this.tone(214, .34, "triangle", .12 * gain, -106);
+    } else if (family === "obsidian") {
+      this.tone(312, .30, "triangle", .13 * gain, -42);
+      this.tone(935, .24, "sine", .07 * gain, -90);
+      this.noise(2250, .13, .08 * gain, 2);
+    } else if (family === "ancient") {
+      this.tone(247, .43, "sine", .17 * gain, 32);
+      this.tone(370, .39, "triangle", .09 * gain, 48);
+      this.tone(587, .23, "sine", .05 * gain);
+    }
+  },
   // material: "stone" | "wood" | "soft" | "sand" | "leaf" | "glass"
   dig(mat) { const f = { stone: 1800, wood: 700, soft: 380, sand: 1200, leaf: 2600, glass: 3000 }[mat] || 900; this.noise(f, 0.08, 0.35, 2); },
   breakBlock(mat) { const f = { stone: 1400, wood: 550, soft: 300, sand: 1000, leaf: 2200, glass: 3200 }[mat] || 800; this.noise(f, 0.22, 0.6, 1.2); if (mat === "glass") this.tone(2400, 0.15, "triangle", 0.08, 800); },

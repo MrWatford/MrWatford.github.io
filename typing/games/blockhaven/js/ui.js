@@ -6,6 +6,8 @@ import { Adv, CATEGORIES } from "./advancements.js";
 import { Sound } from "./audio.js";
 import { leviathanJournalHTML, bindLeviathanBondControls } from "./leviathan-journal.js?v=bonds-1";
 import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
+import { HOLLOW_SANDS } from "./hollow-sands.js";
+import { hollowSandsMapHTML, mountHollowSandsMap } from "./hollow-sands-map.js";
 
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
@@ -56,7 +58,10 @@ export const UI = {
     };
     $("importFile").previousElementSibling.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("importFile").click(); } };
     this.bindSettings();
-    $("pDiff").onchange = e => { if (G.meta && G.meta.hardcore) { e.target.value = "hard"; return; } G.wset.difficulty = e.target.value; this.toast("Difficulty: " + e.target.value); };
+    $("pDiff").onchange = e => {
+      if (!G.setDifficulty(e.target.value)) { e.target.value = G.wset.difficulty; return; }
+      this.toast("Difficulty: " + e.target.value);
+    };
     $("btnAdv").onclick = () => { Sound.click(); G.openAdvancements(); };
     $("btnJournal")?.addEventListener("click", () => { Sound.click(); G.openJournal(); });
     $("nwModes").onchange = () => { const hc = document.querySelector("input[name=mode]:checked").value === "hardcore"; $("nwDiff").disabled = $("nwKeep").disabled = hc; if (hc) { $("nwDiff").value = "hard"; $("nwKeep").checked = false; } };
@@ -289,6 +294,9 @@ export const UI = {
       p.innerHTML = `<div class="inv-card fw-card"><h3>Journal ${tabs} <span class="note" style="color:#444">Press J or Esc to close</span></h3>${leviathan ? leviathanJournalHTML(G) : cp ? G.campaign.journalHTML() : lost ? G.lost.journalHTML() : G.forsaken.journalHTML()}</div>`;
       p.querySelectorAll("[data-jtab]").forEach(b => b.onclick = () => { Sound.click(); G.journalTab = b.dataset.jtab; this.renderPanel(); });
       p.querySelectorAll("[data-solkara-sanctuary]").forEach(b => b.onclick = () => { Sound.click(); G.visitSolkaraSanctuary(); });
+      p.querySelectorAll("[data-leviathan-storm-preview]").forEach(b => b.onclick = () => {
+        Sound.click(); G.closePanel(); G.previewLeviathanStorm(b.dataset.leviathanStormPreview === "start");
+      });
       bindLeviathanBondControls(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
       if (!lost && !cp && !leviathan) G.forsaken.drawMap($("fwMap"));
@@ -296,6 +304,7 @@ export const UI = {
         const record = SOLKARA_RECORDS[Number(b.dataset.solkaraRecord)];
         if (record && hasSolkaraRecord(G.story.leviathan, record)) this.openNote(record.title, record.text, false);
       });
+      p.querySelector("[data-hollow-sands-map]")?.addEventListener("click", () => G.openHollowSandsMap());
       p.querySelectorAll("[data-note]").forEach(b => b.onclick = () => G.forsaken.readNote(b.dataset.note));
       p.querySelectorAll("[data-lore]").forEach(b => b.onclick = () => G.lost.readLore(b.dataset.lore));
       p.querySelectorAll("[data-fwt]").forEach(b => b.onclick = () => { Sound.click(); G.forsaken.testControl(b.dataset.fwt); this.renderPanel(); });
@@ -310,6 +319,11 @@ export const UI = {
       G.campaign.mountTalk(p);
       return;
     } else if (panelKind === "xmap") {
+      if (G.dim === HOLLOW_SANDS) {
+        p.innerHTML = hollowSandsMapHTML(G);
+        mountHollowSandsMap(p, G, () => this.renderPanel());
+        return;
+      }
       p.innerHTML = G.starter.mapHTML();
       G.starter.mountMap(p);
       return;
