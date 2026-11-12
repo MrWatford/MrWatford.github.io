@@ -637,10 +637,10 @@ const spk = (P, n, c) => { for (let i = 0; i < n; i++) P.px(Math.floor(Math.rand
 const glowSpots = (pal) => P => { P.fill(pal); for (let i = 0; i < 5; i++) P.rect(Math.floor(Math.random() * 13), Math.floor(Math.random() * 13), 2, 2, GLOWT[i % 2]); };
 const coreFace = (pal, eye = "#5ae0d0") => face(pal, P => { P.rect(4, 5, 8, 6, "#0a1a20"); P.rect(6, 6, 4, 4, eye); });
 Object.assign(SPECIES, {
-  crawler: { name: "Hush Crawler", hostile: true, noSave: true, hears: true, hp: 8, speed: 3.4, w: 0.8, h: 0.5, ai: "melee", dmg: 2, reach: 1.2, xp: 3, sound: "chitter", leash: 24,
+  crawler: { echohold: true, name: "Hush Crawler", hostile: true, noSave: true, hears: true, hp: 8, speed: 3.4, w: 0.8, h: 0.5, ai: "melee", dmg: 2, reach: 1.2, xp: 3, sound: "chitter", leash: 24,
     drops: () => [Math.random() < 0.4 ? [I.ECHO_SHARD, 1] : null],
     model: { type: "spider", parts: spiderModel(HUSH).parts } },
-  sentinel_e: { name: "Echo Sentinel", hostile: true, noSave: true, hears: true, hp: 30, speed: 1.2, w: 1, h: 2.2, ai: "pulse", dmg: 4, reach: 5, xp: 8, sound: "clank", leash: 16,
+  sentinel_e: { echohold: true, name: "Echo Sentinel", hostile: true, noSave: true, hears: true, hp: 30, speed: 1.2, w: 1, h: 2.2, ai: "pulse", dmg: 4, reach: 5, xp: 8, sound: "clank", leash: 16,
     drops: () => [[I.IRON_INGOT, randi(1, 3)], [I.LUMEN_SHARD, randi(0, 2)]],
     model: { type: "golem", parts: [
       { name: "body", size: [12, 14, 8], pivot: [0, 16, 0], off: [0, 7, 0], paint: { all: solid(COPPER), front: face(COPPER, P => { P.rect(5, 5, 6, 6, "#0a1a20"); P.rect(6, 6, 4, 4, "#5ae0d0"); }) } },
@@ -649,16 +649,16 @@ Object.assign(SPECIES, {
       { name: "armL", size: [4, 14, 4], pivot: [8, 28, 0], off: [0, -7, 0], paint: { all: solid(KSTONE) } },
       { name: "legR", size: [4, 16, 4], pivot: [-3, 16, 0], off: [0, -8, 0], paint: { all: solid(KSTONE) } },
       { name: "legL", size: [4, 16, 4], pivot: [3, 16, 0], off: [0, -8, 0], paint: { all: solid(KSTONE) } }] } },
-  stalker: { name: "Deep Stalker", hostile: true, noSave: true, hears: true, hp: 30, speed: 3.8, w: 0.6, h: 2.6, ai: "melee", dmg: 5, reach: 2, xp: 10, sound: "warble", leash: 30,
+  stalker: { echohold: true, name: "Deep Stalker", hostile: true, noSave: true, hears: true, hp: 30, speed: 3.8, w: 0.6, h: 2.6, ai: "hunter", dmg: 5, reach: 2, xp: 10, sound: "warble", leash: 30,
     drops: () => [[I.LUMEN_SHARD, randi(1, 2)], Math.random() < 0.5 ? [I.ECHO_SHARD, 2] : null],
     model: { type: "humanoid", parts: humanoidParts({ legLen: 22, limb: [2, 22, 2], head: { all: solid(HUSH), front: face(HUSH, P => { P.rect(5, 6, 6, 3, "#5ae0d0"); }) }, body: { all: glowSpots(HUSH) }, arm: { all: solid(HUSH) }, leg: { all: solid(HUSH) } }) } },
-  mote: { name: "Resonance Mote", hostile: true, noSave: true, hears: true, hp: 4, speed: 2.6, w: 0.5, h: 0.5, ai: "mote", flies: true, dmg: 2, reach: 2.2, xp: 2, sound: "crystal", leash: 14,
+  mote: { echohold: true, name: "Resonance Mote", hostile: true, noSave: true, hears: true, hp: 4, speed: 2.6, w: 0.5, h: 0.5, ai: "mote", flies: true, dmg: 2, reach: 2.2, xp: 2, sound: "crystal", leash: 14,
     drops: () => [[I.LUMEN_SHARD, 1]],
     model: { type: "crystal", parts: [
       { name: "cage", size: [8, 8, 8], pivot: [0, 4, 0], off: [0, 0, 0], paint: { all: P => { P.clear(); P.rect(0, 0, 16, 2, "#5ae0d0"); P.rect(0, 14, 16, 2, "#5ae0d0"); P.rect(0, 0, 2, 16, "#5ae0d0"); P.rect(14, 0, 2, 16, "#5ae0d0"); } } },
       { name: "core", size: [4, 4, 4], pivot: [0, 4, 0], off: [0, 0, 0], paint: { all: solid(["#c8ffff", "#8af0e8"]) } },
       { name: "base", size: [1, 1, 1], pivot: [0, 0, 0], off: [0, 0, 0], paint: { all: solid(GLOWT) } }] } },
-  guardian: { name: "Dormant Guardian", hostile: true, noSave: true, hp: 60, speed: 1.8, w: 1.4, h: 2.8, ai: "melee", dmg: 8, reach: 2.4, xp: 15, sound: "clank", knockUp: true, leash: 14,
+  guardian: { echohold: true, name: "Dormant Guardian", hostile: true, noSave: true, hp: 60, speed: 1.8, w: 1.4, h: 2.8, ai: "melee", dmg: 8, reach: 2.4, xp: 15, sound: "clank", knockUp: true, leash: 14,
     drops: () => [[I.IRON_INGOT, randi(3, 6)], [I.LUMEN_SHARD, randi(2, 4)]],
     model: { type: "golem", parts: [
       { name: "body", size: [18, 12, 11], pivot: [0, 31, 0], off: [0, 6, 0], paint: { all: solid(KSTONE), front: face(KSTONE, P => { P.rect(6, 4, 4, 4, "#5ae0d0"); }) } },
@@ -669,7 +669,7 @@ Object.assign(SPECIES, {
       { name: "armL", size: [5, 28, 6], pivot: [11, 42, 0], off: [0, -13, 0], paint: { all: solid(KSTONE) } },
       { name: "legR", size: [6, 26, 5], pivot: [-4, 26, 0], off: [0, -13, 0], paint: { all: solid(COPPER) } },
       { name: "legL", size: [6, 26, 5], pivot: [4, 26, 0], off: [0, -13, 0], paint: { all: solid(COPPER) } }] } },
-  knight: { name: "Echo Knight", hostile: true, noSave: true, hp: 26, speed: 2.6, w: 0.6, h: 2, ai: "melee", dmg: 5, reach: 1.8, xp: 8, sound: "clank", shielded: true, leash: 20,
+  knight: { echohold: true, name: "Echo Knight", hostile: true, noSave: true, hp: 26, speed: 2.6, w: 0.6, h: 2, ai: "melee", dmg: 5, reach: 1.8, xp: 8, sound: "clank", shielded: true, leash: 20,
     drops: () => [[I.LUMEN_SHARD, randi(1, 2)]],
     model: { type: "humanoid", parts: [...humanoidParts({ legLen: 12, limb: [4, 12, 4], head: { all: solid(ECHO), front: face(ECHO, P => { P.rect(2, 6, 12, 2, "#0a1a20"); P.rect(4, 6, 2, 2, "#8af0e8"); P.rect(10, 6, 2, 2, "#8af0e8"); }) }, body: { all: solid(ECHO) }, arm: { all: solid(ECHO) }, leg: { all: solid(["#3a4a6a"]) } }),
       { name: "shield", parent: "armL", size: [2, 14, 12], pivot: [3, -6, 3], off: [0, 0, 0], paint: { all: solid(["#2a3a5a"]), right: P => { P.fill(["#2a3a5a"]); P.rect(5, 3, 6, 10, "#5ae0d0"); } } }] } },
@@ -685,6 +685,40 @@ Object.assign(SPECIES, {
   burrower: { name: "Crystal Burrower", hostile: true, noSave: true, hp: 18, speed: 2.8, w: 1, h: 0.8, ai: "melee", dmg: 4, reach: 1.6, xp: 6, sound: "chitter", burrows: true, leash: 16,
     drops: () => [[I.LUMEN_SHARD, randi(1, 3)]],
     model: { type: "spider", parts: spiderModel(["#7ab8ff", "#a8d8ff", "#5a8ad8"]).parts } },
+  // Echohold Reborn (Phase 4; behavior in js/echohold-hunt.js): a stone pillar with one eye that watches for movement
+  watcher: { echohold: true, name: "Echo Watcher", hostile: true, noSave: true, hp: 20, speed: 0, w: 0.9, h: 2.4, ai: "watcher", dmg: 0, reach: 0, xp: 6, sound: "clank", leash: 2,
+    drops: () => [[I.LUMEN_SHARD, randi(1, 2)], Math.random() < 0.5 ? [I.ECHO_SHARD, randi(1, 2)] : null],
+    model: { type: "pillar", parts: [
+      { name: "base", size: [12, 4, 12], pivot: [0, 0, 0], off: [0, 2, 0], paint: { all: solid(KSTONE) } },
+      { name: "body", size: [6, 24, 6], pivot: [0, 4, 0], off: [0, 12, 0], paint: { all: solid(KSTONE), front: face(KSTONE, P => { P.rect(7, 0, 2, 16, "#5ae0d0"); }) } },
+      { name: "head", size: [10, 10, 10], pivot: [0, 28, 0], off: [0, 5, 0], paint: { all: solid(KSTONE), front: coreFace(KSTONE) } }] } },
+  // Echohold Reborn (Phase 5): the mini-boss of the Royal Treasury (its fight is in js/lost.js)
+  fallen: { echohold: true, name: "The Fallen Sentinel", boss: true, lostBoss: true, noSave: true, hostile: true, hp: 280, speed: 1.9, scale: 1.15, w: 1.6, h: 3.2, ai: "fallen", fireproof: true, dmg: 7, reach: 2.6, xp: 0, sound: "clank", deathPuff: "pale", drops: () => [],
+    model: { type: "warden", parts: [
+      { name: "body", size: [18, 12, 11], pivot: [0, 31, 0], off: [0, 6, 0], paint: { all: P => { P.fill(["#2a2e36", "#30343c"]); for (let i = 0; i < 10; i++) P.px(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), i % 3 ? "#123a3a" : "#5ae0d0"); }, front: face(["#2a2e36"], P => { P.rect(3, 2, 10, 1, "#b87333"); P.rect(5, 4, 6, 1, "#0a1a20"); P.rect(6, 5, 4, 4, "#5ae0d0"); }) } },
+      { name: "core", parent: "body", size: [4, 4, 1], pivot: [0, 6, 6], off: [0, 0, 0], paint: { all: solid(["#8af0e8", "#c8ffff"]) } },
+      { name: "waist", size: [9, 5, 6], pivot: [0, 26, 0], off: [0, 2.5, 0], paint: { all: solid(COPPER) } },
+      { name: "head", size: [8, 8, 8], pivot: [0, 43, -1], off: [0, 4, 0], paint: { all: solid(["#2a2e36"]), front: coreFace(["#2a2e36"]) } },
+      { name: "crownL", parent: "head", size: [2, 4, 2], pivot: [-3, 6, 0], off: [0, 2, 0], paint: { all: solid(COPPER) } },
+      { name: "crownR", parent: "head", size: [2, 2, 2], pivot: [3, 6, 0], off: [0, 1, 0], paint: { all: solid(COPPER) } },
+      { name: "armR", size: [5, 28, 6], pivot: [-11, 42, 0], off: [0, -13, 0], paint: { all: solid(["#2a2e36", "#123a3a"]) } },
+      { name: "armL", size: [5, 28, 6], pivot: [11, 42, 0], off: [0, -13, 0], paint: { all: solid(["#2a2e36", "#30343c"]) } },
+      { name: "shield", parent: "armL", size: [2, 22, 16], pivot: [3, -10, 4], off: [0, 0, 0], paint: { all: solid(COPPER), right: P => { P.fill(COPPER); P.rect(4, 2, 8, 12, "#123a3a"); P.rect(6, 5, 4, 4, "#5ae0d0"); } } },
+      { name: "legR", size: [6, 26, 5], pivot: [-4, 26, 0], off: [0, -13, 0], paint: { all: solid(["#2a2e36"]) } },
+      { name: "legL", size: [6, 26, 5], pivot: [4, 26, 0], off: [0, -13, 0], paint: { all: solid(["#2a2e36"]) } }] } },
+  // a heavy guardian that sleeps beside vaults; a shield on its left arm blocks hits from the front
+  sentinel_v: { echohold: true, name: "Vault Sentinel", hostile: true, noSave: true, hears: true, hp: 70, speed: 1.6, w: 1.4, h: 2.8, ai: "vaultsentinel", dmg: 7, reach: 2.4, xp: 18, sound: "clank", shielded: true, leash: 14,
+    drops: () => [[I.IRON_INGOT, randi(3, 6)], [I.LUMEN_SHARD, randi(2, 4)], Math.random() < 0.3 ? [I.GOLD_INGOT, randi(1, 3)] : null],
+    model: { type: "warden", parts: [
+      { name: "body", size: [18, 12, 11], pivot: [0, 31, 0], off: [0, 6, 0], paint: { all: solid(["#2a2e36", "#30343c"]), front: face(["#2a2e36"], P => { P.rect(3, 2, 10, 1, "#b87333"); P.rect(6, 4, 4, 4, "#5ae0d0"); }) } },
+      { name: "core", parent: "body", size: [4, 4, 1], pivot: [0, 6, 6], off: [0, 0, 0], paint: { all: solid(["#8af0e8", "#c8ffff"]) } },
+      { name: "waist", size: [9, 5, 6], pivot: [0, 26, 0], off: [0, 2.5, 0], paint: { all: solid(COPPER) } },
+      { name: "head", size: [8, 8, 8], pivot: [0, 43, -1], off: [0, 4, 0], paint: { all: solid(["#2a2e36"]), front: coreFace(["#2a2e36"]) } },
+      { name: "armR", size: [5, 28, 6], pivot: [-11, 42, 0], off: [0, -13, 0], paint: { all: solid(["#2a2e36", "#30343c"]) } },
+      { name: "armL", size: [5, 28, 6], pivot: [11, 42, 0], off: [0, -13, 0], paint: { all: solid(["#2a2e36", "#30343c"]) } },
+      { name: "shield", parent: "armL", size: [2, 18, 14], pivot: [3, -10, 4], off: [0, 0, 0], paint: { all: solid(COPPER), right: P => { P.fill(COPPER); P.rect(5, 3, 6, 10, "#5ae0d0"); } } },
+      { name: "legR", size: [6, 26, 5], pivot: [-4, 26, 0], off: [0, -13, 0], paint: { all: solid(["#2a2e36"]) } },
+      { name: "legL", size: [6, 26, 5], pivot: [4, 26, 0], off: [0, -13, 0], paint: { all: solid(["#2a2e36"]) } }] } },
   // ----- the bosses (their fights are in js/lost-bosses.js) -----
   // ----- the temples' creatures and guardians -----
   tidecrab: { name: "Tide Crab", hostile: true, noSave: true, hp: 10, speed: 2.8, w: 0.9, h: 0.6, ai: "melee", dmg: 3, reach: 1.4, xp: 4, sound: "chitter", leash: 16,
@@ -763,7 +797,7 @@ Object.assign(SPECIES, {
       { name: "legL", size: [18, 2, 10], pivot: [0, 20, -40], off: [0, 0, -4], paint: { all: solid(["#3ab0c8", "#2a90a8"]) } }] } },
   tempest: { name: "The Blight Tempest", boss: true, lostBoss: true, cpBoss: true, noSave: true, hostile: true, hp: 300, speed: 1.3, w: 6.4, h: 10.6, scale: 2, ai: "cpboss", flies: true, noclip: true, fireproof: true, dmg: 7, reach: 5.6, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
     model: { type: "tempest", parts: tempestParts() } },
-  warden: { name: "The First Warden", boss: true, lostBoss: true, noSave: true, hostile: true, hears: true, hp: 400, speed: 2.4, w: 1.8, h: 4.2, ai: "warden", fireproof: true, dmg: 8, reach: 3, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
+  warden: { echohold: true, name: "The First Warden", boss: true, lostBoss: true, noSave: true, hostile: true, hears: true, hp: 440, speed: 2.4, scale: 1.2, w: 2.1, h: 5, ai: "warden", fireproof: true, dmg: 8, reach: 3, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
     model: { type: "warden", parts: [
       { name: "body", size: [20, 18, 12], pivot: [0, 40, 0], off: [0, 9, 0], paint: { all: P => { P.fill(["#14343c", "#10303a", "#183a44"]); for (let y = 2; y < 16; y += 4) P.rect(0, y, 16, 1, "#0a1a20"); } } },
       { name: "core", parent: "body", size: [8, 8, 2], pivot: [0, 10, 6], off: [0, 0, 1], paint: { all: solid(["#5ae0d0", "#8af0e8", "#c8ffff"]) } },
@@ -772,11 +806,16 @@ Object.assign(SPECIES, {
       { name: "head", size: [14, 12, 12], pivot: [0, 58, 0], off: [0, 6, 0], paint: { all: solid(["#14343c", "#10303a"]), front: face(["#14343c"], P => { P.rect(2, 10, 12, 3, "#0a1a20"); P.rect(3, 4, 10, 2, "#2a6a70"); }) } },
       { name: "finL", parent: "head", size: [3, 10, 6], pivot: [8, 8, 0], off: [1, 3, 0], paint: { all: solid(["#2a6a70", "#5ae0d0"]) } },
       { name: "finR", parent: "head", size: [3, 10, 6], pivot: [-8, 8, 0], off: [-1, 3, 0], paint: { all: solid(["#2a6a70", "#5ae0d0"]) } },
+      // Echohold Reborn: an old copper crown with glowing points, and moss growing over its shoulders
+      { name: "crown", parent: "head", size: [15, 2, 13], pivot: [0, 12, 0], off: [0, 1, 0], paint: { all: solid(COPPER) } },
+      ...[[-6, -5], [6, -5], [-6, 5], [6, 5], [0, -6]].map(([x, z], i) => ({ name: "spike" + i, parent: "head", size: [2, i === 4 ? 6 : 4, 2], pivot: [x, 13, z], off: [0, i === 4 ? 3 : 2, 0], paint: { all: solid(["#5ae0d0", "#b87333"]) } })),
+      { name: "mossR", parent: "body", size: [8, 3, 13], pivot: [-8, 18, 0], off: [0, 1, 0], paint: { all: P => { P.fill(["#123a3a", "#0e2e30"]); for (let i = 0; i < 6; i++) P.px(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), "#5ae0d0"); } } },
+      { name: "mossL", parent: "body", size: [8, 3, 13], pivot: [8, 18, 0], off: [0, 1, 0], paint: { all: P => { P.fill(["#123a3a", "#0e2e30"]); for (let i = 0; i < 6; i++) P.px(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), "#5ae0d0"); } } },
       { name: "armR", size: [7, 30, 7], pivot: [-14, 56, 0], off: [0, -14, 0], paint: { all: solid(["#14343c", "#183a44"]) } },
       { name: "armL", size: [7, 30, 7], pivot: [14, 56, 0], off: [0, -14, 0], paint: { all: solid(["#14343c", "#183a44"]) } },
       { name: "legR", size: [8, 26, 8], pivot: [-6, 26, 0], off: [0, -13, 0], paint: { all: solid(["#10303a"]) } },
       { name: "legL", size: [8, 26, 8], pivot: [6, 26, 0], off: [0, -13, 0], paint: { all: solid(["#10303a"]) } }] } },
-  sovereign: { name: "The Resonant Sovereign", boss: true, lostBoss: true, noSave: true, hostile: true, hp: 600, speed: 1, w: 3, h: 7, ai: "sovereign", fireproof: true, dmg: 9, reach: 4, xp: 0, sound: "roar", deathPuff: "pale", noclip: true, drops: () => [],
+  sovereign: { echohold: true, name: "The Resonant Sovereign", boss: true, lostBoss: true, noSave: true, hostile: true, hp: 600, speed: 1, scale: 1.15, w: 3, h: 7, ai: "sovereign", fireproof: true, dmg: 9, reach: 4, xp: 0, sound: "roar", deathPuff: "pale", noclip: true, drops: () => [],
     model: { type: "sovereign", parts: [
       { name: "body", size: [26, 40, 16], pivot: [0, 50, 0], off: [0, 0, 0], paint: { all: P => { P.fill(["#4a5a7a", "#52627e", "#3e4e6a"]); for (let y = 1; y < 16; y += 3) P.rect(0, y, 16, 1, "#2a3a54"); } } },
       { name: "core", parent: "body", size: [10, 10, 2], pivot: [0, 6, 8], off: [0, 0, 1], paint: { all: solid(["#c8ffff", "#8af0e8", "#ffffff"]) } },
@@ -784,7 +823,12 @@ Object.assign(SPECIES, {
       ...[0, 1, 2, 3].map(i => ({ name: "crown" + i, size: [6, 10, 6], pivot: [0, 96, 0], off: [Math.cos(i * Math.PI / 2) * 12, 0, Math.sin(i * Math.PI / 2) * 12], paint: { all: solid(["#c8e8ff", "#8ad8ff"]) } })),
       { name: "armR", size: [10, 44, 10], pivot: [-20, 68, 0], off: [0, -20, 0], paint: { all: solid(["#3e4e6a", "#4a5a7a"]) } },
       { name: "armL", size: [10, 44, 10], pivot: [20, 68, 0], off: [0, -20, 0], paint: { all: solid(["#3e4e6a", "#4a5a7a"]) } },
-      { name: "base", size: [20, 16, 14], pivot: [0, 22, 0], off: [0, 0, 0], paint: { all: solid(["#2a3a54", "#34445e"]) } }] } }
+      { name: "base", size: [20, 16, 14], pivot: [0, 22, 0], off: [0, 0, 0], paint: { all: solid(["#2a3a54", "#34445e"]) } },
+      // Echohold Reborn (Phase 7): glowing veins, shoulder spires, a cracked chest plate, and a ring of floating shards
+      { name: "veins", parent: "body", size: [27, 41, 1], pivot: [0, 0, 8.6], off: [0, 0, 0], paint: { all: P => { P.clear(); for (let y = 0; y < 16; y += 2) { const x = 8 + Math.round(Math.sin(y * 0.8) * 4); P.px(x, y, "#5ae0d0"); P.px(x + 1, y + 1, "#8af0e8"); } for (let i = 0; i < 10; i++) P.px(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), "#5ae0d0"); } } },
+      { name: "spireL", parent: "body", size: [5, 16, 5], pivot: [11, 20, 0], off: [0, 8, 0], paint: { all: solid(["#2a3a54", "#5ae0d0"]) } },
+      { name: "spireR", parent: "body", size: [5, 12, 5], pivot: [-11, 20, 0], off: [0, 6, 0], paint: { all: solid(["#2a3a54", "#5ae0d0"]) } },
+      ...[0, 1, 2, 3, 4, 5].map(i => ({ name: "shard" + i, parent: "base", size: [3, 6, 3], pivot: [Math.cos(i * Math.PI / 3) * 18, -6, Math.sin(i * Math.PI / 3) * 18], off: [0, 0, 0], paint: { all: solid(["#8af0e8", "#c8ffff"]) } }))] } }
 });
 // ----- Herobrine (the Forsaken World's watcher) and his Pale Sentinels. js/forsaken.js directs what Herobrine does. -----
 const HSKIN = ["#b98a65", "#b0825e", "#c0926c"], HHAIR = ["#4a2e18", "#422814"], HSHIRT = ["#2fa8b0", "#2a9aa2", "#34b0b8"], HPANTS = ["#3a3aa0", "#34349a", "#40409e"];
@@ -2031,7 +2075,7 @@ export class Entities {
     if (e.charge > 0) { e.charge -= step; e.goal = null; if (Math.random() < 0.6) this.ctx.particles(e.pos.x, e.pos.y + 1.5, e.pos.z, "pale"); if (e.charge <= 0) { this.addHazard(e.pos.x, e.pos.y, e.pos.z, 5, 0.01, 4, "An Echo Sentinel's pulse hit you. Back away when it glows!", 0); e.cd = 4; } return; }
     if (e.cd > 0) e.cd -= step;
     if (d < 6 && e.cd <= 0 && this.targetable()) { e.charge = 1.3; Sound.mob("crystal", d); return; }
-    this.chase(e, p);
+    this.chase(e, p.pos);   // (was the player instead of its position)
   }
   // Resonance Mote: floats toward you and zaps; tied to a relay it guards
   thinkMote(e, d, dmgMul) {
@@ -2982,7 +3026,7 @@ export class Entities {
     if (attacker === "player" && !e.def.villager && !e.def.object) this.petFoe = e;   // your Scouts join in
     if (e.summonT > 0) return false;   // can't be hurt while it's being summoned
     if (e.sp === "dragon") { n *= e.perched ? 1 : 0.6; knock = null; if (attacker === "explosion") n *= 0.3; }
-    if (e.def.shielded && attacker === "player") { const p = this.ctx.player(), f = Math.cos(e.yaw) * (e.pos.z - p.pos.z) + Math.sin(e.yaw) * (e.pos.x - p.pos.x); if (f > 0) { n *= 0.3; this.ctx.particles(e.pos.x, e.pos.y + 1.2, e.pos.z, "pale"); } }   // an Echo Knight's shield blocks hits from the front
+    if (e.def.shielded && attacker === "player" && !this.ctx.itemFlag?.("breaksGuard")) { const p = this.ctx.player(), f = Math.cos(e.yaw) * (e.pos.z - p.pos.z) + Math.sin(e.yaw) * (e.pos.x - p.pos.x); if (f > 0) { n *= 0.3; this.ctx.particles(e.pos.x, e.pos.y + 1.2, e.pos.z, "pale"); } }   // an Echo Knight's shield blocks hits from the front
     if (e.def.burrows && !e.emerged) return false;
     if (e.def.segmentedLeviathan) knock = null;
     if (e.def.hears && attacker === "player") { e.alertT = Math.max(e.alertT || 0, 10); e.dormant = false; }

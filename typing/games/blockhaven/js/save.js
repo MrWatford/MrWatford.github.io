@@ -224,7 +224,7 @@ function upgrade(w) {
 
 // Small settings live in localStorage
 const SETTINGS_KEY = "blockhaven-settings";
-export const DEFAULT_SETTINGS = { sensitivity: 1, volume: 0.6, muted: false, renderDist: 4, quality: "fast", fov: 72, reducedMotion: false, keySwap: "KeyX", skin: "explorer", fwAmbient: 0.8, fwSudden: 0.8, fwEffects: true, fwShake: true, fwWords: true, unlocked: [], titleCinema: true, titleParticles: true, titleMotion: true, titleCaptions: true, titleReduce: "system" };
+export const DEFAULT_SETTINGS = { sensitivity: 1, volume: 0.6, muted: false, renderDist: 4, quality: "fast", fx: "medium", fov: 72, reducedMotion: false, keySwap: "KeyX", skin: "explorer", fwAmbient: 0.8, fwSudden: 0.8, fwEffects: true, fwShake: true, fwWords: true, unlocked: [], titleCinema: true, titleParticles: true, titleMotion: true, titleCaptions: true, titleReduce: "system" };
 export function loadSettings() {
   try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") }; } catch (e) { return { ...DEFAULT_SETTINGS }; }
 }

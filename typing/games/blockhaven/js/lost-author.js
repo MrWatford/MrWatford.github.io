@@ -4,6 +4,7 @@ import { B, I, HEIGHT, make, TOP } from "./blocks.js";
 import { Noise } from "./noise.js";
 import { Grid, KEEP, walkable } from "./maps.js";
 import { LORE, MURALS, MEMORIES } from "./lost-lore.js";
+import { DEEP2, buildOuterKingdom, carveOuterCavern } from "./echohold-author.js";
 
 export const LOST_VERSION = 1;
 function seeded(s) { return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296); }
@@ -42,11 +43,13 @@ function makeKit(W, meta, r) {
       for (let x = x0 + 2; x < x1 - 1; x += 3) { W.set(x, y + 1, z0, B.RESONANT_GLASS); W.set(x, y + 1, z1, x === dx ? 0 : B.RESONANT_GLASS); }
       if (opts.broken) { W.box(x1, y + 1, z0 + 1, x1, y + h, z0 + 2, 0); W.box(x0 + 1, y + h, z0 + 1, x0 + 2, y + h, z0 + 2, 0); }
       if (opts.lamp !== false) W.set(x0 + 1, y, z0 + 1, B.KEEPER_LAMP);
+      if (meta.skyline) meta.skyline.push([x0, z0, x1, z1, y - 1, y + h + 1]);
       return { door: { x: dx, y, z: dz } };
     },
     tower(cx, cz, y, rad, h, mat = B.DARKSLATE_BRICKS, cap = B.KEEPER_LAMP) {
       for (let yy = y; yy < y + h; yy++) for (let dx = -rad; dx <= rad; dx++) for (let dz = -rad; dz <= rad; dz++) { const dd = Math.hypot(dx, dz); if (dd <= rad + 0.3) W.set(cx + dx, yy, cz + dz, dd > rad - 1 ? (yy % 5 === 0 ? B.KEEPER_COPPER : mat) : 0); }
       W.set(cx, y + h, cz, cap);
+      if (meta.skyline) meta.skyline.push([cx - rad, cz - rad, cx + rad, cz + rad, y - 1, y + h + 1]);
     },
     // a round tower you can climb: a spiral of steps inside, a doorway at the bottom (south), and a floor on top with a hatch
     stairTower(cx, cz, y, h, mat = B.DARKSLATE_BRICKS) {
@@ -84,18 +87,22 @@ function makeKit(W, meta, r) {
 // THE DEEP: a layered descent to Echohold, capital of the Keepers
 // =====================================================================
 export const DEEP = { min: -128, size: 256, floor: 12 };
-export function buildDeep() {
-  const W = new Grid(DEEP.min, DEEP.min, DEEP.size, DEEP.size), n = new Noise(51923), r = seeded(1104);
-  const meta = { version: LOST_VERSION, id: "deep-v1", kind: "deep", lore: {}, chests: {}, checkpoints: [], districts: [], nodes: [], puzzles: {}, secrets: [], spawns: [] };
+// version 1 = the original Echohold (maps/deep-v1.bin, released; never rebuild it). version 2 = Echohold Reborn (deep-v2):
+// the same city and descent, plus a second great cavern to the west (js/echohold-author.js).
+export function buildDeep(version = 1) {
+  const v2 = version === 2;
+  const W = v2 ? new Grid(DEEP2.x0, DEEP2.z0, DEEP2.sx, DEEP2.sz) : new Grid(DEEP.min, DEEP.min, DEEP.size, DEEP.size), n = new Noise(51923), r = seeded(1104);
+  const meta = { version: v2 ? 2 : LOST_VERSION, id: v2 ? "deep-v2" : "deep-v1", kind: "deep", lore: {}, chests: {}, checkpoints: [], districts: [], nodes: [], puzzles: {}, secrets: [], spawns: [] };
+  if (v2) meta.skyline = [];
   const K = makeKit(W, meta, r), F = DEEP.floor;
   // solid rock: stone above, darkslate below, with ore
-  for (let z = DEEP.min; z < DEEP.min + DEEP.size; z++) for (let x = DEEP.min; x < DEEP.min + DEEP.size; x++) for (let y = 0; y < HEIGHT; y++) {
+  for (let z = W.z0; z < W.z0 + W.sz; z++) for (let x = W.x0; x < W.x0 + W.sx; x++) for (let y = 0; y < HEIGHT; y++) {
     let v = y === 0 || y === HEIGHT - 1 ? B.BEDROCK : y < 44 ? B.DARKSLATE : B.STONE;
     if (v !== B.BEDROCK) { const q = r(); if (q < 0.006) v = B.COAL_ORE; else if (q < 0.01) v = B.IRON_ORE; else if (q < 0.0115 && y < 30) v = B.SKY_ORE; }
     W.set(x, y, z, v);
   }
   // wandering side caves for exploring (never on the main route; the route is carved afterward)
-  for (let z = DEEP.min + 2; z < DEEP.min + DEEP.size - 2; z++) for (let x = DEEP.min + 2; x < DEEP.min + DEEP.size - 2; x++) for (let y = 4; y < HEIGHT - 4; y++) if (n.n3(x / 22, y / 14, z / 22) > 0.52) W.set(x, y, z, 0);
+  for (let z = W.z0 + 2; z < W.z0 + W.sz - 2; z++) for (let x = W.x0 + 2; x < W.x0 + W.sx - 2; x++) for (let y = 4; y < HEIGHT - 4; y++) if (n.n3(x / 22, y / 14, z / 22) > 0.52) W.set(x, y, z, 0);
   // ----- the great cavern: a dome 208 blocks across, floor at y 12 -----
   const RAD = 104;
   for (let z = -RAD - 4; z <= RAD + 4; z++) for (let x = -RAD - 4; x <= RAD + 4; x++) {
@@ -106,6 +113,7 @@ export function buildDeep() {
       else if (inside) W.set(x, y, z, 0);
     }
   }
+  if (v2) carveOuterCavern(W, n, r, F);
   // stalactite columns and lumen crystals on the walls for a sense of scale
   for (let k = 0; k < 70; k++) { const a = r() * Math.PI * 2, d = 40 + r() * 60, x = Math.round(Math.cos(a) * d), z = Math.round(Math.sin(a) * d); let y = HEIGHT - 3; while (y > F + 20 && W.id(x, y, z) !== 0) y--; const len = 3 + Math.floor(r() * 9); for (let j = 0; j < len; j++) if (W.id(x, y - j, z) === 0) W.set(x, y - j, z, B.DRIPSTONE); }
   for (let k = 0; k < 140; k++) { const a = r() * Math.PI * 2, x = Math.round(Math.cos(a) * (RAD + 1)), z = Math.round(Math.sin(a) * (RAD + 1)), y = F + 6 + Math.floor(r() * 40); if (W.id(x, y, z) && W.id(Math.round(x * 0.97), y, Math.round(z * 0.97)) === 0) W.set(Math.round(x * 0.97), y, Math.round(z * 0.97), B.LUMEN_CRYSTAL); }
@@ -188,7 +196,7 @@ export function buildDeep() {
   meta.cityArrival = { x: CAMP.x + 0.5, y: Y, z: CAMP.z + 5.5 };
   // the city wall with its great gate (2. the Gate of Whispers) to the south-east
   const WALL = 78;
-  for (let a = 0; a < 360; a += 0.5) { const t = a * Math.PI / 180, x = Math.round(Math.cos(t) * WALL), z = Math.round(Math.sin(t) * WALL); if (Math.abs(a - 45) < 6) continue; W.box(x, Y, z, x, Y + 7, z, (xx, yy) => yy === Y + 7 && Math.round(a) % 4 === 0 ? B.KEEPER_LAMP : B.DARKSLATE_BRICKS); }
+  for (let a = 0; a < 360; a += 0.5) { const t = a * Math.PI / 180, x = Math.round(Math.cos(t) * WALL), z = Math.round(Math.sin(t) * WALL); if (Math.abs(a - 45) < 6 || (v2 && Math.abs(a - DEEP2.westGateAngle) < 5)) continue; W.box(x, Y, z, x, Y + 7, z, (xx, yy) => yy === Y + 7 && Math.round(a) % 4 === 0 ? B.KEEPER_LAMP : B.DARKSLATE_BRICKS); }
   const GW = { x: Math.round(Math.cos(Math.PI / 4) * WALL), z: Math.round(Math.sin(Math.PI / 4) * WALL) };
   const gwTop = K.stairTower(GW.x + 7, GW.z - 7, Y, 14).top; K.stairTower(GW.x - 7, GW.z + 7, Y, 14);
   W.box(GW.x - 4, Y, GW.z - 4, GW.x + 4, Y + 6, GW.z + 4, (x, y, z) => Math.abs((x - GW.x) - (z - GW.z)) <= 1 ? 0 : undefined);
@@ -334,6 +342,7 @@ export function buildDeep() {
   meta.spawns.push({ id: "streets_crawlers", kind: "crawler", n: 2, x: -20, y: Y, z: 20, r: 12 }, { id: "gate_motes", kind: "mote", n: 2, x: 0, y: Y + 8, z: -50, r: 6 }, { id: "archive_guardian", kind: "guardian", n: 1, x: AR.x, y: Y, z: AR.z + 4, r: 2, dormant: true });
   // a lift back up to the Surface from the camp area (an earned shortcut)
   W.set(CAMP.x + 6, Y, CAMP.z - 2, B.DEEP_LIFT); meta.cityLift = { x: CAMP.x + 6, y: Y, z: CAMP.z - 2 };
+  if (v2) buildOuterKingdom(W, meta, K, r, n, { F, Y, avenue, WALL, lootFor, it, k3 });
   meta.nodes = meta.nodes.filter(q => W.id(q.x, q.y, q.z) === B.HUSH_NODE);   // drop any node a later building covered up
   return { grid: W, meta };
 }
@@ -492,7 +501,7 @@ function buildTempleEntrances(W, meta, K) {
 export const EXTRA_LORE = { dig_sign: { step: 0, title: "Survey Sign", by: "Rosalind Pell's expedition", where: "the excavation site", text: "KEEPER EXCAVATION. A working lift goes down to the deep caverns and the lost city of Echohold.\n\nPack food, torches, and something soft to walk on. Leave the lamps lit." } };
 
 // ---------- build checks ----------
-export function validateLost(which, W, meta) {
+export function validateLost(which, W, meta, limit = 400000) {
   const report = [], ok = (pass, what) => report.push((pass ? "PASS " : "FAIL ") + what);
   const SOLIDS = new Set([0, B.WATER, B.TORCH, B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.DOOR, B.LAVA, B.GATE_VEIL, B.LUMEN_CRYSTAL]);
   const solid = id => !SOLIDS.has(id);
@@ -502,7 +511,7 @@ export function validateLost(which, W, meta) {
   const view = { inside: (x, y, z) => W.inside(x, y, z), id: (x, y, z) => { for (const p of doors) { const d = p.door; if (x >= d.x0 && x <= d.x1 && y >= d.y0 && y <= d.y1 && z >= d.z0 && z <= d.z1) return 0; } if (which === "expanse" && meta.puzzles.ruins && meta.puzzles.ruins.setA.some(c => c.x === x && c.y === y && c.z === z)) return B.RESONANT_GLASS; return W.id(x, y, z); } };
   const a = meta.arrival, start = { x: Math.floor(a.x), y: a.y, z: Math.floor(a.z) };
   ok(solid(W.id(start.x, start.y - 1, start.z)) && !solid(W.id(start.x, start.y, start.z)) && !solid(W.id(start.x, start.y + 1, start.z)), `${which}: arrival spot has floor and head room`);
-  const walk = walkable(view, start, solid, hazard);
+  const walk = walkable(view, start, solid, hazard, limit);
   const reach = (t, what, rr = 2) => ok(walk.near({ x: Math.floor(t.x), y: Math.floor(t.y), z: Math.floor(t.z) }, rr), `${which}: ${what} is reachable on foot`);
   for (const c of meta.checkpoints) reach(c, `checkpoint "${c.name}"`);
   for (const [k, l] of Object.entries(meta.lore)) { const [x, y, z] = k.split(",").map(Number); reach({ x, y, z }, `tablet "${l}"`); }

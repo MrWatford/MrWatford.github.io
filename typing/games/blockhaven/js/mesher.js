@@ -1,17 +1,17 @@
 // Turns a chunk's blocks into triangles the graphics card can draw.
 // Only faces that touch air (or see-through blocks) are drawn, and each corner gets
 // sunlight, torchlight, and soft corner shadows.
-import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL } from "./blocks.js";
+import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL, COOL, FACEGLOW } from "./blocks.js";
 import { model, dustConn, dustPoints } from "./shapes.js";
 import { chunkKey } from "./world.js";
 import { hash3 } from "./noise.js";
 
 const M = 8, RW = CHUNK + 2 * M, AREA = RW * RW, SIZE = AREA * HEIGHT;
-const vals = new Uint16Array(SIZE), sky = new Uint8Array(SIZE), blk = new Uint8Array(SIZE), queue = new Int32Array(SIZE * 2);
+const vals = new Uint16Array(SIZE), sky = new Uint8Array(SIZE), blk = new Uint8Array(SIZE), cool = new Uint8Array(SIZE), queue = new Int32Array(SIZE * 2);
 const ri = (x, y, z) => (x + M) + (z + M) * RW + y * AREA;
 
 // Scratch buffers (reused for every chunk)
-function makeBuf(maxQuads) { return { pos: new Float32Array(maxQuads * 12), uv: new Float32Array(maxQuads * 8), lt: new Float32Array(maxQuads * 12), n: 0, max: maxQuads }; }
+function makeBuf(maxQuads) { return { pos: new Float32Array(maxQuads * 12), uv: new Float32Array(maxQuads * 8), lt: new Float32Array(maxQuads * 12), cl: new Float32Array(maxQuads * 4), n: 0, max: maxQuads }; }
 const solidBuf = makeBuf(60000), waterBuf = makeBuf(20000);
 
 // Faces: normal direction, 4 corners, which texture face (0 top, 1 side, 2 bottom), brightness
@@ -47,6 +47,7 @@ function quad(buf, pts, tile, uvs, lights) {
     buf.uv[u + k * 2] = (tx + 0.02 + uvs[k][0] * 15.96) / ATLAS_W;
     buf.uv[u + k * 2 + 1] = 1 - (ty + 0.02 + (1 - uvs[k][1]) * 15.96) / ATLAS_H;
     buf.lt[p + k * 3] = lights[k][0]; buf.lt[p + k * 3 + 1] = lights[k][1]; buf.lt[p + k * 3 + 2] = lights[k][2];
+    buf.cl[buf.n * 4 + k] = lights[k][3] || 0;   // cool (teal) light
   }
   buf.n++;
 }
@@ -84,7 +85,7 @@ export function buildChunk(world, chunk, fancy) {
     }
   }
   // 2) sunlight straight down each column, then spread sideways into overhangs and caves
-  sky.fill(0); blk.fill(0);
+  sky.fill(0); blk.fill(0); cool.fill(0);
   const tops = new Int16Array(AREA);
   for (let c = 0; c < AREA; c++) {
     let s = 15, y = HEIGHT - 1;
@@ -106,26 +107,29 @@ export function buildChunk(world, chunk, fancy) {
     for (let y = 0; y < tops[c]; y++) if (sky[c + y * AREA] > 1) queue[tail++] = c + y * AREA;   // under water/leaves
   }
   flood(sky, 0, tail);
-  // 3) torchlight
-  tail = 0;
-  for (let i = 0; i < SIZE; i++) { const v = vals[i]; if (v && lightOf(v)) { blk[i] = lightOf(v); queue[tail++] = i; } }
+  // 3) torchlight (warm), then cool teal light from Echohold's crystals, moss nodes, and gate stones
+  tail = 0; let coolN = 0;
+  for (let i = 0; i < SIZE; i++) { const v = vals[i]; if (v && lightOf(v)) { if (COOL[v & 255]) { cool[i] = lightOf(v); coolN++; } else { blk[i] = lightOf(v); queue[tail++] = i; } } }
   flood(blk, 0, tail);
+  if (coolN) { tail = 0; for (let i = 0; i < SIZE; i++) if (cool[i]) queue[tail++] = i; flood(cool, 0, tail); }
 
   // keep this chunk's light levels so creatures can check how dark a spot is
   if (!chunk.sky) { chunk.sky = new Uint8Array(CHUNK * CHUNK * HEIGHT); chunk.blk = new Uint8Array(CHUNK * CHUNK * HEIGHT); }
   for (let y = 0; y < HEIGHT; y++) for (let z = 0; z < CHUNK; z++) {
     const r0 = ri(0, y, z), c0 = z * CHUNK + y * CHUNK * CHUNK;
-    chunk.sky.set(sky.subarray(r0, r0 + CHUNK), c0); chunk.blk.set(blk.subarray(r0, r0 + CHUNK), c0);
+    chunk.sky.set(sky.subarray(r0, r0 + CHUNK), c0);
+    for (let x = 0; x < CHUNK; x++) chunk.blk[c0 + x] = Math.max(blk[r0 + x], cool[r0 + x]);   // creatures see both kinds of light
   }
   // 4) build faces for the blocks inside this chunk
   solidBuf.n = 0; waterBuf.n = 0;
-  const lights = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  const lights = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
   for (let y = 0; y < HEIGHT; y++) for (let z = 0; z < CHUNK; z++) for (let x = 0; x < CHUNK; x++) {
     const i = ri(x, y, z), v = vals[i], id = v & 255;
     if (!id) continue;
     const def = blockDef(v);
     if (def.shape === "cube") {
       const frontDir = def.front6 ? PF_FACE[metaOf(v) & 7] : def.front ? FACING_DIR[metaOf(v) & 3] : -1;
+      const glow = FACEGLOW[id];
       for (let f = 0; f < 6; f++) {
         const F = FACES[f];
         if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
@@ -140,11 +144,11 @@ export function buildChunk(world, chunk, fancy) {
           const [a, b, c] = F.ao[k];
           const s1 = OPAQUE[vals[i + a] & 255], s2 = OPAQUE[vals[i + b] & 255], cc = OPAQUE[vals[i + c] & 255];
           const ao = s1 && s2 ? 0 : 3 - (s1 + s2 + cc);
-          let ls = sky[ni], lb = blk[ni], cnt = 1;
-          if (!s1) { ls += sky[i + a] | 0; lb += blk[i + a] | 0; cnt++; }
-          if (!s2) { ls += sky[i + b] | 0; lb += blk[i + b] | 0; cnt++; }
-          if (!cc && !(s1 && s2)) { ls += sky[i + c] | 0; lb += blk[i + c] | 0; cnt++; }
-          lights[k][0] = ls / cnt / 15; lights[k][1] = lb / cnt / 15; lights[k][2] = F.shade * AO[ao];
+          let ls = sky[ni], lb = blk[ni], lc = cool[ni], cnt = 1;
+          if (!s1) { ls += sky[i + a] | 0; lb += blk[i + a] | 0; lc += cool[i + a] | 0; cnt++; }
+          if (!s2) { ls += sky[i + b] | 0; lb += blk[i + b] | 0; lc += cool[i + b] | 0; cnt++; }
+          if (!cc && !(s1 && s2)) { ls += sky[i + c] | 0; lb += blk[i + c] | 0; lc += cool[i + c] | 0; cnt++; }
+          lights[k][0] = ls / cnt / 15; lights[k][1] = lb / cnt / 15; lights[k][2] = F.shade * AO[ao]; lights[k][3] = Math.max(lc / cnt / 15, glow);
         }
         const pts = F.c.map(p => [x + p[0], y + p[1], z + p[2]]);
         // flip the square's diagonal so corner shadows look smooth
@@ -158,7 +162,7 @@ export function buildChunk(world, chunk, fancy) {
         const F = FACES[f], ni = i + F.front, nv = vals[ni];
         if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
         if (isWater(nv) || OPAQUE[nv & 255]) continue;
-        const l = [sky[ni] / 15, blk[ni] / 15, F.shade];
+        const l = [sky[ni] / 15, blk[ni] / 15, F.shade, Math.max(cool[ni], COOL[id] ? cool[i] : 0) / 15];
         const pts = F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]);
         quad(waterBuf, pts, faceTile(v, F.tex), UV, [l, l, l, l]);
       }
@@ -204,7 +208,7 @@ export function buildChunk(world, chunk, fancy) {
         for (const q of [qa, qb]) { quad(solidBuf, q, tile, UV, L); quad(solidBuf, [q[1], q[0], q[3], q[2]], tile, [UV[1], UV[0], UV[3], UV[2]], L); }
       }
     } else if (def.shape === "cross" || def.shape === "torch") {
-      const l = [sky[i] / 15, blk[i] / 15, def.shape === "torch" ? 1 : 0.9], L = [l, l, l, l], tile = faceTile(v, 1);
+      const l = [sky[i] / 15, blk[i] / 15, def.shape === "torch" ? 1 : 0.9, cool[i] / 15], L = [l, l, l, l], tile = faceTile(v, 1);
       const a = def.shape === "torch" ? 0.3 : 0.15, b = 1 - a, h = def.shape === "torch" ? 0.75 : 1;
       const diag = [[[x + a, y, z + a], [x + b, y, z + b], [x + b, y + h, z + b], [x + a, y + h, z + a]], [[x + a, y, z + b], [x + b, y, z + a], [x + b, y + h, z + a], [x + a, y + h, z + b]]];
       const uv = h < 1 ? [[0, 0], [1, 0], [1, h], [0, h]] : UV;
@@ -229,14 +233,14 @@ export function buildChunk(world, chunk, fancy) {
       drawDust(v, get, x, y, z, sky[i], blk[i]);
     } else if (def.shape === "model") {
       const get = (dx, dy, dz) => { const yy = y + dy; return yy < 0 ? B.BEDROCK : yy >= HEIGHT ? 0 : vals[ri(x + dx, yy, z + dz)]; };
-      const mo = model(v, get), ls = sky[i] / 15, lb = blk[i] / 15;
-      if (mo) { drawModel(mo, x, y, z, ls, lb); if (mo.arms) for (const a of mo.arms) drawModel(a, x, y, z, ls, lb); }
+      const mo = model(v, get), ls = sky[i] / 15, lb = blk[i] / 15, lc = cool[i] / 15;
+      if (mo) { drawModel(mo, x, y, z, ls, lb, lc); if (mo.arms) for (const a of mo.arms) drawModel(a, x, y, z, ls, lb, lc); }
     } else if (def.shape === "door") {
-      const meta = metaOf(v), box = doorBox(meta), tile = faceTile(v, 1), l = [sky[i] / 15, blk[i] / 15, 1];
+      const meta = metaOf(v), box = doorBox(meta), tile = faceTile(v, 1), l = [sky[i] / 15, blk[i] / 15, 1, cool[i] / 15];
       for (const F of FACES) {
         const pts = F.c.map(p => [x + (p[0] ? box[3] : box[0]), y + (p[1] ? box[4] : box[1]), z + (p[2] ? box[5] : box[2])]);
-        quad(solidBuf, pts, tile, UV, [l, l, l, l].map((q, k) => [q[0], q[1], F.shade]));
-        quad(solidBuf, [pts[1], pts[0], pts[3], pts[2]], tile, [UV[1], UV[0], UV[3], UV[2]], [l, l, l, l].map(q => [q[0], q[1], F.shade * 0.9]));
+        quad(solidBuf, pts, tile, UV, [l, l, l, l].map((q, k) => [q[0], q[1], F.shade, q[3]]));
+        quad(solidBuf, [pts[1], pts[0], pts[3], pts[2]], tile, [UV[1], UV[0], UV[3], UV[2]], [l, l, l, l].map(q => [q[0], q[1], F.shade * 0.9, q[3]]));
       }
     }
   }
@@ -249,7 +253,7 @@ function uvFor(f, lx, ly, lz) {
   switch (f) { case 0: return [1 - lz, ly]; case 1: return [lz, ly]; case 2: return [lx, 1 - lz]; case 3: return [lx, lz]; case 4: return [lx, ly]; default: return [1 - lx, ly]; }
 }
 const SHADE = [0.75, 0.75, 1, 0.5, 0.88, 0.88];
-function drawModel(mo, x, y, z, ls, lb) {
+function drawModel(mo, x, y, z, ls, lb, lc = 0) {
   for (const part of mo.parts) {
     const b = part.b, sh = part.shear;
     for (let f = 0; f < 6; f++) {
@@ -266,7 +270,7 @@ function drawModel(mo, x, y, z, ls, lb) {
       const ax = pts[1][0] - pts[0][0], ay = pts[1][1] - pts[0][1], az = pts[1][2] - pts[0][2], bx = pts[3][0] - pts[0][0], by = pts[3][1] - pts[0][1], bz = pts[3][2] - pts[0][2];
       const nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx, anx = Math.abs(nx), any = Math.abs(ny), anz = Math.abs(nz);
       const shade = any >= anx && any >= anz ? (ny > 0 ? SHADE[2] : SHADE[3]) : anx >= anz ? SHADE[0] : SHADE[4];
-      const l = [ls, lb, shade], tile = part.tiles[f === 2 ? 0 : f === 3 ? 2 : 1];
+      const l = [ls, lb, shade, lc], tile = part.tiles[f === 2 ? 0 : f === 3 ? 2 : 1];
       quad(solidBuf, pts, tile, uvs, [l, l, l, l]);
     }
   }
@@ -321,5 +325,5 @@ function pack(buf) {
   if (!buf.n) return null;
   const n = buf.n, index = new Uint32Array(n * 6);
   for (let q = 0; q < n; q++) { const b = q * 4, o = q * 6; index[o] = b; index[o + 1] = b + 1; index[o + 2] = b + 2; index[o + 3] = b; index[o + 4] = b + 2; index[o + 5] = b + 3; }
-  return { pos: buf.pos.slice(0, n * 12), uv: buf.uv.slice(0, n * 8), lt: buf.lt.slice(0, n * 12), index };
+  return { pos: buf.pos.slice(0, n * 12), uv: buf.uv.slice(0, n * 8), lt: buf.lt.slice(0, n * 12), cl: buf.cl.slice(0, n * 4), index };
 }
