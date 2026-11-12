@@ -8,6 +8,7 @@ import { leviathanJournalHTML, bindLeviathanBondControls } from "./leviathan-jou
 import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
 import { HOLLOW_SANDS } from "./hollow-sands.js";
 import { hollowSandsMapHTML, mountHollowSandsMap } from "./hollow-sands-map.js";
+import { Cinema } from "./title-cinema.js";
 
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
@@ -19,6 +20,7 @@ export const UI = {
   init(game) {
     G = game;
     paintTitleScene();
+    if ($("titleCinema")) { Cinema.init($("titleCinema"), G.settings); Cinema.setActive(current === "title"); }   // skipped if an older cached page is missing the slideshow
     $("touchWarn").hidden = !(matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches);
     $("btnPlay").onclick = () => { Sound.start(); Sound.click(); this.showWorlds(); };
     $("btnNew").onclick = $("btnNew2").onclick = () => { Sound.start(); Sound.click(); this.show("newWorld"); $("nwName").select(); };
@@ -82,6 +84,7 @@ export const UI = {
     for (const s of screens) $(s).hidden = s !== name;
     $("hud").hidden = !(name === "none" || name === "panel" || name === "pause" || name === "death");
     if (name === "title") paintTitleScene();
+    Cinema.setActive(name === "title");
     if (name === "pause" && G.wset) { const hc = !!(G.meta && G.meta.hardcore); $("pDiff").value = G.wset.difficulty; $("pMode").value = G.mode === "creative" ? "creative" : "survival"; $("pMode").disabled = hc || G.spectator; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; $("pDiff").disabled = $("pKeep").disabled = hc; $("hcNote").hidden = !hc; }
   },
   get current() { return current; },
@@ -171,6 +174,11 @@ export const UI = {
     $("sFwAmb").value = s.fwAmbient; $("oFwAmb").textContent = Math.round(s.fwAmbient * 100) + "%";
     $("sFwSud").value = s.fwSudden; $("oFwSud").textContent = Math.round(s.fwSudden * 100) + "%";
     $("sFwFx").checked = s.fwEffects !== false; $("sFwShake").checked = s.fwShake !== false; $("sFwWords").checked = s.fwWords !== false; $("sLostCalm").checked = !!s.lostReduced;
+    if ($("sTcOn")) {
+    $("sTcOn").checked = s.titleCinema !== false; $("sTcParts").checked = s.titleParticles !== false; $("sTcMove").checked = s.titleMotion !== false;
+    $("sTcCap").checked = s.titleCaptions !== false; $("sTcReduce").value = s.titleReduce || "system";
+    $("sTcParts").disabled = $("sTcMove").disabled = $("sTcCap").disabled = $("sTcReduce").disabled = s.titleCinema === false;
+    }
   },
   bindSettings() {
     const upd = (k, v) => { G.settings[k] = v; G.applySettings(k); this.syncSettings(); };
@@ -187,6 +195,15 @@ export const UI = {
     $("sFwShake").onchange = e => upd("fwShake", e.target.checked);
     $("sFwWords").onchange = e => upd("fwWords", e.target.checked);
     $("sLostCalm").onchange = e => upd("lostReduced", e.target.checked);
+    const tc = (k, v) => { upd(k, v); Cinema.apply(G.settings); };
+    if ($("sTcOn")) {
+    $("sTcOn").onchange = e => tc("titleCinema", e.target.checked);
+    $("sTcParts").onchange = e => tc("titleParticles", e.target.checked);
+    $("sTcMove").onchange = e => tc("titleMotion", e.target.checked);
+    $("sTcCap").onchange = e => tc("titleCaptions", e.target.checked);
+    $("sTcReduce").onchange = e => tc("titleReduce", e.target.value);
+    }
+    $("sMotion").addEventListener("change", () => Cinema.apply(G.settings));
     // pick the swap-hands key: click, then press a key (keys the game already uses aren't allowed)
     const TAKEN = ["KeyW", "KeyA", "KeyS", "KeyD", "KeyE", "KeyQ", "KeyC", "KeyR", "KeyF", "KeyL", "Space", "Escape", "ShiftLeft", "ShiftRight", "Tab", "F3", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
     $("sSwap").onclick = () => {
