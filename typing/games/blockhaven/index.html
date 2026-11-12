@@ -450,6 +450,20 @@ body.tc-on #title .foot { color: #d9ddd2; }
 }
 @media (max-height: 720px) and (max-width: 1100px) { .tc-cap { display: none; } }
 @media (prefers-reduced-motion: reduce) { #title .btn { transition: none; } }
+/* Play Together */
+#mpBanner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); max-width: min(560px, calc(100% - 32px)); background: rgba(20,24,21,.88); border: 2px solid #f5c431; border-radius: 10px; padding: 8px 14px; font-weight: 700; text-align: center; z-index: 5; }
+.mp-code { font: 800 clamp(18px, 5vw, 36px)/1.2 ui-monospace, Menlo, Consolas, monospace; letter-spacing: 1px; white-space: nowrap; overflow-x: auto; text-align: center; padding: 12px; border-radius: 10px; background: rgba(0,0,0,.35); border: 2px dashed rgba(255,255,255,.35); user-select: all; }
+.mp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mp-list li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,.06); }
+.mp-list li small { opacity: .75; }
+.mp-list li .btn { margin-left: auto; }
+.mp-ask { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(245,196,49,.15); border: 1px solid rgba(245,196,49,.5); }
+.mp-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mp-status { font-weight: 700; font-size: 1.1em; text-align: center; }
+#mpQuick { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); min-width: 190px; background: rgba(20,24,21,.9); border: 2px solid rgba(255,255,255,.35); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; z-index: 5; }
+#mpQuick[hidden] { display: none; }
+#mpQuick kbd { display: inline-block; min-width: 20px; text-align: center; border-radius: 4px; background: #f5c431; color: #1d2433; font-weight: 800; margin-right: 4px; }
+#mpQuick small { opacity: .75; margin-top: 4px; }
 </style>
   <script src="../../../js/play-counter.js"></script>
 </head>
@@ -488,6 +502,8 @@ body.tc-on #title .foot { color: #d9ddd2; }
   </div>
   <div id="modeTag"></div>
   <div id="clickToPlay" hidden>Click here to play</div>
+  <div id="mpBanner" hidden></div>
+  <div id="mpQuick" hidden></div>
   <div id="debug" hidden></div>
 </div>
 
@@ -503,6 +519,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
     <button class="btn campaign-btn" id="btnCampaign">⚔️ Legacy Campaign</button>
+    <button class="btn" id="btnTogether">👥 Play Together</button>
     <div class="row"><button class="btn" id="btnSettings">Settings</button><button class="btn" id="btnControls">Controls</button></div>
     <button class="btn" id="btnSkins">👕 Skins</button>
     <a class="back-link" href="../../index.html">← Back to Mr. Watford's Games</a>
@@ -589,6 +606,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     <div class="row"><button class="btn" id="btnSettings2">Settings</button><button class="btn" id="btnControls2">Controls</button></div>
     <div class="row"><button class="btn" id="btnAdv">🏆 Advancements</button><button class="btn" id="btnSkins2">👕 Skins</button></div>
     <button class="btn" id="btnJournal">Journal</button>
+    <button class="btn" id="btnTogether2">👥 Play Together</button>
     <details class="more" id="worldOpts"><summary>World options</summary>
       <label class="set"><span>Game mode</span><select id="pMode" class="text-in"><option value="survival">Survival</option><option value="creative">Creative</option></select></label>
       <label class="set"><span>Difficulty</span><select id="pDiff" class="text-in"><option value="peaceful">Peaceful (no monsters)</option><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
@@ -598,6 +616,15 @@ body.tc-on #title .foot { color: #d9ddd2; }
     </details>
     <button class="btn" id="btnTitle">Save &amp; return to title</button>
     <a class="btn" href="../../index.html" id="btnLeave">Back to Mr. Watford's Games</a>
+  </div>
+</section>
+
+<!-- Play Together (js/multiplayer.js fills it in) -->
+<section class="screen dim" id="together" hidden>
+  <div class="menu wide card">
+    <h2>👥 Play Together</h2>
+    <div id="mpBody"></div>
+    <div class="row"><button class="btn" id="mpBack">Back</button></div>
   </div>
 </section>
 
@@ -819,7 +846,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/lost-lore.js": "./js/lost-lore.js?v=leviathan-1.0.0",
     "./js/lost-temples.js": "./js/lost-temples.js?v=leviathan-1.0.0",
     "./js/lost.js": "./js/lost.js?v=leviathan-1.0.0",
-    "./js/main.js": "./js/main.js?v=leviathan-1.0.0",
+    "./js/main.js": "./js/main.js?v=together-2",
     "./js/maps.js": "./js/maps.js?v=leviathan-1.0.0",
     "./js/mesher.js": "./js/mesher.js?v=leviathan-1.0.0",
     "./js/noise.js": "./js/noise.js?v=leviathan-1.0.0",
@@ -845,9 +872,11 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/solkara-mural-view.js": "./js/solkara-mural-view.js?v=leviathan-1.0.0",
     "./js/starter.js": "./js/starter.js?v=leviathan-1.0.0",
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
-    "./js/ui.js": "./js/ui.js?v=leviathan-1.0.0",
+    "./js/ui.js": "./js/ui.js?v=together-1",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
-    "./js/world.js": "./js/world.js?v=leviathan-1.0.0",
+    "./js/world.js": "./js/world.js?v=together-1",
+    "./js/multiplayer.js": "./js/multiplayer.js?v=together-2",
+    "./js/mp-words.js": "./js/mp-words.js?v=together-1",
     "./js/worldgen.js": "./js/worldgen.js?v=leviathan-1.0.0",
     "./js/dune-leviathan.js?v=pose-2": "./js/dune-leviathan.js?v=leviathan-1.0.0",
     "./js/leviathan-glow.js?v=charge-1": "./js/leviathan-glow.js?v=leviathan-1.0.0",
@@ -855,6 +884,6 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=leviathan-1.0.0"></script>
+<script type="module" src="js/main.js?v=together-2"></script>
 </body>
 </html>

@@ -387,6 +387,45 @@ Mr. Watford's bestiary sheets (Blockhaven A–G). Pass 1 (Codex, published 2026-
 | Not changed | Sunfin and Chatterbird (their color variants stay), villagers (the sheet copies Minecraft's villager), farm animals (no Blockhaven sheet), Herobrine | |
 | Checks | Done | Every creature in the game builds its model with no errors; before/after photos of all three groups |
 
+## Play Together, Stage 1 (built, browser-tested, and published 2026-11-11)
+Multiplayer with no logins: a host shares a room code, friends join. Plan and decisions: `MULTIPLAYER-PLAN.md`. Relay server: `blockhaven-relay/` at the site root (Cloudflare Worker + one Durable Object per room). Local testing: run the "blockhaven-relay" launch config and open the game with `?relay=ws://localhost:8787/ws`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Host a Creative world from the pause menu (👥 Play Together) | Done | Gets a room code like SUN-DOLPHIN-95. Not allowed in Survival (for now), Hardcore, Campaign, or away from the Surface; hosting stops with a message if any of those change |
+| Join from the title screen with a room code | Done | Typing "sun dolphin 95" works too. Shows "Asking the host to let you in…" |
+| Host approves each join | Done | Banner while playing: press **Y** to let them in, or Let in / Say no on the Play Together screen |
+| Remove (kick), lock the room, stop hosting, max 6 players | Done | The relay enforces lock, room size, and kicks. Rooms close after 4 hours |
+| Random kid-safe names (🎲 New name), no chat | Done | The relay only accepts names made from the word lists (`js/mp-words.js` must match `blockhaven-relay/src/words.js`) |
+| Guests get the host's world | Done | Seed + changes + story building plans, gzipped. Same land checked: 49 chunks identical on host and guest |
+| See each other move (skins + name tags) | Done | About 10 updates a second, only when moving, smoothed |
+| Host's building shows up for guests live | Done | Host block changes are sent 10 times a second |
+| Guests never save the host's world | Done | Checked after leaving, being removed, and the host stopping (a bug that saved a "(visiting)" copy was found and fixed) |
+| Host's pause menu doesn't freeze friends | Done | The world keeps running while the host is in the menu |
+| Version check, wrong code, bad name, code already in use | Done | Each gets a plain-language message |
+| Guests building, creatures for guests, Survival together, portals | Missing | Stages 2–4. Guests see no creatures yet; portals are off while connected (building: see Stage 2 below) |
+| Host switches tabs → "The host's game is paused" banner for guests | Partial | Built but not tested (the test browser can't fake a hidden tab) |
+| Class-time off switch | Partial | Built in the relay (`CLOSED_HOURS` in wrangler.toml), empty until Mr. Watford picks the hours |
+
+## Play Together, Stage 2: building together (built, browser-tested, and published 2026-11-11)
+Protocol 2 (a Stage 1 game and a Stage 2 game are told to refresh). Import-map version `together-2` for main.js and multiplayer.js.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Guests break and place blocks | Done | The guest's game sends its block changes; the host's game checks each one and makes it happen (breaking runs the host's full break, so doors, chests spilling, and story pieces behave the same). Tested: guest stone, glass, and a broken ground block all landed in the host's world and save; 25 chunks identical afterward |
+| Host refuses some changes and puts them back | Done | More than 9 blocks from the guest, bedrock/gateways/quest blocks (hardness Infinity), fire, portals, protected Solkara landmark chests and signs. Tested: far block and bedrock were undone; fire was refused |
+| Redstone a guest builds runs | Done | Tested: a guest's lever lit a Spark Lamp in the host's world, and both saw it lit |
+| Chests through the host, one person at a time | Done | Tested: guest opened the host's chest with its real contents, moved apples, the host saw it live, and the host was told "Speedy Salmon is using that right now." Closing frees it. Loot chests fill on the host |
+| Furnaces through the host | Done | The host's furnace keeps cooking; the guest using it sees updates twice a second. Tested: guest's ore cooked into output |
+| Machines, beacons, beds, story pieces | Partial | Host only while playing together ("Only the host can use that while playing together.") |
+| Signs | Done (safety) | The host's sign writing isn't sent to guests, and guests can't write signs while visiting: nothing a student typed reaches another student |
+| Quick messages (T, then 1–6) with a speech bubble | Done | Follow me!, Over here!, Nice build!, Help!, Thanks!, Be right back. Toast plus a bubble over the player for 5 s. One message per 1.5 s. The 1–6 keys don't change the hotbar while the menu is open |
+| A guest's backpack is kept on their own computer | Done | localStorage `blockhaven-mp-pack:<host world id>`, saved every 30 s and on leaving. Tested: leave and rejoin brought the same items back |
+| Guests never save the host's world | Done | Still true after Stage 2 (checked again) |
+| A visited world's name | Done | Shows the host's random name ("Noble Hamster's world"), not the world name the host typed |
+| Single-player regression | Done | A new Survival world still breaks with drops, opens chests, and saves |
+| Two guests editing the same block at the same moment | Partial | The host's world decides; everyone gets the host's result. Not tested with three players |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
@@ -395,4 +434,4 @@ Mr. Watford's bestiary sheets (Blockhaven A–G). Pass 1 (Codex, published 2026-
 | Redstone-style mechanisms, minecarts | Parts A to D done (Milestone 12); E next |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
 | Building palette (slabs, stairs, fences, colored blocks, signs…) | Missing |
-| Multiplayer | Blocked: the site is static (GitHub Pages). A shared world needs a real-time server (for example a WebSocket game server with an authoritative world state), a hosting account, and a privacy review, because it would collect player connections. |
+| Multiplayer ("Play Together") | Stage 1 built 2026-11-11 (see the Play Together section above and MULTIPLAYER-PLAN.md) |
