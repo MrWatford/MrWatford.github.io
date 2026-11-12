@@ -185,6 +185,15 @@ Each stage ends with a browser test using two browser profiles on this Mac and a
 
 **Done when:** a guest and the host fight the same zombie and both see it die once, with one set of drops. A guest dies and respawns, and their items are left where they died. Night can be skipped only when everyone sleeps.
 
+#### Stage 3 results (2026-11-12): built, browser-tested, and published 2026-11-12
+- Everything in the Stage 3 "Done when" list passed between two tabs and a local relay: a guest and the host fought a creature, and it fainted once with one set of drops. The details are in `FEATURES.md` under "Play Together, Stage 3".
+- **How it works:** on the host, a creature always cares about the nearest player. While it thinks, `ctx.player()` returns that player, so its normal behavior (chasing, hitting, shooting) works on friends too. Damage, effects, knockback, and XP for a friend are sent to that friend's computer.
+- **Items:** every item a guest drops goes into the host's world, and pickups go through the host, so nothing can be copied.
+- **Still host-only:** feeding, taming, riding, trading, fishing, and throwing.
+- **Known limit:** creatures only exist where the host's game has loaded land (about 64 blocks around the host).
+- **Not tested:** a boss fight with a guest, three or more players, school Wi-Fi.
+- **Published 2026-11-12 with Mr. Watford's OK:** 3 game files plus index.html (version `together-3`), FEATURES.md, and this plan. The relay needed no change.
+
 ### Stage 4: Machines and travel
 - Minecarts and boats with a guest riding.
 - **Dimensions:** the group travels together. When the host goes through a portal, everyone comes along. Guests can't go through a portal alone.

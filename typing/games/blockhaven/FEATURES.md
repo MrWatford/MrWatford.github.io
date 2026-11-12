@@ -426,6 +426,26 @@ Protocol 2 (a Stage 1 game and a Stage 2 game are told to refresh). Import-map v
 | Single-player regression | Done | A new Survival world still breaks with drops, opens chests, and saves |
 | Two guests editing the same block at the same moment | Partial | The host's world decides; everyone gets the host's result. Not tested with three players |
 
+## Play Together, Stage 3: Survival together (built, browser-tested, and published 2026-11-12)
+Protocol 3 (older Play Together games are told to refresh). Import-map version `together-3` for main.js, multiplayer.js, and entities.js. The relay didn't change.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Host a Survival world | Done | Creative-only rule removed. Hardcore and the Campaign still stay single-player. Guests play in the host's mode and follow mode changes |
+| Creatures notice every player | Done | `Entities.pick`: each creature (and each arrow or fireball) looks after the nearest player still standing; spawning picks a random player. Tested: a Groaner chose the guest (host 28 blocks away), chased, and hit them (20 → 11 health). Fainted friends are ignored |
+| Monster damage happens on the friend's computer | Done | Their own armor and health. The faint screen shows the host's reason ("A Groaner got you!") |
+| Explosions hurt friends | Done | Same formula as the host's. Tested: 20 → 14 health and a knockback |
+| Guests see the host's creatures, dropped items, and arrows | Done | About 5 updates a second, smoothed. Shows creatures near any guest (bosses from farther away), with walking animation, red hurt flash, and fainting. Tested: 27–61 creatures on the guest; screenshot of a cow and sheep |
+| Guests fight | Done | Hits go to the host's game (checked: within 7 blocks, 5 hits a second at most). The creature fights back at that friend, and the XP goes to them. Tested: a guest killed a pig |
+| Guests' bows | Done | The arrow flies in the host's world. Tested |
+| Dropped items through the host | Done | Everything a guest drops (Q, mining, fainting, a full backpack) lands in the host's world for everyone; pickups are checked by the host (within 2.6 blocks) so nothing is copied. Tested: porkchops from the pig, dirt from mining, a Q drop, 10 cobblestone after fainting |
+| Everyone in bed to skip the night | Done | Within 10 seconds of each other; "1 of 2 players are in bed." Tested: night ended only after both slept; both woke on day 2 |
+| "The host's game is paused" banner | Done | Seen in this test when the host's tab went to the background (Stage 1 left this untested) |
+| Guests feeding, taming, riding, trading, fishing, throwing (eggs, pearls…) | Missing | Host only for now, with a message |
+| Creatures far from the host | Partial | Only land the host's game has loaded has creatures (about 64 blocks around the host); a guest who wanders farther sees none there |
+| Bosses and Leviathans with guests | Partial | They notice guests too, but no boss fight with a guest has been tested |
+| Single-player regression | Done | A normal Survival world: a Groaner still targets and hurts the player |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
