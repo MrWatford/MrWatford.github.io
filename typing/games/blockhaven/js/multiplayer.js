@@ -6,10 +6,12 @@
 // Stage 3: Survival together. On the host, every creature looks after the nearest player (Entities.pick), so it can chase,
 //          hit, and shoot friends too. Guests see the host's creatures, dropped items, and arrows (about 5 times a second),
 //          and their hits, arrows, dropped items, and pickups go through the host. Everyone has to be in bed to skip the night.
+// Stage 4: guests ride minecarts and boats (the host's world moves the real one), and the group travels together:
+//          when the host goes through a portal (Surface, Ember Depths, Hollow), everyone follows.
 // Full plan: MULTIPLAYER-PLAN.md.
 import { randomName, randomCode, validName, tidyCode, CODE_RE } from "./mp-words.js";
 
-export const MP_PROTOCOL = 3;      // raise when messages change, so old and new games don't mix
+export const MP_PROTOCOL = 4;      // raise when messages change, so old and new games don't mix
 const RELAY = "wss://blockhaven-relay.watford-ai.workers.dev/ws";
 const NAME_KEY = "blockhaven-mp-name";
 const PACK_KEY = "blockhaven-mp-pack:";   // + the host's world id: a guest's backpack for that world
@@ -26,7 +28,7 @@ const r2 = n => Math.round(n * 100) / 100;
 
 export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeModel, poseModel, disposeModel, World, CHUNK, HEIGHT, idx, chunkKey, version,
   openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, validBlock, blockDef, itemDef, WATER, LAVA,
-  ents, Player, hurt, addEffect, spawnOrbs, spawnDrop, removeDrop, itemMesh, disposeItemMesh, lightItem, maxStack }) {
+  ents, Player, hurt, addEffect, spawnOrbs, spawnDrop, removeDrop, itemMesh, disposeItemMesh, lightItem, maxStack, mount, dismount, SPECIES }) {
   const $ = id => document.getElementById(id);
   // a development copy can point at a relay running on this computer: ?relay=ws://localhost:8787/ws
   const asked = new URLSearchParams(location.search).get("relay");
@@ -46,6 +48,8 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
   let early = [];                // guest: block changes that arrived before the world was ready
   const sleepers = new Map();    // host: who got in bed, and when
   let entsT = 0, dropSeq = 0, shotSeq = 0;
+  let lastDim = null, lastSpot = null, rideUid = null, steerT = 0, lastSteer = "", going = false;   // Stage 4: travel and riding
+  const TRAVEL_DIMS = new Set(["overworld", "nether", "end"]);
   const puppets = new Map(), shots = new Map(), loot = new Map();   // guest: the host's creatures, arrows, and dropped items
   let wantBox = null, openBox = null, openBoxSent = "";   // guest: the container asked for / open now
 
@@ -86,7 +90,8 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (role === "guest" && G.guest) savePack();
     role = null; code = null; phase = "idle"; locked = false; hostPaused = false; worldName = ""; hostWorld = null;
     asks.clear(); blocks.clear(); locks.clear(); sentBox.clear(); sleepers.clear(); early = []; last = null; wantBox = openBox = null; openBoxSent = "";
-    ents.pick = null; ents.focus = null;
+    ents.pick = null; ents.focus = null; lastDim = null; lastSpot = null; rideUid = null; lastSteer = "";
+    for (const e of ents.list) if (e.mpRider) { e.ridden = false; e.mpRider = null; e.mpPush = null; }
     clearPuppets();
     for (const id of [...players.keys()]) removePlayer(id);
     G.guest = null;
@@ -108,7 +113,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (!G.world || !G.meta) return "Open one of your worlds first.";
     if (G.meta.campaign) return "Legacy Campaign worlds stay single-player.";
     if (G.meta.hardcore) return "Hardcore worlds stay single-player.";
-    if (G.dim !== "overworld") return "Go back to the Surface first. Visiting other dimensions together comes in a later update.";
+    if (!TRAVEL_DIMS.has(G.dim)) return "Play Together works on the Surface, in the Ember Depths, and in the Hollow. Go back to one of those first.";
     return null;
   }
   function startHosting() {
@@ -139,13 +144,17 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (m.t === "locked") { locked = m.on; render(); return; }
     const from = players.get(m.from);
     if (!from) return;
-    if (m.t === "s") { guestChanges(from, m.l); return; }
+    if (m.t === "s") { if (!m.dim || m.dim === G.dim) guestChanges(from, m.l); return; }
     if (m.t === "open") { guestOpens(from, m); return; }
     if (m.t === "boxset") { guestBox(from, m); return; }
     if (m.t === "hit") { guestHits(from, m); return; }
     if (m.t === "shoot") { guestShoots(from, m); return; }
     if (m.t === "drop") { guestDrops(from, m); return; }
     if (m.t === "pick") { guestPicks(from, m); return; }
+    if (m.t === "ride") { guestRides(from, m); return; }
+    if (m.t === "unride") { release(from); return; }
+    if (m.t === "steer") { const e = ridden(from); if (e && e.def.cart) { e.mpPush = Array.isArray(m.v) && m.v.length === 2 && m.v.every(Number.isFinite) ? [Math.max(-1, Math.min(1, m.v[0])), Math.max(-1, Math.min(1, m.v[1]))] : null; e.mpPushAt = performance.now(); } return; }
+    if (m.t === "place") { guestPlaces(from, m); return; }
     if (m.t === "sleep") { if (G.time > 0.53 && G.time < 0.97 && !from.body?.mpDead) { sleepers.set(from.id, performance.now()); UI.toast(from.name + " got in bed."); checkSleep(); } return; }
   }
   async function allow(id) {
@@ -249,11 +258,11 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     const l = [], max = role === "host" ? 8000 : 1200;
     for (const [k, v] of blocks) { const [x, y, z] = k.split(",").map(Number); l.push(x, y, z, v); if (l.length >= max) break; }
     for (let i = 0; i < l.length; i += 4) blocks.delete(l[i] + "," + l[i + 1] + "," + l[i + 2]);
-    send({ t: role === "host" ? "b" : "s", l });
+    send({ t: role === "host" ? "b" : "s", l, dim: G.dim });
   }
 
   // ---------- Survival together (Stage 3): the host's side ----------
-  const bodies = () => [...players.values()].filter(p => p.body && p.tgt).map(p => p.body);
+  const bodies = () => [...players.values()].filter(p => p.body && p.tgt && (!p.dim || p.dim === G.dim)).map(p => p.body);   // friends in this dimension
   // The player a creature (or arrow) at pos should care about: the nearest one still standing. No pos: any of them (for spawning).
   function pick(pos) {
     const all = [];
@@ -359,7 +368,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       p.push([pr.mpId, pr.kind, r2(pr.x), r2(pr.y), r2(pr.z), r2(pr.vx), r2(pr.vy), r2(pr.vz), pr.stuck ? 1 : 0]);
       if (p.length >= 60) break;
     }
-    send({ t: "ents", e, d, p });
+    send({ t: "ents", e, d, p, dim: G.dim });
   }
 
   // ---------- Survival together: the guest's side ----------
@@ -392,7 +401,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     puppets.clear(); shots.clear(); loot.clear();
   }
   function onEnts(m) {
-    if (!G.world || !G.guest) return;
+    if (!G.world || !G.guest || going || G.state === "loading" || (m.dim && m.dim !== G.dim)) return;
     const seen = new Set();
     for (const r of Array.isArray(m.e) ? m.e : []) {
       const [uid, sp, x, y, z, yaw, fl, variant, size, hp] = r;
@@ -441,6 +450,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     const p = G.player, k = 1 - Math.exp(-dt * 10);
     for (const pp of puppets.values()) {
       const e = pp.e, t = pp.tgt; if (!t || !e.mesh) continue;
+      if (e === G.riding && e.def.boat) { try { ents.animate(e, dt, 0, daylight); } catch (err) { /* keep going */ } continue; }   // my own boat follows me
       const ox = e.pos.x, oz = e.pos.z;
       e.pos.x += (t.x - e.pos.x) * k; e.pos.y += (t.y - e.pos.y) * k; e.pos.z += (t.z - e.pos.z) * k;
       e.yaw += Math.atan2(Math.sin(t.yaw - e.yaw), Math.cos(t.yaw - e.yaw)) * k;
@@ -481,6 +491,87 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (left > 0) G.dropItem(m.id, left, stack);   // a full backpack: it goes back on the ground
   }
 
+// ---------- Stage 4: riding and traveling together ----------
+const ridden = from => from.rideUid ? ents.list.find(o => o.uid === from.rideUid && o.mpRider === from.id) : null;
+function guestRides(from, m) {
+  const e = ents.list.find(o => o.uid === m.uid), no = text => send({ t: "rideno", to: from.id, text });
+  if (!e || e.dead || e.gone || !(e.def.cart || e.def.boat)) return no("That can't be ridden.");
+  if (e.ridden || e.riderE) return no("Someone's already riding that.");
+  if (from.body.mpDead || !near(from, e.pos.x, e.pos.y + 0.5, e.pos.z, 5)) return no("Get closer first.");
+  release(from);
+  e.ridden = true; e.mpRider = from.id; e.mpPush = null; e.goal = null; from.rideUid = e.uid;
+  send({ t: "rideok", to: from.id, uid: e.uid });
+}
+function release(from) {
+  const e = ridden(from);
+  if (e) { e.ridden = false; e.mpRider = null; e.mpPush = null; if (e.def.boat) e.vel.x = e.vel.y = e.vel.z = 0; }
+  from.rideUid = null;
+}
+function ejectGuest(e) {
+  const from = players.get(e.mpRider);
+  if (from) { send({ t: "eject", to: from.id }); release(from); }
+  else { e.ridden = false; e.mpRider = null; }
+}
+const placeT = new Map();
+function guestPlaces(from, m) {
+  const def = SPECIES[m.sp], now = performance.now();
+  if (!def || def.boss || def.segmentedLeviathan || ![m.x, m.y, m.z].every(Number.isFinite) || from.body.mpDead) return;
+  if (now - (placeT.get(from.id) || 0) < 400 || !near(from, m.x, m.y, m.z, 7)) return;
+  placeT.set(from.id, now);
+  ents.add(m.sp, m.x, m.y, m.z, m.sp === "golem" ? { home: [m.x, m.y, m.z] } : { yaw: Number.isFinite(m.yaw) ? m.yaw : 0, persist: !!def.expansion });
+}
+// The host went through a portal (or was carried somewhere far away): everyone follows
+async function hostMoved() {
+  const p = G.player;
+  if (lastDim === null) { lastDim = G.dim; lastSpot = { ...p.pos }; return; }
+  const changed = G.dim !== lastDim, far = !changed && Math.hypot(p.pos.x - lastSpot.x, p.pos.z - lastSpot.z) > 150;
+  lastSpot = { ...p.pos };
+  if (!changed && !far) return;
+  lastDim = G.dim;
+  for (const pl of players.values()) release(pl);
+  locks.clear(); sentBox.clear(); sleepers.clear(); blocks.clear();
+  if (!players.size) return;
+  let data = null;
+  if (changed) {
+    const d = { ...snapshot().dims[G.dim] };
+    delete d.entities; d.drops = []; d.signs = {};
+    data = await pack(d);
+  }
+  send({ t: "go", dim: G.dim, data, x: r2(p.pos.x), y: r2(p.pos.y), z: r2(p.pos.z) });
+  UI.toast("Your friends are following you.");
+}
+// the guest's side
+function askRide(e) {
+  if (!e || !(e.def.cart || e.def.boat)) return false;
+  if (!G.riding) send({ t: "ride", uid: e.uid });
+  return true;
+}
+const placeEntity = (sp, x, y, z, yaw) => send({ t: "place", sp, x: r2(x), y: r2(y), z: r2(z), yaw: r2(yaw || 0) });
+function hostSpot() { const h = players.get("h"); return h && h.tgt && (!h.dim || h.dim === G.dim) ? h.tgt : G.player.pos; }
+async function follow(m) {
+  if (!TRAVEL_DIMS.has(m.dim) || ![m.x, m.y, m.z].every(Number.isFinite)) return;
+  going = true;
+  try {
+    const data = m.data ? await unpack(m.data) : null;
+    if (!G.guest) return;
+    clearPuppets(); rideUid = null;
+    await G.followHost(m.dim, data, m.x, m.y, m.z);
+    if (m.data) UI.toast("You followed the host through the portal.", "good");
+  } catch (e) { UI.toast("Following the host didn't work. Try leaving and joining again.", "bad"); }
+  finally { going = false; }
+}
+// while riding: send the push for a minecart, notice getting out
+function rideTick(dt) {
+  const e = G.riding;
+  if (rideUid && (!e || e.uid !== rideUid)) { send({ t: "unride" }); rideUid = null; lastSteer = ""; }
+  if (!e || !e.puppet) return;
+  rideUid = e.uid;
+  if (!e.def.cart || (steerT += dt) < 0.1) return;
+  steerT = 0;
+  const v = ents.ctx.cartInput(), key = v ? v.map(n => n.toFixed(2)).join(",") : "";
+  if (key !== lastSteer || v) { lastSteer = key; send({ t: "steer", v: v ? [r2(v[0]), r2(v[1])] : null }); }
+}
+
   // ---------- joining ----------
   function join(text) {
     const c = tidyCode(text);
@@ -514,7 +605,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       UI.toast("You joined " + worldName + "! Build together, and press T for quick messages.", "good");
       return;
     }
-    if (m.t === "b") { if (G.guest && G.world) applyBlocks(m.l); else early.push(m.l); return; }
+    if (m.t === "b") { if (m.dim && G.world && m.dim !== G.dim) return; if (G.guest && G.world && !going) applyBlocks(m.l); else if (!G.world) early.push(m.l); return; }
     if (m.t === "box") { hostBox(m); return; }
     if (m.t === "env") {
       if (G.guest && typeof m.time === "number") { G.time = m.time; if (G.meta) G.meta.day = m.day || G.meta.day; }
@@ -530,7 +621,11 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (m.t === "xp") { if (Number.isInteger(m.n) && m.n > 0) spawnOrbs(Math.min(200, m.n), p.pos.x, p.pos.y + 1, p.pos.z); return; }
     if (m.t === "give") { gotItem(m); return; }
     if (m.t === "morning") { UI.toast("Good morning! Everyone slept.", "good"); return; }
+    if (m.t === "rideok") { const pp = puppets.get(m.uid); if (pp && !G.riding) { mount(pp.e); rideUid = m.uid; } else send({ t: "unride" }); return; }
+    if (m.t === "rideno") { UI.toast(String(m.text || "You can't ride that right now.")); return; }
+    if (m.t === "eject") { if (G.riding) dismount(); rideUid = null; return; }
     if (m.t === "hp") { hostPaused = !!m.on; banner(); return; }
+    if (m.t === "go") { follow(m); return; }
   }
   function applyBlocks(l) {
     const w = G.world;
@@ -634,6 +729,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
   function removePlayer(id) {
     const p = players.get(id); if (!p) return;
     if (p.model) { dropSprite(p.model.holder, p.tag); dropSprite(p.model.holder, p.bubble); scene.remove(p.model.holder); disposeModel(p.model); }
+    if (role === "host") release(p);
     players.delete(id); sleepers.delete(id);
   }
   function movePlayer(id, m) {
@@ -642,7 +738,8 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     p.tgt = { x: m.x, y: m.y, z: m.z, yaw: m.yw, pitch: m.pt };
     if (!p.cur) p.cur = { ...p.tgt };
     p.crouch = !!m.c;
-    p.dead = !!m.d;
+    p.dead = !!m.d; p.dim = typeof m.w === "string" ? m.w : null;
+    if (role === "host" && p.rideUid) { const e = ridden(p); if (e && e.def.boat) { e.pos.x = m.x; e.pos.y = m.y; e.pos.z = m.z; e.yaw = m.yw; } }   // a friend rows their own boat
     if (p.body) { Object.assign(p.body.pos, { x: m.x, y: m.y, z: m.z }); p.body.yaw = m.yw; p.body.pitch = m.pt; p.body.crouch = !!m.c; p.body.health = Number.isFinite(m.h) ? m.h : 20; p.body.mpDead = !!m.d; }
   }
   function label(text, bubble) {
@@ -672,7 +769,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       const dy = Math.atan2(Math.sin(t.yaw - c.yaw), Math.cos(t.yaw - c.yaw)); c.yaw += dy * k;
       const moved = Math.hypot(c.x - ox, c.z - oz);
       p.walk += moved * 2.2;
-      p.model.holder.visible = !p.dead;
+      p.model.holder.visible = !p.dead && (!p.dim || p.dim === G.dim);
       p.model.holder.position.set(c.x, c.y, c.z);
       p.model.holder.rotation.y = c.yaw + Math.PI;
       poseModel(p.model, { walkPhase: p.walk, speed: dt > 0 ? moved / dt : 0, pitch: -c.pitch, crouch: p.crouch, swing: 0 });
@@ -691,11 +788,15 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       if (problem) { stopHosting(); UI.toast("Play Together stopped. " + problem, "bad"); return; }
       if (players.size && (envT += dt) >= ENV_EVERY) { envT = 0; send({ t: "env", time: r2(G.time * 1e4) / 1e4, day: G.meta.day || 1, mode: G.mode }); }
       ents.pick = players.size ? pick : null;   // creatures notice every player
+      hostMoved();
+      const now = performance.now();
+      for (const e of ents.list) if (e.mpRider && e.mpPush && now - (e.mpPushAt || 0) > 400) e.mpPush = null;
       if (players.size && (entsT += dt) >= 0.2) { entsT = 0; sendEnts(); }
       if (locks.size && (boxT += dt) >= 0.5) { boxT = 0; pushBoxes(); }
     } else {
       if ((boxT += dt) >= 0.25) { boxT = 0; watchBox(); }
       if ((packT += dt) >= 30) { packT = 0; savePack(); }
+      rideTick(dt);
     }
     if ((blockT += dt) >= 0.1) { blockT = 0; flushBlocks(); }
     // my position: only when I moved (and once every few seconds so a new arrival sees me)
@@ -703,10 +804,10 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (sendT < SEND_EVERY) return;
     sendT = 0;
     if (role === "host" && !players.size) return;
-    const p = G.player, now = [r2(p.pos.x), r2(p.pos.y), r2(p.pos.z), r2(p.yaw), r2(p.pitch), p.crouch && !p.flying ? 1 : 0, Math.round(p.health * 2) / 2, G.state === "dead" ? 1 : 0];
+    const p = G.player, now = [r2(p.pos.x), r2(p.pos.y), r2(p.pos.z), r2(p.yaw), r2(p.pitch), p.crouch && !p.flying ? 1 : 0, Math.round(p.health * 2) / 2, G.state === "dead" ? 1 : 0, G.dim];
     if (last && sinceSend < 3 && now.every((v, i) => v === last[i])) return;
     last = now; sinceSend = 0;
-    send({ t: "p", x: now[0], y: now[1], z: now[2], yw: now[3], pt: now[4], c: now[5], h: now[6], d: now[7] });
+    send({ t: "p", x: now[0], y: now[1], z: now[2], yw: now[3], pt: now[4], c: now[5], h: now[6], d: now[7], w: now[8] });
   }
 
   // tell guests when the host's tab is hidden (the host's world stops while it's in the background)
@@ -820,8 +921,9 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     tick,
     useBlock,
     hurtGuest, effectGuest, pushGuest, xpGuest, giveGuest, blast, sleep, hitCreature, shoot, guestDrop,
+    askRide, placeEntity, ejectGuest, hostSpot,
     keepRunning: () => role === "host" && phase === "hosting" && players.size > 0,   // the host's pause menu doesn't freeze friends' world
-    noPortals: () => role !== null,
+    noPortals: () => role === "guest",   // guests follow the host through portals instead of using them
     worldClosed() { if (role) { close(); reset(); } },
     // for tests
     _state: () => ({ role, phase, code, myName, worldName, players: [...players.values()].map(p => ({ id: p.id, name: p.name, at: p.cur && [r2(p.cur.x), r2(p.cur.y), r2(p.cur.z)], say: p.say })), asks: [...asks.keys()], locks: [...locks], openBox, message, locked, hostPaused }),

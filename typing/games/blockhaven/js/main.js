@@ -392,7 +392,7 @@ const ents = new Entities(scene, {
   // minecarts (Part D): a rider pressing W pushes the cart; right-click does what each cart is for
   cartInput: () => G.state === "play" && keys.has("KeyW") ? (d => [d.x, d.z])(lookDir()) : null,
   crouching: () => keys.has("KeyC"),
-  useCart: (e, slot) => useCart(e, slot), openCart: e => openCart(e), ejectCart: e => { if (G.riding === e) dismount(); },
+  useCart: (e, slot) => useCart(e, slot), openCart: e => openCart(e), ejectCart: e => { if (e.mpRider) MP.ejectGuest(e); else if (G.riding === e) dismount(); },
   cartPull: e => R.cartPull(e), xp: (n, x, y, z) => guestFocus() ? MP.xpGuest(guestFocus(), n) : spawnOrbs(n, x, y, z),
   particles: (x, y, z, kind) => puff(x, y, z, kind), lookDir: () => lookDir(),
   // the item in the hand being used (main hand first; an empty main hand shows the offhand item)
@@ -2264,7 +2264,8 @@ function placeBoat(slot) {
   else if (hit.ny === 1) y = hit.y + 1;
   else return false;
   if (SOLID[G.world.id(hit.x, Math.floor(y + 0.5), hit.z)]) return false;
-  ents.add(slot.id === I.CHEST_BOAT ? "chest_boat" : "boat", x, y, z, { yaw: p.yaw });
+  if (G.guest) MP.placeEntity(slot.id === I.CHEST_BOAT ? "chest_boat" : "boat", x, y, z, p.yaw);   // the host's world gets the real boat
+  else ents.add(slot.id === I.CHEST_BOAT ? "chest_boat" : "boat", x, y, z, { yaw: p.yaw });
   if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
   Sound.place("wood"); G.swing = 0.01; G.hudDirty = true; heldId = -1;
   UI.toast(slot.id === I.CHEST_BOAT ? "Right-click to climb in. Crouch (C) + right-click to open the chest." : "Right-click the boat to climb in.");
@@ -2307,11 +2308,13 @@ function useWith(offhand) {
   if (slot && slot.id === I.FISHING_ROD) { useRod(slot); return true; }
   if (slot && (slot.id === I.BOAT || slot.id === I.CHEST_BOAT) && placeBoat(slot)) return true;
   if (sd && sd.cart) {   // minecarts go on rails
-    if (hit && isRail(idOf(hit.v))) { ents.add(sd.cart, hit.x + 0.5, hit.y + 0.0625, hit.z + 0.5, { yaw: G.player.yaw }); take(); Sound.place("stone"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; }
+    if (hit && isRail(idOf(hit.v))) { if (G.guest) MP.placeEntity(sd.cart, hit.x + 0.5, hit.y + 0.0625, hit.z + 0.5, G.player.yaw); else ents.add(sd.cart, hit.x + 0.5, hit.y + 0.0625, hit.z + 0.5, { yaw: G.player.yaw }); take(); Sound.place("stone"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; }
     UI.toast("Minecarts go on rails. Point at a rail and right-click.", "bad"); return true;
   }
   // creatures first, then blocks you can open or use (only the main hand opens things)
-  const ent = G.guest ? null : entityTarget();   // Play Together guests can't feed, tame, ride or trade yet
+  const seen = entityTarget();
+  if (G.guest && seen && MP.askRide(seen)) return true;   // Play Together guests can ride carts and boats (through the host)
+  const ent = G.guest ? null : seen;   // ...but can't feed, tame, ride animals or trade yet
   if (ent?.def.segmentedLeviathan && ent.tame) {
     const record = leviathanMountRecord(ent);
     if (!record?.bonded || record.defeated) return true;
@@ -2347,6 +2350,10 @@ function useWith(offhand) {
   if (sd.kind === "spawn" && hit) {
     const x = hit.x + hit.nx + 0.5, y = hit.y + hit.ny, z = hit.z + hit.nz + 0.5;
     const sp = sd.species === "villager" ? ["farmer", "fletcher", "shepherd", "cleric", "smith"][Math.floor(Math.random() * 5)] : sd.species;
+    if (G.guest) {   // Play Together: a friend's spawn egg works in the host's world (not for bosses or Leviathans)
+      if (SPECIES[sp]?.boss || SPECIES[sp]?.segmentedLeviathan) { UI.toast("Only the host can use that egg while playing together."); return true; }
+      MP.placeEntity(sp, x, y, z, G.player.yaw); puff(x, y + 0.5, z, "poof"); take(); G.hudDirty = true; return true;
+    }
     if (SPECIES[sp]?.segmentedLeviathan) {
       if (!G.creative) {
         UI.toast("Use Leviathan preview eggs in Creative.", "bad");
@@ -3696,6 +3703,7 @@ G.respawn = async () => {
     Object.assign(p.pos, { x: ls.x, y: ls.y, z: ls.z }); p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; G.respawnGuard = 6;
     UI.toast(`You woke up at ${ls.name}.`, ""); G.state = "pause"; G.resume(); return;
   }
+  if (G.guest && G.dim !== "overworld") { const h = MP.hostSpot(); placeSafely(p, h.x, h.z); G.state = "pause"; G.resume(); UI.toast("You woke up near the host."); return; }   // Play Together: stay with the group
   if (p.anchor && await respawnAtAnchor(p)) { G.state = "pause"; G.resume(); return; }
   if (G.dim !== "overworld") {   // otherwise you wake up on the Surface
     G.state = "loading"; UI.show("loading");
@@ -5375,6 +5383,19 @@ G.newWorld = ({ name, seed, mode, settings, campaign }) => {   // mode: survival
 };
 G.loadWorld = id => openWorld(() => Saves.load(id));
 G.joinWorld = save => openWorld(() => save);   // Play Together: a world the host sent (never saved here)
+// Play Together: follow the host to another dimension (or a far-off spot). data = the host's record of that dimension.
+G.followHost = async (dim, data, x, y, z) => {
+  dismount(true);
+  G.state = "loading"; UI.show("loading"); UI.setLoading(0, "Following the host…");
+  clearWorldMeshes(); G.world.chunks.clear(); G.world.dirtyQueue.clear(); fires.length = 0; clouds.length = 0;
+  if (data) G.dimData[dim] = data;
+  if (dim !== G.dim || data) { G.dim = dim; G.world = makeWorld(dim); G.gen = G.world.gen; }
+  const p = G.player; p.pos.x = x + 1.5; p.pos.z = z + 0.5; p.pos.y = y;
+  await loadArea(p.pos.x, p.pos.z, "Following the host…");
+  if (p.collides(G.world, p.aabb())) placeSafely(p, p.pos.x, p.pos.z);
+  p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; p.gliding = false; portalCooldown = true; portalT = 0;
+  G.state = "pause"; UI.show("none"); UI.hud(); G.resume();
+};
 async function openWorld(read) {
   if (G.state === "loading") return;
   const menu = UI.current;
@@ -5540,7 +5561,7 @@ function loop(now) {
     }
     updateClouds(dt);
     if (G.dim === "end" && !G.guest) ensureBoss();
-    if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // portals wait for a later Play Together update
+    if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // Play Together: the host leads the way through portals
     if (!G.guest) { tickCinder(dt); F.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
@@ -5704,7 +5725,7 @@ function prepareContainer(x, y, z) {
 const MP = G.mp = initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeModel, poseModel, disposeModel, World, CHUNK, HEIGHT, idx, chunkKey,
   version: MP_PROTOCOL + "." + SAVE_VERSION + "." + CURRENT_GEN,
   openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, validBlock: v => Number.isInteger(v) && !!BLOCKS[idOf(v)], blockDef, itemDef, WATER: B.WATER, LAVA: B.LAVA,
-  ents, Player, hurt, addEffect, spawnOrbs, spawnDrop, removeDrop, itemMesh, disposeItemMesh, lightItem, maxStack });
+  ents, Player, hurt, addEffect, spawnOrbs, spawnDrop, removeDrop, itemMesh, disposeItemMesh, lightItem, maxStack, mount, dismount, SPECIES });
 Adv.init(G, SPECIES, { xp: n => spawnOrbs(n, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z), give: (id, n) => { if (G.inv.add(id, n)) G.dropItem(id, n); } });
 UI.init(G);
 G.applySettings();

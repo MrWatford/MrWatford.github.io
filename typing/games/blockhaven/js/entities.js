@@ -2206,7 +2206,7 @@ export class Entities {
     if (e.sp === "furnace_cart" && e.fuel > 0) { e.fuel -= dt; fuel = [e.pushX, e.pushZ]; if (Math.random() < dt * 6) ctx.particles(e.pos.x, e.pos.y + 1.1, e.pos.z, "ash"); if (e.fuel <= 0) e.fuel = 0; }
     if (e.riderUid && !e.riderE) { const r = this.list.find(o => o.uid === e.riderUid); if (r) { e.riderE = r; r.inCart = e; } }
     if (e.riderE && (e.riderE.dead || e.riderE.gone || e.riderE.inCart !== e)) { e.riderE = null; e.riderUid = null; }
-    const onRail = cartStep(w, e, dt, { push: e.ridden ? ctx.cartInput() : null, rider: !!(e.ridden || e.riderE), fuel });
+    const onRail = cartStep(w, e, dt, { push: e.ridden ? (e.mpRider ? e.mpPush : ctx.cartInput()) : null, rider: !!(e.ridden || e.riderE), fuel });   // a Play Together friend pushes their own cart
     if (!onRail) {
       e.onRail = null;
       e.vel.y = Math.max(e.vel.y - GRAV * dt, -30);
