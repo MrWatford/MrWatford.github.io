@@ -338,8 +338,10 @@ G.adv = (type, arg) => { Adv.event(type, arg); if (G.campaign) G.campaign.event(
 window.__bh = G;   // handy for testing in the browser console
 
 // ---------- creatures ----------
+const guestFocus = () => ents.focus && ents.focus.mpId ? ents.focus : null;   // Play Together: a creature is busy with a visiting friend
 const ents = new Entities(scene, {
-  world: () => G.world, player: () => G.player, settings: () => G.wset, creative: () => G.creative || G.spectator, alive: () => G.state !== "dead",
+  world: () => G.world, player: () => ents.focus || G.player, settings: () => G.wset,
+  creative: () => guestFocus() ? G.creative : G.creative || G.spectator, alive: () => guestFocus() ? !guestFocus().mpDead : G.state !== "dead",
   desertContext: () => ({ dim: G.dim, storm: G.creative && creativeStormUntil > G.clock ? 0 : stormStage, sites: G.story.leviathan?.sites }),
   reducedMotion: () => G.settings.reducedMotion,
   scarabVaultDefeated: e => {
@@ -383,22 +385,23 @@ const ents = new Entities(scene, {
       saveNow(false);
     }
   },
-  hurtPlayer: (n, why, src, kind) => hurt(n, why, src, false, kind), effect: (k, t) => addEffect(k, t),
+  hurtPlayer: (n, why, src, kind) => guestFocus() ? MP.hurtGuest(guestFocus(), n, why, src, kind) : hurt(n, why, src, false, kind),
+  effect: (k, t) => guestFocus() ? MP.effectGuest(guestFocus(), k, t) : addEffect(k, t),
   explode: (x, y, z, power, src) => explode(x, y, z, power, src),
   drop: (id, n, x, y, z, stack) => spawnDrop(id, n, x, y, z, stack),
   // minecarts (Part D): a rider pressing W pushes the cart; right-click does what each cart is for
   cartInput: () => G.state === "play" && keys.has("KeyW") ? (d => [d.x, d.z])(lookDir()) : null,
   crouching: () => keys.has("KeyC"),
   useCart: (e, slot) => useCart(e, slot), openCart: e => openCart(e), ejectCart: e => { if (G.riding === e) dismount(); },
-  cartPull: e => R.cartPull(e), xp: (n, x, y, z) => spawnOrbs(n, x, y, z),
+  cartPull: e => R.cartPull(e), xp: (n, x, y, z) => guestFocus() ? MP.xpGuest(guestFocus(), n) : spawnOrbs(n, x, y, z),
   particles: (x, y, z, kind) => puff(x, y, z, kind), lookDir: () => lookDir(),
   // the item in the hand being used (main hand first; an empty main hand shows the offhand item)
   heldId: () => (G.inv.slots[G.useSlot] || G.inv.slots[OFF] || {}).id || 0,
   holds: id => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === id),
   consume: () => { const s = G.inv.slots[G.useSlot]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.useSlot] = null; } G.hudDirty = true; heldId = -1; },
   wear: () => { const s = G.inv.slots[G.useSlot]; if (s) wearTool(s, 1); },
-  adv: (type, arg) => G.adv(type, arg), talk: e => !!(G.campaign && G.campaign.talk(e)),
-  swapHeld: id => swapHeld(id), give: (id, n) => G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
+  adv: (type, arg) => { if (!guestFocus()) G.adv(type, arg); }, talk: e => !!(G.campaign && G.campaign.talk(e)),
+  swapHeld: id => swapHeld(id), give: (id, n) => guestFocus() ? MP.giveGuest(guestFocus(), id, n) : G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
   wearingGold: () => [36, 37, 38, 39].some(i => G.inv.slots[i] && [I.GOLD_HELMET, I.GOLD_CHEST, I.GOLD_LEGS, I.GOLD_BOOTS].includes(G.inv.slots[i].id)),
   ignite: (x, y, z) => ignite(x, y, z),
   endTop: () => (G.gen.land ? (G.gen.land(0, 0) || { top: END_TOP }).top : END_TOP),
@@ -410,7 +413,7 @@ const ents = new Entities(scene, {
   heroHit: (e, n) => F.heroHit(e, n), warded: (x, z) => F.warded(x, z),
   lantern: () => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === I.WARD_LANTERN),
   pylonGone: i => { const c = cinderData(); if (!c.pylonsGone.includes(i)) c.pylonsGone.push(i); const left = CITADEL_PYLONS.length - c.pylonsGone.length; UI.toast(left ? `Ember Pylon broken! ${left} left.` : "All the Ember Pylons are broken! Cindermaw's shield is gone.", "good"); },
-  push: (vx, vy, vz) => { const p = G.player; if (G.creative || G.spectator) return; p.vel.x += vx; p.vel.y = Math.max(p.vel.y, vy); p.vel.z += vz; },
+  push: (vx, vy, vz) => { if (guestFocus()) { MP.pushGuest(guestFocus(), vx, vy, vz); return; } const p = G.player; if (G.creative || G.spectator) return; p.vel.x += vx; p.vel.y = Math.max(p.vel.y, vy); p.vel.z += vz; },
   time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m),
   openTrade: e => openPanel("trade", e.uid),
   mount: e => mount(e), riding: () => !!G.riding, boating: () => !!(G.riding && G.riding.def.boat),
@@ -1434,6 +1437,7 @@ function explode(x, y, z, power, src) {
     const l = Math.hypot(e.pos.x - x, e.pos.z - z) || 1;
     ents.damage(e, Math.round(k * power * 5), "explosion", { x: (e.pos.x - x) / l * k * 1.5, z: (e.pos.z - z) / l * k * 1.5 });
   }
+  MP.blast(x, y, z, reach, power, src);   // Play Together: friends nearby get caught too
   if (dist < reach) {
     const k = 1 - dist / reach, mul = { peaceful: 0.4, easy: 0.6, normal: 1, hard: 1.4 }[G.wset.difficulty] || 1;
     const l = Math.hypot(p.pos.x - x, p.pos.z - z) || 1;
@@ -2146,7 +2150,8 @@ function breakBlock(x, y, z, drops, quiet) {
   }
   // spill container contents (a Shell Box keeps them inside and drops as one item)
   const key = x + "," + y + "," + z, box = w.containers.get(key);
-  if (id === B.SHELL_BOX) { spawnDrop(B.SHELL_BOX, 1, x + 0.5, y + 0.5, z + 0.5, { id: B.SHELL_BOX, n: 1, contents: box ? box.slots.map(s => s && { ...s }) : null }); w.containers.delete(key); }
+  if (G.guest) w.containers.delete(key);   // Play Together: the host's world spills the real contents
+  else if (id === B.SHELL_BOX) { spawnDrop(B.SHELL_BOX, 1, x + 0.5, y + 0.5, z + 0.5, { id: B.SHELL_BOX, n: 1, contents: box ? box.slots.map(s => s && { ...s }) : null }); w.containers.delete(key); }
   else if (box) { for (const s of box.slots) if (s) spawnDrop(s.id, s.n, x + 0.5, y + 0.5, z + 0.5, s); w.containers.delete(key); }
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
@@ -2183,7 +2188,8 @@ function attack() {
   const p = G.player, crit = !p.onGround && p.vel.y < 0 && !p.inWater;
   if (crit) dmg *= 1.5;
   const dir = lookDir(), l = Math.hypot(dir.x, dir.z) || 1, sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
-  if (ents.damage(e, dmg, "player", { x: dir.x / l * (sprint ? 1.4 : 1), z: dir.z / l * (sprint ? 1.4 : 1) })) {
+  const knock = { x: dir.x / l * (sprint ? 1.4 : 1), z: dir.z / l * (sprint ? 1.4 : 1) };
+  if (G.guest ? MP.hitCreature(e, dmg, knock) : ents.damage(e, dmg, "player", knock)) {   // a Play Together guest's hit is decided by the host
     if (crit) puff(e.pos.x, e.pos.y + e.h, e.pos.z, "poof");
     if (s && d.tool) wearTool(s, d.tool.type === "sword" ? 1 : 2);
   }
@@ -2199,10 +2205,12 @@ function releaseBow() {
   if (charge < 0.15 || !s || s.id !== I.BOW) return;
   if (!G.creative) { if (!G.inv.remove(I.ARROW, 1)) return; wearTool(s, 1); }
   const p = G.player, dir = lookDir(), speed = 8 + 26 * charge;
-  ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, { fromPlayer: true, dmg: 1 + 7 * charge });
+  if (G.guest) MP.shoot(p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, 1 + 7 * charge);   // the host's world flies it
+  else ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, { fromPlayer: true, dmg: 1 + 7 * charge });
   Sound.mob("bow", 0); G.hudDirty = true; G.swing = 0.01;
 }
 function throwItem(kind) {
+  if (G.guest) { UI.toast("Throwing things is only for the host while playing together (bows work)."); return; }
   const p = G.player, dir = lookDir();
   ents.addProjectile(kind, p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * 18, dir.y * 18 + 2, dir.z * 18, { fromPlayer: true });
   const s = G.inv.slots[G.useSlot]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.useSlot] = null; }
@@ -2212,6 +2220,7 @@ function throwItem(kind) {
 // ---------- fishing and boats ----------
 // Right-click once to cast. When the bobber dips under (a splash), right-click again quickly to reel in a catch.
 function useRod(slot) {
+  if (G.guest) { UI.toast("Fishing is only for the host while playing together, for now."); return; }
   const p = G.player, b = G.bobber;
   G.swing = 0.01;
   if (b && !b.gone) {
@@ -2302,7 +2311,7 @@ function useWith(offhand) {
     UI.toast("Minecarts go on rails. Point at a rail and right-click.", "bad"); return true;
   }
   // creatures first, then blocks you can open or use (only the main hand opens things)
-  const ent = entityTarget();
+  const ent = G.guest ? null : entityTarget();   // Play Together guests can't feed, tame, ride or trade yet
   if (ent?.def.segmentedLeviathan && ent.tame) {
     const record = leviathanMountRecord(ent);
     if (!record?.bonded || record.defeated) return true;
@@ -2577,6 +2586,7 @@ function useBed(hit) {
   const night = G.time > 0.53 && G.time < 0.97;
   if (!night) { UI.toast("Respawn point set. You can only sleep at night."); return; }
   if (G.creative === false && ents.near(G.player.pos.x, G.player.pos.y, G.player.pos.z, 10, e => e.def.hostile).length) { UI.toast("You can't rest now. There are monsters nearby!", "bad"); return; }
+  if (MP.sleep()) return;   // Play Together: the night is skipped once everyone is in bed
   const shade = document.getElementById("flash");
   shade.style.background = "#000"; shade.classList.add("on");
   setTimeout(() => { G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; shade.classList.remove("on"); setTimeout(() => shade.style.background = "", 400); UI.toast("Good morning! Respawn point set.", "good"); G.adv("sleep"); }, 1200);
@@ -3184,6 +3194,7 @@ function fillLoot(box, hit) {
 // ---------- dropped items ----------
 function spawnDrop(id, n, x, y, z, stack = null, vel = null) {
   if (!id || n <= 0) return;
+  if (G.guest) { MP.guestDrop(id, n, x, y, z, stack, vel); return; }
   // a matching stack lying right here soaks it up (so dropper and dispenser machines don't fill the world with separate items)
   if (maxStack(id) > 1) { const m = G.drops.find(d => d.id === id && !d.stack && d.n + n <= maxStack(id) && Math.abs(d.x - x) < 0.8 && Math.abs(d.y - y) < 0.8 && Math.abs(d.z - z) < 0.8); if (m) { m.n += n; return; } }
   if (G.drops.length >= 150) removeDrop(G.drops.shift());
@@ -5636,7 +5647,7 @@ function loop(now) {
     attribute.addUpdateRange(0, n * 3);
     attribute.needsUpdate = true;
   }
-  MP.tick(dt);
+  MP.tick(dt, daylight);
   updateBossBar(p);
   if (G.hudDirty) { G.hudDirty = false; UI.hud(); }
   if (running) { G.autosaveT += dt; if (G.autosaveT > AUTOSAVE) { G.autosaveT = 0; saveNow(true); } }
@@ -5692,7 +5703,8 @@ function prepareContainer(x, y, z) {
 }
 const MP = G.mp = initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeModel, poseModel, disposeModel, World, CHUNK, HEIGHT, idx, chunkKey,
   version: MP_PROTOCOL + "." + SAVE_VERSION + "." + CURRENT_GEN,
-  openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, validBlock: v => Number.isInteger(v) && !!BLOCKS[idOf(v)], blockDef, itemDef, WATER: B.WATER, LAVA: B.LAVA });
+  openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, validBlock: v => Number.isInteger(v) && !!BLOCKS[idOf(v)], blockDef, itemDef, WATER: B.WATER, LAVA: B.LAVA,
+  ents, Player, hurt, addEffect, spawnOrbs, spawnDrop, removeDrop, itemMesh, disposeItemMesh, lightItem, maxStack });
 Adv.init(G, SPECIES, { xp: n => spawnOrbs(n, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z), give: (id, n) => { if (G.inv.add(id, n)) G.dropItem(id, n); } });
 UI.init(G);
 G.applySettings();

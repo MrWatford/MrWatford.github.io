@@ -3,10 +3,13 @@
 // Stage 1: rooms, joining, seeing each other, the host's building shows up live.
 // Stage 2: guests build too (the host's game checks each change), chests and furnaces go through the host,
 //          quick messages with speech bubbles, and each guest's backpack is kept on their own computer.
+// Stage 3: Survival together. On the host, every creature looks after the nearest player (Entities.pick), so it can chase,
+//          hit, and shoot friends too. Guests see the host's creatures, dropped items, and arrows (about 5 times a second),
+//          and their hits, arrows, dropped items, and pickups go through the host. Everyone has to be in bed to skip the night.
 // Full plan: MULTIPLAYER-PLAN.md.
 import { randomName, randomCode, validName, tidyCode, CODE_RE } from "./mp-words.js";
 
-export const MP_PROTOCOL = 2;      // raise when messages change, so old and new games don't mix
+export const MP_PROTOCOL = 3;      // raise when messages change, so old and new games don't mix
 const RELAY = "wss://blockhaven-relay.watford-ai.workers.dev/ws";
 const NAME_KEY = "blockhaven-mp-name";
 const PACK_KEY = "blockhaven-mp-pack:";   // + the host's world id: a guest's backpack for that world
@@ -17,12 +20,13 @@ export const QUICK = ["Follow me!", "Over here!", "Nice build!", "Help!", "Thank
 // things only the host can use while playing together (story pieces, machines with their own storage, sleeping)
 const HOST_ONLY = new Set(["hopper", "dropper", "dispenser", "crafter", "beacon", "anchor", "anchorstation", "cinderaltar", "lodestone", "frame",
   "solkara_gate", "pedestal", "waystone", "wardstone", "wardaltar", "socket", "rune", "returngate", "resonator", "palealtar", "mural", "mirror",
-  "lift", "checkpoint", "arenaward", "maptable", "hive", "bed"]);
+  "lift", "checkpoint", "arenaward", "maptable", "hive"]);
 const BOX_KINDS = new Set(["chest", "shellbox", "furnace"]);
 const r2 = n => Math.round(n * 100) / 100;
 
 export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeModel, poseModel, disposeModel, World, CHUNK, HEIGHT, idx, chunkKey, version,
-  openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, validBlock, blockDef, itemDef, WATER, LAVA }) {
+  openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, validBlock, blockDef, itemDef, WATER, LAVA,
+  ents, Player, hurt, addEffect, spawnOrbs, spawnDrop, removeDrop, itemMesh, disposeItemMesh, lightItem, maxStack }) {
   const $ = id => document.getElementById(id);
   // a development copy can point at a relay running on this computer: ?relay=ws://localhost:8787/ws
   const asked = new URLSearchParams(location.search).get("relay");
@@ -40,6 +44,9 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
   const locks = new Map();       // host: container key → guest id using it
   const sentBox = new Map();     // host: container key → last contents sent to the guest using it (furnaces keep cooking)
   let early = [];                // guest: block changes that arrived before the world was ready
+  const sleepers = new Map();    // host: who got in bed, and when
+  let entsT = 0, dropSeq = 0, shotSeq = 0;
+  const puppets = new Map(), shots = new Map(), loot = new Map();   // guest: the host's creatures, arrows, and dropped items
   let wantBox = null, openBox = null, openBoxSent = "";   // guest: the container asked for / open now
 
   try { myName = localStorage.getItem(NAME_KEY); } catch (e) { /* storage blocked */ }
@@ -78,7 +85,9 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
   function reset() {
     if (role === "guest" && G.guest) savePack();
     role = null; code = null; phase = "idle"; locked = false; hostPaused = false; worldName = ""; hostWorld = null;
-    asks.clear(); blocks.clear(); locks.clear(); sentBox.clear(); early = []; last = null; wantBox = openBox = null; openBoxSent = "";
+    asks.clear(); blocks.clear(); locks.clear(); sentBox.clear(); sleepers.clear(); early = []; last = null; wantBox = openBox = null; openBoxSent = "";
+    ents.pick = null; ents.focus = null;
+    clearPuppets();
     for (const id of [...players.keys()]) removePlayer(id);
     G.guest = null;
     showQuick(false); banner();
@@ -100,7 +109,6 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (G.meta.campaign) return "Legacy Campaign worlds stay single-player.";
     if (G.meta.hardcore) return "Hardcore worlds stay single-player.";
     if (G.dim !== "overworld") return "Go back to the Surface first. Visiting other dimensions together comes in a later update.";
-    if (!G.creative) return "For now, Play Together works in Creative mode. Switch this world to Creative under World options in the pause menu, then try again. (Survival together comes in a later update.)";
     return null;
   }
   function startHosting() {
@@ -134,6 +142,11 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (m.t === "s") { guestChanges(from, m.l); return; }
     if (m.t === "open") { guestOpens(from, m); return; }
     if (m.t === "boxset") { guestBox(from, m); return; }
+    if (m.t === "hit") { guestHits(from, m); return; }
+    if (m.t === "shoot") { guestShoots(from, m); return; }
+    if (m.t === "drop") { guestDrops(from, m); return; }
+    if (m.t === "pick") { guestPicks(from, m); return; }
+    if (m.t === "sleep") { if (G.time > 0.53 && G.time < 0.97 && !from.body?.mpDead) { sleepers.set(from.id, performance.now()); UI.toast(from.name + " got in bed."); checkSleep(); } return; }
   }
   async function allow(id) {
     const a = asks.get(id); if (!a) return;
@@ -154,10 +167,10 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     const s = snapshot(), dim = G.dim, d = { ...s.dims[dim] }, p = G.player;
     delete d.entities; d.drops = []; d.signs = {};
     return {
-      id: "guest-" + code, name: "", seed: s.seed, mode: "creative", hardcore: false, hardcoreOver: false,
+      id: "guest-" + code, name: "", seed: s.seed, mode: G.mode === "creative" ? "creative" : "survival", hardcore: false, hardcoreOver: false,
       created: s.created, played: Date.now(), day: s.day, version: s.version, gen: s.gen, time: s.time,
       dims: { [dim]: d }, inventory: [], voidInv: [], adv: {}, story: s.story, tips: s.tips, stats: {}, settings: s.settings, campaign: null, xp: 0,
-      player: { pos: { x: p.pos.x + 1.5, y: p.pos.y, z: p.pos.z + 1.5 }, yaw: p.yaw, pitch: 0, health: 20, hunger: 20, sat: 5, exhaust: 0, spawn: s.player.spawn, flying: true, dim, effects: {}, elv: {}, absorb: 0 }
+      player: { pos: { x: p.pos.x + 1.5, y: p.pos.y, z: p.pos.z + 1.5 }, yaw: p.yaw, pitch: 0, health: 20, hunger: 20, sat: 5, exhaust: 0, spawn: s.player.spawn, flying: G.creative, dim, effects: {}, elv: {}, absorb: 0 }
     };
   }
 
@@ -239,6 +252,235 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     send({ t: role === "host" ? "b" : "s", l });
   }
 
+  // ---------- Survival together (Stage 3): the host's side ----------
+  const bodies = () => [...players.values()].filter(p => p.body && p.tgt).map(p => p.body);
+  // The player a creature (or arrow) at pos should care about: the nearest one still standing. No pos: any of them (for spawning).
+  function pick(pos) {
+    const all = [];
+    if (G.state !== "dead" && !G.spectator) all.push(G.player);
+    for (const b of bodies()) if (!b.mpDead) all.push(b);
+    if (!all.length) return G.player;
+    if (!pos) return all[Math.floor(Math.random() * all.length)];
+    let best = all[0], bd = Infinity;
+    for (const c of all) { const d = (c.pos.x - pos.x) ** 2 + (c.pos.y - pos.y) ** 2 + (c.pos.z - pos.z) ** 2; if (d < bd) { bd = d; best = c; } }
+    return best;
+  }
+  // what creatures and explosions do to a friend happens on the friend's own computer (their armor, health, and fainting)
+  function hurtGuest(b, n, why, src, kind) {
+    if (!(n > 0) || b.mpDead) return;
+    const sx = src && src.pos ? r2(src.pos.x) : null, sz = src && src.pos ? r2(src.pos.z) : null;
+    send({ t: "hurt", to: b.mpId, n: r2(n), why: String(why || "").slice(0, 160), sx, sz, kind: kind || null });
+  }
+  const effectGuest = (b, k, t) => send({ t: "fx", to: b.mpId, k, d: r2(t) });
+  const pushGuest = (b, vx, vy, vz) => send({ t: "push", to: b.mpId, v: [r2(vx), r2(vy), r2(vz)] });
+  const xpGuest = (b, n) => send({ t: "xp", to: b.mpId, n: Math.min(200, Math.round(n)) });
+  const giveGuest = (b, id, n) => { send({ t: "give", to: b.mpId, id, n }); return true; };
+  function blast(x, y, z, reach, power, src) {
+    if (role !== "host") return;
+    const mul = { peaceful: 0.4, easy: 0.6, normal: 1, hard: 1.4 }[G.wset.difficulty] || 1;
+    for (const b of bodies()) {
+      if (b.mpDead) continue;
+      const d = Math.hypot(b.pos.x - x, b.pos.y + 0.9 - y, b.pos.z - z);
+      if (d >= reach) continue;
+      const k = 1 - d / reach, l = Math.hypot(b.pos.x - x, b.pos.z - z) || 1;
+      pushGuest(b, (b.pos.x - x) / l * k * 12, k * 8, (b.pos.z - z) / l * k * 12);
+      hurtGuest(b, Math.round(k * power * 4.5 * mul), src && src.def ? `A ${src.def.name} exploded next to you!` : "You were caught in an explosion!", null);
+    }
+  }
+  const near = (from, x, y, z, r) => from.body && Math.hypot(from.body.pos.x - x, from.body.pos.y + 1 - y, from.body.pos.z - z) <= r;
+  // a friend swung at a creature
+  function guestHits(from, m) {
+    const e = ents.list.find(o => o.uid === m.uid);
+    if (!e || e.gone || e.dead || from.body.mpDead || !Number.isFinite(m.dmg)) return;
+    const now = performance.now();
+    if (now - (from.hitAt || 0) < 200) return;
+    if (!near(from, e.pos.x, e.pos.y + e.h / 2, e.pos.z, 7)) return;
+    from.hitAt = now;
+    const k = v => Math.max(-2, Math.min(2, Number(v) || 0));
+    ents.focus = from.body;   // the creature fights back at whoever hit it, and their XP goes to them
+    try { ents.damage(e, Math.max(0, Math.min(40, m.dmg)), "player", { x: k(m.kx), z: k(m.kz) }); } finally { ents.focus = null; }
+  }
+  function guestShoots(from, m) {
+    const v = [m.x, m.y, m.z, m.vx, m.vy, m.vz, m.dmg];
+    if (!v.every(Number.isFinite) || from.body.mpDead || !near(from, m.x, m.y, m.z, 3)) return;
+    if (Math.hypot(m.vx, m.vy, m.vz) > 40) return;
+    ents.addProjectile("arrow", m.x, m.y, m.z, m.vx, m.vy, m.vz, { fromPlayer: true, dmg: Math.max(0, Math.min(8, m.dmg)) });
+  }
+  function guestDrops(from, m) {
+    if (!itemDef(m.id) || !Number.isInteger(m.n) || m.n < 1 || m.n > maxStack(m.id) || ![m.x, m.y, m.z].every(Number.isFinite)) return;
+    if (!near(from, m.x, m.y, m.z, 6)) return;
+    const v = Array.isArray(m.v) && m.v.length === 3 && m.v.every(Number.isFinite) ? { x: m.v[0], y: m.v[1], z: m.v[2] } : null;
+    const stack = m.stack && typeof m.stack === "object" && m.stack.id === m.id ? m.stack : null;
+    spawnDrop(m.id, m.n, m.x, m.y, m.z, stack, v);
+  }
+  function guestPicks(from, m) {
+    const i = G.drops.findIndex(d => d.mpId === m.id);
+    if (i < 0 || from.body.mpDead) return;
+    const d = G.drops[i];
+    if (d.pickDelay > 0 || !near(from, d.x, d.y, d.z, 2.6)) return;
+    G.drops.splice(i, 1); removeDrop(d);
+    send({ t: "give", to: from.id, id: d.id, n: d.n, stack: d.stack || null });
+  }
+  // Everyone has to be in bed (within ten seconds of each other) to skip the night
+  function checkSleep() {
+    const now = performance.now(), ids = ["h", ...players.keys()];
+    const inBed = ids.filter(id => now - (sleepers.get(id) ?? -1e9) < 10000).length;
+    if (inBed < ids.length) { UI.toast(`${inBed} of ${ids.length} players are in bed.`); return; }
+    sleepers.clear();
+    G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; envT = ENV_EVERY;
+    send({ t: "morning" });
+    UI.toast("Good morning! Everyone slept.", "good"); G.adv("sleep");
+  }
+  function sleep() {
+    if (role === "host" && phase === "hosting" && players.size) { sleepers.set("h", performance.now()); checkSleep(); return true; }
+    if (role === "guest" && phase === "in") { send({ t: "sleep" }); UI.toast("You're in bed. The night ends when everyone is in bed."); return true; }
+    return false;
+  }
+  // what friends can see: the host's creatures, dropped items, and flying arrows near any of them
+  function sendEnts() {
+    const bs = bodies(); if (!bs.length) return;
+    const close = (x, z, r) => bs.some(b => (b.pos.x - x) ** 2 + (b.pos.z - z) ** 2 < r * r);
+    const e = [], d = [], p = [];
+    for (const en of ents.list) {
+      if (en.gone || !en.mesh || !close(en.pos.x, en.pos.z, en.def.boss ? 160 : 56)) continue;
+      const fl = (en.baby ? 1 : 0) | (en.dead ? 2 : 0) | (en.hurtT > 0 ? 4 : 0) | (en.mesh.visible ? 0 : 8);
+      e.push([en.uid, en.sp, r2(en.pos.x), r2(en.pos.y), r2(en.pos.z), r2(en.yaw), fl, en.variant | 0, en.size | 0, Math.max(0, Math.round(en.hp))]);
+      if (e.length >= 150) break;
+    }
+    for (const dr of G.drops) {
+      if (!close(dr.x, dr.z, 40)) continue;
+      dr.mpId ||= ++dropSeq;
+      d.push([dr.mpId, dr.id, dr.n, r2(dr.x), r2(dr.y), r2(dr.z), dr.pickDelay > 0 ? 1 : 0]);
+      if (d.length >= 100) break;
+    }
+    for (const pr of ents.projectiles) {
+      if (pr.gone || pr.kind === "bobber" || pr.kind === "eye" || !close(pr.x, pr.z, 56)) continue;
+      pr.mpId ||= ++shotSeq;
+      p.push([pr.mpId, pr.kind, r2(pr.x), r2(pr.y), r2(pr.z), r2(pr.vx), r2(pr.vy), r2(pr.vz), pr.stuck ? 1 : 0]);
+      if (p.length >= 60) break;
+    }
+    send({ t: "ents", e, d, p });
+  }
+
+  // ---------- Survival together: the guest's side ----------
+  function hitCreature(e, dmg, knock) {
+    if (!e || !e.uid) return false;
+    send({ t: "hit", uid: e.uid, dmg: r2(dmg), kx: r2(knock.x), kz: r2(knock.z) });
+    e.hurtT = 0.3;   // a quick flash right away; the host decides the rest
+    Sound.mob(e.def.animal ? e.def.sound : "hurt", 0);
+    return true;
+  }
+  const shoot = (x, y, z, vx, vy, vz, dmg) => send({ t: "shoot", x: r2(x), y: r2(y), z: r2(z), vx: r2(vx), vy: r2(vy), vz: r2(vz), dmg: r2(dmg) });
+  function guestDrop(id, n, x, y, z, stack, vel) {
+    if (role !== "guest" || phase !== "in") return;
+    send({ t: "drop", id, n, x: r2(x), y: r2(y), z: r2(z), stack: stack ? { ...stack } : null, v: vel ? [r2(vel.x), r2(vel.y), r2(vel.z)] : null });
+  }
+  function dropPuppet(e) {
+    const i = ents.list.indexOf(e);
+    if (i >= 0) { ents.list.splice(i, 1); if (e.mesh) ents.remove(e); }
+  }
+  function dropShot(pr) {
+    const i = ents.projectiles.indexOf(pr);
+    if (i >= 0) ents.projectiles.splice(i, 1);
+    scene.remove(pr.mesh); pr.mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  }
+  function dropLoot(l) { scene.remove(l.mesh); disposeItemMesh(l.mesh); }
+  function clearPuppets() {
+    for (const pp of puppets.values()) dropPuppet(pp.e);
+    for (const pr of shots.values()) dropShot(pr);
+    for (const l of loot.values()) dropLoot(l);
+    puppets.clear(); shots.clear(); loot.clear();
+  }
+  function onEnts(m) {
+    if (!G.world || !G.guest) return;
+    const seen = new Set();
+    for (const r of Array.isArray(m.e) ? m.e : []) {
+      const [uid, sp, x, y, z, yaw, fl, variant, size, hp] = r;
+      if (typeof uid !== "string" || ![x, y, z, yaw].every(Number.isFinite)) continue;
+      seen.add(uid);
+      let pp = puppets.get(uid);
+      if (!pp) {
+        const e = ents.add(sp, x, y, z, { uid, variant, size: size || undefined, baby: !!(fl & 1), yaw });
+        if (!e) continue;
+        e.puppet = true;
+        pp = { e }; puppets.set(uid, pp);
+      }
+      pp.tgt = { x, y, z, yaw }; pp.dead = !!(fl & 2); pp.hidden = !!(fl & 8);
+      if (fl & 4) pp.e.hurtT = 0.3;
+      if (Number.isFinite(hp)) pp.e.hp = hp;
+    }
+    for (const [uid, pp] of puppets) if (!seen.has(uid)) { dropPuppet(pp.e); puppets.delete(uid); }
+    const seenD = new Set();
+    for (const r of Array.isArray(m.d) ? m.d : []) {
+      const [id, item, n, x, y, z, wait] = r;
+      if (!itemDef(item) || ![x, y, z].every(Number.isFinite)) continue;
+      seenD.add(id);
+      let l = loot.get(id);
+      if (!l) {
+        const mesh = itemMesh(item, 0.25);
+        mesh.userData.shared = mesh.userData.shared || mesh.geometry.type !== "PlaneGeometry";
+        mesh.position.set(x, y, z); scene.add(mesh);
+        l = { id, item, mesh, x, y, z, age: Math.random() * 6, pickT: 0 }; loot.set(id, l);
+      }
+      Object.assign(l, { n, tx: x, ty: y, tz: z, wait: !!wait });
+    }
+    for (const [id, l] of loot) if (!seenD.has(id)) { dropLoot(l); loot.delete(id); }
+    const seenP = new Set();
+    for (const r of Array.isArray(m.p) ? m.p : []) {
+      const [id, kind, x, y, z, vx, vy, vz, stuck] = r;
+      if (typeof kind !== "string" || ![x, y, z, vx, vy, vz].every(Number.isFinite)) continue;
+      seenP.add(id);
+      let pr = shots.get(id);
+      if (!pr) { ents.addProjectile(kind, x, y, z, vx, vy, vz, { puppet: true }); pr = ents.projectiles[ents.projectiles.length - 1]; shots.set(id, pr); }
+      Object.assign(pr, { x, y, z, vx, vy, vz, stuck: !!stuck });
+    }
+    for (const [id, pr] of shots) if (!seenP.has(id)) { dropShot(pr); shots.delete(id); }
+  }
+  // every frame: glide the host's creatures, items, and arrows between updates, and pick up items you walk over
+  function drawPuppets(dt, daylight) {
+    const p = G.player, k = 1 - Math.exp(-dt * 10);
+    for (const pp of puppets.values()) {
+      const e = pp.e, t = pp.tgt; if (!t || !e.mesh) continue;
+      const ox = e.pos.x, oz = e.pos.z;
+      e.pos.x += (t.x - e.pos.x) * k; e.pos.y += (t.y - e.pos.y) * k; e.pos.z += (t.z - e.pos.z) * k;
+      e.yaw += Math.atan2(Math.sin(t.yaw - e.yaw), Math.cos(t.yaw - e.yaw)) * k;
+      const moved = Math.hypot(e.pos.x - ox, e.pos.z - oz);
+      e.vel.x = dt > 0 ? (e.pos.x - ox) / dt : 0; e.vel.z = dt > 0 ? (e.pos.z - oz) / dt : 0; e.vel.y = 0;
+      e.walkPhase += moved * 1.5; e.age += dt;
+      if (e.hurtT > 0) e.hurtT -= dt;
+      const d2 = (e.pos.x - p.pos.x) ** 2 + (e.pos.z - p.pos.z) ** 2;
+      if (pp.dead) {   // fall over and turn red, like any creature that faints
+        e.mesh.position.set(e.pos.x, e.pos.y, e.pos.z); e.mesh.rotation.y = e.yaw + Math.PI;
+        e.root.rotation.z = Math.min(Math.PI / 2, e.root.rotation.z + dt * 4); e.mat.color.setRGB(1, 0.4, 0.4);
+      } else {
+        try { ents.animate(e, dt, d2, daylight); }
+        catch (err) { e.mesh.position.set(e.pos.x, e.pos.y, e.pos.z); e.mesh.rotation.y = e.yaw + Math.PI; }
+      }
+      e.mesh.visible = !pp.hidden && (d2 < 64 * 64 || !!e.def.boss);
+    }
+    for (const pr of shots.values()) {
+      if (!pr.stuck) { pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.z += pr.vz * dt; }
+      pr.mesh.position.set(pr.x, pr.y, pr.z);
+      if (pr.kind === "arrow" && !pr.stuck) pr.mesh.rotation.set(Math.atan2(pr.vy, Math.hypot(pr.vx, pr.vz)), Math.atan2(pr.vx, pr.vz) + Math.PI, 0, "YXZ");
+    }
+    const bright = Math.max(0.35, daylight || 1), alive = G.state !== "dead" && !G.spectator;
+    for (const l of loot.values()) {
+      l.age += dt; l.pickT -= dt;
+      l.x += (l.tx - l.x) * k; l.y += (l.ty - l.y) * k; l.z += (l.tz - l.z) * k;
+      l.mesh.position.set(l.x, l.y + Math.sin(l.age * 3) * 0.06, l.z); l.mesh.rotation.y = l.age * 1.6;
+      lightItem(l.mesh, bright);
+      const dist2 = (l.x - p.pos.x) ** 2 + (l.y - (p.pos.y + 0.8)) ** 2 + (l.z - p.pos.z) ** 2;
+      if (alive && !l.wait && l.pickT <= 0 && dist2 < 2.2) { l.pickT = 0.6; send({ t: "pick", id: l.id }); }
+    }
+  }
+  function gotItem(m) {
+    if (!G.inv || !itemDef(m.id) || !Number.isInteger(m.n) || m.n < 1) return;
+    const stack = m.stack && typeof m.stack === "object" && m.stack.id === m.id ? m.stack : null;
+    const left = G.inv.add(m.id, m.n, stack);
+    if (left < m.n) { Sound.pickup(); G.hudDirty = true; if (UI.panelOpen) UI.refreshPanel(); }
+    if (left > 0) G.dropItem(m.id, left, stack);   // a full backpack: it goes back on the ground
+  }
+
   // ---------- joining ----------
   function join(text) {
     const c = tidyCode(text);
@@ -274,7 +516,20 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     }
     if (m.t === "b") { if (G.guest && G.world) applyBlocks(m.l); else early.push(m.l); return; }
     if (m.t === "box") { hostBox(m); return; }
-    if (m.t === "env") { if (G.guest && typeof m.time === "number") { G.time = m.time; if (G.meta) G.meta.day = m.day || G.meta.day; } return; }
+    if (m.t === "env") {
+      if (G.guest && typeof m.time === "number") { G.time = m.time; if (G.meta) G.meta.day = m.day || G.meta.day; }
+      if (G.guest && (m.mode === "creative" || m.mode === "survival") && m.mode !== G.mode && G.state !== "dead") G.setMode(m.mode);   // the host switched the world's mode
+      return;
+    }
+    if (!G.guest || !G.player) return;
+    const p = G.player;
+    if (m.t === "ents") { onEnts(m); return; }
+    if (m.t === "hurt") { if (Number.isFinite(m.n)) hurt(Math.min(40, m.n), String(m.why || "Something hurt you!"), Number.isFinite(m.sx) ? { pos: { x: m.sx, z: m.sz } } : null, false, typeof m.kind === "string" ? m.kind : undefined); return; }
+    if (m.t === "fx") { if (typeof m.k === "string" && /^[a-z]{2,20}$/.test(m.k) && Number.isFinite(m.d)) addEffect(m.k, Math.min(60, m.d)); return; }
+    if (m.t === "push") { if (Array.isArray(m.v) && m.v.every(Number.isFinite) && !G.creative && !G.spectator) { p.vel.x += m.v[0]; p.vel.y = Math.max(p.vel.y, m.v[1]); p.vel.z += m.v[2]; } return; }
+    if (m.t === "xp") { if (Number.isInteger(m.n) && m.n > 0) spawnOrbs(Math.min(200, m.n), p.pos.x, p.pos.y + 1, p.pos.z); return; }
+    if (m.t === "give") { gotItem(m); return; }
+    if (m.t === "morning") { UI.toast("Good morning! Everyone slept.", "good"); return; }
     if (m.t === "hp") { hostPaused = !!m.on; banner(); return; }
   }
   function applyBlocks(l) {
@@ -372,13 +627,14 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
   // ---------- other players ----------
   function addPlayer(p) {
     if (!p || players.has(p.id)) return;
-    players.set(p.id, { id: p.id, name: p.name, skin: p.skin, model: null, tag: null, bubble: null, say: null, sayT: 0, cur: null, tgt: null, crouch: false, walk: 0 });
+    const body = role === "host" ? Object.assign(new Player(), { mpId: p.id, mpDead: false }) : null;   // stands in for the friend in the host's world
+    players.set(p.id, { id: p.id, name: p.name, skin: p.skin, model: null, tag: null, bubble: null, say: null, sayT: 0, cur: null, tgt: null, crouch: false, walk: 0, body });
   }
   function dropSprite(holder, s) { if (!s) return; holder.remove(s); s.material.map.dispose(); s.material.dispose(); }
   function removePlayer(id) {
     const p = players.get(id); if (!p) return;
     if (p.model) { dropSprite(p.model.holder, p.tag); dropSprite(p.model.holder, p.bubble); scene.remove(p.model.holder); disposeModel(p.model); }
-    players.delete(id);
+    players.delete(id); sleepers.delete(id);
   }
   function movePlayer(id, m) {
     const p = players.get(id); if (!p) return;
@@ -386,6 +642,8 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     p.tgt = { x: m.x, y: m.y, z: m.z, yaw: m.yw, pitch: m.pt };
     if (!p.cur) p.cur = { ...p.tgt };
     p.crouch = !!m.c;
+    p.dead = !!m.d;
+    if (p.body) { Object.assign(p.body.pos, { x: m.x, y: m.y, z: m.z }); p.body.yaw = m.yw; p.body.pitch = m.pt; p.body.crouch = !!m.c; p.body.health = Number.isFinite(m.h) ? m.h : 20; p.body.mpDead = !!m.d; }
   }
   function label(text, bubble) {
     const c = document.createElement("canvas"); c.width = 256; c.height = 48;
@@ -414,7 +672,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       const dy = Math.atan2(Math.sin(t.yaw - c.yaw), Math.cos(t.yaw - c.yaw)); c.yaw += dy * k;
       const moved = Math.hypot(c.x - ox, c.z - oz);
       p.walk += moved * 2.2;
-      p.model.holder.visible = true;
+      p.model.holder.visible = !p.dead;
       p.model.holder.position.set(c.x, c.y, c.z);
       p.model.holder.rotation.y = c.yaw + Math.PI;
       poseModel(p.model, { walkPhase: p.walk, speed: dt > 0 ? moved / dt : 0, pitch: -c.pitch, crouch: p.crouch, swing: 0 });
@@ -422,15 +680,18 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
   }
 
   // ---------- every frame ----------
-  function tick(dt) {
+  function tick(dt, daylight) {
     drawPlayers(dt);
+    if (role === "guest" && G.guest) drawPuppets(dt, daylight);
     if (!ws || !G.world || !G.player) return;
     const inWorld = role === "host" ? phase === "hosting" : phase === "in";
     if (!inWorld) return;
     if (role === "host") {
       const problem = hostProblem();
       if (problem) { stopHosting(); UI.toast("Play Together stopped. " + problem, "bad"); return; }
-      if (players.size && (envT += dt) >= ENV_EVERY) { envT = 0; send({ t: "env", time: r2(G.time * 1e4) / 1e4, day: G.meta.day || 1 }); }
+      if (players.size && (envT += dt) >= ENV_EVERY) { envT = 0; send({ t: "env", time: r2(G.time * 1e4) / 1e4, day: G.meta.day || 1, mode: G.mode }); }
+      ents.pick = players.size ? pick : null;   // creatures notice every player
+      if (players.size && (entsT += dt) >= 0.2) { entsT = 0; sendEnts(); }
       if (locks.size && (boxT += dt) >= 0.5) { boxT = 0; pushBoxes(); }
     } else {
       if ((boxT += dt) >= 0.25) { boxT = 0; watchBox(); }
@@ -442,10 +703,10 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (sendT < SEND_EVERY) return;
     sendT = 0;
     if (role === "host" && !players.size) return;
-    const p = G.player, now = [r2(p.pos.x), r2(p.pos.y), r2(p.pos.z), r2(p.yaw), r2(p.pitch), p.crouch && !p.flying ? 1 : 0];
+    const p = G.player, now = [r2(p.pos.x), r2(p.pos.y), r2(p.pos.z), r2(p.yaw), r2(p.pitch), p.crouch && !p.flying ? 1 : 0, Math.round(p.health * 2) / 2, G.state === "dead" ? 1 : 0];
     if (last && sinceSend < 3 && now.every((v, i) => v === last[i])) return;
     last = now; sinceSend = 0;
-    send({ t: "p", x: now[0], y: now[1], z: now[2], yw: now[3], pt: now[4], c: now[5] });
+    send({ t: "p", x: now[0], y: now[1], z: now[2], yw: now[3], pt: now[4], c: now[5], h: now[6], d: now[7] });
   }
 
   // tell guests when the host's tab is hidden (the host's world stops while it's in the background)
@@ -514,7 +775,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       html += nameRow(true);
       html += `<label class="field">Room code <input class="text-in" id="mpCode" maxlength="24" placeholder="MAPLE-OTTER-27" autocomplete="off" spellcheck="false"></label>`;
       html += `<div class="row"><button class="btn primary" data-act="join">Join</button></div>`;
-      html += `<p class="note">To host instead, open one of your Creative worlds, press Esc, and choose <b>Play Together</b>. There's no typed chat (just quick messages), and names are picked for you, so nobody shares their real name.</p>`;
+      html += `<p class="note">To host instead, open one of your worlds (Survival or Creative), press Esc, and choose <b>Play Together</b>. There's no typed chat (just quick messages), and names are picked for you, so nobody shares their real name.</p>`;
     }
     body.innerHTML = html;
     body.querySelectorAll("[data-act]").forEach(b => b.onclick = () => act(b.dataset.act));
@@ -558,12 +819,14 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     open() { message = ""; UI.show("together"); },
     tick,
     useBlock,
+    hurtGuest, effectGuest, pushGuest, xpGuest, giveGuest, blast, sleep, hitCreature, shoot, guestDrop,
     keepRunning: () => role === "host" && phase === "hosting" && players.size > 0,   // the host's pause menu doesn't freeze friends' world
     noPortals: () => role !== null,
     worldClosed() { if (role) { close(); reset(); } },
     // for tests
     _state: () => ({ role, phase, code, myName, worldName, players: [...players.values()].map(p => ({ id: p.id, name: p.name, at: p.cur && [r2(p.cur.x), r2(p.cur.y), r2(p.cur.z)], say: p.say })), asks: [...asks.keys()], locks: [...locks], openBox, message, locked, hostPaused }),
     _allow: allow, _join: join, _host: startHosting, _say: say,
+    _puppets: () => ({ creatures: puppets.size, items: loot.size, shots: shots.size, list: [...puppets.values()].slice(0, 5).map(pp => [pp.e.sp, r2(pp.e.pos.x), r2(pp.e.pos.z)]) }),
   };
 }
 

@@ -1551,6 +1551,9 @@ export class Entities {
   constructor(scene, ctx) {
     this.scene = scene; this.ctx = ctx;      // ctx: game hooks (player, world, hurtPlayer, drop, explode, settings…)
     this.list = []; this.projectiles = []; this.spawnT = 0; this.frustum = new THREE.Frustum(); this.tmpM = new THREE.Matrix4();
+    // Play Together: pick(pos) returns the player a creature (or projectile) should care about: the nearest one.
+    // While it's set, ctx.player() returns that player, so every creature can notice friends as well as the host.
+    this.pick = null; this.focus = null;
   }
   get world() { return this.ctx.world(); }
 
@@ -1813,16 +1816,19 @@ export class Entities {
   // ----- every frame -----
   update(dt, daylight, camera) {
     const ctx = this.ctx, p = ctx.player(), w = this.world;
+    if (this.pick) this.focus = this.pick(null);   // Play Together: creatures spawn around a different player each time
     this.spawnTick(dt, daylight, camera);
     spawnCreatures(this, dt, daylight, SPECIES);
     spawnDesertMobs(this, dt);
+    this.focus = null;
     for (const e of this.list) {
       if (e.gone) continue;
       if (e.encounterOwner && (e.encounterOwner.gone || e.encounterOwner.dead || !ctx.alive())) {
         e.gone = true;
         continue;
       }
-      const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d2 = dx * dx + dz * dz;
+      const fp = this.pick ? (this.focus = this.pick(e.pos)) : p;   // Play Together: the nearest player
+      const dx = e.pos.x - fp.pos.x, dz = e.pos.z - fp.pos.z, d2 = dx * dx + dz * dz;
       // far-away monsters wander off (despawn); animals and named creatures stay
       if (!e.persist && !e.def.noSave && (d2 > 72 * 72 || (d2 > 36 * 36 && Math.random() < dt / 30))) { e.gone = true; continue; }
       if (e.def.boss && !e.persist && d2 > 200 * 200) { e.gone = true; continue; }
@@ -1855,6 +1861,7 @@ export class Entities {
       else if (e.def.expansion && e.beam) e.beam.visible = false;
       e.mesh.visible = (d2 < 64 * 64 || !!e.def.boss) && !(e.def.desertMob && e.def.burrows && !e.emerged);
     }
+    this.focus = null;
     this.sweep();
     this.updateProjectiles(dt);
     this.updateHazards(dt);
@@ -3148,8 +3155,10 @@ export class Entities {
     this.projectiles.push({ kind, x, y, z, vx, vy, vz, age: 0, stuck: false, mesh, ...opts });
   }
   updateProjectiles(dt) {
-    const w = this.world, ctx = this.ctx, p = ctx.player();
+    const w = this.world, ctx = this.ctx;
+    let p = ctx.player();
     for (const pr of this.projectiles) {
+      if (this.pick) { this.focus = this.pick(pr); p = ctx.player(); }   // Play Together: a projectile can hit whichever player is nearest
       if (pr.gone || pr.kind === "obsidianshard" && pr.owner?.gone) { pr.gone = true; continue; }
       pr.age += dt;
       if (["sandbolt", "obsidianshard"].includes(pr.kind) && pr.age > 5) { pr.gone = true; continue; }
@@ -3235,6 +3244,7 @@ export class Entities {
       if (pr.kind === "arrow" && !pr.stuck) pr.mesh.rotation.set(Math.atan2(pr.vy, Math.hypot(pr.vx, pr.vz)), Math.atan2(pr.vx, pr.vz) + Math.PI, 0, "YXZ");
       if (pr.age > 12 && !pr.stuck) pr.gone = true;
     }
+    this.focus = null;
     this.projectiles = this.projectiles.filter(pr => { if (pr.gone) { this.scene.remove(pr.mesh); pr.mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); return false; } return true; });
   }
   landThrown(pr) {
