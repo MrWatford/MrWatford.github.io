@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero Clash: automated checks</title>
+<style>
+  body { font: 15px/1.45 "Segoe UI", Arial, sans-serif; margin: 24px; background: #0b1020; color: #e8eefc; }
+  h1 { margin: 0 0 4px; } h2 { margin: 18px 0 6px; font-size: 16px; color: #58e6ff; }
+  #sum { font-size: 20px; font-weight: 700; margin: 10px 0; }
+  .ok { color: #7dffa0; } .bad { color: #ff8a7a; font-weight: 700; }
+  li { margin: 2px 0; } small { color: #9fb0d0; }
+</style>
+</head>
+<body>
+<h1>Hero Clash: automated checks</h1>
+<p>These run the real combat rules, the computer opponent, the save system, and the tournament bracket with no graphics, and check that each one behaves correctly. It takes a few seconds.</p>
+<div id="sum">Running…</div>
+<div id="out"></div>
+<pre id="report" hidden></pre>
+<script type="module">
+  import { runTests } from "./js/tests.js";
+  setTimeout(() => {
+    const t0 = performance.now(), r = runTests(), out = document.getElementById("out");
+    let group = "", ul = null;
+    for (const x of r.results) {
+      if (x.group !== group) { group = x.group; const h = document.createElement("h2"); h.textContent = group; out.appendChild(h); ul = document.createElement("ul"); out.appendChild(ul); }
+      const li = document.createElement("li"); li.className = x.pass ? "ok" : "bad"; li.textContent = (x.pass ? "✔ " : "✘ ") + x.name;
+      if (!x.pass && x.detail) { const s = document.createElement("small"); s.textContent = "  " + x.detail; li.appendChild(s); }
+      ul.appendChild(li);
+    }
+    const sum = document.getElementById("sum"); sum.textContent = `${r.pass} of ${r.total} checks passed (${Math.round(performance.now() - t0)} ms)`; sum.className = r.pass === r.total ? "ok" : "bad";
+    document.getElementById("report").textContent = `BEGIN ${r.pass}/${r.total} ` + r.results.filter((x) => !x.pass).map((x) => x.group + ": " + x.name).join(" | ") + " END";
+  }, 30);
+</script>
+</body>
+</html>
