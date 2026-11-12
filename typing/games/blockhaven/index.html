@@ -638,6 +638,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
       <label class="set"><span>Mute sounds</span><input type="checkbox" id="sMute"></label>
       <label class="set"><span>View distance<output id="oDist"></output></span><input type="range" id="sDist" min="2" max="8" step="1"></label>
       <label class="set"><span>Graphics</span><select id="sQuality" class="text-in"><option value="fast">Fast (best for Chromebooks)</option><option value="fancy">Fancy (sharper, fuller leaves)</option></select></label>
+      <label class="set"><span>Atmosphere effects</span><select id="sFx" class="text-in"><option value="low">Low (steady light, few particles)</option><option value="medium">Medium</option><option value="high">High (more glow and particles)</option></select></label>
       <label class="set"><span>Field of view<output id="oFov"></output></span><input type="range" id="sFov" min="55" max="100" step="1"></label>
       <label class="set"><span>Reduce camera motion</span><input type="checkbox" id="sMotion"></label>
       <h3 class="set-head">Title screen</h3>
@@ -760,7 +761,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
   "imports": {
     "./js/abyssal-quicksand-view.js": "./js/abyssal-quicksand-view.js?v=leviathan-1.0.0",
     "./js/abyssal-quicksand.js": "./js/abyssal-quicksand.js?v=leviathan-1.0.0",
-    "./js/advancements.js": "./js/advancements.js?v=leviathan-1.0.0",
+    "./js/advancements.js": "./js/advancements.js?v=echohold-1",
     "./js/ancient-arena-view.js": "./js/ancient-arena-view.js?v=leviathan-1.0.0",
     "./js/ancient-arrival.js": "./js/ancient-arrival.js?v=leviathan-1.0.0",
     "./js/ancient-awakening-view.js": "./js/ancient-awakening-view.js?v=leviathan-1.0.0",
@@ -780,9 +781,9 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/ancient-warning.js": "./js/ancient-warning.js?v=leviathan-1.0.0",
     "./js/arena-fractures.js": "./js/arena-fractures.js?v=leviathan-1.0.0",
     "./js/audio.js": "./js/audio.js?v=leviathan-1.0.0",
-    "./js/blocks.js": "./js/blocks.js?v=leviathan-1.0.0",
+    "./js/blocks.js": "./js/blocks.js?v=echohold-1",
     "./js/buried-throne.js": "./js/buried-throne.js?v=leviathan-1.0.0",
-    "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=leviathan-1.0.0",
+    "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=echohold-1",
     "./js/campaign-data.js": "./js/campaign-data.js?v=leviathan-1.0.0",
     "./js/campaign-kit.js": "./js/campaign-kit.js?v=leviathan-1.0.0",
     "./js/campaign-towns.js": "./js/campaign-towns.js?v=leviathan-1.0.0",
@@ -807,7 +808,12 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/dune-vortex.js": "./js/dune-vortex.js?v=leviathan-1.0.0",
     "./js/dune-warning-view.js": "./js/dune-warning-view.js?v=leviathan-1.0.0",
     "./js/dune-warning.js": "./js/dune-warning.js?v=leviathan-1.0.0",
-    "./js/entities.js": "./js/entities.js?v=together-4",
+    "./js/entities.js": "./js/entities.js?v=echohold-1",
+    "./js/echohold-atmosphere.js": "./js/echohold-atmosphere.js?v=echohold-1",
+    "./js/echohold-hunt.js": "./js/echohold-hunt.js?v=echohold-1",
+    "./js/echohold-secrets.js": "./js/echohold-secrets.js?v=echohold-1",
+    "./js/echohold-author.js": "./js/echohold-author.js?v=echohold-1",
+    "./js/echohold-interiors.js": "./js/echohold-interiors.js?v=echohold-1",
     "./js/forgotten-heat-view.js": "./js/forgotten-heat-view.js?v=leviathan-1.0.0",
     "./js/forgotten-heat.js": "./js/forgotten-heat.js?v=leviathan-1.0.0",
     "./js/forsaken-author.js": "./js/forsaken-author.js?v=leviathan-1.0.0",
@@ -842,13 +848,13 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/leviathan-storm.js": "./js/leviathan-storm.js?v=leviathan-1.0.0",
     "./js/leviathan-weapon-art.js": "./js/leviathan-weapon-art.js?v=leviathan-1.0.0",
     "./js/leviathan-weapon-view.js": "./js/leviathan-weapon-view.js?v=leviathan-1.0.0",
-    "./js/lost-author.js": "./js/lost-author.js?v=leviathan-1.0.0",
-    "./js/lost-lore.js": "./js/lost-lore.js?v=leviathan-1.0.0",
+    "./js/lost-author.js": "./js/lost-author.js?v=echohold-1",
+    "./js/lost-lore.js": "./js/lost-lore.js?v=echohold-1",
     "./js/lost-temples.js": "./js/lost-temples.js?v=leviathan-1.0.0",
-    "./js/lost.js": "./js/lost.js?v=leviathan-1.0.0",
-    "./js/main.js": "./js/main.js?v=together-4",
+    "./js/lost.js": "./js/lost.js?v=echohold-1",
+    "./js/main.js": "./js/main.js?v=echohold-1",
     "./js/maps.js": "./js/maps.js?v=leviathan-1.0.0",
-    "./js/mesher.js": "./js/mesher.js?v=leviathan-1.0.0",
+    "./js/mesher.js": "./js/mesher.js?v=echohold-1",
     "./js/noise.js": "./js/noise.js?v=leviathan-1.0.0",
     "./js/obsidian-badlands.js": "./js/obsidian-badlands.js?v=leviathan-1.0.0",
     "./js/obsidian-vent.js": "./js/obsidian-vent.js?v=leviathan-1.0.0",
@@ -862,7 +868,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/rails.js": "./js/rails.js?v=leviathan-1.0.0",
     "./js/redstone.js": "./js/redstone.js?v=leviathan-1.0.0",
     "./js/sandstorm.js": "./js/sandstorm.js?v=leviathan-1.0.0",
-    "./js/save.js": "./js/save.js?v=leviathan-1.0.0",
+    "./js/save.js": "./js/save.js?v=echohold-1",
     "./js/shapes.js": "./js/shapes.js?v=leviathan-1.0.0",
     "./js/skins.js": "./js/skins.js?v=leviathan-1.0.0",
     "./js/solkara-annex.js": "./js/solkara-annex.js?v=leviathan-1.0.0",
@@ -872,7 +878,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/solkara-mural-view.js": "./js/solkara-mural-view.js?v=leviathan-1.0.0",
     "./js/starter.js": "./js/starter.js?v=leviathan-1.0.0",
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
-    "./js/ui.js": "./js/ui.js?v=together-1",
+    "./js/ui.js": "./js/ui.js?v=echohold-1",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
     "./js/world.js": "./js/world.js?v=together-1",
     "./js/multiplayer.js": "./js/multiplayer.js?v=together-4",
@@ -884,6 +890,6 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=together-4"></script>
+<script type="module" src="js/main.js?v=echohold-1"></script>
 </body>
 </html>
