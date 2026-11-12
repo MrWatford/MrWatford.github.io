@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Echohold Reborn map builder (development tool)</title>
+<style>body { font: 14px monospace; background: #111; color: #ddd; padding: 16px; } pre { white-space: pre-wrap; word-break: break-all; } .data { display: none; }</style>
+</head>
+<body>
+<h1>Echohold Reborn map builder</h1>
+<p>Development tool. Builds ONLY <code>maps/deep-v2.bin</code> (the bigger Echohold), checks it, and compares it with the released <code>deep-v1.bin</code>. The released maps are never rebuilt here. Students never load this page.</p>
+<pre id="report">Building…</pre>
+<pre class="data" id="deep2"></pre>
+<script type="module">
+import { buildDeep, validateLost } from "../js/lost-author.js";
+import { DEEP2 } from "../js/echohold-author.js";
+import { packMap, gzip, gunzip, unpackMap, loadMap, walkable } from "../js/maps.js";
+import { B } from "../js/blocks.js";
+const report = [], t0 = performance.now(), ok = (pass, what) => report.push((pass ? "PASS " : "FAIL ") + what);
+const b64 = bytes => { let s = ""; for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192)); return btoa(s); };
+try {
+  const built = buildDeep(2), W = built.grid, meta = built.meta;
+  report.push(...validateLost("deep", W, meta, 2500000));
+  // the new places
+  const SOLIDS = new Set([0, B.WATER, B.TORCH, B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.DOOR, B.LAVA, B.GATE_VEIL, B.LUMEN_CRYSTAL]);
+  const doors = Object.values(meta.puzzles).filter(p => p.door);
+  const view = { inside: (x, y, z) => W.inside(x, y, z), id: (x, y, z) => { for (const p of doors) { const d = p.door; if (x >= d.x0 && x <= d.x1 && y >= d.y0 && y <= d.y1 && z >= d.z0 && z <= d.z1) return 0; } return W.id(x, y, z); } };
+  const a = meta.arrival, walk = walkable(view, { x: Math.floor(a.x), y: a.y, z: Math.floor(a.z) }, id => !SOLIDS.has(id), id => id === B.LAVA, 2500000);
+  const reach = (t, what, r = 2) => ok(walk.near({ x: Math.floor(t.x), y: Math.floor(t.y), z: Math.floor(t.z) }, r), `deep-v2: ${what} is reachable on foot`);
+  reach(meta.overlook, "the Overlook");
+  reach({ x: -206, y: 13, z: 22 }, "the far west end of the West Road");
+  reach({ x: -112, y: 13, z: 22 }, "the West Road bridge over the ravine");
+  reach({ x: -112, y: 6, z: 0 }, "the ravine floor (and so its steps)", 3);
+  reach({ x: -153, y: 13, z: -4 }, "the Forgotten Kingdom lift", 2);
+  reach({ x: -150, y: 13, z: -70 }, "inside the Royal Citadel keep", 3);
+  reach({ x: -154, y: 13, z: 46 }, "inside the Lost Library", 3);
+  ok(meta.kingdom.homes >= 25, `deep-v2: ${meta.kingdom.homes} homes in the Forgotten Kingdom (target 25+), ${meta.kingdom.caches} home caches`);
+  ok(meta.skyline.length > 40, `deep-v2: ${meta.skyline.length} skyline shapes for the far-city view`);
+  // everything from deep-v1 is still where it was
+  const v1 = (await loadMap("../maps/deep-v1.bin")).meta, same = (p, q) => p && q && Math.floor(p.x) === Math.floor(q.x) && Math.floor(p.z) === Math.floor(q.z) && (p.y === undefined || Math.floor(p.y) === Math.floor(q.y));
+  ok(same(v1.arrival, meta.arrival) && same(v1.cityArrival, meta.cityArrival) && same(v1.gate.stand, meta.gate.stand) && same(v1.citadel, meta.citadel) && same(v1.cityLift, meta.cityLift), "deep-v2: arrival, city arrival, gate, Citadel, and camp lift are where deep-v1 had them");
+  const v1Chests = Object.values(v1.chests).map(c => c.id), v2Chests = new Set(Object.values(meta.chests).map(c => c.id));
+  ok(v1Chests.every(id => v2Chests.has(id)), `deep-v2: all ${v1Chests.length} deep-v1 caches still exist (${v2Chests.size} in all)`);
+  const pos = o => Object.fromEntries(Object.entries(o).map(([k, p]) => [k, JSON.stringify([p.door, p.resonator, p.switches, p.resonators])]));
+  const p1 = pos(v1.puzzles), p2 = pos(meta.puzzles);
+  ok(Object.keys(p1).every(k => p1[k] === p2[k]), "deep-v2: every deep-v1 puzzle (doors, switches, resonators) is unchanged");
+  ok(v1.districts.every(d => meta.districts.some(e => e.id === d.id && e.x === d.x && e.z === d.z)), `deep-v2: all ${v1.districts.length} original districts kept (${meta.districts.length} in all)`);
+  ok(Object.values(v1.lore).every(id => Object.values(meta.lore).includes(id)), "deep-v2: every deep-v1 tablet is still placed");
+  const raw = packMap(W, DEEP2.x0, DEEP2.z0, DEEP2.sx, DEEP2.sz, meta), gz = await gzip(raw);
+  const back = unpackMap(await gunzip(gz));
+  let match = true; const k = back.meta.area;
+  for (let t = 0; t < 6000 && match; t++) { const x = k.x0 + Math.floor(Math.random() * k.sx), z = k.z0 + Math.floor(Math.random() * k.sz), y = Math.floor(Math.random() * 80); const key = Math.floor(x / 16) + "," + Math.floor(z / 16), d = back.decode(key); if (d[(x - Math.floor(x / 16) * 16) + (z - Math.floor(z / 16) * 16) * 16 + y * 256] !== W.get(x, y, z)) match = false; }
+  ok(match, "deep-v2: packed map unpacks to the same blocks (6000 spot checks)");
+  report.push(`deep-v2: raw ${raw.length} bytes, gzipped ${gz.length} bytes (deep-v1 is about 200 KB)`);
+  window.__deep2 = b64(gz);
+  document.getElementById("deep2").textContent = "BEGIN" + window.__deep2 + "END";
+} catch (e) { report.push("ERROR " + e.message + "\n" + e.stack); }
+report.push(`total ${Math.round(performance.now() - t0)} ms`);
+const fails = report.filter(l => l.startsWith("FAIL") || l.startsWith("ERROR")).length;
+report.unshift(fails ? `${fails} problem(s) found` : "All checks passed");
+document.getElementById("report").textContent = report.join("\n");
+window.__report = report.join("\n");
+document.title = "done";
+</script>
+</body>
+</html>
