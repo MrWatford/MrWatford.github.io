@@ -400,6 +400,56 @@ details.more .set { margin-top: 10px; }
   #food { justify-content: flex-end; }
   #itemName { bottom: 103px; max-width: calc(100% - 16px); text-align: center; font-size: 13px; }
 }
+
+/* ---------- cinematic title screen (js/title-cinema.js) ---------- */
+#titleCinema { position: absolute; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+#title .menu { z-index: 1; }
+.tc-layer { position: absolute; inset: -1.5%; background-size: cover; background-repeat: no-repeat; opacity: 0; transition: opacity 1.8s ease-in-out; will-change: opacity, transform; }
+.tc-layer.on { opacity: 1; }
+.tc-run .tc-layer.zoom { animation: tcZoom 10s linear forwards; }
+.tc-still .tc-layer.zoom { animation: none; }
+@keyframes tcZoom { from { transform: scale(1); } to { transform: scale(1.03); } }
+.tc-shade { position: absolute; inset: 0; z-index: 3; background: radial-gradient(ellipse 55% 80% at 50% 48%, rgba(0,0,0,.42), rgba(0,0,0,.12) 72%, rgba(0,0,0,0)), linear-gradient(rgba(0,0,0,0) 62%, rgba(0,0,0,.55)); }
+.tc-parts { position: absolute; inset: 0; z-index: 4; overflow: hidden; }
+.tc-p { position: absolute; opacity: 0; border-radius: 1px; animation: tcRise 12s linear infinite; }
+#titleCinema:not(.tc-run) .tc-p { animation-play-state: paused; }
+.tc-p.drift { animation-name: tcDrift; } .tc-p.fall { animation-name: tcFall; } .tc-p.wind { animation-name: tcWind; }
+@keyframes tcRise { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: .85; } 80% { opacity: .6; } 100% { transform: translate(24px, -150px); opacity: 0; } }
+@keyframes tcDrift { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: .75; } 80% { opacity: .6; } 100% { transform: translate(70px, -36px); opacity: 0; } }
+@keyframes tcFall { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 15% { opacity: .85; } 85% { opacity: .7; } 100% { transform: translate(-36px, 170px) rotate(200deg); opacity: 0; } }
+@keyframes tcWind { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: .8; } 85% { opacity: .6; } 100% { transform: translate(260px, 24px); opacity: 0; } }
+.tc-cap { position: absolute; z-index: 5; left: max(18px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); max-width: min(380px, 42vw); margin: 0; padding: 3px 0 3px 10px; border-left: 3px solid var(--tc-accent, #f5c431); color: #fff; text-shadow: 0 2px 4px #000; opacity: 0; transition: opacity .9s, border-color 1.8s; }
+.tc-cap.show { opacity: .94; }
+.tc-cap b { display: block; font: 400 12px/1.6 var(--pixel); letter-spacing: 1px; text-transform: uppercase; }
+.tc-cap span { display: block; font-size: 14px; font-weight: 700; line-height: 1.35; }
+.tc-egg { position: absolute; z-index: 2; right: 4%; bottom: 20%; font-size: clamp(3px, .55vh, 6px); width: 8em; height: 32em; opacity: 0; transition: opacity 1.6s ease-in-out; }
+.tc-egg.on { opacity: .34; }
+.tc-egg::before, .tc-egg::after, .tc-egg i { content: ""; position: absolute; background: #06060b; }
+.tc-egg::before { left: 0; top: 0; width: 8em; height: 8em; }
+.tc-egg i { left: -4em; top: 8em; width: 16em; height: 12em; }
+.tc-egg::after { left: 0; top: 20em; width: 8em; height: 12em; }
+.tc-egg i::before { content: ""; position: absolute; left: 5em; top: -5em; width: 2em; height: 1em; background: #fff; box-shadow: 4em 0 #fff, 0 0 1.4em #fff; }
+body.tc-on #titleScene { display: none; }
+body.tc-on #title .menu { padding: 18px; border-radius: 14px; background: rgba(10, 14, 12, .58); border: 2px solid rgba(255,255,255,.1); border-top: 3px solid var(--tc-accent, #f5c431); box-shadow: 0 12px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); transition: border-color 1.8s; }
+body.tc-on #title .menu { width: min(500px, 100%); }
+body.tc-on #title .logo { font-size: clamp(16px, 6.4vw, 38px); }
+.whats-new { display: block; margin: -4px 0 6px; text-align: center; font-size: 13px; font-weight: 800; color: #24481a; text-decoration: none; }
+.whats-new:hover, .whats-new:focus-visible { text-decoration: underline; }
+body.tc-on #title .whats-new { color: #ffd98a; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
+body.tc-on #title .tagline { color: #e9f1dc; text-shadow: 0 2px 3px rgba(0,0,0,.6); }
+body.tc-on #title .back-link { color: #cdeaa8; }
+body.tc-on #title .foot { color: #d9ddd2; }
+.logo { text-shadow: 0 3px 0 #2f6b1e, 0 6px 0 #1d4512, 0 10px 18px rgba(0,0,0,.55); }
+#title .btn { box-shadow: 0 4px 0 rgba(0,0,0,.35); transition: transform .08s, box-shadow .08s; }
+#title .btn:hover { transform: translateY(-1px); }
+#title .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+@media (max-width: 760px) {
+  .tc-cap { max-width: calc(100vw - 36px); }
+  .tc-cap span { display: none; }
+  body.tc-on #title .menu { padding: 14px; }
+}
+@media (max-height: 720px) and (max-width: 1100px) { .tc-cap { display: none; } }
+@media (prefers-reduced-motion: reduce) { #title .btn { transition: none; } }
 </style>
   <script src="../../../js/play-counter.js"></script>
 </head>
@@ -443,11 +493,12 @@ details.more .set { margin-top: 10px; }
 
 <!-- Title -->
 <section class="screen" id="title">
+  <div id="titleCinema" hidden aria-hidden="true"></div>
   <canvas id="titleScene" width="320" height="160" aria-hidden="true"></canvas>
   <div class="menu">
     <h1 class="logo">BLOCKHAVEN</h1>
     <p class="tagline">Explore • Mine • Craft • Build</p>
-    <p class="early-access"><strong>Leviathan Expansion · 1.0</strong>Three legendary Leviathans, ancient ruins and a world beneath the dunes.<br><a href="early-access.html">Release notes and getting started</a></p>
+    <a class="whats-new" href="early-access.html">New: Leviathan Expansion 1.0 · Release notes</a>
     <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
@@ -562,6 +613,12 @@ details.more .set { margin-top: 10px; }
       <label class="set"><span>Graphics</span><select id="sQuality" class="text-in"><option value="fast">Fast (best for Chromebooks)</option><option value="fancy">Fancy (sharper, fuller leaves)</option></select></label>
       <label class="set"><span>Field of view<output id="oFov"></output></span><input type="range" id="sFov" min="55" max="100" step="1"></label>
       <label class="set"><span>Reduce camera motion</span><input type="checkbox" id="sMotion"></label>
+      <h3 class="set-head">Title screen</h3>
+      <label class="set"><span>Cinematic backgrounds</span><input type="checkbox" id="sTcOn"></label>
+      <label class="set"><span>Background particles</span><input type="checkbox" id="sTcParts"></label>
+      <label class="set"><span>Background camera motion</span><input type="checkbox" id="sTcMove"></label>
+      <label class="set"><span>Scene captions</span><input type="checkbox" id="sTcCap"></label>
+      <label class="set"><span>Reduced motion on the title screen</span><select id="sTcReduce" class="text-in"><option value="system">Follow my device</option><option value="on">Always reduce</option><option value="off">Never reduce</option></select></label>
       <h3 class="set-head">Forsaken World</h3>
       <label class="set"><span>Background sounds<output id="oFwAmb"></output></span><input type="range" id="sFwAmb" min="0" max="1" step="0.05"></label>
       <label class="set"><span>Sudden sounds<output id="oFwSud"></output></span><input type="range" id="sFwSud" min="0" max="1" step="0.05"></label>
