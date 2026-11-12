@@ -201,6 +201,12 @@ Each stage ends with a browser test using two browser profiles on this Mac and a
 
 **Done when:** a guest rides a minecart loop the host built, and the group goes to the Nether and back together.
 
+#### Stage 4 results (2026-11-12): built, browser-tested, and published 2026-11-12
+- **Both "Done when" checks passed** between two tabs and a local relay: a guest rode and pushed the host's minecart, and the group went to the Ember Depths and back together. Boats work too. The details are in `FEATURES.md` under "Play Together, Stage 4".
+- **How travel works:** the host's game notices when the host's dimension changes (or they're carried more than 150 blocks). It then sends friends that dimension's land record, and their games rebuild it and put them next to the host. Messages carry the dimension name, so nothing from the old place lands in the new one.
+- **Not tested:** a curvy minecart loop, the Hollow trip with a guest (it uses the same code as the Ember Depths), boats on real water, three or more players, school Wi-Fi.
+- **Published 2026-11-12 with Mr. Watford's OK:** 3 game files plus index.html (version `together-4`), FEATURES.md, and this plan. The relay needed no change.
+
 ### Not planned (stays single-player)
 - The Legacy story campaign
 - The Forsaken World adventure

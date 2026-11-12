@@ -446,6 +446,20 @@ Protocol 3 (older Play Together games are told to refresh). Import-map version `
 | Bosses and Leviathans with guests | Partial | They notice guests too, but no boss fight with a guest has been tested |
 | Single-player regression | Done | A normal Survival world: a Groaner still targets and hurts the player |
 
+## Play Together, Stage 4: riding and traveling together (built, browser-tested, and published 2026-11-12)
+Protocol 4. Import-map version `together-4` for main.js, multiplayer.js, and entities.js. The relay didn't change.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Guests ride minecarts | Done | Right-click the host's cart; the host's world moves the real cart, and the guest's W (looking the way to push) pushes it. C climbs out. Tested: the guest pushed a cart from x 12.5 to 19.6 and rode along; climbing out freed it. Activator rails throw a guest out too |
+| Guests ride boats | Done | The guest rows on their own computer (feels instant) and the host's boat follows them. Tested on land |
+| Guests place carts, boats, and spawn eggs | Done | Created in the host's world (not bosses or Leviathans). Tested with a boat |
+| The group travels together | Done | When the host goes through a portal (Surface ↔ Ember Depths, Surface ↔ Hollow) or is carried more than 150 blocks at once, every friend follows and arrives next to them. Guests can't use portals on their own. Tested: Surface → Ember Depths (land identical, 25 chunks, including the host's new portal) → Surface (rails and cart still there) |
+| A friend fainting in the Ember Depths or the Hollow | Done | Wakes up next to the host instead of alone on the Surface |
+| Where Play Together works | Done | Surface, Ember Depths, and Hollow. The Forsaken World, the Deep, the Expanse, the Hollow Sands, and the Solkara rooms stay single-player (hosting stops with a message) |
+| Single-player regression | Done | Portal trips to the Ember Depths and back still work |
+| A minecart loop (curves, powered rails), riding animals, fishing, throwing | Partial / Missing | Only a straight track was tested. Riding animals, fishing, and throwing stay host-only |
+
 ## Later milestones
 | Feature | Status |
 |---|---|
