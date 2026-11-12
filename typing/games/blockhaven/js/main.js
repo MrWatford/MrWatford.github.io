@@ -60,6 +60,7 @@ import { createLeviathanWarningHUD, selectLeviathanWarning } from "./leviathan-w
 import { ancientArrivalCues } from "./ancient-arrival.js";
 import { createAncientAwakeningView } from "./ancient-awakening-view.js";
 import { ancientAwakeningRoll } from "./ancient-tremor.js";
+import { createEchoholdAtmosphere } from "./echohold-atmosphere.js";
 import { createAncientBuriedController } from "./ancient-buried-view.js";
 import { createAncientOpeningController } from "./ancient-opening-view.js";
 import { ANCIENT_CIRCLE_SECONDS, ANCIENT_CIRCLE_SETTLE_SECONDS } from "./ancient-circle.js";
@@ -105,16 +106,17 @@ scene.add(camera);
 const atlasTex = new THREE.CanvasTexture(buildAtlas());
 atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestFilter; atlasTex.generateMipmaps = false;
 
-const uniforms = { map: { value: atlasTex }, desat: { value: 0 }, daylight: { value: 1 }, ambient: { value: 0.11 }, fogColor: { value: new THREE.Color(0x8fd0f5) }, fogNear: { value: 40 }, fogFar: { value: 64 }, alphaTest: { value: 0.5 }, opacity: { value: 1 } };
-const VERT = `attribute vec3 lt; varying vec2 vUv; varying vec3 vLt; varying float vDist;
-void main() { vUv = uv; vLt = lt; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDist = length(mv.xyz); gl_Position = projectionMatrix * mv; }`;
-const FRAG = `uniform sampler2D map; uniform float daylight, ambient, fogNear, fogFar, alphaTest, opacity, desat; uniform vec3 fogColor;
+const uniforms = { map: { value: atlasTex }, desat: { value: 0 }, daylight: { value: 1 }, ambient: { value: 0.11 }, fogColor: { value: new THREE.Color(0x8fd0f5) }, fogNear: { value: 40 }, fogFar: { value: 64 }, alphaTest: { value: 0.5 }, opacity: { value: 1 },
+  coolTime: { value: 0 }, coolPulse: { value: 0.18 } };   // Echohold Reborn: teal light and its slow pulse (0 = still)
+const VERT = `attribute vec3 lt; attribute float cl; varying vec2 vUv; varying vec3 vLt; varying float vDist, vCl; varying vec2 vW;
+void main() { vUv = uv; vLt = lt; vCl = cl; vW = (modelMatrix * vec4(position, 1.0)).xz; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDist = length(mv.xyz); gl_Position = projectionMatrix * mv; }`;
+const FRAG = `uniform sampler2D map; uniform float daylight, ambient, fogNear, fogFar, alphaTest, opacity, desat, coolTime, coolPulse; uniform vec3 fogColor;
 #ifdef RIPPLE_WATER
 uniform float rippleTime;
 const vec2 waterTile = vec2(${TILE.water % 16}.0, ${Math.floor(TILE.water / 16)}.0);
 const vec2 atlasPixels = vec2(${ATLAS_W}.0, ${ATLAS_H}.0);
 #endif
-varying vec2 vUv; varying vec3 vLt; varying float vDist;
+varying vec2 vUv; varying vec3 vLt; varying float vDist, vCl; varying vec2 vW;
 void main() {
   vec2 uv = vUv;
 #ifdef RIPPLE_WATER
@@ -129,9 +131,13 @@ void main() {
   vec4 t = texture2D(map, uv);
   if (t.a < alphaTest) discard;
   float s = vLt.x * daylight, b = vLt.y;
-  float l = max(s, b);
-  l = ambient + (1.0 - ambient) * pow(l, 1.5);
-  vec3 tint = mix(vec3(1.0), vec3(1.0, 0.85, 0.62), clamp((b - s) * 1.5, 0.0, 1.0));
+  // cool teal light (Echohold's moss, crystals, and gate stones) rolls across the floor in slow waves
+  float c = vCl * (1.0 + coolPulse * sin(coolTime * 1.3 - vW.x * 0.09 - vW.y * 0.07));
+  // teal glow reads a little brighter than torchlight of the same level, so moss and crystals stand out in the dark
+  float l = max(pow(max(s, b), 1.5), c * 0.92);
+  l = ambient + (1.0 - ambient) * l;
+  vec3 tint = mix(vec3(1.0), vec3(1.0, 0.85, 0.62), clamp((b - max(s, c)) * 1.5, 0.0, 1.0));
+  tint = mix(tint, vec3(0.42, 0.92, 1.05), clamp((c - max(s, b * 0.8)) * 1.8, 0.0, 1.0));
   vec3 col = t.rgb * l * vLt.z * tint;
   col = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))), desat);
   col = mix(col, fogColor, smoothstep(fogNear, fogFar, vDist));
@@ -225,6 +231,7 @@ pGeo.setAttribute("color", new THREE.BufferAttribute(pCol, 3).setUsage(THREE.Dyn
 pGeo.setDrawRange(0, 0);
 const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.09, vertexColors: true }));
 particles.frustumCulled = false; scene.add(particles);
+let echoholdAtmosphere = null;   // Echohold Reborn: spores, drips, glow halos (made on the first frame, once G exists)
 const tileColor = (() => {
   const atlas = buildAtlas(), data = atlas.getContext("2d").getImageData(0, 0, ATLAS_W, ATLAS_H).data, cache = {};
   return t => {
@@ -397,6 +404,7 @@ const ents = new Entities(scene, {
   particles: (x, y, z, kind) => puff(x, y, z, kind), lookDir: () => lookDir(),
   // the item in the hand being used (main hand first; an empty main hand shows the offhand item)
   heldId: () => (G.inv.slots[G.useSlot] || G.inv.slots[OFF] || {}).id || 0,
+  itemFlag: flag => { const it = G.inv.slots[G.selected]; return !!(it && itemDef(it.id) && itemDef(it.id)[flag]); },   // the main-hand item has this flag (Sentinel Hammer: breaksGuard)
   holds: id => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === id),
   consume: () => { const s = G.inv.slots[G.useSlot]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.useSlot] = null; } G.hudDirty = true; heldId = -1; },
   wear: () => { const s = G.inv.slots[G.useSlot]; if (s) wearTool(s, 1); },
@@ -1521,7 +1529,7 @@ for (let R = 0; R <= 11; R++) {
 function makeGeo(b) {
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.BufferAttribute(b.pos, 3)); g.setAttribute("uv", new THREE.BufferAttribute(b.uv, 2));
-  g.setAttribute("lt", new THREE.BufferAttribute(b.lt, 3)); g.setIndex(new THREE.BufferAttribute(b.index, 1));
+  g.setAttribute("lt", new THREE.BufferAttribute(b.lt, 3)); if (b.cl) g.setAttribute("cl", new THREE.BufferAttribute(b.cl, 1)); g.setIndex(new THREE.BufferAttribute(b.index, 1));
   g.computeBoundingSphere();
   return g;
 }
@@ -2184,6 +2192,7 @@ function attack() {
   const s = G.inv.slots[G.selected], d = s ? itemDef(s.id) : null;
   let dmg = d && d.tool ? d.tool.damage : 1;
   if (OBSIDIAN_MELEE_TARGETS.has(e.sp) && leviathanSetPieces("obsidian") === 4) dmg += 2;
+  if (d?.echoBlade && e.def?.echohold) dmg *= 1.5;   // Echo Blade: +50% against Echohold's creatures
   if (G.effects.strength) dmg += 3 * (G.elv.strength || 1);
   const p = G.player, crit = !p.onGround && p.vel.y < 0 && !p.inWater;
   if (crit) dmg *= 1.5;
@@ -2195,7 +2204,7 @@ function attack() {
   }
   G.attackCd = d?.tool?.attackCooldown ?? (d?.tool?.type === "sword" ? 0.45 : 0.6); G.swing = 0.01;
   if (!G.creative) G.player.exhaust += 0.1;
-  F.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z); L.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z, 12, "fighting");
+  F.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z); if (!d?.echoBlade) L.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z, 12, "fighting");   // the Echo Blade strikes silently
   return true;
 }
 function releaseBow() {
@@ -3557,6 +3566,7 @@ function hurt(n, why, src, bypassArmor, kind, noKnockback, contact) {
   const guardian = leviathanSetPieces("ancient");
   if (guardian >= 2 && G.dim === HOLLOW_SANDS && (kind === "sand" || kind === "ancientEnergy")) n *= 0.75;
   if (guardian === 4 && src?.def?.segmentedLeviathan) n *= 0.8;
+  if (src?.def?.echohold) { let h = 0; for (let i = 36; i < 40; i++) if (G.inv.slots[i] && itemDef(G.inv.slots[i].id).hushguard) h++; n *= 1 - 0.08 * h; }   // Hushguard armor
   // a raised shield stops hits from the front (it wears down instead)
   if (!bypassArmor && kind !== "void" && shieldFaces(src, contact)) {
     const sh = G.inv.slots[G.blockHand];
@@ -5148,6 +5158,8 @@ function updateSky() {
   const forsaken = G.dim === "forsaken" && F.template(), lsky = L.sky();
   surfaceSky.visible = G.dim === "overworld" && !G.player.headInWater && !G.player.inLava;
   waterUniforms.rippleTime.value = G.settings.reducedMotion ? 0 : G.clock % 8;
+  uniforms.coolTime.value = G.clock % (Math.PI * 2 / 1.3 * 200);   // wraps on a whole wave, so the pulse never jumps
+  uniforms.coolPulse.value = G.settings.reducedMotion || G.settings.fx === "low" ? 0 : (G.settings.fx === "high" ? 0.24 : 0.18) + (G.echoDanger || 0) * 0.3 + (G.echoWake || 0) * 0.7 + (G.echoGate || 0) * 0.8;   // stronger when a Stalker is near, or when the city wakes (Phase 6)
   sun.visible = moon.visible = !nether && !hollow && !forsaken && !lsky;
   uniforms.desat.value = 0;
   if (G.dim === HOLLOW_SANDS || G.dim === SOLKARA_SANCTUARY) {
@@ -5250,7 +5262,7 @@ function applyView() {
     uniforms.ambient.value = Math.max(uniforms.ambient.value, 0.45);
   }
   if (G.player.inLava) { uniforms.fogNear.value = 0.5; uniforms.fogFar.value = 4; uniforms.fogColor.value.set(0xff6a10); }
-  const far = Math.max(120, R + 40);
+  const far = Math.max(G.dim === "deep" || G.dim === "expanse" ? 420 : 120, R + 40);   // the Deep's far-city skyline reaches across the whole map
   if (camera.far !== far) { camera.far = far; camera.updateProjectionMatrix(); }
 }
 
@@ -5582,6 +5594,7 @@ function loop(now) {
   stream(G.state === "play" ? 7 : 4);
   if (running) updateSandsDiscovery(dt);
   const daylight = updateSky();
+  (echoholdAtmosphere ||= (G._echoAtmo = createEchoholdAtmosphere({ THREE, scene, camera, G, emitParticle, fog: uniforms }))).update(running ? dt : 0);
   updateSolkaraCore();
   updateSolkaraGateView();
   updateSolkaraMural();

@@ -172,7 +172,7 @@ export const UI = {
     $("sSens").value = s.sensitivity; $("oSens").textContent = s.sensitivity.toFixed(1);
     $("sVol").value = s.volume; $("oVol").textContent = Math.round(s.volume * 100) + "%";
     $("sMute").checked = s.muted; $("sDist").value = s.renderDist; $("oDist").textContent = s.renderDist + " chunks";
-    $("sQuality").value = s.quality; $("sFov").value = s.fov; $("oFov").textContent = s.fov + "°"; $("sMotion").checked = s.reducedMotion;
+    $("sQuality").value = s.quality; $("sFx").value = s.fx || "medium"; $("sFov").value = s.fov; $("oFov").textContent = s.fov + "°"; $("sMotion").checked = s.reducedMotion;
     $("sSwap").textContent = keyName(s.keySwap);
     $("sFwAmb").value = s.fwAmbient; $("oFwAmb").textContent = Math.round(s.fwAmbient * 100) + "%";
     $("sFwSud").value = s.fwSudden; $("oFwSud").textContent = Math.round(s.fwSudden * 100) + "%";
@@ -190,6 +190,7 @@ export const UI = {
     $("sMute").onchange = e => upd("muted", e.target.checked);
     $("sDist").oninput = e => upd("renderDist", +e.target.value);
     $("sQuality").onchange = e => upd("quality", e.target.value);
+    $("sFx").onchange = e => upd("fx", e.target.value);
     $("sFov").oninput = e => upd("fov", +e.target.value);
     $("sMotion").onchange = e => upd("reducedMotion", e.target.checked);
     $("sFwAmb").oninput = e => upd("fwAmbient", +e.target.value);

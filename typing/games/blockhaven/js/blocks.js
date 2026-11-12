@@ -103,7 +103,8 @@ export const I = {
   OBSIDIAN_HELMET: 591, OBSIDIAN_CHEST: 592, OBSIDIAN_LEGS: 593, OBSIDIAN_BOOTS: 594,
   FANGBLADE: 595, INFERNO_GREATBLADE: 596, ANCIENT_HEART: 597, ANCIENT_CROWN: 598,
   ETERNAL_SAND_CORE: 599, ANCIENT_PLATE: 600, ANCIENT_TROPHY: 601, ANCIENT_COMPANION_RELIC: 602,
-  ANCIENT_HELMET: 603, ANCIENT_CHEST: 604, ANCIENT_LEGS: 605, ANCIENT_BOOTS: 606, BURIED_SCEPTER: 607
+  ANCIENT_HELMET: 603, ANCIENT_CHEST: 604, ANCIENT_LEGS: 605, ANCIENT_BOOTS: 606, BURIED_SCEPTER: 607,
+  HUSH_HELMET: 608, HUSH_CHEST: 609, HUSH_LEGS: 610, HUSH_BOOTS: 611, ECHO_BLADE: 612, SENTINEL_HAMMER: 613
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -359,6 +360,13 @@ for (const d of Object.values(defs)) {
   SOLID[d.id] = d.solid ? 1 : 0;
   EMIT[d.id] = d.light;
 }
+// Echohold Reborn: blocks whose light is cool teal instead of warm torchlight, and blocks whose own faces glow faintly
+// (that glow pulses slowly in the shader). Their light still counts as light for creatures and spawning.
+export const COOL = new Uint8Array(256);
+export const FACEGLOW = new Float32Array(256);
+for (const id of [B.HUSH_NODE, B.RESONATOR, B.GATE_SOCKET, B.GATE_FRAME, B.GATE_VEIL, B.LUMEN_CRYSTAL, B.KEEPER_BEACON, B.ANCHOR_STATION,
+  B.WARDEN_TROPHY, B.SOVEREIGN_TROPHY, B.TIDE_LAMP, B.HUSH_SENSOR, B.TUNED_SENSOR, B.SKY_ORE]) if (id != null) COOL[id] = 1;
+for (const [id, g] of [[B.HUSHMOSS, 0.4], [B.HUSH_NODE, 0.65], [B.LUMEN_GRASS, 0.5], [B.HUSH_CARPET, 0.18], [B.LUMEN_CRYSTAL, 0.7], [B.GATE_FRAME, 0.35]]) if (id != null) FACEGLOW[id] = g;
 // ----- Sparkworks block state ("meta") layouts -----
 // Sparkdust: bits 0-3 power, DOT = drawn as a dot instead of a cross when nothing connects.
 // Spark Torch: bits 0-2 attach (0 floor, 1-4 wall: support is in direction DIR[attach-1]), UNLIT.
@@ -573,6 +581,19 @@ item(I.INFERNO_GREATBLADE, "Inferno Greatblade", { icon: "sword", colors: ["#e78
   tool: { type: "sword", tier: 5, speed: 10, dur: 1300, damage: 8, attackCooldown: 0.8, swingDuration: 0.6, heavy: true }, desc: "Heavy melee: 0.8s between strikes. Right-click: fiery wave. 12 second cooldown. Costs 4 durability." });
 item(I.BURIED_SCEPTER, "Scepter of the Buried King", { icon: "rod", colors: ["#d4c4b0", "#9fcde9"], kind: "tool", stack: 1, category: "Tools",
   tool: { type: "staff", tier: 5, speed: 1, dur: 900, damage: 4 }, desc: "Right-click: six ancient energy spikes. 14 second cooldown. Costs 5 durability." });
+// Echohold Reborn (Phase 5): Hushguard armor and two Keeper weapons. Each Hushguard piece takes 8% off damage from
+// Echohold's creatures and bosses (up to 32%); the boots also soften your footsteps like the Warden-Plate.
+PIECES.forEach(([piece, , icon], slot) => {
+  item(I["HUSH_" + piece], "Hushguard " + ["Helm", "Chestplate", "Leggings", "Boots"][slot], {
+    icon: "armor_" + icon, colors: ["#3a6a72"], kind: "armor", stack: 1, category: "Tools", armor: { slot, points: [3, 7, 6, 3][slot], dur: 650 }, hushguard: true, ...(slot === 3 ? { hush: true } : {}),
+    desc: "Each Hushguard piece: 8% less damage from Echohold's creatures and guardians." + (slot === 3 ? " These boots also soften your footsteps." : "")
+  });
+});
+item(I.ECHO_BLADE, "Echo Blade", { icon: "tool_sword", colors: ["#7fe8ff", "#2a5a6a"], kind: "tool", stack: 1, category: "Tools", echoBlade: true,
+  tool: { type: "sword", tier: 4, speed: 9, dur: 900, damage: 7 }, desc: "+50% damage to Echohold's creatures and guardians, and its strikes make no sound." });
+item(I.SENTINEL_HAMMER, "Sentinel Hammer", { icon: "hammer", colors: ["#b87333", "#2a2e36"], kind: "tool", stack: 1, category: "Tools", breaksGuard: true,
+  tool: { type: "sword", tier: 4, speed: 6, dur: 1000, damage: 9, attackCooldown: 1, swingDuration: 0.7, heavy: true }, desc: "Heavy: 1 second between strikes. Its blows go straight through shields held up in front." });
+
 for (const [id, name] of [
   [I.ANCIENT_HEART, "Heart of the Ancient"], [I.ANCIENT_CROWN, "Ancient Leviathan Crown"],
   [I.ETERNAL_SAND_CORE, "Eternal Sand Core"], [I.ANCIENT_PLATE, "Ancient Guardian Plate"],
@@ -1446,6 +1467,7 @@ Object.assign(ICON_PAINT, {
   nugget(P) { for (const [x, y] of [[6, 7], [9, 8], [7, 10]]) { P.rect(x, y, 2, 2, "#ffd84a"); P.px(x, y, "#fff2a0"); } },
   quartz(P) { for (let i = 0; i < 7; i++) { P.rect(5 + i, 11 - i, 2, 2, i % 2 ? "#f2ece0" : "#dcd2c0"); } P.rect(9, 4, 3, 2, "#ffffff"); },
   dust(P, c) { for (let i = 0; i < 26; i++) P.px(4 + Math.floor(P.r() * 9), 6 + Math.floor(P.r() * 7), P.pick(c)); },
+  hammer(P, c) { for (let i = 0; i < 10; i++) { P.px(2 + i, 13 - i, c[1] || "#2a2e36"); P.px(3 + i, 13 - i, c[1] || "#2a2e36"); } for (let y = 1; y < 7; y++) for (let x = 8; x < 15; x++) P.px(x, y, (x + y) % 5 ? (c[0] || "#b87333") : "#5ae0d0"); },
   rod(P) { for (let i = 0; i < 11; i++) { P.px(3 + i, 13 - i, "#ffb030"); P.px(4 + i, 13 - i, "#fff07a"); } },
   tear(P) { for (let y = 3; y < 14; y++) { const w = y < 8 ? (y - 3) / 2 : 3 - (y - 8) * 0.4; for (let x = Math.round(8 - w); x <= Math.round(8 + w); x++) P.px(x, y, x < 8 ? "#d8f4ff" : "#a8d8f0"); } },
   wart(P) { for (const [x, y] of [[5, 6], [9, 5], [7, 9]]) { P.rect(x, y, 3, 3, "#a01e1e"); P.px(x, y, "#d83a3a"); } },

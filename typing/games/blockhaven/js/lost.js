@@ -6,9 +6,14 @@ import { B, I, CHUNK, HEIGHT, SEA, SOLID, idOf, metaOf, make, itemDef } from "./
 import { loadMap } from "./maps.js";
 import { MapGen } from "./worldgen.js";
 import { LORE, MURALS, MEMORIES, LORE_STEPS, TEMPLE_LORE } from "./lost-lore.js";
+import { createHunt } from "./echohold-hunt.js";
+import { createSecrets } from "./echohold-secrets.js";
 
 const rand = (a, b) => a + Math.random() * (b - a);
-const MAPS = { deep: "maps/deep-v1.bin", expanse: "maps/expanse-v1.bin", surface: "maps/surface-v1.bin", sea: "maps/sea-v1.bin", jungle: "maps/jungle-v1.bin", desert: "maps/desert-v1.bin" };
+// The Deep has two versions. A world that already went down keeps the city it saw (deep-v1, with all of its edits);
+// every other world gets the bigger Echohold (deep-v2). See ANCIENT-CITY-REBORN.md.
+const DEEP_MAPS = { v1: "maps/deep-v1.bin", v2: "maps/deep-v2.bin" };
+const MAPS = { expanse: "maps/expanse-v1.bin", surface: "maps/surface-v1.bin", sea: "maps/sea-v1.bin", jungle: "maps/jungle-v1.bin", desert: "maps/desert-v1.bin" };
 // The three temples: where their entrance stands on the Surface, what they hold, and what their guardian gives
 const TEMPLES = {
   sea: { name: "the Drowned Citadel", boss: "regent", bossName: "the Abyssal Regent", relic: I.TIDAL_HEART, reward: I.TIDE_CHARM, device: "tide valve",
@@ -54,9 +59,21 @@ export function initLost(api) {
   const reduced = () => !!G.settings.lostReduced;
 
   // ---------- the packaged maps ----------
+  const deepFiles = {};   // "v1" / "v2" -> the loaded map
+  // Which Deep this world uses: v1 if it already has a v1 Deep saved (or Deep edits from before versions were recorded)
+  L.deepVersion = () => {
+    const d = G.dimData && G.dimData.deep;
+    if (!d) return "v2";
+    if (d.tplId) return d.tplId === "deep-v1" ? "v1" : "v2";
+    return d.mods && Object.keys(d.mods).length ? "v1" : "v2";
+  };
+  const pickDeep = () => { const v = L.deepVersion(); if (deepFiles[v]) maps.deep = deepFiles[v]; else delete maps.deep; return v; };
   L.ready = () => {
-    if (Object.keys(MAPS).every(k => maps[k])) return Promise.resolve(maps);
-    if (!loading) loading = Promise.all(Object.entries(MAPS).map(async ([k, url]) => { maps[k] = await loadMap(url); })).then(() => maps).catch(e => { loading = null; throw new Error("The Lost Civilization maps couldn't be downloaded. Check your connection and try again."); });
+    const v = pickDeep();
+    if (Object.keys(MAPS).every(k => maps[k]) && maps.deep) return Promise.resolve(maps);
+    if (loading) return loading.then(() => L.ready());
+    loading = Promise.all([...Object.entries(MAPS).map(async ([k, url]) => { if (!maps[k]) maps[k] = await loadMap(url); }),
+      (async () => { if (!deepFiles[v]) deepFiles[v] = await loadMap(DEEP_MAPS[v]); })()]).then(() => { loading = null; pickDeep(); return maps; }).catch(e => { loading = null; throw new Error("The Lost Civilization maps couldn't be downloaded. Check your connection and try again."); });
     return loading;
   };
   L.loaded = dim => !!maps[dim];
@@ -259,6 +276,7 @@ export function initLost(api) {
 
   // ---------- caches, tablets, murals, memories ----------
   L.chestOpened = (key) => {
+    if (inMap() && G.dim === "deep" && G.mode === "survival") L.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z, 8, "a chest lid");   // opening chests makes a sound
     const c = inMap() ? M().chests[key] : G.dim === "overworld" && L.siteChests ? L.siteChests[key] : null;
     if (!c) return;
     const s = st();
@@ -291,6 +309,7 @@ export function initLost(api) {
     if (!inMap() || G.creative || G.spectator) return;
     const m = M();
     if (m.sanctuary && Math.hypot(x - m.sanctuary.x, z - m.sanctuary.z) < m.sanctuary.r) return;   // the Sanctuary's walls keep every sound in
+    if (G.dim === "deep") { SC.heard(x, y, z, fromPlayer); if (SC.calm()) return; }   // Echohold Reborn: the Silent Trial counts sounds; after the Silent Bell nothing carries
     ents.hear({ x, y, z, r, player: fromPlayer });
     lastSound = { x, z, what, t: 1.5 };
     for (const n of m.nodes) {
@@ -309,7 +328,8 @@ export function initLost(api) {
     const s = st(); if (calm()) n *= 0.5;
     s.alert = Math.min(100, s.alert + n);
     if (why) UI.toast(why + (s.alert >= 70 ? " The city is stirring. Find a quiet place." : ""), s.alert >= 70 ? "bad" : "");
-    if (s.alert >= 100 && !reduced() && !calm() && G.dim === "deep" && !ents.list.some(e => e.sp === "stalker" && !e.dead && e.alertSpawn)) {
+    if (s.alert >= 100 && H.emerge()) { s.alert = 60; return; }   // Echohold Reborn: a few seconds of warning, then a Stalker rises (js/echohold-hunt.js)
+    if (s.alert >= 100 && !H.emerging() && !reduced() && !calm() && G.dim === "deep" && !ents.list.some(e => e.sp === "stalker" && !e.dead && e.alertSpawn)) {
       const p = G.player, a = Math.random() * Math.PI * 2;
       for (let t = 0; t < 12; t++) {
         const x = Math.floor(p.pos.x + Math.cos(a + t) * 12), z = Math.floor(p.pos.z + Math.sin(a + t) * 12), y = Math.floor(p.pos.y);
@@ -321,10 +341,13 @@ export function initLost(api) {
     }
   }
   let stepAcc = 0;
+  let airT = 0;
   function tickStealth(dt) {
     const p = G.player, s = st(), w = G.world;
     s.alert = Math.max(0, s.alert - dt * (p.crouch ? 4 : 2));
     if (lastSound) lastSound.t -= dt;
+    // a heavy landing after a jump or a drop is loud (crouching softens it)
+    if (!p.onGround && !p.flying) airT += dt; else { if (airT > 0.35 && !p.crouch && !p.inWater) L.noise(p.pos.x, p.pos.y, p.pos.z, 9 * (wearing("hush") ? 0.5 : 1), "a heavy landing"); airT = 0; }
     // footsteps: running is loud, walking is soft, crouching and soft floors are silent
     const sp = Math.hypot(p.vel.x, p.vel.z);
     if (p.onGround && sp > 0.5 && !p.crouch) {
@@ -410,7 +433,7 @@ export function initLost(api) {
     if (!tf) return;
     if (!tf.e.gone) tf.e.gone = true;
     for (const e of ents.list) if (e.templeCall) e.gone = true;
-    tf = null; setDevices(false); if (why) UI.toast(why, "");
+    tf = null; if (TEMPLES[G.dim] && maps[G.dim]) setDevices(false); if (why) UI.toast(why, "");   // (only while still in the temple; leaving it another way used to throw an error)
   }
   function useTempleDevice(hit) {
     const A = M().arena, i = A.devices.findIndex(q => q.x === hit.x && q.y === hit.y && q.z === hit.z);
@@ -441,7 +464,7 @@ export function initLost(api) {
     if (e.dash > 0) { e.dash -= step; E.moveTo(e, e.dashTo, 7, 0.5); if (d < 2.6 && !e.dashHit && E.targetable()) { e.dashHit = true; E.ctx.hurtPlayer(6 * dmgMul, "The Regent's charge hit you. When it crouches low, get out of its path!", e); } return; }
     e.atkT -= step;
     if (e.atkT <= 0 && d < 20) { e.wind = (e.sp === "scolossus" ? 1.4 : 1.1) * (reduced() ? 1.4 : 1); e.atkT = (ph === 3 ? 3 : 4.2) * fast; Sound.mob("roar", d); return; }
-    E.chase(e, p);
+    E.chase(e, p.pos);   // (was the player instead of its position, so the guardian never walked toward you)
     if (d < e.def.reach + 0.6 && e.attackCd <= 0 && E.targetable()) { E.ctx.hurtPlayer(e.def.dmg * dmgMul, "The guardian's fist caught you. Keep your distance when it's close.", e); e.attackCd = 1.8; e.swing = 0.4; }
     void A;
   }
@@ -517,6 +540,7 @@ export function initLost(api) {
   let progressOrder = {}, timing = {};
   function usePuzzleBlock(hit, kind) {
     const m = M(), s = st();
+    if (G.dim === "deep" && SC.useBlock(hit)) return true;   // the Silent Bell's rope
     for (const [id, pz] of Object.entries(m.puzzles)) {
       const at = c => c.x === hit.x && c.y === hit.y && c.z === hit.z;
       if (pz.kind === "tone" && at(pz.resonator)) {
@@ -553,19 +577,24 @@ export function initLost(api) {
       }
       if (pz.kind === "all" && pz.switches.some(at)) {
         const i = pz.switches.findIndex(at), on = !(metaOf(G.world.get(hit.x, hit.y, hit.z)) & 1);
-        if (s.puz[id] === "solved") { UI.toast("The garden is awake."); return true; }
+        if (s.puz[id] === "solved") { UI.toast(pz.solvedText || "The garden is awake."); return true; }
         litSwitch(pz.switches[i], on); Sound.tone(on ? 660 : 330, 0.2, "triangle", 0.08, 0);
         const all = pz.switches.every(c => metaOf(G.world.get(c.x, c.y, c.z)) & 1);
-        if (all) { openDoor(id, pz); UI.toast("WATER, LIGHT, and WARMTH all wake. The glass case opens!", "good"); }
-        else UI.toast(`${pz.labels[i]}: ${on ? "on" : "off"}`, "");
+        if (all) { openDoor(id, pz); UI.toast(pz.successText || "WATER, LIGHT, and WARMTH all wake. The glass case opens!", "good"); }
+        else UI.toast(pz.countSteps ? `${pz.labels[i]}: ${on ? "pressed into place" : "lifted out"} (${pz.switches.filter(c => metaOf(G.world.get(c.x, c.y, c.z)) & 1).length} of ${pz.switches.length})` : `${pz.labels[i]}: ${on ? "on" : "off"}`, "");
         return true;
       }
       if (pz.kind === "switch" && pz.switches.some(at)) {
-        if (s.puz[id] === "solved") { UI.toast("The sluice is open; the treasury is drained."); return true; }
-        litSwitch(pz.switches[0], true);
+        if (s.puz[id] === "solved") { UI.toast(pz.solvedText || "The sluice is open; the treasury is drained."); return true; }
+        if (pz.switches.length > 1) {   // every wheel has to be turned (they stay turned, even after leaving or reloading)
+          const i = pz.switches.findIndex(at); litSwitch(pz.switches[i], true);
+          const done = pz.switches.filter(c => metaOf(G.world.get(c.x, c.y, c.z)) & 1).length;
+          if (done < pz.switches.length) { Sound.tone(300 + done * 120, 0.5, "triangle", 0.08, 0); UI.toast(`${(pz.labels || [])[i] || "A wheel"} turns and locks. (${done} of ${pz.switches.length})`, ""); saveNow(false); return true; }
+        } else litSwitch(pz.switches[0], true);
+        if (pz.door) setBox(pz.door, B.AIR);
         const d = pz.drain; for (let y = d.y0; y <= d.y1; y++) for (let z = d.z0; z <= d.z1; z++) for (let x = d.x0; x <= d.x1; x++) if (G.world.id(x, y, z) === B.WATER) G.world.set(x, y, z, B.AIR);
         s.puz[id] = "solved"; Sound.splash(); G.adv("lostpuzzle", id); saveNow(false);
-        UI.toast("Water gurgles away down the low pipe. The flooded treasury below is dry now.", "good"); return true;
+        UI.toast(pz.successText || "Water gurgles away down the low pipe. The flooded treasury below is dry now.", "good"); return true;
       }
       if (pz.kind === "swap" && at(pz.switch)) {
         const toA = s.puz[id] !== "A";
@@ -626,7 +655,7 @@ export function initLost(api) {
     UI.toast(left ? `The ${itemDef(id).name} settles into the ${SLOT_NAMES[slot]} socket. ${left} socket${left > 1 ? "s" : ""} to go.` : "All four sockets are filled! Now calibrate: touch the sockets in the order the Keepers' procedure gives.", "good");
     G.adv("lostsocket"); saveNow(false);
   }
-  let calib = [], charge = null;
+  let calib = [], charge = null, gateFlash = 0;
   function startActivation() {
     const s = st(); s.gate = "charging"; charge = { t: 0 };
     UI.toast("Activation! The gate draws power from the sockets. Stand back from the frame…", "good");
@@ -638,9 +667,16 @@ export function initLost(api) {
       charge.t += dt;
       if (Math.random() < 0.5) puff(g.x + rand(-5, 5) + 0.5, g.y + rand(1, 15), g.z + 0.5, "pale");
       if (Math.floor(charge.t * 2) !== Math.floor((charge.t - dt) * 2)) Sound.tone(300 + charge.t * 60, 0.3, "sine", 0.06, 40);
-      if (charge.t > 5) { charge = null; s.gate = "open"; openVeil(true); Sound.levelUp(); UI.toast("The First Gate opens! Walk into the light to cross to the Echo Expanse.", "good"); G.adv("lostgate"); saveNow(false); }
+      // Echohold Reborn: light flows from each socket up into the frame, the moss pulses harder, and the floor hums
+      for (const sk of g.sockets) if (Math.random() < 0.7) { const k = Math.random(); puff(sk.x + 0.5 + (g.x - sk.x) * k, sk.y + 1 + k * 8, sk.z + 0.5 + (g.z - sk.z) * k, "hush"); }
+      if (Math.floor(charge.t) !== Math.floor(charge.t - dt)) Sound.tone(45 + charge.t * 6, 1.2, "sine", 0.07, 10);
+      G.echoGate = Math.min(1, charge.t / 5);
+      if (charge.t > 5) { charge = null; s.gate = "open"; openVeil(true); Sound.levelUp(); gateFlash = 3; [196, 247, 294].forEach((f, i) => Sound.tone(f, 2.4, "sine", 0.06, 0)); for (let k = 0; k < 30; k++) puff(g.x + rand(-6, 6) + 0.5, g.y + rand(1, 16), g.z + 0.5, k % 2 ? "hush" : "pale"); UI.toast("The First Gate opens! Walk into the light to cross to the Echo Expanse.", "good"); G.adv("lostgate"); saveNow(false); }
     }
     if (s.gate === "open" && (s.veilFix = (s.veilFix || 0) + dt) > 2) { s.veilFix = 0; openVeil(false); }   // keep the veil lit (also after loading)
+    // after it opens: a bright flare, then motes drifting into the light whenever you're near
+    if (gateFlash > 0) { gateFlash -= dt; G.echoGate = G.settings.reducedMotion ? 0.3 : gateFlash / 3; } else if (!charge) G.echoGate = 0;
+    if (s.gate === "open" && G.settings.fx !== "low" && Math.hypot(G.player.pos.x - g.x, G.player.pos.z - g.z) < 32 && Math.random() < 0.35) puff(g.x + rand(-5, 5) + 0.5, g.y + rand(1, 15), g.z + rand(0.5, 3), "hush");
     // sockets show their state (they're re-lit from the story after loading)
     for (const sk of g.sockets) if (G.world.isLoaded(sk.x, sk.z)) { const want = s.sockets[sk.slot] ? 1 : 0; if ((metaOf(G.world.get(sk.x, sk.y, sk.z)) & 1) !== want) G.world.set(sk.x, sk.y, sk.z, make(B.GATE_SOCKET, want)); }
   }
@@ -665,7 +701,7 @@ export function initLost(api) {
   };
   function tickPlaces(dt) {
     const p = G.player, s = st(), m = M();
-    for (const d of m.districts || []) if (!s.districts[d.id] && Math.hypot(p.pos.x - d.x, p.pos.z - d.z) < d.r) { s.districts[d.id] = Date.now(); UI.toast(`Discovered: ${d.name}`, "good"); if (G.dim === "deep") G.adv("lostdistrict", d.id); }
+    for (const d of m.districts || []) if (!s.districts[d.id] && Math.hypot(p.pos.x - d.x, p.pos.z - d.z) < d.r && (d.y === undefined || Math.abs(p.pos.y - d.y) < (d.ry || 6))) { s.districts[d.id] = Date.now(); UI.toast(`Discovered: ${d.name}`, "good"); if (G.dim === "deep") G.adv("lostdistrict", d.id); }
     for (const q of m.secrets || []) if (!s.secrets[q.id] && Math.hypot(p.pos.x - q.x, p.pos.z - q.z) < 4 && Math.abs(p.pos.y - q.y) < 4) { s.secrets[q.id] = Date.now(); UI.toast(`Secret found: ${q.name}!`, "good"); G.adv("lostsecret", q.id); }
     if (G.dim === "deep" && !s.reachedCity && Math.hypot(p.pos.x - m.cityArrival.x, p.pos.z - m.cityArrival.z) < 10) { s.reachedCity = true; UI.toast("Echohold. The Keepers' city, silent under the stone. Walk softly.", "good"); G.adv("lostcity"); saveNow(false); }
     // guardians and creatures: each group appears when you come near, once per visit (cleared groups stay cleared)
@@ -673,7 +709,7 @@ export function initLost(api) {
       if (s.cleared[g.id] || (g.alive && g.alive.some(e => !e.dead && !e.gone))) continue;
       if (g.alive && g.alive.length) { s.cleared[g.id] = true; g.alive = null; continue; }   // you quieted them all
       if (calm() && G.dim === "deep" && g.kind !== "guardian") continue;   // after the ending, the city's listeners rest
-      if (Math.hypot(p.pos.x - g.x, p.pos.z - g.z) > 40 || !G.world.isLoaded(g.x, g.z)) continue;
+      if (Math.hypot(p.pos.x - g.x, p.pos.z - g.z) > 40 || (g.ry && Math.abs(p.pos.y - g.y) > g.ry) || !G.world.isLoaded(g.x, g.z)) continue;
       g.alive = [];
       for (let i = 0; i < g.n; i++) { const a = i / g.n * Math.PI * 2, x = g.x + Math.cos(a) * Math.min(g.r, 3) + 0.5, z = g.z + Math.sin(a) * Math.min(g.r, 3) + 0.5; const e = ents.add(g.kind === "scout" ? "shard_scout" : g.kind, x, g.y, z); if (e) { e.home = { x, y: g.y, z }; if (g.dormant) e.dormant = true; g.alive.push(e); } }
     }
@@ -707,7 +743,7 @@ export function initLost(api) {
     for (const e of ents.list) if (e.wardenCall) e.gone = true;
     wf = null; if (why) UI.toast(why, "");
   }
-  const wardenPhase = e => (e.hp > e.maxHp * 0.66 ? 1 : e.hp > e.maxHp * 0.33 ? 2 : 3);
+  const wardenPhase = e => (e.hp > e.maxHp * 0.65 ? 1 : e.hp > e.maxHp * 0.3 ? 2 : 3);
   function usePylon(hit) {
     if (!wf) { UI.toast("A tuning pylon. It hums quietly."); return true; }
     const c = M().citadel, i = c.pylons.findIndex(q => q.x === hit.x && q.y === hit.y && q.z === hit.z);
@@ -721,35 +757,135 @@ export function initLost(api) {
     else UI.toast(`Pylon rung! ${left} left. (The Warden heard that. Move!)`, "");
     return true;
   }
+  // Echohold Reborn (Phase 5): the First Warden's fight, rebuilt. Every attack glows before it lands.
+  // Phase 1 (The Awakening): fists, a shockwave ring, and a sonic blast (a glowing line along the floor toward you).
+  // Phase 2 (at 65%, Hushmoss Unleashed): the pylon shield, Hush Crawlers, and moss surges: three quarters of the hall glow
+  //   and burst, one stays dark and safe, and the safe quarter moves each time.
+  // Phase 3 (at 30%, The Final Stand): faster, more often, and after each shockwave its core opens: double damage for a few seconds.
+  const hushScale = () => { let h = 0; for (let i = 36; i < 40; i++) if (G.inv.slots[i] && itemDef(G.inv.slots[i].id).hushguard) h++; return 1 - 0.08 * h; };
+  L.hushScale = hushScale;
+  function sonicBlast(E, e, ph) {
+    const p = G.player, dx = p.pos.x - e.pos.x, dz = p.pos.z - e.pos.z, l = Math.hypot(dx, dz) || 1, ux = dx / l, uz = dz / l, warn = (ph === 3 ? 0.9 : 1.15) * (reduced() ? 1.4 : 1);
+    for (let k = 2.2; k <= 20; k += 1.6) E.addHazard(e.pos.x + ux * k, e.pos.y, e.pos.z + uz * k, 1.25, warn, 6 * hushScale(), "The Warden's sonic blast hit you. When a glowing line runs toward you, step to the side!", 0);
+    e.yaw = Math.atan2(-ux, -uz); e.raise = 1; e.sonicHold = warn;   // it stands still with its arms up until the blast lands
+    Sound.tone(140, warn, "sawtooth", 0.05, 260);
+  }
+  function mossSurge(E, e) {
+    const c = M().citadel, warn = reduced() ? 2.4 : 1.8;
+    wf.safe = ((wf.safe ?? Math.floor(Math.random() * 4)) + 1) % 4;
+    for (let q = 0; q < 4; q++) {
+      if (q === wf.safe) continue;
+      const a = q * Math.PI / 2 + Math.PI / 4;
+      for (const r of [5, 10]) E.addHazard(c.x + Math.cos(a) * r, c.y, c.z + Math.sin(a) * r, r === 5 ? 3.6 : 4.2, warn, 4 * hushScale(), "The moss surge caught you. When three quarters of the hall glow, run to the dark quarter!", 0);
+    }
+    if (!wf.surgeTip) { wf.surgeTip = true; UI.toast("The hushmoss surges! Three quarters of the hall glow. Get to the quarter that stays dark!", "bad"); }
+  }
   function thinkWarden(E, e, d, dmgMul) {
     const p = G.player, ph = wardenPhase(e), step = Math.min(0.6, e.age - (e.lastT ?? e.age)); e.lastT = e.age;
     if (!wf) { e.gone = true; return; }
-    if (ph >= 2 && !wf.shieldOnce) { wf.shieldOnce = true; e.shieldUp = true; UI.toast("The Warden draws power from the three pylons around the hall! Right-click each pylon's resonator to break its shield.", "bad"); }
-    if (ph === 3 && !wf.called) { wf.called = true; for (let k = 0; k < 2; k++) { const m = ents.add("crawler", e.pos.x + rand(-4, 4), e.pos.y, e.pos.z + rand(-4, 4)); if (m) { m.wardenCall = true; m.alertT = 30; } } UI.toast("The Warden calls Hush Crawlers to help it!", "bad"); }
+    if (ph >= 2 && !wf.shieldOnce) { wf.shieldOnce = true; e.shieldUp = true; UI.toast("Hushmoss Unleashed! The Warden draws power from the three pylons. Right-click each pylon's resonator to break its shield.", "bad"); }
+    if (ph >= 2 && !wf.called) { wf.called = true; for (let k = 0; k < 2; k++) { const m = ents.add("crawler", e.pos.x + rand(-4, 4), e.pos.y, e.pos.z + rand(-4, 4)); if (m) { m.wardenCall = true; m.alertT = 30; } } UI.toast("The Warden calls Hush Crawlers to help it!", "bad"); }
+    if (ph === 3 && !wf.final) { wf.final = true; UI.toast("The Final Stand! The Warden is faster now, but after each shockwave its core cracks open. Strike it then!", "bad"); }
+    const fast = ph === 3 ? 0.7 : 1;
     // hearing: it knows where you are if you're noisy or very close; otherwise it goes to the last sound
     const heardYou = e.heard && e.heard.t > 0;
     const sense = d < (p.crouch ? 3 : 7) || (e.alertT || 0) > 0;
     if (e.alertT > 0) e.alertT -= step;
+    if (e.coreOpen > 0) { e.coreOpen -= step; if (Math.random() < 0.5) puff(e.pos.x, e.pos.y + 3, e.pos.z, "hush"); }
     if (e.charging) {
       e.charging -= step; e.goal = null; e.raise = 1;
       if (Math.random() < 0.6) puff(e.pos.x + rand(-1, 1), e.pos.y + 3, e.pos.z + rand(-1, 1), "pale");
-      if (e.charging <= 0) { e.charging = 0; e.raise = 0; Sound.explode(d); const r = ph === 3 ? 7 : 6; E.addHazard(e.pos.x, e.pos.y, e.pos.z, r, 0.01, 6, "The Warden's shockwave hit you. When its core glows, back far away!", 0); e.shockT = ph === 3 ? 5 : 8; }
+      if (e.charging <= 0) {
+        e.charging = 0; e.raise = 0; Sound.explode(d); const r = ph === 3 ? 7 : 6;
+        E.addHazard(e.pos.x, e.pos.y, e.pos.z, r, 0.01, 6 * hushScale(), "The Warden's shockwave hit you. When its core glows, back far away!", 0); e.shockT = ph === 3 ? 5 : 8;
+        if (ph === 3) { e.coreOpen = 3.5; UI.toast("Its core is open! Strike now!", "good"); }
+      }
       return;
     }
-    e.shockT = (e.shockT ?? 6) - step;
-    if (e.shockT <= 0 && d < 10) { e.charging = 1.6; Sound.mob("roar", d); return; }
-    if (sense) { E.chase(e, p); if (d < e.def.reach + 0.5 && e.attackCd <= 0 && E.targetable()) { E.ctx.hurtPlayer(e.def.dmg * dmgMul, "The First Warden caught you. Crouch to move quietly, and keep your distance.", e); e.attackCd = 1.6; e.swing = 0.4; } }
-    else if (heardYou) { E.moveTo(e, e.heard, e.def.speed * (ph === 3 ? 1.4 : 1), 1.5); e.heard.t -= step; }
+    if (e.sonicHold > 0) { e.sonicHold -= step; e.goal = null; e.raise = 1; if (e.sonicHold <= 0) { e.raise = 0; Sound.explode(d); } return; }
+    if (e.windup > 0) {   // a fist raised before every punch
+      e.windup -= step; e.goal = null; e.raise = 1;
+      if (e.windup <= 0) { e.raise = 0; e.swing = 0.4; e.attackCd = 1.6 * fast; if (d < e.def.reach + 1.2 && E.targetable()) E.ctx.hurtPlayer(e.def.dmg * dmgMul, "The First Warden caught you. Crouch to move quietly, and keep your distance.", e); }
+      return;
+    }
+    e.shockT = (e.shockT ?? 6) - step; e.sonicT = (e.sonicT ?? 7) - step; e.surgeT = (e.surgeT ?? 4) - step;
+    if (e.shockT <= 0 && d < 10) { e.charging = 1.6 * (reduced() ? 1.3 : 1); Sound.mob("roar", d); return; }
+    if (e.sonicT <= 0 && d > 5 && d < 20 && (sense || heardYou) && E.targetable()) { e.sonicT = (ph === 3 ? 6 : 9); sonicBlast(E, e, ph); return; }
+    if (ph >= 2 && e.surgeT <= 0 && E.targetable()) { e.surgeT = ph === 3 ? 7 : 9; mossSurge(E, e); }
+    const spd = e.def.speed * (ph === 3 ? 1.3 : 1);
+    if (sense) {
+      E.chase(e, p.pos); if (e.goal) e.goal.speed = spd;   // (it used to be handed the player instead of the player's position, so it never walked to you)
+      if (d < e.def.reach + 0.5 && e.attackCd <= 0 && E.targetable()) { e.windup = 0.5 * (reduced() ? 1.3 : 1); Sound.mob("roar", d); }
+    }
+    else if (heardYou) { E.moveTo(e, e.heard, spd, 1.5); e.heard.t -= step; }
     else { e.goal = null; if (Math.random() < 0.02) puff(e.pos.x, e.pos.y + 4.2, e.pos.z, "pale"); }
   }
   function wardenDefeated(e) {
     const s = st(); wf = null; s.warden = "defeated";
     for (const m of ents.list) if (m.wardenCall) m.gone = true;
     giveItem(I.RESONANCE_CORE, 1); giveItem(I.WARDEN_PLATE, 1); giveItem(B.WARDEN_TROPHY, 1); giveXp(120);
+    s.wardenGearNew = !s.wardenGear; if (!s.wardenGear) { s.wardenGear = true; giveItem(I.HUSH_HELMET, 1); giveItem(I.ECHO_BLADE, 1); }   // Echohold Reborn rewards (once per world)
     G.adv("lostwarden"); saveNow(false);
-    api.victory("The First Warden Rests", "The guardian kneels and goes still. Its core comes loose: the Warden's Resonance Core, the last key to the First Gate.\n\nYou also found a Warden-Plate (armor that softens the sound of your steps) and a trophy for your base.", e.pos);
+    api.victory("The First Warden Rests", "The guardian kneels and goes still. Its core comes loose: the Warden's Resonance Core, the last key to the First Gate.\n\nYou also found a Warden-Plate (armor that softens the sound of your steps) and a trophy for your base." + (G.story.lost.wardenGearNew ? "\n\nBeside it lay a Hushguard Helm and an Echo Blade, Keeper gear made for walking quietly through this city." : ""), e.pos);
   }
 
+  // ---------- Echohold Reborn (Phase 5): the Fallen Sentinel in the Royal Treasury (deep-v2 only) ----------
+  // A combo of two telegraphed blows; a guard stance (its shield blocks everything from the front for a few seconds,
+  // except the Sentinel Hammer); a shockwave ring; and a charge along a glowing line, after which it is stunned
+  // (double damage). At half health it gets faster and follows each charge with a shockwave. Survival only.
+  let ff = null;
+  const inTreasury = (T, p, m = 0) => p.pos.x >= T.x0 - m && p.pos.x <= T.x1 + 1 + m && p.pos.z >= T.z0 - m && p.pos.z <= T.z1 + 1 + m && Math.abs(p.pos.y - T.y) < 4;
+  function fallenTick() {
+    const T = M().treasury, s = st(), p = G.player;
+    if (!T) return;
+    if (!ff && s.fallen !== "defeated" && G.mode === "survival" && inTreasury(T, p)) {
+      const e = ents.add("fallen", T.spawn.x, T.spawn.y, T.spawn.z); if (!e) return;
+      ff = { e }; e.next = 2; Sound.mob("clank", 0); for (let k = 0; k < 8; k++) puff(T.spawn.x + rand(-1, 1), T.spawn.y + k * 0.4, T.spawn.z + rand(-1, 1), "hush");
+      UI.toast("The Fallen Sentinel stirs, still guarding the treasury! Its shield blocks hits from the front. Watch for its charge.", "bad");
+    }
+    if (ff && (!inTreasury(T, p, 4) || ff.e.gone)) { if (!ff.e.dead) resetFallen("You left the treasury. The Fallen Sentinel returns to its post."); }
+  }
+  function resetFallen(why) { if (!ff) return; if (ff.e && !ff.e.gone) ff.e.gone = true; ff = null; if (why) UI.toast(why, ""); }
+  function thinkFallen(E, e, d, dmgMul) {
+    const p = G.player, step = Math.min(0.6, e.age - (e.lastT ?? e.age)); e.lastT = e.age;
+    if (!ff) { e.gone = true; return; }
+    const ph = e.hp > e.maxHp * 0.5 ? 1 : 2, fast = ph === 2 ? 0.75 : 1, slow = reduced() ? 1.3 : 1;
+    if (ph === 2 && !ff.p2) { ff.p2 = true; UI.toast("The Fallen Sentinel's moss flares! It's faster now, and every charge ends in a shockwave.", "bad"); }
+    if (e.stun > 0) { e.stun -= step; e.goal = null; if (Math.random() < 0.4) puff(e.pos.x, e.pos.y + 3.4, e.pos.z, "pale"); return; }
+    if (e.guardT > 0) { e.guardT -= step; e.guard = true; e.goal = null; E.chase(e, p.pos); e.goal = null; if (e.guardT <= 0) e.guard = false; return; }
+    if (e.act) {   // an attack in progress: wind-up, then it lands
+      e.act.t -= step; e.goal = null;
+      if (e.act.kind === "charge" && e.act.t <= 0 && !e.act.go) { e.act.go = true; e.act.t = 0.7; }
+      if (e.act.kind === "charge" && e.act.go) { E.moveTo(e, e.act.to, 9, 0.6); if (!e.act.hit && d < 2.4 && E.targetable()) { e.act.hit = true; E.ctx.hurtPlayer(8 * dmgMul, "The Fallen Sentinel's charge hit you. When a glowing line runs toward you, step aside.", e); }
+        if (e.act.t <= 0) { e.act = null; e.stun = 2.5; Sound.mob("clank", d); if (!ff.stunTip) { ff.stunTip = true; UI.toast("It's stunned after the charge! Strike now!", "good"); } if (ph === 2) E.addHazard(e.pos.x, e.pos.y, e.pos.z, 4.5, 1.2 * slow, 5 * hushScale(), "A shockwave after the charge caught you. Back away when it stops!", 0); }
+        return; }
+      if (e.act.t > 0) { e.raise = 1; return; }
+      e.raise = 0; e.swing = 0.4;
+      if (e.act.kind === "blow") { if (d < e.def.reach + 1 && E.targetable()) E.ctx.hurtPlayer(e.def.dmg * dmgMul, "The Fallen Sentinel's blow hit you. Step back when its arms rise.", e); e.act = e.act.second ? null : { kind: "blow", t: 0.45 * slow, second: true }; if (!e.act) e.cd = 1.2 * fast; }
+      else e.act = null;
+      return;
+    }
+    e.cd = (e.cd || 0) - step; e.next -= step;
+    E.chase(e, p.pos); if (e.goal) e.goal.speed = e.def.speed * (ph === 2 ? 1.3 : 1);
+    if (e.next <= 0 && E.targetable()) {
+      const pick = (ff.n = (ff.n || 0) + 1) % 3;
+      if (pick === 0) { e.guardT = 2.5; Sound.mob("clank", d); if (!ff.guardTip) { ff.guardTip = true; UI.toast("It raises its shield! Hits from the front won't land. Circle around it, or use a Sentinel Hammer.", ""); } }
+      else if (pick === 1 && d > 4) {   // the charge: a glowing line to where you stand, then it rushes along it
+        const ux = (p.pos.x - e.pos.x) / d, uz = (p.pos.z - e.pos.z) / d, warn = 0.9 * slow, len = Math.min(16, d + 3);
+        for (let k = 1.5; k <= len; k += 1.5) E.addHazard(e.pos.x + ux * k, e.pos.y, e.pos.z + uz * k, 1.1, warn, 0, "", 0);
+        e.act = { kind: "charge", t: warn, to: { x: e.pos.x + ux * len, y: e.pos.y, z: e.pos.z + uz * len } }; e.yaw = Math.atan2(-ux, -uz); Sound.mob("roar", d);
+      } else { e.act = { kind: "shock", t: 1 * slow }; E.addHazard(e.pos.x, e.pos.y, e.pos.z, 5, 1 * slow, 6 * hushScale(), "The Fallen Sentinel's shockwave hit you. When the ring glows, get out of it!", 0); }
+      e.next = (ph === 2 ? 3.5 : 5);
+      return;
+    }
+    if (d < e.def.reach + 0.4 && e.cd <= 0 && E.targetable()) e.act = { kind: "blow", t: 0.6 * slow };
+  }
+  function fallenDefeated(e) {
+    const s = st(); ff = null; const first = s.fallen !== "defeated"; s.fallen = "defeated";
+    if (first) { giveItem(I.HUSH_BOOTS, 1); giveItem(I.SENTINEL_HAMMER, 1); giveXp(90); }
+    G.adv("lostfallen"); saveNow(false);
+    api.victory("The Last Royal Guard Rests", "The Fallen Sentinel lowers its shield at last and goes still. Its watch is over.\n\nIt left behind a pair of Hushguard Boots and its Sentinel Hammer, heavy enough to go straight through a raised shield.", e.pos);
+  }
   // ---------- the Resonant Sovereign (the Crownless Citadel in the Echo Expanse) ----------
   // Needs all three forge anchors quieted first. Phase 1: marked rings fall around you. Phase 2: its crown shields it;
   // tune all three arena stations (right-click) within 8 seconds of each other to break the crown for a while.
@@ -839,19 +975,29 @@ export function initLost(api) {
   }
 
   // the boss hooks the creature code calls (see entities.js)
+  const H = createHunt({ G, ents, UI, Sound, puff, reduced, calm, alert: (n, why) => raiseAlert(n, why), st });
+  const SC = createSecrets({ G, ents, UI, Sound, puff, st, M, setBox, saveNow, giveXp, reduced });
   ents.bossAI = {
-    warden: thinkWarden, sovereign: thinkSovereign, templeboss: thinkTemple,
+    ...H.ai,
+    warden: thinkWarden, sovereign: thinkSovereign, templeboss: thinkTemple, fallen: thinkFallen,
     hit(E, e, n, attacker) {
+      if (e.sp === "fallen" && attacker === "player") {
+        const p = G.player, front = Math.cos(e.yaw) * (e.pos.z - p.pos.z) + Math.sin(e.yaw) * (e.pos.x - p.pos.x) > 0;
+        if (e.guard && front && !E.ctx.itemFlag("breaksGuard")) { puff(e.pos.x, e.pos.y + 2, e.pos.z, "pale"); Sound.place("stone"); return 0; }
+        if (e.stun > 0) n *= 2;
+        return n;
+      }
       if (e.shieldUp) { puff(e.pos.x, e.pos.y + e.def.h * 0.6, e.pos.z, "pale"); if (!e.shieldMsgT || G.clock > e.shieldMsgT) { e.shieldMsgT = G.clock + 4; UI.toast(e.sp === "warden" ? "Its shield holds! Ring the three pylons." : "The crown shields it! Tune the three stations.", ""); } return 0; }
-      if (e.sp === "warden" && attacker === "player") { e.alertT = 4; }
+      if (e.sp === "warden" && attacker === "player") { e.alertT = 4; if (e.coreOpen > 0) n *= 2; }
       if (attacker === "explosion") n *= 0.3;
       return n;
     }
   };
-  L.bossDefeated = e => { if (e.sp === "warden") { wardenDefeated(e); return true; } if (e.sp === "sovereign") { sovereignDefeated(e); return true; } if (MINION[e.sp]) { templeDefeated(e); return true; } return false; };
-  L.onFaint = () => { if (wf) resetWarden(); if (sf) resetSovereign(); if (tf) resetTemple(); };
+  L.bossDefeated = e => { if (e.sp === "warden") { wardenDefeated(e); return true; } if (e.sp === "fallen") { fallenDefeated(e); return true; } if (e.sp === "sovereign") { sovereignDefeated(e); return true; } if (MINION[e.sp]) { templeDefeated(e); return true; } return false; };
+  L.onFaint = () => { if (ff) resetFallen(); if (wf) resetWarden(); if (sf) resetSovereign(); if (tf) resetTemple(); };
   L.bossInfo = () => {
     if (tf && tf.e && !tf.e.gone) { const e = tf.e, ph = tPhase(e); return { e, label: `${e.def.name} • Phase ${ph}${e.shieldUp ? ` • Shielded: use the ${TEMPLES[tf.kind].device}s (${tf.dev.filter(Boolean).length}/3)` : ""}`, frac: e.hp / e.maxHp }; }
+    if (ff && ff.e && !ff.e.gone) { const e = ff.e; return { e, label: `The Fallen Sentinel • Phase ${e.hp > e.maxHp * 0.5 ? 1 : 2}${e.guard ? " • Shield up: circle around it" : e.stun > 0 ? " • Stunned: strike!" : ""}`, frac: e.hp / e.maxHp }; }
     if (wf && wf.e && !wf.e.gone) { const e = wf.e, ph = wardenPhase(e); return { e, label: `The First Warden • Phase ${ph}${e.shieldUp ? ` • Shielded: ring the pylons (${wf.pylons.filter(Boolean).length}/3)` : ""}`, frac: e.hp / e.maxHp }; }
     if (sf && sf.e && !sf.e.gone) { const e = sf.e, ph = sovPhase(e); return { e, label: `The Resonant Sovereign • Phase ${ph}${e.shieldUp ? " • Crowned: tune the 3 stations" : ph === 2 ? " • Crown broken: strike!" : ""}`, frac: e.hp / e.maxHp }; }
     return null;
@@ -879,18 +1025,30 @@ export function initLost(api) {
   // ---------- atmosphere ----------
   L.sky = () => {
     if (!inMap()) return null;
-    if (G.dim === "deep") return { sky: calm() ? 0x101820 : 0x070a10, daylight: 0, ambient: calm() ? 0.3 : 0.24, fogNear: 0.35, fogFar: 0.95 };
+    if (G.dim === "deep") return { sky: calm() ? 0x101c26 : 0x08121a, daylight: 0, ambient: calm() ? 0.3 : 0.24, fogNear: 0.35, fogFar: 0.95 };
     if (G.dim === "sea") return { sky: 0x0a2a3a, daylight: 0, ambient: 0.3, fogNear: 0.35, fogFar: 0.95 };
     if (G.dim === "jungle") return { sky: 0x0e1e12, daylight: 0, ambient: 0.32, fogNear: 0.4, fogFar: 0.95 };
     if (G.dim === "desert") return { sky: 0x20180c, daylight: 0, ambient: 0.32, fogNear: 0.4, fogFar: 0.95 };
     return { sky: calm() ? 0x6a7aa8 : 0x3a3a6a, daylight: 0.55, ambient: 0.25, fogNear: 0.5, fogFar: 1 };
   };
-  let ambT = 4;
+  let ambT = 4, rumbleT = 9, beatT = 0;
   function ambience(dt) {
     const v = G.settings.fwAmbient ?? 0.8;
-    if (v <= 0 || (ambT -= dt) > 0) return;
-    ambT = rand(6, 14);
-    if (G.dim === "deep") { if (Math.random() < 0.6) Sound.tone(rand(180, 260), 1.6, "sine", 0.02 * v, -20); else Sound.noise(1800, 0.15, 0.03 * v, 4); }   // a deep hum, a distant drip
+    if (v <= 0) return;
+    // Echohold Reborn: a heartbeat under the city when it is stirring (alert meter) or the Warden is awake
+    if (G.dim === "deep" && !reduced() && (st().alert >= 55 || wf || (G.echoDanger || 0) > 0.4) && (beatT -= dt) <= 0) {
+      const hard = wf || st().alert >= 80 || (G.echoDanger || 0) > 0.75; beatT = hard ? 0.85 : 1.25;
+      Sound.tone(52, 0.16, "sine", (hard ? 0.09 : 0.06) * v, -14);
+      setTimeout(() => Sound.tone(46, 0.18, "sine", (hard ? 0.07 : 0.045) * v, -12), 230);
+    }
+    // a low rumble and distant shifting stone, now and then
+    if (G.dim === "deep" && (rumbleT -= dt) <= 0) {
+      rumbleT = rand(14, 26);
+      if (Math.random() < 0.5) Sound.tone(rand(38, 55), 2.4, "sine", 0.035 * v, -6); else Sound.noise(rand(140, 260), 0.9, 0.035 * v, 0.7, "lowpass");
+    }
+    if ((ambT -= dt) > 0) return;
+    ambT = rand(5, 12);
+    if (G.dim === "deep") { const r = Math.random(); if (r < 0.45) Sound.tone(rand(180, 260), 1.6, "sine", 0.02 * v, -20); else if (r < 0.85) { Sound.noise(1800, 0.15, 0.03 * v, 4); if (Math.random() < 0.5) setTimeout(() => Sound.noise(1650, 0.12, 0.018 * v, 4), 380); } else Sound.tone(rand(620, 900), 2.2, "triangle", 0.008 * v, -60); }   // a deep hum, distant drips (with an echo), a faint whine through the tunnels
     else Sound.tone(rand(500, 800), 1.2, "triangle", 0.02 * v, rand(-80, 80));   // the Expanse's soft chime
   }
   // the Expanse has no ground below: falling off brings you back to the last beacon (a little bruised)
@@ -921,6 +1079,45 @@ export function initLost(api) {
   }
 
   // ---------- the main tick ----------
+  // ---------- Echohold Reborn: the first look from the Overlook (deep-v2 only) ----------
+  // The first time you step onto the Overlook, your view turns slowly toward the western city while its name appears.
+  // Moving, turning the mouse, or pressing any key ends it at once. It never plays again in that world.
+  let reveal = null;
+  L.skyline = () => (G.dim === "deep" && maps.deep && maps.deep.meta.skyline) || null;
+  L.skyFloor = () => (G.dim === "deep" && maps.deep && maps.deep.meta.skyFloor) || null;
+  function revealCard() {
+    const el = document.createElement("div");
+    el.style.cssText = "position:fixed;left:0;right:0;top:16%;display:flex;flex-direction:column;align-items:center;color:#fff;z-index:40;font-family:system-ui,sans-serif;text-align:center;transition:opacity 1s;opacity:0;pointer-events:none;text-shadow:0 2px 0 #000,0 0 18px #000";
+    el.innerHTML = `<div style="letter-spacing:.35em;font-size:13px;color:#7fe8ff">THE DEEP</div><div style="font-size:clamp(30px,7vw,60px);font-weight:800;margin:6px 0;letter-spacing:.08em">ECHOHOLD</div><div style="font-size:clamp(14px,2.4vw,19px);color:#d8e6ee">City of the Listening Stone</div><div style="font-size:13px;color:#9fb4c0;margin-top:10px">Far to the west, past the city wall, the Forgotten Kingdom waits in the dark.</div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => { el.style.opacity = "1"; });
+    let gone = false;
+    const done = () => { if (gone) return; gone = true; el.style.opacity = "0"; setTimeout(() => el.remove(), 1000); };
+    setTimeout(done, 5200);
+    return done;
+  }
+  const angleTo = (from, to) => { let d = to - from; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
+  function tickOverlook(dt) {
+    const o = M().overlook; if (!o || G.state !== "play") return;
+    const s = st(), p = G.player;
+    if (reveal) {
+      reveal.t += dt;
+      const turned = Math.abs(angleTo(p.yaw, reveal.lastYaw)) > 0.02 || Math.abs(p.pitch - reveal.lastPitch) > 0.02;
+      if (reveal.skip || turned || Math.hypot(p.pos.x - reveal.px, p.pos.z - reveal.pz) > 0.8 || reveal.t > 7) { window.removeEventListener("keydown", reveal.onKey, true); reveal = null; return; }
+      const k = Math.min(1, reveal.t / 4.5), e = k * k * (3 - 2 * k);
+      p.yaw = reveal.y0 + reveal.dy * e; p.pitch = reveal.p0 + (reveal.p1 - reveal.p0) * e;
+      reveal.lastYaw = p.yaw; reveal.lastPitch = p.pitch;
+      return;
+    }
+    if (s.overlookSeen || Math.hypot(p.pos.x - o.x, p.pos.z - o.z) > o.r || Math.abs(p.pos.y - o.y) > 3) return;
+    s.overlookSeen = true;
+    revealCard(); Sound.tone(98, 2.6, "sine", 0.05 * (G.settings.fwAmbient ?? 0.8), 30);
+    if (G.settings.reducedMotion) return;   // no camera turn with Reduced Motion: just the name
+    const L2 = o.look, yaw1 = Math.atan2(-(L2.x - p.pos.x), -(L2.z - p.pos.z)), pitch1 = Math.atan2(L2.y - (p.pos.y + 1.6), Math.hypot(L2.x - p.pos.x, L2.z - p.pos.z));
+    reveal = { t: 0, px: p.pos.x, pz: p.pos.z, y0: p.yaw, dy: angleTo(p.yaw, yaw1), p0: p.pitch, p1: pitch1, lastYaw: p.yaw, lastPitch: p.pitch, skip: false };
+    reveal.onKey = () => { if (reveal) reveal.skip = true; };
+    window.addEventListener("keydown", reveal.onKey, true);
+  }
   L.tick = dt => {
     if (G.dim === "overworld" && st().site && !st().mapGiven && G.mode === "survival" && G.state === "play" && !(G.story.starter && (G.story.starter.house || G.story.starter.campaign))) {   // worlds with a Starter Home (or a campaign) get the Explorer's Map instead
       st().mapGiven = true; giveItem(I.SURVEY_MAP, 1);
@@ -932,8 +1129,10 @@ export function initLost(api) {
     tickPlaces(dt);
     if (TEMPLES[G.dim]) { if (G.mode === "survival") tickTraps(dt); else for (const t of M().traps || []) if (t.kind === "floor") tickCracks(t, tState[t.id] || (tState[t.id] = { cracks: {} }), dt); templeTick(); ambience(dt); hudTick(); return; }
     if (G.mode === "survival") tickStealth(dt);
-    if (G.dim === "deep") { tickGate(dt); wardenTick(dt); }
+    if (G.dim === "deep") { tickGate(dt); wardenTick(dt); fallenTick(); tickOverlook(dt); }
     else { tickPulse(dt); sovereignTick(dt); tickVoid(); }
+    H.tick(dt); SC.tick(dt);
+    if ((wf || ff) && G.dim === "deep") G.echoDanger = 1;
     ambience(dt);
     hudTick();
   };
@@ -964,7 +1163,7 @@ export function initLost(api) {
     return `<div class="fw-journal">
       <div><h4>Now</h4><p class="fw-obj">${L.objective()}</p>
         <h4>The Keepers' story</h4><ul>${steps}</ul>
-        <h4>Districts of Echohold</h4><ul>${dists}</ul></div>
+        <h4>Districts of Echohold</h4><ul>${dists}</ul>${d ? SC.journal(d, s) : ""}</div>
       <div><h4>First Gate sockets</h4><ul>${sockets}</ul>
         <h4>Progress</h4><ul><li>Caches in the Deep: ${cachesD}</li><li>Caches in the Expanse: ${cachesX}</li><li>Secrets: ${secrets}</li><li>Forge anchors quieted: ${Object.keys(s.anchors).length} / 3</li><li>First Warden: ${s.warden === "defeated" ? "✔ at rest" : "waiting in the Citadel"}</li><li>Resonant Sovereign: ${s.sovereign === "calmed" ? "✔ calmed" : "not yet"}</li></ul>
         <h4>Temples</h4><ul>${TEMPLE_KEYS.map(k => { const t = s.temples[k], site = siteOf(k); return `<li class="${t.relic ? "ok" : ""}">${t.relic ? "✔" : "○"} ${TEMPLES[k].name.replace(/^the /, "The ")}: ${!site ? "no entrance in this world" : t.relic ? "relic taken" : t.boss === "defeated" ? "guardian at rest, relic waiting" : t.visits ? "explored" : "not visited"}</li>`; }).join("")}</ul>

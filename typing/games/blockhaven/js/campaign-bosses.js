@@ -122,7 +122,7 @@ export function initBosses(api) {
     if (e.dash > 0) { e.dash -= step; E.moveTo(e, e.dashTo, 7, 0.5); if (d < 2.6 && !e.dashHit && E.targetable()) { e.dashHit = true; E.ctx.hurtPlayer(6 * dmgMul, "The charge hit you. When it crouches low, step out of its path!", e); } return; }
     e.atkT -= step;
     if (e.atkT <= 0 && d < 26) { e.wind = (bf.id === "titan" ? 1.3 : 1.1) * (reduced() ? 1.4 : 1); e.atkT = (ph === 3 ? 3 : 4.2) * fast; Sound.mob("roar", d); return; }
-    E.chase(e, p);
+    E.chase(e, p.pos);   // (was the player instead of its position, so the boss never walked toward you)
     if (d < e.def.reach + 0.6 && e.attackCd <= 0 && E.targetable()) { E.ctx.hurtPlayer(e.def.dmg * dmgMul, "Its fist caught you. Keep your distance when it's close!", e); e.attackCd = 1.8; e.swing = 0.4; }
     void A;
   };

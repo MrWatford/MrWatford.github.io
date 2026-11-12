@@ -460,6 +460,94 @@ Protocol 4. Import-map version `together-4` for main.js, multiplayer.js, and ent
 | Single-player regression | Done | Portal trips to the Ember Depths and back still work |
 | A minecart loop (curves, powered rails), riding animals, fishing, throwing | Partial / Missing | Only a straight track was tested. Riding animals, fishing, and throwing stay host-only |
 
+## Ancient City Reborn, Phase 1: Echohold graphics and atmosphere (built and browser-tested 2026-11-12, not published)
+Plan, checklist, and decisions: `ANCIENT-CITY-REBORN.md`. New file `js/echohold-atmosphere.js`; changed blocks.js, mesher.js, main.js, lost.js, ui.js, save.js, index.html.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Teal light | Done | Hush Nodes, Lumen Crystals, resonators, gate stones, Keeper Beacons, anchors, trophies, Tide Lamps, sensors and Skyshard Ore now give cool teal light; torches and Keeper Lamps stay warm. Hushmoss, Lumen Grass and Hush Carpet glow faintly. Creatures still treat teal light as light |
+| Pulsing glow | Done | A slow teal wave rolls across glowing moss and crystals. Off with Reduced Motion or Atmosphere effects: Low |
+| Deep atmosphere | Done | Darker teal-black fog; drifting spores and dust; water drips from the ceiling; soft glow halos around nearby lamps and crystals (Medium/High) |
+| Deep sounds | Done | Low rumbles, shifting stone, echoing drips, a faint whine in the tunnels, and a heartbeat when the city is stirring (alert 55+) or the First Warden is awake. Uses the ambient sound volume; Reduced Suspense turns the heartbeat off |
+| Atmosphere effects setting | Done | Settings → Atmosphere effects: Low (steady light, no halos or particles), Medium (default), High (more glow and particles). Works with Fast or Fancy graphics |
+| Far-city view | Planned | Comes with the new city map (Phase 2) |
+
+## Ancient City Reborn, Phase 2: the bigger Echohold (built and browser-tested 2026-11-12, not published)
+New map `maps/deep-v2.bin` (built by `tools/echohold-build.html` from `js/echohold-author.js` + `js/lost-author.js`). Worlds that already went to the Deep keep the original city (deep-v1); all others get the new one.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Two caverns | Done | The original city and descent are unchanged; a second great cavern opens to the west (the map is now 368 × 256 blocks) |
+| Grand Entrance | Done | A huge gate carved where the descent tunnel enters the city, two guardian statues with glowing eyes, a fallen gate leaf, a broken wall, a watchtower, chain lamps, a warning tablet, a hidden guardhouse |
+| The Overlook | Done | A ledge high on the east wall. The first visit turns your view toward the far city and shows its name (any key or movement stops it; Reduced Motion: name only) |
+| West Gate + West Road | Done | A new gate in the city wall and a lamp-lined road across the new cavern, over a ravine with a waterfall (a broken second bridge; steps out of the ravine at both ends) |
+| Ancient Market | Done | Stalls and two warehouses with caches |
+| Forgotten Kingdom | Done | Fountain plaza with a Keeper Beacon, a notice tablet, and a second lift up to the Surface; 27 homes (some two storeys), courtyards, a collapsed tower, 7 caches |
+| Royal Citadel, Lost Library | Partial | Outsides built (walls, towers, keep, a tall library hall); insides and puzzles come in Phase 3 |
+| Far-city skyline | Done | Beyond the fog, the city's buildings show as dark shapes with lit windows (Atmosphere effects Medium/High) |
+| Checks | Done | 149 builder checks (everything reachable on foot from the lift; every original puzzle, cache, tablet, and district unchanged) |
+
+## Ancient City Reborn, Phase 3: Echohold's interiors (built and browser-tested 2026-11-12, not published)
+New code `js/echohold-interiors.js` (part of `maps/deep-v2.bin`); lost.js puzzles can now have their own messages, several wheels, and underground districts.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Royal Citadel | Done | Throne room, the Royal Archives behind it, war room, banquet hall, royal chambers, a prison with barred cells, an escape tunnel. Find the three Royal Seals (Crown, Watch, Hearth) to open the archives |
+| Hidden Royal Vault | Done | Off the escape tunnel, on no map. Four marks (crown, moon, key, bell); the order is split between the Royal Archives and the catacombs |
+| Lost Library | Done | Three floors around an atrium, a bridge across the top, a collapsed corner. Four numbered notes give the order of four marks (moon, key, eye, crown) that open the sealed reading room. A hidden stair leads to a secret nook |
+| Silent Catacombs | Done | A dark maze under the Forgotten Kingdom: burial hall, ritual chamber, underground lake, Hush Node sound traps, caches, crawlers and a Deep Stalker. In from the fountain plaza; a passage leads up into the Citadel prison |
+| Aqueduct Works | Done | Turn three wheels (pump house, old north bridge, ravine floor) to drain a flooded passage and open the drowned storeroom |
+| Hidden Observatory | Done | Up a hidden stair at the end of the West Road: a survey table, a tablet, a cache |
+| Story | Done | 12 new tablets (original writing): the Crown's experiments, the Royal Seals, the portal report, the librarians' notes, the vault riddle, the aqueduct, the observatory |
+
+## Ancient City Reborn, Phase 4: hunters and new creatures (built and browser-tested 2026-11-12, not published)
+New code `js/echohold-hunt.js`; new species in entities.js; placed in `maps/deep-v2.bin`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Deep Stalker hunting | Done | Follows sounds, searches where it heard you, chases when it senses you up close (closer if you crouch), winds up before every strike, pauses after, backs away from bright light (lamps and torches), gives up and sinks back into the moss if you stay quiet |
+| The city stirs | Done | When the alert meter fills, the moss pulses and the floor rumbles for a few seconds before a Stalker rises nearby. The moss glow and the heartbeat get stronger while a Stalker hunts close by |
+| More noises | Done | Opening chests and heavy landings now make sound in the Deep |
+| Echo Watcher | Done | A one-eyed stone pillar. It can't move, but if it sees you walking in front of it, its eye charges, then it rings: the alert jumps and Hush Crawlers come. Crouch past it, or break it from behind |
+| Vault Sentinel | Done | A heavy shielded guardian beside the Citadel keep and in the Hidden Royal Vault. Its shield blocks hits from the front; before each slam its arms rise and a ring glows on the floor |
+
+## Ancient City Reborn, Phase 5: bosses and rewards (built and browser-tested 2026-11-12, not published)
+
+| Feature | Status | Notes |
+|---|---|---|
+| The First Warden, upgraded | Done | Bigger and crowned. New attacks: a sonic blast along a glowing line, moss surges that leave one quarter of the hall safe (the safe quarter moves), and in its last phase its core opens after each shockwave (double damage). It now really walks toward you (an old bug stopped it) |
+| Warden's Sanctuary | Done | Moss channels, pillars with crystals, raised ledges, an altar, and two more ways out of the arena |
+| Fallen Sentinel | Done | A mini-boss in the new Royal Treasury under the Citadel keep. Two-blow combo, a shield stance, a shockwave, and a charge along a glowing line that leaves it stunned |
+| Hushguard armor | Done | Four pieces (from the Warden, the Library's sealed room, the Hidden Royal Vault, and the Fallen Sentinel). Each piece: 8% less damage from Echohold's creatures; the boots soften footsteps |
+| Echo Blade | Done | From the Warden: +50% damage to Echohold's creatures, silent strikes |
+| Sentinel Hammer | Done | From the Fallen Sentinel: heavy, slow, and its blows go through shields |
+| Achievements | Done | The Last Royal Guard, The Crown's Riddle, Quiet as Stone |
+
+## Ancient City Reborn, Phase 6: secrets and the city map (built and browser-tested 2026-11-12, not published)
+New code `js/echohold-secrets.js`; secrets placed in `maps/deep-v2.bin`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| The Silent Bell | Done | A bell tower on the fountain plaza. Pull the rope and the city goes still for 45 seconds: the alert meter empties, Stalkers forget you, Watchers close their eyes, and sounds don't carry. Rings again after 5 minutes |
+| The Empty Throne | Done | Sit on the Royal Citadel's throne for a moment and a hidden stair opens down to the Royal Treasury |
+| The Silent Trial | Done | A long hall under the West Quarter. Cross it without being heard (keep to the soft path or crouch); three sounds and it resets and Hush Crawlers come. Make it to the end for a reward room |
+| The Forgotten Explorer | Done | An old expedition camp inside the collapsed watchtower, with notes pointing to the Royal Vault |
+| The Last Message | Done | A final note at the far end of the catacombs |
+| The City Awakens | Done | Once you've found 10 districts, the moss across the whole city flares for a moment |
+| Journal: city map | Done | Journal (J) → Lost Civilization: a map that fills in with the districts and secrets you've found, and "Echohold explored: N%" |
+
+## Ancient City Reborn, Phase 7: the Great Portal and the Echo Expanse (built and browser-tested 2026-11-12, not published)
+
+| Feature | Status | Notes |
+|---|---|---|
+| Great Portal chamber | Done | Around the First Gate: two tall stair towers joined by a high walkway behind the gate, carved rune pillars with crystals, great hanging chain lamps, a glowing platform edge, and a ceremonial ring where you activate the gate |
+| Gate opening | Done | Light flows from the sockets into the frame while it charges; it opens with a bright flare, a chord, and a burst of light; afterward light drifts into the open gate |
+| Echo Expanse sky | Done | Slow rings of dark floating rubble and glowing shards far out in the violet sky |
+| Resonant Sovereign | Done | A new look: glowing veins, shoulder spires, and a ring of floating shards (same fight) |
+
+## Ancient City Reborn, Phase 8: final checks (done 2026-11-12, ready to publish)
+Old test worlds, a new Legacy Campaign world, and a new Hardcore world all load; the Settings page fits a phone screen; every changed file has the new version tag (`?v=echohold-1`) so returning browsers get the new files together. The publish list is in `ANCIENT-CITY-REBORN.md`. Still needed: a real Chromebook test.
+
 ## Later milestones
 | Feature | Status |
 |---|---|
