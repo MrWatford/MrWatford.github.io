@@ -12,7 +12,7 @@ import { Cinema } from "./title-cinema.js";
 
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
-const screens = ["title", "worlds", "newWorld", "loading", "pause", "settings", "controls", "death", "panel", "skins", "campaign"];
+const screens = ["title", "worlds", "newWorld", "loading", "pause", "settings", "controls", "death", "panel", "skins", "campaign", "together"];
 let current = "title", backTo = "title", skinFrom = "title", skinPick = "explorer";
 let cursor = null, hoverRef = null, panelKind = null, panelCtx = null, craftFilter = "can", craftSearch = "", creativeCat = "All", creativeSearch = "", advCat = CATEGORIES[0];
 
@@ -26,6 +26,8 @@ export const UI = {
     $("btnNew").onclick = $("btnNew2").onclick = () => { Sound.start(); Sound.click(); this.show("newWorld"); $("nwName").select(); };
     $("btnSettings").onclick = () => this.openSettings("title");
     $("btnCampaign").onclick = () => { Sound.start(); Sound.click(); this.showCampaigns(); };
+    $("btnTogether").onclick = () => { Sound.start(); Sound.click(); G.mp.open(); };
+    $("btnTogether2").onclick = () => { Sound.click(); G.mp.open(); };
     $("cpForm").onsubmit = e => {
       e.preventDefault(); Sound.start();
       G.newWorld({ name: $("cpName").value.trim() || "The Forgotten Kingdoms", seed: G.campaignSeed(), mode: "survival", settings: { difficulty: $("cpDiff").value, griefing: false, keepInv: $("cpKeep").checked }, campaign: { v: 1, chapter: 1, done: 0, quest: "A Traveler Arrives", startAt: +$("cpStart").value || 1 } });
@@ -82,10 +84,11 @@ export const UI = {
   show(name) {
     current = name;
     for (const s of screens) $(s).hidden = s !== name;
-    $("hud").hidden = !(name === "none" || name === "panel" || name === "pause" || name === "death");
+    $("hud").hidden = !(name === "none" || name === "panel" || name === "pause" || name === "death" || (name === "together" && !!G.world));
     if (name === "title") paintTitleScene();
     Cinema.setActive(name === "title");
     if (name === "pause" && G.wset) { const hc = !!(G.meta && G.meta.hardcore); $("pDiff").value = G.wset.difficulty; $("pMode").value = G.mode === "creative" ? "creative" : "survival"; $("pMode").disabled = hc || G.spectator; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; $("pDiff").disabled = $("pKeep").disabled = hc; $("hcNote").hidden = !hc; }
+    if (G.onShow) G.onShow(name);   // Play Together updates its screen and the pause menu
   },
   get current() { return current; },
 

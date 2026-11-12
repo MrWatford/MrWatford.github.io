@@ -86,6 +86,7 @@ export class World {
       if (n) { n.dirty = true; if (soft) n.soft = true; this.dirtyQueue.add(n); }
     }
     if (this.onSet && old !== v) this.onSet(x, y, z, v, old);
+    if (World.onAnySet && old !== v) World.onAnySet(this, x, y, z, v);   // Play Together sends the host's changes to friends
     return true;
   }
 

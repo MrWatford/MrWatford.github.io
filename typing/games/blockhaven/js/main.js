@@ -5,7 +5,7 @@ import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, 
 import { initRedstone } from "./redstone.js";
 import { selectBox } from "./shapes.js";
 import { Entities, SPECIES, TRADES, lineOfSight } from "./entities.js";
-import { Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
+import { idx, Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
 import { Player, raycast, blockBoxes, REACH } from "./player.js";
@@ -41,6 +41,7 @@ import { ArenaFractures } from "./arena-fractures.js";
 import { solkaraRecordAt } from "./solkara-lore.js";
 import { canMountLeviathan, findLeviathanExit, findLeviathanRecovery } from "./leviathan-riding.js";
 import { leviathanCameraDistance } from "./leviathan-camera.js";
+import { initMultiplayer, MP_PROTOCOL } from "./multiplayer.js";
 import { armorShieldState } from "./leviathan-armor-effects.js";
 import { createArmorShieldView } from "./leviathan-armor-shield-view.js";
 import { weaponSwing } from "./weapon-motion.js";
@@ -1674,7 +1675,7 @@ function makeWorld(dim) {
   for (const k of data.newGen || []) w.newGen.add(k);
   w.beacons = new Set(data.beacons || []);
   R.attach(w, data.rs);   // the signal engine's timers and comparator outputs
-  w.onLoad = c => { ents.loadChunk(c); R.chunkLoaded(w, c); };
+  w.onLoad = c => { if (!G.guest) ents.loadChunk(c); R.chunkLoaded(w, c); };   // a Play Together guest gets no creatures yet (Stage 3)
   w.onUnload = c => ents.unloadChunk(c);
   for (const drop of (Array.isArray(data.drops) ? data.drops.slice(-150) : [])) {
     if (drop && itemDef(drop.id) && Number.isInteger(drop.n) && drop.n > 0 &&
@@ -1823,7 +1824,7 @@ function snapshot() {
   };
 }
 async function saveNow(show) {
-  if (!G.world || !G.meta) return;
+  if (!G.world || !G.meta || G.guest || String(G.meta.id).startsWith("guest-")) return;   // a Play Together guest never saves the host's world
   try {
     const snap = snapshot();
     G.meta.played = snap.played;
@@ -2323,6 +2324,7 @@ function useWith(offhand) {
   if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; } if (!offhand && !slot) return false; }
   if (hit && !crouch && !offhand) {
     const id = idOf(hit.v), d = BLOCKS[id];
+    if (d.interact && MP.useBlock(hit, d.interact)) { G.swing = 0.01; return true; }   // Play Together: chests through the host, host-only pieces
     if (d.interact && R.kinds.has(d.interact)) { if (R.interact(hit, d.interact)) { G.swing = 0.01; return true; } }
     else if (d.interact && d.interact !== "tnt") { G.swing = 0.01; interact(hit, d.interact); return true; }
   }
@@ -5361,6 +5363,7 @@ G.newWorld = ({ name, seed, mode, settings, campaign }) => {   // mode: survival
   return openWorld(() => save);
 };
 G.loadWorld = id => openWorld(() => Saves.load(id));
+G.joinWorld = save => openWorld(() => save);   // Play Together: a world the host sent (never saved here)
 async function openWorld(read) {
   if (G.state === "loading") return;
   const menu = UI.current;
@@ -5381,6 +5384,7 @@ G.importWorld = file => Saves.importFile(file);
 G.toTitle = async () => {
   dismount(true);
   await saveNow(false);
+  MP.worldClosed();
   clearWorldMeshes();
   if (G.world) { G.world.chunks.clear(); G.world.dirtyQueue.clear(); }
   G.world = null; G.meta = null; G.state = "title"; CP.hideHud();
@@ -5447,7 +5451,7 @@ function loop(now) {
   G.clock = (G.clock || 0) + dt;
   fpsT += dt; fpsN++; if (fpsT > 0.5) { fps = Math.round(fpsN / fpsT); fpsT = 0; fpsN = 0; }
   if (!G.world || G.state === "loading" || G.state === "title") { if (G.state === "title") renderer.clear(); return; }
-  const p = G.player, running = G.state === "play" || G.state === "panel";
+  const p = G.player, running = G.state === "play" || G.state === "panel" || (G.state === "pause" && MP.keepRunning());   // a host's friends keep playing while the host is in the menu
 
   if (running) {
     if ((leviathanJournalT -= dt) <= 0) {
@@ -5514,18 +5518,19 @@ function loop(now) {
     tickEating(dt);
     if (G.blocking) { const sh = G.inv.slots[G.blockHand]; if (!mouseR || !sh || sh.id !== I.SHIELD || G.state !== "play") G.blocking = false; }
     survival(dt);
-    Adv.poll(dt);
-    updateFurnaces(dt);
-    tickCrops(dt);
-    updateTNT(dt);
-    updateMovers();
-    R.tick(dt);
-    updateFires(dt);
+    if (!G.guest) {   // a Play Together guest: the host's game runs machines, crops, fire and the story
+      Adv.poll(dt);
+      updateFurnaces(dt);
+      tickCrops(dt);
+      updateTNT(dt);
+      updateMovers();
+      R.tick(dt);
+      updateFires(dt);
+    }
     updateClouds(dt);
-    if (G.dim === "end") ensureBoss();
-    if (G.state === "play") checkPortal(dt);
-    tickCinder(dt);
-    F.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt);
+    if (G.dim === "end" && !G.guest) ensureBoss();
+    if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // portals wait for a later Play Together update
+    if (!G.guest) { tickCinder(dt); F.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
@@ -5561,7 +5566,7 @@ function loop(now) {
     for (let i = ancientSpikes.length - 1; i >= 0; i--) if (!ancientSpikes[i].update(dt)) ancientSpikes.splice(i, 1);
     updateObsidianEncounter();
     if (G.dim === "overworld") updateStormVortex(dt);
-    if (G.state !== "dead") ents.update(dt, daylight, camera);
+    if (G.state !== "dead" && !G.guest) ents.update(dt, daylight, camera);
     if (mountedBurrow) mountedBurrow.view.update(mountedBurrow.session.visualState, G.settings.reducedMotion);
     updateMountedLeviathanAttack(dt);
     updateOrbs(dt);
@@ -5631,6 +5636,7 @@ function loop(now) {
     attribute.addUpdateRange(0, n * 3);
     attribute.needsUpdate = true;
   }
+  MP.tick(dt);
   updateBossBar(p);
   if (G.hudDirty) { G.hudDirty = false; UI.hud(); }
   if (running) { G.autosaveT += dt; if (G.autosaveT > AUTOSAVE) { G.autosaveT = 0; saveNow(true); } }
@@ -5657,6 +5663,36 @@ const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFac
   spawnDrop, dropGone: d => { removeDrop(d); const i = G.drops.indexOf(d); if (i >= 0) G.drops.splice(i, 1); }, placeLiquid, ignite, checkBlightSummon,
   boneMeal: (x, y, z) => useBoneMeal({ x, y, z, v: G.world.get(x, y, z), ny: 1 }, null), openMachine: k => { Sound.door(true); openPanel("machine", k); } });
 G.rs = R;
+// Play Together (js/multiplayer.js)
+// May a guest change this block? The host's game checks every change a guest sends.
+function guestMayChange(x, y, z, old, v) {
+  const oid = idOf(old), nid = idOf(v);
+  if (oid === nid) return blockDef(old).hardness !== Infinity || isDoor(oid);   // opening a gate or door is fine; quest pieces stay put
+  if (blockDef(old).hardness === Infinity || blockDef(v).hardness === Infinity) return false;   // bedrock, gateways, quest blocks
+  if (nid === B.FIRE || nid === B.PORTAL || oid === B.PORTAL) return false;   // no fires, no portals while playing together
+  if (G.dim === "overworld" && (oid === B.CHEST || oid === B.SIGN)) {   // the Solkara landmarks are protected, like for the host
+    const sites = G.story.leviathan?.sites, hit = { x, y, z };
+    if (oid === B.CHEST ? relicSiteAt(sites, hit, relicCache) : relicSiteAt(sites, hit, shrineSign)?.key === "shrine") return false;
+  }
+  return true;
+}
+// Get a chest or furnace ready for a guest (the same setup the host gets when opening one, loot included)
+function prepareContainer(x, y, z) {
+  const w = G.world, v = w.get(x, y, z), kind = blockDef(v).interact, key = x + "," + y + "," + z;
+  if (kind === "chest" || kind === "shellbox") {
+    if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
+    if (kind === "chest" && (metaOf(v) & LOOT)) { fillLoot(w.containers.get(key), { x, y, z, v }); w.set(x, y, z, make(B.CHEST, metaOf(v) & 3)); }
+    return kind;
+  }
+  if (kind === "furnace") {
+    if (!w.containers.has(key)) w.containers.set(key, { type: "furnace", slots: [null, null, null], burn: 0, burnMax: 0, prog: 0 });
+    return kind;
+  }
+  return null;
+}
+const MP = G.mp = initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeModel, poseModel, disposeModel, World, CHUNK, HEIGHT, idx, chunkKey,
+  version: MP_PROTOCOL + "." + SAVE_VERSION + "." + CURRENT_GEN,
+  openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, validBlock: v => Number.isInteger(v) && !!BLOCKS[idOf(v)], blockDef, itemDef, WATER: B.WATER, LAVA: B.LAVA });
 Adv.init(G, SPECIES, { xp: n => spawnOrbs(n, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z), give: (id, n) => { if (G.inv.add(id, n)) G.dropItem(id, n); } });
 UI.init(G);
 G.applySettings();
