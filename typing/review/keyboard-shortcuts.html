@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Keyboard Shortcuts Review | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css?v=sg1">
+</head>
+<body data-tips="Hold Ctrl first, then tap the letter.|The big four: Copy, Paste, Undo, Select all.|Try 5 shortcuts today without touching the mouse!">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../index.html">
+        <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../index.html" aria-current="page">Typing</a></li>
+          <li><a href="../../science/index.html">Science</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra</a></li>
+          <li><a href="../../ai-helper.html">AI Helper</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="scene-hero wall">
+      <div class="container">
+        <div class="panel title-card rv-title">
+          <p class="panel-head"><span class="ic" aria-hidden="true">⌨️</span> Keyboarding Exam Review • 7th Grade Typing</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="../study-guides.html">← Study Guides</a></p>
+            <h1>Keyboard Shortcuts</h1>
+            <p class="lead">Copy, paste, undo, and more. Learn them with flashcards, practice questions, and a game where you press the real keys.</p>
+            <p class="caption"><span class="caption-tag">Mr. Watford</span>Hold Ctrl, tap the letter, let go. You'll use these every day!</p>
+          </div>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container">
+
+        <div class="rv-tabs" role="tablist" aria-label="Review activities" style="--rv-cols: 5">
+            <button type="button" class="rv-tab" role="tab" id="tab-flashcards" aria-controls="flashcards"><span class="ic" aria-hidden="true">🃏</span><span><strong>Flashcards</strong><small>23 shortcuts</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-practice" aria-controls="practice"><span class="ic" aria-hidden="true">✅</span><span><strong>Practice</strong><small>Multiple choice &amp; T/F</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-matching" aria-controls="matching"><span class="ic" aria-hidden="true">🔗</span><span><strong>Matching</strong><small>Shortcut ↔ action</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-press" aria-controls="press"><span class="ic" aria-hidden="true">🎹</span><span><strong>Press it!</strong><small>Use your keyboard</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-sheet" aria-controls="sheet"><span class="ic" aria-hidden="true">📄</span><span><strong>Study sheet</strong><small>Read &amp; print</small></span></button>
+        </div>
+
+        <section class="panel" id="flashcards" role="tabpanel" aria-labelledby="tab-flashcards">
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🃏</span> Flashcards</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Show first:
+                <select id="fc-mode">
+                  <option value="word">The shortcut</option>
+                  <option value="meaning">What it does</option>
+                </select>
+              </label>
+              <button type="button" class="btn small ghost" id="fc-shuffle">🔀 Shuffle &amp; restart</button>
+            </div>
+            <div id="fc-stage">
+              <p class="rv-count" id="fc-count"></p>
+              <button type="button" class="rv-card" id="fc-card">
+                <span class="rv-face rv-front" id="fc-front"></span>
+                <span class="rv-face rv-back" id="fc-back"></span>
+              </button>
+              <p class="rv-hint">Tap the card to flip it.</p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn small ghost" id="fc-prev">← Back</button>
+                <button type="button" class="btn small rv-learning" id="fc-learning">Still learning</button>
+                <button type="button" class="btn small" id="fc-know">I knew it ✓</button>
+              </div>
+            </div>
+            <div id="fc-done" class="rv-done" hidden>
+              <p class="rv-big" id="fc-done-msg"></p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn" id="fc-again">Practice those cards</button>
+                <button type="button" class="btn ghost" id="fc-restart">Start over with all cards</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="practice" role="tabpanel" aria-labelledby="tab-practice" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">✅</span> Practice</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Questions:
+                <select id="pq-kind">
+                  <option value="mix">Mixed</option>
+                  <option value="mc">Multiple choice only</option>
+                  <option value="tf">True or false only</option>
+                </select>
+              </label>
+              <label>How many:
+                <select id="pq-length">
+                  <option value="10">10 questions</option>
+                  <option value="20">20 questions</option>
+                  <option value="all">All of them</option>
+                </select>
+              </label>
+              <button type="button" class="btn small" id="pq-start">Start</button>
+            </div>
+
+            <div class="rv-row rv-status"><span id="pq-progress"></span><span id="pq-score"></span></div>
+            <div id="pq-box" class="rv-box"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="matching" role="tabpanel" aria-labelledby="tab-matching" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🔗</span> Matching</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <p id="mt-status" class="rv-mt-status" role="status"></p>
+              <button type="button" class="btn small ghost" id="mt-new">🔀 New round</button>
+            </div>
+            <div class="rv-match-grid">
+              <div id="mt-words" class="rv-col"></div>
+              <div id="mt-defs" class="rv-col"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="press" role="tabpanel" aria-labelledby="tab-press" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🎹</span> Press it!</h2>
+          <div class="panel-body">
+            <p class="rv-note">Read what the shortcut does, then press the real keys on your keyboard. Hold <strong>Ctrl</strong> first, then tap the other key. (On a Mac, ⌘ Command works too.) Needs a real keyboard, so it won't work on a phone.</p>
+            <div class="rv-row rv-status"><span id="pr-progress"></span><span id="pr-score"></span></div>
+            <div id="pr-box" class="rv-box"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="sheet" role="tabpanel" aria-labelledby="tab-sheet" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">📄</span> Study sheet</h2>
+          <div class="panel-body rv-sheet">
+            <p><a class="btn small" href="../handouts/keyboard-shortcuts-cheat-sheet.pdf" target="_blank" rel="noopener">🖨️ Open the printable cheat sheet (PDF)</a></p>
+            <p class="rv-note"><strong>How to press a shortcut:</strong> hold down <strong>Ctrl</strong>, tap the letter, then let go of both.</p>
+            <h3>⭐ The four you should NEVER forget</h3>
+            <p class="rv-think"><span><b>Ctrl + C</b> Copy</span><span><b>Ctrl + V</b> Paste</span><span><b>Ctrl + Z</b> Undo</span><span><b>Ctrl + A</b> Select all</span></p>
+            <h3>Editing</h3>
+            <table>
+              <tr><th>Shortcut</th><th>What it does</th></tr>
+              <tr><td>Ctrl + C</td><td>Copy. Highlight a word and copy it.</td></tr>
+              <tr><td>Ctrl + V</td><td>Paste the copied word somewhere else.</td></tr>
+              <tr><td>Ctrl + X</td><td>Cut. Remove text so you can move it somewhere else.</td></tr>
+              <tr><td>Ctrl + Z</td><td>Undo. Deleted a paragraph by accident? Bring it back.</td></tr>
+              <tr><td>Ctrl + Y</td><td>Redo. Undid something by mistake? Do it again.</td></tr>
+              <tr><td>Ctrl + A</td><td>Select all. Highlight everything on the page.</td></tr>
+            </table>
+            <h3>Formatting</h3>
+            <table>
+              <tr><th>Shortcut</th><th>What it does</th></tr>
+              <tr><td>Ctrl + B</td><td><b>Bold</b></td></tr>
+              <tr><td>Ctrl + I</td><td><i>Italicize</i></td></tr>
+              <tr><td>Ctrl + U</td><td><u>Underline</u></td></tr>
+            </table>
+            <h3>Files, finding, and links</h3>
+            <table>
+              <tr><th>Shortcut</th><th>What it does</th></tr>
+              <tr><td>Ctrl + S</td><td>Save. Google Docs saves automatically, but many programs don't.</td></tr>
+              <tr><td>Ctrl + P</td><td>Print</td></tr>
+              <tr><td>Ctrl + F</td><td>Find. Type a word to find every place it appears.</td></tr>
+              <tr><td>Ctrl + K</td><td>Insert a link on highlighted words.</td></tr>
+              <tr><td>Ctrl + Shift + V</td><td>Paste without formatting (no strange fonts or colors).</td></tr>
+              <tr><td>Ctrl + Enter</td><td>Page break. Start typing on a new page.</td></tr>
+            </table>
+            <h3>Text alignment</h3>
+            <table>
+              <tr><th>Shortcut</th><th>What it does</th></tr>
+              <tr><td>Ctrl + Shift + L</td><td>Align left</td></tr>
+              <tr><td>Ctrl + Shift + E</td><td>Center (great for titles)</td></tr>
+              <tr><td>Ctrl + Shift + R</td><td>Align right</td></tr>
+              <tr><td>Ctrl + Shift + J</td><td>Justify (both sides line up evenly)</td></tr>
+            </table>
+            <h3>Google Docs</h3>
+            <table>
+              <tr><th>Shortcut</th><th>What it does</th></tr>
+              <tr><td>Ctrl + Alt + M</td><td>Add a comment</td></tr>
+              <tr><td>Ctrl + Shift + 7</td><td>Numbered list (1, 2, 3)</td></tr>
+              <tr><td>Ctrl + Shift + 8</td><td>Bulleted list (•)</td></tr>
+              <tr><td>Ctrl + Shift + C</td><td>Word count</td></tr>
+            </table>
+            <p class="rv-note"><strong>Challenge:</strong> try to use at least 5 keyboard shortcuts today without touching the mouse!</p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand" href="../../index.html">
+          <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+          <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+        </a>
+        <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+      </div>
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="../index.html">Typing Classroom</a></li>
+          <li><a href="../../science/index.html">Science Experiments</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra Help</a></li>
+          <li><a href="../../ai-helper.html">AI Study Helper</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2>Good to know</h2>
+        <p>No logins or accounts, and no student information collected. Questions typed into the AI Study Helper are sent to an AI service to answer them. Playing Blockhaven together sends game moves through a server to the other players, and nothing is saved.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+  </footer>
+
+  <script src="../../js/site.js"></script>
+  <script src="../../js/reviews/shortcuts.js?v=1"></script>
+  <script src="../../js/review-engine.js?v=1"></script>
+</body>
+</html>

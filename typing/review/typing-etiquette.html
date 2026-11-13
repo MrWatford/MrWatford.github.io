@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Professional Typing Etiquette Review | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css?v=sg1">
+</head>
+<body data-tips="One space after a period.|Proofread before you turn it in!|No texting shortcuts in school work.">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../index.html">
+        <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../index.html" aria-current="page">Typing</a></li>
+          <li><a href="../../science/index.html">Science</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra</a></li>
+          <li><a href="../../ai-helper.html">AI Helper</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="scene-hero wall">
+      <div class="container">
+        <div class="panel title-card rv-title">
+          <p class="panel-head"><span class="ic" aria-hidden="true">✍️</span> Quiz Review • 7th Grade Typing</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="../study-guides.html">← Study Guides</a></p>
+            <h1>Professional Typing Etiquette</h1>
+            <p class="lead">Capital letters, punctuation, proofreading, and a professional tone. Practice by fixing messy sentences!</p>
+            <p class="caption"><span class="caption-tag">Mr. Watford</span>Type it like your teacher or your future boss is reading it!</p>
+          </div>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container">
+
+        <div class="rv-tabs" role="tablist" aria-label="Review activities" style="--rv-cols: 5">
+            <button type="button" class="rv-tab" role="tab" id="tab-fix" aria-controls="fix"><span class="ic" aria-hidden="true">🛠️</span><span><strong>Fix it</strong><small>Retype it correctly</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-practice" aria-controls="practice"><span class="ic" aria-hidden="true">✅</span><span><strong>Practice</strong><small>Multiple choice &amp; T/F</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-flashcards" aria-controls="flashcards"><span class="ic" aria-hidden="true">🃏</span><span><strong>Flashcards</strong><small>Key terms</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-matching" aria-controls="matching"><span class="ic" aria-hidden="true">🔗</span><span><strong>Matching</strong><small>Term ↔ meaning</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-sheet" aria-controls="sheet"><span class="ic" aria-hidden="true">📄</span><span><strong>Study sheet</strong><small>Read &amp; print</small></span></button>
+        </div>
+
+        <section class="panel" id="fix" role="tabpanel" aria-labelledby="tab-fix" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🛠️</span> Fix it</h2>
+          <div class="panel-body">
+            <p class="rv-note">Each sentence has mistakes. Type it the correct way: capital letters, punctuation, spelling, and spacing all count! Press Enter or <strong>Check</strong>.</p>
+            <div class="rv-row rv-status"><span id="fx-progress"></span><span id="fx-score"></span></div>
+            <div id="fx-box" class="rv-box"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="practice" role="tabpanel" aria-labelledby="tab-practice" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">✅</span> Practice</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Questions:
+                <select id="pq-kind">
+                  <option value="mix">Mixed</option>
+                  <option value="mc">Multiple choice only</option>
+                  <option value="tf">True or false only</option>
+                </select>
+              </label>
+              <label>How many:
+                <select id="pq-length">
+                  <option value="10">10 questions</option>
+                  <option value="20">20 questions</option>
+                  <option value="all">All of them</option>
+                </select>
+              </label>
+              <button type="button" class="btn small" id="pq-start">Start</button>
+            </div>
+
+            <div class="rv-row rv-status"><span id="pq-progress"></span><span id="pq-score"></span></div>
+            <div id="pq-box" class="rv-box"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="flashcards" role="tabpanel" aria-labelledby="tab-flashcards">
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🃏</span> Flashcards</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Show first:
+                <select id="fc-mode">
+                  <option value="word">The term</option>
+                  <option value="meaning">The meaning</option>
+                </select>
+              </label>
+              <button type="button" class="btn small ghost" id="fc-shuffle">🔀 Shuffle &amp; restart</button>
+            </div>
+            <div id="fc-stage">
+              <p class="rv-count" id="fc-count"></p>
+              <button type="button" class="rv-card" id="fc-card">
+                <span class="rv-face rv-front" id="fc-front"></span>
+                <span class="rv-face rv-back" id="fc-back"></span>
+              </button>
+              <p class="rv-hint">Tap the card to flip it.</p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn small ghost" id="fc-prev">← Back</button>
+                <button type="button" class="btn small rv-learning" id="fc-learning">Still learning</button>
+                <button type="button" class="btn small" id="fc-know">I knew it ✓</button>
+              </div>
+            </div>
+            <div id="fc-done" class="rv-done" hidden>
+              <p class="rv-big" id="fc-done-msg"></p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn" id="fc-again">Practice those cards</button>
+                <button type="button" class="btn ghost" id="fc-restart">Start over with all cards</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="matching" role="tabpanel" aria-labelledby="tab-matching" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🔗</span> Matching</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <p id="mt-status" class="rv-mt-status" role="status"></p>
+              <button type="button" class="btn small ghost" id="mt-new">🔀 New round</button>
+            </div>
+            <div class="rv-match-grid">
+              <div id="mt-words" class="rv-col"></div>
+              <div id="mt-defs" class="rv-col"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="sheet" role="tabpanel" aria-labelledby="tab-sheet" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">📄</span> Study sheet</h2>
+          <div class="panel-body rv-sheet">
+            <h3>Capital letters</h3>
+            <ul class="checklist">
+              <li>Capitalize the <strong>first word</strong> of every sentence.</li>
+              <li>Capitalize <strong>names</strong> of people, places, days, and titles: <span class="rv-good">Sarah Johnson, Texas, Saturday, Mr. Watford</span>.</li>
+              <li>The word <strong>I</strong> is always a capital.</li>
+              <li>Don't capitalize words that aren't names: <span class="rv-bad">We Went to the Store.</span> → <span class="rv-good">We went to the store.</span></li>
+              <li>Hold <strong>Shift</strong> to type a capital letter.</li>
+            </ul>
+            <h3>Punctuation and spacing</h3>
+            <ul class="checklist">
+              <li>Every sentence ends with a <strong>period .</strong>, <strong>question mark ?</strong>, or <strong>exclamation point !</strong></li>
+              <li>Questions end with a question mark: <span class="rv-good">What time is lunch?</span></li>
+              <li>Put <strong>one space</strong> after a period.</li>
+              <li>Quotation marks: comma before, capital first word inside, period inside: <span class="rv-good">Mom said, "Clean your room."</span></li>
+            </ul>
+            <h3>Complete sentences</h3>
+            <ul class="checklist">
+              <li>A complete sentence has a <strong>subject</strong> and a <strong>verb</strong>, starts with a capital, and ends with punctuation: <span class="rv-good">The dog chased the ball.</span></li>
+              <li>A <strong>fragment</strong> is missing something: <span class="rv-bad">Chasing the ball</span></li>
+            </ul>
+            <h3>Professional style</h3>
+            <ul class="checklist">
+              <li>Use a <strong>respectful, professional tone</strong>, not silly, slangy, or dramatic.</li>
+              <li>No <strong>texting shortcuts</strong> (u, idk, lol) and no <strong>emojis</strong>. They can make your meaning unclear.</li>
+              <li>Use simple fonts like <strong>Arial</strong> or <strong>Times New Roman</strong>.</li>
+              <li>Use <strong>paragraphs</strong> to separate ideas. Press <strong>Enter</strong> to start a new paragraph.</li>
+            </ul>
+            <h3>Proofreading</h3>
+            <ul class="checklist">
+              <li>Proofreading means reading your work to <strong>find and fix mistakes</strong>.</li>
+              <li>Check <strong>capital letters</strong>, <strong>punctuation</strong>, and <strong>spelling</strong>. (Proofreading doesn't change your topic.)</li>
+              <li>See a mistake while typing? Fix it right away with <strong>Backspace</strong>.</li>
+              <li>Always proofread <strong>one last time</strong> before you turn in your work.</li>
+            </ul>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand" href="../../index.html">
+          <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+          <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+        </a>
+        <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+      </div>
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="../index.html">Typing Classroom</a></li>
+          <li><a href="../../science/index.html">Science Experiments</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra Help</a></li>
+          <li><a href="../../ai-helper.html">AI Study Helper</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2>Good to know</h2>
+        <p>No logins or accounts, and no student information collected. Questions typed into the AI Study Helper are sent to an AI service to answer them. Playing Blockhaven together sends game moves through a server to the other players, and nothing is saved.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+  </footer>
+
+  <script src="../../js/site.js"></script>
+  <script src="../../js/reviews/typing-etiquette.js?v=1"></script>
+  <script src="../../js/review-engine.js?v=1"></script>
+</body>
+</html>

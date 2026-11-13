@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Key Locations Review | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css?v=sg1">
+</head>
+<body data-tips="Feel for the bumps on F and J!|Left hand: A S D F. Right hand: J K L ;|The top letter row spells QWERTY.">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../index.html">
+        <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../index.html" aria-current="page">Typing</a></li>
+          <li><a href="../../science/index.html">Science</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra</a></li>
+          <li><a href="../../ai-helper.html">AI Helper</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="scene-hero wall">
+      <div class="container">
+        <div class="panel title-card rv-title">
+          <p class="panel-head"><span class="ic" aria-hidden="true">🔤</span> Keyboarding Exam Review • 7th Grade Typing</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="../study-guides.html">← Study Guides</a></p>
+            <h1>Key Locations</h1>
+            <p class="lead">Where every key lives. Practice with fresh questions every round, then label a blank keyboard just like on the exam.</p>
+            <p class="caption"><span class="caption-tag">Mr. Watford</span>Close your eyes and picture the keyboard. Can you see where G is?</p>
+          </div>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container">
+
+        <div class="rv-tabs" role="tablist" aria-label="Review activities" style="--rv-cols: 5">
+            <button type="button" class="rv-tab" role="tab" id="tab-keyboard" aria-controls="keyboard"><span class="ic" aria-hidden="true">⌨️</span><span><strong>Label it</strong><small>Fill in the keyboard</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-practice" aria-controls="practice"><span class="ic" aria-hidden="true">✅</span><span><strong>Practice</strong><small>New questions every time</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-flashcards" aria-controls="flashcards"><span class="ic" aria-hidden="true">🃏</span><span><strong>Flashcards</strong><small>Rows &amp; special keys</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-matching" aria-controls="matching"><span class="ic" aria-hidden="true">🔗</span><span><strong>Matching</strong><small>Key ↔ fact</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-sheet" aria-controls="sheet"><span class="ic" aria-hidden="true">📄</span><span><strong>Study sheet</strong><small>Read &amp; print</small></span></button>
+        </div>
+
+        <section class="panel" id="keyboard" role="tabpanel" aria-labelledby="tab-keyboard" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">⌨️</span> Label it</h2>
+          <div class="panel-body">
+            <h3 style="margin-top:0">Fill in the keyboard</h3>
+            <p>Type each letter (A–Z) and number (1–0) on the correct blank key, just like on the exam. Click a key to start. The cursor jumps to the next key for you.</p>
+            <div class="rv-row rv-bar">
+              <label><input type="checkbox" id="kb-instant"> Show right/wrong as I type</label>
+              <span class="rv-row">
+                <button type="button" class="btn small" id="kb-check">Check my keyboard</button>
+                <button type="button" class="btn small ghost" id="kb-show">Show answers</button>
+                <button type="button" class="btn small ghost" id="kb-reset">Start over</button>
+              </span>
+            </div>
+            <p class="kb-status" id="kb-fill-status" role="status"></p>
+            <div id="kb-fill"></div>
+            <h3 style="margin-top:28px">Find the key</h3>
+            <p>A letter or number appears. Click where it goes on the blank keyboard. 15 keys per round.</p>
+            <div class="rv-row rv-bar">
+              <p class="kb-status" id="kb-find-status" role="status" style="margin:0"></p>
+              <button type="button" class="btn small ghost" id="kb-find-new">🔀 New round</button>
+            </div>
+            <div id="kb-find"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="practice" role="tabpanel" aria-labelledby="tab-practice" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">✅</span> Practice</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Questions:
+                <select id="pq-kind">
+                  <option value="mix">Mixed</option>
+                  <option value="mc">Multiple choice only</option>
+                  <option value="tf">True or false only</option>
+                </select>
+              </label>
+              <label>How many:
+                <select id="pq-length">
+                  <option value="10">10 questions</option>
+                  <option value="20">20 questions</option>
+                  <option value="all">All of them</option>
+                </select>
+              </label>
+              <button type="button" class="btn small" id="pq-start">Start</button>
+            </div>
+            <p class="rv-note">The "where is this key?" questions are made fresh from the real keyboard every time you press Start, so you can practice as much as you want.</p>
+            <div class="rv-row rv-status"><span id="pq-progress"></span><span id="pq-score"></span></div>
+            <div id="pq-box" class="rv-box"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="flashcards" role="tabpanel" aria-labelledby="tab-flashcards">
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🃏</span> Flashcards</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Show first:
+                <select id="fc-mode">
+                  <option value="word">The key</option>
+                  <option value="meaning">What to know</option>
+                </select>
+              </label>
+              <button type="button" class="btn small ghost" id="fc-shuffle">🔀 Shuffle &amp; restart</button>
+            </div>
+            <div id="fc-stage">
+              <p class="rv-count" id="fc-count"></p>
+              <button type="button" class="rv-card" id="fc-card">
+                <span class="rv-face rv-front" id="fc-front"></span>
+                <span class="rv-face rv-back" id="fc-back"></span>
+              </button>
+              <p class="rv-hint">Tap the card to flip it.</p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn small ghost" id="fc-prev">← Back</button>
+                <button type="button" class="btn small rv-learning" id="fc-learning">Still learning</button>
+                <button type="button" class="btn small" id="fc-know">I knew it ✓</button>
+              </div>
+            </div>
+            <div id="fc-done" class="rv-done" hidden>
+              <p class="rv-big" id="fc-done-msg"></p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn" id="fc-again">Practice those cards</button>
+                <button type="button" class="btn ghost" id="fc-restart">Start over with all cards</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="matching" role="tabpanel" aria-labelledby="tab-matching" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🔗</span> Matching</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <p id="mt-status" class="rv-mt-status" role="status"></p>
+              <button type="button" class="btn small ghost" id="mt-new">🔀 New round</button>
+            </div>
+            <div class="rv-match-grid">
+              <div id="mt-words" class="rv-col"></div>
+              <div id="mt-defs" class="rv-col"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="sheet" role="tabpanel" aria-labelledby="tab-sheet" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">📄</span> Study sheet</h2>
+          <div class="panel-body rv-sheet">
+            <h3>The rows</h3>
+            <table>
+              <tr><th>Row</th><th>Keys</th></tr>
+              <tr><td>Number row</td><td>` 1 2 3 4 5 6 7 8 9 0 - =</td></tr>
+              <tr><td>Top row</td><td>Q W E R T Y U I O P [ ] \</td></tr>
+              <tr><td>Home row</td><td>A S D F G H J K L ; '</td></tr>
+              <tr><td>Bottom row</td><td>Z X C V B N M , . /</td></tr>
+            </table>
+            <h3>The home row</h3>
+            <ul class="checklist">
+              <li><strong>Left hand</strong> rests on <strong>A S D F</strong>.</li>
+              <li><strong>Right hand</strong> rests on <strong>J K L ;</strong></li>
+              <li><strong>F and J</strong> have small bumps so you can find the home row without looking.</li>
+              <li><strong>Thumbs</strong> rest on the space bar.</li>
+            </ul>
+            <h3>Special keys</h3>
+            <table>
+              <tr><th>Key</th><th>What it does</th></tr>
+              <tr><td>Backspace</td><td>Erases the character to the LEFT of the cursor.</td></tr>
+              <tr><td>Caps Lock</td><td>Makes every letter a capital until you press it again.</td></tr>
+              <tr><td>Shift</td><td>Hold it for ONE capital letter, or for the symbol on the top half of a key.</td></tr>
+              <tr><td>Enter</td><td>Starts a new line or paragraph.</td></tr>
+              <tr><td>Tab</td><td>Jumps forward, like indenting a paragraph.</td></tr>
+              <tr><td>Space bar</td><td>Makes a space. Press it with your thumb.</td></tr>
+            </table>
+            <h3>Symbols on the number keys (hold Shift)</h3>
+            <p class="rv-think"><span>1 <b>!</b></span><span>2 <b>@</b></span><span>3 <b>#</b></span><span>4 <b>$</b></span><span>5 <b>%</b></span><span>6 <b>^</b></span><span>7 <b>&amp;</b></span><span>8 <b>*</b></span><span>9 <b>(</b></span><span>0 <b>)</b></span></p>
+            <h3>Why is it called QWERTY?</h3>
+            <p>A standard keyboard is named after the first six letters on its top letter row: <strong>Q W E R T Y</strong>.</p>
+            <h3>Tips for picturing the keyboard</h3>
+            <ul class="checklist">
+              <li>Each row sits a little to the right of the row above it. So the key "below" E is D, and the number "above" T is 5.</li>
+              <li>Say the rows out loud: "Q W E R T Y U I O P", "A S D F G H J K L", "Z X C V B N M".</li>
+              <li>Use the <a href="../how-to-type.html">finger chart</a> to see which finger presses each key.</li>
+            </ul>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand" href="../../index.html">
+          <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+          <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+        </a>
+        <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+      </div>
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="../index.html">Typing Classroom</a></li>
+          <li><a href="../../science/index.html">Science Experiments</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra Help</a></li>
+          <li><a href="../../ai-helper.html">AI Study Helper</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2>Good to know</h2>
+        <p>No logins or accounts, and no student information collected. Questions typed into the AI Study Helper are sent to an AI service to answer them. Playing Blockhaven together sends game moves through a server to the other players, and nothing is saved.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+  </footer>
+
+  <script src="../../js/site.js"></script>
+  <script src="../../js/reviews/key-locations.js?v=1"></script>
+  <script src="../../js/review-engine.js?v=1"></script>
+</body>
+</html>

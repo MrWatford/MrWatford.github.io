@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Computer Basics Review | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css?v=sg1">
+</head>
+<body data-tips="Save your work early and often!|Keep drinks away from the keyboard.|Never open links from strangers.">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../index.html">
+        <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../index.html" aria-current="page">Typing</a></li>
+          <li><a href="../../science/index.html">Science</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra</a></li>
+          <li><a href="../../ai-helper.html">AI Helper</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="scene-hero wall">
+      <div class="container">
+        <div class="panel title-card rv-title">
+          <p class="panel-head"><span class="ic" aria-hidden="true">💻</span> Keyboarding Exam Review • 7th Grade Typing</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="../study-guides.html">← Study Guides</a></p>
+            <h1>Computer Basics</h1>
+            <p class="lead">Parts of a computer, getting online, saving and shutting down, and staying safe.</p>
+            <p class="caption"><span class="caption-tag">Mr. Watford</span>Save often, shut down the right way, and never click strange pop-ups!</p>
+          </div>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container">
+
+        <div class="rv-tabs" role="tablist" aria-label="Review activities" style="--rv-cols: 4">
+            <button type="button" class="rv-tab" role="tab" id="tab-flashcards" aria-controls="flashcards"><span class="ic" aria-hidden="true">🃏</span><span><strong>Flashcards</strong><small>16 key words</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-practice" aria-controls="practice"><span class="ic" aria-hidden="true">✅</span><span><strong>Practice</strong><small>Multiple choice &amp; T/F</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-matching" aria-controls="matching"><span class="ic" aria-hidden="true">🔗</span><span><strong>Matching</strong><small>Word ↔ meaning</small></span></button>
+            <button type="button" class="rv-tab" role="tab" id="tab-sheet" aria-controls="sheet"><span class="ic" aria-hidden="true">📄</span><span><strong>Study sheet</strong><small>Read &amp; print</small></span></button>
+        </div>
+
+        <section class="panel" id="flashcards" role="tabpanel" aria-labelledby="tab-flashcards">
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🃏</span> Flashcards</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Show first:
+                <select id="fc-mode">
+                  <option value="word">The word</option>
+                  <option value="meaning">The meaning</option>
+                </select>
+              </label>
+              <button type="button" class="btn small ghost" id="fc-shuffle">🔀 Shuffle &amp; restart</button>
+            </div>
+            <div id="fc-stage">
+              <p class="rv-count" id="fc-count"></p>
+              <button type="button" class="rv-card" id="fc-card">
+                <span class="rv-face rv-front" id="fc-front"></span>
+                <span class="rv-face rv-back" id="fc-back"></span>
+              </button>
+              <p class="rv-hint">Tap the card to flip it.</p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn small ghost" id="fc-prev">← Back</button>
+                <button type="button" class="btn small rv-learning" id="fc-learning">Still learning</button>
+                <button type="button" class="btn small" id="fc-know">I knew it ✓</button>
+              </div>
+            </div>
+            <div id="fc-done" class="rv-done" hidden>
+              <p class="rv-big" id="fc-done-msg"></p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn" id="fc-again">Practice those cards</button>
+                <button type="button" class="btn ghost" id="fc-restart">Start over with all cards</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="practice" role="tabpanel" aria-labelledby="tab-practice" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">✅</span> Practice</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Questions:
+                <select id="pq-kind">
+                  <option value="mix">Mixed</option>
+                  <option value="mc">Multiple choice only</option>
+                  <option value="tf">True or false only</option>
+                </select>
+              </label>
+              <label>How many:
+                <select id="pq-length">
+                  <option value="10">10 questions</option>
+                  <option value="20">20 questions</option>
+                  <option value="all">All of them</option>
+                </select>
+              </label>
+              <button type="button" class="btn small" id="pq-start">Start</button>
+            </div>
+
+            <div class="rv-row rv-status"><span id="pq-progress"></span><span id="pq-score"></span></div>
+            <div id="pq-box" class="rv-box"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="matching" role="tabpanel" aria-labelledby="tab-matching" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🔗</span> Matching</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <p id="mt-status" class="rv-mt-status" role="status"></p>
+              <button type="button" class="btn small ghost" id="mt-new">🔀 New round</button>
+            </div>
+            <div class="rv-match-grid">
+              <div id="mt-words" class="rv-col"></div>
+              <div id="mt-defs" class="rv-col"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="sheet" role="tabpanel" aria-labelledby="tab-sheet" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">📄</span> Study sheet</h2>
+          <div class="panel-body rv-sheet">
+            <h3>Parts of a computer</h3>
+            <table>
+              <tr><th>Part</th><th>What it does</th></tr>
+              <tr><td>Keyboard</td><td>Type letters and numbers.</td></tr>
+              <tr><td>Mouse</td><td>Point and click on things on the screen.</td></tr>
+              <tr><td>Monitor</td><td>The screen that shows your work.</td></tr>
+              <tr><td>Speakers</td><td>Play sound.</td></tr>
+              <tr><td>USB flash drive</td><td>Stores files so you can carry them to another computer.</td></tr>
+              <tr><td>Power / battery</td><td>Every computer needs power from a plug or a charged battery to work.</td></tr>
+            </table>
+            <h3>Getting online</h3>
+            <table>
+              <tr><th>Word</th><th>Meaning</th></tr>
+              <tr><td>Internet</td><td>The network that connects computers around the world. You need it to visit websites.</td></tr>
+              <tr><td>Wi-Fi</td><td>Connects to the internet without a cable.</td></tr>
+              <tr><td>Web browser</td><td>The program you use to visit websites, like Google Chrome.</td></tr>
+              <tr><td>www</td><td>World Wide Web</td></tr>
+              <tr><td>Google</td><td>A website for searching for information.</td></tr>
+            </table>
+            <h3>Working smart</h3>
+            <ul class="checklist">
+              <li><strong>Google Docs</strong> is the program for typing essays and reports.</li>
+              <li>The <strong>desktop</strong> is the main screen with icons and a background picture.</li>
+              <li>The <strong>cursor</strong> is the blinking line that shows where your typing goes.</li>
+              <li><strong>Save often</strong> so your work doesn't get lost.</li>
+              <li>Deleted something? It usually goes to the <strong>Recycle Bin or Trash</strong> first.</li>
+              <li>Turn the computer off the right way: choose <strong>Shut Down</strong> from the menu. Don't just unplug it. Save first!</li>
+              <li>Keep <strong>drinks away</strong> from the keyboard. A spill can damage it.</li>
+            </ul>
+            <h3>Staying safe</h3>
+            <ul class="checklist">
+              <li><strong>Strong passwords</strong> are long and mix letters, numbers, and symbols. Never share yours, even with friends.</li>
+              <li><strong>Pop-up ads</strong> can be tricks. Close them; don't click inside them.</li>
+              <li><strong>Don't open links</strong> sent to you by strangers.</li>
+              <li>See something online that makes you uncomfortable? <strong>Tell a teacher or parent.</strong></li>
+            </ul>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand" href="../../index.html">
+          <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+          <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+        </a>
+        <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+      </div>
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="../index.html">Typing Classroom</a></li>
+          <li><a href="../../science/index.html">Science Experiments</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra Help</a></li>
+          <li><a href="../../ai-helper.html">AI Study Helper</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2>Good to know</h2>
+        <p>No logins or accounts, and no student information collected. Questions typed into the AI Study Helper are sent to an AI service to answer them. Playing Blockhaven together sends game moves through a server to the other players, and nothing is saved.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+  </footer>
+
+  <script src="../../js/site.js"></script>
+  <script src="../../js/reviews/computer-basics.js?v=1"></script>
+  <script src="../../js/review-engine.js?v=1"></script>
+</body>
+</html>
