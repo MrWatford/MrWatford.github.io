@@ -376,6 +376,40 @@ Mr. Watford's request: let players pick any chapter, whatever their save says, s
 | The Whole Story | Done | New "Legacy Campaign" achievements tab: A Legend Begins (beat a chapter boss) and The Whole Story (Chapter 1 to the end of Chapter 6 with no skipping, 500 XP). Choosing Chapter 1 starts a fresh run. The journal shows whether the run is still on track; the campaign list shows 🏆. Older saves that already finished Chapter 6 without skipping get it automatically |
 | Fix | Done | Boss Relics aren't given twice if you already carry that Relic |
 
+## Milestone 13 Part F: Chapter 7, The Ancient City (built and browser-tested 2026-11-12, not published)
+The story now runs through Echohold. Changed: `js/campaign-data.js` (3 quests + a Chapter 8 placeholder, Relic reward), `js/campaign.js` (Echohold steps, quest marker, Elder Maren's lines, chapter select, old saves), `js/lost.js` (the Sovereign hands over the Relic; `L.goal()` shared by the Survey Map and the quest marker), `js/blocks.js` (item 614 Relic of the Abyss), `js/main.js` (story items always fit in the pack), `index.html` (Chapter 7 in "Start at"; version tags `?v=campaign-7`). Backups: `tools/backups/pre-campaign-ch7-2026-11-12/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| The City That Listens | Done | Show the Relic of Shadows to Elder Maren (she tells of Echohold and points to the Keeper dig site), then ride the Keeper lift into the Deep |
+| The First Warden | Done | Reach the city, then defeat the First Warden in the Citadel (Echohold's own fight, unchanged) |
+| Beyond the First Gate | Done | Set the three temple relics and the Resonance Core in the First Gate and open it, cross to the Echo Expanse, quiet the three forge anchors, and calm the Resonant Sovereign. Reward: the seventh Relic, the Relic of the Abyss, with a note that shows the way to Chapter 8 |
+| Quest marker | Done | On the Surface it points to the Keeper excavation; in the Deep and the Expanse it points where the Survey Map does |
+| Chapter select | Done | "Start at" and the journal now offer Chapter 7. Starting at Chapter 4 or later also gives the Solar Seal, Verdant Lens, and Tidal Heart if the save never took them. Replaying Chapter 7 lets the Warden and the Sovereign be fought again (the gate stays open) |
+| Old saves | Done | A save waiting at "Chapter 7 arrives in the next update" continues straight into Chapter 7. Chapter 8 now shows "coming soon" |
+| Full pack fix | Done | Story items (Relics, keys, the Warden's core, the Cinder Eye) always go into the pack: if it's full, the last ordinary stack drops at your feet instead, with a message. (A Chapter 7 start fills all 36 slots, so the Warden's core and the Relic had been landing on the floor) |
+
+Tested in a throwaway campaign world (started at Chapter 7; deleted afterward): every step advances, the Relic arrives with a full pack, the chapter card for Chapter 8 shows, replaying Chapter 7 resets its two bosses and takes the 7th Relic back, an old save at the placeholder moves into Chapter 7 after save + reload, an ordinary Survival world still loads, and every item icon draws. Not tested by playing the real fights again (they are Echohold's own, unchanged). Still needed: a Chromebook test.
+
+## Milestone 13 Part G: Chapter 8, The End of the First Builders (built and browser-tested 2026-11-12, not published)
+The finale, with Mr. Watford's choices: all three stops, a choice of endings (set the King free or banish him), and credits reading "Created by Mr. Watford". Boss looks come from the "Chapter 8 Concepts" bestiary sheet (Blockhaven D). New: `js/campaign-towns3.js` (Skyreach, the Ruined Capital). Changed: `campaign.js`, `campaign-data.js`, `campaign-bosses.js`, `entities.js` (two boss models; warning-only floor glows don't hurt; `grow` scale), `main.js` (the Hollow Wyrm gives the Relic of the Void in campaigns instead of a Cinder Eye), `blocks.js` (items 615 Relic of the Void, 616 Crown Key), `advancements.js`, `index.html` (`?v=campaign-8`, new import-map entry, Chapter 8 in "Start at"). Backups: `tools/backups/pre-campaign-ch8-2026-11-12/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| The Last Relic | Done | Elder Maren hands over 14 Eyes of the Void; the marker points to the nearest stronghold; jump into the Hollow |
+| Beyond the World's Edge | Done | Defeat the Hollow Wyrm for the eighth Relic. If the Wyrm was beaten before (or Chapter 8 is replayed), it returns for the story |
+| Skyreach | Done | A floating island city about 26 blocks up: the Sky Stair tower and bridge, the Relic Forge (Keeper Solenne, 8 pedestals), Sky Gardens, houses, drifting islets, two Waystones (landing and island) |
+| The Sky Sovereign | Done | White marble and gold, blue core, halo, wing slabs. Lightning, gust + feather line, a dive (it lands: strike then), storm ring with gaps; Rune Stone shield; skeletons in phase 3. Reward: the Crown Key |
+| The Ruined Capital | Done | 128-block ruined city: the kingdoms' camp (Captain Brenna, Forgemaster Hilda, Sable, supply chest, armory), the Grand Avenue with statues and banners, ruined houses, the Gate of Eight (8 pedestals, Rune Stone), sealed Throne Court, tall broken spires |
+| The Forgotten King | Done | 4 phases. 1: sweep, slam, crown bolts, charge. 2 "Echoes of the Fallen": shield + 3 Rune Stones, the Pharaoh's sand bolt, the Leviathan's tidal ring, the Tempest's falling earth. 3 "The Hollow Crown": steps between pillars, void bolts, crumbling edge. 4 "The Last Stand": grows, 8 Relic glyphs circle him, Void Waves (only the golden Relic Light is safe), full damage only while he staggers |
+| The final choice | Done | Set him free (he becomes King Elarion again and fades in golden light) or banish him into the Void. Each has its own scene and celebration text. If the game closes before choosing, the choice comes back on reload |
+| Homecoming + credits | Done | Walk into Legacy Village's Fountain Plaza: fireworks, the celebration note, scrolling credits (ending, "Created by Mr. Watford", chapters, Relics, legends, people, footer). Replay the credits from the journal |
+| Chapter select | Done | Chapter 8 in "Start at" and the journal. A new save that starts later puts on its best armor and drops outgrown starter tools (a Chapter 8 start had filled the whole pack). Replaying Chapter 8 resets its bosses and the Eyes; the opened Gate of Eight stays open |
+| Achievements | Done | Above the Clouds, The Forgotten King, The King Set Free, The King Banished, Both Sides of the Story. The Whole Story now means Chapter 1 to the homecoming. A Legend Begins also counts the Chapter 7–8 Relic bosses |
+| Old saves | Done | A save waiting at "Chapter 8 arrives in the next update" continues into Chapter 8 |
+
+Tested in a throwaway campaign world started at Chapter 8 (deleted afterward): every quest step, the Hollow trip and Wyrm reward, Skyreach (stair-to-island walk path checked block by block), the Sky Sovereign's 4 attacks + shield + reward, the camp, the Gate of Eight (refuses without the key), all 4 King phases (Relic Light protects, outside hurts, stagger gives full damage), both endings, homecoming + credits, achievements, Chapter 8 replay, save + reload. Also a fresh Chapter 7 start and an ordinary Survival world. Fights were driven with test shortcuts (damage applied directly), not played by hand; not yet tested on a Chromebook.
+
 ## Creature art from the bestiary (2026-11-06)
 Mr. Watford's bestiary sheets (Blockhaven A–G). Pass 1 (Codex, published 2026-11-06): 27 creatures (Surface monsters, temple and Echohold creatures). Pass 2 (`applyBestiaryPass2` in `js/entities.js`, built and browser-tested 2026-11-06, not published): 24 more, plus the Blight Tempest, all with the same soft face shading. Colors and materials follow the sheets; faces and details are Blockhaven's own (no copied Minecraft faces).
 
