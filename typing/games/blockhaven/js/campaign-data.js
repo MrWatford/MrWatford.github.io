@@ -7,6 +7,7 @@
 //   eat               eat anything                     kill (sp)         defeat that creature (any monster if no sp)
 //   trade             trade with anyone                have (ids, n)     carry n of those items
 //   places (list, n)  visit n of the listed places     flag (flag)       a story moment sets the flag
+//   lost (key)        an Echohold milestone: city (reached the city), warden (First Warden defeated), gate (First Gate open), anchors (3 forge anchors quieted)
 //   soon              coming in a future update (never completes)
 import { B, I } from "./blocks.js";
 
@@ -95,7 +96,12 @@ export const NPCS = {
   sable: { name: "Expedition Leader Sable", prof: "fletcher", role: "Royal Expedition", hello: "Welcome to the hottest camp in the five kingdoms. Literally. Don't touch the portal frame." },
   quill: { name: "Scholar Quill", prof: "cleric", role: "Expedition Scholar", hello: "Did you know the First Builders wrote everything twice? Once for people, once for dragons." },
   // Hollowmere (Chapter 6)
-  ilsa: { name: "Watcher Ilsa", prof: "shepherd", role: "The Last Villager", hello: "Someone has to keep the lamps lit. The fog doesn't like light, and I don't like the fog." }
+  ilsa: { name: "Watcher Ilsa", prof: "shepherd", role: "The Last Villager", hello: "Someone has to keep the lamps lit. The fog doesn't like light, and I don't like the fog." },
+  // Skyreach and the Ruined Capital (Chapter 8)
+  solenne: { name: "Keeper Solenne", prof: "cleric", role: "The Last Sky Keeper", hello: "The wind told me you were coming. The wind talks a great deal, but this time it was right." },
+  brenna8: { name: "Captain Brenna", prof: "fletcher", role: "Captain of the Kingdoms", hello: "Every kingdom you saved sent someone. We're here because of you. Now let's finish this." },
+  hilda8: { name: "Forgemaster Hilda", prof: "smith", role: "Ironhold's Forgemaster", hello: "I carried my best anvil all the way from Ironhold. If you need gear, now's the time." },
+  sable8: { name: "Expedition Leader Sable", prof: "fletcher", role: "Royal Expedition", hello: "I've camped beside dragons and rivers of lava. A haunted capital? Practically a vacation." }
 };
 
 // Places in the other towns and dungeons (Chapters 1–3)
@@ -112,7 +118,10 @@ Object.assign(PLACES, {
   mineGallery0: { name: "The West Gallery" }, mineGallery1: { name: "The South Gallery" }, mineGallery2: { name: "The East Gallery" },
   blightCitadel: { name: "The Blight Citadel" }, outpost: { name: "The Ember Outpost" },
   seal0: { name: "The First Dragon Shrine" }, seal1: { name: "The Second Dragon Shrine" }, seal2: { name: "The Third Dragon Shrine" }, cinderCitadel: { name: "The Cinder Citadel" },
-  hollowmere: { name: "Hollowmere" }, hmHall: { name: "The Meeting Hall" }, hmWell: { name: "The Old Well" }, hmLab: { name: "Dr. Vell's Observatory" }
+  hollowmere: { name: "Hollowmere" }, hmHall: { name: "The Meeting Hall" }, hmWell: { name: "The Old Well" }, hmLab: { name: "Dr. Vell's Observatory" },
+  // Chapter 8
+  skyreach: { name: "Skyreach Landing" }, skyreachIsle: { name: "Skyreach" }, skyForge: { name: "The Relic Forge" }, skyGarden: { name: "The Sky Gardens" }, stormSpire: { name: "The Storm Spire" },
+  capital: { name: "The Ruined Capital" }, avenue: { name: "The Grand Avenue" }, capitalGate: { name: "The Gate of Eight" }, throneCourt: { name: "The Throne Court" }
 });
 
 // Loot for the village's chests (early-game supplies only; nothing that skips ahead)
@@ -187,7 +196,15 @@ export const LOOT = {
   // Hollowmere
   hmHome: [[I.BREAD, 2], [B.TORCH, 4], [I.STRING, 3]],
   hmIlsa: [[I.BREAD, 6], [I.APPLE, 6], [I.COOKED_CHICKEN, 4]],
-  hmLab: [[I.PALE_LANTERN, 1], [I.PALE_SHARD, 3], [I.GOLDEN_APPLE, 1], [B.TORCH, 16]]
+  hmLab: [[I.PALE_LANTERN, 1], [I.PALE_SHARD, 3], [I.GOLDEN_APPLE, 1], [B.TORCH, 16]],
+  // Skyreach and the Ruined Capital (Chapter 8)
+  skyLanding: [[I.BREAD, 8], [B.TORCH, 16], [I.ARROW, 32]],
+  skyForge: [[I.GOLDEN_APPLE, 2], [I.SKYSHARD, 6], [I.GOLD_INGOT, 8]],
+  skyHouse: [[I.COOKED_CHICKEN, 6], [I.GOLDEN_CARROT, 6]],
+  capSupplies: [[I.GOLDEN_APPLE, 4], [I.STEAK, 12], [I.ARROW, 64], [I.GOLDEN_CARROT, 8]],
+  capArmory: [[I.SKY_HELMET, 1], [I.SKY_CHEST, 1], [I.SKY_LEGS, 1], [I.SKY_BOOTS, 1], [I.SKY_SWORD, 1], [I.SHIELD, 1]],
+  capRuin1: [[I.GOLD_INGOT, 6], [I.JADE, 6]],
+  capRuin2: [[I.SKYSHARD, 3], [I.GOLDEN_APPLE, 1]]
 };
 
 // What every new campaign starts with (the Explorer's Map goes in the hotbar)
@@ -356,9 +373,60 @@ export const QUESTS = {
       { ev: "dim", dim: "forsaken", text: "Hold the Pale Lantern and right-click to step into the Forsaken World" },
       { ev: "boss", boss: "herobrine", text: "Restore the shrines, gather the three sigils, and banish Herobrine in his Pale Citadel (press J for the Forsaken World journal)" }],
     reward: { xp: 200, items: [[I.GOLDEN_APPLE, 3]], text: "Three golden apples (and the Relic of Shadows)" } },
-  next7: { chapter: 7, main: true, title: "The Ancient City", giver: "elder",
-    text: "Six Relics are safe. The Relic of Shadows points to a city deep below the world, where the First Warden still keeps watch.",
-    steps: [{ ev: "soon", text: "Chapter 7 arrives in the next campaign update. Until then, explore, build, and finish your side quests!" }] },
+  // ======================= Chapter 7: The Ancient City =======================
+  deepcall: { chapter: 7, main: true, title: "The City That Listens", giver: "elder",
+    text: "Six Relics are safe. The Relic of Shadows hums like a far-off bell, and its carving points to a city deep below the world, where the First Builders made their last stand.",
+    steps: [{ ev: "talk", npc: "elder", text: "Show the Relic of Shadows to Elder Maren in Legacy Village" },
+      { ev: "dim", dim: "deep", text: "Find the Keeper excavation (follow the marker) and ride its lift down into the Deep" }],
+    reward: { xp: 50, items: [[I.GOLDEN_CARROT, 8], [B.TORCH, 32]], text: "Golden carrots and 32 torches" } },
+  echohold: { chapter: 7, main: true, title: "The First Warden", giver: "elder",
+    text: "Echohold was the First Builders' greatest city. It has been silent for a thousand years, but it is not empty. Its guardian, the First Warden, still listens for footsteps, and it carries the last key to the First Gate.",
+    steps: [{ ev: "lost", key: "city", text: "Follow the caverns down past the balcony, the dripstone, and the ravine to the city of Echohold" },
+      { ev: "lost", key: "warden", text: "Move quietly (crouch, and keep off the hushmoss), find the Citadel, and defeat the First Warden for its Resonance Core" }],
+    reward: { xp: 120, items: [[I.GOLDEN_APPLE, 2]], text: "Two golden apples" } },
+  firstgate: { chapter: 7, main: true, title: "Beyond the First Gate", giver: "elder",
+    text: "The First Gate was the doorway the First Builders opened long ago. The temple relics and the Warden's core can open it one more time. On the other side, the seventh Relic waits with the Resonant Sovereign.",
+    steps: [{ ev: "lost", key: "gate", text: "Set the Solar Seal, Verdant Lens, Tidal Heart, and Resonance Core in the First Gate (follow the marker), tune it, and open it" },
+      { ev: "dim", dim: "expanse", text: "Walk into the light of the First Gate to cross to the Echo Expanse" },
+      { ev: "lost", key: "anchors", text: "Quiet the three forge anchors in the Expanse" },
+      { ev: "boss", boss: "sovereign", text: "Calm the Resonant Sovereign in the Crownless Citadel and claim the Relic of the Abyss" }],
+    reward: { xp: 250, items: [[I.GOLDEN_APPLE, 3]], text: "Three golden apples (and the Relic of the Abyss)" } },
+  // ======================= Chapter 8: The End of the First Builders =======================
+  voidcall: { chapter: 8, main: true, title: "The Last Relic", giver: "elder",
+    text: "Seven Relics are safe, and they hum together like a choir missing one voice. The last one, the Relic of the Void, lies in the Hollow: the pale islands past the edge of the world, where the Hollow Wyrm keeps watch.",
+    steps: [{ ev: "talk", npc: "elder", text: "Talk to Elder Maren about the last Relic" },
+      { ev: "dim", dim: "end", text: "Throw an Eye of the Void to find a stronghold (the marker shows the nearest one), fill its portal frame, and jump in" }],
+    reward: { xp: 60, items: [[I.ARROW, 64], [I.GOLDEN_CARROT, 8]], text: "64 arrows and golden carrots" } },
+  wyrm: { chapter: 8, main: true, title: "Beyond the World's Edge", giver: "elder",
+    text: "The Hollow Wyrm has guarded the Relic of the Void since the First Builders hid it. The crystals on the tall pillars heal it, so break them first.",
+    steps: [{ ev: "boss", boss: "wyrm", text: "Break the crystals on the tall pillars, then defeat the Hollow Wyrm for the Relic of the Void" }],
+    reward: { xp: 150, items: [[I.GOLDEN_APPLE, 2]], text: "Two golden apples (and the Relic of the Void)" } },
+  skyreach: { chapter: 8, main: true, title: "The City Above the Clouds", giver: "elder",
+    text: "When all eight Relics shone together, they showed you a city floating above the clouds: Skyreach, where the First Builders forged the Relics. Someone there is still keeping watch.",
+    steps: [{ ev: "visit", place: "skyreach", text: "Travel to Skyreach Landing (follow the marker)" },
+      { ev: "visit", place: "skyreachIsle", text: "Climb the Sky Stair to the floating city" },
+      { ev: "talk", npc: "solenne", text: "Find Keeper Solenne in the Relic Forge" }],
+    reward: { xp: 80, items: [[I.GLIDER, 1]], text: "Glider Wings (just in case)" } },
+  skysov: { chapter: 8, main: true, title: "Storm Over Skyreach", giver: "solenne",
+    text: "The Sky Sovereign once guarded the Relic Forge. Now the Forgotten King's whisper holds it, and it holds the Crown Key, the only key to the King's sealed gate.",
+    steps: [{ ev: "boss", boss: "skysov", place: "stormSpire", text: "Go to the Storm Spire at the north end of the island and defeat the Sky Sovereign" },
+      { ev: "talk", npc: "solenne", text: "Bring the Crown Key back to Keeper Solenne" }],
+    reward: { xp: 100, items: [[I.GOLDEN_APPLE, 3]], text: "Three golden apples" } },
+  capital: { chapter: 8, main: true, title: "The Ruined Capital", giver: "solenne",
+    text: "The Crown Key opens the Gate of Eight in the Ruined Capital, where the Forgotten King waits on his broken throne. Friends from every kingdom have gathered there to help you.",
+    steps: [{ ev: "visit", place: "capital", text: "Travel to the kingdoms' camp in the Ruined Capital (follow the marker)" },
+      { ev: "talk", npc: "brenna8", text: "Talk to Captain Brenna at the camp" },
+      { ev: "flag", flag: "capitalOpen", place: "capitalGate", text: "Walk the Grand Avenue to the Gate of Eight. Carrying all eight Relics and the Crown Key, right-click the Rune Stone in front of the sealed gate" }],
+    reward: { xp: 100, items: [[I.GOLDEN_APPLE, 3], [I.TOTEM, 1]], text: "Three golden apples and a Lifeward Totem" } },
+  forgottenking: { chapter: 8, main: true, title: "The Forgotten King", giver: "brenna8",
+    text: "This is it. The Forgotten King has waited a thousand years for the Relics to come home. End it, and decide what becomes of him.",
+    steps: [{ ev: "boss", boss: "king", place: "throneCourt", text: "Enter the Throne Court and defeat the Forgotten King (4 phases)" },
+      { ev: "flag", flag: "endingChosen", text: "Decide the Forgotten King's fate" }],
+    reward: { xp: 500, items: [[I.GOLDEN_APPLE, 3]], text: "500 XP and three golden apples" } },
+  homecoming: { chapter: 8, main: true, title: "Homecoming", giver: "elder",
+    text: "It's over. Every kingdom is safe, and everyone you met along the way is waiting for you at home.",
+    steps: [{ ev: "visit", place: "plaza", fresh: true, text: "Return to Legacy Village. Everyone is waiting at the Fountain Plaza!" }],
+    reward: { xp: 300, items: [[I.GOLDEN_APPLE, 5], [I.JADE, 30]], text: "Five golden apples and 30 Jade" } },
   spireClimb: { chapter: 1, side: true, title: "Top of the World", giver: "potter",
     text: "Potter Nia says the view from the top of the Sandspire shows the whole desert.",
     steps: [{ ev: "places", list: ["spireTop"], n: 1, high: true, text: "Climb to the top of the Sandspire" }],
@@ -377,16 +445,18 @@ export const QUESTS = {
     reward: { xp: 20, items: [[I.ARROW, 16]], text: "16 arrows" } }
 };
 export const QUEST_ORDER = ["welcome", "lessons", "village", "prepare", "rumors", "watchtower", "raid", "guardian", "sandspire", "pyramid", "oakwood", "keys", "jungletemple", "seabreak", "shipwreck", "seatemple",
-  "ironhold", "blightmines", "blightking", "embers", "seals", "cindermaw", "hollowmere", "shadow", "next7", "secrets", "lookout", "spireClimb", "treetops", "ironVeins"];
+  "ironhold", "blightmines", "blightking", "embers", "seals", "cindermaw", "hollowmere", "shadow", "deepcall", "echohold", "firstgate", "voidcall", "wyrm", "skyreach", "skysov", "capital", "forgottenking", "homecoming", "secrets", "lookout", "spireClimb", "treetops", "ironVeins"];
 // which quest each one leads to, and where a new chapter begins
 export const NEXT = { lessons: ["village", "secrets", "lookout"], village: ["prepare"], prepare: ["rumors"], rumors: ["watchtower"], watchtower: ["raid"], raid: ["guardian"], guardian: ["sandspire"], sandspire: ["pyramid", "spireClimb"], pyramid: ["oakwood"], oakwood: ["keys", "treetops"], keys: ["jungletemple"], jungletemple: ["seabreak"], seabreak: ["shipwreck"], shipwreck: ["seatemple"], seatemple: ["ironhold"],
-  ironhold: ["blightmines", "ironVeins"], blightmines: ["blightking"], blightking: ["embers"], embers: ["seals"], seals: ["cindermaw"], cindermaw: ["hollowmere"], hollowmere: ["shadow"], shadow: ["next7"] };
-export const CHAPTER_AFTER = { pyramid: 2, jungletemple: 3, seatemple: 4, blightking: 5, cindermaw: 6, shadow: 7 };
+  ironhold: ["blightmines", "ironVeins"], blightmines: ["blightking"], blightking: ["embers"], embers: ["seals"], seals: ["cindermaw"], cindermaw: ["hollowmere"], hollowmere: ["shadow"], shadow: ["deepcall"],
+  deepcall: ["echohold"], echohold: ["firstgate"], firstgate: ["voidcall"],
+  voidcall: ["wyrm"], wyrm: ["skyreach"], skyreach: ["skysov"], skysov: ["capital"], capital: ["forgottenking"], forgottenking: ["homecoming"] };
+export const CHAPTER_AFTER = { pyramid: 2, jungletemple: 3, seatemple: 4, blightking: 5, cindermaw: 6, shadow: 7, firstgate: 8 };
 // Chapter select: the quest each playable chapter starts with, and the quest that ends the story so far
-// (finishing FINAL_QUEST without ever skipping ahead earns "The Whole Story"; move it when Chapters 7 and 8 arrive)
-export const CHAPTER_START = { 1: "welcome", 2: "oakwood", 3: "seabreak", 4: "ironhold", 5: "embers", 6: "hollowmere" };
-export const PLAYABLE = 6;
-export const FINAL_QUEST = "shadow";
+// (finishing FINAL_QUEST, the homecoming after the Forgotten King, without ever skipping ahead earns "The Whole Story")
+export const CHAPTER_START = { 1: "welcome", 2: "oakwood", 3: "seabreak", 4: "ironhold", 5: "embers", 6: "hollowmere", 7: "deepcall", 8: "voidcall" };
+export const PLAYABLE = 8;
+export const FINAL_QUEST = "homecoming";
 // the chapter bosses: where they live and what they leave behind
 export const BOSS_REWARDS = {
   stoneguard: { chapter: 0, items: [[I.DESERT_MAP, 1], [I.IRON_INGOT, 6]], xp: 100, title: "The Guardian Falls", text: "The Ancient Stone Guardian crumbles into rubble. In the dust lies a rolled-up map, drawn by the First Builders: the Ancient Desert Map." },
@@ -396,7 +466,20 @@ export const BOSS_REWARDS = {
   tempest: { chapter: 4, relic: I.RELIC_DECAY, items: [[I.RADIANT_STAR, 1], [I.GOLDEN_APPLE, 2]], xp: 350, title: "The Storm Breaks", text: "The Blight Tempest tears itself apart. Stones, logs, and earth fall gently back to the ground, and the black stain fades from the land. Where the Blightking's crown fell lies the fourth Relic: the Relic of Decay." },
   // bosses with their own victory scenes (the campaign only adds the Relic and a note afterward)
   cindermaw: { chapter: 5, relic: I.RELIC_FLAME, items: [], xp: 0, external: true, title: "The Relic of Flame", text: "As Cindermaw falls, the altar cracks open. Inside, wrapped in cooling cinders, is the fifth Relic: the Relic of Flame. The First Builders' fire is safe at last." },
-  herobrine: { chapter: 6, relic: I.RELIC_SHADOWS, items: [], xp: 0, external: true, title: "The Relic of Shadows", text: "Where Herobrine stood, the mist leaves something behind: a cold, dark stone that hums like a far-off bell. The sixth Relic, the Relic of Shadows.\n\nCarved on it, in the First Builders' script: \"The last two Relics wait below the world and beyond it. Seek the city that listens.\"" }
+  herobrine: { chapter: 6, relic: I.RELIC_SHADOWS, items: [], xp: 0, external: true, title: "The Relic of Shadows", text: "Where Herobrine stood, the mist leaves something behind: a cold, dark stone that hums like a far-off bell. The sixth Relic, the Relic of Shadows.\n\nCarved on it, in the First Builders' script: \"The last two Relics wait below the world and beyond it. Seek the city that listens.\"" },
+  wyrm: { chapter: 8, relic: I.RELIC_VOID, items: [], xp: 0, external: true, title: "The Relic of the Void", text: "As the Hollow Wyrm falls, the pale islands go quiet. Where it rested lies a stone as dark as the space between stars: the eighth and last Relic, the Relic of the Void.\n\nAll eight Relics shine together in your pack, and for one moment you see far away: a city floating above the clouds, and beneath the sky a broken capital, where something stirs on an empty throne..." },
+  skysov: { chapter: 8, items: [[I.CROWN_KEY, 1], [I.GOLDEN_APPLE, 2]], xp: 300, title: "The Storm Clears", text: "The Sky Sovereign's wings drift apart like clouds after rain, and its eyes turn from storm-blue to soft white.\n\n\"Thank you, builder. The King's whisper held me for a thousand years. He was not always cruel... remember that, when you stand before him.\"\n\nIt leaves the Crown Key in your hands: the key to the Gate of Eight." },
+  king: { chapter: 8, items: [], xp: 0, title: "The Forgotten King Falls", text: "" },
+  sovereign: { chapter: 7, relic: I.RELIC_ABYSS, items: [], xp: 0, external: true, title: "The Relic of the Abyss", text: "As the Sovereign's crown drifts apart, one stone in it keeps glowing. It sinks slowly into your hands: the seventh Relic, the Relic of the Abyss, cool and bright as deep water.\n\nThe ring of light around the arena shows one last picture before it fades: a pale island floating in darkness, a city in the clouds, and a broken capital with an empty throne. A voice like distant thunder whispers: \"Seven... only one more.\"" }
 };
 // names for the journal's "Bosses defeated" line (bosses fought outside js/campaign-bosses.js)
-export const BOSS_NAMES = { blightking: "The Blightking", tempest: "The Blight Tempest", cindermaw: "Cindermaw", herobrine: "Herobrine" };
+export const BOSS_NAMES = { blightking: "The Blightking", tempest: "The Blight Tempest", cindermaw: "Cindermaw", herobrine: "Herobrine", sovereign: "The Resonant Sovereign", wyrm: "The Hollow Wyrm" };
+// The two endings (Chapter 8): what happens after the Forgotten King falls, and how Legacy Village celebrates
+export const ENDINGS = {
+  free: { title: "The King Set Free", choice: "Set him free",
+    text: "You raise the eight Relics. Their light pours over the Forgotten King, and the Void drains out of his armor like smoke on the wind.\n\nUnderneath is an old man in a gold crown. He looks at his hands as if he hasn't seen them in a thousand years.\n\n\"I remember now. I was Elarion, the first king of Blockhaven. The Void promised me a kingdom that would never end, and I listened. Thank you, builder. You gave back what I lost.\"\n\nHe bows to you, smiles, and fades into golden light. Somewhere far away, a bell rings.",
+    party: "Elder Maren is waiting at the fountain with tears in her eyes. \"Set free... the old king himself! The First Builders would be so proud of you. I am too.\"\n\nThe whole village has turned out: Smith Garrick, Captain Rowan, Farmer Hollis, and friends from every kingdom you saved. Lanterns float over the plaza, and the fountain glows gold.\n\nThe Legacy Campaign is complete. Thank you for playing!" },
+  banish: { title: "The King Banished", choice: "Banish him",
+    text: "You raise the eight Relics. Their light turns cold and white, and a crack opens in the air behind the Forgotten King.\n\n\"No... not the dark again. Not alone!\"\n\nThe Void pulls him in, crown and all, and the crack seals shut. The Throne Court is silent. The kingdoms are safe forever, but the empty throne feels very cold.",
+    party: "Elder Maren meets you at the fountain. \"Banished. The kingdoms are safe, and that's what matters.\" She looks toward the horizon for a long moment. \"He was a king once, you know. A good one. I wonder if he'll ever find his way back.\"\n\nThen she smiles and takes your hand. The village has turned out to cheer, with friends from every kingdom you saved.\n\nThe Legacy Campaign is complete. Thank you for playing!" }
+};

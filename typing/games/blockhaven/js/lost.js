@@ -190,7 +190,14 @@ export function initLost(api) {
 
   // The Survey Map points toward the dig site (or, underground, toward the next goal)
   L.surveyReading = () => {
-    const p = G.player, s = st();
+    const p = G.player, { t, label } = L.goal();
+    if (!t) return { yaw: null, text: "The survey map is blank here" };
+    const ang = Math.atan2(-(t.x + 0.5 - p.pos.x), -(t.z + 0.5 - p.pos.z));
+    return { yaw: ang - p.yaw, text: `${label}: ${Math.round(Math.hypot(t.x + 0.5 - p.pos.x, t.z + 0.5 - p.pos.z))} blocks` };
+  };
+  // where the next goal is (also used by the Legacy Campaign's quest marker)
+  L.goal = () => {
+    const s = st();
     let t = null, label = "";
     if (G.dim === "overworld" && s.site && (!s.visits || s.mode !== "campaign" || TEMPLE_KEYS.every(templeDone))) { t = siteLift(); label = "Keeper excavation"; }
     else if (G.dim === "overworld") {   // Campaign: the nearest temple whose relic you haven't taken yet
@@ -201,9 +208,7 @@ export function initLost(api) {
     else if (TEMPLES[G.dim] && maps[G.dim]) { const m = M(), done = s.temples[G.dim].boss === "defeated"; t = done ? m.pedestal : m.arena; label = done ? "the relic" : TEMPLES[G.dim].bossName; }
     else if (G.dim === "deep" && maps.deep) { const m = maps.deep.meta; t = !s.reachedCity ? m.cityArrival : st().warden !== "defeated" ? m.citadel.threshold : m.gate.stand; label = !s.reachedCity ? "Echohold" : st().warden !== "defeated" ? "the Warden's Citadel" : "the First Gate"; }
     else if (G.dim === "expanse" && maps.expanse) { t = maps.expanse.meta.arena; label = "the Crownless Citadel"; }
-    if (!t) return { yaw: null, text: "The survey map is blank here" };
-    const ang = Math.atan2(-(t.x + 0.5 - p.pos.x), -(t.z + 0.5 - p.pos.z));
-    return { yaw: ang - p.yaw, text: `${label}: ${Math.round(Math.hypot(t.x + 0.5 - p.pos.x, t.z + 0.5 - p.pos.z))} blocks` };
+    return { t, label };
   };
 
   // ---------- travel: the Keeper lift and the First Gate ----------
@@ -952,6 +957,7 @@ export function initLost(api) {
     for (const m of ents.list) if (m.sovCall) m.gone = true;
     giveItem(I.ECHO_MANTLE, 1); giveItem(B.SOVEREIGN_TROPHY, 1); giveXp(200);
     G.adv("lostsovereign"); saveNow(false);
+    if (G.campaign && G.campaign.externalBoss) G.campaign.externalBoss("sovereign");   // Legacy Campaign, Chapter 7: the Relic of the Abyss
     api.victory("The Expanse Is Quiet", "The crown comes apart into a slow ring of light, and the hum stops. The Sovereign was never cruel; it only echoed the Keepers' machines.\n\nEchohold is calm now. You earned the Echo Mantle and the Sovereign's crown trophy. Your journal has one last page.", e.pos);
     setTimeout(() => L.readLore("epilogue"), 4500);
   }

@@ -863,8 +863,10 @@ function wyrmDefeated(e) {
   buildGateway(40, (G.gen.land(40, 0) || { top }).top + 4, 0);
   spawnOrbs(400, G.player.pos.x, G.player.pos.y + 2, G.player.pos.z);
   spawnDrop(I.WYRM_SCALE, 3, 0.5, top + 2, 2.5);
-  giveItem(I.CINDER_EYE, 1);   // the key to the final fight
-  setTimeout(() => UI.toast("The Wyrm left you a glowing Cinder Eye (check your pack). Throw it in the Ember Depths to find what waits there…", "good"), 6500);
+  const story = !!(G.meta && G.meta.campaign);
+  if (!story) giveItem(I.CINDER_EYE, 1);   // the key to the final fight (the Legacy Campaign has its own: Chapter 8's Relic of the Void)
+  if (!story) setTimeout(() => UI.toast("The Wyrm left you a glowing Cinder Eye (check your pack). Throw it in the Ember Depths to find what waits there…", "good"), 6500);
+  if (CP.externalBoss) CP.externalBoss("wyrm");
   Sound.levelUp(); setTimeout(() => Sound.levelUp(), 400);
   UI.toast("You defeated the Hollow Wyrm! A portal home opened in the middle of the island.", "good");
   setTimeout(() => UI.toast("A Gateway appeared nearby. Step into it to reach the outer islands and the Hollow towers.", "good"), 3000);
@@ -1192,7 +1194,19 @@ function tickCinder(dt) {
     if (dist > A.r + 18) { removeCinder(); UI.toast("Cindermaw circles back to its citadel. It keeps its wounds until you return.", "bad"); }
   }
 }
-function giveItem(id, n) { const left = G.inv.add(id, n); if (left) G.dropItem(id, left); G.hudDirty = true; }
+// Story items (Relics, keys, cores: items marked quest) always fit: when the pack is full, its last ordinary stack drops at your feet instead
+function giveItem(id, n) {
+  let left = G.inv.add(id, n);
+  if (left && (itemDef(id) || {}).quest) for (let i = 35; i >= 0 && left; i--) {
+    const sl = G.inv.slots[i]; if (!sl || (itemDef(sl.id) || {}).quest) continue;
+    G.inv.slots[i] = null; G.dropItem(sl.id, sl.n, sl);
+    UI.toast(`Your pack was full, so your ${(itemDef(sl.id) || {}).name || "item"} was dropped at your feet to make room.`, "");
+    left = G.inv.add(id, left);
+  }
+  if (left) G.dropItem(id, left);
+  G.hudDirty = true;
+}
+G.giveItem = giveItem;
 function giveXp(n) { const before = levelInfo(G.xp).level; G.xp += n; G.hudDirty = true; if (levelInfo(G.xp).level > before) UI.toast(`Level ${levelInfo(G.xp).level}!`, "good"); }
 function removeCinder() {
   for (const e of ents.list) if ((e.sp === "cindermaw" || e.sp === "pylon" || e.cinderMinion) && !e.gone) { if (e.sp === "cindermaw" && !e.dead) cinderData().hp = e.hp; e.gone = true; }

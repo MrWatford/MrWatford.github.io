@@ -14,17 +14,19 @@ import { newStack } from "./inventory.js";
 import { buildVillage, VSIZE, VC, VILLAGE_V } from "./campaign-village.js";
 import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
 import { buildIronhold, buildBlightCitadel, buildOutpost, buildSealShrine, buildHollowmere, SIZES2, TOWNS2_V } from "./campaign-towns2.js";
+import { buildSkyreach, buildCapital, SIZES3, TOWNS3_V } from "./campaign-towns3.js";
 import { initBosses, BOSSES } from "./campaign-bosses.js";
-import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS, BOSS_NAMES, CHAPTER_START, PLAYABLE, FINAL_QUEST } from "./campaign-data.js";
+import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS, BOSS_NAMES, CHAPTER_START, PLAYABLE, FINAL_QUEST, ENDINGS } from "./campaign-data.js";
 export { CAMPAIGN_SEED, CAMPAIGN_WORLD };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const k3 = (x, y, z) => x + "," + y + "," + z;
 const TEMPLE_DIMS = ["desert", "jungle", "sea"];
 const WAY_NAMES = { village: "Legacy Village", stonehaven: "Stonehaven", ruin: "The Ruined Watchtower", sandspire: "Sandspire", oakwood: "Oakwood", seabreak: "Seabreak",
-  ironhold: "Ironhold", blightcitadel: "The Blight Citadel", outpost: "The Ember Outpost", hollowmere: "Hollowmere" };
-const TOWN_SITES = ["stonehaven", "ruin", "sandspire", "oakwood", "seabreak", "ironhold", "blightcitadel", "outpost", "hollowmere"];
-const SZ = { ...SIZES, ...SIZES2 };   // every site kind's stamp size
+  ironhold: "Ironhold", blightcitadel: "The Blight Citadel", outpost: "The Ember Outpost", hollowmere: "Hollowmere",
+  skyreach: "Skyreach Landing", skyreachTop: "Skyreach (the floating city)", capital: "The Ruined Capital" };
+const TOWN_SITES = ["stonehaven", "ruin", "sandspire", "oakwood", "seabreak", "ironhold", "blightcitadel", "outpost", "hollowmere", "skyreach", "capital"];
+const SZ = { ...SIZES, ...SIZES2, ...SIZES3 };   // every site kind's stamp size
 const SEAL_F = 38;   // the Dragon Seal shrines' floor height in the Ember Depths
 const RAID_WAVES = [["zombie", "zombie", "skeleton"], ["zombie", "spider", "skeleton", "zombie"], ["zombie", "zombie", "skeleton", "skeleton", "spider"]];
 
@@ -142,6 +144,10 @@ export function initCampaign(api) {
     if (ih && !s.sites.blightcitadel) add("blightcitadel", "blightcitadel", search({ x: Math.round(ih.cx + away.x * 130), z: Math.round(ih.cz + away.z * 130) }, "blightcitadel", 0, 200, (x, z, h, r) => land(x, z, h, r)), v2);
     if (ih && !s.sites.outpost) add("outpost", "outpost", search(toward({ x: ih.cx, z: ih.cz }, vc, 0.3), "outpost", 0, 160, (x, z, h, r) => land(x, z, h, r)), v2);
     if (!s.sites.hollowmere) add("hollowmere", "hollowmere", search({ x: Math.round(vc.x - away.z * 260), z: Math.round(vc.z + away.x * 260) }, "hollowmere", 0, 260, (x, z, h, r) => land(x, z, h, r, ["forest", "birch"])), v2);
+    // Chapter 8: Skyreach on the side opposite Hollowmere; the Ruined Capital between it and Ironhold's road, far from home
+    const v3 = { v: TOWNS3_V };
+    if (!s.sites.skyreach) add("skyreach", "skyreach", search({ x: Math.round(vc.x + away.z * 250), z: Math.round(vc.z - away.x * 250) }, "skyreach", 0, 300, (x, z, h, r) => land(x, z, h, r, ["plains", "forest", "birch"])), v3);
+    if (!s.sites.capital) add("capital", "capital", search({ x: Math.round(vc.x + (away.x + away.z) * 240), z: Math.round(vc.z + (away.z - away.x) * 240) }, "capital", 0, 340, (x, z, h, r) => land(x, z, h, r, ["plains"])), v3);
   }
   // every built place (stamp) in a dimension: { id, kind, dim, cx, cz, size, built: { cells, info } }
   const builtCache = new Map();
@@ -158,7 +164,8 @@ export function initCampaign(api) {
     const k = rec.kind || id, gnd = groundFor(gen, rec);
     return built(id, rec, () => k === "stonehaven" ? buildStonehaven(rec.g, gnd) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd) : k === "oakwood" ? buildOakwood(rec.g, gnd)
       : k === "seabreak" ? buildSeabreak(rec.g, gnd, rec.rot || 0) : k === "keyruin" ? buildKeyRuin(rec.n, rec.g, gnd)
-      : k === "ironhold" ? buildIronhold(rec.g, gnd) : k === "blightcitadel" ? buildBlightCitadel(rec.g, gnd) : k === "outpost" ? buildOutpost(rec.g, gnd) : k === "hollowmere" ? buildHollowmere(rec.g, gnd) : buildWreck(rec.g));
+      : k === "ironhold" ? buildIronhold(rec.g, gnd) : k === "blightcitadel" ? buildBlightCitadel(rec.g, gnd) : k === "outpost" ? buildOutpost(rec.g, gnd) : k === "hollowmere" ? buildHollowmere(rec.g, gnd)
+      : k === "skyreach" ? buildSkyreach(rec.g, gnd) : k === "capital" ? buildCapital(rec.g, gnd) : buildWreck(rec.g));
   }
   function sitesIn(dim) {
     const s = st(), out = [];
@@ -336,6 +343,7 @@ export function initCampaign(api) {
   C.active = () => (on() ? st().active.filter(q => QUESTS[q]) : []);
   function give(id, n) {
     if (!itemDef(id)) return;
+    if (G.giveItem) { G.giveItem(id, n); return; }   // main.js: story items always fit in the pack
     const left = G.inv.add(id, n);
     if (left) G.dropItem(id, left);
     G.hudDirty = true;
@@ -352,9 +360,18 @@ export function initCampaign(api) {
     summary();
   }
   const lostT = kind => ((G.story.lost || {}).temples || {})[kind] || {};
+  function lostDone(key) {   // Chapter 7: milestones in Echohold (js/lost.js keeps these in story.lost)
+    const ls = G.story.lost || {};
+    if (key === "city") return !!ls.reachedCity;
+    if (key === "warden") return ls.warden === "defeated";
+    if (key === "gate") return ls.gate === "open";
+    if (key === "anchors") return Object.keys(ls.anchors || {}).length >= 3;
+    return false;
+  }
   function already(step) {   // things that may have happened before this step began
     const s = st();
     if (step.skip && s.flags[step.skip]) return true;   // e.g. the Ancient Keys aren't needed once the Root Seal is open
+    if (step.fresh) return false;   // only a new arrival counts (the homecoming)
     switch (step.ev) {
       case "visit": return !!s.places[step.place];
       case "boss": return !!s.bosses[step.boss];
@@ -364,6 +381,7 @@ export function initCampaign(api) {
       case "flag": return !!s.flags[step.flag];
       case "dim": return G.dim === step.dim;
       case "have": return step.ids.reduce((a, id) => a + countItem(id), 0) >= step.n;
+      case "lost": return lostDone(step.key);
       default: return false;
     }
   }
@@ -394,6 +412,7 @@ export function initCampaign(api) {
     UI.toast(`Quest complete: ${def.title}!${def.reward ? " Reward: " + def.reward.text + "." : ""}`, "good"); Sound.levelUp();
     G.adv && G.adv("cpquest", q);
     if (CHAPTER_AFTER[q]) { s.chapter = CHAPTER_AFTER[q]; titleCard(s.chapter); }
+    if (q === "homecoming") setTimeout(celebrate, 600);   // the end of the story: fireworks, then the credits
     for (const n of NEXT[q] || []) start(n, QUESTS[n] && QUESTS[n].side);
     hudDirty = true; summary();
   }
@@ -412,7 +431,7 @@ export function initCampaign(api) {
   const RELIC_CH = {}, BOSS_CH = {};
   for (const R of Object.values(BOSS_REWARDS)) if (R.relic) RELIC_CH[R.chapter] = R.relic;
   for (const d of Object.values(QUESTS)) for (const sp of d.steps) if (sp.ev === "boss") BOSS_CH[sp.boss] = d.chapter;
-  const KEEP_FLAGS = ["rootDoor"];   // the Root Seal's door is already open in the world
+  const KEEP_FLAGS = ["rootDoor", "capitalOpen"];   // doors already open in the world   // the Root Seal's door is already open in the world
   C.canJump = () => (BS.active() ? "You can't change chapters in the middle of a boss fight!" : raid ? "Finish the raid on Stonehaven first!" : "");
   function jumpTo(n, quiet) {
     const s = st(); n = Math.max(1, Math.min(PLAYABLE, Math.floor(+n) || 1));
@@ -455,6 +474,17 @@ export function initCampaign(api) {
     for (const q of QUEST_ORDER) if (QUESTS[q] && QUESTS[q].side && QUESTS[q].chapter < n) start(q, true);   // their side quests are open too
     for (const [c, relic] of Object.entries(RELIC_CH)) if (+c < n && !s.relics.includes(+c)) { s.relics.push(+c); if (!countItem(relic)) give(relic, 1); }
     if (n > 3 && !s.given.charm) { give(I.CP_CHARM, 1); s.given.charm = true; }   // Captain Mira's Tide Charm (breathe underwater)
+    if (n > 3 && n < 8) {   // the Solar Seal, Verdant Lens, and Tidal Heart (Chapters 1–3 take them from the temples; Chapter 7 needs them for the First Gate)
+      const ls = L.data();
+      for (const [k, id] of [["desert", I.SOLAR_SEAL], ["jungle", I.VERDANT_LENS], ["sea", I.TIDAL_HEART]]) if (!ls.temples[k].relic) { ls.temples[k].relic = Date.now(); if (!countItem(id)) give(id, 1); }
+    }
+    if (n <= 7 && back) {   // Chapter 7's guardians can be fought again (places found and the open gate stay as they are)
+      const ls = L.data();
+      if (ls.warden === "defeated") delete ls.warden;
+      if (ls.sovereign === "calmed") delete ls.sovereign;
+    }
+    if (back) { delete s.given.eyes; takeItem(I.CROWN_KEY, countItem(I.CROWN_KEY)); }   // Chapter 8 again: Maren hands out the Eyes again; the Wyrm returns when its quest begins
+    if (quiet && n > 1) tidyPack();   // a brand-new campaign that starts later: wear the best armor, leave outgrown tools behind
     // 3. begin
     s.chapter = n;
     start(CHAPTER_START[n], true);
@@ -466,6 +496,22 @@ export function initCampaign(api) {
     return true;
   }
   C.jumpTo = jumpTo;
+  // Only for a brand-new save that starts at a later chapter (everything in its pack came from the catch-up rewards):
+  // put on the best armor for each slot, and drop the starter tools that better ones replaced, so the pack has room.
+  function tidyPack() {
+    const S = G.inv.slots, pts = id => ((itemDef(id) || {}).armor || {}).points || 0;
+    for (let slot = 0; slot < 4; slot++) {
+      let best = -1;
+      for (let i = 0; i < 36; i++) { const it = S[i], a = it && (itemDef(it.id) || {}).armor; if (a && a.slot === slot && (best < 0 || pts(it.id) > pts(S[best].id))) best = i; }
+      if (best < 0) continue;
+      const worn = S[36 + slot];
+      if (!worn || pts(S[best].id) > pts(worn.id)) { S[36 + slot] = S[best]; S[best] = worn || null; }
+    }
+    for (let i = 0; i < 36; i++) { const it = S[i], a = it && (itemDef(it.id) || {}).armor; if (a && S[36 + a.slot] && pts(it.id) <= pts(S[36 + a.slot].id)) S[i] = null; }   // spare, weaker armor
+    const outgrown = [[I.WOOD_PICK, I.STONE_PICK], [I.STONE_SWORD, I.IRON_SWORD]];
+    for (const [old, better] of outgrown) if (countItem(better)) takeItem(old, countItem(old));
+    G.hudDirty = true;
+  }
   function matches(step, type, arg) {
     switch (step.ev) {
       case "talk": return type === "talk" && arg === step.npc;
@@ -530,6 +576,23 @@ export function initCampaign(api) {
       else if (cur("prepare") >= 0) text = s.flags.elderRelics ? "Smith Garrick's forge is just west of the fountain. Iron tools first, then we'll talk about the road ahead." : "You've seen our little kingdom, and it has seen you.\n\nNow listen. Long ago, the First Builders made all of this, and much more. When their greatest work went wrong, they hid their power in eight Relics to seal away something terrible: the Forgotten King.\n\nThe seals are weakening. I can feel it. Before you can help, you'll need better gear. Go and see Smith Garrick.";
       else if (just("rumors", 1) || cur("rumors") === 1) text = "A traveler came through last night, pale as milk. The watchtower on the road to Stonehaven was smashed to rubble in a single night, and nobody saw what did it.\n\nGo to Stonehaven and speak with King Aldric. He is an old friend of this village." + placeDir(e, "stonehaven") + "\n\nTip: touch the Waystone on our plaza first. Waystones let you travel back here in an instant.";
       else if (cur("ironhold") === 0 || just("ironhold", 1)) text = "Three Relics, safe in your pack. I knew you were the one.\n\nBut a rider came from Ironhold this morning, covered in black dust. The mining town under Mount Ferrum has dug into something old. Their stone is turning black, and the blight is spreading. Forgemaster Hilda asks for help." + placeDir(e, "ironhold");
+      else if (cur("deepcall") === 0 || just("deepcall", 1)) {
+        const m = L.landmarks().find(x => x.kind === "excavation"), far = m ? ` The Keepers' dig site is about ${Math.round(Math.hypot(m.x - e.pos.x, m.z - e.pos.z))} blocks to the ${dir8(m.x - e.pos.x, m.z - e.pos.z)}.` : "";
+        text = "Let me see that stone... \"Seek the city that listens.\" I know those words. My grandfather sang them to me.\n\nFar below the world lies Echohold, the last city of the First Builders. They opened their First Gate there, and that is where the Forgotten King first came through.\n\nThe Keepers dug a shaft down to it long ago. Ride their lift, and walk softly. The city's guardian hears everything." + far;
+      }
+      else if (cur("deepcall") === 1) text = "The Keeper excavation's lift will take you down. Bring torches and food, and walk softly once you reach the city.";
+      else if (cur("echohold") >= 0) text = "The First Warden cannot see, child, but it hears a dropped pebble from a hundred paces. Crouch as you walk, stay off the hushmoss, and never fight it where it can call for help.";
+      else if (cur("firstgate") >= 0) text = "The First Gate needs the three temple relics and the Warden's core. Once it opens, the Echo Expanse is on the other side. Be careful, little builder. You're walking where the First Builders walked.";
+      else if (cur("voidcall") === 0 || just("voidcall", 1)) {
+        text = "Seven Relics! Only one is missing: the Relic of the Void. The First Builders hid it in the Hollow, the pale islands past the edge of the world, and set the Hollow Wyrm to guard it.\n\nThe way there is a portal deep inside a stronghold. These Eyes of the Void will lead you: throw one, and follow it. When you find the portal, fill its frame with the eyes.";
+        if (!s.given.eyes) { give(I.EYE, 14); s.given.eyes = true; text += "\n\nHere, take all fourteen. I've kept them safe for a very long time."; }
+      }
+      else if (cur("voidcall") === 1) text = "Throw an Eye of the Void and follow where it flies. When it dives into the ground, dig down: the stronghold is right below. Bring arrows. The Wyrm flies high.";
+      else if (cur("wyrm") >= 0) text = "The crystals on the pillars heal the Wyrm. Break them first, with arrows if you must. Then it's you and the Wyrm.";
+      else if (cur("skyreach") >= 0) text = "A city in the clouds... Skyreach! My grandmother said the First Builders made the Relics there. Follow your marker to the Sky Stair, and see who is waiting." + placeDir(e, "skyreach");
+      else if (cur("skysov") >= 0 || cur("capital") >= 0 || cur("forgottenking") >= 0) text = "I can hear the Relics singing from here, little builder. Whatever happens at the end of all this, the whole village believes in you.";
+      else if (cur("homecoming") >= 0) text = "You're home! Everyone has been waiting for you at the fountain.";
+      else if (s.done.homecoming) text = s.ending === "banish" ? "The kingdoms are safe, thanks to you. Sometimes I still look toward the old capital and wonder about the king who was lost. But you did what you had to do." : "Every morning I look at the fountain and think of old King Elarion, finally at peace. You did that, little builder. Never forget it.";
       else if (s.relics.length) text = `You carry ${s.relics.length} of the eight Relics! I can feel their warmth from here. The First Builders would be proud.`;
       if (cur("prepare") >= 0) s.flags.elderRelics = true;
     } else if (id === "smith") {
@@ -614,6 +677,21 @@ export function initCampaign(api) {
       else if (cur("hollowmere") === 2) text = "The Meeting Hall is to the north-west, the Old Well is right in the middle of the village, and Dr. Vell's observatory is up on the hill.";
       else if (cur("shadow") >= 0) text = "Dr. Vell's lantern opens the way into his valley, the Forsaken World. Inside a ward, he can't hurt you. Outside... keep your eyes open, and your lantern lit.\n\nIf the Relic of Shadows is anywhere, it's in his citadel.";
       else if (s.bosses.herobrine) text = "The fog is lifting! I heard a bird this morning. A real one! Thank you, friend.";
+      opts.push(tradeOpt);
+    } else if (id === "solenne") {
+      if (just("skyreach", 3)) text = "Eight Relics, home in the Relic Forge at last! I am Solenne, the last of the Sky Keepers. I have waited here a very, very long time.\n\nListen. The Forgotten King was once our king, Elarion. The Void promised him a kingdom that would never end, and it changed him. We sealed him in his capital with the Gate of Eight.\n\nThe gate's key is held by the Sky Sovereign, our old guardian. The King's whisper has twisted it too. Free it at the Storm Spire, north of here, and bring me the Crown Key.";
+      else if (cur("skysov") === 0) text = "The Storm Spire is at the north end of the island. The Sovereign's strikes always glow before they land. And when it dives to the ground, that is your moment!";
+      else if (just("skysov", 2)) text = "The Crown Key! And the Sovereign is at peace. Thank you.\n\nNow the Ruined Capital. The kingdoms have heard of you, and they've sent their bravest to camp there and help. Go to them. Then, at the Gate of Eight, the Relics and the key will open the way." + placeDir(e, "capital") + "\n\nWhen you face him... the Relics will give you a choice. You will know it when it comes.";
+      else if (cur("capital") >= 0 || cur("forgottenking") >= 0) text = "Follow your marker to the Ruined Capital. Whatever you decide at the end, builder, decide it with your heart.";
+      else if (s.done.forgottenking) text = s.ending === "banish" ? "It's over. The sky is quiet. Thank you, builder." : "Elarion is free. I felt it, all the way up here. Thank you, builder. Thank you.";
+    } else if (id === "brenna8") {
+      if (just("capital", 2)) text = "There you are! Look around. Stonehaven's guard, Ironhold's smiths, Sable's expedition: every kingdom you saved sent someone.\n\nThe Gate of Eight is at the end of the Grand Avenue, straight north. Behind it is the Throne Court. We'll hold the camp. Take what you need from the supply chest and the armory. You've earned it.";
+      else if (cur("capital") === 2) text = "Straight up the Grand Avenue to the Gate of Eight. Carry all eight Relics and the Crown Key, and touch the Rune Stone in front of the sealed gate.";
+      else if (cur("forgottenking") >= 0) text = "The gate is open. This is it, hero. Watch the glowing floor, light the Rune Stones when his shield rises, and when the Void Wave comes, find the golden light. We're right behind you.";
+      else if (s.done.forgottenking) text = "We heard it all from the camp. You did it! Get home to Legacy Village. I hear there's going to be a celebration.";
+      opts.push(tradeOpt);
+    } else if (id === "hilda8" || id === "sable8") {
+      if (cur("forgottenking") >= 0 && id === "hilda8") text = "I've sharpened every blade in this camp twice. Trade with me if you need anything before you go in.";
       opts.push(tradeOpt);
     } else opts.push(tradeOpt);
     return { text, opts };
@@ -703,6 +781,8 @@ export function initCampaign(api) {
     if (kind === "rune") {
       const kd = keyDoor();
       if (kd && kd.rune.x === hit.x && kd.rune.y === hit.y && kd.rune.z === hit.z) { useKeyDoor(kd); return true; }
+      const cd = capDoor();
+      if (cd && cd.rune.x === hit.x && cd.rune.y === hit.y && cd.rune.z === hit.z) { useCapDoor(cd); return true; }
       return BS.idleRune(hit);
     }
     return false;
@@ -723,6 +803,28 @@ export function initCampaign(api) {
     closePanel();
     await api.teleport(w.x + 0.5, w.y, w.z + 2.5, `Traveling to ${w.name}…`);
     UI.toast(`You arrive at ${w.name}.`, "good");
+  }
+
+  // ======================= the Gate of Eight (Chapter 8): eight Relics and the Crown Key =======================
+  function capDoor() {
+    if (G.dim !== "overworld") return null;
+    const site = sitesIn("overworld").find(q => q.id === "capital"), m = site && site.built.info.marks.capDoor; if (!m) return null;
+    return { ...m, rune: W(site, m.rune.X, m.rune.y, m.rune.Z), site };
+  }
+  const RELIC_IDS = [I.RELIC_EARTH, I.RELIC_NATURE, I.RELIC_TIDES, I.RELIC_DECAY, I.RELIC_FLAME, I.RELIC_SHADOWS, I.RELIC_ABYSS, I.RELIC_VOID];
+  function useCapDoor(cd) {
+    const s = st();
+    const p0 = W(cd.site, 0, cd.y0, cd.z0);
+    if (s.flags.capitalOpen && G.world.id(p0.x, p0.y, p0.z) !== B.VIOLET_PILLAR) { UI.toast("The Gate of Eight stands open. The Throne Court waits."); C.event("flag", "capitalOpen"); return; }
+    const have = RELIC_IDS.filter(id => countItem(id) > 0).length, key = countItem(I.CROWN_KEY) > 0;
+    if (have < 8 || !key) { UI.toast(`Eight marks glow on the sealed gate, and a keyhole shaped like a crown. You carry ${have} of 8 Relics${key ? " and the Crown Key" : have === 8 ? ", but not the Crown Key (the Sky Sovereign in Skyreach has it)" : ""}.`, ""); return; }
+    takeItem(I.CROWN_KEY, 1);
+    const pts = [];
+    for (let x = cd.x0; x <= cd.x1; x++) for (let y = cd.y0; y <= cd.y1; y++) pts.push(W(cd.site, x, y, cd.z0));
+    pts.forEach((p, k) => setTimeout(() => { G.world.set(p.x, p.y, p.z, B.AIR); puff(p.x + 0.5, p.y + 0.5, p.z + 0.5, k % 2 ? "xp" : "portal"); if (k % 7 === 0) Sound.tone(300 + k * 9, 0.4, "sine", 0.06, 0); }, k * 60));
+    for (let k = 0; k < 16; k++) puff(cd.rune.x + 0.5, cd.rune.y + 1 + k * 0.3, cd.rune.z + 0.5, "xp");
+    Sound.levelUp(); UI.toast("The eight Relics blaze with light, and the Crown Key turns by itself. The Gate of Eight opens!", "good");
+    C.event("flag", "capitalOpen"); saveNow(false);
   }
 
   // ======================= the Root Seal (three Ancient Keys) =======================
@@ -751,6 +853,7 @@ export function initCampaign(api) {
     onDefeat: (id, e) => {
       const s = st(), R = BOSS_REWARDS[id]; if (!R) return;
       s.bosses[id] = Date.now();
+      if (id === "king") { giveXp(500); Sound.levelUp(); C.event("boss", id); summary(); saveNow(false); kingFallen(e); return; }
       if (R.relic) { if (!countItem(R.relic)) give(R.relic, 1); if (!s.relics.includes(R.chapter)) s.relics.push(R.chapter); }
       for (const [it, n] of R.items) give(it, n);
       giveXp(R.xp); Sound.levelUp();
@@ -808,6 +911,13 @@ export function initCampaign(api) {
     if (G.dim === "overworld" && G.world.gen) genRef = G.world.gen;
     const sites = (G.dim === "overworld" && s.village) || TEMPLE_DIMS.includes(G.dim) || G.dim === "nether" ? sitesIn(G.dim) : [];
     if (s.active.includes("next4")) { s.active = s.active.filter(q => q !== "next4"); start("ironhold"); }   // worlds saved before Chapter 4 existed
+    if (s.active.includes("next7")) { s.active = s.active.filter(q => q !== "next7"); delete s.prog.next7; start("deepcall"); }   // worlds saved before Chapter 7 existed
+    if (!choiceOpen && G.state === "play" && s.bosses.king && s.active.includes("forgottenking") && prog("forgottenking").i === 1) chooseEnding();   // the King fell, but the save closed before the choice
+    if (s.active.includes("next8")) { s.active = s.active.filter(q => q !== "next8"); delete s.prog.next8; start("voidcall"); }   // ... and before Chapter 8
+    if (G.dim === "end" && s.active.includes("wyrm") && !s.bosses.wyrm && G.dimData.end && G.dimData.end.wyrmDefeated) {   // the story needs the Wyrm (beaten before, or replaying Chapter 8): it returns
+      const d = G.dimData.end; delete d.wyrmDefeated; delete d.crystalsGone; delete d.wyrmHp;
+      UI.toast("A shadow circles the pale islands... the Hollow Wyrm has returned to guard the last Relic!", "bad");
+    }
     if (G.dim === "overworld" && s.village && !s.kitGiven && G.inv) { s.kitGiven = true; if (!s.filled) giveStartKit(); }
     if (s.startAt && s.kitGiven) { const n = s.startAt; s.startAt = 0; jumpTo(n, true); }   // a new campaign that starts at a later chapter
     for (const site of sites) { if (!(site.id === "village" ? s.filled : s.filledSites[site.id])) fillSite(site); if (site.id === "ironhold") repairMineSkulls(site); moveIn(site); }
@@ -825,7 +935,7 @@ export function initCampaign(api) {
         C.event("visit", pl.id);
         if (P.tower && p.pos.y >= (pl.y != null ? pl.y : site.g + 16) - 0.5) C.event("visitHigh", pl.id);
       }
-      for (const q of [...s.active]) { const step = stepOf(q); if (step && step.ev === "have" && already(step)) advance(q); }
+      for (const q of [...s.active]) { const step = stepOf(q); if (step && (step.ev === "have" || step.ev === "lost") && already(step)) advance(q); }
       C.event("dim", G.dim);
       const cit = G.dim === "nether" && G.dimData.nether && G.dimData.nether.citadel;
       if (cit && Math.hypot(p.pos.x - cit.x, p.pos.z - cit.z) < 60) { if (!s.places.cinderCitadel) { s.places.cinderCitadel = true; UI.toast("Discovered: The Cinder Citadel"); } C.event("visit", "cinderCitadel"); }
@@ -876,6 +986,16 @@ export function initCampaign(api) {
       const kind = step.kind || (step.place || "").replace("throne_", ""), m = L.landmarks().find(x => x.kind === kind);
       if (m) return { x: m.x + 0.5, z: m.z + 0.5 };
     }
+    if ((step.ev === "dim" && step.dim === "end") || step.boss === "wyrm") {   // Chapter 8: the nearest stronghold on the Surface; the Wyrm's island in the Hollow
+      if (G.dim === "overworld" && G.gen && G.gen.strongholds) { const p = G.player.pos, sh = [...G.gen.strongholds].sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0]; if (sh) return { x: sh.x + 0.5, z: sh.z + 0.5 }; }
+      if (G.dim === "end") return { x: 0.5, z: 0.5 };
+      return null;
+    }
+    if (step.ev === "lost" || (step.ev === "dim" && (step.dim === "deep" || step.dim === "expanse")) || step.boss === "sovereign") {   // Chapter 7: Echohold
+      if (G.dim === "overworld") { const m = L.landmarks().find(x => x.kind === "excavation"); if (m) return { x: m.x + 0.5, z: m.z + 0.5 }; }
+      else if ((G.dim === "deep" || G.dim === "expanse") && L.goal) { const g = L.goal(); if (g.t) return { x: g.t.x + 0.5, z: g.t.z + 0.5 }; }
+      return null;
+    }
     if (G.dim === "nether" && (step.place === "cinderCitadel" || step.boss === "cindermaw")) { const c = G.dimData.nether && G.dimData.nether.citadel; if (c) return { x: c.x + 0.5, z: c.z + 0.5 }; }
     if (G.dim === "overworld" && ((step.ev === "dim" && step.dim === "nether") || (step.places || []).some(x => /^seal/.test(x)) || step.place === "cinderCitadel" || step.boss === "cindermaw")) {   // the way to the Ember Depths starts at the outpost's gate
       const op = sitesIn("overworld").find(x => x.id === "outpost"), m = op && op.built.info.marks.portal;
@@ -893,6 +1013,87 @@ export function initCampaign(api) {
     return null;
   }
   const dir8 = (dx, dz) => ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"][((Math.round(Math.atan2(dz, dx) / (Math.PI / 4)) % 8) + 8) % 8];
+
+  // ======================= the ending (Chapter 8): the choice, the celebration, the credits =======================
+  function overlay(html, z = 45) {
+    const el = document.createElement("div");
+    el.style.cssText = `position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.72);color:#fff;z-index:${z};font-family:system-ui,sans-serif;text-align:center;transition:opacity .8s;opacity:0;padding:16px;overflow:auto`;
+    el.innerHTML = html; document.body.appendChild(el);
+    requestAnimationFrame(() => { el.style.opacity = "1"; });
+    el.close = () => { el.style.opacity = "0"; setTimeout(() => el.remove(), 800); };
+    return el;
+  }
+  let choiceOpen = false;   // the final choice is on screen (or about to be)
+  function kingFallen(e) {
+    choiceOpen = true;
+    const at = e && e.pos ? { x: e.pos.x, y: e.pos.y, z: e.pos.z } : { ...G.player.pos };
+    for (let k = 0; k < 40; k++) setTimeout(() => puff(at.x + (Math.random() - 0.5) * 5, at.y + Math.random() * 6, at.z + (Math.random() - 0.5) * 5, k % 2 ? "xp" : "pale"), k * 60);
+    UI.toast("The Forgotten King falls to one knee. The eight Relics rise out of your pack and circle him, waiting...", "good");
+    setTimeout(chooseEnding, 3500);
+  }
+  function chooseEnding() {
+    choiceOpen = true;
+    if (!document.getElementById("cpFinalCss")) { const st2 = document.createElement("style"); st2.id = "cpFinalCss"; st2.textContent = "body.cp-final #pause{display:none!important}"; document.head.appendChild(st2); }
+    document.body.classList.add("cp-final");   // the pause menu stays hidden behind the choice
+    if (document.pointerLockElement) document.exitPointerLock && document.exitPointerLock();
+    const el = overlay(`<div style="letter-spacing:.3em;font-size:13px;color:#f5d36a">THE LEGACY CAMPAIGN • THE FINAL CHOICE</div>
+      <div style="font-size:clamp(26px,5vw,44px);font-weight:800;margin:10px 0;text-shadow:0 3px 0 #000">The Forgotten King's Fate</div>
+      <div style="max-width:620px;font-size:16px;line-height:1.5;opacity:.95">The King kneels in the Throne Court, beaten. The eight Relics circle him, glowing, waiting for you.<br><br>
+      Their light could <b>set him free</b> from the Void that changed him, or <b>banish him</b> into the Void forever, so he can never return.</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:22px">
+        <button class="btn primary" data-end="free" style="min-width:200px;padding:12px 18px;font-size:17px">✨ ${esc(ENDINGS.free.choice)}</button>
+        <button class="btn" data-end="banish" style="min-width:200px;padding:12px 18px;font-size:17px">🌑 ${esc(ENDINGS.banish.choice)}</button></div>
+      <div style="font-size:12px;opacity:.6;margin-top:14px">You can come back and choose differently later: replay Chapter 8 from the journal.</div>`, 46);
+    el.style.background = "rgba(0,0,0,.9)";
+    el.querySelectorAll("[data-end]").forEach(b => b.onclick = () => { Sound.click(); el.close(); document.body.classList.remove("cp-final"); choiceOpen = false; endWith(b.dataset.end); });
+  }
+  function endWith(kind) {
+    const s = st(), E2 = ENDINGS[kind];
+    s.ending = kind; s.endings = s.endings || {}; s.endings[kind] = Date.now();
+    const p = G.player.pos;
+    for (let k = 0; k < 50; k++) setTimeout(() => puff(p.x + (Math.random() - 0.5) * 10, p.y + Math.random() * 8, p.z + (Math.random() - 0.5) * 10, kind === "free" ? (k % 2 ? "xp" : "pale") : (k % 2 ? "portal" : "void")), k * 50);
+    if (kind === "free") [262, 330, 392, 523].forEach((f, i) => setTimeout(() => Sound.tone(f, 1.6, "sine", 0.07, 0), i * 350));
+    else [196, 165, 131].forEach((f, i) => setTimeout(() => Sound.tone(f, 1.8, "sine", 0.07, -20), i * 450));
+    G.adv && G.adv("cpending", kind);
+    C.event("flag", "endingChosen"); summary(); saveNow(false);
+    openPanel("note", { title: E2.title, text: E2.text + "\n\nNow go home to Legacy Village. Everyone is waiting for you." });
+  }
+  function celebrate() {
+    const s = st(), E2 = ENDINGS[s.ending || "free"], c = C.spawnPoint();
+    if (c) for (let k = 0; k < 90; k++) setTimeout(() => {   // fireworks over the fountain
+      const a = Math.random() * Math.PI * 2, r = Math.random() * 10, x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r, y = c.y + 8 + Math.random() * 8;
+      for (let j = 0; j < 6; j++) puff(x + (Math.random() - 0.5) * 2, y + (Math.random() - 0.5) * 2, z + (Math.random() - 0.5) * 2, ["xp", "pale", "ember", "portal"][(k + j) % 4]);
+      if (k % 6 === 0) Sound.tone(500 + Math.random() * 500, 0.3, "triangle", 0.04, 200);
+    }, k * 160);
+    [392, 494, 587, 784].forEach((f, i) => setTimeout(() => Sound.tone(f, 0.9, "triangle", 0.07, 0), 400 + i * 260));
+    setTimeout(() => openPanel("note", { title: "Homecoming", text: E2.party }), 2200);
+    setTimeout(() => rollCredits(), 2400);
+  }
+  function rollCredits() {
+    const s = st(), E2 = ENDINGS[s.ending || "free"];
+    const beaten = ["stoneguard", "pharaoh", "titan", "leviathan", "blightking", "tempest", "cindermaw", "herobrine", "sovereign", "wyrm", "skysov", "king"].map(k => BOSSES[k] ? BOSSES[k].name.replace(/^the /, "The ") : BOSS_NAMES[k] || k);
+    const sec = (h, lines2) => `<div style="margin:34px 0"><div style="color:#f5d36a;letter-spacing:.2em;font-size:13px">${esc(h)}</div>${lines2.map(t => `<div style="font-size:19px;margin-top:6px">${esc(t)}</div>`).join("")}</div>`;
+    const el = overlay(`<div style="position:absolute;inset:0;overflow:hidden"><div data-roll style="position:absolute;left:0;right:0;top:100%;padding:0 16px">
+      <div style="font-size:clamp(30px,6vw,52px);font-weight:800;text-shadow:0 3px 0 #000">BLOCKHAVEN</div><div style="font-size:20px;color:#f5d36a;letter-spacing:.25em">THE LEGACY CAMPAIGN</div>
+      ${sec("YOUR ENDING", [E2.title])}
+      ${sec("CREATED BY", ["Mr. Watford"])}
+      ${sec("THE CHAPTERS", CHAPTERS.map(c => `${c.n}. ${c.title}`))}
+      ${sec("THE RELICS", CHAPTERS.map(c => c.relic))}
+      ${sec("LEGENDS YOU FACED", beaten)}
+      ${sec("THE PEOPLE OF THE KINGDOMS", ["Elder Maren", "King Aldric and Captain Brenna of Stonehaven", "Elder Rasha of Sandspire", "Forgemaster Hilda of Ironhold", "Expedition Leader Sable", "Captain Mira of Seabreak", "Watcher Ilsa of Hollowmere", "Keeper Solenne of Skyreach", "and King Elarion, the first king of Blockhaven"])}
+      ${sec("SPECIAL THANKS", ["To every builder who played all the way to the end.", "Thank you for playing!"])}
+      <div style="height:40vh"></div><div style="font-size:14px;opacity:.7">Lighthouse Baptist Academy • Mr. Watford</div><div style="height:30vh"></div>
+      </div></div><button class="btn small" data-skip style="position:absolute;right:16px;bottom:16px;z-index:2">Skip ▸</button>`, 47);
+    el.style.background = "rgba(8,6,16,.94)";
+    if (!document.getElementById("cpFinalCss")) { const st2 = document.createElement("style"); st2.id = "cpFinalCss"; st2.textContent = "body.cp-final #pause{display:none!important}"; document.head.appendChild(st2); }
+    document.body.classList.add("cp-final");
+    const roll = el.querySelector("[data-roll]"); let y = 0, last = performance.now(), done = false;
+    const finish = () => { if (done) return; done = true; el.close(); document.body.classList.remove("cp-final"); UI.toast("🏆 The Legacy Campaign is complete! Your world is yours to explore and build in. You can replay any chapter from the journal (J).", "good"); };
+    const step = t => { if (done) return; y += (t - last) * 0.045; last = t; roll.style.transform = `translateY(${-y}px)`; if (y > roll.offsetHeight + window.innerHeight) finish(); else requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+    el.querySelector("[data-skip]").onclick = finish;
+  }
+  C.credits = rollCredits;
 
   // ======================= the chapter title card =======================
   function titleCard(n, then) {
@@ -919,7 +1120,7 @@ export function initCampaign(api) {
       const btn = c.n > PLAYABLE ? '<span class="note" style="color:#888">coming soon</span>' : `<button class="chip-btn" data-cp="ch${c.n}" style="padding:1px 8px">${c.n === ch ? "Restart" : "Play"}</button>`;
       return `<li style="margin:3px 0;${c.n === ch ? "font-weight:700" : c.n > ch ? "color:#666" : ""}">${c.n > PLAYABLE ? "🔒" : c.n === ch ? "▶" : c.n < ch ? "✔" : "○"} Chapter ${c.n}: ${esc(c.title)} ${btn}<br><span class="note" style="color:#555;font-weight:400">${esc(c.where)}</span></li>`;
     }).join("");
-    const run = s.fullRun ? "🏆 Earned! You played the whole story from Chapter 1 without skipping." : s.unbroken !== false ? "✔ Still on track: you haven't skipped any chapters. Finish Chapter 6 to earn it." : "✖ Not this time: you skipped ahead. Choose Play on Chapter 1 to start a new full run (your world, gear, and places found are kept).";
+    const run = s.fullRun ? "🏆 Earned! You played the whole story from Chapter 1 without skipping." : s.unbroken !== false ? "✔ Still on track: you haven't skipped any chapters. Finish the story (the homecoming at the end of Chapter 8) to earn it." : "✖ Not this time: you skipped ahead. Choose Play on Chapter 1 to start a new full run (your world, gear, and places found are kept).";
     const relics = CHAPTERS.map(c => `<span title="${esc(c.relic)}" style="display:inline-block;width:30px;height:30px;line-height:30px;margin:2px;border-radius:50%;text-align:center;border:2px solid ${s.relics.includes(c.n) ? "#c9a24a" : "#bbb"};background:${s.relics.includes(c.n) ? "#f5d36a" : "#eee"}">${s.relics.includes(c.n) ? "★" : "?"}</span>`).join("");
     const names = [...new Set(Object.keys(s.places).filter(k => PLACES[k] && !PLACES[k].tower && k !== "castleGate").map(k => PLACES[k].name))];
     const bosses = Object.keys(s.bosses).map(k => esc(BOSSES[k] ? BOSSES[k].name.replace(/^the /, "The ") : BOSS_NAMES[k] || k)).join(", ") || "None yet";
@@ -933,6 +1134,7 @@ export function initCampaign(api) {
       <h4>Waystones</h4><p class="note" style="color:#333">${ways}</p>
       <h4>Chapters</h4><p class="note" style="color:#444;margin:2px 0">Pick any chapter to play from there. Earlier chapters count as finished (you get their rewards and Relics once), and going back lets you fight a chapter's bosses again.</p><ul style="list-style:none;padding-left:4px;margin:4px 0">${chapters}</ul>
       <h4>The Whole Story</h4><p class="note" style="color:#333">${run}</p>
+      ${s.endings ? `<h4>Endings seen</h4><p class="note" style="color:#333">${Object.keys(s.endings).map(k => esc(ENDINGS[k].title)).join(", ")}${s.done.homecoming ? ' <button class="chip-btn" data-cp="credits">Watch the credits</button>' : ""}</p>` : ""}
       <h4>Places found</h4><p class="note" style="color:#333">${names.map(esc).join(", ") || "None yet"}</p>
       ${done.length ? `<details><summary><b>Finished quests (${done.length})</b></summary>${done.map(card).join("")}</details>` : ""}
       <h4>Options</h4><p class="note" style="color:#333"><button class="chip-btn" data-cp="track">${s.track ? "Hide" : "Show"} the objective at the top of the screen</button>
@@ -944,6 +1146,7 @@ export function initCampaign(api) {
     if (k === "track") { s.track = !s.track; hudDirty = true; }
     if (k === "skip") C.skipTutorial();
     if (k === "story") openPanel("note", { title: INTRO.title, text: INTRO.text });
+    if (k === "credits") { closePanel(); rollCredits(); }
     if (/^ch\d$/.test(k)) {
       const n = +k.slice(2), c = CHAPTERS[n - 1], why = C.canJump();
       if (why) { UI.toast(why, "bad"); return; }
@@ -959,6 +1162,6 @@ export function initCampaign(api) {
   const mainsBefore = n => QUEST_ORDER.filter(q => QUESTS[q] && QUESTS[q].main && QUESTS[q].chapter < n);
   C.resetSession = () => { last = null; introT = 0; hudDirty = true; arenaCache = { dim: null, list: [] }; raid = null; if (hudEl) hudEl.hidden = true; };
   C.hideHud = () => { if (hudEl) hudEl.hidden = true; };
-  C._test = { st, start, complete, sitesIn, waystones, travelTo, startRaid, planSites, jumpTo };
+  C._test = { st, start, complete, sitesIn, waystones, travelTo, startRaid, planSites, jumpTo, chooseEnding, endWith, celebrate, rollCredits, capDoor, useCapDoor };
   return C;
 }

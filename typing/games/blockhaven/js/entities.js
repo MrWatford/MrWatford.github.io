@@ -561,6 +561,60 @@ function tempestParts() {
   for (let i = 0; i < 18; i++) { const n = i < 6 ? 6 + (i % 3) * 2 : 8 + (i * 5) % 7; parts.push({ name: "d" + i, size: [n, n, n], pivot: [0, 0, 0], off: [0, 0, 0], paint: mats[(i * 3 + (i >> 2)) % mats.length] }); }
   return parts;
 }
+// Legacy Campaign, Chapter 8, drawn from the "Chapter 8 Concepts" bestiary sheet (Blockhaven D).
+// The Sky Sovereign: white marble armor with gold trim and pale-blue glyphs, a glowing blue spiral core, blue eyes,
+// a broken halo of gold pieces, wings made of long floating marble slabs, and no legs (its robe trails off into blocks).
+function skysovParts() {
+  const MAR = ["#e8e4dc", "#dcd6cc", "#f0ece4", "#e2ddd4"], GOLD = ["#d8a838", "#c89428", "#e8bc48"], GLY = "#7ad8f0";
+  const marble = (glyph, trim = true) => P => { P.fill(MAR); spk(P, 4, ["#c8c2b8", "#f8f6f0"]); if (trim) { P.rect(0, 0, 16, 2, GOLD[0]); P.rect(0, 14, 16, 2, GOLD[1]); } if (glyph) { P.rect(5, 5, 6, 1, GLY); P.rect(5, 5, 1, 6, GLY); P.rect(5, 10, 6, 1, GLY); P.rect(10, 7, 1, 4, GLY); } };
+  const slab = { all: marble(true), front: marble(true), bottom: solid(MAR) };
+  const parts = [
+    { name: "body", size: [16, 16, 9], pivot: [0, 46, 0], off: [0, 0, 0], paint: { all: marble(true), front: P => { marble(false)(P); P.rect(2, 0, 12, 16, "#ead6a0"); P.rect(3, 1, 10, 14, MAR[0]); } } },
+    { name: "core", parent: "body", size: [7, 7, 1], pivot: [0, 0, 4.5], off: [0, 0, 0.6], paint: { all: P => { P.fill(["#1aa8e0"]); P.rect(2, 2, 12, 12, "#3ad8ff"); P.rect(4, 4, 8, 8, "#a8f4ff"); P.rect(6, 6, 4, 4, "#ffffff"); P.rect(4, 7, 3, 1, "#1aa8e0"); P.rect(9, 8, 3, 1, "#1aa8e0"); } } },
+    { name: "head", size: [10, 11, 10], pivot: [0, 55, 0], off: [0, 5.5, 0], paint: { all: marble(false), front: face(MAR, P => { P.rect(0, 0, 16, 3, GOLD[0]); P.rect(7, 0, 2, 16, GOLD[1]); P.rect(2, 7, 4, 2, "#3ad8ff"); P.rect(10, 7, 4, 2, "#3ad8ff"); P.rect(3, 7, 2, 1, "#ffffff"); P.rect(11, 7, 2, 1, "#ffffff"); }) } },
+    { name: "crest", parent: "head", size: [2, 6, 10], pivot: [0, 11, 0], off: [0, 3, 0], paint: { all: solid(GOLD) } },
+    { name: "skirt", size: [18, 14, 11], pivot: [0, 38, 0], off: [0, -7, 0], paint: { all: P => { marble(false)(P); P.rect(6, 0, 4, 16, GOLD[0]); P.rect(7, 4, 2, 8, GLY); } } },
+    { name: "hem", size: [12, 8, 8], pivot: [0, 24, 0], off: [0, -4, 0], paint: { all: marble(true) } }
+  ];
+  for (const [side, sign] of [["R", -1], ["L", 1]]) {
+    parts.push(
+      { name: "arm" + side, size: [6, 15, 6], pivot: [sign * 12, 52, 0], off: [0, -6, 0], paint: { all: marble(true) } },
+      { name: "pad" + side, parent: "arm" + side, size: [9, 6, 9], pivot: [0, 1, 0], off: [0, 1, 0], paint: { all: P => { P.fill(MAR); P.rect(0, 0, 16, 3, GOLD[0]); P.rect(0, 13, 16, 3, GOLD[2]); } } },
+      { name: "hand" + side, parent: "arm" + side, size: [8, 7, 8], pivot: [0, -13, 0], off: [0, 0, 0], paint: { all: marble(true) } });
+    for (let i = 0; i < 4; i++) parts.push({ name: "w" + side + i, size: [28 - i * 4, 5, 3], pivot: [sign * 10, 56 - i * 7, -5], off: [sign * (14 - i * 2), 0, 0], paint: slab });
+  }
+  for (let i = 0; i < 6; i++) parts.push({ name: "h" + i, size: [6, 2, 2], pivot: [0, 0, 0], off: [0, 0, 0], paint: { all: solid(GOLD) } });
+  for (let i = 0; i < 4; i++) parts.push({ name: "t" + i, size: [4 - (i >> 1), 4 - (i >> 1), 4 - (i >> 1)], pivot: [0, 0, 0], off: [0, 0, 0], paint: { all: solid(MAR) } });
+  return parts;
+}
+// The Forgotten King: dark violet-gray stone armor with gold trim, a tall gold crown, glowing gold eyes and a glowing
+// chest core, huge pauldrons and fists, a crimson tabard and a long tattered crimson cape. In his final phase eight
+// golden Relic glyphs circle his head and the cracks in his armor shine.
+function kingParts() {
+  const ST = ["#3a3444", "#433c4e", "#352f3e", "#4a4256"], GOLD = ["#d8a838", "#c89428", "#e8bc48"], CRIM = ["#8a1a2a", "#a02234", "#741424"];
+  const armor = (edge = true) => P => { P.fill(ST); spk(P, 6, ["#2a2632", "#544a60"]); if (edge) { P.rect(0, 0, 16, 1, GOLD[0]); P.rect(0, 15, 16, 1, GOLD[1]); P.rect(0, 0, 1, 16, GOLD[1]); P.rect(15, 0, 1, 16, GOLD[0]); } };
+  const cloth = tatter => P => { P.clear(); for (let x = 0; x < 16; x++) { const len = tatter ? 16 - (x * 7) % 5 : 16; for (let y = 0; y < len; y++) P.px(x, y, CRIM[(x * 3 + y * 5) % 3]); } spk(P, 6, ["#5a0e1a", "#b8344a"]); };
+  const GLYPHS = [P => { P.rect(4, 4, 8, 8, "#fff2a8"); P.rect(6, 6, 4, 4, "#d8a838"); }, P => { P.rect(3, 7, 10, 2, "#fff2a8"); P.rect(7, 3, 2, 10, "#fff2a8"); }, P => { P.rect(4, 3, 8, 2, "#fff2a8"); P.rect(4, 11, 8, 2, "#fff2a8"); P.rect(7, 5, 2, 6, "#fff2a8"); },
+    P => { P.rect(3, 3, 10, 2, "#fff2a8"); P.rect(3, 3, 2, 10, "#fff2a8"); P.rect(3, 11, 10, 2, "#fff2a8"); P.rect(11, 7, 2, 6, "#fff2a8"); }, P => { P.rect(7, 2, 2, 12, "#fff2a8"); P.rect(4, 5, 8, 2, "#fff2a8"); P.rect(5, 11, 6, 2, "#fff2a8"); },
+    P => { P.rect(4, 4, 8, 8, "#fff2a8"); P.rect(6, 6, 4, 4, "#8a5a10"); P.rect(7, 2, 2, 2, "#fff2a8"); }, P => { P.rect(3, 3, 4, 4, "#fff2a8"); P.rect(9, 9, 4, 4, "#fff2a8"); P.rect(9, 3, 4, 4, "#e8bc48"); P.rect(3, 9, 4, 4, "#e8bc48"); }, P => { P.rect(5, 3, 6, 2, "#fff2a8"); P.rect(4, 7, 8, 2, "#fff2a8"); P.rect(5, 11, 6, 2, "#fff2a8"); }];
+  const parts = [
+    { name: "hips", size: [22, 10, 13], pivot: [0, 30, 0], off: [0, 0, 0], paint: { all: armor() } },
+    { name: "tabard", parent: "hips", size: [7, 26, 1], pivot: [0, 4, 6.5], off: [0, -9, 0.6], paint: { all: P => { cloth(true)(P); P.rect(5, 3, 6, 6, GOLD[0]); P.rect(6, 4, 4, 4, CRIM[1]); P.rect(0, 0, 16, 1, GOLD[2]); } } },
+    { name: "body", size: [26, 24, 15], pivot: [0, 47, 0], off: [0, 0, 0], paint: { all: armor(), front: P => { armor()(P); P.rect(5, 3, 6, 7, GOLD[0]); P.rect(6, 4, 4, 5, "#2a2632"); P.rect(7, 10, 2, 6, GOLD[1]); } } },
+    { name: "core", parent: "body", size: [6, 6, 1], pivot: [0, 3, 7.5], off: [0, 0, 0.6], paint: { all: P => { P.fill(["#c88a20"]); P.rect(2, 2, 12, 12, "#ffd34d"); P.rect(5, 5, 6, 6, "#fff2a8"); } } },
+    { name: "head", size: [12, 13, 12], pivot: [0, 59, 0], off: [0, 6.5, 0], paint: { all: armor(false), front: face(ST, P => { P.rect(0, 0, 16, 2, GOLD[0]); P.rect(2, 6, 4, 2, "#ffd34d"); P.rect(10, 6, 4, 2, "#ffd34d"); P.rect(3, 6, 2, 1, "#fff2a8"); P.rect(11, 6, 2, 1, "#fff2a8"); P.rect(5, 11, 6, 1, "#2a2632"); }) } },
+    { name: "crown", parent: "head", size: [14, 8, 14], pivot: [0, 13, 0], off: [0, 3, 0], paint: { all: P => { P.clear(); P.rect(0, 9, 16, 7, GOLD[1]); for (let x = 0; x < 16; x += 4) P.rect(x, 0, 2, 9, GOLD[2]); P.rect(7, 11, 2, 3, "#ffd34d"); } } },
+    { name: "cape", size: [28, 46, 2], pivot: [0, 58, -8], off: [0, -22, 0], paint: { all: cloth(true), top: solid(CRIM) } }
+  ];
+  for (const [side, sign] of [["R", -1], ["L", 1]]) parts.push(
+    { name: "leg" + side, size: [9, 26, 9], pivot: [sign * 6, 26, 0], off: [0, -13, 0], paint: { all: armor() } },
+    { name: "boot" + side, parent: "leg" + side, size: [11, 6, 12], pivot: [0, -23, 1], off: [0, 0, 0], paint: { all: P => { P.fill(ST); P.rect(0, 0, 16, 3, GOLD[0]); } } },
+    { name: "arm" + side, size: [10, 20, 10], pivot: [sign * 18, 55, 0], off: [0, -9, 0], paint: { all: armor() } },
+    { name: "pad" + side, parent: "arm" + side, size: [14, 9, 16], pivot: [0, 2, 0], off: [0, 0, 0], paint: { all: P => { armor()(P); P.rect(0, 12, 16, 4, GOLD[0]); } } },
+    { name: "fist" + side, parent: "arm" + side, size: [12, 11, 12], pivot: [0, -22, 0], off: [0, 0, 0], paint: { all: P => { armor()(P); P.rect(0, 0, 16, 3, GOLD[2]); } } });
+  for (let i = 0; i < 8; i++) parts.push({ name: "g" + i, size: [6, 6, 1], pivot: [0, 0, 0], off: [0, 0, 0], paint: { all: P => { P.fill(["#8a5a10"]); P.rect(1, 1, 14, 14, "#c89428"); GLYPHS[i](P); } } });
+  return parts;
+}
 function verdantModel() {
   const bark = ["#694227", "#795031", "#875b38", "#59371f", "#74482b"];
   const foliage = ["#527717", "#688b20", "#799e24", "#8cb52b", "#3d5e14"];
@@ -797,6 +851,10 @@ Object.assign(SPECIES, {
       { name: "legL", size: [18, 2, 10], pivot: [0, 20, -40], off: [0, 0, -4], paint: { all: solid(["#3ab0c8", "#2a90a8"]) } }] } },
   tempest: { name: "The Blight Tempest", boss: true, lostBoss: true, cpBoss: true, noSave: true, hostile: true, hp: 300, speed: 1.3, w: 6.4, h: 10.6, scale: 2, ai: "cpboss", flies: true, noclip: true, fireproof: true, dmg: 7, reach: 5.6, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
     model: { type: "tempest", parts: tempestParts() } },
+  skysov: { name: "The Sky Sovereign", boss: true, lostBoss: true, cpBoss: true, noSave: true, hostile: true, hp: 380, speed: 2.2, w: 2.6, h: 5.4, scale: 1.25, ai: "cpboss", flies: true, noclip: true, fireproof: true, dmg: 7, reach: 3.4, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
+    model: { type: "skysov", parts: skysovParts() } },
+  king: { name: "The Forgotten King", boss: true, lostBoss: true, cpBoss: true, noSave: true, hostile: true, hp: 640, speed: 2, w: 3.4, h: 8.8, scale: 1.6, ai: "cpboss", fireproof: true, dmg: 8, reach: 4.2, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
+    model: { type: "king", parts: kingParts() } },
   warden: { echohold: true, name: "The First Warden", boss: true, lostBoss: true, noSave: true, hostile: true, hears: true, hp: 440, speed: 2.4, scale: 1.2, w: 2.1, h: 5, ai: "warden", fireproof: true, dmg: 8, reach: 3, xp: 0, sound: "roar", deathPuff: "pale", drops: () => [],
     model: { type: "warden", parts: [
       { name: "body", size: [20, 18, 12], pivot: [0, 40, 0], off: [0, 9, 0], paint: { all: P => { P.fill(["#14343c", "#10303a", "#183a44"]); for (let y = 2; y < 16; y += 4) P.rect(0, y, 16, 1, "#0a1a20"); } } },
@@ -1305,7 +1363,7 @@ const BESTIARY_ART = new Set([
   // pass 2 (2026-11-06)
   "flare", "wailer", "boarkin", "brute", "rotboar", "hogbeast", "magma", "strider", "sheller",
   "scout", "whisker", "trotter", "minnow", "puffer", "squid", "dolphin", "fox", "bee",
-  "blightking", "cindermaw", "sentinel", "dragon", "blight", "sovereign", "tempest"
+  "blightking", "cindermaw", "sentinel", "dragon", "blight", "sovereign", "tempest", "skysov", "king"
 ]);
 
 installCreatures(SPECIES);
@@ -1547,7 +1605,7 @@ export class Entity {
     this.fuel = opts.fuel || 0; this.pushX = opts.pushX || 0; this.pushZ = opts.pushZ || 0; this.riderUid = opts.riderUid || null; this.fuseT = opts.fuseT || 0; this.hopperOff = !!opts.hopperOff;
   }
   get maxHp() { if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
-  get scale() { return (this.def.scale || 1) * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
+  get scale() { return (this.def.scale || 1) * (this.grow || 1) * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
   get w() { return this.def.w * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
   get h() { return this.def.h * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
   aabb(x = this.pos.x, y = this.pos.y, z = this.pos.z) { const r = this.w / 2; return [x - r, y, z - r, x + r, y + this.h, z + r]; }
@@ -2104,7 +2162,7 @@ export class Entities {
       const inside = Math.hypot(p.pos.x - h.x, p.pos.z - h.z) < h.r && Math.abs(p.pos.y - h.y) < 3;
       if (h.t > 0) { h.fill.material.opacity = 0.12 + (1 - h.t / h.warn) * 0.3; h.ring.material.opacity = 0.5 + Math.sin(h.t * 14) * 0.15; continue; }
       if (!h.fired) { h.fired = true; for (let k = 0; k < 3; k++) this.ctx.particles(h.x + rand(-h.r, h.r) * 0.6, h.y + 0.3, h.z + rand(-h.r, h.r) * 0.6, h.particle); Sound.mob("fireshoot", this.dist({ pos: h })); h.fill.material.color.setHex(h.color ?? 0xffb030); h.fill.material.opacity = 0.45; }
-      if (inside && (h.hitT -= dt) <= 0) { h.hitT = 0.5; this.ctx.hurtPlayer(h.dmg * ({ peaceful: 0, easy: 0.67, normal: 1, hard: 1.5 }[this.ctx.settings().difficulty] ?? 1), h.why, h.owner || null, h.damageKind); if (h.statusEffect) this.ctx.effect(h.statusEffect, 3); }
+      if (inside && h.dmg > 0 && (h.hitT -= dt) <= 0) { h.hitT = 0.5; this.ctx.hurtPlayer(h.dmg * ({ peaceful: 0, easy: 0.67, normal: 1, hard: 1.5 }[this.ctx.settings().difficulty] ?? 1), h.why, h.owner || null, h.damageKind); if (h.statusEffect) this.ctx.effect(h.statusEffect, 3); }
       if (h.t < -Math.max(0.35, h.burn)) h.gone = true;
     }
     this.hazards = this.hazards.filter(h => { if (!h.gone) return true; for (const m of [h.ring, h.fill]) { this.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } return false; });
@@ -3595,6 +3653,24 @@ export class Entities {
       if (P.core) { const k = 1 + Math.sin(e.age * (e.charging ? 14 : 3)) * 0.15; P.core.scale.setScalar(k); }
       if (t === "sovereign") { e.root.position.y = Math.sin(e.age * 1.2) * 0.3; for (let i = 0; i < 4; i++) { const a = e.age * 0.8 + i * Math.PI / 2; P["crown" + i].position.set(Math.cos(a) * 0.75, 96 / 16, Math.sin(a) * 0.75); } }
       if (e.shieldUp) { const k = 0.7 + Math.sin(e.age * 8) * 0.2; e.mat.color.setRGB(k, 1, 1.1); return; }
+    } else if (t === "skysov") {   // the halo turns, the wing slabs drift (and lift before a strike), the trailing blocks bob
+      for (let i = 0; i < 6; i++) { const a = e.age * 0.9 + i / 6 * Math.PI * 2; P["h" + i].position.set(Math.cos(a) * 0.62, 80 / 16 + Math.sin(e.age * 2 + i) * 0.05, Math.sin(a) * 0.62); P["h" + i].rotation.y = -a; }
+      for (let i = 0; i < 4; i++) { P["t" + i].position.set(Math.sin(e.age * 1.7 + i) * 0.15, 14 / 16 - i * 0.32 + Math.sin(e.age * 3 + i * 1.3) * 0.08, Math.cos(e.age * 1.3 + i) * 0.15); P["t" + i].rotation.set(e.age * 0.7, e.age * (0.5 + i * 0.2), 0); }
+      const lift = e.charging ? 0.35 : 0;
+      for (let i = 0; i < 4; i++) { const k = Math.sin(e.age * 1.6 - i * 0.5) * 0.08 + lift * (1 - i * 0.2); P["wR" + i].rotation.z = -k; P["wL" + i].rotation.z = k; }
+      P.armR.rotation.x = e.charging ? -1.4 : Math.sin(e.age * 1.2) * 0.15; P.armL.rotation.x = e.charging ? -1.4 : -Math.sin(e.age * 1.2) * 0.15;
+      e.root.position.y = Math.sin(e.age * 1.4) * 0.15;
+      if (P.core) P.core.scale.setScalar(1 + Math.sin(e.age * (e.charging ? 14 : 3)) * 0.18);
+      if (e.shieldUp) { const k = 0.75 + Math.sin(e.age * 8) * 0.2; e.mat.color.setRGB(k, k * 1.1, 1.3); return; }
+    } else if (t === "king") {   // he strides, his cape sways, his fists rise before a strike; in his final form the Relic glyphs circle him
+      if (P.legR) { P.legR.rotation.x = swing * 0.5; P.legL.rotation.x = -swing * 0.5; }
+      const atk = e.swing > 0 ? -Math.sin(e.swing * 6) * 1.3 : 0, raise = e.charging ? -1.5 : 0;
+      P.armR.rotation.x = -swing * 0.4 + atk + raise; P.armL.rotation.x = swing * 0.4 + (e.charging ? -1.5 : 0);
+      P.cape.rotation.x = 0.08 + Math.abs(swing) * 0.15 + Math.sin(e.age * 1.3) * 0.04;
+      for (let i = 0; i < 8; i++) { const g = P["g" + i]; g.visible = !!e.finalForm; if (!e.finalForm) continue; const a = e.age * 0.7 + i / 8 * Math.PI * 2; g.position.set(Math.cos(a) * 1.4, 84 / 16 + Math.sin(e.age * 2 + i) * 0.08, Math.sin(a) * 1.4); g.rotation.y = -a + Math.PI / 2; }
+      if (P.core) P.core.scale.setScalar(1 + Math.sin(e.age * (e.charging ? 14 : 3)) * (e.finalForm ? 0.3 : 0.15));
+      if (e.shieldUp) { const k = 0.7 + Math.sin(e.age * 8) * 0.2; e.mat.color.setRGB(k * 1.1, k, 1.25); return; }
+      if (e.finalForm && !(e.hurtT > 0)) { const k = 1.15 + Math.sin(e.age * 4) * 0.1; e.mat.color.setRGB(k * 1.1, k, k * 0.8); return; }
     } else if (t === "tempest") {   // the rubble spins (faster when it winds up an attack, and when it's badly hurt); the fists rise before a strike
       const spin = e.age * (e.charging ? 2.6 : 1.1) * (e.hp < e.maxHp * 0.33 ? 1.5 : 1);
       for (let i = 0; i < 18; i++) {
