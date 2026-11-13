@@ -6,6 +6,8 @@
 import { B, I, itemDef, iconURL } from "./blocks.js";
 import { Sound } from "./audio.js";
 
+// note block instrument names (same list as redstone.js); used to clean up old saves
+const NOTE_INSTRUMENTS = ["harp", "bass", "snare", "hat", "basedrum", "bell", "flute", "chime", "guitar", "xylophone", "iron_xylophone", "cow_bell", "didgeridoo", "bit", "banjo", "pling"];
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
@@ -53,6 +55,18 @@ export const ADVANCEMENTS = [
   { id: "voidchest", cat: "Machinery", icon: B.VOID_CHEST, title: "Personal Vault", desc: "Open a Void Chest.", parent: "furnace", ev: "voidchest", reward: { xp: 20 } },
   { id: "beaconMax", cat: "Machinery", icon: B.SKY_BLOCK, title: "Beaconator", desc: "Power a Beacon with a full 4-layer pyramid.", parent: "beacon", ev: "beaconPower", match: lv => lv >= 4, reward: { xp: 100 } },
   { id: "beacon", cat: "Machinery", icon: B.BEACON, title: "Light the Way", desc: "Place a Beacon.", parent: "portal", ev: "beacon", reward: { xp: 50 } },
+  // the Sparkworks (redstone), Milestone 12 Part E
+  { id: "sparks", cat: "Machinery", icon: B.SPARK_ORE, title: "Sparks Fly", desc: "Mine Spark Ore and collect Sparkdust.", parent: "furnace", check: G => has(G, I.SPARKDUST) },
+  { id: "wired", cat: "Machinery", icon: I.SPARKDUST, title: "Wired Up", desc: "Lay down a line of Sparkdust.", parent: "sparks", ev: "place", match: id => id === B.SPARK_DUST },
+  { id: "pressure", cat: "Machinery", icon: B.STONE_PLATE, title: "Under Pressure", desc: "Step on a pressure plate and power it.", parent: "sparks", ev: "plate" },
+  { id: "pushit", cat: "Machinery", icon: B.PISTON, title: "Push It", desc: "Power a piston and watch it push.", parent: "wired", ev: "piston", reward: { xp: 10 } },
+  { id: "replock", cat: "Machinery", icon: B.REPEATER, title: "Lock and Key", desc: "Lock a Repeater by powering it from the side.", parent: "wired", ev: "replock", reward: { xp: 15 } },
+  { id: "ontrack", cat: "Machinery", icon: B.POWERED_RAIL, title: "On Track", desc: "Ride a minecart 100 blocks.", parent: "furnace", ev: "cartride", reward: { xp: 15 } },
+  { id: "sorted", cat: "Machinery", icon: B.HOPPER, title: "Sort It Out", desc: "Sort 64 items with a working hopper item sorter.", parent: "wired", ev: "sorted", count: 64, sum: true, reward: { xp: 40 } },
+  { id: "crafty", cat: "Machinery", icon: B.CRAFTER, title: "Crafty Machine", desc: "Let a Crafter craft something for you.", parent: "wired", ev: "crafter", reward: { xp: 20 } },
+  { id: "tunein", cat: "Machinery", icon: B.NOTE_BLOCK, title: "Tune In", desc: "Play all 16 note block instruments.", parent: "wired", ev: "noteblock", count: 16, reward: { xp: 30 } },
+  { id: "hearme", cat: "Machinery", icon: B.TUNED_SENSOR, title: "Hear Me Now", desc: "Set off a Tuned Hush Sensor.", parent: "wired", ev: "hush", match: id => id === B.TUNED_SENSOR, reward: { xp: 20 } },
+  { id: "flying", cat: "Machinery", icon: B.GLOOP_BLOCK, title: "Flying Machine", desc: "Move Gloop Blocks 20 times with pistons. A flying machine does it fast!", parent: "pushit", ev: "gloopmove", count: 20, sum: true, reward: { xp: 60 } },
   // combat and bosses
   { id: "kill", cat: "Combat & Bosses", icon: I.WOOD_SWORD, title: "Monster Hunter", desc: "Defeat a monster.", ev: "kill", match: (sp, SPECIES) => SPECIES[sp] && SPECIES[sp].hostile },
   { id: "kill8", cat: "Combat & Bosses", icon: I.IRON_SWORD, title: "Monsters Hunted", desc: "Defeat 8 different kinds of monsters.", parent: "kill", ev: "kill", match: (sp, SPECIES) => SPECIES[sp] && SPECIES[sp].hostile, count: 8, reward: { xp: 50 } },
@@ -107,7 +121,15 @@ const BY_ID = Object.fromEntries(ADVANCEMENTS.map(a => [a.id, a]));
 export const Adv = {
   G: null, species: {}, data: { done: {}, prog: {}, met: {} },
   init(G, species, hooks) { this.G = G; this.species = species; this.hooks = hooks; },
-  load(data) { this.data = { done: {}, prog: {}, met: {}, ...(data || {}) }; this.pollT = 0; },
+  load(data) {
+    this.data = { done: {}, prog: {}, met: {}, ...(data || {}) }; this.pollT = 0;
+    // Before Part E, playing note blocks was counted as reading Hollowmere notes. Take those instrument names back out.
+    const notes = this.data.prog.notes;
+    if (Array.isArray(notes) && !this.data.done.notes) {
+      const fixed = notes.filter(n => !NOTE_INSTRUMENTS.includes(n));
+      if (fixed.length !== notes.length) { this.data.prog.notes = fixed; if (fixed.length < 8) delete this.data.met.notes; }
+    }
+  },
   toJSON() { return this.data; },
   done(id) { return !!this.data.done[id]; },
   // the game reports something that happened

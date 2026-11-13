@@ -9,6 +9,7 @@ import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
 import { HOLLOW_SANDS } from "./hollow-sands.js";
 import { hollowSandsMapHTML, mountHollowSandsMap } from "./hollow-sands-map.js";
 import { Cinema } from "./title-cinema.js";
+import { sparkworksGuideHTML, bindSparkworksGuide } from "./sparkworks-guide.js";
 
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
@@ -310,17 +311,18 @@ export const UI = {
       // two adventures, one journal: a tab for each (it opens on the one you're in)
       const cpOn = G.campaign && G.campaign.on();
       if (!G.journalTab || (G.journalTab === "cp" && !cpOn)) G.journalTab = cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
-      const lost = G.journalTab === "lost", cp = G.journalTab === "cp", leviathan = G.journalTab === "leviathan";
-      const tabs = `<span class="jtabs">${cpOn ? `<button class="chip-btn ${cp ? "on" : ""}" data-jtab="cp">Campaign</button>` : ""}<button class="chip-btn ${!lost && !cp && !leviathan ? "on" : ""}" data-jtab="fw">Forsaken World</button><button class="chip-btn ${lost ? "on" : ""}" data-jtab="lost">Lost Civilization</button><button class="chip-btn ${leviathan ? "on" : ""}" data-jtab="leviathan">Leviathan</button></span>`;
-      p.innerHTML = `<div class="inv-card fw-card"><h3>Journal ${tabs} <span class="note" style="color:#444">Press J or Esc to close</span></h3>${leviathan ? leviathanJournalHTML(G) : cp ? G.campaign.journalHTML() : lost ? G.lost.journalHTML() : G.forsaken.journalHTML()}</div>`;
+      const lost = G.journalTab === "lost", cp = G.journalTab === "cp", leviathan = G.journalTab === "leviathan", spark = G.journalTab === "spark";
+      const tabs = `<span class="jtabs">${cpOn ? `<button class="chip-btn ${cp ? "on" : ""}" data-jtab="cp">Campaign</button>` : ""}<button class="chip-btn ${!lost && !cp && !leviathan && !spark ? "on" : ""}" data-jtab="fw">Forsaken World</button><button class="chip-btn ${lost ? "on" : ""}" data-jtab="lost">Lost Civilization</button><button class="chip-btn ${leviathan ? "on" : ""}" data-jtab="leviathan">Leviathan</button><button class="chip-btn ${spark ? "on" : ""}" data-jtab="spark">Sparkworks</button></span>`;
+      p.innerHTML = `<div class="inv-card fw-card"><h3>Journal ${tabs} <span class="note" style="color:#444">Press J or Esc to close</span></h3>${spark ? sparkworksGuideHTML(G) : leviathan ? leviathanJournalHTML(G) : cp ? G.campaign.journalHTML() : lost ? G.lost.journalHTML() : G.forsaken.journalHTML()}</div>`;
       p.querySelectorAll("[data-jtab]").forEach(b => b.onclick = () => { Sound.click(); G.journalTab = b.dataset.jtab; this.renderPanel(); });
       p.querySelectorAll("[data-solkara-sanctuary]").forEach(b => b.onclick = () => { Sound.click(); G.visitSolkaraSanctuary(); });
       p.querySelectorAll("[data-leviathan-storm-preview]").forEach(b => b.onclick = () => {
         Sound.click(); G.closePanel(); G.previewLeviathanStorm(b.dataset.leviathanStormPreview === "start");
       });
       bindLeviathanBondControls(p, G, () => this.renderPanel(), () => Sound.click());
+      bindSparkworksGuide(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
-      if (!lost && !cp && !leviathan) G.forsaken.drawMap($("fwMap"));
+      if (!lost && !cp && !leviathan && !spark) G.forsaken.drawMap($("fwMap"));
       p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
         const record = SOLKARA_RECORDS[Number(b.dataset.solkaraRecord)];
         if (record && hasSolkaraRecord(G.story.leviathan, record)) this.openNote(record.title, record.text, false);

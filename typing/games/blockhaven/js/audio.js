@@ -199,6 +199,13 @@ export const Sound = {
       default: voice(f, "triangle", 0.8, 0.2); voice(f * 2, "sine", 0.5, 0.05);   // harp
     }
   },
+  // a minecart rolling onto the next rail: a short clack, louder and higher the faster it goes
+  railClack(speed, dist = 0) {
+    const k = Math.max(0, 1 - dist / 20), s = Math.min(1, speed / 8);
+    if (k <= 0.02) return;
+    this.noise(260 + s * 260, 0.08, (0.06 + 0.12 * s) * k, 2.5);
+    this.tone(90 + s * 40, 0.05, "triangle", 0.04 * k);
+  },
   levelUp() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, "triangle", 0.1), i * 80)); },
   xp() { this.tone(1200 + Math.random() * 600, 0.06, "sine", 0.05); }
 };

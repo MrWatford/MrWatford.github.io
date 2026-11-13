@@ -2317,6 +2317,12 @@ export class Entities {
       moveBody(w, e, dt);
     }
     const r = e.onRail;
+    // rolling sound: a clack each time the cart rolls onto the next rail block
+    if (r) {
+      const cell = Math.floor(e.pos.x) + "," + Math.floor(e.pos.z), sp = Math.hypot(e.vel.x, e.vel.z);
+      if (e.railCell && cell !== e.railCell && sp > 1) Sound.railClack(sp, this.dist(e));
+      e.railCell = cell;
+    } else e.railCell = null;
     // activator rails: throw riders out, light a Blast Block cart, switch a hopper cart off
     if (r && r.id === B.ACTIVATOR_RAIL) {
       if (r.on) { if (e.ridden) ctx.ejectCart(e); if (e.riderE) { e.riderE.inCart = null; e.riderE.pos.x += 1; e.riderE = null; e.riderUid = null; } if (e.sp === "tnt_cart" && !e.fuseT) { e.fuseT = 4; Sound.mob("fuse", this.dist(e)); } if (e.sp === "hopper_cart") e.hopperOff = true; }

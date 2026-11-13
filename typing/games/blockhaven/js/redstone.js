@@ -55,7 +55,7 @@ export function initRedstone(ctx) {
     data = data || {};
     const st = w.rs = { tick: data.tick || 0, acc: 0, seq: 0, sched: new Map(), queue: [], head: 0, queued: new Set(), cmp: new Map(data.cmp || []), seen: new Map(), poll: new Set(), hist: new Map(), burnt: new Map(), used: 0, looks: 0, overload: false, ver: 0, netVer: new Map(),
       moves: new Map(), pulse: new Map(), hush: new Set(), hushPend: new Map(), hushFreq: new Map(), openChest: null,
-      hoppers: new Set(), hcd: new Map(), uiDirty: false };
+      hoppers: new Set(), hcd: new Map(), unlocked: new Map(), uiDirty: false };
     for (const [x, y, z, kind, dt] of data.sched || []) schedule(st, x, y, z, Math.max(1, dt), kind);
     // find comparators, sensors, and plates the player has placed (they're all in the change list)
     for (const [ck, m] of w.mods) {
@@ -351,7 +351,7 @@ export function initRedstone(ctx) {
   }
   function repeaterCheck(x, y, z, v) {
     const m = metaOf(v), f = m & 3, locked = sideLock(x, y, z, f);
-    if (locked !== !!(m & LOCKED)) { setState(x, y, z, make(B.REPEATER, locked ? m | LOCKED : m & ~LOCKED)); return; }
+    if (locked !== !!(m & LOCKED)) { setState(x, y, z, make(B.REPEATER, locked ? m | LOCKED : m & ~LOCKED)); if (locked && G.adv) G.adv("replock"); return; }
     if (locked) return;
     const want = repeaterInput(x, y, z, f) > 0;
     if (want !== !!(m & ON)) schedule(S(), x, y, z, (((m >> 2) & 3) + 1) * 2, "rep");
@@ -472,6 +472,7 @@ export function initRedstone(ctx) {
     for (const c of cells) { const dx = c.x + dir[0], dy = c.y + dir[1], dz = c.z + dir[2]; if (w.id(dx, dy, dz) === B.MOVING) w.set(dx, dy, dz, c.v); }
     if (rec.headAt && w.id(...rec.headAt) === B.MOVING) w.set(rec.headAt[0], rec.headAt[1], rec.headAt[2], rec.headV);
     for (const c of cells) if (idOf(c.v) === B.OBSERVER) observerTrigger(c.x + dir[0], c.y + dir[1], c.z + dir[2]);   // a moved observer fires
+    if (G.adv && cells.some(c => idOf(c.v) === B.GLOOP_BLOCK)) G.adv("gloopmove");   // "Flying Machine" counts Gloop Block moves
   }
   function extend(x, y, z, v) {
     const w = W(), m = metaOf(v), face = m & 7, f = PF[face], front = [x + f[0], y + f[1], z + f[2]];
@@ -692,7 +693,11 @@ export function initRedstone(ctx) {
       }
     }
     const src = access(x, y + 1, z, "side");
-    if (src) { for (const i of src.outs) { const s = src.box.slots[i]; if (s && insertOne(me, { ...s, n: 1 }) >= 0) { useOne(src.box, i); moved = true; break; } } }
+    if (src) { for (const i of src.outs) { const s = src.box.slots[i]; if (s && insertOne(me, { ...s, n: 1 }) >= 0) {
+      useOne(src.box, i); moved = true;
+      // an item sorter at work: a signal-controlled hopper (it has been unlocked by power before) pulls an item out of the filter hopper above it
+      if (G.adv && w.id(x, y + 1, z) === B.HOPPER && st.unlocked.has(k)) G.adv("sorted");
+      break; } } }
     else if (!OPAQUE[w.id(x, y + 1, z)]) {
       for (const d of [...G.drops]) {
         if (d.x < x || d.x > x + 1 || d.z < z || d.z > z + 1 || d.y < y + 0.5 || d.y > y + 2) continue;
@@ -712,7 +717,10 @@ export function initRedstone(ctx) {
   }
   function hopperCheck(x, y, z, v) {
     const m = metaOf(v), p = isPowered(x, y, z);
-    if (p !== !!(m & HOPPER_LOCKED)) setState(x, y, z, make(B.HOPPER, p ? m | HOPPER_LOCKED : m & ~HOPPER_LOCKED));
+    if (p !== !!(m & HOPPER_LOCKED)) {
+      setState(x, y, z, make(B.HOPPER, p ? m | HOPPER_LOCKED : m & ~HOPPER_LOCKED));
+      if (!p) S().unlocked.set(key(x, y, z), 1);   // remembered (until reload) for the "Sort It Out" advancement
+    }
   }
   function frontOf(x, y, z, fi) { const f = PF[fi]; return { f, fx: x + f[0], fy: y + f[1], fz: z + f[2], cx: x + 0.5 + f[0] * 0.7, cy: y + 0.5 + f[1] * 0.7 - (f[1] ? 0 : 0.15), cz: z + 0.5 + f[2] * 0.7 }; }
   function shootOut(id, n, stack, F) {
@@ -891,7 +899,8 @@ export function initRedstone(ctx) {
     if (above === B.SKULL) ctx.Sound.mob("rattle", dist(x, y, z));
     else ctx.Sound.note(INSTRUMENT(idOf(get(x, y - 1, z))), pitch, dist(x, y, z));
     ctx.noteFx(x + 0.5, y + 1.2, z + 0.5, pitch);
-    if (G.adv) G.adv("note", INSTRUMENT(idOf(get(x, y - 1, z))));
+    // "noteblock", not "note": "note" is the Forsaken World's notes event, and sharing it let instruments count as Hollowmere notes
+    if (above !== B.SKULL && G.adv) G.adv("noteblock", INSTRUMENT(idOf(get(x, y - 1, z))));
   }
 
   // ---------- running the engine ----------
