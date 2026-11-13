@@ -2298,3 +2298,38 @@ body.dialog-open { overflow: hidden; }
 .fc-kb { grid-template-columns: minmax(0, 1fr); }
 .fc-row kbd { overflow: hidden; }
 @media (max-width: 560px) { .fc-kb, .fc-row { gap: 3px; } .fc-row kbd { border-radius: 5px; border-width: 1px; } }
+
+/* ===== Study guide extras: Fix it (rv-fx), Press it (rv-pr), keyboard (kbx) ===== */
+.rv-fx-bad { font-family: "Courier New", ui-monospace, monospace; font-size: 1.25rem; font-weight: 700; white-space: pre-wrap; background: var(--red-50); border: 2px dashed var(--red); border-radius: 12px; padding: 12px 14px; margin: 0 0 14px; color: var(--ink); }
+.rv-fx-label { display: block; font-weight: 800; color: var(--green-900); margin-bottom: 6px; }
+.rv-fx-input { width: 100%; font-family: "Courier New", ui-monospace, monospace; font-size: 1.2rem; padding: 10px 12px; border: 3px solid var(--green-200); border-radius: 12px; margin-bottom: 10px; white-space: pre; }
+.rv-fx-input:focus { outline: none; border-color: var(--green-700); }
+.rv-pr-action { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: clamp(1.6rem, 5vw, 2.4rem); color: var(--green-900); margin: 0 0 12px; }
+.rv-pr-pad { display: grid; place-items: center; min-height: 110px; border: 3px dashed var(--green-200); border-radius: var(--radius); background: var(--green-50); font-weight: 800; color: var(--muted); margin-bottom: 12px; text-align: center; padding: 12px; }
+.rv-pr-pad.ok { border-style: solid; border-color: var(--green-700); background: var(--green-100); color: var(--green-800); }
+.rv-note { background: var(--yellow-50); border-left: 6px solid var(--yellow); border-radius: 10px; padding: 10px 14px; font-weight: 600; }
+
+.kbx { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; max-width: 820px; margin: 0 auto 12px; padding: 10px; background: var(--green-50); border: 3px solid var(--green-700); border-radius: 16px; }
+.kbx-row { display: flex; gap: 5px; }
+.kbx-key { flex: 1 1 0; min-width: 0; height: clamp(30px, 6.4vw, 50px); display: grid; place-items: center; border-radius: 8px; border: 2px solid #b9c4bc; background: var(--white); font: 800 clamp(.8rem, 2.4vw, 1.2rem) "Nunito Sans", sans-serif; color: var(--green-900); padding: 0; text-align: center; overflow: hidden; box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+.kbx-key.fixed { background: #d6e0d8; color: #45524a; font-size: clamp(.5rem, 1.5vw, .78rem); font-weight: 700; }
+.kbx-key.wide15 { flex-grow: 1.5; } .kbx-key.wide18 { flex-grow: 1.8; } .kbx-key.wide2 { flex-grow: 2; } .kbx-key.wide22 { flex-grow: 2.2; }
+.kbx-key.wide23 { flex-grow: 2.3; } .kbx-key.wide27 { flex-grow: 2.7; } .kbx-key.space { flex-grow: 7; }
+.kbx-key.blank { cursor: pointer; text-transform: uppercase; caret-color: var(--green-700); }
+.kbx-key.blank:focus { outline: 3px solid var(--blue); outline-offset: 1px; }
+.kbx-key.bump { background-image: linear-gradient(var(--green-900), var(--green-900)); background-size: 30% 3px; background-repeat: no-repeat; background-position: 50% 85%; }
+.kbx-key.ok { background-color: var(--green-100); border-color: var(--green-700); }
+.kbx-key.bad { background-color: var(--red-50); border-color: var(--red); }
+.kbx-key.shown { background-color: #e8f0fb; border-color: var(--blue); color: var(--blue); }
+.kbx-key.seen { background-color: var(--green-50); color: var(--green-700); }
+button.kbx-key.blank:hover { background-color: var(--yellow-50); }
+.kbx-target { display: inline-block; min-width: 1.6em; text-align: center; font-family: "Fredoka", sans-serif; font-size: 1.6rem; background: var(--yellow); border-radius: 8px; padding: 0 6px; }
+.kb-status { font-weight: 800; color: var(--green-800); min-height: 1.5em; }
+@media (max-width: 560px) { .kbx { padding: 5px; gap: 3px; } .kbx-row { gap: 3px; } .kbx-key { border-radius: 5px; border-width: 1px; } }
+.rv-sheet table { width: 100%; border-collapse: collapse; margin: 0 0 8px; }
+.rv-sheet th, .rv-sheet td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rv-sheet th { background: var(--green-50); color: var(--green-800); }
+.rv-sheet td:first-child { font-weight: 800; white-space: nowrap; color: var(--green-900); }
+.rv-good { color: var(--green-800); font-weight: 700; } .rv-bad { color: var(--red); font-weight: 700; text-decoration: line-through; }
+
+@media (min-width: 901px) { .rv-tabs { grid-template-columns: repeat(var(--rv-cols, 5), minmax(0, 1fr)); } }
