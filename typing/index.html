@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Typing Games | Mr. Watford</title>
+  <title>Typing Classroom | Mr. Watford</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/style.css?v=tc2">
 </head>
-<body data-tips="Keep your eyes on the screen, not your hands!|Sit up straight with your feet flat on the floor.|Accuracy first. Speed comes with practice!">
+<body data-tc="hub" data-tips="Keep your eyes on the screen, not your hands!|Sit up straight with your feet flat on the floor.|Accuracy first. Speed comes with practice!">
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
@@ -31,15 +31,14 @@
   </header>
 
   <main id="main">
-    <!-- ===== SCENE: the computer corner ===== -->
     <section class="scene-hero wall">
       <div class="container scene-grid">
         <div class="panel title-card">
           <p class="panel-head"><span class="ic" aria-hidden="true">⌨️</span> 7th Grade Typing</p>
           <div class="panel-body">
             <p class="breadcrumb"><a href="../index.html">← Classroom</a></p>
-            <h1>Typing Games</h1>
-            <p class="lead">Fun games to build your typing speed and accuracy.</p>
+            <h1>Typing Classroom</h1>
+            <p class="lead">Study guides, typing assignments, a speed test, and games, all in one place.</p>
             <p class="caption"><span class="caption-tag">Mr. Watford</span>Fingers on the home row? Let's see how fast you can type!</p>
           </div>
         </div>
@@ -67,181 +66,58 @@
     </section>
 
     <div class="page-body">
+
+    <div class="page-body">
       <div class="container">
-
-        <!-- ===== QUIZ REVIEW =====
-             To add another review: copy typing/review/living-wisely-online.html + js/review-living-wisely.js
-             and add another .rv-feature block below. -->
-        <section class="panel" style="margin-bottom: 24px">
-          <h2 class="panel-head"><span class="ic" aria-hidden="true">📚</span> Quiz review</h2>
-          <div class="panel-body rv-feature">
-            <div>
-              <h3>Living Wisely Online</h3>
-              <p>AI use, online and texting behavior. Flashcards, practice questions, matching, and short answers.</p>
-            </div>
-            <a class="btn" href="review/living-wisely-online.html">Start reviewing →</a>
-          </div>
+        <!-- ===== THIS WEEK board: edit the sticky notes (<li>) below. 1 to 3 notes looks best. ===== -->
+        <section class="tc-board" aria-labelledby="tc-week-h">
+          <h2 id="tc-week-h">📌 This week</h2>
+          <ul class="tc-notes">
+            <li><strong>Quiz coming up!</strong>Living Wisely Online. <a href="review/living-wisely-online.html">Study with the review →</a></li>
+            <li><strong>Practice every day</strong>Try a warm-up or the speed test for a few minutes each class.</li>
+          </ul>
         </section>
 
-        <!-- ===== FEATURED GAME =====
-             Each game shows a looping gameplay clip from images/games/ (the "-still" picture is used when motion is turned off).
-             To add another game: copy a card in the grid below and add its clip pictures. -->
-        <section class="panel">
-          <h2 class="panel-head"><span class="ic" aria-hidden="true">🌧️</span> Featured game</h2>
-          <div class="panel-body game-feature">
-            <picture class="game-clip">
-              <source srcset="../images/games/word-rain-still.webp" media="(prefers-reduced-motion: reduce)">
-              <img src="../images/games/word-rain.webp" width="512" height="352" alt="Word Rain gameplay: words fall down a green chalkboard and get typed away before they reach the ledge.">
-            </picture>
-            <div>
-              <h2>Word Rain</h2>
-              <p class="play-count" data-play-count="word-rain" hidden></p>
-              <a class="btn" href="games/word-rain.html">Play Word Rain →</a>
-            </div>
-          </div>
-        </section>
-
-        <h2 style="margin-top: 8px">More games</h2>
-        <!-- GAME CARD: copy one of these <a> blocks to add another game -->
-        <div class="grid-2" style="margin-bottom: 24px">
-          <a class="panel subject-link" href="games/keyboard-kart.html">
-            <h2 class="panel-head"><span class="ic" aria-hidden="true">🏎️</span> Keyboard Kart</h2>
-            <div class="panel-body">
-              <picture class="game-clip">
-                <source srcset="../images/games/keyboard-kart-still.webp" media="(prefers-reduced-motion: reduce)">
-                <img src="../images/games/keyboard-kart.webp" width="512" height="352" loading="lazy" alt="Keyboard Kart gameplay: a go-kart races down the track in 1st place while words are typed for gas, power-ups, and dodging oil.">
-              </picture>
-              <span class="play-count" data-play-count="keyboard-kart" hidden></span>
-              <span class="go">Play Keyboard Kart</span>
+        <!-- ===== THE ROOMS ===== -->
+        <div class="tc-rooms">
+          <a class="tc-room study" href="study-guides.html">
+            <div class="tc-room-top" aria-hidden="true">📚</div>
+            <div class="tc-room-body">
+              <h2>Study Guides</h2>
+              <span class="tc-count">1 quiz review</span>
+              <p>Flashcards, practice questions, and matching for every quiz.</p>
+              <span class="go">Study</span>
             </div>
           </a>
-
-          <a class="panel subject-link" href="games/tower-typer.html">
-            <h2 class="panel-head"><span class="ic" aria-hidden="true">🏰</span> Tower Typer</h2>
-            <div class="panel-body">
-              <picture class="game-clip">
-                <source srcset="../images/games/tower-typer-still.webp" media="(prefers-reduced-motion: reduce)">
-                <img src="../images/games/tower-typer.webp" width="512" height="352" loading="lazy" alt="Tower Typer gameplay: monsters march along a winding path toward the castle while towers and typed words stop them.">
-              </picture>
-              <span class="play-count" data-play-count="tower-typer" hidden></span>
-              <span class="go">Play Tower Typer</span>
+          <a class="tc-room assign" href="assignments.html">
+            <div class="tc-room-top" aria-hidden="true">📝</div>
+            <div class="tc-room-body">
+              <h2>Assignments</h2>
+              <span class="tc-count" id="tc-assign-count">Practice open</span>
+              <p>Type your assignments here and see your speed and accuracy.</p>
+              <span class="go">Get to work</span>
+            </div>
+          </a>
+          <a class="tc-room games" href="games.html">
+            <div class="tc-room-top" aria-hidden="true">🎮</div>
+            <div class="tc-room-body">
+              <h2>Games</h2>
+              <span class="tc-count">5 typing + 4 free-time</span>
+              <p>Typing games for practice, and free-time games when your work is done.</p>
+              <span class="go">Play</span>
             </div>
           </a>
         </div>
 
-        <div class="grid-2" style="margin-bottom: 24px">
-          <a class="panel subject-link" href="games/jungle-dash.html">
-            <h2 class="panel-head"><span class="ic" aria-hidden="true">🌴</span> Jungle Dash</h2>
-            <div class="panel-body">
-              <picture class="game-clip">
-                <source srcset="../images/games/jungle-dash-still.webp" media="(prefers-reduced-motion: reduce)">
-                <img src="../images/games/jungle-dash.webp" width="512" height="352" loading="lazy" alt="Jungle Dash gameplay: an explorer runs down a jungle trail, switching lanes and typing words to jump a fallen log.">
-              </picture>
-              <span class="play-count" data-play-count="jungle-dash" hidden></span>
-              <span class="go">Play Jungle Dash</span>
-            </div>
+        <div class="tc-tools">
+          <a class="tc-tool" href="speed-test.html">
+            <span class="ic" aria-hidden="true">⏱️</span>
+            <div><h3>Speed Test</h3><p>How many words per minute can you type?</p><p class="best" id="tc-best" hidden></p></div>
           </a>
-
-          <a class="panel subject-link" href="games/keyboard-kingdoms.html">
-            <h2 class="panel-head"><span class="ic" aria-hidden="true">⚔️</span> New game: Keyboard Kingdoms</h2>
-            <div class="panel-body">
-              <picture class="game-clip">
-                <source srcset="../images/games/keyboard-kingdoms-still.webp" media="(prefers-reduced-motion: reduce)">
-                <img src="../images/games/keyboard-kingdoms.webp" width="512" height="352" loading="lazy" alt="Keyboard Kingdoms gameplay: blue and red troops cross the bridges between two castles as cards are played by typing their words.">
-              </picture>
-              <span class="play-count" data-play-count="keyboard-kingdoms" hidden></span>
-              <span class="go">Play Keyboard Kingdoms</span>
-            </div>
+          <a class="tc-tool" href="how-to-type.html">
+            <span class="ic" aria-hidden="true">🖐️</span>
+            <div><h3>How to Type</h3><p>Finger chart, posture, and habits that make you faster.</p></div>
           </a>
-        </div>
-
-        <!-- FREE-TIME GAME: not a typing game, just for fun -->
-        <section class="panel" style="margin-bottom: 24px">
-          <h2 class="panel-head"><span class="ic" aria-hidden="true">⛏️</span> Free-time game</h2>
-          <div class="panel-body game-feature">
-            <picture class="game-clip">
-              <img src="../images/games/blockhaven-cover.jpg" width="640" height="359" loading="lazy" alt="BlockHaven cover art featuring blocky adventurers, temples, dinosaurs, and monsters.">
-            </picture>
-            <div>
-              <h2>Blockhaven</h2>
-              <p class="play-count" data-play-count="blockhaven" hidden></p>
-              <a class="btn" href="games/blockhaven/index.html">Play Blockhaven →</a>
-            </div>
-          </div>
-        </section>
-
-        <!-- FREE-TIME GAME: rhythm obstacle runner (not a typing game) -->
-        <section class="panel" style="margin-bottom: 24px">
-          <h2 class="panel-head"><span class="ic" aria-hidden="true">🔷</span> New free-time game</h2>
-          <div class="panel-body game-feature">
-            <picture class="game-clip">
-              <source srcset="../images/games/geometry-race-still.webp" media="(prefers-reduced-motion: reduce)">
-              <img src="../images/games/geometry-race.webp" width="512" height="352" loading="lazy" alt="Geometry Race gameplay: a neon cube jumps spikes, a ship flies between spiked pillars, and a wave zigzags past striped red walls.">
-            </picture>
-            <div>
-              <h2>Geometry Race</h2>
-              <p>Jump, fly, and flip to the beat with one button. Six levels from Beginner to Expert, practice checkpoints, and custom cubes.</p>
-              <p class="play-count" data-play-count="geometry-race" hidden></p>
-              <a class="btn" href="games/geometry-race/index.html">Play Geometry Race →</a>
-            </div>
-          </div>
-        </section>
-
-        <!-- FREE-TIME GAME: first-person sci-fi adventure (not a typing game) -->
-        <section class="panel" style="margin-bottom: 24px">
-          <h2 class="panel-head"><span class="ic" aria-hidden="true">🛰️</span> New free-time game</h2>
-          <div class="panel-body game-feature">
-            <picture class="game-clip">
-              <img src="../images/games/aegis-frontier.webp" width="512" height="352" loading="lazy" alt="Ringfall: Infinite Frontier — a grassy meadow seen through a broken, weathered stone arch with a glowing teal seam, with tall pines, a lake, and an outpost in the valley beyond.">
-            </picture>
-            <div>
-              <h2>Ringfall: Infinite Frontier</h2>
-              <p>Explore a ring-shaped science frontier in first person. Grapple up cliffs, drive rovers, rescue research teams, reconnect bases, and shut down a malfunctioning machine network. Twelve story missions; progress saves on your device.</p>
-              <p><small>Needs a keyboard and mouse (laptop, Chromebook, or desktop). Not for phones or tablets.</small></p>
-              <p class="play-count" data-play-count="aegis-frontier" hidden></p>
-              <a class="btn" href="games/aegis-frontier/index.html">Play Ringfall →</a>
-            </div>
-          </div>
-        </section>
-
-        <!-- FREE-TIME GAME: superhero fighting game (not a typing game) -->
-        <section class="panel" style="margin-bottom: 24px">
-          <h2 class="panel-head"><span class="ic" aria-hidden="true">🦸</span> New free-time game</h2>
-          <div class="panel-body game-feature">
-            <picture class="game-clip">
-              <img src="../images/games/hero-clash.webp" width="640" height="360" loading="lazy" alt="Hero Clash: two original superheroes trade blows on a city rooftop at night, one landing a glowing punch.">
-            </picture>
-            <div>
-              <h2>Hero Clash: Ultimate Showdown</h2>
-              <p>A side-view superhero fighting game. Choose from 16 original heroes and villains, learn combos and special powers, and unleash Ultimate Moves. Play the computer, a friend on the same keyboard, an Arcade ladder, or a classroom tournament. No blood or graphic content.</p>
-              <p><small>Best with a keyboard or gamepad. Touch buttons appear on tablets. Progress saves on your device.</small></p>
-              <p class="play-count" data-play-count="hero-clash" hidden></p>
-              <a class="btn" href="games/hero-clash/index.html">Play Hero Clash →</a>
-            </div>
-          </div>
-        </section>
-
-        <div class="grid-2">
-          <section class="panel">
-            <h2 class="panel-head"><span class="ic" aria-hidden="true">🖐️</span> The home row</h2>
-            <div class="panel-body">
-              <div class="keyboard" aria-hidden="true">
-                <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd class="home">F</kbd><span class="gap"></span><kbd class="home">J</kbd><kbd>K</kbd><kbd>L</kbd><kbd>;</kbd>
-              </div>
-              <p class="keyboard-caption">Feel for the little bumps on <strong>F</strong> and <strong>J</strong>. That's where your pointer fingers rest.</p>
-              <ul class="checklist">
-                <li>Sit up straight with your feet flat on the floor.</li>
-                <li>Keep your eyes on the screen, not your hands.</li>
-                <li>Accuracy first, speed second.</li>
-              </ul>
-            </div>
-          </section>
-
-          <div class="card coming-soon">
-            <div class="card-icon" aria-hidden="true">🎮</div>
-            <h3>More games coming soon</h3>
-            <p>New typing challenges will be added throughout the year. Check back often!</p>
-          </div>
         </div>
 
       </div>
@@ -260,7 +136,7 @@
       <nav aria-label="Footer">
         <h2>Explore</h2>
         <ul>
-          <li><a href="../typing/index.html">Typing Games</a></li>
+          <li><a href="index.html">Typing Classroom</a></li>
           <li><a href="../science/index.html">Science Experiments</a></li>
           <li><a href="../math/index.html">Pre-Algebra Help</a></li>
           <li><a href="../ai-helper.html">AI Study Helper</a></li>
@@ -275,6 +151,8 @@
   </footer>
 
   <script src="../js/site.js"></script>
-  <script src="../js/play-counter.js"></script>
+  <script src="../js/typing-box.js?v=2"></script>
+  <script src="../js/typing-assignments.js?v=1"></script>
+  <script src="../js/typing-classroom.js?v=2"></script>
 </body>
 </html>
