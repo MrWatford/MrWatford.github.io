@@ -4,7 +4,7 @@ import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD } from "./blocks.j
 
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
 // Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade, 6 = bee nests + berry bushes. Raise this when generation changes.
-export const CURRENT_GEN = 8;   // 7: Spark Ore; 8: a bell in each new village plaza
+export const CURRENT_GEN = 9;   // 7: Spark Ore; 8: a bell in each new village plaza; 9: Hollow ships
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -694,8 +694,8 @@ export class ForsakenGen {
 }
 export const END_TOP = 48;
 export class EndGen {
-  constructor(seedText) {
-    this.version = CURRENT_GEN;
+  constructor(seedText, version = CURRENT_GEN) {
+    this.version = version;   // older worlds: ships only appear in Hollow land the player hasn't changed
     this.seed = (hashSeed(seedText) ^ 0x7f4a7c15) >>> 0;
     this.n = new Noise(this.seed);
     // ten obsidian pillars ring the central island; each holds a healing crystal
@@ -728,7 +728,7 @@ export class EndGen {
     const l = this.land(x, z);
     return l ? { x, z, y: l.top + 1 } : null;
   }
-  generate(cx, cz) {
+  generate(cx, cz, opts = {}) {
     const data = new Uint16Array(CHUNK * CHUNK * HEIGHT), x0 = cx * CHUNK, z0 = cz * CHUNK;
     for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
       const x = x0 + lx, z = z0 + lz, l = this.land(x, z);
@@ -744,7 +744,33 @@ export class EndGen {
     }
     const c = this.city(cx, cz);
     if (c) this.tower(data, c);
+    const s = this.shipAt(cx, cz, opts.version ?? this.version);
+    if (s) this.ship(data, s);
     return data;
+  }
+  // Milestone 14 (land v9): a Hollow ship floats beside some towers (in the chunk just east of the tower)
+  shipAt(cx, cz, version = this.version) {
+    if (version < 9) return null;
+    const c = this.city(cx - 1, cz);
+    if (!c || hash3(this.seed, cx, 913, cz) > 0.6) return null;
+    return { x0: cx * CHUNK, z0: cz * CHUNK, y: Math.min(HEIGHT - 12, c.y + 14) };
+  }
+  ship(data, s) {
+    const put = (lx, y, lz, v) => { if (lx >= 0 && lx < 16 && lz >= 0 && lz < 16 && y > 0 && y < HEIGHT) data[idx(lx, y, lz)] = v; };
+    const Y = s.y, mid = 7;
+    for (let lz = 1; lz <= 14; lz++) {
+      const hw = lz <= 2 || lz >= 13 ? 1 : lz === 3 || lz === 12 ? 2 : 3;   // pointed at the bow and the stern
+      for (let dx = -hw; dx <= hw; dx++) {
+        const x = mid + dx, side = Math.abs(dx) === hw;
+        if (!side) put(x, Y, lz, B.VIOLET_BRICKS);   // the hull's floor
+        for (let y = Y + 1; y <= Y + 2; y++) put(x, y, lz, side || lz === 1 || lz === 14 ? B.VIOLET_BRICKS : B.AIR);
+        put(x, Y + 3, lz, side ? B.VIOLET_PILLAR : lz >= 7 && lz <= 8 && dx === 0 ? B.AIR : B.HOLLOW_BRICKS);   // the deck, with a hatch
+      }
+    }
+    for (let y = Y + 4; y <= Y + 10; y++) put(mid, y, 10, B.VIOLET_PILLAR);   // the mast and a sail
+    for (let y = Y + 6; y <= Y + 9; y++) for (let dx = -3; dx <= 3; dx++) if (dx) put(mid + dx, y, 10, B.BLACK_WOOL);
+    put(mid - 1, Y + 1, 5, make(B.CHEST, LOOT | 2)); put(mid + 1, Y + 1, 10, make(B.CHEST, LOOT | 2));   // ship treasure below deck
+    put(mid, Y + 4, 14, B.WYRM_HEAD);   // a trophy on the bow
   }
   tower(data, c) {
     const base = c.y, top = Math.min(HEIGHT - 3, base + 24), put = (lx, y, lz, v) => { if (lx >= 0 && lx < 16 && lz >= 0 && lz < 16 && y > 0 && y < HEIGHT) data[idx(lx, y, lz)] = v; };

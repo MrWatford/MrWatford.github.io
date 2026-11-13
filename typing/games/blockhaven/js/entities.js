@@ -277,7 +277,7 @@ export const TRADES = {
   shepherd: [[[[B.WOOL, 18]], [I.JADE, 1], 12], [[[I.JADE, 2]], [I.SHEARS, 1], 6], [[[I.JADE, 3]], [B.BED, 1], 6], [[[I.JADE, 1]], [B.WOOL, 4], 12]],
   cleric: [[[[I.ROTTEN_FLESH, 32]], [I.JADE, 1], 12], [[[I.WART, 22]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.SHINE_DUST, 2], 12], [[[I.JADE, 5]], [I.VOID_PEARL, 1], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 2], 8], [[[I.JADE, 1]], [I.SPARKDUST, 2], 12]],
   smith: [[[[I.COAL, 15]], [I.JADE, 1], 12], [[[I.IRON_INGOT, 4]], [I.JADE, 1], 12], [[[I.JADE, 6]], [I.IRON_PICK, 1], 4], [[[I.JADE, 7]], [I.IRON_SWORD, 1], 4], [[[I.JADE, 9]], [I.IRON_CHEST, 1], 3], [[[I.JADE, 4]], [I.IRON_HELMET, 1], 4], [[[I.JADE, 16]], [B.BELL, 1], 2]],
-  wanderer: [[[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1]]
+  wanderer: [[[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1], [[[I.JADE, 3]], [I.NAME_TAG, 1], 2], [[[I.JADE, 2]], [I.LEAD, 2], 2]]
 };
 const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], wanderer: ["#2a5aa0", "#245094"] };
 const VSKIN = ["#e8b890", "#deae86"];
@@ -337,7 +337,7 @@ Object.assign(SPECIES, {
       { name: "tail", size: [1, 1, 10], pivot: [0, 10, -6], off: [0, 0, -5], paint: { all: P => { P.fill(GINGER); P.rect(0, 12, 16, 4, "#f4e8d8"); } } },
       collarPart([6, 1, 1], [0, -2.3, -1.5])] } },
   trotter: { name: "Trotter", animal: true, mount: true, hp: 22, speed: 2.0, w: 1.3, h: 1.6, ai: "animal", food: [I.WHEAT, I.APPLE], xp: 3, sound: "neigh",
-    tameWith: [I.WHEAT, I.APPLE], drops: e => e.baby ? [] : [[I.LEATHER, randi(0, 2)], e.saddled ? [I.SADDLE, 1] : null],
+    tameWith: [I.WHEAT, I.APPLE], drops: e => e.baby ? [] : [[I.LEATHER, randi(0, 2)], e.saddled ? [I.SADDLE, 1] : null, e.harmor ? [e.harmor, 1] : null],
     model: { type: "quad", parts: [...quadParts({ body: [10, 10, 22], head: [6, 14, 7], leg: 4, legH: 16, headUp: 7,
       bodyPaint: { all: P => { P.fill(CHESTNUT); P.rect(2, 2, 12, 2, "#a47045"); P.rect(3, 12, 10, 3, "#754625"); } }, legPaint: { all: P => { P.fill(CHESTNUT); P.rect(0, 9, 16, 4, "#dec8a9"); P.rect(0, 13, 16, 3, "#3a2a1a"); } },
       headPaint: { all: solid(CHESTNUT) } }),
@@ -390,6 +390,36 @@ Object.assign(SPECIES, {
   bone_trotter: packMount("Bone Trotter", ["#bfb5a0", "#867e70", "#ded7c5"], { ears: 2, sterile: true, hp: 15 }),
   rot_trotter: packMount("Rot Trotter", ["#546a38", "#354626", "#819757"], { ears: 3, sterile: true, hp: 20 })
 });
+
+// ----- Milestone 14: Trotter coats (7 colors × 5 markings, like Java) and Trotter armor -----
+// Variant 0 is the original chestnut with a white blaze and pinto patches, so Trotters in older saves look the same.
+const TROTTER_COATS = [
+  { coat: ["#e8e4dc", "#dcd8cf", "#f0ece4"], mane: ["#c8c0b0", "#b8b0a0"] }, { coat: ["#c8a878", "#bc9c6c", "#d4b484"], mane: ["#8a6a3a", "#7a5c30"] },
+  { coat: ["#8a5a32", "#7e522c", "#946238"], mane: ["#3a2414", "#2a1a10"] }, { coat: ["#6a4428", "#5e3c22", "#764c2e"], mane: ["#2a1a10", "#201409"] },
+  { coat: ["#2e2824", "#26201c", "#36302a"], mane: ["#141010", "#0e0a0a"] }, { coat: ["#7a7570", "#6e6a66", "#86817c"], mane: ["#3a3632", "#2e2a28"] },
+  { coat: ["#3e2a1c", "#352418", "#463020"], mane: ["#1a120c", "#120c08"] }];
+const TROTTER_VARIANTS = [{ classic: true, ...TROTTER_COATS[2] }];
+for (let c = 0; c < 7; c++) for (let m = 0; m < 5; m++) TROTTER_VARIANTS.push({ ...TROTTER_COATS[c], mark: m });
+SPECIES.trotter.variants = TROTTER_VARIANTS;
+const coatOf = v => (v && v.coat) || CHESTNUT, maneOf = v => (v && v.mane) || ["#2a1a10", "#34200f"];
+// markings: 0 none, 1 white socks, 2 white patches, 3 white dots, 4 black dots
+function trotterMarks(P, v, face) {
+  if (!v || v.classic) return;
+  const m = v.mark;
+  let s = 7 + m * 97 + String(face).length * 31;   // a fixed pattern of dots for each face
+  const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  if (m === 2) { P.rect(2, 3, 6, 5, "#f0ece4"); P.rect(9, 8, 5, 5, "#f0ece4"); if (face === "top") P.rect(4, 4, 8, 6, "#f0ece4"); }
+  if (m === 3) for (let i = 0; i < 9; i++) P.px(Math.floor(rnd() * 16), Math.floor(rnd() * 16), "#f4f0e8");
+  if (m === 4) for (let i = 0; i < 9; i++) P.px(Math.floor(rnd() * 16), Math.floor(rnd() * 16), "#1a1410");
+}
+export const HORSE_ARMOR_PARTS = { [I.LEATHER_HORSE_ARMOR]: "harmorL", [I.IRON_HORSE_ARMOR]: "harmorI", [I.GOLD_HORSE_ARMOR]: "harmorG", [I.SKY_HORSE_ARMOR]: "harmorS" };
+for (const [k, name] of [["L", "harmorL"], ["I", "harmorI"], ["G", "harmorG"], ["S", "harmorS"]]) {
+  const pal = { L: ["#9a5a32", "#7a4424"], I: ["#dcdcdc", "#a8a8a8"], G: ["#ffd84a", "#c9a227"], S: ["#6ae0e8", "#2fa8b8"] }[k];
+  const plate = P => { P.fill([pal[0]]); P.rect(0, 0, 16, 2, pal[1]); P.rect(0, 14, 16, 2, pal[1]); for (let x = 3; x < 16; x += 5) P.rect(x, 2, 1, 12, pal[1]); P.rect(1, 3, 2, 1, "#ffffff"); };
+  SPECIES.trotter.model.parts.push(
+    { name, size: [11, 11, 23], pivot: [0, 21, 0], off: [0, 0, 0], paint: { all: plate } },
+    { name: name + "H", parent: "head", size: [7, 6, 8], pivot: [0, 3, 0], off: [0, 0, 2.5], paint: { all: plate } });
+}
 
 function cartSpecies() {
   const base = [
@@ -1268,10 +1298,15 @@ function applyBestiaryPass2() {
   paint("whisker", "tail", { all: stripes });
   for (const l of ["legFR", "legFL", "legBR", "legBL"]) paint("whisker", l, { all: P => { P.fill(TABBY); P.rect(0, 12, 16, 4, "#f4e8d8"); } });
   // Trotter: a chestnut with a white blaze, a dark mane, pinto patches, and a brown saddle with a golden buckle
-  paint("trotter", "head", { all: solid(["#8a5a32", "#80522c"]), front: P => { P.fill(["#8a5a32"]); P.rect(6, 0, 4, 16, "#f0e8dc"); } });
-  paint("trotter", "mane", { all: solid(["#2a1a10", "#34200f"]) });
-  paint("trotter", "tail", { all: solid(["#2a1a10", "#34200f"]) });
-  paint("trotter", "body", { all: P => { P.fill(["#8a5a32", "#80522c", "#94603a"]); }, ...sides((P, X) => { P.fill(["#8a5a32", "#80522c", "#94603a"]); P.rect(X(9, 5), 6, 5, 7, "#f0e8dc"); P.rect(X(11, 3), 3, 3, 3, "#f0e8dc"); }) });
+  paint("trotter", "head", { all: (P, f, v) => P.fill(v && !v.classic ? coatOf(v) : ["#8a5a32", "#80522c"]), front: (P, f, v) => { P.fill(v && !v.classic ? [coatOf(v)[0]] : ["#8a5a32"]); if (!v || v.classic || v.mark) P.rect(6, 0, 4, 16, "#f0e8dc"); } });
+  paint("trotter", "mane", { all: (P, f, v) => P.fill(maneOf(v)) });
+  paint("trotter", "tail", { all: (P, f, v) => P.fill(maneOf(v)) });
+  paint("trotter", "body", { all: (P, f, v) => { P.fill(coatOf(v)); trotterMarks(P, v, f); }, ...sides((P, X) => { P.fill(["#8a5a32", "#80522c", "#94603a"]); P.rect(X(9, 5), 6, 5, 7, "#f0e8dc"); P.rect(X(11, 3), 3, 3, 3, "#f0e8dc"); }) });
+  { const classicSide = find("trotter", "body").paint.right, classicLeft = find("trotter", "body").paint.left;
+    find("trotter", "body").paint.right = (P, f, v) => { if (!v || v.classic) return classicSide(P, f, v); P.fill(coatOf(v)); trotterMarks(P, v, f); };
+    find("trotter", "body").paint.left = (P, f, v) => { if (!v || v.classic) return classicLeft(P, f, v); P.fill(coatOf(v)); trotterMarks(P, v, f); }; }
+  for (const l of ["legFR", "legFL", "legBR", "legBL"]) { const q = find("trotter", l); if (q) { const orig = q.paint.all; q.paint = { all: (P, f, v) => { if (!v || v.classic) return orig(P, f, v); P.fill(coatOf(v)); if (v.mark === 1) P.rect(0, 8, 16, 5, "#f0ece4"); P.rect(0, 13, 16, 3, "#3a2a1a"); } }; } }
+  for (const nm of ["muzzle", "earR", "earL"]) { const q = find("trotter", nm); if (q) { const base = { ...q.paint }; q.paint = {}; for (const fc of ["all", "front", "right", "left", "top", "bottom", "back"]) if (base[fc]) q.paint[fc] = (P, f, v) => { if (!v || v.classic) return base[fc](P, f, v); P.fill(nm === "muzzle" ? [coatOf(v)[1]] : maneOf(v)); if (nm === "muzzle" && f === "front") { P.rect(3, 9, 3, 2, "#2a1a10"); P.rect(10, 9, 3, 2, "#2a1a10"); } }; } }
   paint("trotter", "saddle", { all: P => { P.fill(["#6a3a1a", "#5e3418"]); P.rect(0, 0, 16, 2, "#3a2010"); P.rect(6, 8, 4, 4, "#e8b83a"); } });
   // Minnow: silver with a darker back and a pale belly
   paint("minnow", "body", { all: solid(["#9aa8b0"]), top: solid(["#6a7a84"]), bottom: solid(["#e0e4e0"]), ...sides((P, X) => { P.fill(["#9aa8b0", "#a4b0b8"]); P.rect(0, 0, 16, 5, "#6a7a84"); P.rect(0, 11, 16, 5, "#e0e4e0"); P.rect(X(2, 3), 5, 3, 3, "#1a1a1a"); }) });
@@ -1602,6 +1637,7 @@ export class Entity {
     this.stuckT = 0; this.lastX = x; this.lastZ = z; this.hopT = rand(0.5, 2);
     // minecarts and chest boats: what's inside, furnace fuel and push, a creature riding along, a lit Blast Block
     if (this.def.invSize) { const sl = new Array(this.def.invSize).fill(null); (opts.inv || []).forEach((q, i) => { if (i < sl.length) sl[i] = q; }); this.inv = { type: "chest", slots: sl }; }
+    this.leash = opts.leash || null; this.harmor = opts.harmor || 0; this.portalCd = opts.portalCd || 0;   // Milestone 14: lead, Trotter armor, portal rest
     this.fuel = opts.fuel || 0; this.pushX = opts.pushX || 0; this.pushZ = opts.pushZ || 0; this.riderUid = opts.riderUid || null; this.fuseT = opts.fuseT || 0; this.hopperOff = !!opts.hopperOff;
   }
   get maxHp() { if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
@@ -1615,6 +1651,7 @@ export class Entity {
       baby: this.baby, growT: Math.round(this.growT), breedCd: Math.round(this.breedCd), sheared: this.sheared, eggT: Math.round(this.eggT), size: this.size, name: this.name, npc: this.npc,
       home: this.home, job: this.job, uses: this.uses, restockT: this.restockT, restockDay: this.restockDay, restocks: this.restocks, summonT: this.summonT,
       tame: this.tame, sitting: this.sitting, saddled: this.saddled, temper: this.temper,
+      ...(this.leash ? { leash: this.leash } : {}), ...(this.harmor ? { harmor: this.harmor } : {}), ...(this.portalCd > 0 ? { portalCd: Math.round(this.portalCd), persist: true } : {}),
       ...(this.def.expansion ? { bestiary: { ...this.bestiary, charge: 0, bounceUntil: 0 }, persist: this.persist } : {}),
       variant: this.variant, trust: this.trust, held: this.held, pollen: this.pollen, inHive: this.inHive, stung: this.stung,
       ...(this.def.cart || this.inv ? { inv: this.inv ? this.inv.slots.map(q => q && { ...q }) : undefined, fuel: Math.round(this.fuel), pushX: this.pushX, pushZ: this.pushZ, riderUid: this.riderE && !this.riderE.dead ? this.riderE.uid : null, fuseT: this.fuseT, hopperOff: this.hopperOff } : {}) };
@@ -1752,6 +1789,8 @@ export class Entities {
     if (w.gen.isEnd && w.gen.isEnd()) {   // Shellers guard each Hollow tower
       const city = w.gen.city(c.cx, c.cz);
       if (city) for (const [dx, dy, dz] of [[-3, 0, -3], [3, 6, 3], [-3, 12, 3], [3, 18, -3]]) if (city.y + dy < HEIGHT - 4) this.add("sheller", city.x + dx + 0.5, city.y + dy, city.z + dz + 0.5);
+      const ship = w.gen.shipAt && w.gen.shipAt(c.cx, c.cz, w.gen.version >= 9 || w.newGen.has(c.key) ? 9 : w.gen.version);   // two Shellers guard a Hollow ship's deck
+      if (ship) for (const dz of [4, 12]) this.add("sheller", ship.x0 + 7.5, ship.y + 4, ship.z0 + dz + 0.5);
       return;
     }
     if (w.gen.isNether() || w.gen.isForsaken || (w.gen.isMap && w.gen.isMap())) return;   // the Ember Depths fill up through the spawner instead; the Forsaken World has no animals
@@ -2403,7 +2442,7 @@ export class Entities {
     if (def.hostile && !def.boss && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
     if (thinkDesertMob(this, e, d, dmgMul)) return;
     if (thinkCreature(this, e, daylight)) return;
-    if (def.pet && e.tame) return this.thinkPet(e, d, dmgMul);
+    if (def.pet && e.tame) { if (!e.sitting && this.seekMate(e, d)) return; return this.thinkPet(e, d, dmgMul); }
     if (e.leviathanFlee?.until > e.age && !e.tame) {
       const threat = e.leviathanFlee;
       const dx = e.pos.x - threat.x, dz = e.pos.z - threat.z, length = Math.hypot(dx, dz);
@@ -2998,7 +3037,9 @@ export class Entities {
         birth = water;
       }
       e.love = mate.love = 0; e.breedCd = mate.breedCd = 300;
-      this.add(e.sp === "frog" ? "tadpole" : e.sp === mate.sp ? e.sp : "mule", birth.x, birth.y, birth.z, { baby: e.sp !== "frog", trust: e.sp === "fox", home: e.home, persist: !!def.expansion });
+      const kid = this.add(e.sp === "frog" ? "tadpole" : e.sp === mate.sp ? e.sp : "mule", birth.x, birth.y, birth.z, { baby: e.sp !== "frog", trust: e.sp === "fox", home: e.home, persist: !!def.expansion,
+        tame: !!(def.pet && e.tame && mate.tame), variant: e.sp === "trotter" && mate.sp === "trotter" ? (Math.random() < 1 / 9 ? randi(1, TROTTER_VARIANTS.length - 1) : (Math.random() < 0.5 ? e : mate).variant) : undefined });
+      if (kid && def.pet && e.tame && mate.tame) { ctx.toast(`Your ${def.name}s had a baby! It's already tame.`, "good"); if (ctx.adv) ctx.adv("petbreed"); }
       if (this.ctx.adv) this.ctx.adv("breed", e.sp);
       ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); ctx.xp(randi(1, 7), e.pos.x, e.pos.y + 0.5, e.pos.z);
       Sound.mob(def.sound, d);
@@ -3078,6 +3119,7 @@ export class Entities {
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
     if (e.gone || e.dead || e.duneCycle?.preview || e.iframes > 0 || n <= 0) return false;
+    if (e.harmor && itemDef(e.harmor)?.horseArmor) n *= 1 - Math.min(0.8, itemDef(e.harmor).horseArmor * 0.04);   // Trotter armor: 12% to 44% less damage
     if (e.sp === "sulfur_cube" && attacker === "player" && e.bestiary.absorbed && knock) {
       e.vel.x = knock.x * 11; e.vel.z = knock.z * 11; e.vel.y = 5;
       e.knock = 0.65; e.bestiary.bounceUntil = e.age + 0.65; e.iframes = 0.35;
@@ -3595,6 +3637,7 @@ export class Entities {
       if (P.wool) P.wool.visible = !e.sheared;
       if (P.collar) P.collar.visible = !!e.tame;
       if (P.saddle) P.saddle.visible = !!e.saddled;
+      if (P.harmorL) for (const [aid, nm] of Object.entries(HORSE_ARMOR_PARTS)) { const on = e.harmor === +aid; if (P[nm]) P[nm].visible = on; if (P[nm + "H"]) P[nm + "H"].visible = on; }
       if (def.mount && !(e.grazeT > 0)) P.head.rotation.x = e.sp === "trotter" ? (e.ridden ? 1.05 : 0.45) : (e.ridden ? 0.3 : 0.12);   // the neck leans forward (further while ridden, so you can see past it)
       if (P.tail) P.tail.rotation.x = def.mount ? 0.2 + Math.sin(e.age * 2) * 0.06 : (e.tame ? 0.9 : 0.3) + Math.sin(e.age * (e.tame ? 8 : 2)) * 0.12;
       if (def.pet) {   // sitting pets sit back on their haunches

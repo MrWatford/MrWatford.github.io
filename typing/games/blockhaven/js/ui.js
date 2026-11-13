@@ -333,6 +333,10 @@ export const UI = {
       p.querySelectorAll("[data-fwt]").forEach(b => b.onclick = () => { Sound.click(); G.forsaken.testControl(b.dataset.fwt); this.renderPanel(); });
       p.querySelectorAll("[data-lt]").forEach(b => b.onclick = async () => { Sound.click(); await G.lost.testControl(b.dataset.lt); if (G.panelKind === "journal") this.renderPanel(); });
       return;
+    } else if (panelKind === "nametag") {   // Milestone 14: naming a creature
+      p.innerHTML = G.companions.nameTagHTML(panelCtx);
+      G.companions.mountNameTag(p, panelCtx);
+      return;
     } else if (panelKind === "waystones") {
       p.innerHTML = G.campaign.waystoneHTML(panelCtx);
       G.campaign.mountWaystones(p);

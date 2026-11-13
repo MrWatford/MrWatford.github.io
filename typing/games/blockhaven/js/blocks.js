@@ -59,7 +59,8 @@ export const B = {
   SIGN: 206, BOOKSHELF: 207, MAP_TABLE: 208,
   // the Legacy Campaign (js/campaign.js)
   WAYSTONE: 209, RUNE_STONE: 210, SOLKARA_GATE: 211,
-  BLACK_SAND: 212, EMBER_CRYSTAL: 213, OBSIDIAN_TROPHY: 214
+  BLACK_SAND: 212, EMBER_CRYSTAL: 213, OBSIDIAN_TROPHY: 214,
+  WYRM_HEAD: 215   // Milestone 14: a trophy from the Hollow ships
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -105,7 +106,9 @@ export const I = {
   ETERNAL_SAND_CORE: 599, ANCIENT_PLATE: 600, ANCIENT_TROPHY: 601, ANCIENT_COMPANION_RELIC: 602,
   ANCIENT_HELMET: 603, ANCIENT_CHEST: 604, ANCIENT_LEGS: 605, ANCIENT_BOOTS: 606, BURIED_SCEPTER: 607,
   HUSH_HELMET: 608, HUSH_CHEST: 609, HUSH_LEGS: 610, HUSH_BOOTS: 611, ECHO_BLADE: 612, SENTINEL_HAMMER: 613,
-  RELIC_ABYSS: 614, RELIC_VOID: 615, CROWN_KEY: 616   // Legacy Campaign, Chapters 7 and 8
+  RELIC_ABYSS: 614, RELIC_VOID: 615, CROWN_KEY: 616,   // Legacy Campaign, Chapters 7 and 8
+  // Milestone 14 (smaller gaps): leads, name tags, horse armor, and the crystal that calls the Hollow Wyrm back
+  LEAD: 617, NAME_TAG: 618, LEATHER_HORSE_ARMOR: 619, IRON_HORSE_ARMOR: 620, GOLD_HORSE_ARMOR: 621, SKY_HORSE_ARMOR: 622, VOID_CRYSTAL: 623
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -345,6 +348,7 @@ block(B.RUNE_STONE, "Rune Stone", { hardness: Infinity, drops: 0, light: 7, inte
 block(B.SOLKARA_GATE, "Solkara Gateway", { hardness: Infinity, drops: 0, light: 12, interact: "solkara_gate", tex: "return_gate", category: LOST, noItem: true });
 block(B.BLACK_SAND, "Black Sand", { hardness: 0.55, tool: "shovel", tex: "black_sand" });
 block(B.EMBER_CRYSTAL, "Ember Crystal", { hardness: 1.8, tool: "pick", light: 13, render: "cutout", tex: "ember_crystal" });
+block(B.WYRM_HEAD, "Wyrm Head", { hardness: 1, tool: "pick", tex: ["wyrm_head_top", "wyrm_head_side", "wyrm_head_top"], category: HOLLOW });
 block(B.OBSIDIAN_TROPHY, "Obsidian Leviathan Trophy", { hardness: 2, tool: "pick", light: 6, tex: ["basalt_top", "obsidian_trophy", "blackstone"] });
 
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
@@ -456,6 +460,14 @@ item(I.WYRM_SCALE, "Wyrm Scale", { icon: "scale" });
 item(I.JADE, "Jade", { icon: "jade" });
 item(I.RADIANT_STAR, "Radiant Star", { icon: "star" });
 item(I.SADDLE, "Saddle", { icon: "saddle" });
+// Milestone 14: leads, name tags, Trotter armor, and the Void Crystal
+item(I.LEAD, "Lead", { icon: "lead", category: "Tools" });
+item(I.NAME_TAG, "Name Tag", { icon: "nametag", category: "Tools" });
+item(I.LEATHER_HORSE_ARMOR, "Leather Trotter Armor", { icon: "horse_armor", colors: ["#9a5a32", "#7a4424"], stack: 1, category: "Tools", horseArmor: 3 });
+item(I.IRON_HORSE_ARMOR, "Iron Trotter Armor", { icon: "horse_armor", colors: ["#dcdcdc", "#a8a8a8"], stack: 1, category: "Tools", horseArmor: 5 });
+item(I.GOLD_HORSE_ARMOR, "Gold Trotter Armor", { icon: "horse_armor", colors: ["#ffd84a", "#c9a227"], stack: 1, category: "Tools", horseArmor: 7 });
+item(I.SKY_HORSE_ARMOR, "Skyshard Trotter Armor", { icon: "horse_armor", colors: ["#6ae0e8", "#2fa8b8"], stack: 1, category: "Tools", horseArmor: 11 });
+item(I.VOID_CRYSTAL, "Void Crystal", { icon: "void_crystal", category: "Tools" });
 // water life and wildlife
 item(I.FISHING_ROD, "Fishing Rod", { icon: "fishing_rod", kind: "tool", stack: 1, category: "Tools", tool: { type: "rod", tier: 0, speed: 1, dur: 64, damage: 1 } });
 item(I.RAW_MINNOW, "Raw Minnow", { icon: "fish", colors: ["#9aa8b0", "#d8dce0"], kind: "food", food: 2, category: "Food", raw: true });
@@ -719,6 +731,9 @@ export const RECIPES = [
   { out: [B.SMITH_TABLE, 1], ins: [[I.IRON_INGOT, 2], ["planks", 4]], table: true },
   { out: [B.HAY, 1], ins: [[I.WHEAT, 9]] },
   { out: [I.SADDLE, 1], ins: [[I.LEATHER, 5], [I.IRON_INGOT, 1]], table: true },
+  { out: [I.LEAD, 2], ins: [[I.STRING, 4], [I.GLOOP_BALL, 1]], table: true },
+  { out: [I.LEATHER_HORSE_ARMOR, 1], ins: [[I.LEATHER, 7]], table: true },
+  { out: [I.VOID_CRYSTAL, 1], ins: [[B.GLASS, 7], [I.EYE, 1], [I.WAILER_TEAR, 1]], table: true },
   { out: [I.WHEAT, 9], ins: [[B.HAY, 1]] },
   { out: [I.FISHING_ROD, 1], ins: [[I.STICK, 3], [I.STRING, 2]], table: true },
   { out: [I.BOAT, 1], ins: [["planks", 5]], table: true },
@@ -854,7 +869,7 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "sign", "bookshelf", "map_table_top", "map_table_side",
   // the Legacy Campaign
   "waystone_top", "waystone_side", "rune_stone",
-  "black_sand", "ember_crystal", "obsidian_trophy"];
+  "black_sand", "ember_crystal", "obsidian_trophy", "wyrm_head_top", "wyrm_head_side"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1105,6 +1120,14 @@ Object.assign(PAINT, {
       P.rect(left + 2, tip + 2, 1, 3, "#ffe3a3");
     }
     P.rect(1, 14, 14, 2, "#382b39");
+  },
+  // Wyrm Head (Milestone 14): dark violet scales, with glowing purple eyes on every side
+  wyrm_head_top(P) { P.fill(["#1c1424", "#241a2e", "#2a1f36"]); for (let i = 0; i < 10; i++) P.px(Math.floor(P.r() * 16), Math.floor(P.r() * 16), "#3a2a4a"); P.rect(3, 3, 2, 10, "#140e1a"); P.rect(11, 3, 2, 10, "#140e1a"); },
+  wyrm_head_side(P) {
+    P.fill(["#1c1424", "#241a2e", "#2a1f36"]);
+    for (let y = 1; y < 16; y += 3) for (let x = (y % 2) * 2; x < 16; x += 4) P.rect(x, y, 2, 1, "#33264a");
+    P.rect(2, 5, 4, 2, "#c050ff"); P.rect(10, 5, 4, 2, "#c050ff"); P.rect(3, 5, 2, 1, "#f0c0ff"); P.rect(11, 5, 2, 1, "#f0c0ff");
+    P.rect(2, 11, 12, 2, "#120c18"); for (let x = 3; x < 13; x += 2) P.px(x, 12, "#e8e0d0");
   },
   obsidian_trophy(P) {
     P.fill(["#231e28", "#2d2530", "#352933"]);
@@ -1481,6 +1504,10 @@ Object.assign(ICON_PAINT, {
   chorus(P) { for (let y = 4; y < 13; y++) for (let x = 4; x < 13; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 18) P.px(x, y, P.pick(["#9a6aa8", "#b088c0", "#7a5a8a"])); P.rect(8, 2, 1, 3, "#5a3a68"); },
   scale(P) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 8) ** 2 + (y - 8.5) ** 2 < 20) P.px(x, y, (x + y) % 3 ? "#2a1a3a" : "#5a2a7a"); },
   glider(P) { for (let x = 1; x < 15; x++) { const h = Math.round(6 - Math.abs(x - 7.5) * 0.6); for (let y = 4; y < 4 + h + 4; y++) if (Math.abs(x - 7.5) > 1) P.px(x, y + Math.abs(x - 7.5) * 0.3, y === 4 ? "#9a8aa8" : "#6a5a7a"); } P.rect(7, 4, 2, 8, "#4a3a5a"); },
+  lead(P) { const pts = [[2, 13], [3, 11], [5, 10], [7, 10], [9, 9], [10, 7], [10, 5], [9, 3], [7, 2], [5, 3], [4, 5], [5, 7], [7, 8], [9, 8], [11, 9], [13, 11], [14, 13]]; for (const [x, y] of pts) { P.rect(x, y, 2, 2, "#8a6a3a"); P.px(x, y, "#b89060"); } P.rect(12, 12, 3, 3, "#5aa830"); },
+  nametag(P) { P.rect(4, 3, 9, 11, "#e8dcc0"); P.rect(4, 3, 9, 1, "#c8b890"); P.rect(4, 13, 9, 1, "#b8a880"); P.rect(5, 1, 7, 2, "#e8dcc0"); P.rect(7, 2, 3, 2, "#6a5a3a"); for (const y of [6, 8, 10]) P.rect(6, y, 5, 1, "#8a7a5a"); P.rect(2, 1, 4, 1, "#9a9a9a"); P.rect(2, 1, 1, 4, "#9a9a9a"); },
+  horse_armor(P, c) { const a = (c && c[0]) || "#dcdcdc", b = (c && c[1]) || "#a8a8a8"; P.rect(2, 6, 12, 6, a); P.rect(2, 11, 12, 1, b); P.rect(10, 2, 4, 6, a); P.rect(13, 3, 1, 4, b); P.rect(3, 12, 2, 3, b); P.rect(11, 12, 2, 3, b); P.rect(4, 7, 5, 1, "#ffffff"); },
+  void_crystal(P) { for (let y = 1; y < 15; y++) { const w = 7 - Math.abs(y - 8); for (let x = 8 - w; x < 8 + w; x++) P.px(x, y, (x + y) % 3 ? "#d8b8f8" : "#f4e8ff"); } P.rect(6, 6, 4, 4, "#8a3ad0"); P.rect(7, 7, 2, 2, "#f070ff"); for (const [x, y] of [[8, 1], [8, 14], [1, 8], [14, 8]]) P.px(x, y, "#ffffff"); },
   saddle(P) { P.rect(2, 5, 12, 6, "#6e4422"); P.rect(3, 4, 4, 2, "#8a5a32"); P.rect(10, 3, 3, 3, "#8a5a32"); P.rect(4, 6, 8, 3, "#8a5a32"); P.rect(7, 11, 2, 3, "#3a2414"); P.rect(6, 13, 4, 2, "#b8b8b8"); },
   jade(P) { for (let y = 3; y < 14; y++) { const w = y < 8 ? y - 3 : 13 - y; for (let x = 8 - w; x <= 8 + w; x++) P.px(x, y, x < 8 ? "#2ac86a" : "#18a050"); } P.rect(7, 5, 2, 2, "#a8f8c0"); },
   star(P) { for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? 3 : 7; P.rect(Math.round(8 + Math.cos(a) * r) - 1, Math.round(8 + Math.sin(a) * r) - 1, 2, 2, "#fff6c0"); } P.rect(5, 5, 6, 6, "#fffbe0"); P.rect(7, 7, 2, 2, "#ffffff"); },

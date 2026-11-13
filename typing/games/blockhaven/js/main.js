@@ -14,6 +14,7 @@ import { Sound } from "./audio.js";
 import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.js";
 import { Adv } from "./advancements.js";
 import { initForsaken, isQuestItem } from "./forsaken.js";
+import { initCompanions } from "./companions.js";
 import { initLost, LOST_DIMS } from "./lost.js";
 import { initStarter } from "./starter.js";
 import { leviathanShrineBearings, sandcallerPreparation } from "./leviathan-navigation.js";
@@ -414,7 +415,7 @@ const ents = new Entities(scene, {
   ignite: (x, y, z) => ignite(x, y, z),
   endTop: () => (G.gen.land ? (G.gen.land(0, 0) || { top: END_TOP }).top : END_TOP),
   cloud: (x, y, z) => addCloud(x, y, z),
-  crystalGone: i => { const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
+  crystalGone: i => { if (typeof i === "string") return placedCrystalGone(i); const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
   bossLeft: e => { (G.dimData.end || (G.dimData.end = {})).wyrmHp = e.hp; },
   bossDefeated: e => e.def.segmentedLeviathan ? UI.toast(`The ${e.def.name} is defeated!`, "good") : (G.campaign && G.campaign.bossDefeated(e)) ? null : L.bossDefeated(e) ? null : e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
   arena: () => arena(), cinderPylons: () => G.cinderPylons(),
@@ -847,9 +848,72 @@ function ensureBoss() {
     w.ang = Math.PI / 2;
   }
 }
+// ---------- Milestone 14: calling the Hollow Wyrm back (Java: four End Crystals around the exit portal) ----------
+// A Void Crystal can be set on obsidian or bedrock in the Hollow. One on each side of the exit portal's rim starts the summoning.
+const WYRM_SIDES = [[2, 0], [-2, 0], [0, 2], [0, -2]];
+const wyrmTop = () => (G.gen.land(0, 0) || { top: END_TOP }).top;
+function placeVoidCrystal(hit) {
+  const w = G.world, id = idOf(hit.v), x = hit.x, y = hit.y + 1, z = hit.z;
+  if (G.dim !== "end") { UI.toast("Void Crystals only hold steady in the Hollow."); return true; }
+  if (id !== B.OBSIDIAN && id !== B.BEDROCK) { UI.toast("Set a Void Crystal on obsidian or bedrock."); return true; }
+  if (w.id(x, y, z) || w.id(x, y + 1, z) || ents.list.some(e => e.sp === "crystal" && Math.hypot(e.pos.x - x - 0.5, e.pos.z - z - 0.5) < 1 && Math.abs(e.pos.y - y) < 2)) { UI.toast("There's no room for a crystal there."); return true; }
+  const d = endData(), key = x + "," + y + "," + z;
+  (d.placed = d.placed || []).push(key);
+  ents.add("crystal", x + 0.5, y, z + 0.5, { cid: "p:" + key });
+  if (!G.creative) { const s = G.inv.slots[G.useSlot]; if (s && --s.n <= 0) G.inv.slots[G.useSlot] = null; }
+  Sound.mob("crystal", 0); puff(x + 0.5, y + 1, z + 0.5, "portal"); G.hudDirty = true;
+  checkWyrmSummon();
+  return true;
+}
+function placedCrystalGone(cid) { const d = endData(); d.placed = (d.placed || []).filter(k => "p:" + k !== cid); }
+function checkWyrmSummon() {
+  const d = endData(), top = wyrmTop();
+  if (!d.wyrmDefeated || d.summon) return;
+  const placed = new Set(d.placed || []);
+  if (!WYRM_SIDES.every(([dx, dz]) => placed.has(dx + "," + (top + 2) + "," + dz))) {
+    if (placed.size && !G.tips.wyrmSummon) { G.tips.wyrmSummon = true; UI.toast("Put a Void Crystal on each of the four sides of the exit portal's rim to call the Wyrm back.", ""); }
+    return;
+  }
+  d.summon = { t: 0 }; G.adv("resummon");
+  UI.toast("The crystals hum... the pillars are rising again. Get ready!", "bad");
+}
+// Runs every frame in the Hollow: keeps placed crystals in the world, and plays the summoning
+function tickWyrmSummon(dt) {
+  const d = endData(), w = G.world;
+  for (const key of d.placed || []) {
+    const [x, y, z] = key.split(",").map(Number);
+    if (!w.isLoaded(x, z) || ents.list.some(e => e.sp === "crystal" && e.cid === "p:" + key)) continue;
+    ents.add("crystal", x + 0.5, y, z + 0.5, { cid: "p:" + key });
+  }
+  const s = d.summon;
+  if (!s) return;
+  const before = s.t; s.t += dt;
+  const top = wyrmTop();
+  if (Math.random() < 0.6) for (const [dx, dz] of WYRM_SIDES) puff(dx + 0.5, top + 3 + Math.random() * 12, dz + 0.5, "portal");
+  if (before < 2 && s.t >= 2) {   // the way home closes while the Wyrm is back
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (w.id(dx, top + 1, dz) === B.END_PORTAL) w.set(dx, top + 1, dz, B.AIR);
+    Sound.mob("portal", 0);
+  }
+  G.gen.pillars.forEach((pl, i) => {   // the pillars grow back one by one
+    const at = 3 + i * 0.7;
+    if (before < at && s.t >= at && w.isLoaded(pl.x, pl.z)) {
+      for (let x = pl.x - pl.r; x <= pl.x + pl.r; x++) for (let z = pl.z - pl.r; z <= pl.z + pl.r; z++) {
+        if ((x - pl.x) ** 2 + (z - pl.z) ** 2 > pl.r * pl.r) continue;
+        for (let y = END_TOP - 8; y <= pl.top; y++) if (w.id(x, y, z) !== B.OBSIDIAN) w.set(x, y, z, B.OBSIDIAN);
+      }
+      puff(pl.x + 0.5, pl.top + 1, pl.z + 0.5, "portal"); Sound.explode(Math.hypot(G.player.pos.x - pl.x, G.player.pos.z - pl.z));
+    }
+  });
+  if (s.t >= 12) {
+    for (const e of ents.list) if (e.sp === "crystal" && String(e.cid).startsWith("p:")) { e.gone = true; puff(e.pos.x, e.pos.y + 1, e.pos.z, "portal"); }
+    d.placed = []; delete d.summon; d.crystalsGone = []; d.wyrmDefeated = false; d.wyrmHp = 200; d.wyrmReturns = (d.wyrmReturns || 0) + 1;
+    Sound.mob("roar", 0); UI.toast("The Hollow Wyrm has returned!", "bad");
+    saveNow(false);
+  }
+}
 function wyrmDefeated(e) {
   G.adv("boss", "dragon");
-  const d = endData(); d.wyrmDefeated = true; delete d.wyrmHp;
+  const d = endData(), again = (d.wyrmReturns || 0) > 0; d.wyrmDefeated = true; delete d.wyrmHp;
   const w = G.world, top = (G.gen.land(0, 0) || { top: END_TOP }).top;
   // exit fountain: a bedrock ring holding a portal home, with the egg on a pillar
   for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
@@ -859,10 +923,11 @@ function wyrmDefeated(e) {
     for (let y = top + 2; y < top + 6; y++) if (!(dx === 0 && dz === 0)) { if (w.id(dx, y, dz)) w.set(dx, y, dz, B.AIR); }
   }
   for (let y = top + 2; y <= top + 4; y++) w.set(0, y, 0, B.BEDROCK);
-  w.set(0, top + 5, 0, B.WYRM_EGG);
+  if (!again) w.set(0, top + 5, 0, B.WYRM_EGG);   // only the first Wyrm leaves an egg
   buildGateway(40, (G.gen.land(40, 0) || { top }).top + 4, 0);
-  spawnOrbs(400, G.player.pos.x, G.player.pos.y + 2, G.player.pos.z);
-  spawnDrop(I.WYRM_SCALE, 3, 0.5, top + 2, 2.5);
+  spawnOrbs(again ? 100 : 400, G.player.pos.x, G.player.pos.y + 2, G.player.pos.z);
+  spawnDrop(I.WYRM_SCALE, again ? 1 : 3, 0.5, top + 2, 2.5);
+  if (again) { Sound.levelUp(); UI.toast("You defeated the Hollow Wyrm again! The portal home is open.", "good"); saveNow(true); return; }
   const story = !!(G.meta && G.meta.campaign);
   if (!story) giveItem(I.CINDER_EYE, 1);   // the key to the final fight (the Legacy Campaign has its own: Chapter 8's Relic of the Void)
   if (!story) setTimeout(() => UI.toast("The Wyrm left you a glowing Cinder Eye (check your pack). Throw it in the Ember Depths to find what waits there…", "good"), 6500);
@@ -1071,6 +1136,7 @@ async function travel(toDim, fromPortal) {
   const p = G.player, fromDim = G.dim, back = { x: p.pos.x, y: p.pos.y, z: p.pos.z };
   const scale = toDim === "nether" ? 1 / 8 : 8, tx = Math.floor(p.pos.x * scale), tz = Math.floor(p.pos.z * scale);
   G.traveling = true;
+  const ride = CO.takeMount();   // Milestone 14: the Trotter you're riding comes through with you
   try {
     G.state = "loading"; UI.show("loading"); UI.setLoading(0, "Traveling to " + DIM_NAMES[toDim] + "…");
     document.getElementById("portalTint").style.opacity = 0;
@@ -1102,6 +1168,7 @@ async function travel(toDim, fromPortal) {
     portalCooldown = true; portalT = 0;
     await saveNow(false);
     G.state = "pause"; UI.show("none"); UI.hud(); G.resume(); G.adv("dim", toDim);
+    CO.bringMount(ride);
     UI.toast(toDim === "nether" ? "Welcome to the Ember Depths! Watch out for lava, and don't sleep here." : "Back on the Surface.", toDim === "nether" ? "bad" : "good");
     if (toDim === "nether" && !G.tips.nether) { G.tips.nether = true; UI.toast("Tip: wear a piece of gold armor and the Boarkin won't attack. Give them gold ingots to trade.", ""); }
     if (toDim === "nether") cinderHint();
@@ -1114,6 +1181,7 @@ async function travel(toDim, fromPortal) {
     await loadArea(back.x, back.z, "Returning…");
     portalCooldown = true;
     G.state = "pause"; UI.show("none"); G.resume();
+    CO.bringMount(ride);   // the trip failed: your mount is back with you
     UI.toast("The portal fizzled. Try again.", "bad");
   }
   G.traveling = false;
@@ -1644,7 +1712,7 @@ function clearWorldMeshes() {
   for (const d of G.drops) removeDrop(d);
   G.drops = [];
   while (parts.length) freeParticles.push(parts.pop());
-  ents.clear();
+  ents.clear(); if (G.companions) G.companions.clear();
   for (const o of G.orbs) { scene.remove(o.mesh); o.mesh.material.dispose(); } G.orbs = [];
   for (const t of primed) { scene.remove(t.mesh); t.mesh.material.dispose(); } primed.length = 0;
 }
@@ -1656,7 +1724,7 @@ function makeWorld(dim) {
     else if (isSolkaraRealm(dim)) G.dimData[dim] = { solkaraScenery: SOLKARA_SCENERY_LAYOUT };
   }
   const data = G.dimData[dim] || (G.dimData[dim] = {});
-  const gen = dim === SOLKARA_SANCTUARY ? new SolkaraSanctuaryGen(data.solkaraScenery) : dim === HOLLOW_SANDS ? new HollowSandsGen(G.meta.seed, data.sandsLandmarks, data.solkaraScenery) : dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
+  const gen = dim === SOLKARA_SANCTUARY ? new SolkaraSanctuaryGen(data.solkaraScenery) : dim === HOLLOW_SANDS ? new HollowSandsGen(G.meta.seed, data.sandsLandmarks, data.solkaraScenery) : dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed, G.meta.gen || 1) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
   if (LOST_DIMS.includes(dim)) CP.stampDim(dim, gen);   // campaign boss chambers behind the temple vaults
   if (dim === SOLKARA_SANCTUARY) { data.solkaraAnnex = 1; data.solkaraWing = 1; }
   if (dim === "desert") {
@@ -2250,7 +2318,7 @@ function useRod(slot) {
     b.gone = true; G.bobber = null;
     if (b.biteT > 0) {
       const r = Math.random();
-      const catchId = r < 0.05 ? [I.SADDLE, I.BOW, I.VOID_PEARL, I.JADE, I.GOLD_INGOT, I.FISHING_ROD][Math.floor(Math.random() * 6)]   // treasure!
+      const catchId = r < 0.05 ? [I.SADDLE, I.BOW, I.VOID_PEARL, I.JADE, I.GOLD_INGOT, I.FISHING_ROD, I.NAME_TAG][Math.floor(Math.random() * 7)]   // treasure!
         : r < 0.15 ? [I.BONE, I.STRING, I.LEATHER, I.STICK, I.INK_SAC][Math.floor(Math.random() * 5)]                                  // junk
         : r < 0.62 ? I.RAW_MINNOW : r < 0.82 ? I.SUNFIN : r < 0.92 ? I.RAW_MINNOW : I.PUFFER;
       if (G.inv.add(catchId, 1)) spawnDrop(catchId, 1, p.pos.x, p.pos.y + 1, p.pos.z);
@@ -2356,6 +2424,8 @@ function useWith(offhand) {
       return mount(ent);
     }
   }
+  if (ent && CO.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; }
+  if (hit && !offhand && !ent && CO.useOnBlock(hit)) { G.swing = 0.01; return true; }   // tie leashed creatures to a fence
   if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; } if (!offhand && !slot) return false; }
   if (hit && !crouch && !offhand) {
     const id = idOf(hit.v), d = BLOCKS[id];
@@ -2365,6 +2435,7 @@ function useWith(offhand) {
   }
   if (!slot) return false;
   if (slot.id === I.EXPLORER_MAP) { openPanel("xmap"); return true; }
+  if (slot.id === I.VOID_CRYSTAL && hit && !G.guest) return placeVoidCrystal(hit);
   if (slot.id === I.SHIELD) { G.blocking = true; G.blockHand = G.useSlot; return true; }   // hold to keep the shield up
   if (slot.id === I.BOW) {
     if (G.creative || G.inv.count(I.ARROW) > 0) { G.bowT = 0; G.bowHand = G.useSlot; return true; }
@@ -3177,6 +3248,7 @@ function fillLoot(box, hit) {
   }
   if (G.dim === "end") {   // Hollow tower treasure: the top chest always holds Glider Wings
     if ((metaOf(hit.v) & 3) === 1) put(I.GLIDER, 1);
+    if ((metaOf(hit.v) & 3) === 2) { put(I.GLIDER, 1); if (r() < 0.4) put(I.SKY_HORSE_ARMOR, 1); if (r() < 0.5) put(I.NAME_TAG, 1); }   // a Hollow ship's treasure (Milestone 14)
     put(I.IRON_INGOT, 3 + Math.floor(r() * 6)); put(I.GOLD_INGOT, 2 + Math.floor(r() * 5)); put(I.VOID_PEARL, 1 + Math.floor(r() * 3));
     if (r() < 0.5) put(I.SKYSHARD, 1 + Math.floor(r() * 3));
     if (r() < 0.3) put(I.SKY_CHEST, 1);
@@ -3197,6 +3269,7 @@ function fillLoot(box, hit) {
     if (r() < 0.5) put(I.IRON_INGOT, 2 + Math.floor(r() * 4));
     if (r() < 0.4) put(I.WART, 3 + Math.floor(r() * 5));
     if (r() < 0.3) put(I.GOLD_CHEST, 1);
+    if (r() < 0.15) put(I.GOLD_HORSE_ARMOR, 1); else if (r() < 0.08) put(I.SKY_HORSE_ARMOR, 1);   // Milestone 14
     if (r() < 0.25) put(I.SKYSHARD, 1 + Math.floor(r() * 2));
     if (r() < 0.12) put(I.DUSK_SCRAP, 1);
     if (r() < 0.4) put(I.PALE_SHARD, 1 + Math.floor(r() * 2));   // shards for the Pale Lantern (the way into the Forsaken World)
@@ -3216,6 +3289,10 @@ function fillLoot(box, hit) {
   if (r() < 0.4) put(I.BRICK, 4 + Math.floor(r() * 8));
   if (r() < 0.08) put(I.TOTEM, 1);
   if (r() < 0.12) put(I.GOLDEN_APPLE, 1);
+  // Milestone 14: name tags, leads, and Trotter armor turn up in treasure (like Java dungeon chests)
+  if (r() < 0.2) put(I.NAME_TAG, 1);
+  if (r() < 0.15) put(I.LEAD, 1);
+  { const a = r(); if (a < 0.12) put(I.IRON_HORSE_ARMOR, 1); else if (a < 0.2) put(I.GOLD_HORSE_ARMOR, 1); else if (a < 0.24) put(I.SKY_HORSE_ARMOR, 1); }
   // shuffle so it looks like a real stash
   for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
   UI.toast("You found a treasure chest!", "good");
@@ -5586,7 +5663,7 @@ function loop(now) {
       updateFires(dt);
     }
     updateClouds(dt);
-    if (G.dim === "end" && !G.guest) ensureBoss();
+    if (G.dim === "end" && !G.guest) { ensureBoss(); tickWyrmSummon(dt); }
     if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // Play Together: the host leads the way through portals
     if (!G.guest) { tickCinder(dt); F.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }
     if (G.attackCd > 0) G.attackCd -= dt;
@@ -5626,6 +5703,7 @@ function loop(now) {
     updateObsidianEncounter();
     if (G.dim === "overworld") updateStormVortex(dt);
     if (G.state !== "dead" && !G.guest) ents.update(dt, daylight, camera);
+    CO.tick(dt);
     if (mountedBurrow) mountedBurrow.view.update(mountedBurrow.session.visualState, G.settings.reducedMotion);
     updateMountedLeviathanAttack(dt);
     updateOrbs(dt);
@@ -5708,6 +5786,9 @@ function loop(now) {
 
 // ---------- start ----------
 // The Forsaken World adventure (js/forsaken.js) gets the game functions it needs
+// Milestone 14: leads, name tags, Trotter armor, pet breeding, rotting Hogbeasts, creatures through portals
+const CO = G.companions = initCompanions({ G, THREE, scene, ents, UI, Sound, puff, giveItem, spawnDrop, openPanel, closePanel, portalAt, portalKey, mount, dismount,
+  crouching: () => !!G.player.crouch || keys.has("KeyC"), adv: (t, a) => G.adv(t, a) });
 const F = initForsaken({ G, THREE, scene, ents, UI, Sound, hurt, puff, saveNow, saveSettings, changeDim, lookDir, addEffect, giveItem, giveXp, OFF, placeSafely, keys, victory: showVictory });
 G.forsaken = F;
 // The Lost Civilization adventure (js/lost.js). Its test controls only show on a development copy (localhost or ?dev).
@@ -5760,7 +5841,7 @@ resize();
 UI.show("title");
 requestAnimationFrame(loop);
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
 G._test.obsidianWarningReview = obsidianWarningReview;
 G._test.ancientWarningReview = ancientWarningReview;
 G._test.ancientArrivalReview = ancientArrivalReview;
