@@ -14,6 +14,7 @@ const FADE = 1800;          // crossfade length
 export const SCENES = [
   { id: "overworld", name: "The Surface", line: "Where every adventure begins.", accent: "#f5c431", fx: "pollen", focus: "50% 60%", art: ["overworld-castle", "overworld"], status: "live" },
   { id: "village", name: "Legacy Village", line: "The castle at the heart of the Legacy Campaign.", accent: "#4a7fe0", fx: "dust", focus: "50% 45%", art: ["legacy-village"], status: "live" },
+  { id: "gus", name: "Gus, the Iron Golem", line: "A three-chapter story campaign.", accent: "#ffb040", fx: "sparks", focus: "100% 50%", art: ["gus-iron-golem"], status: "planned" },
   { id: "echohold", name: "Echohold", line: "A lost city sleeps beneath the world.", accent: "#2fd3d6", fx: "motes", focus: "50% 50%", art: ["echohold"], status: "live" },
   { id: "forsaken", name: "The Forsaken World", line: "Enter the realm of Herobrine.", accent: "#c0262c", fx: "embersRed", focus: "50% 30%", art: ["forsaken-world"], status: "live", herobrine: true },
   { id: "mutants", name: "The Forsaken Mutants", line: "Five twisted guardians of Herobrine's realm.", accent: "#b0182a", fx: "embersRed", focus: "50% 22%", art: ["forsaken-mutants"], status: "planned" },
@@ -49,7 +50,8 @@ const mq = matchMedia("(prefers-reduced-motion: reduce)");
 const STD = ["1920.webp", "1280.webp", "1280.jpg"];
 const FILES = {
   "overworld-castle": ["1280.jpg"], echohold: ["1920.jpg", "1280.jpg"], "forsaken-world": ["1920.jpg", "1280.jpg"], jurassic: ["1280.jpg"],
-  leviathan: ["1920.jpg", "1280.jpg"], "furious-four": ["1920.jpg", "1280.jpg"], grizzly: ["1280.jpg"]
+  leviathan: ["1920.jpg", "1280.jpg"], "furious-four": ["1920.jpg", "1280.jpg"], grizzly: ["1280.jpg"],
+  "gus-iron-golem": ["1920.jpg", "1280.jpg"]
 };
 const canWebp = document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp");
 // best size for this screen first, then smaller/plainer ones
