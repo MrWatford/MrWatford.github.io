@@ -88,6 +88,11 @@ export const ADVANCEMENTS = [
   { id: "shrine3", cat: "Forsaken World", icon: I.WARD_HEART, title: "Wardkeeper", desc: "Restore all three ward shrines.", parent: "shrine1", ev: "shrine", count: 3, reward: { xp: 60 } },
   { id: "confront", cat: "Forsaken World", icon: B.PALE_ALTAR, title: "Face Him", desc: "Set the Ward Heart in the Pale Altar.", parent: "shrine3", ev: "confront" },
   { id: "banished", cat: "Forsaken World", icon: B.PALE_EFFIGY, title: "Banished", desc: "Banish Herobrine from the Forsaken World.", parent: "confront", ev: "banished", reward: { xp: 100 } },
+  // the Forsaken Mutants (optional; nothing else needs them)
+  { id: "fs_mutant", cat: "Forsaken World", icon: I.FORSAKEN_SHARD, title: "Elite Hunter", desc: "Defeat one of Herobrine's Forsaken Mutants.", parent: "forsaken", ev: "mutant", reward: { xp: 30 } },
+  { id: "fs_five", cat: "Forsaken World", icon: I.VOIDWALKER_TROPHY, title: "The Five Forsaken", desc: "Defeat all five Forsaken Mutants: the Groaner, Rattler, Skitter, Hisser, and Voidwalker.", parent: "fs_mutant", ev: "mutant", count: 5, reward: { xp: 150 } },
+  { id: "fs_trophies", cat: "Forsaken World", icon: I.GROANER_TROPHY, title: "Trophy Hall", desc: "Collect a trophy from each of the five Forsaken Mutants.", parent: "fs_mutant", ev: "fstrophy", count: 5, reward: { xp: 60 } },
+  { id: "fs_reaches", cat: "Forsaken World", icon: I.COMPASS, title: "Beyond the Vale", desc: "Find all five places in the Outer Reaches, past the edge of the old valley.", parent: "forsaken", ev: "reach", count: 5, reward: { xp: 40 } },
   { id: "lostdeep", cat: "Lost Civilization", icon: B.DEEP_LIFT, title: "Going Down", desc: "Ride the Keeper lift into the Deep.", ev: "lostdeep", reward: { xp: 20 } },
   { id: "lostcity", cat: "Lost Civilization", icon: B.KEEPER_LAMP, title: "Echohold", desc: "Reach the Keepers' lost city.", parent: "lostdeep", ev: "lostcity", reward: { xp: 30 } },
   { id: "lostlore", cat: "Lost Civilization", icon: B.LORE_TABLET, title: "The Keepers Remember", desc: "Read 12 Keeper tablets, murals, or memories.", parent: "lostdeep", ev: "lostlore", count: 12, reward: { xp: 40 } },

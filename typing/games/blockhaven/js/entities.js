@@ -20,6 +20,7 @@ import { segmentBoxTime, projectileBlockHit, MAX_DEFLECT_SPEED } from "./project
 import { usesLeviathanHitVolumes, createLeviathanHitVolumes, updateLeviathanHitVolumes, leviathanSegmentTime, leviathanAreaContact } from "./leviathan-hit-volumes.js";
 import { stepBondedLeviathan } from "./leviathan-bonds.js";
 import { stepObsidianVent } from "./obsidian-vent.js";
+import { installMutants, animateMutant, mutantDying } from "./mutants.js";   // the Forsaken Mutants (fights run in initMutants, main.js)
 
 const GRAV = 26, EPS = 1e-4;
 let nextId = 1;
@@ -1526,6 +1527,7 @@ SPECIES.leviathan_ancient = {
 };
 
 installDesertMobs(SPECIES);
+installMutants(SPECIES);
 export const SPAWN_SPECIES = SPAWN_EGGS.map(e => e[0]);
 
 SPECIES.ancient_companion = {
@@ -1640,7 +1642,7 @@ export class Entity {
     this.leash = opts.leash || null; this.harmor = opts.harmor || 0; this.portalCd = opts.portalCd || 0;   // Milestone 14: lead, Trotter armor, portal rest
     this.fuel = opts.fuel || 0; this.pushX = opts.pushX || 0; this.pushZ = opts.pushZ || 0; this.riderUid = opts.riderUid || null; this.fuseT = opts.fuseT || 0; this.hopperOff = !!opts.hopperOff;
   }
-  get maxHp() { if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
+  get maxHp() { if (this.mutHp) return this.mutHp; if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
   get scale() { return (this.def.scale || 1) * (this.grow || 1) * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
   get w() { return this.def.w * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
   get h() { return this.def.h * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
@@ -1728,7 +1730,7 @@ export class Entities {
       e.hitVolumes = createLeviathanHitVolumes(e); updateLeviathanHitVolumes(e);
     }
   }
-  remove(e) { e.glow?.dispose(); e.glow = null; this.scene.remove(e.mesh); e.mat.dispose(); e.mesh = null; e.hitVolumes = null; if (e.heldMesh) { e.heldMesh.material.dispose(); e.heldMesh = null; } if (e.beam) { this.scene.remove(e.beam); e.beam.geometry.dispose(); e.beam.material.dispose(); e.beam = null; } }
+  remove(e) { e.glow?.dispose(); e.glow = null; this.scene.remove(e.mesh); e.mat.dispose(); if (e.glowMat) { e.glowMat.dispose(); e.glowMat = null; } e.mesh = null; e.hitVolumes = null; if (e.heldMesh) { e.heldMesh.material.dispose(); e.heldMesh = null; } if (e.beam) { this.scene.remove(e.beam); e.beam.geometry.dispose(); e.beam.material.dispose(); e.beam = null; } }
   clear() {
     for (const e of this.list) this.remove(e);
     this.list = [];
@@ -3137,6 +3139,7 @@ export class Entities {
     if (e.def.segmentedLeviathan) knock = null;
     if (e.def.hears && attacker === "player") { e.alertT = Math.max(e.alertT || 0, 10); e.dormant = false; }
     if (e.def.lostBoss && this.bossAI) { n = this.bossAI.hit(this, e, n, attacker); knock = null; if (!n) return false; }
+    if (e.def.mutant && this.mutantHit) { n = this.mutantHit(this, e, n, attacker); knock = null; if (!n) return false; }   // the Forsaken Mutants' rules (js/mutants.js)
     if (e.sp === "herobrine") { n = this.ctx.heroHit ? this.ctx.heroHit(e, n) : 0; knock = null; if (!n) { e.iframes = 0.3; this.ctx.particles(e.pos.x, e.pos.y + 1.2, e.pos.z, "pale"); return false; } }
     // Cindermaw: half damage in the air, full when landed, 1.5× when worn out; the pylons' shield blocks most of it
     if (e.sp === "cindermaw") { n *= e.perched ? (e.tired ? 1.5 : 1) : 0.5; if (e.shielded) n *= 0.2; if (attacker === "explosion") n *= 0.3; knock = null; if (e.shielded) this.ctx.particles(e.pos.x, e.pos.y + 2, e.pos.z, "ember"); }
@@ -3169,6 +3172,7 @@ export class Entities {
     const ctx = this.ctx;
     if (e.encounterOwner) return;
     if (attacker === "player" && ctx.adv) ctx.adv("kill", e.sp);
+    if (e.def.mutant && this.mutantKilled) this.mutantKilled(this, e, attacker);   // a longer fall, and the record in the journal
     if (e.sp === "crystal") { e.gone = true; ctx.crystalGone(e.cid); ctx.explode(e.pos.x, e.pos.y + 1, e.pos.z, 3, null); return; }
     if (e.sp === "pylon") { e.gone = true; ctx.pylonGone(e.cid); for (let k = 0; k < 3; k++) ctx.particles(e.pos.x, e.pos.y + 1 + k * 0.4, e.pos.z, "fire"); Sound.mob("crystal", 0); return; }
     if (e.def.boss) { Sound.mob("roar", 0); return; }
@@ -3190,6 +3194,7 @@ export class Entities {
     if (e.desertVaultGuard) ctx.desertVaultDefeated?.(e.desertVaultGuard);
   }
   dying(e, dt) {
+    if (e.def.mutant) return mutantDying(this, e, dt);
     if (e.sp === "leviathan_ancient") {
       if (stepAncientFinale(e,dt,!!this.ctx.reducedMotion?.())) { e.gone=true;this.ctx.bossDefeated(e); }
       return;
@@ -3794,6 +3799,7 @@ export class Entities {
     else if (e.burning > 0) e.mat.color.setRGB(Math.min(1, b * 1.4), b * 0.7, b * 0.4);
     else e.mat.color.setScalar(b);
     if (e.heldMesh) e.heldMesh.material.color.setScalar(b);
+    if (e.def.mutant) animateMutant(e, dt);
   }
 }
 

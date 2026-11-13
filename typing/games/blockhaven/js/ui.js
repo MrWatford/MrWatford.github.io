@@ -177,7 +177,7 @@ export const UI = {
     $("sSwap").textContent = keyName(s.keySwap);
     $("sFwAmb").value = s.fwAmbient; $("oFwAmb").textContent = Math.round(s.fwAmbient * 100) + "%";
     $("sFwSud").value = s.fwSudden; $("oFwSud").textContent = Math.round(s.fwSudden * 100) + "%";
-    $("sFwFx").checked = s.fwEffects !== false; $("sFwShake").checked = s.fwShake !== false; $("sFwWords").checked = s.fwWords !== false; $("sLostCalm").checked = !!s.lostReduced;
+    $("sFwFx").checked = s.fwEffects !== false; $("sFwShake").checked = s.fwShake !== false; $("sFwWords").checked = s.fwWords !== false; if ($("sFwMut")) $("sFwMut").value = s.fwMutants || "normal"; $("sLostCalm").checked = !!s.lostReduced;
     if ($("sTcOn")) {
     $("sTcOn").checked = s.titleCinema !== false; $("sTcParts").checked = s.titleParticles !== false; $("sTcMove").checked = s.titleMotion !== false;
     $("sTcCap").checked = s.titleCaptions !== false; $("sTcReduce").value = s.titleReduce || "system";
@@ -199,6 +199,7 @@ export const UI = {
     $("sFwFx").onchange = e => upd("fwEffects", e.target.checked);
     $("sFwShake").onchange = e => upd("fwShake", e.target.checked);
     $("sFwWords").onchange = e => upd("fwWords", e.target.checked);
+    if ($("sFwMut")) $("sFwMut").onchange = e => upd("fwMutants", e.target.value);
     $("sLostCalm").onchange = e => upd("lostReduced", e.target.checked);
     const tc = (k, v) => { upd(k, v); Cinema.apply(G.settings); };
     if ($("sTcOn")) {

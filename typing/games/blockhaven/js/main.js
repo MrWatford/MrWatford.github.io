@@ -14,6 +14,7 @@ import { Sound } from "./audio.js";
 import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.js";
 import { Adv } from "./advancements.js";
 import { initForsaken, isQuestItem } from "./forsaken.js";
+import { initMutants } from "./mutants.js";
 import { initCompanions } from "./companions.js";
 import { initLost, LOST_DIMS } from "./lost.js";
 import { initStarter } from "./starter.js";
@@ -1741,6 +1742,7 @@ function makeWorld(dim) {
       }
     }
   }
+  if (dim === "forsaken") MU.prepareReaches(gen, data);   // the Outer Reaches in the generated ring (old changed chunks keep their shape)
   if (dim === "nether") { gen.citadel = chooseCitadel(); CP.stampNether(gen, data); }   // where Cindermaw's citadel stands in this world (+ the campaign's seal shrines)
   if (dim === "overworld") {
     if (!CP.plan(gen, data)) ST.plan(gen, data);   // campaign worlds get Legacy Village instead of the Starter Home's spot (chosen once per world, before any land is made)
@@ -3857,6 +3859,7 @@ function survival(dt) {
   p.jumpMul = G.effects.jump ? 1 + 0.16 * (G.elv.jump || 1) : 1;
   if (G.blocking) p.speedMul *= 0.3;   // you walk slowly behind a raised shield
   if (G.eat) p.speedMul *= 0.35;       // and while eating
+  if (G.mutants && G.dim === "forsaken") p.speedMul *= G.mutants.slow();   // stuck in a Forsaken Skitter's web
   p.swimMul = G.effects.dolphin ? 1.9 : 1;
   tickBeacons(dt);
   if (G.inv.slots[36] && G.inv.slots[36].id === I.CINDER_CROWN) { G.effects.fireRes = Math.max(G.effects.fireRes || 0, 1.5); }   // the Cinder Crown keeps fire away
@@ -5545,7 +5548,7 @@ const bossBar = document.getElementById("bossbar");
 const bossBarName = bossBar.querySelector("b"), bossBarFill = bossBar.querySelector("i");
 let bossBarPercent = -1;
 function updateBossBar(p) {
-  const hb = CP.bossInfo() || F.bossInfo() || L.bossInfo();
+  const hb = CP.bossInfo() || F.bossInfo() || L.bossInfo() || MU.bossInfo();
   let boss = null, distance = Infinity;
   if (!hb) for (const e of ents.list) {
     if (!e.def.boss || e.gone || e.tame || e.duneCycle?.preview ||
@@ -5575,7 +5578,8 @@ function updateBossBar(p) {
   if (bossBarName.textContent !== label) bossBarName.textContent = label;
   const percent = Math.max(0, frac * 100);
   if (bossBarPercent !== percent) { bossBarPercent = percent; bossBarFill.style.width = percent + "%"; }
-  bossBar.classList.toggle("pale", !!hb);
+  bossBar.classList.toggle("pale", !!hb && !hb.mutant);
+  bossBar.classList.toggle("mutant", !!hb?.mutant);
   bossBar.classList.toggle("ember", boss?.sp === "cindermaw");
 }
 // ---------- main loop ----------
@@ -5665,7 +5669,7 @@ function loop(now) {
     updateClouds(dt);
     if (G.dim === "end" && !G.guest) { ensureBoss(); tickWyrmSummon(dt); }
     if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // Play Together: the host leads the way through portals
-    if (!G.guest) { tickCinder(dt); F.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }
+    if (!G.guest) { tickCinder(dt); F.tick(dt); MU.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) G.bowT += dt;
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
@@ -5797,6 +5801,7 @@ G.lost = L;
 // The Starter Home and the Explorer's Map (js/starter.js)
 const ST = initStarter({ G, UI, Sound, L, openPanel, closePanel });
 const CP = G.campaign = initCampaign({ G, UI, Sound, L, ents, openPanel, closePanel, giveXp, puff, victory: showVictory, saveNow, teleport: (x, y, z, label) => teleportTo(x, y, z, label) });
+const MU = G.mutants = initMutants({ G, ents, UI, Sound, puff, F, THREE, scene });   // the Forsaken Mutants (after L and CP, which also fill ents.bossAI)
 G.starter = ST;
 // The Sparkworks signal engine (js/redstone.js)
 const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, lookFacing3, noteFx, moveFx, pushEntities,

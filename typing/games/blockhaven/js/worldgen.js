@@ -689,6 +689,7 @@ export class ForsakenGen {
       const hgt = 5 + Math.floor(r() * 4); for (let k = 1; k <= hgt; k++) data[idx(lx, y + k, lz)] = B.LOG;
       if (lx > 0) data[idx(lx - 1, y + hgt - 1, lz)] = B.LOG;
     }
+    if (this.reaches && !(this.reachesSkip && this.reachesSkip.has(cx + "," + cz))) this.reaches(cx, cz, data);   // the Outer Reaches (js/forsaken-reaches.js), set up by main.js
     return data;
   }
 }

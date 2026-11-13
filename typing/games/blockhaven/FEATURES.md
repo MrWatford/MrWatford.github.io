@@ -320,7 +320,7 @@ Code: `js/sparkworks-guide.js` (new), plus small changes in `js/advancements.js`
 | Circuit test page | Missing | Not built as a separate page; the builds were tested in the browser instead (scripts in this session) |
 | Not yet checked | Partial | Not played by hand on a Chromebook; sounds checked by counting calls, not by listening |
 
-## Milestone 14: smaller gaps (built and browser-tested 2026-11-12, not published)
+## Milestone 14: smaller gaps (built, browser-tested, and published 2026-11-12)
 Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623, block 215), `js/entities.js`, `js/main.js`, `js/worldgen.js` (land version 9), `js/ui.js`, `js/advancements.js`, and `index.html` (version tags `?v=m14-1`). Backups: `tools/backups/pre-m14-smaller-gaps-2026-11-12/`.
 
 | Feature | Status | Notes |
@@ -615,6 +615,118 @@ New code `js/echohold-secrets.js`; secrets placed in `maps/deep-v2.bin`.
 
 ## Ancient City Reborn, Phase 8: final checks (done 2026-11-12, ready to publish)
 Old test worlds, a new Legacy Campaign world, and a new Hardcore world all load; the Settings page fits a phone screen; every changed file has the new version tag (`?v=echohold-1`) so returning browsers get the new files together. The publish list is in `ANCIENT-CITY-REBORN.md`. Still needed: a real Chromebook test.
+
+## The Forsaken Mutants, Slice 1: the Forsaken Groaner (built and browser-tested 2026-11-13, not published)
+Plan and full checklist: FORSAKEN-MUTANTS.md.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Mutant base (js/mutants.js) | Done | Shared rules, fight states (idle, notice, chase, wind-up, strike, recover, dash, stagger, howl, down, rise, death), health by difficulty (3.5× / 5× / 6× a Groaner), green mini-boss health bar |
+| Forsaken Groaner model | Done | Original hunched brute about 2.4× a Groaner's height: lopsided giant right arm, shoulder humps, sunken head, torn shirt, bone shards, glowing pale eyes and green cracks that glow in the dark |
+| Punch | Done | Raised fist for 0.75 s, then a heavy hit with knockback; step back to dodge |
+| Ground slam | Done | Both arms up and a green ring for the whole wind-up, then a shockwave crawling toward you |
+| Charge | Done | Crouches low for 1 s, then dashes; if it crashes into a wall it's dazed for about 2 s (extra damage) |
+| Healing | Done | Heals with green sparkles if nothing hits it for 4 s; any hit stops it |
+| Rage | Done | Once below half health: faster for 8 s, eyes and cracks blaze |
+| Helpers | Done | Howls once at 2/3 and once at 1/3 health; at most 3 ordinary Groaners at a time |
+| One comeback | Done | First defeat: it collapses with a beating heart for 5 s; hit it hard and it stays down, otherwise it rises at 40% health, enraged. The second defeat is final |
+| Wards keep you safe | Done | It won't attack into a ward, cancels an attack if you reach one, and gives up after 6 s |
+| Spawning | Done | Forsaken World only: a one-time encounter at Hollowmere Village plus rare wandering ones; quiet start (150 s first visit, 45 s later, 20 s after fainting); never near the refuge, inside wards, during Herobrine's hunts or fight, in Creative, or on Peaceful; far-away ones fade out after 20 s; settings at the top of js/mutants.js |
+| Drops | Done | Corrupted Flesh (624), Forsaken Shard (625), Forsaken Groaner Trophy (626: always from your first one, then 1 in 5) |
+| Saved records | Done | Sightings, defeats, and finished encounters in the Forsaken story (`G.story.fw.mutants`); the mutants themselves aren't saved, so a reload mid-fight just clears it |
+| Sounds | Done | Growls, roar, heavy footsteps, wind-up rumble, impact, hurt, healing chime, heartbeat, death; every warning also shows as a ring, pose, or message |
+
+Browser-tested (local, disposable "Mutant test" world, Easy difficulty, then deleted): spawn at the village, every attack and its timing, healing and stopping it, rage, helpers and the cap, collapse → finish, collapse → rise, final defeat, drops and icons, ward safety, wall crash, far-away fade-out, Creative (no spawns), save + reload keeps the records, desktop and phone-size screens, no console errors. Not tested yet: a real hand-played fight, Hard difficulty feel, a real Chromebook.
+Files: js/mutants.js (new), js/entities.js, js/main.js, js/blocks.js, index.html (version tags `?v=mutants-1`; backups in tools/backups/pre-mutants-slice1-2026-11-13/).
+
+## The Forsaken Mutants, Slice 2: the Forsaken Rattler and Forsaken Skitter (built and browser-tested 2026-11-13, not published)
+Plan and full checklist: FORSAKEN-MUTANTS.md.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Forsaken Rattler model | Done | Original towering skeleton archer (about 5 blocks tall): see-through reinforced rib cage with a pale glowing heart, long arms, bone blade on the right forearm, shoulder and back spikes, glowing white eyes, big dark bow with bone tips and a glowing string, quiver |
+| Rattler: aimed shot | Done | 0.7 s draw, then one strong arrow; hiding behind blocks blocks it, and with no clear shot it walks to find one |
+| Rattler: volley + reload | Done | Glowing bow for 1.1 s, then 4 arrows about half a second apart; afterward it must reload for 2.3 s and takes 30% extra damage |
+| Rattler: exploding arrow | Done | A pale ring marks the spot 1.6 s ahead; the blast hurts only inside the ring and never breaks blocks |
+| Rattler: bone strike | Done | Up close it raises its bladed arm for 0.6 s, hits and knocks you back, then backs away to shooting range |
+| Rattler: helpers | Done | Twice (2/3 and 1/3 health) it calls 2 ordinary Rattlers; at most 3 at a time |
+| Forsaken Skitter model | Done | Original enormous black-and-charcoal spider: raised armored abdomen with plates, spikes, and crimson glowing cracks, six red eyes, fangs, eight jointed legs, trailing silk |
+| Skitter: venom bite | Done | Rears up for 0.55 s, then bites with the Blight effect (Poison on Easy) |
+| Skitter: web shot + web patch | Done | Spits a web glob at where you stood; if it lands on you, you're slowed to 30% for 2.4 s (then 3 s when you can't be webbed again); the white patch slows you to 55% until it fades after 6 s |
+| Skitter: leap | Done | A red ring shows where it will land; it crouches 0.85 s, then leaps there |
+| Skitter: spiderlings | Done | Twice it curls up and glows for 1.7 s; hit it hard enough (8% of its health) to stop it, otherwise 3 Cave Skitters hatch (at most 3 at a time) |
+| Skitter: nests and climbing | Done | Near its nest it hits 20% harder and moves faster; it climbs walls. Ceilings: not possible in this engine |
+| Encounters | Done | Watchtower Rattler, Pale Wood Grove Skitter nest, Deepvein Mine Skitter nest (one mutant at a time, each beaten once); wandering ones can be any of the three |
+| Drops | Done | Rattler: Forsaken Bone (627), Forsaken Bow Limb (628, half the time), trophy (629). Skitter: Corrupted Silk (630), Venom Fang (631, half the time), trophy (632). Both: a Forsaken Shard |
+| Sounds | Done | Bone clacks, bow draw, blast, shriek, hiss, chittering steps, web spit, landing thud |
+
+Browser-tested (local, disposable "Mutant test 2" world, Normal difficulty, then deleted): both models up close and from the side; every attack and its timing; volley accuracy (2 of 4 arrows hit someone standing still 12 blocks away, each 3 damage); cover stops its shots; reload bonus damage; helpers and caps; bite + Blight; web slow and the no-repeat window; leap ring timing; stopping the spiderlings and letting them hatch; wall climbing; all three encounter spots; drops and every item icon; leaving the Forsaken World clears webs and slowdowns; no console errors. Not tested yet: hand-played fights, phone-size screen for these two, a real Chromebook.
+Files: js/mutants.js, js/main.js (web slowdown, passes THREE/scene), js/blocks.js (items 627–632), index.html (`?v=mutants-2` on blocks, main, mutants; entities.js unchanged at `mutants-1`). Backups: tools/backups/pre-mutants-slice2-2026-11-13/.
+
+## The Forsaken Mutants, Slice 3: the Forsaken Hisser and Forsaken Voidwalker (built and browser-tested 2026-11-13, not published)
+Plan and full checklist: FORSAKEN-MUTANTS.md. All five mutants now exist.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Forsaken Hisser model | Done | Original hulking four-legged mutant Hisser: jagged green body with glowing green cracks, a pulsing core in its chest, splayed blackened legs, stone spikes, hollow glowing eyes, toxic drips |
+| Hisser: stalks and circles | Done | Closes in from far away, then circles at mid range |
+| Hisser: toxic burst | Done | Its core swells for 1 s inside a green ring, then a 5-damage burst with Poison; hitting it hard during the swell cracks the core and cancels the burst. Afterward it backs off with a dim core to recharge |
+| Hisser: explosive leap | Done | A green ring marks where it will land 1.6 s ahead; the landing blast never breaks blocks |
+| Hisser: ring blasts | Done | Four small green rings go off around you, one after another |
+| Hisser: toxic pools | Done | Burst and landing spots leave green puddles that sting and poison while you stand in them (fade after 6 s, at most 4) |
+| Hisser: final explosion | Done | When defeated it flashes and blows up in three growing rings over 3.3 s. Run past the last ring and you take nothing; keep hitting it to smother the core and it fizzles out. Standing in all three rings costs about 9 health on Normal, so it can't kill a healthy player. You get the rewards either way |
+| Forsaken Voidwalker model | Done | Original very tall (about 5.5 blocks) four-armed shadow creature: angular black armor, purple energy cracks, violet eyes, a crested head, long upper arms and a second pair of shorter arms with glowing claws, drifting purple sparks |
+| Voidwalker: teleport warnings | Done | Purple sparks gather where it is about to appear (0.6 s ahead) before every teleport |
+| Voidwalker: stalking | Done | If you get far away or out of sight, it reappears behind you |
+| Voidwalker: four-arm strike | Done | All arms rise for 0.7 s, then a 6-damage hit |
+| Voidwalker: teleport slash | Done | A purple ring appears under you; 1 s later it teleports beside the ring and slashes |
+| Voidwalker: gravity pull + burst | Done | Arms spread for 0.8 s, then it drags you in for 1 s (sprinting away beats it, and wards stop it), then a purple ring bursts 1 s later; run out of the ring. Afterward it's worn out for 2.2 s and takes 30% extra damage |
+| Voidwalker: dodging | Done | Sometimes teleports away when hit (about 1 in 3 arrows miss) |
+| Voidwalker: shadow clones | Done | Twice it splits into 2 see-through clones with dim eyes (the solid one is real); clones are weak, fade after 12 s, and vanish when the real one falls |
+| Voidwalker: rage | Done | Below about a third of its health: purple light pours out and it attacks and teleports faster for 8 s |
+| Encounters | Done | Research Outpost Hisser; a Voidwalker on the Pale Citadel's outskirts (never inside Herobrine's arena). Starting Herobrine's fight clears any mutant away |
+| Drops | Done | Hisser: Volatile Mutagen (633), Corrupted Blast Core (634, half the time), trophy (635). Voidwalker: Void Essence (637), Forsaken Pearl (636), trophy (638). Both: a Forsaken Shard. Item ids 624–638 used, 639 still free |
+| Sounds | Done | Fuse hiss, ticking before the final blast, fizz, warp, scream, slash |
+
+Browser-tested (local, disposable "Mutant test 3" world, Normal difficulty, then deleted): both models; every attack, its warning, and its timing; cracking the core; pools; final explosion three ways (stand in it, run, smother); stalking teleport; strike; teleport slash; gravity pull (stand still = hit, run out = no hit); tired bonus damage; arrow dodging; clones (see-through, fade on time, vanish on defeat); rage; both encounter spots; Herobrine's fight clearing mutants; drops and all item icons; no console errors. Not tested yet: hand-played fights, phone-size screen for these two, a real Chromebook.
+Files: js/mutants.js, js/blocks.js (items 633–638), index.html (`?v=mutants-3` on blocks and mutants). Backups: tools/backups/pre-mutants-slice3-2026-11-13/.
+
+## The Forsaken Mutants, Slice 4: the Outer Reaches, journal page, lore, achievements, recipes (built and browser-tested 2026-11-13, not published)
+Plan and full checklist: FORSAKEN-MUTANTS.md.
+
+| Feature | Status | Notes |
+|---|---|---|
+| The Outer Reaches (js/forsaken-reaches.js) | Done | Five new places in the Forsaken World's generated outer ring (the packaged map is untouched): Wayfarer's Rest (north: torn-apart camp, huts, fire pits, broken fences), the Hollow Graves (east: gravestone rows on soul sand, skull arch, broken tower), the Blight Crater (south-east: scorched bowl, green sludge pools, research ruins), Silkwood Hollow (west: silk-wrapped dead trees, egg clusters, an old mine mouth), the Sundered Gate (south-west: violet pillars, cracked floor, a broken obsidian gate) |
+| Old worlds stay safe | Done | Ring chunks a player already changed before this update keep their old shape and every change (saved as `dimData.forsaken.reachesSkip`, `reachesV`); other ring land gets the new places |
+| Ritual marks and traces | Done | Each place has Herobrine's dark stone circle; faint colored sparks drift over each place when you're near |
+| Lore notes | Done | Five new notes on note stands (camp journal, gravekeeper's ledger, research note, mine-beam warning, "The Five"); they show in the journal's Notes list |
+| Discovery | Done | "Discovered: …" message the first time you reach each place |
+| More encounters | Done | One more mutant at each new place (one at a time, each beaten once); wandering mutants are now the kind that lives nearest |
+| Mutants page in the journal | Done | Under the Forsaken journal (J): a card per mutant. Unmet ones show "???"; met ones show their haunts, defeats, and each move you've actually seen; after a defeat it shows the rewards and whether you've found its trophy. Fits a phone screen |
+| Achievements | Done | Forsaken World tab: Elite Hunter (defeat one), The Five Forsaken (defeat all five), Trophy Hall (a trophy from each), Beyond the Vale (find all five places). All optional |
+| Recipes (crafting table) | Done | Bow ← 2 Forsaken Bow Limbs + Corrupted Silk; 8 Arrows ← Forsaken Bone + Flint + Feather; 8 Arrows ← Venom Fang + 2 Sticks + 2 Feathers; 4 String ← Corrupted Silk; 3 Ward Candles ← Forsaken Shard + Corrupted Silk + Coal; 2 Blast Blocks ← Corrupted Blast Core + 4 Sand; 1 Blast Block ← 2 Volatile Mutagen + 4 Sand; Pale Lantern ← Forsaken Pearl + 2 Void Essence + 2 Iron Ingots. Corrupted Flesh is now food (like Rotten Flesh: it can make you queasy). Nothing better than what the game already has |
+
+Browser-tested (local, disposable "Mutant test 4" world, then deleted): all five places from above; every note opens; discovery messages; all four achievements register (in Survival); a Rattler appears at the Hollow Graves and its defeat records the trophy and the encounter; the old-world protection (a chunk changed before the update kept its shape and the block placed there, its neighbor got the new building); the journal page on desktop and phone width; all recipes registered; no console errors. Not tested yet: crafting each recipe by hand, a real older save from his own browser, a real Chromebook. Known limits: the journal's small map still shows only the old valley; places cut by an old changed chunk can look half-built.
+Files: js/forsaken-reaches.js (new), js/mutants.js, js/worldgen.js (one line in ForsakenGen.generate), js/main.js (one line in makeWorld), js/blocks.js (recipes, Corrupted Flesh food), js/advancements.js (4 achievements), index.html (`?v=mutants-4` on advancements, blocks, main, mutants, worldgen, new forsaken-reaches entry, main script tag). Backups: tools/backups/pre-mutants-slice4-2026-11-13/.
+
+## The Forsaken Mutants, Slice 5: balance and final checks (done 2026-11-13, ready to publish when he says so)
+Plan and full checklist: FORSAKEN-MUTANTS.md.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Settings: Forsaken Mutants | Done | Settings → Forsaken Mutants: Normal / Rare (about a third as many wandering ones) / Off (none at all, and any nearby ones disappear). Saved per browser, so a class device can turn them off |
+| Balance pass | Done | Scripted test fights (iron sword and iron armor, a bot that steps out of warning rings and backs off from raised-arm wind-ups), 3 fights per mutant per difficulty, all won. Normal: 18–35 s per fight, about 1½–3 health bars of damage. Hard: 20–45 s, about 2–4½ health bars, with some close calls. Easy: light. After the first run the Voidwalker was clearly harshest, so it was softened: base health 34 → 28 (Normal 170 → 140), four-arm strike 6 → 5, clone hits 3 → 2 |
+| Cleanup on reload | Fixed | Reloading or switching worlds while in the Forsaken World now clears leftover webs, pools, and flying effects |
+| Save and reload mid-fight | Checked | The fight resets (mutants aren't saved), leftover webs and pools are gone, 45 quiet seconds; unfinished encounters come back later; records stay |
+| Fainting mid-fight | Checked | You wake inside the refuge's ward with 20 quiet seconds; the mutant gives up and fades out after 20 s |
+| Peaceful, Creative, Off | Checked | No mutants appear; any that exist are removed (Peaceful, Off) |
+| Crafting | Checked | All 8 new recipes made at a Workbench with the right amounts |
+| Speed | Checked | Game logic stays under 1 ms per frame with any mutant (including the Voidwalker with its clones). Drawing cost couldn't be measured in the test pane; a real Chromebook is the true test |
+| Older worlds | Checked | "Migration test" loads and plays with no errors (loaded without saving) |
+| Live site unchanged | Checked | The live entities.js, main.js, blocks.js, worldgen.js, advancements.js, ui.js, and index.html are identical to the copies this work started from, so publishing won't overwrite anyone else's changes |
+
+**Publish list (11 files, all under typing/games/blockhaven/):** js/mutants.js (new), js/forsaken-reaches.js (new), js/entities.js, js/main.js, js/blocks.js, js/worldgen.js, js/advancements.js, js/ui.js, index.html, FEATURES.md, FORSAKEN-MUTANTS.md. Version tags in index.html: entities `mutants-1`; blocks, main (+ script tag), worldgen, advancements, forsaken-reaches `mutants-4`; mutants, ui `mutants-5`. Publish all of them together (one branch + merge, like PR #10), then open the live game with `?fresh=N` and check the Forsaken World.
+Still worth doing by hand: one real fight per mutant, Hard difficulty, a real Chromebook and phone.
 
 ## Later milestones
 | Feature | Status |
