@@ -108,7 +108,11 @@ export const I = {
   HUSH_HELMET: 608, HUSH_CHEST: 609, HUSH_LEGS: 610, HUSH_BOOTS: 611, ECHO_BLADE: 612, SENTINEL_HAMMER: 613,
   RELIC_ABYSS: 614, RELIC_VOID: 615, CROWN_KEY: 616,   // Legacy Campaign, Chapters 7 and 8
   // Milestone 14 (smaller gaps): leads, name tags, horse armor, and the crystal that calls the Hollow Wyrm back
-  LEAD: 617, NAME_TAG: 618, LEATHER_HORSE_ARMOR: 619, IRON_HORSE_ARMOR: 620, GOLD_HORSE_ARMOR: 621, SKY_HORSE_ARMOR: 622, VOID_CRYSTAL: 623
+  LEAD: 617, NAME_TAG: 618, LEATHER_HORSE_ARMOR: 619, IRON_HORSE_ARMOR: 620, GOLD_HORSE_ARMOR: 621, SKY_HORSE_ARMOR: 622, VOID_CRYSTAL: 623,
+  // The Forsaken Mutants (ids 624-639 are kept for this expansion)
+  CORRUPTED_FLESH: 624, FORSAKEN_SHARD: 625, GROANER_TROPHY: 626,
+  FORSAKEN_BONE: 627, BOW_LIMB: 628, RATTLER_TROPHY: 629, CORRUPTED_SILK: 630, VENOM_FANG: 631, SKITTER_TROPHY: 632,
+  VOLATILE_MUTAGEN: 633, BLAST_CORE: 634, HISSER_TROPHY: 635, FORSAKEN_PEARL: 636, VOID_ESSENCE: 637, VOIDWALKER_TROPHY: 638
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -468,6 +472,22 @@ item(I.IRON_HORSE_ARMOR, "Iron Trotter Armor", { icon: "horse_armor", colors: ["
 item(I.GOLD_HORSE_ARMOR, "Gold Trotter Armor", { icon: "horse_armor", colors: ["#ffd84a", "#c9a227"], stack: 1, category: "Tools", horseArmor: 7 });
 item(I.SKY_HORSE_ARMOR, "Skyshard Trotter Armor", { icon: "horse_armor", colors: ["#6ae0e8", "#2fa8b8"], stack: 1, category: "Tools", horseArmor: 11 });
 item(I.VOID_CRYSTAL, "Void Crystal", { icon: "void_crystal", category: "Tools" });
+// The Forsaken Mutants (js/mutants.js): what Herobrine's elite servants leave behind
+item(I.CORRUPTED_FLESH, "Corrupted Flesh", { icon: "meat", colors: ["#5a8a3a", "#a8ff5a"], kind: "food", food: 3, category: "Food", sideEffect: "queasy" });
+item(I.FORSAKEN_SHARD, "Forsaken Shard", { icon: "fs_shard" });
+item(I.GROANER_TROPHY, "Forsaken Groaner Trophy", { icon: "fs_trophy", colors: ["#5d8a3a", "#f0fff0", "#a8ff5a"], stack: 16 });
+item(I.FORSAKEN_BONE, "Forsaken Bone", { icon: "fs_bone" });
+item(I.BOW_LIMB, "Forsaken Bow Limb", { icon: "fs_limb" });
+item(I.RATTLER_TROPHY, "Forsaken Rattler Trophy", { icon: "fs_trophy", colors: ["#d8d2bc", "#e8f4ff", "#a8c8e8"], stack: 16 });
+item(I.CORRUPTED_SILK, "Corrupted Silk", { icon: "fs_silk" });
+item(I.VENOM_FANG, "Venom Fang", { icon: "fs_fang" });
+item(I.SKITTER_TROPHY, "Forsaken Skitter Trophy", { icon: "fs_trophy", colors: ["#2e2e34", "#ff3040", "#ff3040"], stack: 16 });
+item(I.VOLATILE_MUTAGEN, "Volatile Mutagen", { icon: "fs_mutagen" });
+item(I.BLAST_CORE, "Corrupted Blast Core", { icon: "fs_blastcore" });
+item(I.HISSER_TROPHY, "Forsaken Hisser Trophy", { icon: "fs_trophy", colors: ["#4f8a32", "#0c1408", "#9cff3a"], stack: 16 });
+item(I.FORSAKEN_PEARL, "Forsaken Pearl", { icon: "fs_pearl" });
+item(I.VOID_ESSENCE, "Void Essence", { icon: "fs_essence" });
+item(I.VOIDWALKER_TROPHY, "Forsaken Voidwalker Trophy", { icon: "fs_trophy", colors: ["#1a1520", "#c060ff", "#c060ff"], stack: 16 });
 // water life and wildlife
 item(I.FISHING_ROD, "Fishing Rod", { icon: "fishing_rod", kind: "tool", stack: 1, category: "Tools", tool: { type: "rod", tier: 0, speed: 1, dur: 64, damage: 1 } });
 item(I.RAW_MINNOW, "Raw Minnow", { icon: "fish", colors: ["#9aa8b0", "#d8dce0"], kind: "food", food: 2, category: "Food", raw: true });
@@ -745,6 +765,15 @@ export const RECIPES = [
   { out: [I.PALE_LANTERN, 1], ins: [[I.PALE_SHARD, 4], [B.SHINESTONE, 1], [I.IRON_INGOT, 2]], table: true },
   { out: [B.WARD_CANDLE, 2], ins: [[I.PALE_SHARD, 1], [I.HONEYCOMB, 1], [I.STRING, 1]], table: true },
   { out: [B.WARD_CANDLE, 1], ins: [[I.PALE_SHARD, 1], [I.STRING, 1], [I.COAL, 1]], table: true },
+  // the Forsaken Mutants' drops (js/mutants.js): useful, but never better than what you could already make
+  { out: [I.BOW, 1], ins: [[I.BOW_LIMB, 2], [I.CORRUPTED_SILK, 1]], table: true },
+  { out: [I.ARROW, 8], ins: [[I.FORSAKEN_BONE, 1], [I.FLINT, 1], [I.FEATHER, 1]], table: true },
+  { out: [I.ARROW, 8], ins: [[I.VENOM_FANG, 1], [I.STICK, 2], [I.FEATHER, 2]], table: true },
+  { out: [I.STRING, 4], ins: [[I.CORRUPTED_SILK, 1]], table: true },
+  { out: [B.WARD_CANDLE, 3], ins: [[I.FORSAKEN_SHARD, 1], [I.CORRUPTED_SILK, 1], [I.COAL, 1]], table: true },
+  { out: [B.TNT, 2], ins: [[I.BLAST_CORE, 1], [B.SAND, 4]], table: true },
+  { out: [B.TNT, 1], ins: [[I.VOLATILE_MUTAGEN, 2], [B.SAND, 4]], table: true },
+  { out: [I.PALE_LANTERN, 1], ins: [[I.FORSAKEN_PEARL, 1], [I.VOID_ESSENCE, 2], [I.IRON_INGOT, 2]], table: true },
   { out: [B.PALE_BRICKS, 4], ins: [[B.STONE_BRICKS, 4], [I.PALE_SHARD, 1]], table: true },
   { out: [I.ECHO_SHARD, 4], ins: [[I.LUMEN_SHARD, 1], [B.DARKSLATE, 1]], table: true },
   { out: [I.ECHO_COMPASS, 1], ins: [[I.COMPASS, 1], [I.LUMEN_SHARD, 2]], table: true },
@@ -1454,6 +1483,16 @@ const ICON_PAINT = {
   stick(P) { for (let i = 0; i < 11; i++) { P.px(3 + i, 13 - i, "#8a6235"); P.px(4 + i, 13 - i, "#6a4825"); } },
   coal(P) { blob(P, ["#2b2b2b", "#3c3c3c", "#1a1a1a"]); P.px(6, 6, "#5a5a5a"); },
   ingot(P, c) { c = c || ["#dcdcdc", "#a0a0a0", "#ffffff"]; for (let y = 6; y < 11; y++) for (let x = 3; x < 13; x++) P.px(x, y, y === 6 ? c[2] : y === 10 ? c[1] : c[0]); P.rect(4, 5, 8, 1, c[2]); },
+  fs_bone(P) { for (let i = 0; i < 9; i++) { P.px(4 + i, 11 - i, "#c8c0a8"); P.px(5 + i, 11 - i, "#a8a08a"); } for (const [x, y] of [[3, 11], [4, 12], [3, 12], [12, 3], [13, 4], [13, 3]]) P.px(x, y, "#d8d2bc"); P.px(8, 7, "#d8ecff"); P.px(9, 6, "#d8ecff"); },
+  fs_limb(P) { for (let i = 0; i < 12; i++) { const x = 3 + Math.round(Math.sin(i / 11 * Math.PI) * 3), y = 2 + i; P.px(x, y, "#3a2a24"); P.px(x + 1, y, "#5a4232"); } P.rect(3, 1, 2, 2, "#d8d2bc"); P.rect(3, 13, 2, 2, "#d8d2bc"); for (let y = 3; y < 13; y++) P.px(10, y, "#d8ecff"); },
+  fs_silk(P) { for (let i = 0; i < 4; i++) for (let t = 0; t < 12; t++) P.px(2 + t, 3 + i * 3 + Math.round(Math.sin(t * 0.7 + i) * 1), i % 2 ? "#f0f0f8" : "#d8d8e4"); P.px(7, 6, "#ff3040"); P.px(10, 10, "#ff3040"); },
+  fs_fang(P) { for (let y = 2; y < 14; y++) { const w = Math.max(0, Math.floor((14 - y) / 3)); for (let x = 7 - w; x <= 7 + w - (y > 10 ? 1 : 0); x++) P.px(x + Math.floor((y - 2) / 4), y, y < 6 ? "#2a2a30" : "#e4dccb"); } P.px(9, 12, "#ff3040"); P.px(10, 13, "#ff3040"); },
+  fs_mutagen(P) { P.rect(6, 2, 4, 2, "#5a4a3a"); P.rect(7, 4, 2, 2, "#c8d8c8"); for (let y = 6; y < 14; y++) for (let x = 4; x < 12; x++) if ((x - 7.5) ** 2 + (y - 9.5) ** 2 < 15) P.px(x, y, y < 8 ? "#c8d8c8" : (x + y) % 3 ? "#8aff3a" : "#c8ff8a"); P.px(6, 9, "#f0ffd0"); },
+  fs_blastcore(P) { for (let y = 2; y < 14; y++) for (let x = 2; x < 14; x++) { const d = (x - 7.5) ** 2 + (y - 7.5) ** 2; if (d < 30) P.px(x, y, d < 9 ? "#c8ff6a" : d < 16 ? "#6ab83a" : (x * y) % 3 ? "#1c1f1a" : "#2e3a26"); } P.px(7, 7, "#ffffff"); },
+  fs_pearl(P) { for (let y = 3; y < 13; y++) for (let x = 3; x < 13; x++) { const d = (x - 7.5) ** 2 + (y - 7.5) ** 2; if (d < 24) P.px(x, y, d < 6 ? "#e0a0ff" : d < 14 ? "#9a40e0" : "#4a1a70"); } P.px(6, 6, "#ffffff"); },
+  fs_essence(P) { for (let i = 0; i < 12; i++) { const y = 13 - i, x = 7 + Math.round(Math.sin(i * 0.8) * 2.5); P.px(x, y, i % 3 ? "#c060ff" : "#e8c0ff"); P.px(x + 1, y, "#7a30c0"); } P.px(5, 4, "#e8c0ff"); P.px(11, 7, "#e8c0ff"); },
+  fs_shard(P) { for (let y = 2; y < 14; y++) { const w = y < 7 ? (y - 1) >> 1 : (14 - y) >> 1; for (let x = 8 - w; x <= 8 + w; x++) P.px(x, y, x < 8 ? "#2a3a22" : "#3c5a2c"); } P.rect(8, 3, 1, 9, "#a8ff5a"); P.rect(7, 6, 1, 2, "#d8ffb0"); P.px(9, 9, "#a8ff5a"); },
+  fs_trophy(P, c) { P.rect(3, 3, 10, 9, c[0]); P.rect(3, 3, 10, 2, "#3e6326"); P.rect(4, 6, 3, 2, c[1]); P.rect(9, 6, 3, 2, c[1]); P.rect(5, 10, 6, 1, "#1c2a14"); P.rect(7, 4, 1, 4, c[2]); P.rect(2, 12, 12, 2, "#4a3a2a"); P.rect(3, 14, 10, 1, "#2a2018"); },
   skyshard(P) { const pts = [[8, 2], [7, 3], [8, 3], [9, 3], [6, 4], [7, 4], [8, 4], [9, 4], [10, 4]]; for (let y = 4; y < 13; y++) { const w = y < 8 ? y - 2 : 14 - y; for (let x = 8 - w; x <= 8 + w; x++) P.px(x, y, x < 8 ? "#3fc5d3" : "#7ef0f5"); } pts.forEach(([x, y]) => P.px(x, y, "#c9fbfd")); },
   apple(P, c) { const g = c && c[0] === "gold"; for (let y = 5; y < 14; y++) for (let x = 3; x < 13; x++) { const dx = x - 7.5, dy = y - 9.5; if (dx * dx + dy * dy < 22) P.px(x, y, x < 6 && y < 9 ? (g ? "#fff2a0" : "#ff6a5e") : (g ? "#f0c020" : "#d8302a")); } P.rect(8, 2, 1, 4, "#6a4825"); P.rect(9, 3, 3, 2, "#4f9a33"); },
   clay_ball(P) { blob(P, ["#a3aab8", "#b4bbc8", "#8d94a3"]); },
