@@ -32,8 +32,8 @@ This is about 8 milestones of work. As always, each one is built and tested in t
 
 | Order | Milestone | What you get | Size |
 |---|---|---|---|
-| 1 ✔ built 2026-11-12 | **12 Part E: Redstone finish** | Finishes the Sparkworks: 11 advancements, "Mechanisms" Creative tab, "Sparkworks" guide chapter with 12 example builds, sounds pass | Medium |
-| 2 | **14: Smaller gaps** | Leads, name tags, horse armor, donkeys and mules (with chests), more horse colors, pet breeding, summoning the Hollow Wyrm again, ships at the Hollow towers, creatures going through portals, Hogbeasts turning "rotten" in the Surface world | Medium |
+| 1 ✔ published 2026-11-12 | **12 Part E: Redstone finish** | Finishes the Sparkworks: 11 advancements, "Mechanisms" Creative tab, "Sparkworks" guide chapter with 12 example builds, sounds pass | Medium |
+| 2 ✔ built 2026-11-12 | **14: Smaller gaps** | Leads, name tags, horse armor, donkeys and mules (with chests), more horse colors, pet breeding, summoning the Hollow Wyrm again, ships at the Hollow towers, creatures going through portals, Hogbeasts turning "rotten" in the Surface world | Medium |
 | 3 | **15: Enchanting and repair** | Enchanting Table, bookshelf power, XP finally gets spent, ~27 enchantments that really work (curses included), enchanted books, Anvil, Grindstone, shiny "glint" on enchanted items | Large |
 | 4 | **16: Brewing and potions** | Brewing Stand, Cauldron, sugar cane and melons as real plants, ~15 potions + longer/stronger versions, splash and lingering potions, ~10 new status effects, recipe guide | Large |
 | 5 | **17: Ocean extras** | Prismarine blocks, Sea Lanterns, Ocean Monuments with Guardians, shipwrecks, ocean ruins, treasure maps and buried treasure, coral reefs, sponges, Conduits, fish in buckets, Splashers leading you to treasure | Large |

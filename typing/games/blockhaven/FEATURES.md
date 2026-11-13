@@ -63,7 +63,7 @@ Tech: static site on GitHub Pages, no build step. Plain ES modules in `js/`, Thr
 | Magma Gloop [magma cube] | Done | Hops high, splits, fireproof |
 | Lavastrider [strider] | Partial | Walks on lava, fireproof, wanders. Riding comes with the mounts milestone |
 | Old worlds | Done | Places the player already changed keep their original land. Untouched places get new features (`newGen` per dimension, land version `CURRENT_GEN = 3`) |
-| Creatures traveling through portals, Hogbeast → rotten variant [zoglin] | Missing | |
+| Creatures traveling through portals, Hogbeast → rotten variant [zoglin] | Done | Milestone 14 (see below) |
 
 ## Milestone 4: strongholds, the Hollow [End], and the Hollow Wyrm [Ender Dragon] (published 2026-10-28)
 | Feature | Status | Notes |
@@ -75,11 +75,11 @@ Tech: static site on GitHub Pages, no build step. Plain ES modules in `js/`, Thr
 | Hollow Wyrm boss | Done | Boss bar; circles the pillars, strafes and spits void breath (lingering damaging clouds), charges with a hover/roar/fast-flap wind-up and knock-up, lands on the center to rest (full damage there, 60% while flying), takes off again. Void Crystals heal it (beam shown) and explode when hit. Health and destroyed crystals are saved if you leave or faint |
 | Victory | Done | Death animation, ≈400 XP, Wyrm Scales, exit fountain portal home, Wyrm Egg, Gateway to the outer islands (with a return Gateway). Defeat is saved; the Wyrm does not come back |
 | Outer islands | Done | Floating islands past 380 blocks, Chorus plants (Chorus Fruit: blink-teleport food; smelts into Violet Bricks), Voidwalkers |
-| Hollow towers [end cities] | Partial | Violet brick towers with floors, treasure chests (the top chest always has Glider Wings), 4 Shellers each. No ships yet |
+| Hollow towers [end cities] | Partial | Violet brick towers with floors, treasure chests (the top chest always has Glider Wings), 4 Shellers each. Ships added in Milestone 14 |
 | Sheller [shulker] | Done | Hides in its shell (takes 25% damage closed), opens to fire slow homing bullets that cause Floating (levitation) for 6 s; bullets can be swatted. Drops Sheller Shells |
 | Shell Box [shulker box] | Done | 2 shells + chest. Keeps its 27 slots of contents when broken and placed again |
 | Glider Wings [elytra] | Done | Worn as a chestplate; press Space while falling. Look down to dive and speed up, up to slow; no fall damage while gliding; crashing into walls hurts; loses durability while gliding. No rocket boosts yet |
-| Resummoning the Wyrm | Missing | |
+| Resummoning the Wyrm | Done | Milestone 14 (see below) |
 
 ## Milestone 5: the Blightking [Wither], villagers, and villages (published 2026-10-28)
 | Feature | Status | Notes |
@@ -107,7 +107,7 @@ Tech: static site on GitHub Pages, no build step. Plain ES modules in `js/`, Thr
 | Saddle [saddle] | Done | 5 leather + 1 iron ingot at a workbench. Right-click a tame Trotter with it. Dropped again if a saddled Trotter is defeated |
 | Riding | Done | You sit high up. W A S D steers (7.5 blocks/s), Shift gallops (11 blocks/s), Space jumps about 2.5 blocks high, C gets off. Falls hurt less. You get off automatically when you take a portal, faint, or leave the world |
 | New spawn eggs | Done | Scout, Whisker, Trotter (Creative) |
-| Pet breeding, more horse colors, donkeys/mules, horse armor, leads, name tags | Missing | Parrots came in Milestone 7 |
+| Pet breeding, more horse colors, donkeys/mules, horse armor, leads, name tags | Done | Milestone 14 (see below). Donkeys and mules already existed as Long Ear and Trail Mule from the creature expansion |
 
 ## Milestone 7: water life and wildlife (published 2026-11-04)
 | Feature | Status | Notes |
@@ -258,7 +258,7 @@ Design: `MILESTONE-12-REDSTONE.md`. Rules follow Minecraft Java Edition 1.20.1. 
 | Safety limit | Done | 6,000 real updates per game tick (plus a high cap on quick checks); a machine that goes over pauses a moment with a message. Tested: 20 clocks at once use 0.4 ms per tick; frames stayed under 16 ms. Signal-only redraws are spread over frames |
 | Saving | Done | Save version 4 (version 3 backup kept). Timers and comparator outputs are saved per dimension and resume after loading |
 | Creative tab, recipes, trade | Done | "Mechanisms" tab. Recipes from the design. Clerics sell 2 Sparkdust for 1 Jade |
-| Part E (finish: advancements, guide, sounds) | Done | Built and browser-tested 2026-11-12, not published. See the Part E section below |
+| Part E (finish: advancements, guide, sounds) | Done | Published 2026-11-12. See the Part E section below |
 
 ## Milestone 12, Part B: movers and sensors (built and browser-tested 2026-11-05, not published)
 
@@ -305,7 +305,7 @@ Code: `js/rails.js` (rail shapes and cart movement), carts in `js/entities.js`, 
 | Dispensers | Done | Put minecarts onto the rail in front of them |
 | Speed | Done | 12 carts on a loop: median 0.6 ms per frame, worst 16.3 ms |
 
-## Milestone 12, Part E: finishing the Sparkworks (built and browser-tested 2026-11-12, not published)
+## Milestone 12, Part E: finishing the Sparkworks (built, browser-tested, and published 2026-11-12)
 Code: `js/sparkworks-guide.js` (new), plus small changes in `js/advancements.js`, `js/redstone.js`, `js/audio.js`, `js/entities.js`, `js/ui.js`, and `index.html` (styles + version tags `?v=sparkworks-e-1`).
 
 | Feature | Status | Notes |
@@ -319,6 +319,25 @@ Code: `js/sparkworks-guide.js` (new), plus small changes in `js/advancements.js`
 | Sounds pass | Done | New: minecarts clack each time they roll onto the next rail, louder and higher when fast (5 clacks over 6 rails in the test). Already there from Parts A–D: switches, plates, pistons, doors, note blocks, bells, sensors, dispensers, Crafter |
 | Circuit test page | Missing | Not built as a separate page; the builds were tested in the browser instead (scripts in this session) |
 | Not yet checked | Partial | Not played by hand on a Chromebook; sounds checked by counting calls, not by listening |
+
+## Milestone 14: smaller gaps (built and browser-tested 2026-11-12, not published)
+Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623, block 215), `js/entities.js`, `js/main.js`, `js/worldgen.js` (land version 9), `js/ui.js`, `js/advancements.js`, and `index.html` (version tags `?v=m14-1`). Backups: `tools/backups/pre-m14-smaller-gaps-2026-11-12/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Lead | Done | 2 from 4 String + 1 Gloop Ball. Right-click an animal (not monsters, villagers, or bosses) to lead it; right-click it again to let go. Right-click a fence to tie up everything on your lead. Snaps (the lead drops) past 10 blocks, or when its fence is broken. Rope drawn with a little sag, plus a knot on the fence. Saved with the creature. Also in treasure (15%) and from the Wanderer |
+| Name Tag | Done | From treasure (20%), fishing treasure, and the Wanderer (3 Jade). Right-click a creature: a small box asks for a name (up to 24 letters). The name floats above it (nearest 16 within 14 blocks), and named creatures never despawn. Difference from Java: no anvil needed yet (the anvil comes in Milestone 15) |
+| Trotter armor | Done | Leather (crafted from 7 leather), iron, gold, Skyshard (treasure only; gold and Skyshard also in Ember Depths fortresses). Tame adult Trotters only. Cuts damage by 12% / 20% / 28% / 44% (tested: a 10-damage hit did 7.2 with gold). Crouch + right-click with an empty hand takes it off; swapping gives the old one back; dropped when the Trotter is defeated. Drawn as plates over the body and head |
+| Trotter coats | Done | 7 colors × 5 markings (none, white socks, white patches, white dots, black dots), plus the original chestnut. Older saves keep the original look. Foals take after a parent (1 in 9 get a random coat) |
+| Donkeys and mules | Done | Already existed: Long Ear and Trail Mule (27-slot saddlebags, crouch + right-click), Trotter + Long Ear makes a Trail Mule, mules can't breed |
+| Pet breeding | Done | Tame Scouts breed with any meat, tame Whiskers with fish (at full health). The baby is already tame. Wild Whiskers can also be tamed with fish. Tested: one tame baby each |
+| Rotting outside the Ember Depths | Done | Hogbeasts become Zoglins, and Boarkin (and Brutes) become Rotboars, after 15 seconds anywhere but the Ember Depths (tested) |
+| Creatures through portals | Done | A creature standing in a lit Ember Depths portal for 3 seconds comes out of the linked portal on the other side and waits there for you; it can't go back for 15 seconds. Only portals you've already traveled through lead anywhere. Pets that are following you, leashed creatures, and bosses don't go |
+| Your mount comes through portals | Done | Ride a Trotter (or Long Ear, mule…) into an Ember Depths portal and you arrive still riding it, with its saddle, armor, and coat (tested; no copy left behind). Hollow portals still leave mounts behind |
+| Calling the Hollow Wyrm back | Done | Void Crystal: 7 glass + Eye of the Void + Wailer Tear. Set one on each side of the exit portal's bedrock rim (obsidian or bedrock only, Hollow only). Then the portal home closes, the 10 pillars grow back (broken ones repaired), their crystals return, and the Wyrm comes back at full health. A returning Wyrm gives 100 XP orbs and 1 Wyrm Scale, with no second egg and no second Cinder Eye. Half-finished crystal setups are saved |
+| Hollow ships | Done | Land version 9: about 6 of every 10 Hollow towers get a ship floating beside them (hull, deck hatch, mast and black sail, 2 Shellers). Two chests below deck always hold Glider Wings, sometimes Skyshard Trotter Armor and a Name Tag. A Wyrm Head trophy block on the bow. Older worlds only get ships in Hollow places the player hasn't changed |
+| 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
+| Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
 ## Starter Home + Explorer's Map (built, browser-tested, and published 2026-11-05)
 | Feature | Status | Notes |
@@ -602,7 +621,7 @@ Old test worlds, a new Legacy Campaign world, and a new Hardcore world all load;
 |---|---|
 | More wildlife (turtles, axolotls, wolves in snow, goats…) | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
-| Redstone-style mechanisms, minecarts | Parts A to E done (Milestone 12); E not published yet |
+| Redstone-style mechanisms, minecarts | Done: Parts A to E all published (Milestone 12) |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
 | Building palette (slabs, stairs, fences, colored blocks, signs…) | Missing |
 | Multiplayer ("Play Together") | Stage 1 built 2026-11-11 (see the Play Together section above and MULTIPLAYER-PLAN.md) |
