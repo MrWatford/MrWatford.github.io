@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Living Wisely Online Review | Mr. Watford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css?v=rv2">
+</head>
+<body data-tips="THINK before you post: True? Helpful? Inspiring? Necessary? Kind?|AI can make mistakes. Fact-check it!|Never share your password, not even with your best friend.">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../../index.html">
+        <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+        <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../index.html" aria-current="page">Typing</a></li>
+          <li><a href="../../science/index.html">Science</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra</a></li>
+          <li><a href="../../ai-helper.html">AI Helper</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="scene-hero wall">
+      <div class="container">
+        <div class="panel title-card rv-title">
+          <p class="panel-head"><span class="ic" aria-hidden="true">📚</span> Quiz Review • 7th Grade Typing</p>
+          <div class="panel-body">
+            <p class="breadcrumb"><a href="../index.html">← Typing</a></p>
+            <h1>Living Wisely Online</h1>
+            <p class="lead">AI use, online and texting behavior. Study with flashcards, practice questions, matching, and short answers.</p>
+            <p class="caption"><span class="caption-tag">Mr. Watford</span>Everything on the quiz comes from the review sheet. Practice until it feels easy!</p>
+          </div>
+        </div>
+      </div>
+      <div class="counter-strip"></div>
+    </section>
+
+    <div class="page-body">
+      <div class="container">
+
+        <div class="rv-tabs" role="tablist" aria-label="Review activities">
+          <button type="button" class="rv-tab" role="tab" id="tab-flashcards" aria-controls="flashcards"><span class="ic" aria-hidden="true">🃏</span><span><strong>Flashcards</strong><small>Key words</small></span></button>
+          <button type="button" class="rv-tab" role="tab" id="tab-practice" aria-controls="practice"><span class="ic" aria-hidden="true">✅</span><span><strong>Practice</strong><small>Multiple choice &amp; T/F</small></span></button>
+          <button type="button" class="rv-tab" role="tab" id="tab-matching" aria-controls="matching"><span class="ic" aria-hidden="true">🔗</span><span><strong>Matching</strong><small>Word ↔ meaning</small></span></button>
+          <button type="button" class="rv-tab" role="tab" id="tab-short" aria-controls="short"><span class="ic" aria-hidden="true">✍️</span><span><strong>Short answers</strong><small>Write it yourself</small></span></button>
+          <button type="button" class="rv-tab" role="tab" id="tab-sheet" aria-controls="sheet"><span class="ic" aria-hidden="true">📄</span><span><strong>Study sheet</strong><small>Read &amp; print</small></span></button>
+        </div>
+
+        <!-- ===== FLASHCARDS ===== -->
+        <section class="panel" id="flashcards" role="tabpanel" aria-labelledby="tab-flashcards">
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🃏</span> Flashcards</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Show first:
+                <select id="fc-mode">
+                  <option value="word">The word</option>
+                  <option value="meaning">The meaning</option>
+                </select>
+              </label>
+              <button type="button" class="btn small ghost" id="fc-shuffle">🔀 Shuffle &amp; restart</button>
+            </div>
+            <div id="fc-stage">
+              <p class="rv-count" id="fc-count"></p>
+              <button type="button" class="rv-card" id="fc-card">
+                <span class="rv-face rv-front" id="fc-front"></span>
+                <span class="rv-face rv-back" id="fc-back"></span>
+              </button>
+              <p class="rv-hint">Tap the card to flip it.</p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn small ghost" id="fc-prev">← Back</button>
+                <button type="button" class="btn small rv-learning" id="fc-learning">Still learning</button>
+                <button type="button" class="btn small" id="fc-know">I knew it ✓</button>
+              </div>
+            </div>
+            <div id="fc-done" class="rv-done" hidden>
+              <p class="rv-big" id="fc-done-msg"></p>
+              <div class="rv-row rv-center">
+                <button type="button" class="btn" id="fc-again">Practice those cards</button>
+                <button type="button" class="btn ghost" id="fc-restart">Start over with all cards</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== PRACTICE QUESTIONS ===== -->
+        <section class="panel" id="practice" role="tabpanel" aria-labelledby="tab-practice" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">✅</span> Practice questions</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <label>Questions:
+                <select id="pq-kind">
+                  <option value="mix">Mixed</option>
+                  <option value="mc">Multiple choice only</option>
+                  <option value="tf">True or false only</option>
+                </select>
+              </label>
+              <label>How many:
+                <select id="pq-length">
+                  <option value="10">10 questions</option>
+                  <option value="all">All of them</option>
+                </select>
+              </label>
+              <button type="button" class="btn small" id="pq-start">Start</button>
+            </div>
+            <div class="rv-row rv-status"><span id="pq-progress"></span><span id="pq-score"></span></div>
+            <div id="pq-box" class="rv-box"></div>
+          </div>
+        </section>
+
+        <!-- ===== MATCHING ===== -->
+        <section class="panel" id="matching" role="tabpanel" aria-labelledby="tab-matching" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">🔗</span> Matching</h2>
+          <div class="panel-body">
+            <div class="rv-row rv-bar">
+              <p id="mt-status" class="rv-mt-status" role="status"></p>
+              <button type="button" class="btn small ghost" id="mt-new">🔀 New round</button>
+            </div>
+            <div class="rv-match-grid">
+              <div id="mt-words" class="rv-col"></div>
+              <div id="mt-defs" class="rv-col"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SHORT ANSWERS ===== -->
+        <section class="panel" id="short" role="tabpanel" aria-labelledby="tab-short" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">✍️</span> Short answers</h2>
+          <div class="panel-body">
+            <p>Write your answer in your own words first, then check it against the sample answer. Your answers stay on this screen only. Nothing is saved or sent.</p>
+            <div id="sa-list"></div>
+          </div>
+        </section>
+
+        <!-- ===== STUDY SHEET ===== -->
+        <section class="panel" id="sheet" role="tabpanel" aria-labelledby="tab-sheet" hidden>
+          <h2 class="panel-head"><span class="ic" aria-hidden="true">📄</span> Study sheet</h2>
+          <div class="panel-body rv-sheet">
+            <p><a class="btn small" href="../handouts/living-wisely-online-review-sheet.pdf" target="_blank" rel="noopener">🖨️ Open the printable review sheet (PDF)</a></p>
+
+            <h3>Part A — Key words to know</h3>
+            <dl class="rv-terms" id="sheet-terms">
+              <dt>Netiquette</dt><dd>Using good manners and polite rules when talking with people online.</dd>
+              <dt>Cyberbullying</dt><dd>Using technology to hurt, threaten, or embarrass someone again and again.</dd>
+              <dt>Phishing</dt><dd>A fake message or website that tries to trick you into giving away private information.</dd>
+              <dt>Plagiarism</dt><dd>Copying someone else's words or work and calling it your own.</dd>
+              <dt>Personal information</dt><dd>Private facts about you, like your address, phone number, and passwords.</dd>
+              <dt>Privacy settings</dt><dd>Controls that decide who can see your posts and information.</dd>
+              <dt>AI chatbot</dt><dd>A computer program that answers questions and creates writing or pictures.</dd>
+              <dt>Fact-checking</dt><dd>Checking a claim with trustworthy sources to make sure it is true.</dd>
+              <dt>Digital footprint</dt><dd>The trail of information you leave behind online (posts, pictures, comments, searches).</dd>
+              <dt>Hallucination</dt><dd>When an AI makes up a fact that sounds true but is false.</dd>
+              <dt>Deepfake</dt><dd>A fake picture, video, or voice made with AI to look or sound like a real person.</dd>
+            </dl>
+
+            <h3>Part B — THINK before you post or text</h3>
+            <p class="rv-think"><span><b>T</b>rue?</span><span><b>H</b>elpful?</span><span><b>I</b>nspiring?</span><span><b>N</b>ecessary?</span><span><b>K</b>ind?</span></p>
+
+            <h3>Part C — Staying safe online</h3>
+            <ul class="checklist">
+              <li><strong>Never share personal information</strong> (home address, phone number, passwords, school) online or with an AI chatbot.</li>
+              <li><strong>Strong passwords</strong> are long and mix letters, numbers, and symbols. Weak: password123, 111111, your name.</li>
+              <li><strong>Never share your password,</strong> not even with your best friend.</li>
+              <li><strong>Strangers online</strong> are not always who they say they are. If someone you don't know asks where you live or go to school, don't answer, block them, and tell a parent.</li>
+              <li><strong>Posts last forever.</strong> Even if you delete something, someone may have already taken a screenshot.</li>
+              <li><strong>Your digital footprint matters.</strong> Schools and future employers may look at what you have posted. THINK first, use privacy settings, and post only kind, true things.</li>
+              <li><strong>Ask permission</strong> before posting a photo of someone else.</li>
+            </ul>
+
+            <h3>Part D — Being kind online &amp; texting</h3>
+            <ul class="checklist">
+              <li><strong>Treat people online the same way</strong> you would treat them face-to-face.</li>
+              <li><strong>ALL CAPS</strong> in a text looks like you are shouting.</li>
+              <li><strong>Texts are easy to misunderstand</strong> because the reader can't hear your tone of voice or see your face. Don't assume the worst. Kindly ask, "Hey, is everything okay?" or talk in person.</li>
+              <li><strong>If you see cyberbullying,</strong> don't join in or share it. Be kind to the person being hurt and tell a trusted adult. Telling an adult is NOT tattling; it helps keep people safe.</li>
+              <li><strong>If someone sends you an embarrassing photo of someone else,</strong> don't share it. Delete it and tell a trusted adult.</li>
+              <li><strong>No texting during class,</strong> even if the teacher doesn't see you.</li>
+              <li><strong>Ephesians 4:29</strong> says, "Let no corrupt communication proceed out of your mouth, but that which is good to the use of edifying." Online, this means only posting and texting words that build others up: no gossip, insults, or bad language.</li>
+            </ul>
+
+            <h3>Part E — Using AI wisely</h3>
+            <ul class="checklist">
+              <li><strong>AI can make mistakes.</strong> It is NOT always right. When it makes up a false fact, that is called a hallucination.</li>
+              <li><strong>Fact-check AI</strong> by looking it up in a trustworthy source (textbook, encyclopedia, reliable website), comparing more than one source, or asking a teacher or parent.</li>
+              <li><strong>Honest AI use</strong> (with your teacher's permission): asking AI to explain something you don't understand, then doing the work yourself.</li>
+              <li><strong>Dishonest AI use:</strong> having AI write your essay, copying AI answers onto a test, or turning in AI work as if you wrote it. That is cheating.</li>
+              <li><strong>Deepfakes</strong> are fake pictures, videos, or voices made by AI, so don't believe everything you see online.</li>
+            </ul>
+
+            <h3>Part F — Short answers</h3>
+            <p>Practice these on the <a href="#short" data-go="short">Short answers</a> tab.</p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand" href="../../index.html">
+          <span class="brand-avatar"><img src="../../images/mr-watford/face.png" alt=""></span>
+          <span class="brand-text"><strong>Mr. Watford</strong><small>Typing • Science • Pre-Algebra</small></span>
+        </a>
+        <p class="footer-about">Typing, science, and Pre-Algebra resources for my students and their families.</p>
+      </div>
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="../index.html">Typing Games</a></li>
+          <li><a href="../../science/index.html">Science Experiments</a></li>
+          <li><a href="../../math/index.html">Pre-Algebra Help</a></li>
+          <li><a href="../../ai-helper.html">AI Study Helper</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2>Good to know</h2>
+        <p>No logins or accounts, and no student information collected. Questions typed into the AI Study Helper are sent to an AI service to answer them. Playing Blockhaven together sends game moves through a server to the other players, and nothing is saved.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">Lighthouse Baptist Academy • Mr. Watford</div>
+  </footer>
+
+  <script src="../../js/site.js"></script>
+  <script src="../../js/review-living-wisely.js?v=1"></script>
+  <script>
+    document.querySelectorAll("[data-go]").forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        document.getElementById("tab-" + a.dataset.go).click();
+        document.querySelector(".rv-tabs").scrollIntoView({ behavior: "smooth" });
+      });
+    });
+  </script>
+</body>
+</html>
