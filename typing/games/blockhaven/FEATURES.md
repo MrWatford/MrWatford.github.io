@@ -258,7 +258,7 @@ Design: `MILESTONE-12-REDSTONE.md`. Rules follow Minecraft Java Edition 1.20.1. 
 | Safety limit | Done | 6,000 real updates per game tick (plus a high cap on quick checks); a machine that goes over pauses a moment with a message. Tested: 20 clocks at once use 0.4 ms per tick; frames stayed under 16 ms. Signal-only redraws are spread over frames |
 | Saving | Done | Save version 4 (version 3 backup kept). Timers and comparator outputs are saved per dimension and resume after loading |
 | Creative tab, recipes, trade | Done | "Mechanisms" tab. Recipes from the design. Clerics sell 2 Sparkdust for 1 Jade |
-| Part E (finish: advancements, guide, sounds) | Missing | See the design |
+| Part E (finish: advancements, guide, sounds) | Done | Built and browser-tested 2026-11-12, not published. See the Part E section below |
 
 ## Milestone 12, Part B: movers and sensors (built and browser-tested 2026-11-05, not published)
 
@@ -304,6 +304,21 @@ Code: `js/rails.js` (rail shapes and cart movement), carts in `js/entities.js`, 
 | Saving and breaking | Done | Carts and chest boats keep their position, contents, fuel, and riders when saved. Breaking one drops the cart item plus everything inside |
 | Dispensers | Done | Put minecarts onto the rail in front of them |
 | Speed | Done | 12 carts on a loop: median 0.6 ms per frame, worst 16.3 ms |
+
+## Milestone 12, Part E: finishing the Sparkworks (built and browser-tested 2026-11-12, not published)
+Code: `js/sparkworks-guide.js` (new), plus small changes in `js/advancements.js`, `js/redstone.js`, `js/audio.js`, `js/entities.js`, `js/ui.js`, and `index.html` (styles + version tags `?v=sparkworks-e-1`).
+
+| Feature | Status | Notes |
+|---|---|---|
+| 11 Machinery advancements | Done | Sparks Fly, Wired Up, Under Pressure, Push It, Lock and Key, On Track, Sort It Out, Crafty Machine, Tune In, Hear Me Now, Flying Machine. All 11 unlocked in a test world. "Sort It Out" counts items pulled through by a signal-controlled hopper (64), and only starts counting after that hopper has been unlocked once since the world was opened. "Flying Machine" counts 20 piston moves that carry a Gloop Block (not 20 blocks of distance) |
+| Bug fix: note blocks counted as Hollowmere notes | Done | Note blocks used the same advancement event as the Forsaken World's notes, so playing instruments counted toward "Pieces of the Past". The event now has its own name, and old saves have instrument names removed from that progress when loaded (tested: 3 real notes kept, 5 instruments removed). If "Pieces of the Past" was already unlocked this way, it stays unlocked |
+| Sparkworks guide (journal, J → Sparkworks tab) | Done | "How power works" page + 12 builds with drawn pictures (the game's own block icons, arrows for direction) and steps in our own words. Wraps to one column on phones (checked at 375 px wide) |
+| The 12 builds | Done | Each was built block by block in a test world and checked: NOT gate, blinking clock, memory latch, 2×2 piston door, secret floor hatch, item sorter (iron sorted, cobble + gold to overflow, nothing lost), auto-smelter (8 ore → 8 ingots), crop-growth alarm, note block song, tripwire trap (fired an arrow), minecart station (launched the cart), flying machine (traveled 40 blocks) |
+| Changes from the design | Partial | **T flip-flop replaced by a memory latch (ON and OFF buttons):** the classic two-dropper T flip-flop doesn't work in Blockhaven because both droppers fire on every press and the item bounces back. **"Hidden staircase" became a secret floor hatch** (the start of a hidden stairway). **"Auto-farm with observer" became a crop-growth alarm** until sugar cane exists (Milestone 16) |
+| Creative "Mechanisms" tab | Done | Already existed from Parts A–D; checked that the Creative inventory still draws every icon (504, none broken) |
+| Sounds pass | Done | New: minecarts clack each time they roll onto the next rail, louder and higher when fast (5 clacks over 6 rails in the test). Already there from Parts A–D: switches, plates, pistons, doors, note blocks, bells, sensors, dispensers, Crafter |
+| Circuit test page | Missing | Not built as a separate page; the builds were tested in the browser instead (scripts in this session) |
+| Not yet checked | Partial | Not played by hand on a Chromebook; sounds checked by counting calls, not by listening |
 
 ## Starter Home + Explorer's Map (built, browser-tested, and published 2026-11-05)
 | Feature | Status | Notes |
@@ -587,7 +602,7 @@ Old test worlds, a new Legacy Campaign world, and a new Hardcore world all load;
 |---|---|
 | More wildlife (turtles, axolotls, wolves in snow, goats…) | Missing |
 | Enchanting, brewing, potions, more status effects | Missing |
-| Redstone-style mechanisms, minecarts | Parts A to D done (Milestone 12); E next |
+| Redstone-style mechanisms, minecarts | Parts A to E done (Milestone 12); E not published yet |
 | More biomes, flowing water/lava, weather, falling blocks | Missing |
 | Building palette (slabs, stairs, fences, colored blocks, signs…) | Missing |
 | Multiplayer ("Play Together") | Stage 1 built 2026-11-11 (see the Play Together section above and MULTIPLAYER-PLAN.md) |

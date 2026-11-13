@@ -316,6 +316,26 @@ details.more .set { margin-top: 10px; }
 .chip-btn { border: 2px solid #555; background: #e2e2e2; border-radius: 6px; padding: 5px 8px; font-weight: 800; cursor: pointer; font-size: 13px; }
 .jtabs { margin: 0 8px; display: inline-flex; gap: 4px; vertical-align: middle; }
 .jtabs .chip-btn.on { background: #2a6a70; color: #fff; border-color: #1a4a50; }
+/* Sparkworks guide (journal tab) */
+.swg { display: flex; gap: 12px; align-items: flex-start; max-height: 68vh; }
+.swg-menu { display: flex; flex-direction: column; gap: 4px; min-width: 190px; max-height: 68vh; overflow-y: auto; }
+.swg-menu .chip-btn { text-align: left; }
+.swg-menu .chip-btn.on { background: #b8401c; color: #fff; border-color: #7a2a12; }
+.swg-text { flex: 1; overflow-y: auto; max-height: 68vh; color: #222; font-size: 14px; line-height: 1.45; padding-right: 6px; }
+.swg-text h4 { margin: 0 0 6px; font-size: 17px; }
+.swg-text p { margin: 0 0 8px; }
+.swg-text ol { margin: 8px 0 0; padding-left: 22px; }
+.swg-text li { margin-bottom: 4px; }
+.swg-layers { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0; }
+.swg-layer small { display: block; font-weight: bold; color: #555; margin-bottom: 3px; }
+.swg-grid { display: grid; gap: 2px; background: #c9bfa6; padding: 3px; border-radius: 4px; width: max-content; }
+.swg-cell { width: 30px; height: 30px; background: #efe6cf; position: relative; display: flex; align-items: center; justify-content: center; }
+.swg-cell.empty { background: #e2d8bf; }
+.swg-cell img { width: 24px; height: 24px; image-rendering: pixelated; }
+.swg-cell i { position: absolute; right: 0; bottom: -2px; font-style: normal; font-size: 12px; color: #b8401c; text-shadow: 0 0 2px #fff, 0 0 2px #fff; }
+.swg-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: #444; margin: 4px 0; }
+.swg-legend img { width: 16px; height: 16px; vertical-align: middle; margin-right: 3px; image-rendering: pixelated; }
+@media (max-width: 640px) { .jtabs { display: flex; flex-wrap: wrap; margin: 6px 0 0; } .swg { flex-direction: column; max-height: none; } .swg-menu { flex-direction: row; flex-wrap: wrap; max-height: none; min-width: 0; } .swg-text { max-height: none; } }
 .chip-btn[aria-pressed=true] { background: #4f9a33; color: #fff; border-color: #2f6b1e; }
 .furnace { display: grid; grid-template-columns: auto auto auto; gap: 10px 16px; align-items: center; justify-content: center; margin: 6px 0 12px; }
 .furnace .label { font-size: 12px; font-weight: 800; text-align: center; }
@@ -763,7 +783,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
   "imports": {
     "./js/abyssal-quicksand-view.js": "./js/abyssal-quicksand-view.js?v=leviathan-1.0.0",
     "./js/abyssal-quicksand.js": "./js/abyssal-quicksand.js?v=leviathan-1.0.0",
-    "./js/advancements.js": "./js/advancements.js?v=campaign-8",
+    "./js/advancements.js": "./js/advancements.js?v=sparkworks-e-1",
     "./js/ancient-arena-view.js": "./js/ancient-arena-view.js?v=leviathan-1.0.0",
     "./js/ancient-arrival.js": "./js/ancient-arrival.js?v=leviathan-1.0.0",
     "./js/ancient-awakening-view.js": "./js/ancient-awakening-view.js?v=leviathan-1.0.0",
@@ -782,7 +802,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/ancient-warning-view.js": "./js/ancient-warning-view.js?v=leviathan-1.0.0",
     "./js/ancient-warning.js": "./js/ancient-warning.js?v=leviathan-1.0.0",
     "./js/arena-fractures.js": "./js/arena-fractures.js?v=leviathan-1.0.0",
-    "./js/audio.js": "./js/audio.js?v=leviathan-1.0.0",
+    "./js/audio.js": "./js/audio.js?v=sparkworks-e-1",
     "./js/blocks.js": "./js/blocks.js?v=campaign-8",
     "./js/buried-throne.js": "./js/buried-throne.js?v=leviathan-1.0.0",
     "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=campaign-8",
@@ -811,7 +831,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/dune-vortex.js": "./js/dune-vortex.js?v=leviathan-1.0.0",
     "./js/dune-warning-view.js": "./js/dune-warning-view.js?v=leviathan-1.0.0",
     "./js/dune-warning.js": "./js/dune-warning.js?v=leviathan-1.0.0",
-    "./js/entities.js": "./js/entities.js?v=campaign-8",
+    "./js/entities.js": "./js/entities.js?v=sparkworks-e-1",
     "./js/echohold-atmosphere.js": "./js/echohold-atmosphere.js?v=echohold-1",
     "./js/echohold-hunt.js": "./js/echohold-hunt.js?v=echohold-1",
     "./js/echohold-secrets.js": "./js/echohold-secrets.js?v=echohold-1",
@@ -841,6 +861,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/leviathan-warning-hud.js": "./js/leviathan-warning-hud.js?v=leviathan-1.0.0",
     "./js/leviathan-hit-volumes.js": "./js/leviathan-hit-volumes.js?v=leviathan-1.0.0",
     "./js/leviathan-journal.js": "./js/leviathan-journal.js?v=leviathan-1.0.0",
+    "./js/sparkworks-guide.js": "./js/sparkworks-guide.js?v=sparkworks-e-1",
     "./js/leviathan-mounted-burrow.js": "./js/leviathan-mounted-burrow.js?v=leviathan-1.0.0",
     "./js/leviathan-mounted-combat.js": "./js/leviathan-mounted-combat.js?v=leviathan-1.0.0",
     "./js/leviathan-mounted-contact.js": "./js/leviathan-mounted-contact.js?v=leviathan-1.0.0",
@@ -869,7 +890,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/player.js": "./js/player.js?v=leviathan-1.0.0",
     "./js/projectile-collision.js": "./js/projectile-collision.js?v=leviathan-1.0.0",
     "./js/rails.js": "./js/rails.js?v=leviathan-1.0.0",
-    "./js/redstone.js": "./js/redstone.js?v=leviathan-1.0.0",
+    "./js/redstone.js": "./js/redstone.js?v=sparkworks-e-1",
     "./js/sandstorm.js": "./js/sandstorm.js?v=leviathan-1.0.0",
     "./js/save.js": "./js/save.js?v=echohold-1",
     "./js/shapes.js": "./js/shapes.js?v=leviathan-1.0.0",
@@ -881,7 +902,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/solkara-mural-view.js": "./js/solkara-mural-view.js?v=leviathan-1.0.0",
     "./js/starter.js": "./js/starter.js?v=leviathan-1.0.0",
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
-    "./js/ui.js": "./js/ui.js?v=echohold-1",
+    "./js/ui.js": "./js/ui.js?v=sparkworks-e-1",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
     "./js/world.js": "./js/world.js?v=together-1",
     "./js/multiplayer.js": "./js/multiplayer.js?v=together-4",
