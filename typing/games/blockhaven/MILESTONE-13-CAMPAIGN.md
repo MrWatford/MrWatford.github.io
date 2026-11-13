@@ -49,8 +49,8 @@ Rule: existing places keep their maps, puzzles, loot, and fights. The campaign o
 - **Part D: Chapters 1–3** (Stonehaven, Sandspire, Oakwood, Seabreak + hooks into the three temples + Stone Guardian).
 - **Part E: Chapters 4–6** (Ironhold + Blightking citadel + Blight Tempest, Ember Outpost + Dragon Seal shrines + Cindermaw, Hollowmere + Herobrine). Built 2026-11-06.
 - **Chapter select** (2026-11-06): pick any playable chapter at the start or from the journal; "The Whole Story" achievement for an unbroken Chapter 1-to-the-end run. When Chapters 7–8 arrive: add them to `CHAPTER_START`, raise `PLAYABLE`, move `FINAL_QUEST` to the real ending, and update the cpwhole description and the new-campaign "Start at" list.
-- **Part F: Chapter 7** (Echohold hooks).
-- **Part G: Chapter 8** (Skyreach, Sky Sovereign, Ruined Capital, Forgotten King, ending, credits).
+- **Part F: Chapter 7** (Echohold hooks). Built and browser-tested 2026-11-12 (not published).
+- **Part G: Chapter 8** (Skyreach, Sky Sovereign, Ruined Capital, Forgotten King, ending, credits). Built and browser-tested 2026-11-12 (not published). The whole story is now playable.
 - **Part H: optional bosses, side quests, Frostholm, polish, full playthrough test.**
 
 ## 4. Honest limits
@@ -68,3 +68,10 @@ Answered 2026-11-05:
 - **Temple bosses:** add three NEW bosses (Desert Pharaoh, Jungle Titan, Ocean Leviathan) in new throne rooms; the existing guardians stay as they are.
 - **First session:** Part A (foundation) + Part B (Legacy Village).
 - **Audience:** students: spooky but not graphic, short readable dialogue, fair difficulty.
+
+Answered 2026-11-12 (before Part F):
+- **Build order:** Chapter 7 first (published on its own), then Chapter 8.
+- **Chapter 8 scope:** all three stops: the Hollow + Hollow Wyrm (Relic of the Void), Skyreach (a new floating sky city) + a new Sky Sovereign boss, and the Ruined Capital + the Forgotten King (4 phases).
+- **Ending:** after the Forgotten King is beaten, the PLAYER CHOOSES: **set him free** (the good ending: the 8 Relics break the curse, he becomes the First Builders' lost king again, thanks you, and fades peacefully) or **banish him** (the cruel ending: the Relics lock him away forever). Each choice gets its own ending scene, then the celebration in Legacy Village and the credits.
+- **Credits:** "Created by Mr. Watford" plus a thank-you to the players. No student names.
+- When Chapter 8 is built: move `FINAL_QUEST` to the real ending, add Chapter 8 to `CHAPTER_START` / `PLAYABLE` / the "Start at" list, update the cpwhole description, replace the `next8` placeholder (and move old saves off it, like `next7`).

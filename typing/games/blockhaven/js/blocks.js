@@ -104,7 +104,8 @@ export const I = {
   FANGBLADE: 595, INFERNO_GREATBLADE: 596, ANCIENT_HEART: 597, ANCIENT_CROWN: 598,
   ETERNAL_SAND_CORE: 599, ANCIENT_PLATE: 600, ANCIENT_TROPHY: 601, ANCIENT_COMPANION_RELIC: 602,
   ANCIENT_HELMET: 603, ANCIENT_CHEST: 604, ANCIENT_LEGS: 605, ANCIENT_BOOTS: 606, BURIED_SCEPTER: 607,
-  HUSH_HELMET: 608, HUSH_CHEST: 609, HUSH_LEGS: 610, HUSH_BOOTS: 611, ECHO_BLADE: 612, SENTINEL_HAMMER: 613
+  HUSH_HELMET: 608, HUSH_CHEST: 609, HUSH_LEGS: 610, HUSH_BOOTS: 611, ECHO_BLADE: 612, SENTINEL_HAMMER: 613,
+  RELIC_ABYSS: 614, RELIC_VOID: 615, CROWN_KEY: 616   // Legacy Campaign, Chapters 7 and 8
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -516,6 +517,9 @@ item(I.CP_CHARM, "Tide Charm", { icon: "relic", colors: ["#3ab0c8", "#e8ffff"], 
 item(I.RELIC_DECAY, "Relic of Decay", { icon: "relic", colors: ["#3a4a2a", "#b8e070"], stack: 1, quest: true });
 item(I.RELIC_FLAME, "Relic of Flame", { icon: "relic", colors: ["#b8301a", "#ffc850"], stack: 1, quest: true });
 item(I.RELIC_SHADOWS, "Relic of Shadows", { icon: "relic", colors: ["#2a2a3a", "#c8c8e8"], stack: 1, quest: true });
+item(I.RELIC_ABYSS, "Relic of the Abyss", { icon: "relic", colors: ["#0e3a40", "#5ff0e0"], stack: 1, quest: true });
+item(I.RELIC_VOID, "Relic of the Void", { icon: "relic", colors: ["#1a1030", "#b080ff"], stack: 1, quest: true });
+item(I.CROWN_KEY, "Crown Key", { icon: "ancient_key", stack: 1, quest: true });   // opens the Gate of Eight in the Ruined Capital
 item(I.DRAGON_SEAL, "Dragon Seal", { icon: "relic", colors: ["#6a1a10", "#ff8a3a"], stack: 3, quest: true });   // three of them fuse into a Cinder Eye
 item(I.LEVIATHAN_SCALE, "Leviathan Scale", { icon: "relic", colors: ["#70482a", "#dca35a"], category: "Items" });
 item(I.LEVIATHAN_FANG, "Leviathan Fang", { icon: "relic", colors: ["#966647", "#ffe6a5"], category: "Items" });
