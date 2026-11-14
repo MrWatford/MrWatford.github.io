@@ -137,7 +137,7 @@ function title() {
   const menu = h("div.menu", null, items.map(([l, fn], i) => { const b = btn(l, fn); if (i === 0) b.setAttribute("data-first", ""); return b; }));
   if (exam) menu.appendChild(btn(save.professor ? "THE FINAL EXAM (REMATCH)" : "??? THE FINAL EXAM ???", examFight, "wide secret"));
   show(scr("title", h("h1.logo.disp", null, "Hero Clash", h("small", { text: "Ultimate Showdown" }), h("em", { text: "LEGENDS COLLIDE" })), menu,
-    h("div.foot", null, "Lighthouse Baptist Academy • Mr. Watford · ", h("a", { href: "../../index.html", text: "Back to the Typing page" }))), { hint: "Arrow keys or WASD: move · Enter: choose · F: full screen" });
+    h("div.foot", null, "Lighthouse Baptist Academy • Mr. Watford · ", h("a", { href: "../../../arcade/index.html", text: "Back to the Arcade" }))), { hint: "Arrow keys or WASD: move · Enter: choose · F: full screen" });
   if (!loaded.ok && !title.warned) { title.warned = true; toast(loaded.reason === "blocked" ? "This browser is blocking saved data, so progress will not be kept." : "Saved data could not be read, so the game started fresh."); }
 }
 
