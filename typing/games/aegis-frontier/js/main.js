@@ -289,7 +289,7 @@ class Game {
   returnToWebsite() {
     if (this.state.mode === "campaign" && this.slot && this.mode !== "menu") { if (this.robots.engagedCount() === 0 && this.player.grounded) this.checkpointHere(); this.saveNow(); }
     try { this.audio.stop(); this.renderer.dispose(); } catch (e) {}
-    location.href = "../../index.html";
+    location.href = "../../../arcade/index.html";
   }
 
   // ---------------- helpers used across systems ----------------
