@@ -17,6 +17,7 @@ import { initForsaken, isQuestItem } from "./forsaken.js";
 import { initMutants } from "./mutants.js";
 import { initCompanions } from "./companions.js";
 import { initLost, LOST_DIMS } from "./lost.js";
+import { initMonumentLife } from "./monument-life.js";
 import { initStarter } from "./starter.js";
 import { leviathanShrineBearings, sandcallerPreparation } from "./leviathan-navigation.js";
 import { initCampaign, CAMPAIGN_SEED } from "./campaign.js";
@@ -5055,7 +5056,7 @@ function updateSandstorm(dt) {
     }
     stormStage = next;
   }
-  Sound.wind(stormStage);
+  Sound.wind(stormStage || (ML.windy() ? 1 : 0));   // (the Grand Desert Temple's platform is breezy)
   updateDuneEncounter(dt);
   if (!stormStage || G.settings.reducedMotion || (stormDustT -= dt) > 0) return;
   stormDustT = G.settings.quality === "fast" ? 0.15 : 0.09;
@@ -5602,6 +5603,7 @@ function loop(now) {
     if (G.time < dt / DAY_LENGTH) { G.meta.day = (G.meta.day || 1) + 1; }
     updateHollowDrift(dt);
     updateSandstorm(dt);
+    ML.update(dt);   // the Grand Desert Temple: fires, dust, and guards
     updateObsidianAsh(dt);
     const input = G.state === "play" && locked && !G.cutscene ? {
       f: (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) - (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0),
@@ -5798,6 +5800,8 @@ G.forsaken = F;
 // The Lost Civilization adventure (js/lost.js). Its test controls only show on a development copy (localhost or ?dev).
 const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giveXp, placeSafely, hurt, lookDir, keys, victory: showVictory, devTools: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.search.includes("dev") });
 G.lost = L;
+// The Grand Desert Temple's fires, dust, and guards (js/monument-life.js)
+const ML = G.monumentLife = initMonumentLife({ G, L, ents, Sound, emitParticle, COLORS: PUFF_COLORS, roomForParticles: () => parts.length < PMAX - 24 });
 // The Starter Home and the Explorer's Map (js/starter.js)
 const ST = initStarter({ G, UI, Sound, L, openPanel, closePanel });
 const CP = G.campaign = initCampaign({ G, UI, Sound, L, ents, openPanel, closePanel, giveXp, puff, victory: showVictory, saveNow, teleport: (x, y, z, label) => teleportTo(x, y, z, label) });

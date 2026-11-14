@@ -60,7 +60,9 @@ export const B = {
   // the Legacy Campaign (js/campaign.js)
   WAYSTONE: 209, RUNE_STONE: 210, SOLKARA_GATE: 211,
   BLACK_SAND: 212, EMBER_CRYSTAL: 213, OBSIDIAN_TROPHY: 214,
-  WYRM_HEAD: 215   // Milestone 14: a trophy from the Hollow ships
+  WYRM_HEAD: 215,   // Milestone 14: a trophy from the Hollow ships
+  // the Grand Desert Temple (js/desert-monument.js)
+  TEMPLE_STONE: 216, TEMPLE_TRIM: 217, TEMPLE_PILLAR: 218, TEMPLE_STEP: 219, BRAZIER: 220
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -354,6 +356,12 @@ block(B.BLACK_SAND, "Black Sand", { hardness: 0.55, tool: "shovel", tex: "black_
 block(B.EMBER_CRYSTAL, "Ember Crystal", { hardness: 1.8, tool: "pick", light: 13, render: "cutout", tex: "ember_crystal" });
 block(B.WYRM_HEAD, "Wyrm Head", { hardness: 1, tool: "pick", tex: ["wyrm_head_top", "wyrm_head_side", "wyrm_head_top"], category: HOLLOW });
 block(B.OBSIDIAN_TROPHY, "Obsidian Leviathan Trophy", { hardness: 2, tool: "pick", light: 6, tex: ["basalt_top", "obsidian_trophy", "blackstone"] });
+// the Grand Desert Temple's stone (pale cream, orange trim) — buildable in Creative and mined like sandstone
+block(B.TEMPLE_STONE, "Pale Temple Stone", { hardness: 1.5, tool: "pick", tier: 1, tex: ["temple_stone_top", "temple_stone", "temple_stone_top"] });
+block(B.TEMPLE_TRIM, "Sunfire Terracotta", { hardness: 1.5, tool: "pick", tier: 1, tex: "temple_trim" });
+block(B.TEMPLE_PILLAR, "Pale Temple Pillar", { hardness: 1.5, tool: "pick", tier: 1, tex: ["temple_pillar_top", "temple_pillar", "temple_pillar_top"] });
+block(B.TEMPLE_STEP, "Pale Temple Step", { shape: "model", render: "cutout", hardness: 1.5, tool: "pick", tier: 1, tex: ["temple_stone_top", "temple_stone", "temple_stone_top"], iconBox: 8 / 16 });
+block(B.BRAZIER, "Temple Brazier", { hardness: 2, tool: "pick", tier: 1, light: 13, tex: ["brazier_top", "brazier_side", "brazier_side"], category: "Useful" });
 
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
@@ -898,7 +906,9 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "sign", "bookshelf", "map_table_top", "map_table_side",
   // the Legacy Campaign
   "waystone_top", "waystone_side", "rune_stone",
-  "black_sand", "ember_crystal", "obsidian_trophy", "wyrm_head_top", "wyrm_head_side"];
+  "black_sand", "ember_crystal", "obsidian_trophy", "wyrm_head_top", "wyrm_head_side",
+  // the Grand Desert Temple
+  "temple_stone", "temple_stone_top", "temple_trim", "temple_pillar", "temple_pillar_top", "brazier_top", "brazier_side"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1151,6 +1161,13 @@ Object.assign(PAINT, {
     P.rect(1, 14, 14, 2, "#382b39");
   },
   // Wyrm Head (Milestone 14): dark violet scales, with glowing purple eyes on every side
+  temple_stone(P) { P.fill(["#efe6d4", "#ebe1ce", "#f3ebdb"]); P.rect(0, 0, 16, 1, "#f8f2e6"); P.rect(0, 15, 16, 1, "#d9ccb2"); P.rect(0, 7, 16, 1, "#e2d6bf"); },
+  temple_stone_top(P) { P.fill(["#f1e8d8", "#ede4d2", "#f5eddf"]); P.rect(0, 0, 16, 1, "#dccfb6"); P.rect(0, 0, 1, 16, "#dccfb6"); P.rect(15, 0, 1, 16, "#f9f4ea"); P.rect(0, 15, 16, 1, "#f9f4ea"); },
+  temple_trim(P) { P.fill(["#c9652c", "#c35f27", "#ce6b31"]); for (let i = 0; i < 12; i++) P.px(Math.floor(P.r() * 16), Math.floor(P.r() * 16), "#ad5120"); P.rect(0, 0, 16, 1, "#d9783a"); P.rect(0, 15, 16, 1, "#a64c1d"); },
+  temple_pillar(P) { P.fill(["#f2eadb", "#eee5d4"]); for (const x of [2, 6, 9, 13]) P.rect(x, 1, 1, 14, "#d6c9af"); P.rect(0, 0, 16, 1, "#e0d3ba"); P.rect(0, 15, 16, 1, "#e0d3ba"); },
+  temple_pillar_top(P) { P.fill(["#f1e9d9"]); P.rect(2, 2, 12, 12, "#e4d8c1"); P.rect(4, 4, 8, 8, "#f3ecde"); },
+  brazier_top(P) { P.fill(["#3a2a1a"]); P.rect(1, 1, 14, 14, "#5a3a1a"); for (let i = 0; i < 40; i++) P.px(2 + Math.floor(P.r() * 12), 2 + Math.floor(P.r() * 12), P.pick(["#ff9a2a", "#ffcf4a", "#e25a14", "#7a2a0a"])); P.rect(0, 0, 16, 1, "#d8a840"); P.rect(0, 15, 16, 1, "#d8a840"); P.rect(0, 0, 1, 16, "#d8a840"); P.rect(15, 0, 1, 16, "#d8a840"); },
+  brazier_side(P) { P.fill(["#7a5428", "#74502a", "#805a2c"]); P.rect(0, 0, 16, 3, "#e0b048"); P.rect(0, 3, 16, 1, "#9a6a24"); P.rect(0, 12, 16, 4, "#4a3218"); for (const x of [3, 8, 12]) P.rect(x, 5, 1, 6, "#5e4020"); },
   wyrm_head_top(P) { P.fill(["#1c1424", "#241a2e", "#2a1f36"]); for (let i = 0; i < 10; i++) P.px(Math.floor(P.r() * 16), Math.floor(P.r() * 16), "#3a2a4a"); P.rect(3, 3, 2, 10, "#140e1a"); P.rect(11, 3, 2, 10, "#140e1a"); },
   wyrm_head_side(P) {
     P.fill(["#1c1424", "#241a2e", "#2a1f36"]);

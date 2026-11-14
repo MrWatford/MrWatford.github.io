@@ -83,7 +83,7 @@ export function initCampaign(api) {
     const untouched = untouchedFootprint(wdata);
     const occ = [{ x: v.cx, z: v.cz, r: 82 }];
     if (lost.site) occ.push({ x: lost.site.x + 16, z: lost.site.z + 16, r: 22 });
-    for (const t of Object.values(ts)) if (t) occ.push({ x: t.x + 16, z: t.z + 16, r: t.lake ? t.lake.r1 + 4 : 22 });
+    for (const t of Object.values(ts)) if (t) occ.push({ x: t.x + 16, z: t.z + 16, r: t.lake ? t.lake.r1 + 4 : t === ts.desert && lost.monument && lost.monument.on ? 96 : 22 });   // (the Grand Desert Temple is much bigger)
     for (const [id, q] of Object.entries(s.sites)) occ.push({ x: q.cx, z: q.cz, r: SZ[q.kind || id] / 2 + 2 });
     const fresh = (x, z, half) => untouched(x - half, z - half, x + half, z + half);
     const search = (from, kind, rMin, rMax, scoreAt) => {

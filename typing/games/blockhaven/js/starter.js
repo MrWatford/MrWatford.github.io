@@ -64,7 +64,7 @@ export function initStarter(api) {
   function landmarkCenters() {
     const s = G.story.lost || {}, out = [];
     if (s.site) out.push({ x: s.site.x + 16, z: s.site.z + 16, r: 20 });
-    for (const t of Object.values(s.tsites || {})) if (t) out.push({ x: t.x + 16, z: t.z + 16, r: t.lake ? t.lake.r1 + 4 : 20 });
+    for (const t of Object.values(s.tsites || {})) if (t) out.push({ x: t.x + 16, z: t.z + 16, r: t.lake ? t.lake.r1 + 4 : t === (s.tsites || {}).desert && s.monument && s.monument.on ? 96 : 20 });   // (the Grand Desert Temple is much bigger)
     return out;
   }
   function findSite(gen, wdata, fresh, from) {

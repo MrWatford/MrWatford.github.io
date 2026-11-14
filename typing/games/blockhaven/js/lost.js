@@ -8,6 +8,7 @@ import { MapGen } from "./worldgen.js";
 import { LORE, MURALS, MEMORIES, LORE_STEPS, TEMPLE_LORE } from "./lost-lore.js";
 import { createHunt } from "./echohold-hunt.js";
 import { createSecrets } from "./echohold-secrets.js";
+import { buildMonument, monumentStamp, monumentApron, monumentChunks, MONUMENT, MONUMENT_BOUNDS, APRON_PAD } from "./desert-monument.js";
 
 const rand = (a, b) => a + Math.random() * (b - a);
 // The Deep has two versions. A world that already went down keeps the city it saw (deep-v1, with all of its edits);
@@ -100,8 +101,16 @@ export function initLost(api) {
     if (s.site === undefined || s.site === null) s.site = chooseSite(gen, data, "excavation");
     for (const k of TEMPLE_KEYS) if (s.tsites[k] === undefined) s.tsites[k] = chooseSite(gen, data, k);
     gen.stamps = []; L.siteChests = {};
+    const mon = decideMonument(gen, data);
+    if (mon.on && mon.skipVillages && mon.skipVillages.length) gen.skipVillages = new Set(mon.skipVillages);
     for (const kind of ["excavation", ...TEMPLE_KEYS]) {
       const site = siteOf(kind); if (!site) continue;
+      if (kind === "desert" && mon.on) {   // the Grand Desert Temple, with the old pyramid lifted onto its central base
+        const built = monumentBuilt(), c = monumentCenter();
+        gen.stamps.push(monumentStamp(built, c.x, c.z), monumentApron(built, c.x, c.z));   // the temple, then the sand slopes around it
+        for (const [k, ch] of Object.entries(maps.surface.meta.chests)) { const [x, y, z] = k.split(",").map(Number), ox = stampOf(kind).ox; if (x >= ox && x < ox + 32) L.siteChests[k3(x - ox + site.x, y + MONUMENT.dy, z + site.z)] = ch; }
+        continue;
+      }
       // a sea temple with no open ocean nearby stands in a bay carved for it (the water goes in first, then the lighthouse)
       if (site.lake) gen.stamps.push({ x: site.x + 16 - site.lake.r1, z: site.z + 16 - site.lake.r1, size: site.lake.r1 * 2, lake: { cx: site.x + 16, cz: site.z + 16, r0: site.lake.r0, r1: site.lake.r1 } });
       const st2 = stampOf(kind), sz = st2.size, ox = st2.ox || 0, cells = new Uint16Array(sz * sz * HEIGHT);
@@ -160,7 +169,8 @@ export function initLost(api) {
       return true;
     };
     const [near, far] = kind === "excavation" ? [ADVENTURE.near, Math.max(ADVENTURE.near, ADVENTURE.far - 160)] : [ADVENTURE.near + 80, ADVENTURE.far];
-    let site = ring(near, far, ok) || ring(near, far, (x0, z0) => ok2(x0, z0, loose));
+    let site = kind === "desert" ? ring(near, far, (x0, z0) => ok(x0, z0) && monumentFits(gen, data, x0, z0, others)) : null;
+    site = site || ring(near, far, ok) || ring(near, far, (x0, z0) => ok2(x0, z0, loose));
     if (!site && any) site = ring(near, far, (x0, z0) => ok2(x0, z0, any));
     if (!site && kind === "sea") { const b = ring(near, far, bay); if (b) site = { ...b, lake: LAKE }; }
     if (!site) site = ring(far, 1600, ok);   // the old, wide search (only if nothing fits inside the adventure range)
@@ -173,6 +183,80 @@ export function initLost(api) {
     }
   }
   // Every landmark's real entrance on the Surface, for the Explorer's Map (js/starter.js). Coordinates are the lift block itself.
+  // ---------- the Grand Desert Temple (js/desert-monument.js) ----------
+  // Decided once per world and saved in story.lost.monument. New worlds pick a desert spot with room for it. Older worlds
+  // get it only if nobody has changed any block in its footprint and nothing else is planned there; otherwise the small
+  // pyramid stays exactly as it was and the reason is saved (conflicts = the changed chunks), so nothing is ever destroyed.
+  let builtCache = null;
+  const monumentBuilt = () => builtCache || (builtCache = buildMonument(k => maps.surface.decode(k), stampOf("desert")));
+  const monumentCenter = () => { const s = siteOf("desert"); return s ? { x: s.x + 16, z: s.z + 16 } : null; };
+  const monumentOn = () => !!(st().monument && st().monument.on && siteOf("desert"));
+  const yOff = kind => kind === "desert" && monumentOn() ? MONUMENT.dy : 0;
+  const boxHit = (a, b, pad = 0) => a.x0 - pad <= b.x1 && a.x1 + pad >= b.x0 && a.z0 - pad <= b.z1 && a.z1 + pad >= b.z0;
+  const monBox = (cx, cz) => ({ x0: cx + MONUMENT_BOUNDS.x0, x1: cx + MONUMENT_BOUNDS.x1, z0: cz + MONUMENT_BOUNDS.z0, z1: cz + MONUMENT_BOUNDS.z1 });
+  // everything else that has (or will have) a spot on the Surface, as boxes
+  function plannedBoxes(skipDesert) {
+    const s = st(), out = [];
+    for (const k of ["excavation", ...TEMPLE_KEYS]) { if (skipDesert && k === "desert") continue; const t = siteOf(k); if (!t) continue; const r = t.lake ? t.lake.r1 : 16; out.push({ what: k, x0: t.x + 16 - r, x1: t.x + 16 + r, z0: t.z + 16 - r, z1: t.z + 16 + r }); }
+    for (const a of L.avoid || []) out.push({ what: "home", x0: a.x, x1: a.x + 32, z0: a.z, z1: a.z + 32 });
+    const lev = G.story.leviathan && G.story.leviathan.sites; if (lev) for (const [k, q] of Object.entries(lev)) if (q && q.x != null) out.push({ what: "relic site " + k, x0: q.x, x1: q.x + 64, z0: q.z, z1: q.z + 64 });
+    const cp = G.story.campaign && G.story.campaign.sites; if (cp) for (const [k, q] of Object.entries(cp)) if (q && q.cx != null) out.push({ what: "campaign " + k, x0: q.cx - 40, x1: q.cx + 40, z0: q.cz - 40, z1: q.cz + 40 });
+    void s; return out;
+  }
+  function footprintTrouble(gen, data, cx, cz, others) {
+    const mods = data.mods || {}, b = monBox(cx, cz), why = [];
+    const changed = monumentChunks(cx, cz, APRON_PAD).filter(k => mods[k] && (Array.isArray(mods[k]) ? mods[k].length : Object.keys(mods[k]).length));
+    if (changed.length) why.push({ kind: "changed", chunks: changed });
+    for (const o of others) if (boxHit(b, o, APRON_PAD)) why.push({ kind: "overlap", what: o.what });
+    // a village there that nobody has seen or changed simply never appears (the temple takes its spot); a known one is protected
+    const visited = new Set(data.visited || []), skip = new Set();
+    for (const k of monumentChunks(cx, cz, APRON_PAD)) {
+      const [gx, gz] = k.split(",").map(Number), v = gen.villageAt && gen.villageAt(gx, gz); if (!v || skip.has(v.vx + "," + v.vz) || why.some(q => q.village === v.vx + "," + v.vz)) continue;
+      let seen = false; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const q = (v.vx + a) + "," + (v.vz + b); if (visited.has(q) || mods[q]) seen = true; }
+      if (seen) why.push({ kind: "village", village: v.vx + "," + v.vz }); else skip.add(v.vx + "," + v.vz);
+    }
+    why.skipVillages = [...skip];
+    if (gen.strongholds && gen.strongholds.some(q => q.x > b.x0 - 24 && q.x < b.x1 + 24 && q.z > b.z0 - 24 && q.z < b.z1 + 24)) why.push({ kind: "stronghold" });
+    return why;
+  }
+  // new worlds: is there room for the whole temple at this 32 × 32 spot (no village, roughly desert-height land)?
+  function monumentFits(gen, data, x0, z0, others) {
+    const cx = x0 + 16, cz = z0 + 16, visited = new Set(data.visited || []);
+    if (monumentChunks(cx, cz, APRON_PAD).some(k => visited.has(k))) return false;
+    const boxes = others.map(o => ({ what: "site", x0: o.x, x1: o.x + 32, z0: o.z, z1: o.z + 32 })).concat(plannedBoxes(true));
+    if (footprintTrouble(gen, data, cx, cz, boxes).length) return false;
+    let low = 0, sand = 0, n = 0;
+    for (let a = -60; a <= 60; a += 15) for (let b = -60; b <= 64; b += 15) { const c = gen.column(cx + a, cz + b); n++; if (c.h > 46 || c.biome === "peak" || c.biome === "mountain") return false; if (c.h < SEA) low++; if (c.biome === "sandy") sand++; }
+    return low <= 6 && sand >= n * (L.monumentSandShare ?? 0.5);   // mostly real desert around it (if none is found, the normal search still places it)   // a little water at the edges is fine (the foundation fills down to the lake bed)
+  }
+  function decideMonument(gen, data) {
+    const s = st();
+    if (s.monument && !(s.monument.on === false && s.monument.why === "no-site")) return s.monument;
+    const site = siteOf("desert");
+    if (!site) return (s.monument = { v: MONUMENT.version, on: false, why: "no-site" });
+    const c = { x: site.x + 16, z: site.z + 16 }, trouble = footprintTrouble(gen, data, c.x, c.z, plannedBoxes(true));
+    if (trouble.length) {
+      s.monument = { v: MONUMENT.version, on: false, why: "conflict", conflicts: trouble, at: Date.now() };
+      setTimeout(() => UI.toast("The Grand Desert Temple did not rise around the Pyramid of Aurelis in this world, because you have already built, dug, or explored a village right there. The pyramid and everything you made stay exactly as they were."), 4000);
+      console.warn("Grand Desert Temple: not built here, to protect what's already in this world:", JSON.stringify(trouble));
+      return s.monument;
+    }
+    // move the old camp chest's saved contents (if it was opened) up with the pyramid, so nothing is lost or refilled
+    const moved = [], st2 = stampOf("desert");
+    if (Array.isArray(data.containers)) for (const e of data.containers) {
+      const [x, y, z] = String(e[0]).split(",").map(Number);
+      if (x >= site.x && x < site.x + 32 && z >= site.z && z < site.z + 32 && y > st2.ground && y <= st2.ground + 9) { const to = k3(x, y + MONUMENT.dy, z); moved.push([e[0], to]); e[0] = to; }
+    }
+    s.monument = { v: MONUMENT.version, on: true, dy: MONUMENT.dy, at: Date.now(), moved, skipVillages: trouble.skipVillages };
+    return s.monument;
+  }
+  // What the temple's fires, guards, and atmosphere need (js/monument-life.js)
+  L.monument = () => {
+    if (!monumentOn() || !maps.surface) return null;
+    const b = monumentBuilt(), c = monumentCenter();
+    return { center: c, braziers: b.braziers, posts: b.posts, dy: MONUMENT.dy, top: MONUMENT.top, ground: MONUMENT.ground };
+  };
+  L.monumentStatus = () => st().monument || null;
   L.landmarks = () => {
     if (!maps.surface) return [];
     return ["excavation", ...TEMPLE_KEYS].map(kind => {
@@ -184,7 +268,7 @@ export function initLost(api) {
   };
   L.loadedSurface = () => !!maps.surface;
   L.site = () => st().site || null;
-  const liftOf = kind => { const s = siteOf(kind), l = stampOf(kind).lift; return { x: s.x + l.x, y: l.y, z: s.z + l.z }; };
+  const liftOf = kind => { const s = siteOf(kind), l = stampOf(kind).lift; return { x: s.x + l.x, y: l.y + yOff(kind), z: s.z + l.z }; };
   const siteLift = () => liftOf("excavation");
   const templeDone = k => !!st().temples[k].relic;
 
@@ -231,7 +315,7 @@ export function initLost(api) {
   };
   L.goUp = (kind = "excavation") => {
     const site = siteOf(kind), a = stampOf(kind).arrive;
-    return travel("overworld", { x: site.x + a.x + 0.5, y: a.y, z: site.z + a.z + 0.5 }, "Riding the Keeper lift up…", () => UI.toast(kind === "excavation" ? "Back on the Surface, at the excavation." : `Back on the Surface, at the entrance to ${TEMPLES[kind].name}.`, "good"));
+    return travel("overworld", { x: site.x + a.x + 0.5, y: a.y + yOff(kind), z: site.z + a.z + 0.5 }, "Riding the Keeper lift up…", () => UI.toast(kind === "excavation" ? "Back on the Surface, at the excavation." : `Back on the Surface, at the entrance to ${TEMPLES[kind].name}.`, "good"));
   };
   L.enterTemple = kind => {
     const s = st(), m = maps[kind].meta;
@@ -302,7 +386,7 @@ export function initLost(api) {
   function loreAt(x, y, z) {
     if (inMap()) return M().lore[k3(x, y, z)];
     const s = st();
-    if (G.dim === "overworld" && maps.surface) for (const kind of ["excavation", ...TEMPLE_KEYS]) { const site = siteOf(kind); if (!site) continue; const k = maps.surface.meta.lore[k3(x - site.x + (stampOf(kind).ox || 0), y, z - site.z)]; if (k) return k; }
+    if (G.dim === "overworld" && maps.surface) for (const kind of ["excavation", ...TEMPLE_KEYS]) { const site = siteOf(kind); if (!site) continue; const k = maps.surface.meta.lore[k3(x - site.x + (stampOf(kind).ox || 0), y - yOff(kind), z - site.z)]; if (k) return k; }
     return null;
   }
 

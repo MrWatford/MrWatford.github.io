@@ -160,6 +160,7 @@ export class Generator {
     const rx = Math.floor(cx / 6), rz = Math.floor(cz / 6);
     if (hash3(this.seed, rx, 1234, rz) > 0.4) return null;
     const vx = rx * 6 + 3, vz = rz * 6 + 3, col = this.column(vx * 16 + 8, vz * 16 + 8);
+    if (this.skipVillages && this.skipVillages.has(vx + "," + vz)) return null;   // an unseen village whose spot the Grand Desert Temple took
     if (!["plains", "sandy", "forest", "birch"].includes(col.biome) || col.h <= SEA + 1 || col.h > SEA + 18) return null;
     if (Math.abs(cx - vx) > 1 || Math.abs(cz - vz) > 1) return null;
     return { vx, vz, sandy: col.biome === "sandy" };
@@ -623,10 +624,14 @@ export function applyStamps(gen, data, cx, cz) {
     const x0 = cx * CHUNK, z0 = cz * CHUNK;
     if (x0 >= st.x + st.size || x0 + CHUNK <= st.x || z0 >= st.z + st.size || z0 + CHUNK <= st.z) continue;
     if (st.lake) { carveLake(gen, data, x0, z0, st.lake); continue; }
+    if (st.apply) { st.apply(gen, data, x0, z0); continue; }   // a stamp that shapes the land itself (the Grand Desert Temple's sand slopes)
     for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
       const sx = x0 + lx - st.x, sz = z0 + lz - st.z;
       if (sx < 0 || sz < 0 || sx >= st.size || sz >= st.size) continue;
       for (let y = 1; y < HEIGHT; y++) { const v = st.cells[sx + sz * st.size + y * st.size * st.size]; if (v !== 65535) data[idx(lx, y, lz)] = v; }
+      // a "foot": under the stamp's lowest built layer, fill any air or water down to solid ground (the Grand Desert Temple)
+      const f = st.foot;
+      if (f && st.cells[sx + sz * st.size + f.y * st.size * st.size] !== 65535) for (let y = f.y - 1; y > 0; y--) { const i = idx(lx, y, lz), id = data[i] & 255; if (id !== 0 && id !== B.WATER && id !== B.LAVA && id !== B.TALL_GRASS) break; data[i] = f.mat; }
       // the edge slopes smoothly from the site's level down (or up) to the natural ground, so you can always walk in
       const b = st.blend; if (!b) continue;
       const d = Math.hypot(sx - st.size / 2 + 0.5, sz - st.size / 2 + 0.5);

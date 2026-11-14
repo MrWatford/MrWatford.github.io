@@ -102,6 +102,7 @@ export function model(v, get) {
     }
     return { T: floorT(f), parts };
   }
+  if (id === B.TEMPLE_STEP) return { T: floorT(0), parts: [p([0, 0, 0, 16, 8, 16], [faceTile(v, 0), faceTile(v, 1), faceTile(v, 0)])] };   // a half-height step
   if (id === B.DAYLIGHT) return { T: floorT(0), parts: [p([0, 0, 0, 16, 6, 16], [faceTile(v, 0), TILE.daylight_side, TILE.daylight_side])] };
   if (isTrapdoor(id)) {
     const b = m & OPEN ? [0, 0, 13, 16, 16, 16] : m & TOP ? [0, 13, 0, 16, 16, 16] : [0, 0, 0, 16, 3, 16];
@@ -158,6 +159,7 @@ export function shapeBoxes(v, get) {
   const id = idOf(v), m = metaOf(v);
   if (id === B.REPEATER || id === B.COMPARATOR) return [[0, 0, 0, 1, 2 * S, 1]];
   if (id === B.DAYLIGHT) return [[0, 0, 0, 1, 6 * S, 1]];
+  if (id === B.TEMPLE_STEP) return [[0, 0, 0, 1, 0.5, 1]];
   if (isHush(id)) return [[0, 0, 0, 1, 0.5, 1]];
   if (isPiston(id) && (m & EXTENDED)) return [box(faceT(m & 7), [0, 0, 0, 1, 12 * S, 1])];
   if (id === B.PISTON_HEAD) { const T = faceT(m & 7); return [box(T, [0, 12 * S, 0, 1, 1, 1]), box(T, [6 * S, 0, 6 * S, 10 * S, 12 * S, 10 * S])]; }

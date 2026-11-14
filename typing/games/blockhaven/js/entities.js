@@ -2642,6 +2642,14 @@ export class Entities {
     }
   }
   // Walk to a spot: straight there when it's close and clear, otherwise find a path (through doors for villagers)
+  // Guards walk between their patrol points (pausing at each), and walk back to the route after a chase
+  patrolStep(e) {
+    const P = e.patrol, pts = P.pts; if (!pts || !pts.length) return false;
+    if (P.wait > 0) { P.wait -= 0.15; e.goal = null; return true; }
+    const t = pts[P.i % pts.length];
+    if (this.moveTo(e, t, e.def.speed * 0.45, 1.3)) { P.i = (P.i + 1) % pts.length; P.wait = 1.5 + Math.random() * 3; }
+    return true;
+  }
   moveTo(e, t, speed, stop = 1.2) {
     const dd = Math.hypot(t.x - e.pos.x, t.z - e.pos.z);
     if (dd < stop && Math.abs(t.y - e.pos.y) < 2) { e.goal = null; e.path = null; return true; }
@@ -2754,6 +2762,7 @@ export class Entities {
     Sound.mob("snort", this.dist(e));
   }
   wander(e) {
+    if (e.patrol && this.patrolStep(e)) return;   // a temple guard (js/monument-life.js) walks its route instead
     if (e.def.flies) return this.wanderFly(e, 0.3, 3);
     if (e.goal && Math.random() > 0.05) return;
     if (Math.random() < 0.08) {
