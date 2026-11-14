@@ -70,8 +70,36 @@
   function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); G.toastT = 2.2; }
   function bigMsg(msg) { const b = $("bigMsg"); b.textContent = msg; b.classList.remove("show"); void b.offsetWidth; b.classList.add("show"); }
 
+  // ---------- Beyond the Grid: scenery and music load on demand ----------
+  const EXP = { state: 0, cbs: [] };   // 0 not loaded, 1 loading, 2 ready
+  function loadExpansion(cb) {
+    if (EXP.state === 2) { if (cb) cb(); return; }
+    if (cb) EXP.cbs.push(cb);
+    if (EXP.state === 1) return;
+    EXP.state = 1;
+    const files = ["js/expansion/btg-scenery.js", "js/expansion/btg-music.js"];
+    let left = files.length;
+    files.forEach(function (src) {
+      const sc = document.createElement("script");
+      sc.src = src;
+      sc.onload = sc.onerror = function (e) {
+        if (e.type === "error") EXP.failed = true;   // the levels still play with the standard look
+        if (--left === 0) { EXP.state = 2; EXP.cbs.splice(0).forEach(function (f) { f(); }); }
+      };
+      document.head.appendChild(sc);
+    });
+  }
+  GR.loadExpansion = loadExpansion;
+  function songFor(def) { return GR.SONGS[def.song] ? def.song : "velocity"; }
+
   // ---------- starting a level ----------
   function startLevel(def, practice) {
+    if (def.pack && EXP.state !== 2) {
+      Sound.unlock();
+      toast("Loading " + def.name + "…");
+      loadExpansion(function () { if (G.state === "menu" || G.state === "done") startLevel(def, practice); });
+      return;
+    }
     Sound.unlock();
     Sound.sfx("select");
     const L = levelData(def);
@@ -123,7 +151,7 @@
     }
     $("hudAttempt").textContent = "Attempt " + run.attempt;
     input.clear();   // a held button must be let go and pressed again
-    Sound.playSong(def.song, def.bpm, sectionsFor(def), s.t);
+    Sound.playSong(songFor(def), def.bpm, sectionsFor(def), s.t);
     G.state = "play";
   }
 
@@ -189,6 +217,14 @@
     if (e & EV.PAD) { Sound.sfx("pad"); R.emit(8, s.x, feet, { speed: 5, life: 0.35, size: 0.14, colors: ["#ffd23f", "#ffffff"], dir: s.gs > 0 ? Math.PI / 2 : -Math.PI / 2, spread: 1 }); }
     if (e & EV.PORTAL) { Sound.sfx("portal"); R.emit(14, s.x, s.y, { speed: 5, life: 0.4, size: 0.16, colors: [c1, c2, "#ffffff"] }); }
     if ((e & EV.FLIP) && !(e & (EV.PORTAL | EV.ORB | EV.PAD))) Sound.sfx("flip");
+    if (e & EV.BOSS) {
+      // Flying through an energy gate damages the Grid Guardian.
+      Sound.sfx("boss");
+      R.bossHit = s.t;
+      R.emit(18, s.x, s.y, { speed: 7, life: 0.5, size: 0.18, colors: ["#ffd23f", "#fff6c9", "#4de8ff"], kind: 2 });
+      const left = (G.run.def.bossGates || 0) - s.bh;
+      toast(left > 0 ? "Direct hit! " + left + " more gate" + (left === 1 ? "" : "s") : "The Grid Guardian is shutting down!");
+    }
     if (e & EV.TOKEN) {
       Sound.sfx("token");
       const t = G.run.L.tokens[s.lastToken];
@@ -227,6 +263,11 @@
       for (let i = 0; i < 3; i++) if ((s.tk >> i) & 1 && !rec.tokens[i]) { rec.tokens[i] = true; run.result.newTokens.push(i); }
     }
     run.result.unlocks = S.refreshUnlocks();
+    // Expansion badge: every Beyond the Grid level finished in Normal Mode.
+    if (!run.practice && def.pack === "btg") {
+      const all = GR.LEVELS.filter(function (d) { return d.pack === "btg"; }).every(function (d) { return S.level(d.id).completed; });
+      if (all && S.earnBadge("beyond-the-grid")) run.result.unlocks.push("the Beyond the Grid expansion badge");
+    }
     S.save();
     S.flush();
   }
@@ -237,7 +278,7 @@
     input.active = false;
     $("hud").hidden = true;
     $("doneTitle").textContent = run.practice ? "Practice Complete!" : "Level Complete!";
-    $("doneLevel").textContent = def.name + " • " + def.difficulty + (run.practice ? " • Practice Mode (doesn't count as finishing)" : "");
+    $("doneLevel").textContent = (def.num ? "Level " + def.num + ": " : "") + def.name + " • " + def.difficulty + (run.practice ? " • Practice Mode (doesn't count as finishing)" : "");
     $("doneAttempts").textContent = run.attempt;
     const tk = $("doneTokens"); tk.innerHTML = "";
     for (let i = 0; i < 3; i++) {
@@ -253,6 +294,7 @@
     const un = $("doneUnlocks");
     const extra = r.newTokens.length ? "New token" + (r.newTokens.length > 1 ? "s" : "") + " saved! " : "";
     if (r.unlocks.length || extra) { un.hidden = false; un.textContent = extra + (r.unlocks.length ? "Unlocked: " + r.unlocks.join(", ") + " (see Customize)" : ""); if (r.unlocks.length) Sound.sfx("unlock"); }
+    else if (def.reward && run.practice && !rec.completed) { un.hidden = false; un.textContent = "Finish in Normal Mode to unlock the " + def.reward.name + (def.reward.kind === "icon" ? " cube" : " trail") + "."; }
     else un.hidden = true;
     const idx = GR.LEVELS.indexOf(def);
     $("btnNext").hidden = idx >= GR.LEVELS.length - 1;
@@ -268,6 +310,7 @@
   $("btnDoneLevels").addEventListener("click", function () { exitToLevels(); });
 
   function exitToLevels() {
+    const wasBtg = !!(G.run && G.run.def && G.run.def.pack === "btg");
     Sound.stopSong();
     Sound.sfx("back");
     G.state = "menu"; G.run = null; G.auto = null;
@@ -275,6 +318,7 @@
     $("hud").hidden = true;
     R.setLevel(G.demo.def, G.demo.L); resetDemo();
     G.back = ["main"];
+    UI.setTab(wasBtg ? "btg" : UI.tab);
     show("levels");
     Sound.playMenu();
   }
@@ -299,7 +343,7 @@
     if (run.pending) { newAttempt(); return; }
     G.state = "play";
     run.base = performance.now() - run.n * TICK_MS;
-    Sound.playSong(run.def.song, run.def.bpm, sectionsFor(run.def), run.s.t);
+    Sound.playSong(songFor(run.def), run.def.bpm, sectionsFor(run.def), run.s.t);
   }
   function restart() {
     if (!G.run || ["play", "dead", "paused"].indexOf(G.state) < 0) return;
@@ -414,7 +458,7 @@
     else run.rot = 0;
     return run.rot;
   }
-  const ENERGY = { intro: 0.3, main: 0.55, drop: 0.95, calm: 0.3, outro: 0.7 };
+  const ENERGY = { intro: 0.3, main: 0.55, drop: 0.95, calm: 0.3, outro: 0.7, build: 0.75, climax: 1, climax2: 1 };
   function energyAt(def, beat) {
     const secs = sectionsFor(def), bar = beat / 4;
     let name = secs[0][1];
@@ -498,8 +542,22 @@
   };
   G.R = R; G.P = P; G.input = input;
 
+  // ---------- level groups ----------
+  $("tabOrig").addEventListener("click", function () { Sound.sfx("menu"); UI.setTab("original"); });
+  $("tabBtg").addEventListener("click", function () { Sound.sfx("menu"); UI.setTab("btg"); });
+  [$("tabOrig"), $("tabBtg")].forEach(function (b, i, all) {
+    b.addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const o = all[1 - i]; o.focus(); o.click(); e.preventDefault();
+    });
+  });
+  $("btnBtg").addEventListener("click", function () { Sound.sfx("select"); UI.setTab("btg"); show("levels", true); });
+
   // ---------- boot ----------
   setupDemo();
-  show("main");
+  // Links from the website can open the expansion directly (…/geometry-race/#beyond-the-grid).
+  if (/beyond|btg/i.test(location.hash + location.search)) { UI.setTab("btg"); G.back = ["main"]; show("levels"); }
+  else show("main");
+  if (S.migratedFrom) toast("Your progress was kept and updated for Beyond the Grid");
   startLoop();
 })();

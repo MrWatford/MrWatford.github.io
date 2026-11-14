@@ -32,7 +32,7 @@
   const MODE_NAMES = ["cube", "ship", "ball", "ufo", "wave", "robot"];
 
   // Event bits a step can report (used for sound and particles).
-  const EV = { JUMP: 1, LAND: 2, ORB: 4, PAD: 8, PORTAL: 16, TOKEN: 32, DIE: 64, WIN: 128, FLIP: 256 };
+  const EV = { JUMP: 1, LAND: 2, ORB: 4, PAD: 8, PORTAL: 16, TOKEN: 32, DIE: 64, WIN: 128, FLIP: 256, BOSS: 512 };
 
   function dims(s) {
     const m = MODE[s.mode], k = s.mini ? MINI : 1;
@@ -78,11 +78,32 @@
     const dx = cx - qx, dy = cy - qy;
     return dx * dx + dy * dy < r * r;
   }
-  // Moving hazards follow a sine path tied to the level clock (so every attempt matches).
+  // Moving objects follow a path tied to the level clock (so every attempt and checkpoint matches).
+  // "sin" (default) swings smoothly. "step" holds at one end, glides to the other, holds, and glides
+  // back: machinery that waits on the beat. glide = share of the period spent moving each way.
+  function moveValue(mv, t) {
+    // "once": rests at -1 until t0, then eases to +1 over dur seconds and stays (collapsing scenery).
+    if (mv.shape === "once") { const k = Math.max(0, Math.min(1, (t - mv.t0) / mv.dur)); return -1 + 2 * k * k * (3 - 2 * k); }
+    let u = (t / mv.period + mv.phase) % 1;
+    if (u < 0) u += 1;
+    if (mv.shape !== "step") return Math.sin(2 * Math.PI * u);
+    const g = mv.glide || 0.15;
+    if (u < 0.5 - g) return -1;
+    if (u < 0.5) { const k = (u - (0.5 - g)) / g; return -1 + 2 * k * k * (3 - 2 * k); }
+    if (u < 1 - g) return 1;
+    const k = (u - (1 - g)) / g; return 1 - 2 * k * k * (3 - 2 * k);
+  }
   function moveOffset(mv, t) {
     if (!mv) return null;
-    const a = Math.sin(2 * Math.PI * (t / mv.period + mv.phase));
+    const a = moveValue(mv, t);
+    // Pendulum: hangs from a pivot `len` above its rest point and swings up to `ang` radians each way.
+    if (mv.shape === "pend") { const th = mv.ang * a; return [mv.len * Math.sin(th), mv.len * (1 - Math.cos(th))]; }
     return [mv.ax * a, mv.ay * a];
+  }
+  // Timed hazards (energy beams, pulses) only hurt inside their authored windows (seconds of level time).
+  function activeAt(on, t) {
+    for (let i = 0; i < on.length; i++) if (t >= on[i][0] && t < on[i][1]) return true;
+    return false;
   }
 
   // ---------- compiling level data into collision lists ----------
@@ -110,11 +131,19 @@
     });
     def.objects.forEach(function (o) {
       switch (o.t) {
-        case "block": L.solids.push({ x0: o.x, y0: o.y, x1: o.x + o.w, y1: o.y + o.h, k: "b" }); break;
+        case "block": L.solids.push({ x0: o.x, y0: o.y, x1: o.x + o.w, y1: o.y + o.h, k: "b", mv: o.mv || null }); break;
+        case "beam": L.hazards.push({ type: "haz", x0: o.x + 0.04, y0: o.y + 0.04, x1: o.x + o.w - 0.04, y1: o.y + o.h - 0.04, mv: o.mv || null, on: o.on, src: o }); break;
+        case "crys": {
+          // Crystal shape: a convex polygon hazard, split into triangles for exact collision.
+          const p = o.pts;
+          for (let i = 2; i + 3 < p.length; i += 2) L.hazards.push({ type: "spike", tri: [p[0], p[1], p[i], p[i + 1], p[i + 2], p[i + 3]], mv: null, src: o });
+          break;
+        }
+        case "pulse": L.hazards.push({ type: "saw", cx: o.x, cy: o.y, r: o.r * 0.84, mv: null, on: o.on, src: o }); break;
         case "spike": L.hazards.push({ type: "spike", tri: spikeTri(o), mv: o.mv || null, src: o }); break;
         case "saw": L.hazards.push({ type: "saw", cx: o.x, cy: o.y, r: o.r * 0.84, mv: o.mv || null, src: o }); break;
         case "haz": L.hazards.push({ type: "haz", x0: o.x + 0.04, y0: o.y + 0.04, x1: o.x + o.w - 0.04, y1: o.y + o.h - 0.04, mv: o.mv || null, src: o }); break;
-        case "pad": case "orb": case "portal": case "token": {
+        case "pad": case "orb": case "portal": case "token": case "bgate": {
           const tr = Object.assign({ id: L.triggers.length }, o);
           if (o.t === "pad") {
             tr.x0 = o.x + 0.1; tr.x1 = o.x + 0.9;
@@ -123,6 +152,9 @@
             tr.x0 = o.x - 0.45; tr.x1 = o.x + 0.45; tr.y0 = o.y - 1.5; tr.y1 = o.y + 1.5;
             // Speed portals work at any height so the music always lines up.
             if (o.k === "speed") { tr.y0 = -100; tr.y1 = 200; }
+          } else if (o.t === "bgate") {
+            // Boss energy gates span the full height: passing one always counts.
+            tr.x0 = o.x - 0.3; tr.x1 = o.x + 0.3; tr.y0 = -100; tr.y1 = 200;
           } else if (o.t === "orb") {
             tr.r = 0.85;
           } else {
@@ -142,7 +174,7 @@
       return cells;
     }
     function mvPad(o) { return o.mv ? Math.abs(o.mv.ax) : 0; }
-    L.gSolids = index(L.solids, function (o) { return [o.x0, o.x1]; });
+    L.gSolids = index(L.solids, function (o) { const m = mvPad(o); return [o.x0 - m, o.x1 + m]; });
     L.gHaz = index(L.hazards, function (o) {
       const m = mvPad(o);
       if (o.type === "spike") return [Math.min(o.tri[0], o.tri[2], o.tri[4]) - m, Math.max(o.tri[0], o.tri[2], o.tri[4]) + m];
@@ -179,7 +211,7 @@
       t: 0, tick: 0, pbuf: 0, obuf: 0, held: false, rb: 0,
       used: new Uint8Array(L.triggers.length), uh: 0, tk: 0,
       dead: false, won: false, ev: 0, px: 0, py: L.startY + m.h / 2,
-      lastPortal: null, lastToken: -1, hz: HAZ
+      lastPortal: null, lastToken: -1, hz: HAZ, bh: 0
     };
   }
   function clone(s) {
@@ -295,7 +327,8 @@
     s.grounded = false; s.ceil = false;
     const canCeil = s.mode === "ship" || s.mode === "ufo" || s.mode === "ball" || s.mode === "wave";
     near(L, L.gSolids, s.x, hw + 1, function (id) {
-      const r = L.solids[id];
+      let r = L.solids[id];
+      if (r.mv) { const off = moveOffset(r.mv, s.t); r = { x0: r.x0 + off[0], y0: r.y0 + off[1], x1: r.x1 + off[0], y1: r.y1 + off[1], k: r.k }; }
       if (!(s.x + hw > r.x0 + EPS && s.x - hw < r.x1 - EPS && s.y + hh > r.y0 + EPS && s.y - hh < r.y1 - EPS)) return;
       const gs = s.gs;
       const feet = s.y - gs * hh, head = s.y + gs * hh;
@@ -317,6 +350,7 @@
     const bx0 = s.x - hzw, by0 = s.y - hzh, bx1 = s.x + hzw, by1 = s.y + hzh;
     near(L, L.gHaz, s.x, 3, function (id) {
       const h = L.hazards[id];
+      if (h.on && !activeAt(h.on, s.t)) return;
       const off = h.mv ? moveOffset(h.mv, s.t) : null, ox = off ? off[0] : 0, oy = off ? off[1] : 0;
       let hit = false;
       if (h.type === "spike") hit = triBox(h.tri, ox, oy, bx0, by0, bx1, by1);
@@ -332,6 +366,10 @@
       if (s.used[id]) return;
       const o = L.triggers[id];
       if (o.t === "orb") return;
+      if (o.t === "bgate") {
+        if (s.x + hw > o.x0) { useTrig(s, id); s.bh++; s.ev |= EV.BOSS; }
+        return;
+      }
       if (o.t === "token") {
         if (circleBox(o.x, o.y, o.r, s.x - hw, s.y - hh, s.x + hw, s.y + hh)) { useTrig(s, id); s.tk |= 1 << o.n; s.lastToken = o.n; s.ev |= EV.TOKEN; }
         return;
@@ -477,6 +515,6 @@
   GR.Physics = {
     TICK: TICK, SPEEDS: SPEEDS, SPEED_NAMES: SPEED_NAMES, MODE: MODE, MODE_NAMES: MODE_NAMES, MINI: MINI, EV: EV, HAZ: HAZ,
     compile: compile, newState: newState, clone: clone, step: step, replay: replay, solve: solve, furthest: furthest,
-    dims: dims, moveOffset: moveOffset, spikeTri: spikeTri, timeAtX: timeAtX, near: near
+    dims: dims, moveOffset: moveOffset, moveValue: moveValue, activeAt: activeAt, spikeTri: spikeTri, timeAtX: timeAtX, near: near
   };
 })();

@@ -56,7 +56,30 @@
     { name: "Prism", unlock: { tokens: 10 }, draw: function (x, a, b) { rect(x, -.5, -.5, 1, 1, a); poly(x, [0, -.36, .36, .3, -.36, .3], b); poly(x, [0, -.06, .14, .2, -.14, .2], a); } },
     { name: "Orbit", unlock: { tokens: 18 }, draw: function (x, a, b) {
       rect(x, -.5, -.5, 1, 1, a); x.save(); x.rotate(.5); x.beginPath(); x.ellipse(0, 0, .42, .16, 0, 0, Math.PI * 2);
-      x.lineWidth = .07; x.strokeStyle = b; x.stroke(); x.restore(); circ(x, 0, 0, .14, b); circ(x, .3, -.2, .06, b); } }
+      x.lineWidth = .07; x.strokeStyle = b; x.stroke(); x.restore(); circ(x, 0, 0, .14, b); circ(x, .3, -.2, .06, b); } },
+    // ---- Beyond the Grid rewards (finish the level in Normal Mode) ----
+    { name: "Neon Circuit", pack: "btg", unlock: { level: "neon-overdrive" }, draw: function (x, a, b) {
+      rect(x, -.5, -.5, 1, 1, "#0a1236"); rect(x, -.42, -.42, .84, .84, a);
+      rect(x, -.34, -.34, .68, .68, "#0a1236");
+      x.strokeStyle = b; x.lineWidth = .07; x.beginPath();
+      x.moveTo(-.5, -.12); x.lineTo(-.2, -.12); x.lineTo(-.06, -.26); x.lineTo(.18, -.26);
+      x.moveTo(.5, .14); x.lineTo(.2, .14); x.lineTo(.06, .28); x.lineTo(-.2, .28);
+      x.moveTo(-.12, .5); x.lineTo(-.12, .1); x.stroke();
+      circ(x, .18, -.26, .07, "#ff4fd8"); circ(x, -.2, .28, .07, "#2de2ff"); circ(x, -.12, .1, .07, b); } },
+    { name: "Clockwork", pack: "btg", unlock: { level: "clockwork-citadel" }, draw: function (x, a, b) {
+      rect(x, -.5, -.5, 1, 1, a);
+      const p = []; for (let i = 0; i < 16; i++) { const ang = i * Math.PI / 8, r = i % 2 ? .3 : .4; p.push(Math.cos(ang) * r, Math.sin(ang) * r); }
+      poly(x, p, b); circ(x, 0, 0, .19, a); ring(x, 0, 0, .19, .05, "#060912");
+      x.strokeStyle = "#060912"; x.lineWidth = .06; x.beginPath(); x.moveTo(0, 0); x.lineTo(0, -.15); x.moveTo(0, 0); x.lineTo(.1, .04); x.stroke();
+      rect(x, -.46, -.46, .1, .1, b); rect(x, .36, -.46, .1, .1, b); rect(x, -.46, .36, .1, .1, b); rect(x, .36, .36, .1, .1, b); } },
+    { name: "Grid Champion", pack: "btg", unlock: { level: "beyond-the-grid" }, draw: function (x, a, b) {
+      rect(x, -.5, -.5, 1, 1, "#0b1030");
+      x.strokeStyle = a; x.lineWidth = .04; x.beginPath();
+      for (let i = -2; i <= 2; i++) { x.moveTo(i * .2, -.5); x.lineTo(i * .2, .5); x.moveTo(-.5, i * .2); x.lineTo(.5, i * .2); }
+      x.stroke();
+      poly(x, [-.34, .12, -.34, -.24, -.17, -.06, 0, -.34, .17, -.06, .34, -.24, .34, .12], "#ffd23f");
+      rect(x, -.34, .16, .68, .1, "#ffd23f"); circ(x, 0, -.1, .07, b);
+      x.lineWidth = .06; x.strokeStyle = "#ffd23f"; x.strokeRect(-.44, -.44, .88, .88); } }
   ];
 
   const TRAILS = [
@@ -66,7 +89,10 @@
     { name: "Sparkle", unlock: { tokens: 3 } },
     { name: "Ribbon", unlock: { level: "gravity-circuit" } },
     { name: "Pixels", unlock: { level: "skyline-surge" } },
-    { name: "Comet", unlock: { tokens: 9 } }
+    { name: "Comet", unlock: { tokens: 9 } },
+    { name: "Bubbles", pack: "btg", unlock: { level: "tidal-circuit" } },
+    { name: "Prismatic", pack: "btg", unlock: { level: "prism-paradox" } },
+    { name: "Solar Flare", pack: "btg", unlock: { level: "solar-breakdown" } }
   ];
 
   function unlockText(u, levels) {

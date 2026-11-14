@@ -194,27 +194,34 @@
     }
     return { pat: sg.def.sections[name] || sg.def.sections.main || {}, fill: next && next[0] === bar + 1 };
   };
+  // Patterns can name a shared table entry or be written inline in the song.
+  function pick(table, v) { return typeof v === "string" && table[v] ? table[v] : v; }
   Sound.prototype.scheduleStep = function (sg, step, when) {
     const def = sg.def, bar = Math.floor(step / 16), s = step % 16;
-    const sec = this.sectionAt(sg, bar), p = sec.pat, sc = SCALES[def.scale];
-    const deg = def.prog[bar % def.prog.length];
-    function note(d, oct) { const k = ((d % 7) + 7) % 7; return def.root + sc[k] + 12 * (Math.floor(d / 7) + (oct || 0)); }
-    if (p.k && KICK[p.k][s] === "x") this.kick(when);
-    if (p.s && SNARE[p.s][s] === "x") this.snare(when, 0.5);
+    const sec = this.sectionAt(sg, bar), p = sec.pat, sc = SCALES[p.scale || def.scale];
+    const prog = p.prog || def.prog, deg = prog[bar % prog.length], root = def.root + (p.key || 0);
+    const vo = def.voice || {};
+    function note(d, oct) { const k = ((d % 7) + 7) % 7; return root + sc[k] + 12 * (Math.floor(d / 7) + (oct || 0)); }
+    const K = pick(KICK, p.k), SN = pick(SNARE, p.s), HT = pick(HAT, p.h), TK = pick(HAT, p.t);
+    if (K && K[s] === "x") this.kick(when);
+    if (SN && SN[s] === "x") this.snare(when, 0.5);
     if (sec.fill && s >= 8 && s % 2 === 0) this.snare(when, 0.22 + (s - 8) * 0.04);
-    if (p.h && HAT[p.h][s] === "x") this.hat(when, s % 4 === 2 ? 0.16 : 0.09);
-    if (p.b) { const b = BASS[p.b][s]; if (b != null) this.bass(freq(note(deg + b, -1)), when, sg.stepDur * 1.6); }
+    if (HT && HT[s] === "x") this.hat(when, s % 4 === 2 ? 0.16 : 0.09);
+    if (TK && TK[s] === "x") this.tick(when, s % 4 === 0 ? 0.2 : 0.11);
+    if (p.r && s === 0) this.riser(when, sg.stepDur * 16);
+    if (p.b) { const bp = pick(BASS, p.b), b = bp[s]; if (b != null) this.bass(freq(note(deg + b, -1)), when, sg.stepDur * 1.6, vo.bass); }
     if (p.a) {
-      const pat = ARP[p.a], idx = pat[s % pat.length];
+      const pat = pick(ARP, p.a), idx = pat[s % pat.length];
       const chord = [note(deg), note(deg + 2), note(deg + 4), note(deg + 7)];
-      this.pluck(freq(chord[idx] + 12), when, sg.stepDur * 0.9);
+      this.pluck(freq(chord[idx] + 12), when, sg.stepDur * 0.9, vo.arp);
     }
     if (p.l) {
-      const ch = def.lead[(bar % 2) * 16 + s];
+      const line = typeof p.l === "string" ? def.leads[p.l] : def.lead, n = line.length, pos = (bar * 16 + s) % n;
+      const ch = line[pos];
       if (ch && ch !== "." && ch !== "-") {
         let len = 1;
-        while (def.lead[(bar % 2) * 16 + s + len] === "-") len++;
-        this.lead(freq(note(parseInt(ch, 36), 1)), when, sg.stepDur * len);
+        while (line[(pos + len) % n] === "-" && len < n) len++;
+        this.lead(freq(note(parseInt(ch, 36), 1)), when, sg.stepDur * len, vo.lead);
       }
     }
     if (p.p && s === 0) this.pad([note(deg), note(deg + 2), note(deg + 4)].map(freq), when, sg.stepDur * 16);
@@ -247,21 +254,52 @@
     env(g, t, 0.002, v * 0.5, 0.09); o.connect(g); g.connect(this.out()); o.start(t); o.stop(t + 0.15);
   };
   Sound.prototype.hat = function (t, v) { this.noiseHit(t, "highpass", 7500, 0.7, v, 0.04); };
-  Sound.prototype.bass = function (f, t, d) {
+  Sound.prototype.tick = function (t, v) {
+    // A woody clock tick.
+    const c = this.ctx, o = c.createOscillator(), g = c.createGain();
+    o.type = "square"; o.frequency.setValueAtTime(2400, t); o.frequency.exponentialRampToValueAtTime(1200, t + 0.02);
+    env(g, t, 0.001, v * 0.5, 0.03); o.connect(g); g.connect(this.out()); o.start(t); o.stop(t + 0.06);
+  };
+  Sound.prototype.riser = function (t, d) {
+    const c = this.ctx, n = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+    n.buffer = this.noise; n.loop = true; fl.type = "bandpass"; fl.Q.value = 3;
+    fl.frequency.setValueAtTime(400, t); fl.frequency.exponentialRampToValueAtTime(6000, t + d);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + d * 0.95); g.gain.linearRampToValueAtTime(0.0001, t + d);
+    n.connect(fl); fl.connect(g); g.connect(this.out()); n.start(t); n.stop(t + d + 0.05);
+  };
+  Sound.prototype.bass = function (f, t, d, voice) {
     const c = this.ctx, o = c.createOscillator(), fl = c.createBiquadFilter(), g = c.createGain();
-    o.type = "sawtooth"; o.frequency.value = f;
+    o.type = voice === "sub" ? "triangle" : voice === "square" ? "square" : "sawtooth"; o.frequency.value = f;
     fl.type = "lowpass"; fl.frequency.setValueAtTime(900, t); fl.frequency.exponentialRampToValueAtTime(220, t + d); fl.Q.value = 4;
     env(g, t, 0.005, 0.32, d);
     o.connect(fl); fl.connect(g); g.connect(this.out()); o.start(t); o.stop(t + d + 0.05);
   };
-  Sound.prototype.pluck = function (f, t, d) {
+  Sound.prototype.pluck = function (f, t, d, voice) {
     const c = this.ctx, o = c.createOscillator(), g = c.createGain();
-    o.type = "square"; o.frequency.value = f;
-    env(g, t, 0.003, 0.05, d);
+    o.type = voice === "sine" ? "sine" : voice === "tri" ? "triangle" : voice === "saw" ? "sawtooth" : "square"; o.frequency.value = f;
+    env(g, t, 0.003, voice === "sine" ? 0.09 : voice === "tri" ? 0.07 : 0.05, d);
     o.connect(g); g.connect(this.out()); o.start(t); o.stop(t + d + 0.05);
   };
-  Sound.prototype.lead = function (f, t, d) {
+  Sound.prototype.lead = function (f, t, d, voice) {
     const c = this.ctx, g = c.createGain(), fl = c.createBiquadFilter();
+    if (voice === "bell") {
+      // Bell: a sine with a bright partial that fades quickly.
+      [[1, 0.13], [2.76, 0.05], [5.4, 0.02]].forEach(function (pr) {
+        const o = c.createOscillator(), gg = c.createGain();
+        o.type = "sine"; o.frequency.value = f * pr[0];
+        env(gg, t, 0.004, pr[1], Math.max(0.25, d * 1.2) / pr[0]);
+        o.connect(gg); gg.connect(this.out()); o.start(t); o.stop(t + d * 1.3 + 0.3);
+      }, this);
+      return;
+    }
+    if (voice === "square") {
+      const o = c.createOscillator(); o.type = "square"; o.frequency.value = f;
+      fl.type = "lowpass"; fl.frequency.value = 2600;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.07, t + 0.01);
+      g.gain.setValueAtTime(0.06, t + Math.max(0.02, d - 0.04)); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.06);
+      o.connect(fl); fl.connect(g); g.connect(this.out()); o.start(t); o.stop(t + d + 0.1);
+      return;
+    }
     fl.type = "lowpass"; fl.frequency.value = 3200;
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.12, t + 0.01);
     g.gain.setValueAtTime(0.1, t + Math.max(0.02, d - 0.04)); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.08);
@@ -310,6 +348,10 @@
       case "checkpoint": this.tone("sine", 740, 740, 0.08, 0.2); this.tone("sine", 990, 990, 0.12, 0.2, 0.07); break;
       case "nope": this.tone("square", 220, 160, 0.14, 0.1); break;
       case "unlock": [784, 988, 1175, 1568].forEach(function (f, i) { self.tone("triangle", f, f, 0.14, 0.14, i * 0.07); }); break;
+      case "boss":
+        this.noiseHit(t, "lowpass", 900, 0.8, 0.45, 0.3, this.sfxGain);
+        [392, 523, 784].forEach(function (f, i) { self.tone("square", f, f * 1.5, 0.18, 0.08, i * 0.05); });
+        break;
       case "finish":
         [523, 659, 784, 1047, 1319, 1568].forEach(function (f, i) { self.tone("square", f, f, 0.16, 0.1, i * 0.08); });
         [523, 659, 784].forEach(function (f) { self.tone("sawtooth", f, f, 0.9, 0.06, 0.5); });

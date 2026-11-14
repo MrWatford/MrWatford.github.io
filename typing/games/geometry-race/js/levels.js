@@ -43,6 +43,37 @@
       return this;
     },
     mv: function (ax, ay, beats, phase) { return { ax: ax, ay: ay, period: beats * 60 / this.meta.bpm, phase: phase || 0 }; },
+    // Machinery motion: holds at one end, glides to the other on the beat, holds, glides back.
+    mvs: function (ax, ay, beats, phase, glide) { return { ax: ax, ay: ay, period: beats * 60 / this.meta.bpm, phase: phase || 0, shape: "step", glide: glide || 0.15 }; },
+    // Pendulum swing (one full swing there and back every `beats`).
+    pend: function (len, ang, beats, phase) { return { ax: len * Math.sin(ang), ay: 0, len: len, ang: ang, period: beats * 60 / this.meta.bpm, phase: phase || 0, shape: "pend" }; },
+    // The beat at which the player reaches x (inverse of X).
+    beatAt: function (x) {
+      let lo = 0, hi = this.meta.endBeat + 64;
+      for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (this.X(m) < x) lo = m; else hi = m; }
+      return (lo + hi) / 2;
+    },
+    // Phase that puts a looping motion of `beats` at cycle position u (0..1) when the player reaches x.
+    phaseAt: function (x, beats, u) { const p = (u - this.beatAt(x) / beats) % 1; return p < 0 ? p + 1 : p; },
+    // One-time motion: starts moving at fromBeat, arrives after `beats`, then stays.
+    once: function (ax, ay, fromBeat, beats) { return { ax: ax, ay: ay, period: 1, phase: 0, shape: "once", t0: this.sec(fromBeat), dur: this.sec(beats) }; },
+    sec: function (beat) { return beat * 60 / this.meta.bpm; },
+    // A solid block that moves along a path (keep paths vertical so it can be ridden).
+    mblk: function (x, y, w, h, mv, style) { return this.add({ t: "block", x: x, y: y, w: w, h: h, mv: mv, st: style }); },
+    // Energy beam: charges for `warn` beats (harmless), is dangerous in each [fromBeat, toBeat) window, then cools down.
+    beam: function (x, y, w, h, wins, warn, mv, style) {
+      const self = this;
+      return this.add({ t: "beam", x: x, y: y, w: w, h: h, mv: mv, st: style, warn: self.sec(warn == null ? 1 : warn), on: wins.map(function (p) { return [self.sec(p[0]), self.sec(p[1])]; }) });
+    },
+    // Round energy pulse: dangerous only inside its windows, with a ring warning before each.
+    pulse: function (x, y, r, wins, warn) {
+      const self = this;
+      return this.add({ t: "pulse", x: x, y: y, r: r, warn: self.sec(warn == null ? 1 : warn), on: wins.map(function (p) { return [self.sec(p[0]), self.sec(p[1])]; }) });
+    },
+    // Boss energy gate on the main route: passing through it damages the boss. Nothing else.
+    // A convex crystal hazard from a flat list of points [x0, y0, x1, y1, ...] (counter-clockwise or clockwise).
+    crys: function (pts, style) { return this.add({ t: "crys", pts: pts, st: style }); },
+    bgate: function (x) { return this.add({ t: "bgate", x: x, y: 4 }); },
     add: function (o) { this.o.push(o); return this; },
     sp: function (x, y, mv) { return this.add({ t: "spike", x: x, y: y || 0, rot: 0, mv: mv }); },
     sps: function (x, n, y) { for (let i = 0; i < n; i++) this.sp(x + i, y || 0); return this; },

@@ -9,6 +9,8 @@
   "use strict";
   const GR = window.GR = window.GR || {};
   const KEY = "geometry-race-save";
+  const VERSION = 2;            // v2 (Beyond the Grid): adds badges. Older saves are upgraded, never reset.
+  const BADGES = ["beyond-the-grid"];
 
   let storageOk = false;
   try { const k = "__gr_test"; localStorage.setItem(k, "1"); localStorage.removeItem(k); storageOk = true; } catch (e) { storageOk = false; }
@@ -18,8 +20,9 @@
   }
   function defaults() {
     return {
-      v: 1,
+      v: VERSION,
       levels: {},
+      badges: [],
       look: { icon: 0, c1: 0, c2: 1, trail: 0 },
       unlocked: { icons: [], trails: [] },
       settings: { music: 0.7, sfx: 0.8, muted: false, reducedMotion: prefersReduced(), lowFx: false, shake: true, autoCp: true },
@@ -71,16 +74,27 @@
     d.settings.shake = bool(st.shake, true);
     d.settings.autoCp = bool(st.autoCp, true);
     d.totalAttempts = int(raw.totalAttempts, 0, 1e8, 0);
+    if (Array.isArray(raw.badges)) d.badges = raw.badges.filter(function (b, i, arr) { return BADGES.indexOf(b) >= 0 && arr.indexOf(b) === i; });
     return d;
   }
 
-  let data = defaults(), damaged = false, timer = null;
+  let data = defaults(), damaged = false, timer = null, migratedFrom = 0;
   function load() {
     if (!storageOk) { data = defaults(); return data; }
     let text = null;
     try { text = localStorage.getItem(KEY); } catch (e) { text = null; }
     if (text) {
-      try { data = clean(JSON.parse(text)); }
+      try {
+        const raw = JSON.parse(text);
+        const from = raw && typeof raw.v === "number" ? raw.v : 1;
+        data = clean(raw);
+        if (from < VERSION) {
+          // Versioned upgrade: keep a one-time copy of the old save, then store the upgraded one.
+          try { if (!localStorage.getItem(KEY + "-v" + from + "-backup")) localStorage.setItem(KEY + "-v" + from + "-backup", text); } catch (e) { /* storage full: the upgrade still keeps everything */ }
+          migratedFrom = from;
+          writeNow();
+        }
+      }
       catch (e) { damaged = true; data = defaults(); }
     } else data = defaults();
     return data;
@@ -122,6 +136,9 @@
     if (fresh.length) save();
     return fresh;
   }
+  // Badges (like the Beyond the Grid expansion badge). Returns true when newly earned.
+  function hasBadge(id) { return data.badges.indexOf(id) >= 0; }
+  function earnBadge(id) { if (BADGES.indexOf(id) < 0 || hasBadge(id)) return false; data.badges.push(id); save(); return true; }
   function iconOpen(i) { return !GR.Looks.ICONS[i].unlock || data.unlocked.icons.indexOf(i) >= 0; }
   function trailOpen(i) { return !GR.Looks.TRAILS[i].unlock || data.unlocked.trails.indexOf(i) >= 0; }
 
@@ -129,7 +146,8 @@
 
   GR.Save = {
     load: load, save: save, flush: flush, level: level, reset: reset, totalTokens: totalTokens,
-    refreshUnlocks: refreshUnlocks, iconOpen: iconOpen, trailOpen: trailOpen,
+    refreshUnlocks: refreshUnlocks, iconOpen: iconOpen, trailOpen: trailOpen, hasBadge: hasBadge, earnBadge: earnBadge, VERSION: VERSION,
+    get migratedFrom() { return migratedFrom; },
     get data() { return data; }, get storageOk() { return storageOk; }, get damaged() { return damaged; }
   };
 })();
