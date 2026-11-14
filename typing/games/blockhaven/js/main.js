@@ -98,7 +98,7 @@ let renderer;
 try {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
 } catch (e) {
-  document.body.innerHTML = `<div style="padding:30px;font:18px system-ui;color:#fff;background:#222;height:100%">Sorry! This browser couldn't start 3D graphics, which Blockhaven needs. Try Chrome or Edge, and make sure "hardware acceleration" is turned on. <p><a style="color:#9f9" href="../../index.html">← Back to the games</a></p></div>`;
+  document.body.innerHTML = `<div style="padding:30px;font:18px system-ui;color:#fff;background:#222;height:100%">Sorry! This browser couldn't start 3D graphics, which Blockhaven needs. Try Chrome or Edge, and make sure "hardware acceleration" is turned on. <p><a style="color:#9f9" href="../../../arcade/index.html">← Back to the Arcade</a></p></div>`;
   throw e;
 }
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
