@@ -709,7 +709,7 @@ Plan and full checklist: FORSAKEN-MUTANTS.md.
 Browser-tested (local, disposable "Mutant test 4" world, then deleted): all five places from above; every note opens; discovery messages; all four achievements register (in Survival); a Rattler appears at the Hollow Graves and its defeat records the trophy and the encounter; the old-world protection (a chunk changed before the update kept its shape and the block placed there, its neighbor got the new building); the journal page on desktop and phone width; all recipes registered; no console errors. Not tested yet: crafting each recipe by hand, a real older save from his own browser, a real Chromebook. Known limits: the journal's small map still shows only the old valley; places cut by an old changed chunk can look half-built.
 Files: js/forsaken-reaches.js (new), js/mutants.js, js/worldgen.js (one line in ForsakenGen.generate), js/main.js (one line in makeWorld), js/blocks.js (recipes, Corrupted Flesh food), js/advancements.js (4 achievements), index.html (`?v=mutants-4` on advancements, blocks, main, mutants, worldgen, new forsaken-reaches entry, main script tag). Backups: tools/backups/pre-mutants-slice4-2026-11-13/.
 
-## The Forsaken Mutants, Slice 5: balance and final checks (done 2026-11-13, ready to publish when he says so)
+## The Forsaken Mutants, Slice 5: balance and final checks (done 2026-11-13; whole expansion PUBLISHED 2026-11-13, pull request #12)
 Plan and full checklist: FORSAKEN-MUTANTS.md.
 
 | Feature | Status | Notes |
@@ -727,6 +727,16 @@ Plan and full checklist: FORSAKEN-MUTANTS.md.
 
 **Publish list (11 files, all under typing/games/blockhaven/):** js/mutants.js (new), js/forsaken-reaches.js (new), js/entities.js, js/main.js, js/blocks.js, js/worldgen.js, js/advancements.js, js/ui.js, index.html, FEATURES.md, FORSAKEN-MUTANTS.md. Version tags in index.html: entities `mutants-1`; blocks, main (+ script tag), worldgen, advancements, forsaken-reaches `mutants-4`; mutants, ui `mutants-5`. Publish all of them together (one branch + merge, like PR #10), then open the live game with `?fresh=N` and check the Forsaken World.
 Still worth doing by hand: one real fight per mutant, Hard difficulty, a real Chromebook and phone.
+
+## The Grand Desert Temple (built and browser-tested 2026-11-14, not published)
+Rebuilt the outside of the Sunken Pyramid of Aurelis from Mr. Watford's two reference videos. Measurements, choices, and screenshots: `GRAND-DESERT-TEMPLE.md` (pictures in `tools/temple-shots/`).
+- [x] `js/desert-monument.js`: the whole complex as one stamp: an 81 × 81 platform on a stepped, orange-striped wall 14 high (109 × 109 at the sand); a south entrance wing with two stepped towers and a 13-wide grand stair; a 7 × 7 tiled courtyard with 4 small stepped pyramids and 8 sunken pits; a white base with 4 stairways; a colonnade of 3 × 3 columns with arches and burning corner towers; 39 braziers. The old pyramid tip is copied unchanged and lifted 19 blocks onto the base (lift, tablet, and chest included). Colors in one place (`MAT`).
+- [x] New blocks 216–220: Pale Temple Stone, Sunfire Terracotta, Pale Temple Pillar, Pale Temple Step (half height, so stairs are walkable without jumping), Temple Brazier.
+- [x] `js/lost.js`: decided once per world (`story.lost.monument`). New worlds look for room for it. Older worlds get it only if no block in its footprint was ever changed and nothing else is planned there; otherwise the small pyramid stays and a message explains why. An opened camp chest's contents move up with the pyramid. Villages nobody has seen in the footprint don't generate (`gen.skipVillages`); a seen village blocks the upgrade. `worldgen.js` stamps can now fill their foundation down to the ground (`foot`).
+- [x] `js/monument-life.js`: embers and smoke from braziers, drifting sand, light wind on the platform, distant groans; guards made from creatures the game already has (Husk; Tomb Guardian as the Temple Sentinel; Ancient Sentinel as the rare Ancient Guardian) with patrol routes (`Entities.patrolStep`), chase, return to route, respawn timers, never saved, none on Peaceful.
+- [x] Browser-tested (local server, seed `temple-test-1`, throwaway world deleted): every important spot reachable on foot; walked from the sand into the lift room with no jumps; lift down and back up; tablet; chest move on an "old" save; the conflict path keeps the old pyramid; guards chase and return; Creative inventory; all item icons; no console errors.
+- [x] Natural edges (same day): a 14-block sand slope with dunes buries the foundation, then a 9-block patchy sand-to-grass fade; trees cleared near it (no floating leaves); a few half-buried ruins; new worlds prefer mostly-desert spots. Walked onto the platform from N/S/E with no jumps.
+- [ ] Not checked yet: a real Chromebook's frame rate, hand-play, exported-JSON save round trip, a temple in tall dunes or beside the sea.
 
 ## Later milestones
 | Feature | Status |
