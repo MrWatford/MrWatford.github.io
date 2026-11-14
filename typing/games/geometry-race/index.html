@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Geometry Race | Mr. Watford's Free-Time Games</title>
-<meta name="description" content="Geometry Race: a rhythm obstacle runner with six levels, six movement modes, practice mode, and custom cubes. Progress saves on your own device.">
+<meta name="description" content="Geometry Race: a rhythm obstacle runner with twelve levels (including the Beyond the Grid expansion and its boss), six movement modes, practice mode, and custom cubes. Progress saves on your own device.">
 <meta name="theme-color" content="#070b1a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,6 +98,43 @@ h2.title { font: 400 clamp(24px, 4.2vw, 34px)/1.1 var(--display); margin: 0; let
 .tok i { width: 14px; height: 14px; transform: rotate(45deg) scale(.82); border: 2px solid rgba(255, 255, 255, .45); display: inline-block; }
 .tok i.on { background: #ffd23f; border-color: #fff6c9; box-shadow: 0 0 8px #ffd23f; }
 .tok i.run { background: #ffd23f; border-color: #fff; }
+
+/* ---------- level groups and the Beyond the Grid expansion ---------- */
+.lvl-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.lvl-tabs button { flex: 1 1 200px; padding: 10px 14px; border-radius: 12px; border: 2px solid rgba(255, 255, 255, .16); background: rgba(0, 0, 0, .3); cursor: pointer;
+  font: 400 17px/1.15 var(--display); text-align: left; display: flex; flex-direction: column; gap: 2px; }
+.lvl-tabs button small { font: 800 12px/1.2 var(--body); color: var(--dim); letter-spacing: .3px; }
+.lvl-tabs button[aria-selected="true"] { border-color: var(--yellow); background: rgba(255, 225, 77, .12); box-shadow: 0 0 0 2px rgba(255, 225, 77, .25); }
+.lvl-tabs button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+#tabBtg { background: linear-gradient(120deg, rgba(10, 26, 68, .9), rgba(40, 16, 90, .9)); }
+#tabBtg small { color: #ffd23f; }
+.btg-banner { position: relative; border-radius: 16px; overflow: hidden; border: 2px solid rgba(77, 232, 255, .45); min-height: 150px; display: flex; align-items: flex-end;
+  box-shadow: 0 0 30px rgba(77, 232, 255, .15), 0 12px 30px rgba(0, 0, 0, .4); }
+.btg-banner canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.btg-text { position: relative; padding: 16px 18px; background: linear-gradient(0deg, rgba(4, 8, 28, .92), rgba(4, 8, 28, .2)); width: 100%; }
+.btg-text .kicker { margin: 0; font: 800 12px/1 var(--body); letter-spacing: 3px; color: #4de8ff; }
+.btg-text h3 { margin: 4px 0 6px; font: 400 clamp(26px, 5vw, 40px)/1 var(--display); letter-spacing: 2px;
+  background: linear-gradient(180deg, #ffffff, #ffd23f 60%, #4de8ff); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 0 #10164a); }
+.btg-text p { margin: 0; color: #d6e4ff; font-size: 14px; }
+.btg-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.btg-stats span { font: 800 13px/1 var(--body); padding: 6px 10px; border-radius: 99px; background: rgba(0, 0, 0, .45); border: 1px solid rgba(255, 255, 255, .2); }
+.btg-stats .badge-on { background: linear-gradient(90deg, #ffd23f, #ff9a2e); color: #2a1200; border-color: #fff6c9; }
+.lvl { min-width: 0; }
+.lvl.btg { border-color: color-mix(in srgb, var(--c) 55%, transparent); box-shadow: 0 0 22px color-mix(in srgb, var(--c) 22%, transparent), 0 10px 30px rgba(0, 0, 0, .35); }
+.lvl-pic { width: calc(100% + 32px); margin: -16px -16px 0; aspect-ratio: 16 / 7; display: block; border-bottom: 2px solid color-mix(in srgb, var(--c) 50%, transparent); background: var(--b); }
+.btg-extra { display: grid; gap: 6px; }
+.reward { display: flex; align-items: center; gap: 10px; background: rgba(0, 0, 0, .3); border-radius: 12px; padding: 6px 10px; font-size: 13px; }
+.reward canvas { width: 40px; height: 40px; flex: 0 0 auto; background: rgba(255, 255, 255, .05); border-radius: 8px; }
+.reward b { display: block; color: #ffd23f; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+.reward.got { background: rgba(57, 255, 136, .12); }
+.reward.got b { color: var(--green); }
+.hints { font-size: 13px; background: rgba(0, 0, 0, .25); border-radius: 10px; padding: 6px 10px; }
+.hints summary { cursor: pointer; font-weight: 800; }
+.hints ol { margin: 6px 0 2px; padding-left: 20px; color: #d6e4ff; }
+.hints li.got { color: #9dffc4; }
+.btg-order { grid-column: 1 / -1; }
+.menu-buttons .btn.btg { background: linear-gradient(120deg, #13306e, #3a1a7a); border-color: rgba(77, 232, 255, .6); box-shadow: 0 4px 0 #0a0f26, 0 0 18px rgba(77, 232, 255, .25); }
+.menu-buttons .btn.btg small { font: 800 11px/1 var(--body); background: #ffd23f; color: #2a1200; padding: 3px 6px; border-radius: 6px; letter-spacing: 1px; }
 
 /* ---------- HUD ---------- */
 #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
@@ -239,9 +276,10 @@ dialog h2 { margin: 0 0 8px; font: 400 22px/1.2 var(--display); }
 <section class="screen" id="scrMain" aria-labelledby="logoTitle">
   <div class="inner">
     <h1 class="logo" id="logoTitle" aria-label="Geometry Race"><span class="top">GEOMETRY</span><span class="main" aria-hidden="true">RACE<span class="cube"></span></span></h1>
-    <p class="tag-line">Jump, fly, and flip to the beat. One button. Six levels.</p>
+    <p class="tag-line">Jump, fly, and flip to the beat. One button. Twelve levels.</p>
     <div class="col menu-buttons">
       <button class="btn go big" data-go="levels" type="button">▶ Play</button>
+      <button class="btn btg" id="btnBtg" type="button">★ Beyond the Grid <small>NEW EXPANSION</small></button>
       <div class="row">
         <button class="btn" data-go="how" type="button">How to Play</button>
         <button class="btn" data-go="looks" type="button">Customize</button>
@@ -261,8 +299,21 @@ dialog h2 { margin: 0 0 8px; font: 400 22px/1.2 var(--display); }
       <h2 class="title" id="lvlTitle">Choose a Level</h2>
       <span class="tok" title="Tokens collected"><i class="on"></i> <b id="tokenTotal">0 / 18</b></span>
     </div>
-    <div class="levels" id="levelList"></div>
-    <p class="saved-note">Practice mode lets you place checkpoints. It never counts as finishing a level. Progress is saved in this browser.</p>
+    <div class="lvl-tabs" role="tablist" aria-label="Level groups">
+      <button role="tab" id="tabOrig" aria-selected="true" aria-controls="levelList" type="button">Original Levels <small>Levels 1–6</small></button>
+      <button role="tab" id="tabBtg" aria-selected="false" aria-controls="levelList" type="button">★ Beyond the Grid <small>Levels 7–12 • New expansion with a boss</small></button>
+    </div>
+    <div class="btg-banner" id="btgBanner" hidden>
+      <canvas id="btgBannerArt" aria-hidden="true"></canvas>
+      <div class="btg-text">
+        <p class="kicker">EXPANSION</p>
+        <h3>BEYOND THE GRID</h3>
+        <p>Six new levels, new music, new rewards, and the Grid Guardian. Every level is open. We recommend playing them in order, 7 → 12.</p>
+        <div class="btg-stats"><span id="btgLevels">0/6 levels completed</span><span id="btgTokens">0/18 tokens collected</span><span id="btgBadge" class="badge-off"></span></div>
+      </div>
+    </div>
+    <div class="levels" id="levelList" role="tabpanel"></div>
+    <p class="saved-note">Practice mode lets you place checkpoints. It never counts as finishing a level, and tokens only count when you finish in Normal Mode. Progress is saved in this browser.</p>
   </div>
 </section>
 
@@ -378,6 +429,7 @@ dialog h2 { margin: 0 0 8px; font: 400 22px/1.2 var(--display); }
 
 <script src="js/physics.js"></script>
 <script src="js/levels.js"></script>
+<script src="js/expansion/btg-levels.js"></script>
 <script src="js/cosmetics.js"></script>
 <script src="js/save.js"></script>
 <script src="js/render.js"></script>

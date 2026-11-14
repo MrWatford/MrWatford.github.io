@@ -12,6 +12,7 @@
 <pre id="out">running…</pre>
 <script src="js/physics.js"></script>
 <script src="js/levels.js"></script>
+<script src="js/expansion/btg-levels.js"></script>
 <script>
 (function () {
   "use strict";
@@ -155,7 +156,7 @@
       log(false, def.name + ": strict check stuck at x " + f.x.toFixed(1) + " (" + Math.round(f.x / def.endX * 100) + "%)");
     }
     L.tokens.forEach(function (t, i) {
-      const r = P.solve(L, null, { D: 8, needTokens: 1 << i, budget: 6e6 });
+      const r = P.solve(L, null, { D: 8, needTokens: 1 << i, budget: 1.2e7 });
       log(r.ok, def.name + ": token " + (i + 1) + " at x " + t.x.toFixed(1) + " can be collected AND the level finished");
     });
     if (sol.ok) {
@@ -185,7 +186,12 @@
       log(r.ok, def.name + ": token " + (i + 1) + " is optional (level can be finished without it)");
     });
     log(L.tokens.length === 3, def.name + ": has 3 tokens");
-    log(def.duration >= 40 && def.duration <= 92, def.name + ": length " + def.duration.toFixed(1) + " s");
+    const range = def.target || [40, 92];
+    log(def.duration >= range[0] && def.duration <= range[1], def.name + ": length " + def.duration.toFixed(1) + " s (target " + range[0] + "–" + range[1] + ")");
+    if (def.bossGates) {
+      const won = sol.ok ? P.replay(L, sol.decisions, 8) : null;
+      log(!!won && won.bh === def.bossGates, def.name + ": every boss gate is on the main route (" + (won ? won.bh : 0) + " / " + def.bossGates + " passed on a plain winning run)");
+    }
   });
 
   out.unshift(results.pass + " passed, " + results.fail + " failed");
