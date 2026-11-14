@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700;800&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=arc1">
 </head>
 <body data-tips="Click any subject card to jump in!|Want the classroom back? Scroll to the top and click on me to hear more.">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -25,6 +25,7 @@
           <li><a href="typing/index.html">Typing</a></li>
           <li><a href="science/index.html">Science</a></li>
           <li><a href="math/index.html">Pre-Algebra</a></li>
+          <li><a href="arcade/index.html">Arcade</a></li>
           <li><a href="ai-helper.html">AI Helper</a></li>
         </ul>
       </nav>
@@ -205,7 +206,7 @@
         </div>
         <!-- Each subject is a classroom door. The whole card is clickable (door-link);
              the yellow flag and the numbers are easy to update when you add things. -->
-        <div class="doors">
+        <div class="doors doors-4">
           <article class="door door-typing">
             <div class="door-top">
               <picture class="door-window">
@@ -218,9 +219,9 @@
             <div class="door-body">
               <span class="door-flag">New: Typing Classroom</span>
               <h3><a class="door-link" href="typing/index.html"><span aria-hidden="true">⌨️</span> Typing Classroom</a></h3>
-              <p>Study guides, typing assignments, a speed test, and games you can play right in your browser.</p>
+              <p>Study guides, typing assignments, a speed test, and typing games you can play right in your browser.</p>
               <ul class="door-stats">
-                <li><b>9</b> games</li>
+                <li><b>5</b> games</li>
                 <li><b>7th</b> grade</li>
               </ul>
               <span class="door-btn">Enter the classroom</span>
@@ -295,6 +296,42 @@
                 <li><b>8th</b> grade</li>
               </ul>
               <span class="door-btn">Start practicing</span>
+            </div>
+          </article>
+          <article class="door door-arcade">
+            <div class="door-top">
+              <div class="door-window">
+                <svg viewBox="0 0 320 200" aria-hidden="true">
+                  <rect width="320" height="200" fill="#160f33"/>
+                  <text x="160" y="40" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="30" font-weight="600" fill="#fff" stroke="#ff4fa0" stroke-width="1.5" letter-spacing="3">ARCADE</text>
+                  <g transform="translate(60 54)">
+                    <path d="M0 146V20L10 0h60l10 20v126z" fill="#3fd0ff"/>
+                    <rect x="12" y="24" width="56" height="42" rx="4" fill="#0b0820"/>
+                    <rect x="20" y="40" width="10" height="10" fill="#3ee07a"/><path d="M38 58l10-18 10 18z" fill="#ffb02e"/>
+                    <rect x="6" y="76" width="68" height="16" fill="#2a2250"/>
+                    <circle cx="24" cy="80" r="5" fill="#ff4fa0"/><circle cx="48" cy="84" r="4" fill="#ffb02e"/><circle cx="60" cy="84" r="4" fill="#3ee07a"/>
+                  </g>
+                  <g transform="translate(180 54)">
+                    <path d="M0 146V20L10 0h60l10 20v126z" fill="#ff4fa0"/>
+                    <rect x="12" y="24" width="56" height="42" rx="4" fill="#0b0820"/>
+                    <circle cx="40" cy="45" r="9" fill="#ffd34a"/><path d="M40 45l12-6v12z" fill="#0b0820"/>
+                    <rect x="6" y="76" width="68" height="16" fill="#2a2250"/>
+                    <circle cx="24" cy="80" r="5" fill="#3fd0ff"/><circle cx="48" cy="84" r="4" fill="#ffb02e"/><circle cx="60" cy="84" r="4" fill="#3ee07a"/>
+                  </g>
+                </svg>
+              </div>
+              <p class="door-plate">Room 4</p>
+              <span class="door-knob" aria-hidden="true"></span>
+            </div>
+            <div class="door-body">
+              <span class="door-flag">New: the Arcade</span>
+              <h3><a class="door-link" href="arcade/index.html"><span aria-hidden="true">🕹️</span> Arcade</a></h3>
+              <p>Free-time games for when your work is done, like Blockhaven, Turbo League, and Hero Clash.</p>
+              <ul class="door-stats">
+                <li><b>5</b> games</li>
+                <li><b>Free</b> time</li>
+              </ul>
+              <span class="door-btn">Enter the arcade</span>
             </div>
           </article>
         </div>
@@ -525,6 +562,7 @@
           <li><a href="typing/index.html">Typing Games</a></li>
           <li><a href="science/index.html">Science Experiments</a></li>
           <li><a href="math/index.html">Pre-Algebra Help</a></li>
+          <li><a href="arcade/index.html">Arcade</a></li>
           <li><a href="ai-helper.html">AI Study Helper</a></li>
         </ul>
       </nav>
