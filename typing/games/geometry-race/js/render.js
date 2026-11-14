@@ -564,7 +564,13 @@
     const k = this.fx.reduced ? 0 : (t * 3) % 1;
     ctx.fillStyle = "rgba(255,255,255,.55)";
     for (let xx = x + k; xx < x + o.w; xx += 1) ctx.fillRect(xx, y, 0.25, o.h);
-    ctx.lineWidth = 2 * lw; ctx.strokeStyle = "#ffe0b0"; ctx.strokeRect(x, y, o.w, o.h);
+    // Jagged lightning edges on every side: it should never look like a ledge you can stand on.
+    const jt = this.fx.reduced ? 0 : Math.floor(t * 3);   // a slow crawl, never a flicker
+    ctx.beginPath();
+    for (let xx = x, k = 0; xx <= x + o.w + 0.001; xx += 0.25, k++) { const j = ((k + jt) % 2 ? 0.16 : 0); ctx.lineTo(xx, y + o.h + j); }
+    ctx.moveTo(x, y);
+    for (let xx = x, k = 0; xx <= x + o.w + 0.001; xx += 0.25, k++) { const j = ((k + jt) % 2 ? 0.16 : 0); ctx.lineTo(xx, y - j); }
+    ctx.lineWidth = 2.5 * lw; ctx.strokeStyle = "#fff3c4"; ctx.stroke();
     ctx.fillStyle = "#2a2230"; ctx.fillRect(x - 0.25, y - 0.15, 0.25, o.h + 0.3); ctx.fillRect(x + o.w, y - 0.15, 0.25, o.h + 0.3);
   };
   Renderer.prototype.drawShaft = function (ctx, o, x, y, lw) {

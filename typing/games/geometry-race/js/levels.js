@@ -407,7 +407,7 @@
     b.sps(J(127, 3), 3); b.sp(J(128.5));
     b.pad(X(130) + 1); b.blk(X(130) + 4.5, 0, 6, 3); b.sps(X(131) + 5, 2);
     b.orb(X(132) + 3, 2.6); b.sps(X(132) + 1.2, 5);
-    b.sps(J(135, 2), 2); b.sp(J(136)); b.sps(J(137, 3), 3);
+    b.sps(J(135, 2), 2); b.sp(J(136)); b.sps(J(137.5, 2), 2);
     b.blk(X(139) + 3, 0, 5, 1); b.blk(X(140) + 3, 0, 5, 2); b.blk(X(141) + 3, 0, 4, 3);
     b.sps(X(142) + 1.3, 5);
     b.sps(J(145, 2), 2); b.sp(J(146.5)); b.sps(J(148, 3), 3);
@@ -433,7 +433,7 @@
     b.mode(X(8) + 1, 1.5, "robot");
     b.blk(X(10) + 3, 0, 4, 1);
     b.blk(X(12) + 3, 0, 6, 3);
-    b.blk(X(14) + 4, 2.4, X(17) - X(14), 0.6);           // low roof: small hops only
+    b.blk(X(14) + 4, 3.1, X(17) - X(14), 0.6);           // low roof: small hops only (a normal quick tap fits)
     b.smalls(J(15), 1); b.smalls(J(16), 1);
     b.blk(X(18) + 3, 0, 4, 1); b.blk(X(19) + 3, 0, 4, 2); b.blk(X(20) + 3, 0, 4, 3);
     b.sps(X(21) + 1.6, 3);
@@ -458,14 +458,14 @@
       if (i % 2 === 0) b.haz(x, 0, 1, 4.4); else b.haz(x, 3.6, 1, 4.4);
     }
     b.token(X(52) + 4.5, 6.8);                // token 2: swoop high after the fast zigzag
-    b.haz(X(53) + 2, 0, 3, 3); b.haz(X(53) + 2, 6, 3, 2);
+    b.haz(X(53) + 2, 0, 3, 2.6); b.haz(X(53) + 2, 6.4, 3, 1.6);
     b.haz(X(55) + 2, 2, 3, 6); b.haz(X(56) + 4, 0, 3, 5.5);
     b.haz(X(58) + 2, 3.2, 2, 4.8); b.haz(X(59) + 2.6, 0, 2, 4.6);
     b.blk(X(61), 3.2, X(64) + 2 - X(61), 4.8);          // ceiling steps down for the robot portal
     b.mode(X(63), 1.5, "robot");
     // Mini robot under low roofs.
     b.size(X(66), 1.5, "mini");
-    b.blk(X(68), 1.9, X(74) - X(68), 0.6);
+    b.blk(X(68), 2.4, X(74) - X(68), 0.6);
     b.small(J(69)); b.small(J(70)); b.smalls(J(71, 2), 2); b.small(J(72.5));
     b.blk(X(75) + 2, 0, 3, 1); b.blk(X(76) + 2, 0, 3, 2);
     b.size(X(78), 1.5, "normal");
@@ -495,7 +495,7 @@
     b.sp(J(131)); b.sps(J(132, 3), 3);
     b.mode(X(134) + 1, 1.5, "robot");
     b.blk(X(136) + 3, 0, 5, 3); b.sps(X(137) + 3, 3); b.blk(X(138) + 2, 0, 4, 2);
-    b.blk(X(140) + 3, 2.3, X(143) - X(140), 0.7); b.small(J(141)); b.small(J(142));
+    b.blk(X(140) + 3, 3.1, X(143) - X(140), 0.7); b.small(J(141)); b.small(J(142));
     b.mode(X(145) + 1, 1.5, "cube");
     b.sps(J(148, 3), 3); b.pad(X(150) + 1); b.sps(X(150) + 3, 8);
     b.sps(J(155, 2), 2); b.sps(J(156, 3), 3); b.sp(J(158)); b.sps(J(160, 3), 3);
@@ -574,7 +574,7 @@
     b.mode(X(111), 1.5, "robot");
     // Robot.
     b.blk(X(114) + 3, 0, 5, 3); b.sps(X(115) + 3.5, 3);
-    b.blk(X(117) + 3, 2.3, X(120) - X(117), 0.7); b.small(J(118)); b.small(J(119));
+    b.blk(X(117) + 3, 3.1, X(120) - X(117), 0.7); b.small(J(118)); b.small(J(119));
     b.blk(X(121) + 3, 0, 4, 1); b.blk(X(122) + 3, 0, 4, 3); b.sps(X(123) + 2.2, 3);
     b.token(X(123) + 4, 6.4);                  // token 3: max-height robot jump off the tall block
     b.pad(X(126) + 1); b.blk(X(126) + 5, 0, 4, 4); b.sps(X(127) + 4, 3);
