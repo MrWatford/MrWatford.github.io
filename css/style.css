@@ -479,6 +479,8 @@ a:hover .go::after { transform: translateX(5px); }
   height: 12px;
   background: var(--green-700);
 }
+/* Keep hero content (title cards, etc.) painted above the chair rail */
+.scene-hero > .container { position: relative; }
 .scene-grid {
   position: relative;
   display: grid;
