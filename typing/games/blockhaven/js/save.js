@@ -8,6 +8,7 @@ import { SANDS_LANDMARK_LAYOUT } from "./hollow-sands-landmarks.js";
 import { OBSIDIAN_BADLANDS_LAYOUT } from "./obsidian-badlands.js";
 import { OBSIDIAN_VENT_LAYOUT } from "./obsidian-vent.js";
 import { SOLKARA_SCENERY_LAYOUT } from "./solkara-scenery.js";
+import { restoreWildlifeJournal } from "./wildlife-journal.js";
 export const SAVE_VERSION = 4;
 const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
@@ -212,6 +213,7 @@ function upgrade(w) {
   w.adv = w.adv && typeof w.adv === "object" ? { done: {}, prog: {}, ...w.adv } : { done: {}, prog: {} };
   w.story = w.story && typeof w.story === "object" ? w.story : {};
   validateLeviathan(w.story.leviathan);
+  if (Object.hasOwn(w.story, "wildlife")) w.story = { ...w.story, wildlife: restoreWildlifeJournal(w.story.wildlife) };
   if (w.player && w.player.sat === undefined) w.player.sat = 5;
   w.hardcore = !!w.hardcore; w.hardcoreOver = !!w.hardcoreOver;
   // version 3 → 4: Sparkworks (signal timers and comparator outputs live in each dimension as dims[dim].rs; nothing old needs changing)

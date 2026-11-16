@@ -9,6 +9,7 @@ import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
 import { HOLLOW_SANDS } from "./hollow-sands.js";
 import { hollowSandsMapHTML, mountHollowSandsMap } from "./hollow-sands-map.js";
 import { Cinema } from "./title-cinema.js";
+import { wildlifeJournalHTML } from "./wildlife-journal.js";
 import { sparkworksGuideHTML, bindSparkworksGuide } from "./sparkworks-guide.js";
 
 const $ = id => document.getElementById(id);
@@ -309,12 +310,17 @@ export const UI = {
       p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
       p.querySelectorAll("[data-trade]").forEach(b => b.onclick = ev => G.trade(panelCtx, +b.dataset.trade, ev.shiftKey));
     } else if (panelKind === "journal") {
-      // two adventures, one journal: a tab for each (it opens on the one you're in)
       const cpOn = G.campaign && G.campaign.on();
       if (!G.journalTab || (G.journalTab === "cp" && !cpOn)) G.journalTab = cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
-      const lost = G.journalTab === "lost", cp = G.journalTab === "cp", leviathan = G.journalTab === "leviathan", spark = G.journalTab === "spark";
-      const tabs = `<span class="jtabs">${cpOn ? `<button class="chip-btn ${cp ? "on" : ""}" data-jtab="cp">Campaign</button>` : ""}<button class="chip-btn ${!lost && !cp && !leviathan && !spark ? "on" : ""}" data-jtab="fw">Forsaken World</button><button class="chip-btn ${lost ? "on" : ""}" data-jtab="lost">Lost Civilization</button><button class="chip-btn ${leviathan ? "on" : ""}" data-jtab="leviathan">Leviathan</button><button class="chip-btn ${spark ? "on" : ""}" data-jtab="spark">Sparkworks</button></span>`;
-      p.innerHTML = `<div class="inv-card fw-card"><h3>Journal ${tabs} <span class="note" style="color:#444">Press J or Esc to close</span></h3>${spark ? sparkworksGuideHTML(G) : leviathan ? leviathanJournalHTML(G) : cp ? G.campaign.journalHTML() : lost ? G.lost.journalHTML() : G.forsaken.journalHTML()}</div>`;
+      const tab = G.journalTab;
+      const journalTabs = [...(cpOn ? [["cp", "Campaign"]] : []), ["fw", "Forsaken World"],
+        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"]];
+      const tabs = journalTabs.map(([key, name]) => `<button class="chip-btn ${tab === key ? "on" : ""}" data-jtab="${key}" aria-current="${tab === key ? "true" : "false"}">${name}</button>`).join("");
+      const page = tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) :
+        tab === "leviathan" ? leviathanJournalHTML(G) : tab === "cp" ? G.campaign.journalHTML() :
+        tab === "lost" ? G.lost.journalHTML() : G.forsaken.journalHTML();
+      p.innerHTML = `<div class="inv-card fw-card"><h3>Journal <button type="button" class="chip-btn" data-journal-close title="J or Esc">Close</button></h3><nav class="jtabs journal-tabs" aria-label="Journal sections">${tabs}</nav>${page}</div>`;
+      p.querySelector("[data-journal-close]").onclick = () => G.closePanel();
       p.querySelectorAll("[data-jtab]").forEach(b => b.onclick = () => { Sound.click(); G.journalTab = b.dataset.jtab; this.renderPanel(); });
       p.querySelectorAll("[data-solkara-sanctuary]").forEach(b => b.onclick = () => { Sound.click(); G.visitSolkaraSanctuary(); });
       p.querySelectorAll("[data-leviathan-storm-preview]").forEach(b => b.onclick = () => {
@@ -323,7 +329,7 @@ export const UI = {
       bindLeviathanBondControls(p, G, () => this.renderPanel(), () => Sound.click());
       bindSparkworksGuide(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
-      if (!lost && !cp && !leviathan && !spark) G.forsaken.drawMap($("fwMap"));
+      if (tab === "fw") G.forsaken.drawMap($("fwMap"));
       p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
         const record = SOLKARA_RECORDS[Number(b.dataset.solkaraRecord)];
         if (record && hasSolkaraRecord(G.story.leviathan, record)) this.openNote(record.title, record.text, false);

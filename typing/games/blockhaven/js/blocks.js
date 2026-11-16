@@ -7,6 +7,8 @@ import { drawLeviathanWeapon } from "./leviathan-weapon-art.js";
 import { drawLeviathanArmor } from "./leviathan-armor-art.js";
 import { LEVIATHAN_ARMOR_STYLE } from "./leviathan-armor-style.js";
 
+import { WILDLIFE_EGGS } from "./wildlife-catalog.js";
+
 export const CHUNK = 16, HEIGHT = 80, SEA = 30;
 
 export const B = {
@@ -85,7 +87,7 @@ export const I = {
   DUSK_HELMET: 376, DUSK_CHEST: 377, DUSK_LEGS: 378, DUSK_BOOTS: 379,
   DUSK_PICK: 380, DUSK_AXE: 381, DUSK_SHOVEL: 382, DUSK_SWORD: 383, DUSK_HOE: 384,
   EYE: 385, GLIDER: 386, SHELL: 387, CHORUS_FRUIT: 388, WYRM_SCALE: 389, JADE: 390, RADIANT_STAR: 391, SADDLE: 392,
-  SPAWN: 400,   // spawn eggs: 400 + index in SPAWN_EGGS
+  SPAWN: 400, SPAWN_OVERFLOW: 700,   // preserve the original egg range below the Fishing Rod
   FISHING_ROD: 500, RAW_MINNOW: 501, COOKED_MINNOW: 502, SUNFIN: 503, PUFFER: 504, INK_SAC: 505, BOAT: 506, BERRIES: 507,
   HONEYCOMB: 508, BOTTLE: 509, HONEY_BOTTLE: 510,
   SHIELD: 520, TOTEM: 521, GOLDEN_APPLE: 522, GOLDEN_CARROT: 523, COMPASS: 524,
@@ -668,7 +670,9 @@ SPAWN_EGGS.push(
 );
 // Glider Wings go in the chest armor slot: jump while falling to glide
 item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
-SPAWN_EGGS.forEach(([key, name, a, b], i) => item(I.SPAWN + i, name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
+SPAWN_EGGS.push(...WILDLIFE_EGGS);
+export const spawnEggId = index => index < I.FISHING_ROD - I.SPAWN ? I.SPAWN + index : I.SPAWN_OVERFLOW + index - (I.FISHING_ROD - I.SPAWN);
+SPAWN_EGGS.forEach(([key, name, a, b], i) => item(spawnEggId(i), name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
 export const ITEMS = items;
 export const itemDef = id => items[id];
 export const isBlockItem = id => id > 0 && id < 256;

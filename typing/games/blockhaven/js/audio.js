@@ -145,6 +145,67 @@ export const Sound = {
         this.tone(95 * r(), .95, "sawtooth", g(.055), -45);
         this.tone(142, .8, "triangle", g(.07), -60);
         break;
+      case "grizzly":
+        this.noise(310, 0.95, g(0.28), 0.9, "lowpass");
+        this.tone(118 * r(), 0.85, "sawtooth", g(0.065), -46);
+        this.tone(76, 0.75, "triangle", g(0.09), -21);
+        break;
+      case "lionroar":
+        this.tone(96 * r(), 1.05, "sawtooth", g(0.072), -53);
+        this.tone(181, 0.82, "triangle", g(0.055), -93);
+        this.noise(245, 1.05, g(0.22), 0.75, "lowpass");
+        break;
+      case "zebraalarm":
+        this.tone(440 * r(), 0.20, "triangle", g(0.12), 190);
+        this.tone(670, 0.35, "sawtooth", g(0.038), -310);
+        break;
+      case "sealcall":
+        this.tone(330 * r(), 0.43, "triangle", g(0.12), -140);
+        this.noise(830, 0.32, g(0.08), 2.2, "lowpass");
+        break;
+      case "walruswarn":
+        this.tone(128 * r(), 0.64, "sawtooth", g(0.06), -43);
+        this.noise(330, 0.7, g(0.16), 1.3, "lowpass");
+        break;
+      case "coastsplash":
+        this.noise(670, 0.36, g(0.13), 0.65, "lowpass");
+        break;
+      case "octopusink":
+        this.noise(560, 0.28, g(0.18), 0.5, "lowpass");
+        this.tone(280, 0.14, "sine", g(0.06), -160);
+        break;
+      case "rayglide":
+        this.noise(340, 0.58, g(0.11), 0.75, "lowpass");
+        break;
+      case "croclunge":
+        this.noise(410, 0.31, g(0.22), 0.9, "lowpass");
+        this.tone(74 * r(), 0.26, "sawtooth", g(0.05), -24);
+        break;
+      case "hippowarn":
+        this.tone(106 * r(), 0.69, "triangle", g(0.13), -54);
+        this.tone(210, 0.41, "sawtooth", g(0.042), -91);
+        this.noise(380, 0.63, g(0.12), 1.7, "lowpass");
+        break;
+      case "whalesong":
+        this.tone(52 * r(), 2.9, "sine", g(0.15), 18);
+        this.tone(111, 2.2, "triangle", g(0.07), -29);
+        this.tone(208, 1.7, "sine", g(0.035), -84);
+        break;
+      case "whalebreath":
+        this.noise(570, 0.95, g(0.24), 0.85, "lowpass");
+        break;
+      case "orcacall":
+        this.tone(790 * r(), 0.52, "sine", g(0.07), 630);
+        this.tone(1770, 0.19, "triangle", g(0.035), -410);
+        break;
+      case "sharkrush":
+        this.noise(340, 0.6, g(0.19), 0.65, "lowpass");
+        this.tone(95, 0.32, "sine", g(0.065), -45);
+        break;
+      case "eagle":
+        this.tone(1700 * r(), 0.22, "triangle", g(0.052), -620);
+        this.tone(2850 * r(), 0.16, "sine", g(0.032), -900);
+        break;
       case "blub": this.tone(260 * r(), 0.09, "sine", g(0.08), 220); break;
       case "buzz": this.tone(190 * r(), 0.5, "sawtooth", g(0.025), 15); break;
       case "yip": this.tone(900 * r(), 0.08, "triangle", g(0.06), 300); setTimeout(() => this.tone(1000 * r(), 0.07, "triangle", g(0.05), 200), 110); break;
