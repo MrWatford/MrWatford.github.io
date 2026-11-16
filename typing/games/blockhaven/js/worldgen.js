@@ -48,7 +48,7 @@ export class Generator {
     else if (h > SEA + 24 && mm > 0.4) biome = "mountain";
     else if (temp > 0.3 && moist < -0.05) biome = "sandy";
     else if (moist > 0.12) biome = temp < -0.15 ? "birch" : "forest";
-    return { h, biome, mm };
+    return { h, biome, mm, temperature: temp, moisture: moist };
   }
 
   // opts.version lets old worlds use new features only in places the player never changed

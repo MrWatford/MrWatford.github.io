@@ -5,7 +5,13 @@ import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAW
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
 import { installCreatures, animateCreature, thinkCreature, interactCreature, spawnCreatures } from "./creatures.js";
+import { installWildlife, spawnWildlife, thinkWildlife, animateWildlife, sharkWater, alertGrizzlyFamily } from "./wildlife.js";
 import { Sound } from "./audio.js";
+import { alertZebraHerd } from "./wildlife-grassland.js";
+import { alertWalrusColony } from "./wildlife-coast.js";
+import { reefWaterFit } from "./wildlife-reef.js";
+import { wetlandDepth } from "./wildlife-wetlands.js";
+import { marineWaterRoom } from "./wildlife-ocean.js";
 import { DUNE_SEGMENTS, DuneTrail, DunePose } from "./dune-leviathan.js?v=pose-2";
 import { animateDesertMob, installDesertMobs, spawnDesertMobs, thinkDesertMob } from "./desert-mobs.js";
 import { createLeviathanGlow } from "./leviathan-glow.js?v=charge-1";
@@ -1403,6 +1409,7 @@ const BESTIARY_ART = new Set([
 ]);
 
 installCreatures(SPECIES);
+installWildlife(SPECIES);
 for (const [id, def] of Object.entries(SPECIES)) if (def.expansion) BESTIARY_ART.add(id);
 for (const id of ["cow", "pig", "sheep", "rabbit", "chicken", "parrot", "sunfin"]) BESTIARY_ART.add(id);
 
@@ -1617,20 +1624,29 @@ export class Entity {
     this.baby = !!opts.baby; this.growT = opts.growT ?? (this.baby ? 300 : 0);
     this.size = opts.size || (SPECIES[sp].ai === "slime" ? [1, 2, 4][randi(0, 2)] : 1);
     this.tame = !!opts.tame;   // set before health, since tame pets have more
+    if (sp === "grizzly_bear") this.variant = opts.variant === 1 && !this.baby ? 1 : 0;
     this.hp = opts.hp ?? this.maxHp;
     this.breedCd = opts.breedCd || 0; this.love = 0; this.sheared = !!opts.sheared; this.eggT = opts.eggT ?? rand(300, 600);
     this.npc = opts.npc || null;   // a named campaign character (js/campaign.js): talks instead of trading, can't be hurt
     this.name = opts.name || null; this.persist = !!(this.def.animal || this.def.persist || this.tame || this.name || opts.persist);
+    if (this.def.wildlife && opts.ambient) this.persist = false;
     this.cid = opts.cid ?? null; this.phase = "circle"; this.phaseT = 8; this.ang = 0; this.open = 0;
-    // villagers: home, job site, trades used, restocks
-    this.home = opts.home || null; this.job = opts.job || null; this.uses = opts.uses || null; this.restockT = opts.restockT || 0; this.restockDay = opts.restockDay || 0; this.restocks = opts.restocks || 0;
+    // Wildlife territory and village home coordinates both use the saved home field.
+    this.home = opts.home || null;
+    if (this.def.wildlife) {
+      const valid = Array.isArray(opts.home) && opts.home.length === 3 && opts.home.every(Number.isFinite);
+      this.home = valid ? opts.home.slice() : [x, y, z];
+      this.wild = { phase: "patrol" };
+      if (sp === "grizzly_bear") this.den = valid && opts.den === true;
+    }
+    this.job = opts.job || null; this.uses = opts.uses || null; this.restockT = opts.restockT || 0; this.restockDay = opts.restockDay || 0; this.restocks = opts.restocks || 0;
     this.taskT = 0; this.task = "wander"; this.summonT = opts.summonT || 0;
     // pets and mounts
     this.tame = !!opts.tame; this.sitting = !!opts.sitting; this.saddled = !!opts.saddled; this.temper = opts.temper || 0; this.ridden = false;
     if (this.def.villager) { this.uses = this.uses || []; while (this.uses.length < (TRADES[this.def.prof] || []).length) this.uses.push(0); }   // older saves may have fewer trades
     this.barterT = 0;
     // wildlife: color variant, a Pouncer's trust and the item in its mouth, a Buzzer's pollen and hive
-    this.variant = opts.variant ?? (this.def.variants ? randi(0, this.def.variants.length - 1) : 0);
+    this.variant ??= opts.variant ?? this.def.defaultVariant ?? (this.def.variants ? randi(0, this.def.variants.length - 1) : 0);
     if (this.def.expansion) this.bestiary = { ...opts.bestiary };
     this.trust = !!opts.trust; this.held = opts.held || 0; this.pollen = !!opts.pollen; this.inHive = !!opts.inHive; this.stung = !!opts.stung; this.perched = 0;
     this.onGround = false; this.inWater = false; this.inLava = false; this.walkPhase = 0; this.hurtT = 0; this.iframes = 0;
@@ -1642,11 +1658,20 @@ export class Entity {
     this.leash = opts.leash || null; this.harmor = opts.harmor || 0; this.portalCd = opts.portalCd || 0;   // Milestone 14: lead, Trotter armor, portal rest
     this.fuel = opts.fuel || 0; this.pushX = opts.pushX || 0; this.pushZ = opts.pushZ || 0; this.riderUid = opts.riderUid || null; this.fuseT = opts.fuseT || 0; this.hopperOff = !!opts.hopperOff;
   }
-  get maxHp() { if (this.mutHp) return this.mutHp; if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
-  get scale() { return (this.def.scale || 1) * (this.grow || 1) * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
-  get w() { return this.def.w * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
-  get h() { return this.def.h * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
-  aabb(x = this.pos.x, y = this.pos.y, z = this.pos.z) { const r = this.w / 2; return [x - r, y, z - r, x + r, y + this.h, z + r]; }
+  get maxHp() { if (this.sp === "grizzly_bear") return this.baby ? 50 : this.variant === 1 ? 365 : this.def.hp; if (this.baby && this.def.babyHp) return this.def.babyHp; if (this.mutHp) return this.mutHp; if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
+  get wildlifeSize() { return this.sp === "grizzly_bear" && this.variant === 1 ? 1.08 : 1; }
+  get scale() { return (this.def.scale || 1) * this.wildlifeSize * (this.grow || 1) * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
+  get w() { return this.def.w * this.wildlifeSize * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
+  get h() { return this.def.h * this.wildlifeSize * (this.baby ? 0.5 : 1) * (this.def.ai === "slime" ? this.size * 0.52 : 1); }
+  aabb(x = this.pos.x, y = this.pos.y, z = this.pos.z) {
+    let rx = this.w / 2, rz = rx;
+    if (this.def.length) {
+      const long = this.def.length * (this.baby ? 0.25 : 0.5), sin = Math.abs(Math.sin(this.yaw)), cos = Math.abs(Math.cos(this.yaw));
+      rz = rx * sin + long * cos;
+      rx = rx * cos + long * sin;
+    }
+    return [x - rx, y, z - rz, x + rx, y + this.h, z + rz];
+  }
   get eyeY() { return this.pos.y + this.h * 0.85; }
   toJSON() {
     return { uid: this.uid, sp: this.sp, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), yaw: +this.yaw.toFixed(2), hp: this.hp,
@@ -1655,6 +1680,7 @@ export class Entity {
       tame: this.tame, sitting: this.sitting, saddled: this.saddled, temper: this.temper,
       ...(this.leash ? { leash: this.leash } : {}), ...(this.harmor ? { harmor: this.harmor } : {}), ...(this.portalCd > 0 ? { portalCd: Math.round(this.portalCd), persist: true } : {}),
       ...(this.def.expansion ? { bestiary: { ...this.bestiary, charge: 0, bounceUntil: 0 }, persist: this.persist } : {}),
+      ...(this.den && this.sp === "grizzly_bear" ? { den: true } : {}),
       variant: this.variant, trust: this.trust, held: this.held, pollen: this.pollen, inHive: this.inHive, stung: this.stung,
       ...(this.def.cart || this.inv ? { inv: this.inv ? this.inv.slots.map(q => q && { ...q }) : undefined, fuel: Math.round(this.fuel), pushX: this.pushX, pushZ: this.pushZ, riderUid: this.riderE && !this.riderE.dead ? this.riderE.uid : null, fuseT: this.fuseT, hopperOff: this.hopperOff } : {}) };
   }
@@ -1707,7 +1733,7 @@ export class Entities {
   }
   attachModel(e) {
     const def = e.def;
-    const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan;
+    const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife;
     if (!def.geos) makeSpecies(def, shaded);
     const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, vertexColors: shaded, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
     const root = new THREE.Group(), parts = {};
@@ -1963,6 +1989,7 @@ export class Entities {
     this.spawnTick(dt, daylight, camera);
     spawnCreatures(this, dt, daylight, SPECIES);
     spawnDesertMobs(this, dt);
+    spawnWildlife(this, dt, daylight);
     this.focus = null;
     for (const e of this.list) {
       if (e.gone) continue;
@@ -2240,24 +2267,38 @@ export class Entities {
     if (e.goal && !e.frozen) {
       const gx = e.goal.x - e.pos.x, gz = e.goal.z - e.pos.z, gl = Math.hypot(gx, gz);
       if (gl > 0.25) { mx = gx / gl; mz = gz / gl; speed = e.goal.speed || def.speed; e.yaw = turn(e.yaw, Math.atan2(-mx, -mz), dt * 8); }
-      else if (def.flies && e.goal.y !== undefined && Math.abs(e.goal.y - e.pos.y) > 0.4) { /* right above or below it: keep rising or sinking */ }
+      else if ((def.flies || def.amphibious && e.inWater) && e.goal.y !== undefined && Math.abs(e.goal.y - e.pos.y) > 0.4) { /* right above or below it: keep rising or sinking */ }
       else if (e.path && e.path.length) { e.path.shift(); if (e.path.length) e.goal = { ...e.path[0], speed: e.goal.speed }; else e.goal = null; }
       else e.goal = null;
     }
     if (e.baby) speed *= 1.1;
-    if (e.inWater || e.inLava) speed *= 0.5;
+    if (e.inLava || e.inWater && !def.amphibious) speed *= 0.5;
     const hopper = def.hops || e.def.ai === "slime";
     if (hopper && !e.onGround && !e.inWater) speed *= 1.2;
     if (hopper && e.onGround) speed = 0;   // slimes and rabbits only move while in the air
-    const grip = e.onGround ? 0.3 : 0.08;
+    const haulingOut = def.coastal && ["haulOut", "retreat", "defend"].includes(e.wild.phase);
+    const climbingBank = def.amphibious && speed > 0 && (haulingOut || e.wild.phase === "charge" || e.wild.phase === "lunge");
+    const waterLedge = climbingBank && !e.inWater && e.goal?.y >= e.pos.y - 0.18 &&
+      liquidAt(w, e.pos.x, e.pos.y - 0.62, e.pos.z) === "water";
+    const grip = e.onGround ? (e.sp === "seal" && e.wild.phase === "slide" ? 0.13 : 0.3) : 0.08;
     if (!e.knock || e.knock <= 0) { e.vel.x += (mx * speed - e.vel.x) * grip; e.vel.z += (mz * speed - e.vel.z) * grip; }
     else e.knock -= dt;
     if (def.flies && def.lands && !e.goal) {   // Chatterbirds flutter down and rest when they have nowhere to go
       e.vel.y = Math.max(e.vel.y - GRAV * 0.4 * dt, -2.5); e.vel.x *= 0.9; e.vel.z *= 0.9;
     } else if (def.flies) {   // flyers steer up and down toward their goal height
       const gy = e.goal && e.goal.y !== undefined ? e.goal.y : e.pos.y;
-      e.vel.y += (Math.max(-2, Math.min(2, (gy - e.pos.y) * 1.2)) - e.vel.y) * 0.1;
+      const up = e.sp === "bald_eagle" ? 4.8 : 2, down = e.wild?.phase === "dive" ? 8 : up;
+      e.vel.y += (Math.max(-down, Math.min(up, (gy - e.pos.y) * (down === 8 ? 2.6 : 1.2))) - e.vel.y) * 0.1;
       if (!e.goal) { e.vel.x *= 0.95; e.vel.z *= 0.95; }
+    } else if (def.amphibious && (e.inWater || waterLedge)) {
+      const sample = waterLedge ? { ...e.pos, y: e.pos.y - 0.72 } : e.pos;
+      const rest = wetlandDepth(w, sample, e.h);
+      const surface = rest + e.h * 0.93;
+      const ontoBank = climbingBank && e.goal?.y >= surface - 0.14;
+      const target = ontoBank ? Math.min(surface + 0.65, e.goal.y + 0.25) :
+        Math.min(rest + (climbingBank ? 1.2 : 0.03), e.goal?.y ?? rest);
+      const vy = Math.max(-2.2, Math.min(3.8, (target - e.pos.y) * 3.4));
+      e.vel.y += (vy - e.vel.y) * Math.min(1, dt * 8);
     } else if (e.inWater || e.inLava) { e.vel.y = Math.max(e.vel.y - GRAV * 0.25 * dt, -2) * 0.95; if (e.def.ai !== "slime") e.vel.y = Math.min(e.vel.y + 18 * dt, 2.2); }
     else { e.vel.y -= GRAV * dt; if (def.flutters && e.vel.y < -2.5) e.vel.y = -2.5; if (e.vel.y < -40) e.vel.y = -40; }
     if (e.wantJump && e.onGround) { e.vel.y = hopper ? (e.def.ai === "slime" ? (def.hopHigh ? 8 : 6) + e.size : 6) : 8.2; e.wantJump = false; }
@@ -2297,7 +2338,11 @@ export class Entities {
     if (e.hurtT > 0) e.hurtT -= dt;
     if (e.attackCd > 0) e.attackCd -= dt;
     // animals grow up, get hungry for love, lay eggs
-    if (e.baby && (e.growT -= dt) <= 0) e.baby = false;
+    if (e.baby && (e.growT -= dt) <= 0) {
+      const cubHealth = e.sp === "grizzly_bear" || e.def.babyHp ? e.hp / e.maxHp : null;
+      e.baby = false;
+      if (cubHealth !== null) e.hp = e.maxHp * cubHealth;
+    }
     if (e.breedCd > 0) e.breedCd -= dt;
     if (e.love > 0) e.love -= dt;
     if (e.sp === "chicken" && !e.baby && (e.eggT -= dt) <= 0) { e.eggT = rand(300, 600); ctx.drop(I.EGG, 1, e.pos.x, e.pos.y + 0.3, e.pos.z); Sound.mob("cluck", this.dist(e)); }
@@ -2317,13 +2362,36 @@ export class Entities {
       }
       const k = e.knock > 0 ? 0.02 : Math.min(1, dt * 3);
       e.vel.x += (tx * sp - e.vel.x) * k; e.vel.y += (ty * sp - e.vel.y) * k; e.vel.z += (tz * sp - e.vel.z) * k;
-      if (e.vel.y > 0 && liquidAt(w, e.pos.x, e.pos.y + e.h + 0.15, e.pos.z) !== "water") e.vel.y = 0;   // stay under the surface
-      if (Math.hypot(e.vel.x, e.vel.z) > 0.3) e.yaw = turn(e.yaw, Math.atan2(-e.vel.x, -e.vel.z), dt * 5);
+      if (!def.cetacean && e.vel.y > 0 && liquidAt(w, e.pos.x, e.pos.y + e.h + 0.15, e.pos.z) !== "water") e.vel.y = 0;   // stay under the surface
+      if (e.sp === "great_white_shark" && !sharkWater(w, e.pos.x + e.vel.x * dt, e.pos.y + e.vel.y * dt, e.pos.z + e.vel.z * dt)) {
+        if (sharkWater(w, e.pos.x, e.pos.y, e.pos.z)) {
+          e.vel.x = e.vel.y = e.vel.z = 0;
+          e.goal = null;
+        }
+      }
+      if (def.reefDweller &&
+          !reefWaterFit(w, def, e.pos.x + e.vel.x * dt, e.pos.y + e.vel.y * dt, e.pos.z + e.vel.z * dt, e.yaw) &&
+          reefWaterFit(w, def, e.pos.x, e.pos.y, e.pos.z, e.yaw)) {
+        e.vel.x = e.vel.y = e.vel.z = 0;
+        e.goal = null;
+      }
+      if (def.cetacean) {
+        const yaw = Math.hypot(e.vel.x, e.vel.z) > 0.3 ?
+          turn(e.yaw, Math.atan2(-e.vel.x, -e.vel.z), dt * (e.sp === "blue_whale" ? 1.35 : 2.8)) : e.yaw;
+        const surfacing = e.wild.phase === "surface" || e.wild.phase === "dive";
+        if (marineWaterRoom(w, def, e.pos.x + e.vel.x * dt, e.pos.y + e.vel.y * dt, e.pos.z + e.vel.z * dt, yaw, surfacing)) e.yaw = yaw;
+        else if (marineWaterRoom(w, def, e.pos.x, e.pos.y, e.pos.z, e.yaw, true)) {
+          // A surfaced whale can move down through the air-water boundary to dive.
+          const diving = e.vel.y < 0 && marineWaterRoom(w, def, e.pos.x, e.pos.y + e.vel.y * dt, e.pos.z, e.yaw, true);
+          e.vel.x = e.vel.z = 0;
+          if (!diving) { e.vel.y = 0; e.goal = null; }
+        }
+      } else if (Math.hypot(e.vel.x, e.vel.z) > 0.3) e.yaw = turn(e.yaw, Math.atan2(-e.vel.x, -e.vel.z), dt * 5);
     } else if (!e.inWater) {
       e.vel.y = Math.max(e.vel.y - GRAV * dt, -30); e.vel.x *= 0.98; e.vel.z *= 0.98;
       if (e.onGround) {
         e.vel.x *= 0.7; e.vel.z *= 0.7;
-        if (Math.random() < dt * 2) { e.vel.y = 4; e.vel.x = rand(-1.5, 1.5); e.vel.z = rand(-1.5, 1.5); }   // flop!
+        if (!def.cetacean && !def.reefDweller && e.sp !== "great_white_shark" && Math.random() < dt * 2) { e.vel.y = 4; e.vel.x = rand(-1.5, 1.5); e.vel.z = rand(-1.5, 1.5); }   // flop!
         e.dryT = (e.dryT || 0) + dt;
         if (e.dryT > (def.dryTime || 6) && (e.dryHurt = (e.dryHurt || 0) - dt) <= 0) { e.dryHurt = 1; this.damage(e, 1, null); }
       }
@@ -2417,6 +2485,7 @@ export class Entities {
     const w = this.world;
     for (let k = 0; k < 8; k++) {
       const x = e.pos.x + (dir ? dir.x * r : 0) + rand(-r, r) * (dir ? 0.4 : 1), z = e.pos.z + (dir ? dir.z * r : 0) + rand(-r, r) * (dir ? 0.4 : 1), y = e.pos.y + rand(-1.5, 1.5);
+      if (e.sp === "great_white_shark" && !sharkWater(w, x, y, z)) continue;
       if (w.id(Math.floor(x), Math.floor(y), Math.floor(z)) === B.WATER && w.id(Math.floor(x), Math.floor(y + e.h), Math.floor(z)) === B.WATER && lineOfSight(w, { x: e.pos.x, y: e.pos.y + e.h / 2, z: e.pos.z }, { x, y: y + e.h / 2, z })) {
         e.goal = { x, y, z, speed }; return true;
       }
@@ -2443,6 +2512,8 @@ export class Entities {
     }
     if (def.hostile && !def.boss && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
     if (thinkDesertMob(this, e, d, dmgMul)) return;
+    if (def.wildlife) return thinkWildlife(this, e, d, dmgMul, target =>
+      lineOfSight(w, { x: e.pos.x, y: e.eyeY, z: e.pos.z }, target), daylight);
     if (thinkCreature(this, e, daylight)) return;
     if (def.pet && e.tame) { if (!e.sitting && this.seekMate(e, d)) return; return this.thinkPet(e, d, dmgMul); }
     if (e.leviathanFlee?.until > e.age && !e.tame) {
@@ -3160,11 +3231,14 @@ export class Entities {
     if (e.def.static || e.def.object) knock = null;
     if (e.sp === "voidwalker" && attacker && attacker.projectile) { this.teleport(e); return false; }   // dodges arrows
     e.hp -= n; e.hurtT = 0.3; e.iframes = 0.5;
+    alertZebraHerd(this, e, attacker);
     if (e.sp === "ancient_companion") this.ctx.companionChanged(e);
     if (e.def.segmentedLeviathan) this.ctx.leviathanDamaged(e);
     if (knock) { e.vel.x = knock.x * 7; e.vel.z = knock.z * 7; e.vel.y = 4.5; e.knock = 0.25; }
     if (attacker === "player") {
       e.angry = 40; if (e.def.animal || (e.def.swims && e.def.ai !== "dolphin")) e.fleeT = 5;
+      alertGrizzlyFamily(this, e);
+      alertWalrusColony(this, e);
       // Rotboars, Boarkin, Scout packs, Splasher pods, and Buzzers defend each other
       if (e.def.ai === "rotboar" || e.def.ai === "boarkin" || ["brute", "scout", "dolphin", "bee"].includes(e.sp)) for (const o of this.near(e.pos.x, e.pos.y, e.pos.z, 20, o => o.sp === e.sp && !o.tame && !o.stung)) { o.angry = 40; o.inHive = false; }
     }
@@ -3181,6 +3255,7 @@ export class Entities {
     const ctx = this.ctx;
     if (e.encounterOwner) return;
     if (attacker === "player" && ctx.adv) ctx.adv("kill", e.sp);
+    if (attacker === "player" && e.def.wildlife) ctx.wildlifeDefeated?.(e);
     if (e.def.mutant && this.mutantKilled) this.mutantKilled(this, e, attacker);   // a longer fall, and the record in the journal
     if (e.sp === "crystal") { e.gone = true; ctx.crystalGone(e.cid); ctx.explode(e.pos.x, e.pos.y + 1, e.pos.z, 3, null); return; }
     if (e.sp === "pylon") { e.gone = true; ctx.pylonGone(e.cid); for (let k = 0; k < 3; k++) ctx.particles(e.pos.x, e.pos.y + 1 + k * 0.4, e.pos.z, "fire"); Sound.mob("crystal", 0); return; }
@@ -3603,6 +3678,7 @@ export class Entities {
       updateLeviathanHitVolumes(e);
       return;
     }
+    if (def.wildlife) return animateWildlife(e, dt, d2, this.ctx.reducedMotion?.());
     animateCreature(e);
     if (e.sp === "aquatic_guardian" || e.sp === "elder_guardian") {
       const charge = e.bestiary.charge || 0;

@@ -39,6 +39,8 @@ import { makeSolkaraGateView } from "./solkara-gate-view.js";
 import { createSolkaraMuralView } from "./solkara-mural-view.js";
 import { BURIED_THRONE, THRONE_ALTAR, THRONE_TABLET } from "./buried-throne.js";
 import { createAncientSpikes } from "./ancient-spikes.js";
+import { marineWaterRoom } from "./wildlife-ocean.js";
+import { markWildlifeDefeated, observeWildlife } from "./wildlife-journal.js";
 import { hasDesertRelic, recordLeviathanDiscovery } from "./leviathan-journal.js";
 import { ArenaFractures } from "./arena-fractures.js";
 import { solkaraRecordAt } from "./solkara-lore.js";
@@ -352,6 +354,10 @@ const guestFocus = () => ents.focus && ents.focus.mpId ? ents.focus : null;   //
 const ents = new Entities(scene, {
   world: () => G.world, player: () => ents.focus || G.player, settings: () => G.wset,
   creative: () => guestFocus() ? G.creative : G.creative || G.spectator, alive: () => guestFocus() ? !guestFocus().mpDead : G.state !== "dead",
+  wildlifeDefeated: e => {
+    if (guestFocus() || !wildlifeJournalActive()) return;
+    reportWildlifeDiscovery(markWildlifeDefeated(G.story, e, G.meta.day));
+  },
   desertContext: () => ({ dim: G.dim, storm: G.creative && creativeStormUntil > G.clock ? 0 : stormStage, sites: G.story.leviathan?.sites }),
   reducedMotion: () => G.settings.reducedMotion,
   scarabVaultDefeated: e => {
@@ -518,6 +524,14 @@ function pushEntities(cells, dir) {
 }
 function lookFacing() { const d = lookDir(); return Math.abs(d.x) > Math.abs(d.z) ? (d.x > 0 ? 1 : 3) : (d.z > 0 ? 0 : 2); }
 function puff(x, y, z, kind) {
+  if (kind === "whalespout") {
+    for (let j = 0; j < 10; j++) {
+      const angle = Math.random() * Math.PI * 2, scatter = Math.random() * 0.55;
+      emitParticle(x, y, z, Math.cos(angle) * scatter, 2.6 + Math.random() * 2.1,
+        Math.sin(angle) * scatter, 0.7 + Math.random() * 0.35, PUFF_COLORS.splash, true);
+    }
+    return;
+  }
   const c = PUFF_COLORS[kind] || [1, 1, 1], n = kind === "heart" ? 6 : kind === "spark" ? 3 : 14;
   for (let i = 0; i < n; i++) emitParticle(x + (Math.random() - 0.5) * 0.8, y + Math.random() * 0.6,
     z + (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 2, kind === "heart" ? 1.5 : Math.random() * 2,
@@ -1917,7 +1931,7 @@ function snapshot() {
     ...G.meta, mode: G.mode, version: SAVE_VERSION, played: Date.now(), time: G.time, day: G.meta.day || 1, tips: G.tips, mods: undefined, containers: undefined,
     player: { pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, health: p.health, hunger: p.hunger, sat: p.sat, exhaust: p.exhaust, spawn: p.spawn, anchor: p.anchor || null, flying: p.flying, dim: G.dim, effects: { ...G.effects }, elv: { ...G.elv }, absorb: G.absorb },
     inventory: G.inv.toJSON(), dims: { ...G.dimData }, xp: G.xp, settings: { ...G.wset }, gen: G.meta.gen || 1,
-    voidInv: G.voidInv.map(s => s && { ...s }), adv: Adv.toJSON(), story: copyAncientProgress(G.story), hardcore: !!G.meta.hardcore, hardcoreOver: !!G.meta.hardcoreOver, stats: { ...G.stats }
+    voidInv: G.voidInv.map(s => s && { ...s }), adv: Adv.toJSON(), story: { ...copyAncientProgress(G.story) }, hardcore: !!G.meta.hardcore, hardcoreOver: !!G.meta.hardcoreOver, stats: { ...G.stats }
   };
 }
 async function saveNow(show) {
@@ -2447,6 +2461,10 @@ function useWith(offhand) {
   if (sd.kind === "spawn" && hit) {
     const x = hit.x + hit.nx + 0.5, y = hit.y + hit.ny, z = hit.z + hit.nz + 0.5;
     const sp = sd.species === "villager" ? ["farmer", "fletcher", "shepherd", "cleric", "smith"][Math.floor(Math.random() * 5)] : sd.species;
+    if (SPECIES[sp]?.cetacean && !marineWaterRoom(w, SPECIES[sp], x, y, z, G.player.yaw)) {
+      UI.toast("Place this spawn egg on the floor of deep, open water.", "bad");
+      return true;
+    }
     if (G.guest) {   // Play Together: a friend's spawn egg works in the host's world (not for bosses or Leviathans)
       if (SPECIES[sp]?.boss || SPECIES[sp]?.segmentedLeviathan) { UI.toast("Only the host can use that egg while playing together."); return true; }
       MP.placeEntity(sp, x, y, z, G.player.yaw); puff(x, y + 0.5, z, "poof"); take(); G.hudDirty = true; return true;
@@ -2476,7 +2494,7 @@ function useWith(offhand) {
       }
       return true;
     }
-    ents.add(sp, x, y, z, sp === "blightking" ? { summonT: 10 } : sp === "golem" ? { home: [x, y, z] } : { persist: !!SPECIES[sp]?.expansion }); puff(x, y + 0.5, z, "poof");
+    ents.add(sp, x, y, z, sp === "blightking" ? { summonT: 10 } : sp === "golem" ? { home: [x, y, z] } : sp === "bald_eagle" ? { home: [x, Math.min(HEIGHT - 2, y + 6), z] } : SPECIES[sp]?.cetacean ? { yaw: G.player.yaw } : { persist: !!SPECIES[sp]?.expansion }); puff(x, y + 0.5, z, "poof");
     take(); G.hudDirty = true; return true;
   }
   if (sd.kind === "armor") {   // put it on
@@ -5552,7 +5570,10 @@ function updateBossBar(p) {
   const hb = CP.bossInfo() || F.bossInfo() || L.bossInfo() || MU.bossInfo();
   let boss = null, distance = Infinity;
   if (!hb) for (const e of ents.list) {
-    if (!e.def.boss || e.gone || e.tame || e.duneCycle?.preview ||
+    const grizzlyFight = e.sp === "grizzly_bear" && !e.baby && e.angry > 0 && !e.dead &&
+      e.wild.phase !== "patrol" && e.wild.phase !== "rest" && !G.creative && G.wset.difficulty !== "peaceful" &&
+      Math.hypot(e.pos.x - p.pos.x, e.pos.y - p.pos.y, e.pos.z - p.pos.z) < 22;
+    if ((!e.def.boss && !grizzlyFight) || e.gone || e.tame || e.duneCycle?.preview ||
         e.def.segmentedLeviathan && !e.emerged && !e.dead &&
         !(e.sp === "leviathan_dune" && e.duneCycle?.step === "rising")) continue;
     const d = (e.pos.x - p.pos.x) ** 2 + (e.pos.z - p.pos.z) ** 2;
@@ -5563,7 +5584,8 @@ function updateBossBar(p) {
   if (!visible) return;
   let label = hb?.label, frac = hb?.frac;
   if (!hb) {
-    label = boss.def.name + (boss.armored ? " (armored: arrows bounce off)" : "");
+    const bossName = boss.sp === "grizzly_bear" && boss.variant === 1 ? "Ancient Grizzly" : boss.def.name;
+    label = bossName + (boss.armored ? " (armored: arrows bounce off)" : "");
     if (boss.def.segmentedLeviathan) label += " • Phase " + (boss.sp === "leviathan_ancient" ? ancientPhase(boss) :
       boss.sp === "leviathan_obsidian" ? obsidianEncounterPhase(boss, G.story.leviathan?.obsidian) : dunePhase(boss.hp, boss.maxHp));
     if (boss.sp === "leviathan_obsidian" && G.story.leviathan?.obsidian?.ritualOffered)
@@ -5583,6 +5605,20 @@ function updateBossBar(p) {
   bossBar.classList.toggle("mutant", !!hb?.mutant);
   bossBar.classList.toggle("ember", boss?.sp === "cindermaw");
 }
+function wildlifeJournalActive() {
+  return G.dim === "overworld" && !G.creative && !G.spectator && !G.guest && G.state === "play";
+}
+function reportWildlifeDiscovery(name) {
+  if (name) UI.toast("Field Notes updated — " + name, "good");
+}
+function recordWildlifeSightings(p) {
+  if (!wildlifeJournalActive()) return;
+  const eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
+  const sightings = observeWildlife(G.story, ents.list, eye, lookDir(), G.meta.day,
+    point => lineOfSight(G.world, eye, point));
+  if (sightings.length) reportWildlifeDiscovery(sightings.join(", "));
+}
+
 // ---------- main loop ----------
 let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, stepSoundT = 0, leviathanJournalT = 0;
 function loop(now) {
@@ -5597,6 +5633,7 @@ function loop(now) {
     if ((leviathanJournalT -= dt) <= 0) {
       leviathanJournalT = 0.5;
       recordLeviathanDiscovery(G, stormStage);
+      recordWildlifeSightings(p);
       tickSolkaraSandfall();
     }
     G.time = (G.time + dt / DAY_LENGTH) % 1;

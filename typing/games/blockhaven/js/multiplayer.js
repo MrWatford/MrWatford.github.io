@@ -9,6 +9,7 @@
 // Stage 4: guests ride minecarts and boats (the host's world moves the real one), and the group travels together:
 //          when the host goes through a portal (Surface, Ember Depths, Hollow), everyone follows.
 // Full plan: MULTIPLAYER-PLAN.md.
+import { marineWaterRoom } from "./wildlife-ocean.js";
 import { randomName, randomCode, validName, tidyCode, CODE_RE } from "./mp-words.js";
 
 export const MP_PROTOCOL = 4;      // raise when messages change, so old and new games don't mix
@@ -517,8 +518,10 @@ function guestPlaces(from, m) {
   const def = SPECIES[m.sp], now = performance.now();
   if (!def || def.boss || def.segmentedLeviathan || ![m.x, m.y, m.z].every(Number.isFinite) || from.body.mpDead) return;
   if (now - (placeT.get(from.id) || 0) < 400 || !near(from, m.x, m.y, m.z, 7)) return;
+  const yaw = Number.isFinite(m.yaw) ? m.yaw : 0;
+  if (def.cetacean && !marineWaterRoom(G.world, def, m.x, m.y, m.z, yaw)) return;
   placeT.set(from.id, now);
-  ents.add(m.sp, m.x, m.y, m.z, m.sp === "golem" ? { home: [m.x, m.y, m.z] } : { yaw: Number.isFinite(m.yaw) ? m.yaw : 0, persist: !!def.expansion });
+  ents.add(m.sp, m.x, m.y, m.z, m.sp === "golem" ? { home: [m.x, m.y, m.z] } : { yaw, persist: !!def.expansion });
 }
 // The host went through a portal (or was carried somewhere far away): everyone follows
 async function hostMoved() {
