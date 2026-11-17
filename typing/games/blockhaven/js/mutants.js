@@ -32,23 +32,33 @@ const REACH_NOTES = {
 };
 
 // ---------- models ----------
-const GREEN = ["#5d8a3a", "#527d33", "#679844", "#4c742f"], DARKG = ["#3e5f27", "#36552226"], CLOTH = ["#2f6f93", "#2a6385", "#367ba2"], PANTS = ["#3b3566", "#332e5a", "#433d72"];
+const GREEN = ["#5d8a3a", "#527d33", "#679844", "#4c742f"], CLOTH = ["#2f6f93", "#2a6385", "#367ba2"], PANTS = ["#3b3566", "#332e5a", "#433d72"];
 const GLOW = "#a8ff5a", EYE = "#f0fff0";
-const spk = (P, n, c) => { for (let i = 0; i < n; i++) P.px(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), c[i % c.length]); };
+const pixels = (P, color, marks) => { for (const [x, y, w, h] of marks) P.rect(x, y, w, h, color); };
 const skin = (seed = 0) => P => {
-  P.fill(GREEN); spk(P, 7, ["#3e6326", "#78aa52", "#466b2c"]);
+  P.fill(GREEN);
+  pixels(P, "#43582d", [[0, 13, 16, 3], [0, 0, 2, 7], [10, 7, 3, 2]]);
+  pixels(P, "#859d58", [[2, 0, 8, 2], [12, 3, 2, 3]]);
   P.rect(2 + seed % 6, 4, 1, 5, "#2f4a1f"); P.rect(3 + seed % 6, 8, 1, 3, "#2f4a1f");   // cracks in the skin
-  if (seed % 3 === 1) P.rect(10, 11, 3, 2, "#5a2a2e");                                 // an old dark scar
+  if (seed % 3 === 1) {
+    pixels(P, "#382322", [[10, 11, 5, 2], [11, 10, 2, 4]]);
+    P.rect(11, 11, 3, 1, "#743c3b");
+  }
 };
 const shirt = torn => P => {
-  P.fill(CLOTH); spk(P, 6, ["#24577a", "#4a8db5"]);
+  P.fill(CLOTH);
+  pixels(P, "#244557", [[0, 0, 2, 16], [14, 4, 2, 12], [4, 8, 4, 2]]);
+  pixels(P, "#508797", [[2, 1, 10, 1], [8, 3, 3, 1]]);
+  if (torn) pixels(P, "#4c2a2d", [[5, 8, 4, 3], [6, 7, 2, 5]]);
   if (torn) for (let x = 0; x < 16; x++) { const cut = (x * 7) % 5; for (let y = 16 - cut; y < 16; y++) P.px(x, y, GREEN[(x + y) % 4]); }
   P.rect(5, 3, 2, 4, GREEN[0]); P.rect(11, 6, 3, 2, GREEN[2]);                           // holes torn in the cloth
 };
-const pants = P => { P.fill(PANTS); spk(P, 5, ["#2a2548", "#544c88"]); P.rect(3, 12, 4, 4, GREEN[1]); };
+const pants = P => { P.fill(PANTS); pixels(P, "#2a2548", [[0, 0, 2, 16], [11, 4, 3, 2], [6, 8, 5, 1]]); P.rect(3, 12, 4, 4, GREEN[1]); };
 const glowPaint = P => { P.fill([GLOW]); P.rect(0, 0, 16, 16, GLOW); };
 const eyePaint = P => { P.fill([EYE]); P.rect(4, 4, 8, 8, "#ffffff"); };
 const bone = P => { P.fill(["#d8d2bc", "#c8c0a8", "#e4dec8"]); P.rect(0, 0, 16, 3, "#a8a08a"); };
+const clearPaint = P => P.clear();
+const fissure = (color, marks) => P => { P.clear(); pixels(P, color, marks); };
 const pt = (name, size, pivot, off, paint, extra = {}) => ({ name, size, pivot, off, paint: typeof paint === "function" ? { all: paint } : paint, ...extra });
 
 // The Forsaken Groaner: a huge, lopsided green brute. One arm is far bigger than the other, its shirt hangs in rags,
@@ -65,24 +75,31 @@ function groanerParts() {
     pt("crackB", [8, 2, 1], [-8, -5, 10.3], [0, 0, 0], glowPaint, { parent: "body", glow: true }),
     pt("crackC", [1, 10, 2], [-17.2, 3, -2], [0, 0, 0], glowPaint, { parent: "body", glow: true }),
     pt("crackD", [2, 8, 1], [-5, 6, -10.3], [0, 0, 0], glowPaint, { parent: "body", glow: true }),
-    pt("spine0", [4, 11, 4], [-8, 10, -8], [0, 4, 0], bone, { parent: "body", rotation: [-0.7, 0, -0.35] }),
-    pt("spine1", [4, 14, 4], [1, 11, -8], [0, 5, 0], bone, { parent: "body", rotation: [-0.8, 0, 0.1] }),
-    pt("spine2", [3, 9, 3], [10, 9, -8], [0, 3, 0], bone, { parent: "body", rotation: [-0.6, 0, 0.45] }),
+    pt("spine0", [4, 11, 4], [-8, 10, -8], [0, 4, 0], bone, { parent: "body", rotation: [-0.7, 0, -0.35], taperTop: true }),
+    pt("spine1", [4, 14, 4], [1, 11, -8], [0, 5, 0], bone, { parent: "body", rotation: [-0.8, 0, 0.1], taperTop: true }),
+    pt("spine2", [3, 9, 3], [10, 9, -8], [0, 3, 0], bone, { parent: "body", rotation: [-0.6, 0, 0.45], taperTop: true }),
     pt("spine3", [3, 8, 3], [-3, 2, -10], [0, 3, 0], bone, { parent: "body", rotation: [-1.1, 0, 0] }),
     // a small head sunk low between the shoulders
-    pt("head", [14, 13, 13], [1, 8, 10], [0, 2, 3], { all: skin(4), front: P => { skin(0)(P); P.rect(0, 3, 16, 3, "#3e6326"); P.rect(2, 6, 4, 3, "#1c2a14"); P.rect(10, 6, 4, 3, "#1c2a14"); P.rect(4, 11, 8, 2, "#1c2a14"); } }, { parent: "body", rotation: [-0.35, 0, 0] }),
-    pt("eyeR", [3, 2, 1], [-3.8, 3.5, 6.6], [0, 0, 0], eyePaint, { parent: "head", glow: true }),
-    pt("eyeL", [3, 2, 1], [3.8, 3.5, 6.6], [0, 0, 0], eyePaint, { parent: "head", glow: true }),
-    pt("jaw", [12, 4, 10], [0, -5.5, 2], [0, -1.5, 2.5], { all: skin(5), front: P => { skin(5)(P); for (let x = 1; x < 16; x += 3) P.rect(x, 0, 1, 3, "#e4dec8"); } }, { parent: "head" }),
+    pt("head", [14, 13, 13], [1, 8, 10], [0, 2, 3], { all: skin(4), front: P => { skin(0)(P); 
+      pixels(P, "#343223", [[0, 0, 16, 2], [0, 2, 4, 2], [12, 2, 4, 1]]);
+      pixels(P, "#20251a", [[1, 3, 5, 4], [10, 3, 5, 4], [3, 11, 10, 4], [5, 10, 7, 1]]);
+      pixels(P, "#c6bfa0", [[4, 11, 1, 2], [7, 11, 2, 1], [11, 11, 1, 2], [9, 14, 1, 1]]);
+      P.rect(7, 6, 2, 3, "#819653");
+     } }, { parent: "body", rotation: [-0.35, 0, 0] }),
+    pt("eyeR", [3, 2, 1], [-3.8, 2.8, 6.52], [0, 0, 0], eyePaint, { parent: "head", glow: true }),
+    pt("eyeL", [3, 2, 1], [3.8, 2.8, 6.52], [0, 0, 0], eyePaint, { parent: "head", glow: true }),
+    pt("jaw", [12, 4, 10], [0, -5.5, 2], [0, -1.5, 2.5], { all: skin(5), front: P => { skin(5)(P); pixels(P, "#b8ac86", [[3, 0, 2, 2], [8, 0, 1, 1], [12, 0, 1, 2]]); } }, { parent: "head" }),
     // the huge right arm (shoulder hump, upper arm, forearm, fist) and the smaller left one
     pt("armR", [15, 22, 15], [-23, 44, 6], [0, -9, 0], { all: skin(1), top: shirt(false) }),
     pt("padR", [20, 13, 20], [0, 9, 0], [0, 0, 0], { all: P => { shirt(true)(P); P.rect(0, 10, 16, 6, GREEN[0]); }, top: skin(2) }, { parent: "armR" }),
+    pt("shardR", [3, 9, 3], [-4, 5, -4], [0, 3, 0], bone, { parent: "padR", rotation: [-0.38, 0, 0.42] }),
     pt("foreR", [14, 16, 14], [0, -11, 0], [0, -7, 0], skin(2), { parent: "armR" }),
     pt("fistR", [20, 15, 20], [0, -9, 0], [0, 0, 0], { all: skin(3), bottom: P => { skin(3)(P); P.rect(0, 0, 16, 4, "#3e5f27"); } }, { parent: "foreR" }),
     pt("crackR", [1, 11, 2], [-7.6, 2, 3], [0, 0, 0], glowPaint, { parent: "armR", glow: true }),
     pt("crackR2", [2, 1, 10], [0, 7.6, 2], [0, 0, 0], glowPaint, { parent: "fistR", glow: true }),
     pt("armL", [11, 19, 11], [20, 43, 6], [0, -8, 0], { all: skin(5), top: shirt(false) }),
     pt("padL", [14, 10, 14], [0, 8, 0], [0, 0, 0], { all: shirt(true), top: skin(4) }, { parent: "armL" }),
+    pt("shardL", [3, 7, 3], [3, 4, -3], [0, 2.5, 0], bone, { parent: "padL", rotation: [-0.4, 0, -0.45] }),
     pt("foreL", [10, 14, 10], [0, -9, 0], [0, -6, 0], skin(0), { parent: "armL" }),
     pt("fistL", [14, 12, 14], [0, -8, 0], [0, 0, 0], skin(4), { parent: "foreL" })
   ];
@@ -92,44 +109,55 @@ function groanerParts() {
 // glowing heart inside), long oversized arms, a bone blade on its right forearm, bone spikes on its shoulders and
 // back, white glowing eyes, a big dark bow with bone tips and a glowing string, and a quiver on its back.
 const BONE = ["#d8d2bc", "#c8c0a8", "#e4dec8", "#cfc8b2"], PALE = "#e8f4ff";
-const boneP = P => { P.fill(BONE); spk(P, 5, ["#a8a08a", "#f0ecdc"]); P.rect(0, 0, 16, 1, "#a8a08a"); P.rect(0, 15, 16, 1, "#a8a08a"); };
+const boneP = P => { P.fill(BONE); pixels(P, "#f0ecdc", [[2, 2, 8, 1], [2, 3, 2, 4]]); P.rect(0, 0, 16, 1, "#a8a08a"); P.rect(0, 15, 16, 1, "#a8a08a"); };
 const crackedBone = P => { boneP(P); P.rect(4, 3, 1, 6, "#8a8270"); P.rect(5, 8, 1, 4, "#8a8270"); P.rect(10, 10, 3, 1, "#8a8270"); };
-const ribsP = P => { P.clear(); for (let y = 0; y < 16; y += 3) P.rect(0, y, 16, 2, BONE[y % 4]); P.rect(7, 0, 2, 16, "#c8c0a8"); spk(P, 4, ["#a8a08a"]); };
+const vertebrae = P => { crackedBone(P); for (const y of [3, 7, 11]) P.rect(0, y, 16, 1, "#837665"); };
 const paleGlow = P => { P.fill([PALE]); P.rect(0, 0, 16, 16, PALE); };
 const wood = P => { P.fill(["#3a2a24", "#2e221e", "#463228"]); P.rect(0, 0, 16, 2, "#5a4232"); };
 function rattlerParts() {
   const parts = [
     pt("pelvis", [16, 6, 8], [0, 35, 0], [0, 0, 0], crackedBone),
     pt("spine", [5, 13, 5], [0, 37, -1], [0, 6.5, 0], boneP),
-    pt("ribs", [25, 17, 13], [0, 48, 0], [0, 8, 0], { all: ribsP, top: crackedBone, bottom: crackedBone }, { rotation: [0.14, 0, 0] }),
+    pt("ribs", [5, 17, 5], [0, 48, 0], [0, 8, 0], vertebrae, { rotation: [0.14, 0, 0] }),
     pt("heart", [5, 5, 4], [0, 1, 0], [0, 0, 0], paleGlow, { parent: "ribs", glow: true }),
     pt("spikeR", [4, 13, 4], [-11, 7, 0], [0, 4, 0], crackedBone, { parent: "ribs", rotation: [0, 0, 0.55] }),
     pt("spikeL", [4, 13, 4], [11, 7, 0], [0, 4, 0], crackedBone, { parent: "ribs", rotation: [0, 0, -0.55] }),
     pt("back0", [2, 9, 2], [-3, 3, -5.5], [0, 3, 0], boneP, { parent: "ribs", rotation: [-0.8, 0, 0] }),
     pt("back1", [2, 7, 2], [3, -2, -5.5], [0, 3, 0], boneP, { parent: "ribs", rotation: [-0.9, 0, 0] }),
     pt("quiver", [6, 17, 5], [5, -1, -8], [0, 0, 0], { all: wood, top: P => { P.fill(["#2e221e"]); P.rect(2, 2, 3, 3, PALE); P.rect(9, 6, 3, 3, PALE); P.rect(5, 10, 3, 3, PALE); } }, { parent: "ribs", rotation: [0, 0, 0.35] }),
-    pt("head", [13, 13, 13], [0, 9.5, 1], [0, 6.5, 1], { all: crackedBone, front: P => { crackedBone(P); P.rect(2, 5, 5, 4, "#1a1814"); P.rect(9, 5, 5, 4, "#1a1814"); P.rect(7, 9, 2, 2, "#1a1814"); P.rect(3, 13, 10, 1, "#1a1814"); } }, { parent: "ribs", rotation: [-0.14, 0, 0] }),
+    pt("head", [13, 13, 13], [0, 9.5, 1], [0, 6.5, 1], { all: crackedBone, front: P => { crackedBone(P); P.rect(2, 5, 5, 4, "#1a1814"); P.rect(9, 5, 5, 4, "#1a1814"); P.rect(7, 9, 2, 2, "#1a1814"); P.rect(3, 12, 10, 4, "#1a1814");
+      pixels(P, "#e5dfca", [[4, 12, 1, 2], [6, 12, 1, 1], [8, 12, 1, 2], [11, 12, 1, 1]]); } }, { parent: "ribs", rotation: [-0.14, 0, 0] }),
     pt("crest", [2, 5, 9], [0, 6.5, -1], [0, 2, 0], crackedBone, { parent: "head" }),
     pt("eyeR", [3, 2, 1], [-3.5, 0.8, 6.6], [0, 0, 0], paleGlow, { parent: "head", glow: true }),
     pt("eyeL", [3, 2, 1], [3.5, 0.8, 6.6], [0, 0, 0], paleGlow, { parent: "head", glow: true }),
     pt("jaw", [11, 3, 9], [0, -6.5, 1.5], [0, -1.5, 1.5], { all: boneP, front: P => { boneP(P); for (let x = 1; x < 16; x += 3) P.rect(x, 0, 1, 4, "#f4f0e4"); } }, { parent: "head" })
   ];
+
+  for (let i = 0; i < 4; i++) {
+    const width = 24 - i * 2, y = 6 - i * 4;
+    parts.push(
+      pt("ribBack" + i, [width, 2, 2], [0, y, -3.5], [0, 0, 0], boneP, { parent: "ribs" }),
+      pt("ribR" + i, [2, 2.2, 8], [-width / 2 + 1, y - 0.4, 0], [0, 0, 0], boneP, { parent: "ribs", rotation: [0, 0.15, 0] }),
+      pt("ribL" + i, [2, 2.4, 8], [width / 2 - 1, y - 0.4, 0], [0, 0, 0], boneP, { parent: "ribs", rotation: [0, -0.15, 0] }),
+      pt("ribFront" + i, [width - 2, 2.1, 2.4], [0, y - 0.9, 4.3], [0, 0, 0], crackedBone, { parent: "ribs" }));
+  }
+  for (let i = 0; i < 3; i++) parts.push(pt("arrow" + i, [1.5, 7 + i * 2, 1.5], [-1.6 + i * 1.6, 10, i % 2 ? 1 : -1], [0, 1, 0], boneP, { parent: "quiver", rotation: [0.2, 0, 0.12 * (i - 1)] }));
   for (const [s, sign] of [["R", -1], ["L", 1]]) parts.push(
     pt("leg" + s, [5, 16, 5], [sign * 5, 34, 0], [0, -8, 0], crackedBone),
-    pt("shin" + s, [5, 17, 5], [0, -8, 0], [0, -8.5, 0], boneP, { parent: "leg" + s }),
+    pt("shin" + s, [4.4, 17, 4.6], [0, -8, 0], [0, -8.5, 0], boneP, { parent: "leg" + s }),
     pt("foot" + s, [6, 2, 8], [0, -8.5, 1], [0, 0, 1], boneP, { parent: "shin" + s }),
     pt("arm" + s, [6, 22, 6], [sign * 16, 64, 0], [0, -10, 0], crackedBone),
     pt("pad" + s, [10, 7, 10], [0, 9, 0], [0, 0, 0], crackedBone, { parent: "arm" + s }),
-    pt("fore" + s, [5, 20, 5], [0, -10, 0], [0, -9, 0], boneP, { parent: "arm" + s }),
+    pt("fore" + s, [4.8, 20, 4.4], [0, -10, 0], [0, -9, 0], boneP, { parent: "arm" + s }),
     pt("hand" + s, [6, 6, 6], [0, -9.5, 0], [0, -2, 0], boneP, { parent: "fore" + s }));
   parts.push(
     pt("blade", [2, 14, 3], [-2.5, -3, 0], [0, -5, 0], crackedBone, { parent: "foreR", rotation: [0, 0, 0.12] }),
     // the bow (held in the left hand; its limbs run along the hand's z so it stands upright when aimed)
-    pt("bowU", [2, 3, 20], [0, -2, 0], [0, 0, 10], wood, { parent: "handL", rotation: [0.18, 0, 0] }),
-    pt("bowD", [2, 3, 20], [0, -2, 0], [0, 0, -10], wood, { parent: "handL", rotation: [-0.18, 0, 0] }),
+    pt("bowU", [2, 3, 20], [0, -2, 0], [0, 0, 10], wood, { parent: "handL", rotation: [0.39, 0, 0] }),
+    pt("bowD", [2, 3, 20], [0, -2, 0], [0, 0, -10], wood, { parent: "handL", rotation: [-0.39, 0, 0] }),
     pt("tipU", [3, 3, 4], [0, 0, 10], [0, 0, 1], boneP, { parent: "bowU" }),
     pt("tipD", [3, 3, 4], [0, 0, -10], [0, 0, -1], boneP, { parent: "bowD" }),
-    pt("string", [1, 1, 38], [0, 2.5, 0], [0, 0, 0], paleGlow, { parent: "handL", glow: true }));
+    pt("string", [0.7, 0.7, 40], [0, -9.8, 0], [0, 0, 0], paleGlow, { parent: "handL", glow: true }));
   return parts;
 }
 
@@ -137,7 +165,7 @@ function rattlerParts() {
 // crimson glowing fissures, spikes and plates, six red glowing eyes, curved fangs, eight thick jointed legs, and
 // silk strands trailing from its spinnerets.
 const CHAR = ["#33333b", "#3b3b44", "#2a2a31", "#44444d"], CRIM = "#ff3040";
-const shell = P => { P.fill(CHAR); spk(P, 8, ["#18181c", "#44444c"]); };
+const shell = P => { P.fill(CHAR); pixels(P, "#202028", [[0, 9, 3, 7], [11, 9, 5, 7]]); pixels(P, "#504553", [[2, 2, 8, 1], [3, 3, 3, 2]]); };
 const plates = P => { shell(P); P.rect(0, 5, 16, 1, "#141418"); P.rect(0, 11, 16, 1, "#141418"); P.rect(5, 0, 1, 16, "#141418"); };
 const redGlow = P => { P.fill([CRIM]); P.rect(0, 0, 16, 16, CRIM); };
 const silkP = P => { P.fill(["#e8e8f0"]); P.rect(0, 0, 16, 16, "#f0f0f8"); };
@@ -145,27 +173,31 @@ function skitterParts() {
   const parts = [
     pt("thorax", [18, 12, 16], [0, 14, 4], [0, 0, 0], plates),
     pt("head", [14, 10, 10], [0, 1, 8], [0, 0, 5], { all: shell, front: P => { shell(P); P.rect(0, 0, 16, 2, "#141418"); } }, { parent: "thorax" }),
-    pt("fangR", [2, 7, 2], [-3, -4, 4.5], [0, -3, 0], { all: P => { P.fill(["#2a2a30"]); P.rect(0, 10, 16, 6, "#c8c0b0"); } }, { parent: "head", rotation: [0.2, 0, 0.15] }),
-    pt("fangL", [2, 7, 2], [3, -4, 4.5], [0, -3, 0], { all: P => { P.fill(["#2a2a30"]); P.rect(0, 10, 16, 6, "#c8c0b0"); } }, { parent: "head", rotation: [0.2, 0, -0.15] }),
+    pt("fangR", [2, 7, 2], [-3, -4, 4.5], [0, -3, 0], { all: P => { P.fill(["#2a2a30"]); P.rect(0, 10, 16, 6, "#e4d3af"); } }, { parent: "head", rotation: [0.2, 0, 0.15] }),
+    pt("fangL", [2, 7, 2], [3, -4, 4.5], [0, -3, 0], { all: P => { P.fill(["#2a2a30"]); P.rect(0, 10, 16, 6, "#e4d3af"); } }, { parent: "head", rotation: [0.2, 0, -0.15] }),
+    pt("mandibleR", [2, 6, 2], [-5.1, -3.7, 4.4], [0, -2, 0.7], shell, { parent: "head", rotation: [0.3, 0, -0.28] }),
+    pt("mandibleL", [2, 6, 2], [5.1, -3.7, 4.4], [0, -2, 0.7], shell, { parent: "head", rotation: [0.3, 0, 0.28] }),
     pt("abdomen", [26, 18, 30], [0, 17, -4], [0, 2, -15], { all: plates, top: P => { plates(P); P.rect(7, 0, 2, 16, "#141418"); } }, { rotation: [-0.25, 0, 0] }),
     pt("plateA", [22, 3, 9], [0, 10.5, 4], [0, 0, 0], plates, { parent: "abdomen" }),
     pt("plateB", [20, 3, 9], [0, 10.5, -6], [0, 0, 0], plates, { parent: "abdomen" }),
-    pt("fis0", [2, 1, 26], [0, 12.1, -1], [0, 0, 0], redGlow, { parent: "abdomen", glow: true }),
-    pt("fis1", [16, 1, 2], [0, 12.1, -1], [0, 0, 0], redGlow, { parent: "abdomen", glow: true }),
+
+    pt("carapaceVeins", [24, 0.2, 27], [0, 12.18, 0], [0, 0, 0], {
+      all: clearPaint, top: fissure(CRIM, [[7, 0, 1, 5], [7, 4, 3, 1], [9, 4, 1, 6], [9, 9, 3, 1],
+        [11, 9, 1, 5], [11, 13, 2, 1], [12, 13, 1, 3], [4, 5, 1, 3], [4, 7, 6, 1], [10, 11, 5, 1]])
+    }, { parent: "abdomen", glow: true }),
     pt("fis2", [1, 12, 1], [-13.2, 0, 4], [0, 0, 0], redGlow, { parent: "abdomen", glow: true }),
     pt("fis3", [1, 10, 1], [13.2, 1, -6], [0, 0, 0], redGlow, { parent: "abdomen", glow: true }),
     pt("fis4", [10, 1, 1], [-3, -3, -15.2], [0, 0, 0], redGlow, { parent: "abdomen", glow: true }),
-    pt("fis5", [1, 1, 12], [-8, 12.1, 3], [0, 0, 0], redGlow, { parent: "abdomen", glow: true, rotation: [0, 0.5, 0] }),
-    pt("fis6", [1, 1, 12], [8, 12.1, -6], [0, 0, 0], redGlow, { parent: "abdomen", glow: true, rotation: [0, -0.5, 0] }),
     pt("fis7", [8, 1, 1], [0, 2, 8.2], [0, 0, 0], redGlow, { parent: "thorax", glow: true }),
     pt("spin", [6, 4, 4], [0, -4, -16], [0, 0, 0], shell, { parent: "abdomen" })
   ];
   for (let i = 0; i < 4; i++) parts.push(pt("spk" + i, [3, 7, 3], [(i % 2 ? 6 : -6), 12, 9 - i * 6], [0, 2, 0], { all: P => { P.fill(["#1a1a1e"]); P.rect(0, 0, 16, 5, "#4a1a20"); } }, { parent: "abdomen", rotation: [-0.4, 0, i % 2 ? -0.3 : 0.3] }));
-  for (let i = 0; i < 3; i++) parts.push(pt("silk" + i, [1, 12, 1], [-3 + i * 3, -2, -16], [0, -6, 0], silkP, { parent: "abdomen", glow: true }));
+  for (let i = 0; i < 3; i++) parts.push(pt("silk" + i, [1, 12, 1], [-3 + i * 3, -2, -16], [0, -6, 0], silkP, { parent: "abdomen", rotation: [0.22 + i * 0.1, 0, (i - 1) * 0.24] }));
   for (const [ex, ey, sz] of [[-4, 2, 3], [4, 2, 3], [-2, 3.8, 2], [2, 3.8, 2], [-5.6, 0, 2], [5.6, 0, 2]]) parts.push(pt("eye" + ex + "_" + ey, [sz, sz, 1], [ex, ey, 5.3], [0, 0, 0], redGlow, { parent: "head", glow: true }));
   for (const s of [-1, 1]) for (let i = 0; i < 4; i++) {
     const up = "lu" + (s > 0 ? "L" : "R") + i, lo = "ll" + (s > 0 ? "L" : "R") + i;
     parts.push(pt(up, [24, 5, 5], [s * 8, 14, 9 - i * 5], [s * 12, 0, 0], { all: plates, top: P => { plates(P); P.rect(0, 7, 16, 1, "#4a1a20"); } }, { rotation: [0, -s * (0.7 - i * 0.45), s * 0.55], leg: { s, i } }),
+      pt("knee" + up, [6.3, 6.4, 6.2], [s * 10.8, 0, 0], [0, 0, 0], { all: plates, top: P => { plates(P); P.rect(2, 7, 11, 2, "#aa3441"); } }, { parent: up, rotation: [0, 0, -s * 0.2] }),
       pt(lo, [4, 27, 4], [s * 12, 0, 0], [0, -12, 0], { all: shell, bottom: P => { P.fill(["#141418"]); } }, { parent: up, rotation: [0, 0, -s * 0.3] }));
   }
   return parts;
@@ -174,57 +206,80 @@ function skitterParts() {
 // The Forsaken Hisser: a huge, four-legged mutated Hisser. A jagged green body cracked with glowing green fissures,
 // an unstable pulsing core in its chest, blackened legs, stone-like spikes, a hollow-eyed face, and toxic drips.
 const HG = ["#4f8a32", "#5c9a3a", "#447a2a", "#68a844"], TOX = "#9cff3a";
-const hissSkin = seed => P => { P.fill(HG); spk(P, 10, ["#2e5a1c", "#78b850", "#3a6a24"]); P.rect(2 + seed % 7, 2, 1, 7, "#24401a"); P.rect(9 - seed % 4, 9, 4, 1, "#24401a"); };
-const charred = P => { P.fill(["#1c1f1a", "#252a22", "#161914"]); spk(P, 5, ["#2e3a26", "#0e100c"]); };
+const hissSkin = seed => P => {
+  P.fill(HG);
+  const x = 2 + seed % 5;
+  pixels(P, "#2b4c22", [[0, 11, 4, 5], [0, 14, 16, 2], [x, 1, 2, 5], [x + 1, 5, 4, 2], [x + 4, 6, 2, 4]]);
+  pixels(P, "#76a84c", [[x + 2, 1, 2, 4], [x + 5, 5, 2, 2], [12, 10, 4, 2]]);
+};
+const charred = P => { P.fill(["#1c1f1a", "#252a22", "#161914"]); pixels(P, "#344426", [[1, 1, 10, 2], [7, 3, 3, 2], [0, 5, 2, 4]]); };
 const toxGlow = P => { P.fill([TOX]); P.rect(0, 0, 16, 16, TOX); };
 function hisserParts() {
   const parts = [
     pt("body", [24, 22, 20], [0, 12, 0], [0, 11, 0], { all: hissSkin(1), front: hissSkin(4), back: hissSkin(6) }),
+    pt("toxicVeins", [23.8, 21.8, 0.2], [0, 0, 10.12], [0, 0, 0], {
+      all: clearPaint, front: fissure(TOX, [[3, 0, 1, 4], [1, 3, 3, 1], [1, 3, 1, 6], [1, 8, 4, 1],
+        [4, 8, 1, 5], [4, 12, 2, 1], [5, 12, 1, 4], [12, 1, 2, 1], [13, 1, 1, 5], [11, 5, 3, 1],
+        [12, 10, 1, 5], [12, 14, 4, 1], [15, 14, 1, 2]])
+    }, { parent: "body", glow: true }),
     pt("core", [9, 9, 2], [0, 1, 10.2], [0, 0, 0], { all: P => { P.fill(["#c8ff6a"]); P.rect(3, 3, 10, 10, "#f0ffc0"); P.rect(6, 6, 4, 4, "#ffffff"); } }, { parent: "body", glow: true }),
-    pt("fisA", [1, 18, 1], [-8, 1, 10.2], [0, 0, 0], toxGlow, { parent: "body", glow: true }),
-    pt("fisB", [1, 14, 1], [7.5, -3, 10.2], [0, 0, 0], toxGlow, { parent: "body", glow: true }),
     pt("fisC", [1, 16, 1], [12.2, 0, 2], [0, 0, 0], toxGlow, { parent: "body", glow: true }),
     pt("fisD", [1, 12, 1], [-12.2, 3, -3], [0, 0, 0], toxGlow, { parent: "body", glow: true }),
     pt("fisE", [12, 1, 1], [0, 6, -10.2], [0, 0, 0], toxGlow, { parent: "body", glow: true }),
-    pt("head", [18, 16, 16], [0, 10, 3], [0, 8, 1], { all: hissSkin(3), front: P => { hissSkin(2)(P); P.rect(2, 3, 4, 5, "#0c1408"); P.rect(10, 3, 4, 5, "#0c1408"); P.rect(6, 8, 4, 3, "#0c1408"); P.rect(4, 11, 2, 3, "#0c1408"); P.rect(10, 11, 2, 3, "#0c1408"); P.rect(6, 12, 4, 2, "#0c1408"); } }, { parent: "body" }),
-    pt("eyeR", [3, 3, 1], [-4.5, 4, 8.2], [0, 0, 0], toxGlow, { parent: "head", glow: true }),
-    pt("eyeL", [3, 3, 1], [4.5, 4, 8.2], [0, 0, 0], toxGlow, { parent: "head", glow: true })
+    pt("head", [18, 16, 16], [0, 10, 3], [0, 8, 1], { all: hissSkin(3), front: P => { hissSkin(2)(P); 
+      pixels(P, "#0c1408", [[1, 3, 5, 4], [10, 3, 5, 4], [6, 7, 4, 3], [3, 10, 10, 3], [3, 13, 3, 2], [10, 13, 3, 2]]);
+     } }, { parent: "body" }),
+    pt("eyeR", [2.2, 1.7, 1], [-4.8, 3, 8.08], [0, 0, 0], toxGlow, { parent: "head", glow: true }),
+    pt("eyeL", [2.2, 1.7, 1], [4.8, 3, 8.08], [0, 0, 0], toxGlow, { parent: "head", glow: true })
   ];
   for (let i = 0; i < 3; i++) parts.push(pt("drip" + i, [2, 5, 2], [-5 + i * 5, -8, 7.5], [0, -2.5, 0], toxGlow, { parent: "head", glow: true }));
   const jag = [[-8, 10, -4, 0.4, 0.3], [7, 10, 3, -0.3, -0.4], [0, 10, -7, -0.5, 0], [10, 4, -8, -0.6, -0.6], [-10, 0, -8, -0.6, 0.6], [-4, 10, 4, 0.2, 0.3]];
   jag.forEach(([x, y, z, rx, rz], i) => parts.push(pt("jag" + i, [5, 11, 5], [x, y, z], [0, 3, 0], charred, { parent: i < 4 ? "body" : "head", rotation: [rx, 0, rz] })));
   for (const [n, x, z] of [["legFR", -10, 7], ["legFL", 10, 7], ["legBR", -10, -7], ["legBL", 10, -7]])
-    parts.push(pt(n, [9, 14, 9], [x, 13, z], [0, -6.5, 0], { all: charred, top: hissSkin(5) }, { rotation: [z > 0 ? -0.3 : 0.3, 0, x > 0 ? -0.32 : 0.32] }));
+    parts.push(
+      pt(n, [9, 14, 9], [x, 13, z], [0, -6.5, 0], charred, { rotation: [z > 0 ? -0.3 : 0.3, 0, x > 0 ? -0.32 : 0.32] }),
+      pt("armor" + n, [10.8, 8, 10.2], [0, 3.5, 0], [0, 0, 0], hissSkin(5), { parent: n, taper: true }));
   return parts;
 }
 
 // The Forsaken Voidwalker: an exceptionally tall, four-armed shadow creature. Angular black armor with purple energy
 // cracks, violet glowing eyes under a crested head, long upper arms and a second, shorter pair of arms below them.
 const VB = ["#141018", "#1a1520", "#100c14", "#201a28"], VIO = "#c060ff";
-const armorV = P => { P.fill(VB); spk(P, 6, ["#2a2234", "#0a080c"]); P.rect(0, 0, 16, 1, "#2e2638"); };
+const armorV = P => { P.fill(VB); pixels(P, "#342939", [[1, 1, 13, 1], [1, 2, 2, 7], [10, 7, 3, 2]]); pixels(P, "#0d0b11", [[12, 9, 4, 7], [0, 14, 12, 2]]); };
 const vGlow = P => { P.fill([VIO]); P.rect(0, 0, 16, 16, VIO); };
 function voidwalkerParts() {
   const parts = [
     pt("hips", [12, 6, 7], [0, 42, 0], [0, 0, 0], armorV),
     pt("body", [17, 26, 10], [0, 44, 0], [0, 13, 0], { all: armorV, front: P => { armorV(P); P.rect(7, 0, 2, 16, "#2a2234"); P.rect(2, 4, 12, 1, "#2a2234"); } }),
-    pt("crackA", [1, 16, 1], [-3, 2, 5.2], [0, 0, 0], vGlow, { parent: "body", glow: true, rotation: [0, 0, 0.25] }),
-    pt("crackB", [1, 12, 1], [4, -5, 5.2], [0, 0, 0], vGlow, { parent: "body", glow: true, rotation: [0, 0, -0.3] }),
-    pt("crackC", [6, 1, 1], [0, 8, 5.2], [0, 0, 0], vGlow, { parent: "body", glow: true }),
+    pt("voidVeins", [16.8, 25.8, 0.2], [0, 0, 5.13], [0, 0, 0], {
+      all: clearPaint, front: fissure(VIO, [[10, 0, 1, 4], [8, 3, 3, 1], [8, 3, 1, 5], [6, 7, 3, 1],
+        [6, 7, 1, 4], [6, 10, 3, 1], [8, 10, 1, 6], [2, 3, 1, 4], [2, 6, 5, 1], [6, 6, 1, 2],
+        [8, 5, 4, 1], [11, 5, 1, 4], [11, 8, 3, 1], [13, 8, 1, 3]])
+    }, { parent: "body", glow: true }),
     pt("crackD", [1, 14, 1], [0, 0, -5.2], [0, 0, 0], vGlow, { parent: "body", glow: true }),
     pt("plateR", [11, 6, 12], [-11, 11, 0], [0, 0, 0], armorV, { parent: "body", rotation: [0, 0, 0.3] }),
     pt("plateL", [11, 6, 12], [11, 11, 0], [0, 0, 0], armorV, { parent: "body", rotation: [0, 0, -0.3] }),
     pt("head", [10, 11, 10], [0, 13, 0], [0, 5.5, 0], { all: armorV, front: P => { armorV(P); P.rect(1, 9, 14, 1, "#2e2638"); } }, { parent: "body" }),
-    pt("crest", [2, 7, 9], [0, 11, -1], [0, 2, 0], armorV, { parent: "head", rotation: [-0.3, 0, 0] }),
-    pt("eyeR", [3, 1, 1], [-2.5, 6, 5.2], [0, 0, 0], vGlow, { parent: "head", glow: true }),
-    pt("eyeL", [3, 1, 1], [2.5, 6, 5.2], [0, 0, 0], vGlow, { parent: "head", glow: true })
+    pt("crest", [2, 3.5, 8], [0, 5.6, -1], [0, 0.5, 0], armorV, { parent: "head", taperTop: true, rotation: [-0.3, 0, 0] }),
+    pt("eyeR", [3.4, 1.25, 1], [-2.6, 1.5, 5.02], [0, 0, 0], vGlow, { parent: "head", glow: true }),
+    pt("eyeL", [3.4, 1.25, 1], [2.6, 1.5, 5.02], [0, 0, 0], vGlow, { parent: "head", glow: true })
   ];
   for (const [s, sign] of [["R", -1], ["L", 1]]) parts.push(
     pt("leg" + s, [5, 42, 5], [sign * 4, 42, 0], [0, -21, 0], armorV),
-    pt("arm" + s, [5, 36, 5], [sign * 11, 68, 0], [0, -17, 0], armorV, { rotation: [0, 0, sign * -0.08] }),
+    pt("arm" + s, [5, 36, 5], [sign * 11, 68, 0], [0, -17, 0], armorV, { rotation: [0, 0, sign * 0.30] }),
     pt("claw" + s, [6, 7, 6], [0, -18, 0], [0, -3, 0], { all: armorV, bottom: vGlow }, { parent: "arm" + s }),
-    pt("low" + s, [4, 28, 4], [sign * 10, 58, 2], [0, -13, 0], armorV, { rotation: [-0.25, 0, sign * -0.55] }),
+    pt("low" + s, [4, 28, 4], [sign * 10, 58, 2], [0, -13, 0], armorV, { rotation: [-0.45, 0, sign * 0.13] }),
     pt("lowClaw" + s, [5, 5, 5], [0, -14, 0], [0, -2, 0], { all: armorV, bottom: vGlow }, { parent: "low" + s }),
-    pt("armCrack" + s, [1, 20, 1], [sign * 2.6, -2, 0], [0, 0, 0], vGlow, { parent: "arm" + s, glow: true }));
+    pt("armCrack" + s, [1, 20, 1], [sign * 2.6, -2, 0], [0, 0, 0], vGlow, { parent: "arm" + s, glow: true }),
+    pt("shinPlate" + s, [5.8, 17, 2], [0, -7, 2.4], [0, 0, 0], armorV, { parent: "leg" + s, taper: true }));
+  for (const side of ["R", "L"]) for (const [hand, width, y] of [["claw", 2, -3.45], ["lowClaw", 1.6, -2.45]]) {
+    for (let i = -1; i <= 1; i++) {
+      const finger = hand + side + "Finger" + (i + 1);
+      parts.push(
+        pt(finger, [1.35, 3.5, 1.8], [i * width, y, 1.2], [0, -1.35, 0], armorV, { parent: hand + side, rotation: [-0.30, 0, i * 0.18] }),
+        pt(finger + "Tip", [1.18, 1.75, 1.45], [0, -2.1, 0], [0, 0, 0], vGlow, { parent: finger, glow: true, taper: true }));
+    }
+  }
   return parts;
 }
 
