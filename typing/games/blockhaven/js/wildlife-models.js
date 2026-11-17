@@ -838,9 +838,9 @@ function giraffe() {
   return { type: "wildlife", parts };
 }
 
-const rhinoGray = coat("#625c59", "#827c75", "#a29a8d");
-const rhinoLight = coat("#746b61", "#91877b", "#b1a391");
-const rhinoFold = coat("#514943", "#685e55", "#887a6e");
+const rhinoGray = solidHide("#77777d");
+const rhinoLight = solidHide("#838287");
+const rhinoFold = solidHide("#6a686f");
 const hornGray = coat("#92816b", "#c1ad92", "#e2d2b4");
 
 function rhinoceros() {
