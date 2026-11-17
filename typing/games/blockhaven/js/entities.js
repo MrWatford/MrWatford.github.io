@@ -4,6 +4,11 @@ import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
+import { installGodzilla, animateGodzilla } from "./godzilla-model.js";
+import { TYRANT_CANYON } from "./tyrant-canyon.js";
+import { installTyrannosaurus, populateTyrannosaurus, thinkTyrannosaurus, animateTyrannosaurus } from "./lost-world-tyrannosaurus.js";
+import { AMBER_CAVERNS } from "./amber-caverns.js";
+import { installCaveCreatures, populateCaveCreatures, thinkCaveCreature, animateCaveCreature } from "./lost-world-cave-creatures.js";
 import { REDWOODS } from "./redwood-escarpment.js";
 import { installBrachiosaurus, populateBrachiosaurus, thinkBrachiosaurus, animateBrachiosaurus } from "./lost-world-brachiosaurus.js";
 import { MANGROVE } from "./mangrove-wetlands.js";
@@ -1472,6 +1477,9 @@ installLostWorldRaptor(SPECIES);
 installTriceratops(SPECIES);
 installWetlandCreatures(SPECIES);
 installBrachiosaurus(SPECIES);
+installCaveCreatures(SPECIES);
+installTyrannosaurus(SPECIES);
+installGodzilla(SPECIES);
 for (const [id, def] of Object.entries(SPECIES)) if (def.expansion) BESTIARY_ART.add(id);
 for (const id of ["cow", "pig", "sheep", "rabbit", "chicken", "parrot", "sunfin"]) BESTIARY_ART.add(id);
 
@@ -1796,7 +1804,7 @@ export class Entities {
   }
   attachModel(e) {
     const def = e.def;
-    const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife || !!def.mutant || !!def.lostWorldRaptor || !!def.triceratops || !!def.wetlandPredator || !!def.brachiosaurus;
+    const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife || !!def.mutant || !!def.lostWorldRaptor || !!def.triceratops || !!def.wetlandPredator || !!def.brachiosaurus || !!def.caveCreature || !!def.tyrannosaurus || !!def.godzilla;
     if (!def.geos) makeSpecies(def, shaded);
     const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, vertexColors: shaded, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
     const root = new THREE.Group(), parts = {};
@@ -1863,6 +1871,8 @@ export class Entities {
 
   // ----- first visit: a few animals live here -----
   populate(c) {
+    if (this.world.dim === TYRANT_CANYON) return populateTyrannosaurus(this, c);
+    if (this.world.dim === AMBER_CAVERNS) return populateCaveCreatures(this,c);
     if (this.world.dim === REDWOODS) return populateBrachiosaurus(this, c);
     if (this.world.dim === MANGROVE) return populateWetlandCreatures(this, c);
     if (this.world.dim === FERN_PLAINS) return populateTriceratops(this, c);
@@ -2287,17 +2297,17 @@ export class Entities {
     if (options.color !== undefined) { ring.material.color.setHex(options.color); fill.material.color.setHex(options.color); }
     for (const m of [ring, fill]) { m.rotation.x = -Math.PI / 2; m.position.set(x, y + 0.03, z); this.scene.add(m); }
     this.hazards.push({ x, y, z, r, t: warn, warn, dmg, why, burn: burn || 0, ring, fill, hitT: 0,
-      owner: options.owner, damageKind: options.damageKind, particle: options.particle || "fire",
+      owner: options.owner, cancelled: options.cancelled, steadyWarning: options.steadyWarning, damageKind: options.damageKind, particle: options.particle || "fire",
       statusEffect: options.statusEffect === undefined ? "fire" : options.statusEffect, color: options.color });
   }
   updateHazards(dt) {
     if (!this.hazards || !this.hazards.length) return;
     const p = this.ctx.player();
     for (const h of this.hazards) {
-      if (h.owner && (h.owner.gone || h.owner.dead || h.owner.tame)) { h.gone = true; continue; }
+      if (h.cancelled?.() || h.owner && (h.owner.gone || h.owner.dead || h.owner.tame)) { h.gone = true; continue; }
       h.t -= dt;
       const inside = Math.hypot(p.pos.x - h.x, p.pos.z - h.z) < h.r && Math.abs(p.pos.y - h.y) < 3;
-      if (h.t > 0) { h.fill.material.opacity = 0.12 + (1 - h.t / h.warn) * 0.3; h.ring.material.opacity = 0.5 + Math.sin(h.t * 14) * 0.15; continue; }
+      if (h.t > 0) { h.fill.material.opacity = 0.12 + (1 - h.t / h.warn) * 0.3; h.ring.material.opacity = h.steadyWarning && this.ctx.reducedMotion?.() ? 0.65 : 0.5 + Math.sin(h.t * 14) * 0.15; continue; }
       if (!h.fired) { h.fired = true; for (let k = 0; k < 3; k++) this.ctx.particles(h.x + rand(-h.r, h.r) * 0.6, h.y + 0.3, h.z + rand(-h.r, h.r) * 0.6, h.particle); Sound.mob("fireshoot", this.dist({ pos: h })); h.fill.material.color.setHex(h.color ?? 0xffb030); h.fill.material.opacity = 0.45; }
       if (inside && h.dmg > 0 && (h.hitT -= dt) <= 0) { h.hitT = 0.5; this.ctx.hurtPlayer(h.dmg * ({ peaceful: 0, easy: 0.67, normal: 1, hard: 1.5 }[this.ctx.settings().difficulty] ?? 1), h.why, h.owner || null, h.damageKind); if (h.statusEffect) this.ctx.effect(h.statusEffect, 3); }
       if (h.t < -Math.max(0.35, h.burn)) h.gone = true;
@@ -2594,6 +2604,9 @@ export class Entities {
       const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.eyeY), Math.floor(e.pos.z));
       if (L && L[0] >= 15) e.burning = Math.max(e.burning || 0, 3);
     }
+    if (def.godzilla) return;
+    if (def.tyrannosaurus) return thinkTyrannosaurus(this, e, d, dmgMul);
+    if (def.caveCreature) return thinkCaveCreature(this,e,d,dmgMul);
     if (def.brachiosaurus) return thinkBrachiosaurus(this, e, d);
     if (def.wetlandPredator) return thinkWetlandPredator(this, e, d, dmgMul);
     if (def.triceratops) return thinkTriceratops(this, e, d);
@@ -3289,6 +3302,10 @@ export class Entities {
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
     if (e.gone || e.dead || e.duneCycle?.preview || e.iframes > 0 || n <= 0) return false;
+    if (e.def.godzilla) {
+      n = this.ctx.godzillaDamage(e, n);
+      if (!n) return false;
+    }
     if (e.harmor && itemDef(e.harmor)?.horseArmor) n *= 1 - Math.min(0.8, itemDef(e.harmor).horseArmor * 0.04);   // Trotter armor: 12% to 44% less damage
     if (e.sp === "sulfur_cube" && attacker === "player" && e.bestiary.absorbed && knock) {
       e.vel.x = knock.x * 11; e.vel.z = knock.z * 11; e.vel.y = 5;
@@ -3319,6 +3336,7 @@ export class Entities {
     if (e.def.static || e.def.object) knock = null;
     if (e.sp === "voidwalker" && attacker && attacker.projectile) { this.teleport(e); return false; }   // dodges arrows
     e.hp -= n; e.hurtT = 0.3; e.iframes = 0.5;
+    if (e.def.godzilla) this.ctx.godzillaDamaged(e);
     if (e.def.triceratops && attacker === "player") e.trikeAlarmUntil = e.age + 4;
     alertGrazingHerd(this, e, attacker);
     rhinoProvoked(this, e, attacker);
@@ -3378,6 +3396,13 @@ export class Entities {
     if (e.def.mutant) return mutantDying(this, e, dt);
     if (e.sp === "leviathan_ancient") {
       if (stepAncientFinale(e,dt,!!this.ctx.reducedMotion?.())) { e.gone=true;this.ctx.bossDefeated(e); }
+      return;
+    }
+    if (e.def.godzilla) {
+      e.dead -= dt;
+      e.mesh.position.y -= dt * 1.8;
+      e.root.rotation.z = (4 - Math.max(0, e.dead)) * 0.12;
+      if (e.dead <= 0) e.gone = true;
       return;
     }
     if (e.def.boss) {   // the wyrm rises, shudders, and bursts into light
@@ -3775,6 +3800,9 @@ export class Entities {
       updateLeviathanHitVolumes(e);
       return;
     }
+    if (def.godzilla) animateGodzilla(e, this.ctx.reducedMotion?.());
+    if (def.tyrannosaurus) animateTyrannosaurus(e, swing, this.ctx.reducedMotion?.());
+    if (def.caveCreature) animateCaveCreature(e,swing,this.ctx.reducedMotion?.());
     if (def.brachiosaurus) animateBrachiosaurus(e, swing, this.ctx.reducedMotion?.());
     if (def.wetlandPredator) animateWetlandPredator(e, swing, this.ctx.reducedMotion?.());
     if (def.triceratops) animateTriceratops(e, swing, this.ctx.reducedMotion?.());
@@ -3984,7 +4012,8 @@ export class Entities {
     if (e.fuse > 0 && Math.sin(e.age * 25) > 0) e.mat.color.setRGB(1, 1, 1);
     else if (e.hurtT > 0) e.mat.color.setRGB(1, 0.35 * b, 0.35 * b);
     else if (e.burning > 0) e.mat.color.setRGB(Math.min(1, b * 1.4), b * 0.7, b * 0.4);
-    else e.mat.color.setScalar(b);
+    else if (def.godzilla && (e.atomicCharge || e.atomicFiring)) e.mat.color.setRGB(0.62, 1.05, 1.72);
+    else e.mat.color.setScalar(def.godzilla ? Math.max(b, 0.54) : b);
     if (e.heldMesh) e.heldMesh.material.color.setScalar(b);
     if (e.def.mutant) animateMutant(e, dt);
   }

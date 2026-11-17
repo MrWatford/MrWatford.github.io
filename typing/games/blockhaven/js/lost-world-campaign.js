@@ -1,3 +1,7 @@
+import { GODZILLA_CALDERA, GODZILLA_START } from "./godzilla-caldera.js";
+import { VOLCANIC_BADLANDS, BADLANDS_START, CALDERA_ANCHORS, calderaAnchorAt } from "./volcanic-badlands.js";
+import { TYRANT_CANYON, TRACKS, EXPEDITION_BEACON } from "./tyrant-canyon.js";
+import { AMBER_CAVERNS, SAMPLE, WINCH, SHORTCUT_REQUIRED_STAGE } from "./amber-caverns.js";
 import { REDWOODS, OVERLOOK, RIDGE_STATION } from "./redwood-escarpment.js";
 import { FERN_PLAINS, surveyPost } from "./fern-plains.js";
 import { MANGROVE, PUMP, RELAY, atWetlandSite } from "./mangrove-wetlands.js";
@@ -26,11 +30,36 @@ const redwoods = [
   ["Find the abandoned station", "Cross the ridge bridge and follow the upper trail to the timber shelter. The station records may explain why the relay went silent."],
   ["Chapter 4 complete", "The station log records vibrations from deep below the ridge. The survey team marked an entrance in the Amber Caverns."]
 ];
+const amber = [
+  ["Recover an amber core sample", "Follow the warm ceiling lights straight down the gravel tunnel. Keep your distance when an Amber Prowler calls or a Snaproot opens its jaws. The sample station is in the broad chamber at the bottom."],
+  ["Open the return passage", "The core sample is logged. Find the winch on the chamber’s right side and open the sealed stone-brick passage back to the entrance."],
+  ["Chapter 5 complete", "The core sample carries traces from the Fern Plains canyon. The expedition beacon may still be there, inside the territory of a Tyrannosaurus."]
+];
+const canyon = [
+  ["Read the tracker’s notes", "Follow the gravel trail to the torch on your left. The tracker recorded two ways to reach the missing beacon."],
+  ["Recover the expedition beacon", "The main trail crosses Tyrannosaurus territory. For cover, turn right at the torches and follow the side trail between the rock walls. Crouch near the far opening, or cross the main trail and fight."],
+  ["Chapter 6 complete", "The beacon is transmitting again. Its last readings put the source of the tremors beneath the Volcanic Badlands."]
+];
+const badlands = [
+  ["Restore the Lower Anchor", "Follow the basalt causeway. Each vent pair erupts on alternating sides. When a ring lights up, take the other lane or wait before crossing. The Lower Anchor is on the first platform beyond the vents."],
+  ["Restore the Ridge Anchor", "The lower vents have gone quiet. Cross the next pair and use the anchor on the right-hand platform."],
+  ["Restore the Caldera Anchor", "Cross the last vent pair and use the anchor at the foot of the volcano."],
+  ["Chapter 7 complete", "All three anchors are powered. The vents fall silent. Open the journal to enter the caldera and face Godzilla."]
+];
+const caldera = [
+  ["Awaken Godzilla", "Take supplies from the chest by the entrance, then use the terminal on the left. Godzilla is vulnerable after each attack. Leave the blue lane before atomic breath fires."],
+  ["Defeat Godzilla", "Dodge each attack and strike during recovery. During Broken Circuit, activate all three arena anchors."],
+  ["Godzilla defeated", "The caldera is secure. Your expedition is complete. Use this journal to return to jungle camp or keep exploring."]
+];
 const chapters = [
   { title: "Chapter 1 · Through the Canopy", start: 0, objectives: canopy },
   { title: "Chapter 2 · Thunderplain", start: 2, dimension: FERN_PLAINS, objectives: plains },
   { title: "Chapter 3 · Blackwater Signal", start: 4, dimension: MANGROVE, objectives: wetlands },
-  { title: "Chapter 4 · The Canopy Road", start: 6, dimension: REDWOODS, objectives: redwoods }
+  { title: "Chapter 4 · The Canopy Road", start: 6, dimension: REDWOODS, objectives: redwoods },
+  { title: "Chapter 5 · Beneath the Amber", start: 8, dimension: AMBER_CAVERNS, objectives: amber },
+  { title: "Chapter 6 · Territory of the King", start: 10, dimension: TYRANT_CANYON, objectives: canyon },
+  { title: "Chapter 7 · The Mountain Wakes", start: BADLANDS_START, dimension: VOLCANIC_BADLANDS, objectives: badlands },
+  { title: "Chapter 8 · Heart of the Caldera", start: GODZILLA_START, dimension: GODZILLA_CALDERA, objectives: caldera }
 ];
 const fieldLog = "The herds moved east before dawn. A low tremor rolled under the jungle just before they scattered. The river relay went quiet a few minutes later. Route marked for the next team: follow the herds to the Fern Plains.";
 
@@ -95,13 +124,44 @@ export function isCampaignLandmark(dimension, hit) {
   if (dimension === "lost_world") return isExpeditionTablet(hit);
   if (dimension === FERN_PLAINS) return surveyPost(hit) >= 0;
   if (dimension === MANGROVE) return isWetlandTablet(hit);
-  return dimension === REDWOODS && (at(hit, OVERLOOK) || at(hit, RIDGE_STATION));
+  if (dimension === REDWOODS) return at(hit, OVERLOOK) || at(hit, RIDGE_STATION);
+  if (dimension === VOLCANIC_BADLANDS) return calderaAnchorAt(hit) >= 0;
+  if (dimension === TYRANT_CANYON) return at(hit, TRACKS) || at(hit, EXPEDITION_BEACON);
+  return dimension === AMBER_CAVERNS && (at(hit, SAMPLE) || at(hit, WINCH));
 }
 
 export function readCampaignLandmark(dimension, record, hit) {
   if (dimension === "lost_world") return readExpeditionTablet(record, hit);
   if (dimension === FERN_PLAINS) return readSurveyPost(record, hit);
   if (dimension === MANGROVE) return readWetlandTablet(record, hit);
+  if (dimension === VOLCANIC_BADLANDS && record.stage >= BADLANDS_START) {
+    const index = calderaAnchorAt(hit);
+    if (index < 0) return null;
+    const expected = record.stage - BADLANDS_START;
+    const anchor = CALDERA_ANCHORS[index];
+    if (index > expected) return [anchor.name, "Restore the " + CALDERA_ANCHORS[expected].name + " first."];
+    if (index < expected) return [anchor.name + " online", "The vents below this anchor are quiet."];
+    record.stage += 1;
+    return index === CALDERA_ANCHORS.length - 1 ? badlands.at(-1) : [anchor.name + " restored", badlands[index + 1][1]];
+  }
+  if (dimension === TYRANT_CANYON && record.stage >= 10 && isCampaignLandmark(dimension, hit)) {
+    if (at(hit, TRACKS)) {
+      if (record.stage === 10) record.stage = 11;
+      return ["Tracker’s notes", canyon[1][1]];
+    }
+    if (record.stage === 10) return ["Missing expedition beacon", "Read the tracker’s notes near the trail entrance before retrieving the beacon."];
+    if (record.stage === 11) record.stage = 12;
+    return canyon[2];
+  }
+  if (dimension === AMBER_CAVERNS && record.stage >= 8 && isCampaignLandmark(dimension, hit)) {
+    if (at(hit, SAMPLE)) {
+      if (record.stage === 8) record.stage = 9;
+      return ["Amber core sample recovered", amber[1][1]];
+    }
+    if (record.stage === 8) return ["Passage winch", "Secure a core sample at the far end of the chamber before using the return passage."];
+    if (record.stage === 9) record.stage = SHORTCUT_REQUIRED_STAGE;
+    return amber[2];
+  }
   if (dimension !== REDWOODS || record.stage < 6 || !isCampaignLandmark(dimension, hit)) return null;
   if (at(hit, OVERLOOK)) {
     if (record.stage === 6) record.stage = 7;

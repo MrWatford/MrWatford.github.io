@@ -10,6 +10,8 @@ import { OBSIDIAN_VENT_LAYOUT } from "./obsidian-vent.js";
 import { SOLKARA_SCENERY_LAYOUT } from "./solkara-scenery.js";
 import { restoreWildlifeJournal } from "./wildlife-journal.js";
 import { LOST_WORLD_REGIONS, isLostWorldDimension, isLostWorldRegion } from "./lost-world-regions.js";
+import { GODZILLA_CALDERA, GODZILLA_START } from "./godzilla-caldera.js";
+import { validGodzillaRecord } from "./godzilla-encounter.js";
 import { validExpedition } from "./lost-world-campaign.js";
 import { LOST_WORLD_GEN } from "./lost-world.js";
 export const SAVE_VERSION = 4;
@@ -231,6 +233,12 @@ function upgrade(w) {
   w.story = w.story && typeof w.story === "object" ? w.story : {};
   if (Object.hasOwn(w.story, "lostWorld") && (w.lostWorldGen !== LOST_WORLD_GEN || !validExpedition(w.story.lostWorld))) {
     throw new Error("This world contains invalid Lost World expedition progress.");
+  }
+  const fight = w.story.caldera, expeditionStage = w.story.lostWorld?.stage;
+  if (fight !== undefined && (!w.lostWorldGen || !Object.hasOwn(w.dims, GODZILLA_CALDERA) || !validGodzillaRecord(fight)) ||
+      expeditionStage > GODZILLA_START && (!fight || (expeditionStage === GODZILLA_START + 2) !== (fight.hp === 0)) ||
+      fight && expeditionStage <= GODZILLA_START) {
+    throw new Error("This world contains invalid Godzilla encounter progress.");
   }
   validateLeviathan(w.story.leviathan);
   if (Object.hasOwn(w.story, "wildlife")) w.story = { ...w.story, wildlife: restoreWildlifeJournal(w.story.wildlife) };
