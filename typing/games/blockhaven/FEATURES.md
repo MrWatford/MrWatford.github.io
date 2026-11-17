@@ -738,6 +738,36 @@ Rebuilt the outside of the Sunken Pyramid of Aurelis from Mr. Watford's two refe
 - [x] Natural edges (same day): a 14-block sand slope with dunes buries the foundation, then a 9-block patchy sand-to-grass fade; trees cleared near it (no floating leaves); a few half-buried ruins; new worlds prefer mostly-desert spots. Walked onto the platform from N/S/E with no jumps.
 - [ ] Not checked yet: a real Chromebook's frame rate, hand-play, exported-JSON save round trip, a temple in tall dunes or beside the sea.
 
+## The Stronghold Reborn: the Endwatch Citadel (Stages 1–6 built and browser-tested 2026-11-16, published 2026-11-17)
+Every stronghold nobody has reached becomes a huge castle on an island in a lake (after Mr. Watford's reference video),
+with the Hollow portal sealed beneath its keep. Full details, measurements, and test notes: `STRONGHOLD-REBORN-PLAN.md`;
+pictures in `tools/citadel-shots/`.
+- [x] The castle (`js/citadel.js`): island, lake, arched bridge, 8-sided curtain wall with 8 towers, gatehouse, keep with
+  three floors of rooms, courtyard buildings, dungeons, the hidden Royal Treasury, the throne room, the portal chamber.
+  Gate faces spawn. On the Explorer's Map (castle icon); the Eye of the Void finds it.
+- [x] The adventure: Outer Siege (10 defenders) → Gate Winch lowers the animated drawbridge and raises the portcullis
+  (`js/citadel-gate.js`) → Courtyard Battle (3 waves) unbars the keep, room guards, 13 Ancient Tomes of lore
+  (`js/citadel-keep.js`) → the Forgotten Dungeons: cells, darts, crypt, collapsing bridge, Lava Hall, levers, 4
+  Watchfire checkpoints, a shortcut hatch, ambushes; the worn bookshelf opens the Royal Treasury (`js/citadel-dungeon.js`)
+  → the Fallen Castellan, a 3-phase boss with an intro and boss bar; his Castellan's Greatblade (Sweeping Cleave); his
+  defeat opens the Seal to the portal (`js/citadel-boss.js`) → fill the frame with Eyes of the Void → the Hollow.
+- [x] Atmosphere (`js/citadel-ambience.js`): wind on the walls, crackling fires, distant dungeon noises, a hum and sparks at
+  the portal. New "clank" sound (also fixes the silent desert guardians).
+- [x] New blocks 216–233 range: 221–233 (roof tiles, cracked bricks, stone step, banner, ward bricks, seal, portcullis,
+  gate winch, tome, watchfire, worn bookshelf, lever, stained glass). New item 641 Castellan's Greatblade (640 is the Wildlife Ostrich Egg).
+- [x] Safety: Survival players must beat the Castellan to reach the portal (ward bricks and the seal can't be broken;
+  Creative can). Saved worlds: any stronghold someone dug into, built near, or saw a village by keeps its old underground
+  form; nothing is overwritten. New worlds (incl. Legacy Campaign) move a crowded stronghold outward so it still gets its castle.
+- [x] Tested in the browser on seeds `citadel-test-1`, `regression-alpha`, `90210`, `campaign-test-7/8/9`: the whole route
+  in Survival from the shore to the Hollow; Creative/Peaceful shortcuts; save/reload at every stage; Desert Temple,
+  Starter Home, Explorer's Map, and Legacy Campaign worlds still fine; no console errors. Speed (this Mac): castle
+  design 0.2 s once per world load, castle chunks ~5 ms each vs ~1 ms for plain land, game loop unchanged.
+- [ ] Not checked: hand-played fights for difficulty balance, Hard difficulty, Play Together, a real Chromebook (drawing speed).
+- Publish list (all under typing/games/blockhaven/): js/citadel.js, js/citadel-gate.js, js/citadel-keep.js,
+  js/citadel-dungeon.js, js/citadel-boss.js, js/citadel-ambience.js (new); js/main.js, js/blocks.js, js/shapes.js,
+  js/entities.js, js/worldgen.js, js/lost.js, js/starter.js, js/campaign.js, js/campaign-data.js, js/audio.js,
+  js/desert-relic-sites.js, js/obsidian-badlands.js; index.html, FEATURES.md, STRONGHOLD-REBORN-PLAN.md.
+
 ## Later milestones
 | Feature | Status |
 |---|---|
