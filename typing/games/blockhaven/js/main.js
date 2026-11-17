@@ -18,6 +18,12 @@ import { initMutants } from "./mutants.js";
 import { initCompanions } from "./companions.js";
 import { initLost, LOST_DIMS } from "./lost.js";
 import { initMonumentLife } from "./monument-life.js";
+import { initCitadel } from "./citadel.js";
+import { initCitadelGate } from "./citadel-gate.js";
+import { initCitadelKeep } from "./citadel-keep.js";
+import { initCitadelDungeon } from "./citadel-dungeon.js";
+import { initCitadelBoss } from "./citadel-boss.js";
+import { initCitadelAmbience } from "./citadel-ambience.js";
 import { initStarter } from "./starter.js";
 import { leviathanShrineBearings, sandcallerPreparation } from "./leviathan-navigation.js";
 import { initCampaign, CAMPAIGN_SEED } from "./campaign.js";
@@ -1064,7 +1070,7 @@ function throwEye() {
   const sl = G.inv.slots[G.useSlot]; if (sl && !G.creative) { sl.n--; if (!sl.n) G.inv.slots[G.useSlot] = null; }
   G.hudDirty = true; heldId = -1; Sound.mob("teleport", 0); G.adv("eye");
   const dist = Math.hypot(s.x - p.pos.x, s.z - p.pos.z);
-  if (dist < 14) UI.toast("The eye dove into the ground. The stronghold is right below you!", "good");
+  if (dist < 14) UI.toast(s.citadel ? "The eye sank into the keep. The Hollow portal lies sealed beneath the Endwatch Citadel." : "The eye dove into the ground. The stronghold is right below you!", "good");
 }
 // Chorus Fruit: blink to a random safe spot nearby
 function chorusBlink() {
@@ -1781,6 +1787,7 @@ function makeWorld(dim) {
       if (def.key === "citadel" && site.volcanicLayout === OBSIDIAN_BADLANDS_LAYOUT) gen.stamps.push(buildObsidianBadlands(gen, site));
       gen.stamps.push(buildRelicStamp(def, site));
     }
+    CG.reset(); CK.reset(); CD.reset(); CB.reset(); CIT.prepare(gen, data);   // the Endwatch Citadels: castles over the strongholds nobody has reached yet (js/citadel.js)
   }
   const w = new World(gen);
   w.dim = dim;
@@ -2420,6 +2427,7 @@ function useWith(offhand) {
   if (slot?.id === I.BURIED_SCEPTER) return useBuriedScepter(slot);
   if (slot?.id === I.ANCIENT_COMPANION_RELIC) return useAncientCompanion();
   if (slot && [I.FANGBLADE, I.INFERNO_GREATBLADE].includes(slot.id)) return useLeviathanBlade(slot);
+  if (slot && slot.id === I.CASTELLAN_GREATBLADE) return CB.useGreatblade(slot);
   if (slot?.id === I.SANDCALLER_HORN) return useSandcallerHorn();
   if (slot && slot.id === I.FISHING_ROD) { useRod(slot); return true; }
   if (slot && (slot.id === I.BOAT || slot.id === I.CHEST_BOAT) && placeBoat(slot)) return true;
@@ -2837,6 +2845,11 @@ function interact(hit, kind) {
   }
   if (kind === "hive") { harvestHoney(hit); return; }
   if (kind === "frame") { fillFrame(hit); return; }
+  if (kind === "winch") { CG.useWinch(hit); return; }
+  if (kind === "tome") { CK.readTome(hit); return; }
+  if (kind === "clever") { CD.useLever(hit); return; }
+  if (kind === "secretshelf") { CD.useShelf(hit); return; }
+  if (kind === "watchfire") { CD.useWatchfire(hit); return; }
   if (kind === "beacon") { if (!w.containers.has(key)) w.containers.set(key, { type: "beacon", slots: [null], primary: null, secondary: null, legacy: true }); w.beacons.add(key); openPanel("beacon", key); return; }
   if (kind === "shellbox") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
@@ -3779,6 +3792,7 @@ function retireWildLeviathans() {
   leviathanWarningHUD.clear();
 }
 function die(why) {
+  G.deathSpot = { ...G.player.pos };   // (where you fell: the Endwatch dungeons wake you by their watchfire; Hardcore floats you here)
   retireWildLeviathans();
   clearSandsHeat();
   clearQuicksand();
@@ -3826,6 +3840,12 @@ G.respawn = async () => {
     const s = F.respawnSpot();
     placeSafely(p, s.x, s.z); G.respawnGuard = 6; F.onRespawn();
     UI.toast(`You woke up at ${s.name}. He won't come near for a little while.`, "");
+    G.state = "pause"; G.resume(); return;
+  }
+  const cs = G.dim === "overworld" && CD.respawnSpot();
+  if (cs) {   // fell in an Endwatch dungeon: wake by the last watchfire you lit
+    Object.assign(p.pos, cs); p.vel.x = p.vel.y = p.vel.z = 0; G.respawnGuard = 5;
+    UI.toast("You wake beside the watchfire.", "");
     G.state = "pause"; G.resume(); return;
   }
   const ls = L.respawnSpot();
@@ -5082,7 +5102,7 @@ function updateSandstorm(dt) {
     }
     stormStage = next;
   }
-  Sound.wind(stormStage || (ML.windy() ? 1 : 0));   // (the Grand Desert Temple's platform is breezy)
+  Sound.wind(stormStage || (ML.windy() || CA.windy() ? 1 : 0));   // (the Grand Desert Temple's platform is breezy)
   updateDuneEncounter(dt);
   if (!stormStage || G.settings.reducedMotion || (stormDustT -= dt) > 0) return;
   stormDustT = G.settings.quality === "fast" ? 0.15 : 0.09;
@@ -5575,13 +5595,13 @@ const bossBar = document.getElementById("bossbar");
 const bossBarName = bossBar.querySelector("b"), bossBarFill = bossBar.querySelector("i");
 let bossBarPercent = -1;
 function updateBossBar(p) {
-  const hb = CP.bossInfo() || F.bossInfo() || L.bossInfo() || MU.bossInfo();
+  const hb = CP.bossInfo() || F.bossInfo() || L.bossInfo() || MU.bossInfo() || CB.bossInfo();
   let boss = null, distance = Infinity;
   if (!hb) for (const e of ents.list) {
     const grizzlyFight = e.sp === "grizzly_bear" && !e.baby && e.angry > 0 && !e.dead &&
       e.wild.phase !== "patrol" && e.wild.phase !== "rest" && !G.creative && G.wset.difficulty !== "peaceful" &&
       Math.hypot(e.pos.x - p.pos.x, e.pos.y - p.pos.y, e.pos.z - p.pos.z) < 22;
-    if ((!e.def.boss && !grizzlyFight) || e.gone || e.tame || e.duneCycle?.preview ||
+    if ((!e.def.boss && !grizzlyFight) || e.gone || e.tame || e.duneCycle?.preview || e.sp === "castellan" ||
         e.def.segmentedLeviathan && !e.emerged && !e.dead &&
         !(e.sp === "leviathan_dune" && e.duneCycle?.step === "rising")) continue;
     const d = (e.pos.x - p.pos.x) ** 2 + (e.pos.z - p.pos.z) ** 2;
@@ -5649,6 +5669,11 @@ function loop(now) {
     updateHollowDrift(dt);
     updateSandstorm(dt);
     ML.update(dt);   // the Grand Desert Temple: fires, dust, and guards
+    CG.update(dt);   // the Endwatch Citadels' gates and Outer Siege
+    CK.update(dt);   // and their courtyards and keeps
+    CD.update(dt);   // and their dungeons
+    CB.update(dt);   // and the Fallen Castellan
+    CA.update(dt);   // and their sounds
     updateObsidianAsh(dt);
     const input = G.state === "play" && locked && !G.cutscene ? {
       f: (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) - (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0),
@@ -5845,6 +5870,13 @@ G.forsaken = F;
 // The Lost Civilization adventure (js/lost.js). Its test controls only show on a development copy (localhost or ?dev).
 const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giveXp, placeSafely, hurt, lookDir, keys, victory: showVictory, devTools: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.search.includes("dev") });
 G.lost = L;
+// The Endwatch Citadels over the strongholds (js/citadel.js)
+const CIT = G.citadel = initCitadel({ G, L });
+const CG = G.citadelGate = initCitadelGate({ G, ents, UI, Sound, scene, THREE, saveNow, puff });
+const CK = G.citadelKeep = initCitadelKeep({ G, ents, UI, Sound, saveNow, puff });
+const CD = G.citadelDungeon = initCitadelDungeon({ G, ents, UI, Sound, saveNow, puff });
+const CB = G.citadelBoss = initCitadelBoss({ G, ents, UI, Sound, saveNow, puff, giveItem, giveXp });
+const CA = G.citadelAmbience = initCitadelAmbience({ G, Sound, puff });   // wind, fires, dungeon noises, portal hum (js/citadel-ambience.js)   // the Fallen Castellan (js/citadel-boss.js)   // dungeons, traps, checkpoints, the treasury (js/citadel-dungeon.js)   // courtyard battle, keep rooms, tomes (js/citadel-keep.js)   // drawbridge, portcullis, Outer Siege (js/citadel-gate.js)
 // The Grand Desert Temple's fires, dust, and guards (js/monument-life.js)
 const ML = G.monumentLife = initMonumentLife({ G, L, ents, Sound, emitParticle, COLORS: PUFF_COLORS, roomForParticles: () => parts.length < PMAX - 24 });
 // The Starter Home and the Explorer's Map (js/starter.js)

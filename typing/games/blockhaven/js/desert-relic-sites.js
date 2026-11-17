@@ -43,7 +43,7 @@ export function planRelicSites(gen, data, previous = {}, origin = gen.findSpawn(
         const z = Math.floor((origin.z + Math.sin(angle) * radius) / CHUNK) * CHUNK;
         if (!untouched(x, z, x + size, z + size)) continue;
         if (reserved.some(s => x < s.x + s.size + 24 && x + size + 24 > s.x && z < s.z + s.size + 24 && z + size + 24 > s.z)) continue;
-        if (gen.strongholds?.some(s => Math.hypot(s.x - x - half, s.z - z - half) < 77 + half)) continue;
+        if (gen.strongholds?.some(s => Math.hypot(s.x - x - half, s.z - z - half) < 130 + half)) continue;   // (room for the Endwatch Citadels)
         const center = gen.column(x + half, z + half);
         if (center.biome !== "sandy" || center.h <= SEA + 2 || center.h >= HEIGHT - 12) continue;
         let clear = true;

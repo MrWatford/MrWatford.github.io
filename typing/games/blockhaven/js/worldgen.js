@@ -150,7 +150,7 @@ export class Generator {
     // a rare landmark: a crumbling watchtower with a treasure chest
     if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
     else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
-    if (ver >= 4) for (const s of this.strongholds) if (Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
+    if (ver >= 4) for (const s of this.strongholds) if (!s.citadel && Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
     if (ver >= 5) { const vp = this.villagePiece(cx, cz); if (vp) this.buildVillagePiece(data, vp, x0, z0, ver); }
     return applyStamps(this, data, cx, cz);   // hand-built sites (the Keeper excavation, temples) in never-visited land
   }

@@ -64,7 +64,10 @@ export const B = {
   BLACK_SAND: 212, EMBER_CRYSTAL: 213, OBSIDIAN_TROPHY: 214,
   WYRM_HEAD: 215,   // Milestone 14: a trophy from the Hollow ships
   // the Grand Desert Temple (js/desert-monument.js)
-  TEMPLE_STONE: 216, TEMPLE_TRIM: 217, TEMPLE_PILLAR: 218, TEMPLE_STEP: 219, BRAZIER: 220
+  TEMPLE_STONE: 216, TEMPLE_TRIM: 217, TEMPLE_PILLAR: 218, TEMPLE_STEP: 219, BRAZIER: 220,
+  // the Endwatch Citadel (js/citadel.js)
+  ROOF_TILES: 221, CRACKED_BRICKS: 222, STONE_STEP: 223, CASTLE_BANNER: 224, WARD_BRICKS: 225, CASTELLAN_SEAL: 226,
+  PORTCULLIS: 227, GATE_WINCH: 228, CASTLE_TOME: 229, WATCHFIRE: 230, WORN_BOOKSHELF: 231, CASTLE_LEVER: 232, STAINED_GLASS: 233
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -117,7 +120,9 @@ export const I = {
   CORRUPTED_FLESH: 624, FORSAKEN_SHARD: 625, GROANER_TROPHY: 626,
   FORSAKEN_BONE: 627, BOW_LIMB: 628, RATTLER_TROPHY: 629, CORRUPTED_SILK: 630, VENOM_FANG: 631, SKITTER_TROPHY: 632,
   VOLATILE_MUTAGEN: 633, BLAST_CORE: 634, HISSER_TROPHY: 635, FORSAKEN_PEARL: 636, VOID_ESSENCE: 637, VOIDWALKER_TROPHY: 638,
-  OSTRICH_EGG: 640
+  OSTRICH_EGG: 640,
+  // the Endwatch Citadel
+  CASTELLAN_GREATBLADE: 641
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -364,6 +369,20 @@ block(B.TEMPLE_STONE, "Pale Temple Stone", { hardness: 1.5, tool: "pick", tier: 
 block(B.TEMPLE_TRIM, "Sunfire Terracotta", { hardness: 1.5, tool: "pick", tier: 1, tex: "temple_trim" });
 block(B.TEMPLE_PILLAR, "Pale Temple Pillar", { hardness: 1.5, tool: "pick", tier: 1, tex: ["temple_pillar_top", "temple_pillar", "temple_pillar_top"] });
 block(B.TEMPLE_STEP, "Pale Temple Step", { shape: "model", render: "cutout", hardness: 1.5, tool: "pick", tier: 1, tex: ["temple_stone_top", "temple_stone", "temple_stone_top"], iconBox: 8 / 16 });
+// the Endwatch Citadel: red roofs, weathered brick, banners; ward bricks and the seal guard the Hollow portal until the Castellan falls
+block(B.ROOF_TILES, "Red Roof Tiles", { hardness: 1.5, tool: "pick", tex: ["roof_tiles_top", "roof_tiles", "roof_tiles_top"] });
+block(B.CRACKED_BRICKS, "Cracked Stone Bricks", { hardness: 1.5, tool: "pick", tier: 1, tex: "cracked_bricks" });
+block(B.STONE_STEP, "Stone Brick Step", { shape: "model", render: "cutout", hardness: 1.5, tool: "pick", tier: 1, tex: "stone_bricks", iconBox: 8 / 16 });
+block(B.CASTLE_BANNER, "Castle Banner", { shape: "model", render: "cutout", solid: false, hardness: 0.3, tex: "castle_banner", category: "Useful" });
+block(B.WARD_BRICKS, "Ancient Ward Bricks", { hardness: Infinity, drops: 0, light: 2, tex: "ward_bricks", noItem: true });
+block(B.PORTCULLIS, "Iron Portcullis", { shape: "model", render: "cutout", hardness: Infinity, drops: 0, tex: "portcullis", noItem: true });   // the gate's bars (js/citadel-gate.js raises them)
+block(B.GATE_WINCH, "Gate Winch", { hardness: Infinity, drops: 0, light: 3, interact: "winch", tex: ["winch_top", "winch_side", "stone_bricks"], noItem: true });
+block(B.CASTLE_TOME, "Ancient Tome", { shape: "model", render: "cutout", hardness: Infinity, drops: 0, interact: "tome", tex: ["tome_top", "tome_side", "planks"], noItem: true });   // lore of the Endwatch Citadel (js/citadel-keep.js)
+block(B.WATCHFIRE, "Watchfire", { hardness: Infinity, drops: 0, light: 6, interact: "watchfire", tex: ["watchfire_top", "watchfire_side", "stone_bricks"], noItem: true });   // a dungeon checkpoint (js/citadel-dungeon.js)
+block(B.WORN_BOOKSHELF, "Worn Bookshelf", { hardness: Infinity, drops: 0, interact: "secretshelf", tex: ["planks", "worn_bookshelf", "planks"], noItem: true });
+block(B.CASTLE_LEVER, "Old Iron Lever", { hardness: Infinity, drops: 0, interact: "clever", tex: ["stone_bricks", "castle_lever", "stone_bricks"], noItem: true });
+block(B.STAINED_GLASS, "Stained Glass", { hardness: 0.3, render: "cutout", drops: 0, tex: "stained_glass" });
+block(B.CASTELLAN_SEAL, "Castellan's Seal", { hardness: Infinity, drops: 0, light: 7, tex: ["seal_top", "seal_side", "ward_bricks"], noItem: true });
 block(B.BRAZIER, "Temple Brazier", { hardness: 2, tool: "pick", tier: 1, light: 13, tex: ["brazier_top", "brazier_side", "brazier_side"], category: "Useful" });
 
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
@@ -637,6 +656,8 @@ PIECES.forEach(([piece, , icon], slot) => {
     desc: "Each Hushguard piece: 8% less damage from Echohold's creatures and guardians." + (slot === 3 ? " These boots also soften your footsteps." : "")
   });
 });
+item(I.CASTELLAN_GREATBLADE, "Castellan's Greatblade", { icon: "sword", colors: ["#d8dce4", "#2b2e35"], kind: "tool", stack: 1, category: "Tools",
+  tool: { type: "sword", tier: 4, speed: 9, dur: 1100, damage: 8, attackCooldown: 0.75, swingDuration: 0.55, heavy: true }, desc: "Heavy: 0.75s between strikes. Right-click: Sweeping Cleave, hitting every enemy in front of you and driving them back. 8 second cooldown. Costs 3 durability." });
 item(I.ECHO_BLADE, "Echo Blade", { icon: "tool_sword", colors: ["#7fe8ff", "#2a5a6a"], kind: "tool", stack: 1, category: "Tools", echoBlade: true,
   tool: { type: "sword", tier: 4, speed: 9, dur: 900, damage: 7 }, desc: "+50% damage to Echohold's creatures and guardians, and its strikes make no sound." });
 item(I.SENTINEL_HAMMER, "Sentinel Hammer", { icon: "hammer", colors: ["#b87333", "#2a2e36"], kind: "tool", stack: 1, category: "Tools", breaksGuard: true,
@@ -914,7 +935,9 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "waystone_top", "waystone_side", "rune_stone",
   "black_sand", "ember_crystal", "obsidian_trophy", "wyrm_head_top", "wyrm_head_side",
   // the Grand Desert Temple
-  "temple_stone", "temple_stone_top", "temple_trim", "temple_pillar", "temple_pillar_top", "brazier_top", "brazier_side"];
+  "temple_stone", "temple_stone_top", "temple_trim", "temple_pillar", "temple_pillar_top", "brazier_top", "brazier_side",
+  // the Endwatch Citadel
+  "roof_tiles", "roof_tiles_top", "cracked_bricks", "castle_banner", "ward_bricks", "seal_top", "seal_side", "portcullis", "winch_top", "winch_side", "tome_top", "tome_side", "watchfire_top", "watchfire_side", "worn_bookshelf", "castle_lever", "stained_glass"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1167,6 +1190,23 @@ Object.assign(PAINT, {
     P.rect(1, 14, 14, 2, "#382b39");
   },
   // Wyrm Head (Milestone 14): dark violet scales, with glowing purple eyes on every side
+  roof_tiles(P) { P.fill(["#b8322a", "#c23a2e", "#ad2c25"]); for (let r = 0; r < 4; r++) { P.rect(0, r * 4 + 3, 16, 1, "#7e1c18"); for (let x = (r % 2) * 4; x < 16; x += 8) P.rect(x, r * 4, 1, 3, "#8e2019"); P.rect(0, r * 4, 16, 1, "#d9564a"); } },
+  roof_tiles_top(P) { P.fill(["#bd352c", "#c63d30"]); for (let y = 0; y < 16; y += 4) P.rect(0, y, 16, 1, "#8e2019"); for (let x = 0; x < 16; x += 4) P.rect(x, 0, 1, 16, "#9a241c"); },
+  cracked_bricks(P) { PAINT.stone_bricks(P); for (const [x, y] of [[3, 2], [4, 3], [5, 4], [5, 5], [6, 6], [10, 9], [11, 10], [11, 11], [12, 12], [2, 12], [3, 13]]) P.px(x, y, "#3e3e3e"); P.rect(13, 4, 2, 2, "#5f5f5f"); },
+  castle_banner(P) { P.rect(3, 0, 10, 15, "#9c1f24"); P.rect(3, 0, 10, 1, "#5a3a1a"); P.rect(7, 2, 2, 10, "#e8c048"); P.rect(4, 5, 8, 2, "#e8c048"); P.rect(3, 13, 3, 2, "#7a161a"); P.rect(10, 13, 3, 2, "#7a161a"); P.px(8, 14, "#7a161a"); },
+  watchfire_top(P) { P.fill(["#2a2a30"]); P.rect(1, 1, 14, 14, "#3a3a42"); for (let i = 0; i < 30; i++) P.px(2 + Math.floor(P.r() * 12), 2 + Math.floor(P.r() * 12), P.pick(["#5a5a60", "#7ad0ff", "#4a90c8", "#2a2a30"])); },
+  watchfire_side(P) { PAINT.stone_bricks(P); P.rect(0, 0, 16, 3, "#3a3a42"); P.rect(0, 13, 16, 3, "#3a3a42"); P.rect(6, 5, 4, 6, "#4a90c8"); P.rect(7, 6, 2, 4, "#bfe8ff"); },
+  worn_bookshelf(P) { PAINT.bookshelf(P); P.rect(9, 2, 2, 6, "#b03a2a"); P.rect(9, 1, 2, 1, "#d86a4a"); },
+  castle_lever(P) { PAINT.stone_bricks(P); P.rect(5, 9, 6, 4, "#3a3a42"); P.rect(7, 3, 2, 8, "#6e4b26"); P.rect(6, 2, 4, 2, "#8a8a94"); },
+  stained_glass(P) { const C = ["#b8323a", "#2f5fb8", "#e0b030", "#3a8a4a", "#7a3ab0"]; for (let y = 0; y < 16; y += 4) for (let x = 0; x < 16; x += 4) P.rect(x, y, 4, 4, C[((x >> 2) * 3 + (y >> 2) * 2) % C.length]); for (let i = 0; i < 16; i += 4) { P.rect(i, 0, 1, 16, "#1a1a20"); P.rect(0, i, 16, 1, "#1a1a20"); } P.rect(15, 0, 1, 16, "#1a1a20"); P.rect(0, 15, 16, 1, "#1a1a20"); },
+  tome_top(P) { P.rect(1, 2, 14, 12, "#5a2a1a"); P.rect(2, 3, 5, 10, "#efe4c8"); P.rect(9, 3, 5, 10, "#efe4c8"); for (let y = 4; y < 12; y += 2) { P.rect(3, y, 3, 1, "#8a7a60"); P.rect(10, y, 3, 1, "#8a7a60"); } P.rect(7, 2, 2, 12, "#3a1a0e"); },
+  tome_side(P) { PAINT.planks(P); P.rect(0, 0, 16, 2, "#5a2a1a"); P.rect(5, 2, 6, 14, "#6e4b26"); },
+  portcullis(P) { for (const x of [1, 5, 10, 14]) P.rect(x, 0, 2, 16, "#3a3a42"); for (const y of [3, 9]) P.rect(0, y, 16, 2, "#2c2c34"); for (const x of [1, 5, 10, 14]) P.rect(x, 15, 2, 1, "#8a8a94"); },
+  winch_top(P) { PAINT.planks(P); P.rect(2, 2, 12, 12, "#5a3a1a"); P.rect(4, 4, 8, 8, "#8a8a94"); P.rect(7, 1, 2, 14, "#3a2410"); P.rect(1, 7, 14, 2, "#3a2410"); },
+  winch_side(P) { PAINT.planks(P); for (let y = 2; y < 14; y += 3) P.rect(3, y, 10, 2, "#7a7a84"); P.rect(0, 0, 16, 1, "#3a2410"); P.rect(0, 15, 16, 1, "#3a2410"); },
+  ward_bricks(P) { P.fill(["#46485a", "#4c4e62", "#42445a"]); for (let r = 0; r < 4; r++) { P.rect(0, r * 4 + 3, 16, 1, "#2c2d3a"); P.rect((r % 2) * 8, r * 4, 1, 3, "#2c2d3a"); } P.px(4, 6, "#8fd6ff"); P.px(11, 1, "#8fd6ff"); P.px(12, 10, "#8fd6ff"); },
+  seal_top(P) { PAINT.ward_bricks(P); P.rect(3, 3, 10, 10, "#2a2236"); P.rect(5, 5, 6, 6, "#9b7bff"); P.rect(7, 4, 2, 8, "#d8c8ff"); P.rect(4, 7, 8, 2, "#d8c8ff"); },
+  seal_side(P) { PAINT.ward_bricks(P); P.rect(6, 3, 4, 10, "#2a2236"); P.rect(7, 5, 2, 6, "#b49bff"); },
   temple_stone(P) { P.fill(["#efe6d4", "#ebe1ce", "#f3ebdb"]); P.rect(0, 0, 16, 1, "#f8f2e6"); P.rect(0, 15, 16, 1, "#d9ccb2"); P.rect(0, 7, 16, 1, "#e2d6bf"); },
   temple_stone_top(P) { P.fill(["#f1e8d8", "#ede4d2", "#f5eddf"]); P.rect(0, 0, 16, 1, "#dccfb6"); P.rect(0, 0, 1, 16, "#dccfb6"); P.rect(15, 0, 1, 16, "#f9f4ea"); P.rect(0, 15, 16, 1, "#f9f4ea"); },
   temple_trim(P) { P.fill(["#c9652c", "#c35f27", "#ce6b31"]); for (let i = 0; i < 12; i++) P.px(Math.floor(P.r() * 16), Math.floor(P.r() * 16), "#ad5120"); P.rect(0, 0, 16, 1, "#d9783a"); P.rect(0, 15, 16, 1, "#a64c1d"); },

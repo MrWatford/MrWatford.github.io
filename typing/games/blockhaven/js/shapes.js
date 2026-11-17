@@ -102,6 +102,10 @@ export function model(v, get) {
     }
     return { T: floorT(f), parts };
   }
+  if (id === B.STONE_STEP) return { T: floorT(0), parts: [p([0, 0, 0, 16, 8, 16], tex)] };
+  if (id === B.CASTLE_TOME) return { T: floorT(m & 3), parts: [p([5, 0, 5, 11, 11, 11], TILE.tome_side), p([2, 11, 3, 14, 13, 13], [TILE.tome_top, TILE.tome_side, TILE.tome_side])] };   // an open book on a stand
+  if (id === B.PORTCULLIS) return { T: floorT(m & 3), parts: [p([0, 0, 7, 16, 16, 9], [TILE.portcullis, TILE.portcullis, TILE.portcullis])] };   // a grid of iron bars
+  if (id === B.CASTLE_BANNER) return { T: floorT(m & 3), parts: [p([0, 0, 7.5, 16, 16, 8.5], [TILE.castle_banner, TILE.castle_banner, TILE.castle_banner])] };   // a cloth hanging flat (facing set by meta)
   if (id === B.TEMPLE_STEP) return { T: floorT(0), parts: [p([0, 0, 0, 16, 8, 16], [faceTile(v, 0), faceTile(v, 1), faceTile(v, 0)])] };   // a half-height step
   if (id === B.DAYLIGHT) return { T: floorT(0), parts: [p([0, 0, 0, 16, 6, 16], [faceTile(v, 0), TILE.daylight_side, TILE.daylight_side])] };
   if (isTrapdoor(id)) {
@@ -159,7 +163,9 @@ export function shapeBoxes(v, get) {
   const id = idOf(v), m = metaOf(v);
   if (id === B.REPEATER || id === B.COMPARATOR) return [[0, 0, 0, 1, 2 * S, 1]];
   if (id === B.DAYLIGHT) return [[0, 0, 0, 1, 6 * S, 1]];
-  if (id === B.TEMPLE_STEP) return [[0, 0, 0, 1, 0.5, 1]];
+  if (id === B.TEMPLE_STEP || id === B.STONE_STEP) return [[0, 0, 0, 1, 0.5, 1]];
+  if (id === B.CASTLE_BANNER) return [];
+  if (id === B.PORTCULLIS) return [box(floorT(m & 3), [0, 0, 7 * S, 1, 1, 9 * S])];
   if (isHush(id)) return [[0, 0, 0, 1, 0.5, 1]];
   if (isPiston(id) && (m & EXTENDED)) return [box(faceT(m & 7), [0, 0, 0, 1, 12 * S, 1])];
   if (id === B.PISTON_HEAD) { const T = faceT(m & 7); return [box(T, [0, 12 * S, 0, 1, 1, 1]), box(T, [6 * S, 0, 6 * S, 10 * S, 12 * S, 10 * S])]; }

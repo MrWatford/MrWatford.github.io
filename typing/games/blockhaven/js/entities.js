@@ -19,6 +19,7 @@ import { wetlandDepth } from "./wildlife-wetlands.js";
 import { marineWaterRoom } from "./wildlife-ocean.js";
 import { DUNE_SEGMENTS, DuneTrail, DunePose } from "./dune-leviathan.js?v=pose-2";
 import { animateDesertMob, installDesertMobs, spawnDesertMobs, thinkDesertMob } from "./desert-mobs.js";
+import { installCastellan, animateCastellan } from "./citadel-boss.js";
 import { createLeviathanGlow } from "./leviathan-glow.js?v=charge-1";
 import { createMawShell } from "./leviathan-geometry.js";
 import { LeviathanCues } from "./leviathan-cues.js";
@@ -1539,6 +1540,7 @@ SPECIES.leviathan_ancient = {
 };
 
 installDesertMobs(SPECIES);
+installCastellan(SPECIES);   // the Fallen Castellan (js/citadel-boss.js)
 installMutants(SPECIES);
 export const SPAWN_SPECIES = SPAWN_EGGS.map(e => e[0]);
 
@@ -2526,7 +2528,7 @@ export class Entities {
       return;
     }
     // undead burn in sunlight
-    if (def.burns && daylight > 0.75 && !e.inWater && !e.cpRaid) {   // (campaign raiders wear hoods)
+    if (def.burns && daylight > 0.75 && !e.inWater && !e.cpRaid && !e.noBurn) {   // (castle defenders wear helmets too)   // (campaign raiders wear hoods)
       const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.eyeY), Math.floor(e.pos.z));
       if (L && L[0] >= 15) e.burning = Math.max(e.burning || 0, 3);
     }
@@ -3234,7 +3236,7 @@ export class Entities {
     if (attacker === "player" && !e.def.villager && !e.def.object) this.petFoe = e;   // your Scouts join in
     if (e.summonT > 0) return false;   // can't be hurt while it's being summoned
     if (e.sp === "dragon") { n *= e.perched ? 1 : 0.6; knock = null; if (attacker === "explosion") n *= 0.3; }
-    if (e.def.shielded && attacker === "player" && !this.ctx.itemFlag?.("breaksGuard")) { const p = this.ctx.player(), f = Math.cos(e.yaw) * (e.pos.z - p.pos.z) + Math.sin(e.yaw) * (e.pos.x - p.pos.x); if (f > 0) { n *= 0.3; this.ctx.particles(e.pos.x, e.pos.y + 1.2, e.pos.z, "pale"); } }   // an Echo Knight's shield blocks hits from the front
+    if ((e.def.shielded || e.guarding) && attacker === "player" && !this.ctx.itemFlag?.("breaksGuard")) { const p = this.ctx.player(), f = Math.cos(e.yaw) * (e.pos.z - p.pos.z) + Math.sin(e.yaw) * (e.pos.x - p.pos.x); if (f > 0) { n *= 0.3; this.ctx.particles(e.pos.x, e.pos.y + 1.2, e.pos.z, "pale"); } }   // an Echo Knight's shield blocks hits from the front
     if (e.def.burrows && !e.emerged) return false;
     if (e.def.segmentedLeviathan) knock = null;
     if (e.def.hears && attacker === "player") { e.alertT = Math.max(e.alertT || 0, 10); e.dormant = false; }
@@ -3900,6 +3902,7 @@ export class Entities {
     }
     if (e.swing > 0) e.swing -= dt;
     animateDesertMob(e);
+    animateCastellan(e);
     // brightness from the light where it stands, flash red when hurt, white when about to explode
     const L = this.world.lightAt(Math.floor(e.pos.x), Math.floor(e.pos.y + 0.5), Math.floor(e.pos.z));
     let b = L ? Math.max(L[0] / 15 * daylight, L[1] / 15) : daylight;

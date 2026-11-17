@@ -76,7 +76,7 @@ export function initStarter(api) {
         if (gen.villagePiece && gen.villagePiece(gx, gz)) return null;   // never inside a village
         if (hash3(gen.seed, gx, 99, gz) < 0.035 || hash3(gen.seed, gx, 77, gz) < 0.02) return null;   // or on a ruin
       }
-      for (const s of gen.strongholds || []) if (Math.hypot(s.x - cx, s.z - cz) < 110) return null;
+      for (const s of gen.strongholds || []) if (Math.hypot(s.x - cx, s.z - cz) < 150) return null;   // (room for the Endwatch Citadels)
       for (const m of marks) if (Math.hypot(m.x - cx, m.z - cz) < m.r + R1 + 24) return null;
       const hs = [];
       for (let dz = -R0 - 2; dz <= R0 + 2; dz += 4) for (let dx = -R0 - 2; dx <= R0 + 2; dx += 4) {
@@ -325,9 +325,15 @@ export function initStarter(api) {
       out.push({ kind: t.kind, title: t.name, name: "Waystone", x: t.x + 0.5, y: t.y, z: t.z + 0.5 });
     }
     out.push(...leviathanDestinations(G.story));
+    if (G.citadel) for (const c of G.citadel.landmarks()) {   // the Endwatch Citadels (and any old, buried strongholds)
+      TYPES[c.kind] = TYPES[c.kind] || { label: c.title, color: c.castle ? "#c8423a" : "#8a8a9a", dark: c.castle ? "#4a1414" : "#2a2a34", where: c.castle ? "Island castle" : "Underground" };
+      out.push({ kind: c.kind, title: c.title, name: c.name, x: c.x + 0.5, y: c.y, z: c.z + 0.5, center: c.center, guide: c.castle ?
+        `The Endwatch Citadel stands on an island in a lake. The waypoint leads to the shore end of its long stone bridge (${Math.round(c.x)}, ${Math.round(c.z)}); cross it to the gatehouse. The Hollow portal lies in a sealed chamber under the keep: the Castellan's Seal in the keep floor only opens once the castle's guardian is beaten. An Eye of the Void also points here.` :
+        `An old stronghold, buried underground (its land had already been explored, so it kept its old form). Throw an Eye of the Void to find the exact spot, then dig down to the portal room at about y ${c.y}.` });
+    }
     const h = S.house();
     if (h) out.push({ kind: "home", title: G.campaign && G.campaign.on() ? "Legacy Village" : "Starter Home", name: G.campaign && G.campaign.on() ? "The fountain" : "Your house", x: h.x, y: h.y, z: h.z });
-    destCache = { t: ck, list: out.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind)) };
+    destCache = { t: ck, list: out.sort((a, b) => { const i = k => { const n = ORDER.indexOf(k); return n >= 0 ? n : String(k).startsWith("endwatch") ? 99 : -1; }; return i(a.kind) - i(b.kind); }) };
     return out;
   }
   const destOf = kind => destinations().find(d => d.kind === kind) || null;
@@ -649,6 +655,10 @@ export function initStarter(api) {
     } else if (kind === "desert") {   // a gold pyramid
       ctx.fillStyle = T.color; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r, r * 0.8); ctx.lineTo(-r, r * 0.8); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.2, r * 0.8); ctx.stroke();
+    } else if (String(kind).startsWith("endwatch")) {   // a castle: grey walls, two towers with red roofs
+      ctx.fillStyle = "#9a9aa6"; ctx.fillRect(-r * 0.85, -r * 0.1, r * 1.7, r * 0.9); ctx.strokeRect(-r * 0.85, -r * 0.1, r * 1.7, r * 0.9);
+      for (const sx of [-1, 1]) { ctx.fillStyle = "#b4b4c0"; ctx.fillRect(sx * r * 0.62 - r * 0.25, -r * 0.45, r * 0.5, r * 1.25); ctx.strokeRect(sx * r * 0.62 - r * 0.25, -r * 0.45, r * 0.5, r * 1.25); ctx.fillStyle = T ? T.color : "#c8423a"; ctx.beginPath(); ctx.moveTo(sx * r * 0.62 - r * 0.35, -r * 0.45); ctx.lineTo(sx * r * 0.62, -r); ctx.lineTo(sx * r * 0.62 + r * 0.35, -r * 0.45); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      ctx.fillStyle = "#3a2a1a"; ctx.fillRect(-r * 0.18, r * 0.3, r * 0.36, r * 0.5);
     } else if (String(kind).startsWith("t_")) {   // a campaign town: a gold banner on a pole
       ctx.fillStyle = "#5a4010"; ctx.fillRect(-r * 0.12, -r, r * 0.24, r * 1.9);
       ctx.fillStyle = T ? T.color : "#c9a24a"; ctx.beginPath(); ctx.moveTo(r * 0.12, -r); ctx.lineTo(r, -r * 0.6); ctx.lineTo(r * 0.12, -r * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();

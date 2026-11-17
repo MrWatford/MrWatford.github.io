@@ -137,6 +137,7 @@ export function initLost(api) {
     const ok = (x0, z0) => {
       for (let cx = 0; cx < 2; cx++) for (let cz = 0; cz < 2; cz++) { const k = (x0 / CHUNK + cx) + "," + (z0 / CHUNK + cz); if (visited.has(k) || mods[k]) return false; }
       if (others.some(o => Math.hypot(o.x - x0, o.z - z0) < 96)) return false;
+      if ((gen.strongholds || []).some(q => Math.hypot(q.x - x0 - 16, q.z - z0 - 16) < 185)) return false;   // room for the Endwatch Citadels
       return fits(x0, z0);
     };
     // looser matches, used only when the natural spot would be farther than the adventure range
@@ -161,6 +162,7 @@ export function initLost(api) {
     const bay = (x0, z0) => {
       const cx = x0 + 16, cz = z0 + 16;
       if (others.some(o => Math.hypot(o.x - x0, o.z - z0) < 120)) return false;
+      if ((gen.strongholds || []).some(q => Math.hypot(q.x - cx, q.z - cz) < 185)) return false;   // room for the Endwatch Citadels
       for (let gx = Math.floor((cx - LAKE.r1) / CHUNK); gx <= Math.floor((cx + LAKE.r1) / CHUNK); gx++) for (let gz = Math.floor((cz - LAKE.r1) / CHUNK); gz <= Math.floor((cz + LAKE.r1) / CHUNK); gz++) if (visited.has(gx + "," + gz) || mods[gx + "," + gz]) return false;
       for (const rr of [0, 18, 34, 46]) for (let a = 0; a < (rr ? 8 : 1); a++) {
         const c = gen.column(Math.round(cx + Math.cos(a * 0.785) * rr), Math.round(cz + Math.sin(a * 0.785) * rr));
@@ -179,6 +181,7 @@ export function initLost(api) {
     function ok2(x0, z0, fit) {
       for (let cx = 0; cx < 2; cx++) for (let cz = 0; cz < 2; cz++) { const k = (x0 / CHUNK + cx) + "," + (z0 / CHUNK + cz); if (visited.has(k) || mods[k]) return false; }
       if (others.some(o => Math.hypot(o.x - x0, o.z - z0) < 96)) return false;
+      if ((gen.strongholds || []).some(q => Math.hypot(q.x - x0 - 16, q.z - z0 - 16) < 185)) return false;
       return fit(x0, z0);
     }
   }

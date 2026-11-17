@@ -17,7 +17,7 @@ export function canPlaceObsidianBadlands(gen, site, untouched, reserved) {
   const { x, z, size } = obsidianBadlandsBounds(site);
   if (!untouched(x, z, x + size, z + size) ||
       reserved.some(s => x < s.x + s.size && x + size > s.x && z < s.z + s.size && z + size > s.z) ||
-      gen.strongholds?.some(s => Math.hypot(s.x - x - size / 2, s.z - z - size / 2) < 77 + size / 2)) return false;
+      gen.strongholds?.some(s => Math.hypot(s.x - x - size / 2, s.z - z - size / 2) < 130 + size / 2)) return false;
   if (naturalLandmark(gen, x / CHUNK, z / CHUNK + 3) || naturalLandmark(gen, x / CHUNK, z / CHUNK + 4)) return false;
   for (const [dx, dz] of [[5, 62], [13, 62], [5, 76], [13, 76], [9, 75]]) {
     const { h } = gen.column(x + dx, z + dz);

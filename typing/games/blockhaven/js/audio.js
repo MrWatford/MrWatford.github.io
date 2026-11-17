@@ -115,6 +115,7 @@ export const Sound = {
     switch (kind) {
       case "groan": this.tone(110 * r(), 0.6, "sawtooth", g(0.08), -40); break;
       case "rattle": for (let i = 0; i < 4; i++) setTimeout(() => this.noise(2400, 0.04, g(0.25), 6), i * 60); break;
+      case "clank": this.tone(520 * r(), 0.09, "square", g(0.07)); this.tone(1310 * r(), 0.06, "triangle", g(0.05)); this.noise(3000, 0.05, g(0.12), 4); break;   // armor and shields (desert guardians, the Fallen Castellan)
       case "hiss": case "fuse": this.noise(5000, kind === "fuse" ? 1.4 : 0.5, g(0.3), 0.7, "highpass"); break;
       case "chitter": for (let i = 0; i < 3; i++) setTimeout(() => this.tone(900 * r(), 0.05, "square", g(0.05), 300), i * 50); break;
       case "squish": this.tone(160 * r(), 0.18, "sine", g(0.2), 120); this.noise(600, 0.12, g(0.2), 2); break;

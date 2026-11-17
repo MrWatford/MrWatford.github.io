@@ -395,7 +395,7 @@ export const QUESTS = {
   voidcall: { chapter: 8, main: true, title: "The Last Relic", giver: "elder",
     text: "Seven Relics are safe, and they hum together like a choir missing one voice. The last one, the Relic of the Void, lies in the Hollow: the pale islands past the edge of the world, where the Hollow Wyrm keeps watch.",
     steps: [{ ev: "talk", npc: "elder", text: "Talk to Elder Maren about the last Relic" },
-      { ev: "dim", dim: "end", text: "Throw an Eye of the Void to find a stronghold (the marker shows the nearest one), fill its portal frame, and jump in" }],
+      { ev: "dim", dim: "end", text: "Find a stronghold with an Eye of the Void (an Endwatch Citadel's portal opens once its Castellan is beaten), fill its portal frame, and jump in" }],
     reward: { xp: 60, items: [[I.ARROW, 64], [I.GOLDEN_CARROT, 8]], text: "64 arrows and golden carrots" } },
   wyrm: { chapter: 8, main: true, title: "Beyond the World's Edge", giver: "elder",
     text: "The Hollow Wyrm has guarded the Relic of the Void since the First Builders hid it. The crystals on the tall pillars heal it, so break them first.",

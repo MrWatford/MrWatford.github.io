@@ -52,7 +52,7 @@ export function initCampaign(api) {
     const sp = gen.findSpawn();
     let best = null;
     const score = (x, z, r) => {
-      for (const s of gen.strongholds || []) if (Math.hypot(s.x - x, s.z - z) < 120) return null;
+      for (const s of gen.strongholds || []) if (Math.hypot(s.x - x, s.z - z) < 175) return null;   // (room for the Endwatch Citadels)
       const hs = []; let water = 0, steep = 0;
       for (let dz = -60; dz <= 60; dz += 12) for (let dx = -60; dx <= 60; dx += 12) {
         const c = gen.column(x + dx, z + dz);
@@ -587,7 +587,7 @@ export function initCampaign(api) {
         text = "Seven Relics! Only one is missing: the Relic of the Void. The First Builders hid it in the Hollow, the pale islands past the edge of the world, and set the Hollow Wyrm to guard it.\n\nThe way there is a portal deep inside a stronghold. These Eyes of the Void will lead you: throw one, and follow it. When you find the portal, fill its frame with the eyes.";
         if (!s.given.eyes) { give(I.EYE, 14); s.given.eyes = true; text += "\n\nHere, take all fourteen. I've kept them safe for a very long time."; }
       }
-      else if (cur("voidcall") === 1) text = "Throw an Eye of the Void and follow where it flies. When it dives into the ground, dig down: the stronghold is right below. Bring arrows. The Wyrm flies high.";
+      else if (cur("voidcall") === 1) text = "Throw an Eye of the Void and follow where it flies (the Explorer's Map shows the Endwatch Citadels too). At a citadel, fight through the gate, the courtyard, the keep, and the dungeons, then beat the Fallen Castellan to open the stair to the portal. At an old stronghold, dig straight down. Bring arrows. The Wyrm flies high.";
       else if (cur("wyrm") >= 0) text = "The crystals on the pillars heal the Wyrm. Break them first, with arrows if you must. Then it's you and the Wyrm.";
       else if (cur("skyreach") >= 0) text = "A city in the clouds... Skyreach! My grandmother said the First Builders made the Relics there. Follow your marker to the Sky Stair, and see who is waiting." + placeDir(e, "skyreach");
       else if (cur("skysov") >= 0 || cur("capital") >= 0 || cur("forgottenking") >= 0) text = "I can hear the Relics singing from here, little builder. Whatever happens at the end of all this, the whole village believes in you.";
