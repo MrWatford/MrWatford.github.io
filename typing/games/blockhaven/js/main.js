@@ -13,6 +13,12 @@ import { Inventory, newStack, maxStack, OFF } from "./inventory.js";
 import { Sound } from "./audio.js";
 import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.js";
 import { Adv } from "./advancements.js";
+import { FERN_PLAINS, JUNGLE_RETURN } from "./fern-plains.js";
+import { REDWOODS } from "./redwood-escarpment.js";
+import { MANGROVE, RELAY_LIGHT } from "./mangrove-wetlands.js";
+import { LOST_WORLD_REGIONS, isLostWorldDimension, isLostWorldRegion } from "./lost-world-regions.js";
+import { expedition, isCampaignLandmark, readCampaignLandmark } from "./lost-world-campaign.js";
+import { LOST_WORLD, LOST_WORLD_GEN, LostWorldGenerator, worldHome } from "./lost-world.js";
 import { initForsaken, isQuestItem } from "./forsaken.js";
 import { initMutants } from "./mutants.js";
 import { initCompanions } from "./companions.js";
@@ -1014,7 +1020,8 @@ function enterHollow() {
 }
 function leaveHollow() {
   const s = G.player.spawn;
-  return changeDim("overworld", s.x, s.z, "Returning to the Surface…", () => { placeSafely(G.player, s.x, s.z); UI.toast("Home again!", "good"); });
+  const home = isLostWorldRegion(s.dim) ? s.dim : worldHome(G.meta);
+  return changeDim(home, s.x, s.z, "Returning to " + DIM_NAMES[home] + "…", () => { placeSafely(G.player, s.x, s.z); UI.toast("Home again!", "good"); });
 }
 async function gatewayJump() {
   const p = G.player, outward = Math.hypot(p.pos.x, p.pos.z) < 200;
@@ -1087,7 +1094,7 @@ function chorusBlink() {
 }
 
 // ---------- portals between the Surface and the Ember Depths ----------
-const DIM_NAMES = { overworld: "the Surface", nether: "the Ember Depths", end: "the Hollow", forsaken: "the Forsaken World", deep: "the Deep", expanse: "the Echo Expanse", sea: "the Drowned Citadel", jungle: "the Verdant Labyrinth", desert: "the Sunken Pyramid of Aurelis" };
+const DIM_NAMES = { ...Object.fromEntries(Object.entries(LOST_WORLD_REGIONS).map(([dim, region]) => [dim, region.name])), [LOST_WORLD]: "The Lost World", overworld: "the Surface", nether: "the Ember Depths", end: "the Hollow", forsaken: "the Forsaken World", deep: "the Deep", expanse: "the Echo Expanse", sea: "the Drowned Citadel", jungle: "the Verdant Labyrinth", desert: "the Sunken Pyramid of Aurelis" };
 const dimWhere = d => (d === "overworld" ? "on " : "in ") + (DIM_NAMES[d] || d);
 // Light a portal inside an obsidian frame. (x, y, z) is an empty spot inside the frame.
 function lightPortal(x, y, z) {
@@ -1160,7 +1167,13 @@ function checkPortal(dt) {
   portalT += dt;
   const need = G.creative ? 0.6 : 2.5;
   tint.style.opacity = Math.min(0.85, portalT / need);
-  if (portalT >= need && !G.traveling) { portalT = 0; travel(G.dim === "nether" ? "overworld" : "nether", portalAt(...inside) || { x: inside[0], y: inside[1], z: inside[2], axis: idOf(w.get(...inside)) === B.PORTAL ? metaOf(w.get(...inside)) & 1 : 0, w: 2, h: 3 }); }
+  if (portalT >= need && !G.traveling) {
+    portalT = 0;
+    const from = portalAt(...inside);
+    const linkedHome = from && G.dimData.nether?.links?.[portalKey(from)]?.dim;
+    const home = G.meta.lostWorldGen && isLostWorldRegion(linkedHome) ? linkedHome : worldHome(G.meta);
+    travel(G.dim === "nether" ? home : "nether", from || { x: inside[0], y: inside[1], z: inside[2], axis: idOf(w.get(...inside)) === B.PORTAL ? metaOf(w.get(...inside)) & 1 : 0, w: 2, h: 3 });
+  }
 }
 async function travel(toDim, fromPortal) {
   const p = G.player, fromDim = G.dim, back = { x: p.pos.x, y: p.pos.y, z: p.pos.z };
@@ -1178,7 +1191,12 @@ async function travel(toDim, fromPortal) {
     let dest = link && link.dim === toDim ? link : null;
     if (!dest) {
       const range = toDim === "nether" ? 16 : 128;
-      dest = portalList(toDim).filter(a => Math.hypot(a.x - tx, a.z - tz) <= range).sort((a, b) => Math.hypot(a.x - tx, a.z - tz) - Math.hypot(b.x - tx, b.z - tz))[0] || null;
+      const separateRegions = G.meta.lostWorldGen && toDim === "nether";
+      const links = G.dimData[toDim].links;
+      dest = portalList(toDim).filter(a => {
+        const linkedTo = separateRegions ? links?.[portalKey(a)]?.dim : null;
+        return (!linkedTo || linkedTo === fromDim) && Math.hypot(a.x - tx, a.z - tz) <= range;
+      }).sort((a, b) => Math.hypot(a.x - tx, a.z - tz) - Math.hypot(b.x - tx, b.z - tz))[0] || null;
     }
     const cx = dest ? dest.x : tx, cz = dest ? dest.z : tz;
     p.pos.x = cx + 0.5; p.pos.z = cz + 0.5;
@@ -1199,7 +1217,7 @@ async function travel(toDim, fromPortal) {
     await saveNow(false);
     G.state = "pause"; UI.show("none"); UI.hud(); G.resume(); G.adv("dim", toDim);
     CO.bringMount(ride);
-    UI.toast(toDim === "nether" ? "Welcome to the Ember Depths! Watch out for lava, and don't sleep here." : "Back on the Surface.", toDim === "nether" ? "bad" : "good");
+    UI.toast(toDim === "nether" ? "Welcome to the Ember Depths! Watch out for lava, and don't sleep here." : isLostWorldDimension(toDim) ? "Back in " + DIM_NAMES[toDim] + "." : "Back on the Surface.", toDim === "nether" ? "bad" : "good");
     if (toDim === "nether" && !G.tips.nether) { G.tips.nether = true; UI.toast("Tip: wear a piece of gold armor and the Boarkin won't attack. Give them gold ingots to trade.", ""); }
     if (toDim === "nether") cinderHint();
   } catch (err) {
@@ -1483,7 +1501,7 @@ function compassReading() {
     else if (s.lode.dim !== G.dim) text = `Lodestone is ${dimWhere(s.lode.dim)}`;
     else if (G.world.isLoaded(s.lode.x, s.lode.z) && G.world.id(s.lode.x, s.lode.y, s.lode.z) !== B.LODESTONE) { s.lodeLost = true; text = "The Lodestone is gone"; }
     else { t = s.lode; text = `Lodestone: ${Math.round(Math.hypot(t.x + 0.5 - p.pos.x, t.z + 0.5 - p.pos.z))} blocks`; }
-  } else if (G.dim === "overworld") { t = p.spawn; text = `Spawn: ${Math.round(Math.hypot(t.x - p.pos.x, t.z - p.pos.z))} blocks`; }
+  } else if (G.dim === (p.spawn.dim || worldHome(G.meta))) { t = p.spawn; text = `Spawn: ${Math.round(Math.hypot(t.x - p.pos.x, t.z - p.pos.z))} blocks`; }
   else text = "The needle spins here";
   if (!t) return { yaw: null, text };
   const ang = Math.atan2(-(t.x + 0.5 - p.pos.x), -(t.z + 0.5 - p.pos.z));   // same angle system as the player's yaw
@@ -1754,7 +1772,10 @@ function makeWorld(dim) {
     else if (isSolkaraRealm(dim)) G.dimData[dim] = { solkaraScenery: SOLKARA_SCENERY_LAYOUT };
   }
   const data = G.dimData[dim] || (G.dimData[dim] = {});
-  const gen = dim === SOLKARA_SANCTUARY ? new SolkaraSanctuaryGen(data.solkaraScenery) : dim === HOLLOW_SANDS ? new HollowSandsGen(G.meta.seed, data.sandsLandmarks, data.solkaraScenery) : dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed, G.meta.gen || 1) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
+  const region = Object.hasOwn(LOST_WORLD_REGIONS, dim) ? LOST_WORLD_REGIONS[dim] : null;
+  if (region) data.layout ??= region.layout;
+  const gen = region ? new region.Generator(G.meta.seed, !!G.story.lostWorld) : dim === LOST_WORLD ? new LostWorldGenerator(G.meta.seed, G.meta.lostWorldGen, !!G.story.lostWorld) :
+    dim === SOLKARA_SANCTUARY ? new SolkaraSanctuaryGen(data.solkaraScenery) : dim === HOLLOW_SANDS ? new HollowSandsGen(G.meta.seed, data.sandsLandmarks, data.solkaraScenery) : dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed, G.meta.gen || 1) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
   if (LOST_DIMS.includes(dim)) CP.stampDim(dim, gen);   // campaign boss chambers behind the temple vaults
   if (dim === SOLKARA_SANCTUARY) { data.solkaraAnnex = 1; data.solkaraWing = 1; }
   if (dim === "desert") {
@@ -1841,7 +1862,8 @@ async function startWorld(save) {
   G.state = "loading"; UI.show("loading"); UI.setLoading(0, "Shaping hills and valleys");
   G.meta = save; G.mode = save.mode;
   G.dimData = save.dims || { overworld: { mods: save.mods || {}, containers: save.containers || [] } };
-  G.dim = (save.player && save.player.dim) || "overworld";
+  G.journalTab = save.lostWorldGen ? "expedition" : G.journalTab;
+  G.dim = (save.player && save.player.dim) || worldHome(save);
   G.wset = { difficulty: "easy", griefing: true, keepInv: true, ...(save.settings || {}) };
   G.xp = save.xp || 0; G.effects = {}; G.elv = {}; G.absorb = 0; G.eat = null; G.blocking = false; G.bowT = -1; G.totemGuard = 0;
   G.voidInv = Array.from({ length: 27 }, (_, i) => (save.voidInv && save.voidInv[i] && itemDef(save.voidInv[i].id) ? { ...save.voidInv[i] } : null));
@@ -1852,7 +1874,7 @@ async function startWorld(save) {
     catch (e) { G.dim = "overworld"; if (save.player) save.player.pos = { ...(save.player.spawn || { x: 0, y: 70, z: 0 }) }; UI.toast("The Forsaken World couldn't load right now, so you woke up on the Surface.", "bad"); }
   }
   // the Lost Civilization's maps (the Surface needs the excavation site's map too)
-  try { UI.setLoading(0.08, "Unrolling the Keepers' maps…"); await L.ready(); }
+  if (!isLostWorldDimension(G.dim)) try { UI.setLoading(0.08, "Unrolling the Keepers' maps…"); await L.ready(); }
   catch (e) { if (LOST_DIMS.includes(G.dim)) { G.dim = "overworld"; if (save.player) save.player.pos = { ...(save.player.spawn || { x: 0, y: 70, z: 0 }) }; UI.toast("The Deep couldn't load right now, so you woke up on the Surface.", "bad"); } }
   G.world = makeWorld(G.dim); G.gen = G.world.gen;
   G.inv = new Inventory(); G.inv.load(save.inventory);
@@ -1869,6 +1891,7 @@ async function startWorld(save) {
     const h = G.dim === "overworld" ? (CP.spawnPoint() || ST.spawnPoint()) : null, s = h || G.gen.findSpawn();
     p.spawn = { x: s.x, y: h ? h.y : null, z: s.z }; Object.assign(p.pos, { x: s.x, y: h ? h.y : 70, z: s.z });
     if (h) p.yaw = h.yaw;
+    else if (G.dim === LOST_WORLD) p.yaw = Math.PI;
   }
   ST.resetClock(); CP.resetSession();
   p.air = 10; G.selected = 0; G.mining = null; G.hudDirty = true;
@@ -1896,6 +1919,9 @@ async function startWorld(save) {
   document.body.classList.remove("menu-bg");
   G.resume();
   updateTips();
+  if (!save.player && G.dim === LOST_WORLD) UI.toast(G.story.lostWorld ?
+    "Read the lit tablet by the gravel trail for your expedition briefing." :
+    "Gather wood and berries in camp, then follow the gravel trail to Raptor Grove.");
 }
 const frame = () => new Promise(r => { requestAnimationFrame(() => r()); setTimeout(r, 60); });   // keeps loading even in a background tab
 
@@ -2220,6 +2246,10 @@ function breakBlock(x, y, z, drops, quiet) {
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
   if (id === B.SOLKARA_GATE) return;
+  if (id === B.LORE_TABLET && G.story.lostWorld && isCampaignLandmark(G.dim, { x, y, z })) {
+    if (!quiet) UI.toast("This expedition tablet is protected.");
+    return;
+  }
   if (G.dim === "overworld" && (id === B.CHEST || id === B.SIGN)) {
     const sites = G.story.leviathan?.sites, hit = { x, y, z };
     const protectedSite = id === B.CHEST ? relicSiteAt(sites, hit, relicCache) :
@@ -2720,7 +2750,9 @@ function useBed(hit) {
   if (G.world.gen.isNether()) { breakBlock(hit.x, hit.y, hit.z, false); explode(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5, 3, null); UI.toast("Beds explode in the Ember Depths! Only sleep on the Surface.", "bad"); return; }
   const meta = metaOf(hit.v), [dx, dz] = DIR[meta & 3];
   const head = meta & HEAD ? { x: hit.x, z: hit.z } : { x: hit.x + dx, z: hit.z + dz };
-  G.player.spawn = { x: head.x + 0.5, y: hit.y + 1, z: head.z + 0.5, bed: [hit.x, hit.y, hit.z] }; G.player.anchor = null;
+  G.player.spawn = { x: head.x + 0.5, y: hit.y + 1, z: head.z + 0.5, bed: [hit.x, hit.y, hit.z] };
+  if (isLostWorldRegion(G.dim)) G.player.spawn.dim = G.dim;
+  G.player.anchor = null;
   const night = G.time > 0.53 && G.time < 0.97;
   if (!night) { UI.toast("Respawn point set. You can only sleep at night."); return; }
   if (G.creative === false && ents.near(G.player.pos.x, G.player.pos.y, G.player.pos.z, 10, e => e.def.hostile).length) { UI.toast("You can't rest now. There are monsters nearby!", "bad"); return; }
@@ -2736,6 +2768,24 @@ function blocksPlayer(v, x, y, z) {
 }
 function interact(hit, kind) {
   const w = G.world, key = hit.x + "," + hit.y + "," + hit.z;
+  if (kind === "lore" && isLostWorldDimension(G.dim) && G.story.lostWorld && !G.guest) {
+    const record = { ...G.story.lostWorld };
+    const note = readCampaignLandmark(G.dim, record, hit);
+    if (note) {
+      if (record.stage !== G.story.lostWorld.stage) {
+        G.story.lostWorld = record;
+        if (G.dim === MANGROVE && record.stage === 6) {
+          const { x, y, z } = RELAY_LIGHT;
+          const chunk = w.chunkAt(x, z);
+          const index = chunk && idx(x - chunk.cx * CHUNK, y, z - chunk.cz * CHUNK);
+          if (chunk && w.id(x, y, z) === B.GLASS && !w.mods.get(chunk.key)?.has(index)) w.set(x, y, z, B.SHINESTONE);
+        }
+        saveNow(false);
+      }
+      UI.openNote(...note, false);
+      return;
+    }
+  }
   if (G.dim === "overworld" && interactDesertVault(hit, kind)) return;
   if (kind === "solkara_gate") { useSolkaraGate(hit); return; }
   if (isSolkaraRealm(G.dim) && G.dimData[G.dim]?.solkaraWing === 1 && interactSolkaraWing(hit, kind)) return;
@@ -3855,15 +3905,23 @@ G.respawn = async () => {
   }
   if (G.guest && G.dim !== "overworld") { const h = MP.hostSpot(); placeSafely(p, h.x, h.z); G.state = "pause"; G.resume(); UI.toast("You woke up near the host."); return; }   // Play Together: stay with the group
   if (p.anchor && await respawnAtAnchor(p)) { G.state = "pause"; G.resume(); return; }
-  if (G.dim !== "overworld") {   // otherwise you wake up on the Surface
+  const home = isLostWorldRegion(p.spawn.dim) ? p.spawn.dim : worldHome(G.meta);
+  if (G.dim !== home || (G.meta.lostWorldGen && !G.world.isLoaded(p.spawn.x, p.spawn.z))) {
     G.state = "loading"; UI.show("loading");
     G.dimData[G.dim] = dimSnapshot(G.world);
     clearWorldMeshes(); G.world.chunks.clear();
-    G.dim = "overworld"; G.world = makeWorld("overworld"); G.gen = G.world.gen;
+    G.dim = home; G.world = makeWorld(home); G.gen = G.world.gen;
     p.pos.x = p.spawn.x; p.pos.z = p.spawn.z; p.pos.y = p.spawn.y || 60;
-    await loadArea(p.spawn.x, p.spawn.z, "Waking up on the Surface…");
+    await loadArea(p.spawn.x, p.spawn.z, "Waking up in " + DIM_NAMES[home] + "…");
+  }
+  if (isLostWorldRegion(home) && p.spawn.bed && G.world.id(...p.spawn.bed) !== B.BED) {
+    const { x, z } = G.gen.findSpawn();
+    p.spawn = { x, y: null, z, dim: home };
+    if (!G.world.isLoaded(x, z)) await loadArea(x, z, "Returning to " + DIM_NAMES[home] + "…");
+    UI.toast("Your bed was missing, so you woke up at the region’s arrival point.", "bad");
   }
   placeSafely(p, p.spawn.x, p.spawn.z);
+  if (isLostWorldRegion(home) && p.spawn.y == null) p.spawn.y = p.pos.y;
   if (p.spawn.bed && G.world.id(...p.spawn.bed) !== B.BED) { UI.toast("Your bed was missing, so you woke up at the world's starting spot.", "bad"); delete p.spawn.bed; }
   G.state = "pause"; G.resume();
 };
@@ -5293,11 +5351,17 @@ function updateSandsDiscovery(dt) {
   }
   sandsHaze.lerp(sandsTarget.setHex(SANDS_REGIONS[sandsRegion].haze), 1 - Math.exp(-dt * 1.8));
 }
+const redwoodHaze = new THREE.Color(0xc3b79d);
+const mangroveHaze = new THREE.Color(0x85aca0);
+const plainsHaze = new THREE.Color(0xb4c997);
+const jungleHaze = new THREE.Color(0x92b69e);
 function updateSky() {
   const nether = G.world && G.world.gen.isNether();
   const hollow = G.world && G.world.gen.isEnd && G.world.gen.isEnd();
   const forsaken = G.dim === "forsaken" && F.template(), lsky = L.sky();
-  surfaceSky.visible = G.dim === "overworld" && !G.player.headInWater && !G.player.inLava;
+  const mist = G.dim === MANGROVE ? mangroveHaze : G.dim === REDWOODS ? redwoodHaze : G.dim === LOST_WORLD ? jungleHaze : null;
+  const plains = G.dim === FERN_PLAINS;
+  surfaceSky.visible = (G.dim === "overworld" || isLostWorldDimension(G.dim)) && !G.player.headInWater && !G.player.inLava;
   waterUniforms.rippleTime.value = G.settings.reducedMotion ? 0 : G.clock % 8;
   uniforms.coolTime.value = G.clock % (Math.PI * 2 / 1.3 * 200);   // wraps on a whole wave, so the pulse never jumps
   uniforms.coolPulse.value = G.settings.reducedMotion || G.settings.fx === "low" ? 0 : (G.settings.fx === "high" ? 0.24 : 0.18) + (G.echoDanger || 0) * 0.3 + (G.echoWake || 0) * 0.7 + (G.echoGate || 0) * 0.8;   // stronger when a Stalker is near, or when the city wakes (Phase 6)
@@ -5364,7 +5428,15 @@ function updateSky() {
   skyCol.lerp(SKY_SET, dusk * 0.45);
   const p = G.player;
   if (p.headInWater) skyCol.set(0x1d3f7a);
-  else if (G.dim === "overworld" && stormStage) {
+  else if (mist) {
+    skyCol.lerp(mist, day * 0.46);
+    const distance = G.settings.renderDist * CHUNK;
+    G.fwFog = [distance * 0.28, distance * 0.88];
+    uniforms.ambient.value = 0.19;
+  } else if (plains) {
+    skyCol.lerp(plainsHaze, day * 0.23);
+    uniforms.ambient.value = 0.23;
+  } else if (G.dim === "overworld" && stormStage) {
     skyCol.lerp(STORM_SKY, stormStage * 0.19).multiplyScalar(stormStage === 4 ? 0.65 : 1);
     const distance = [1, 0.9, 0.64, 0.43, 0.32][stormStage] * G.settings.renderDist * CHUNK;
     G.fwFog = [distance * 0.25, distance];
@@ -5527,11 +5599,37 @@ G.previewLeviathanStorm = active => {
   stormSampleT = 0;
   UI.toast(active ? "Storm preview enabled for 45 seconds in exposed desert terrain." : "Storm preview ended. Normal weather is active.");
 };
+G.expeditionDestinations = () => {
+  if (!G.meta?.lostWorldGen || G.guest || G.traveling || !isLostWorldDimension(G.dim)) return [];
+  const stage = G.story.lostWorld?.stage ?? Infinity;
+  const destinations = G.dim === LOST_WORLD ? [] : [{ dim: LOST_WORLD, label: "Return to jungle camp" }];
+  for (const [dim, region] of Object.entries(LOST_WORLD_REGIONS)) {
+    if (G.dim !== dim && stage >= region.stage) destinations.push({ dim, label: region.from });
+  }
+  return destinations;
+};
+G.expeditionTravel = dim => {
+  if (G.state !== "panel" || !G.expeditionDestinations().some(destination => destination.dim === dim)) return;
+  const { x, z, yaw } = dim === LOST_WORLD ? JUNGLE_RETURN : LOST_WORLD_REGIONS[dim].arrival;
+  return changeDim(dim, x, z, "Traveling to " + DIM_NAMES[dim] + "…", () => {
+      const p = G.player;
+      placeSafely(p, x, z);
+      if (p.collides(G.world, p.aabb()) || [B.LAVA, B.WATER].includes(G.world.id(Math.floor(p.pos.x), Math.floor(p.pos.y), Math.floor(p.pos.z)))) {
+        throw new Error("The expedition arrival is blocked.");
+      }
+      p.yaw = yaw;
+      p.pitch = 0;
+    });
+};
 G.storageOK = () => Saves.persistent();
-G.newWorld = ({ name, seed, mode, settings, campaign }) => {   // mode: survival | creative | hardcore
+G.newWorld = ({ name, seed, mode, settings, campaign, lostWorld, lostWorldCampaign }) => {   // mode: survival | creative | hardcore
   const hardcore = mode === "hardcore";
   if (hardcore) settings = { ...settings, difficulty: "hard", keepInv: false };
   const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen: CURRENT_GEN, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaign || null };
+  if (lostWorld && !campaign && !hardcore) {
+    save.lostWorldGen = LOST_WORLD_GEN;
+    if (lostWorldCampaign && mode === "survival") save.story.lostWorld = expedition();
+  }
   return openWorld(() => save);
 };
 G.loadWorld = id => openWorld(() => Saves.load(id));
