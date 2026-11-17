@@ -22,9 +22,8 @@ const coat = (color, trim = color) => {
 };
 const facePaint = (color, trim, eyes = '#211f29') => ({ ...coat(color, trim), front: P => {
   P.fill([color, color, blend(color, trim, .18)]);
-  P.rect(2, 4, 4, 4, '#f4efe1'); P.rect(10, 4, 4, 4, '#f4efe1');
-  P.rect(3, 5, 3, 3, eyes); P.rect(10, 5, 3, 3, eyes);
-  P.rect(6, 10, 4, 2, trim); P.rect(5, 13, 6, 1, '#443833');
+  P.rect(2, 6, 4, 2, '#e6dfd2'); P.rect(10, 6, 4, 2, '#e6dfd2');
+  P.rect(4, 6, 2, 2, eyes); P.rect(10, 6, 2, 2, eyes);
 } });
 const box = (name, size, pivot, paint, parent, off = [0, 0, 0]) => ({ name, size, pivot, off, paint, ...(parent ? { parent } : {}) });
 function quadruped(a, b, body = [12, 9, 17], head = [8, 7, 7], legs = 6) {
@@ -147,7 +146,17 @@ export function installCreatures(species) {
     }
     if(id==='frog'){
       def.model=quadruped(a,b,[10,5,10],[11,5,7],3);def.h=.65;def.w=.75;def.hops=true;def.food=[I.GLOOP_BALL];
-      for(const side of [-1,1])def.model.parts.push(box('raisedEye'+side,[3,3,3],[side*4,4,3],facePaint(a,b),'head'));
+      def.model.parts.find(part => part.name === 'head').paint = { ...coat(a, b), front: P => {
+        P.fill([a]);
+        P.rect(2, 11, 12, 1, blend(a, '#272327', 0.5));
+      } };
+      for (const side of [-1, 1]) def.model.parts.push(box('raisedEye' + side, [3, 3, 3], [side * 4, 3, 3], {
+        ...coat(a, b), front: P => {
+          P.fill([a]);
+          P.rect(3, 4, 10, 8, '#d7b76a');
+          P.rect(5, 6, 6, 4, '#252226');
+        }
+      }, 'head'));
     }
     if(id==='goat'){def.neutral=true;def.model=quadruped(a,b,[10,9,15],[6,7,6],9);addHorns(def.model,b,a);def.h=1.5;def.hops=true;}
     if(id==='mooshroom'){
@@ -235,10 +244,21 @@ export function installCreatures(species) {
   for(const id of ['cow','pig','sheep','rabbit','trotter']){
     const m=species[id].model;
     if(id==='cow')addHorns(m,'#c9b59b','#eee7cf');
-    if(['pig','sheep'].includes(id))addEars(m,id==='pig'?'#e9a2a2':'#d6c3ad','#8c6862',3);
-    if(id==='pig')m.parts.push(box('snout',[5,3,2],[0,-1,5],facePaint('#f1b1aa','#b26a65'),'head'));
+    if (id === 'pig' || id === 'sheep') {
+      const head = m.parts.find(part => part.name === 'head');
+      const color = id === 'pig' ? '#e9a2a2' : '#d6c3ad';
+      for (const side of [-1, 1]) m.parts.push(box('ear' + side, [2, 2.5, 2],
+        [side * (head.size[0] / 2 - 0.2), head.size[1] / 2 + 0.5, 0], coat(color, '#8c6862'), 'head'));
+    }
+    if (id === 'pig') m.parts.push(box('snout', [5, 3, 1.6], [0, -1.65, 4.55], {
+      ...coat('#e5a19f'),
+      front: P => {
+        P.fill(['#e5a19f']);
+        P.rect(3, 5, 3, 5, '#945955');
+        P.rect(10, 5, 3, 5, '#945955');
+      }
+    }, 'head'));
     if(id==='rabbit')m.parts.push(box('muzzle',[3,2,2],[0,-1,3],coat('#debaa0','#f2d8c0'),'head'));
-    if(id==='trotter')m.parts.push(box('bridle',[7,2,2],[0,-3,6],coat('#634631','#b48d55'),'head'));
   }
 }
 

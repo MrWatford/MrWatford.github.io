@@ -45,15 +45,49 @@ function painterFor(ctx, ox, oy) {
   const P = {
     px(x, y, c) { if (x < 0 || y < 0 || x > 15 || y > 15) return; ctx.fillStyle = c; ctx.fillRect(ox + x, oy + y, 1, 1); },
     rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(ox + x, oy + y, w, h); },
-    fill(pal) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) P.px(x, y, pal[Math.floor(Math.random() * pal.length)]); },
+    fill(pal) { P.rect(0, 0, 16, 16, pal[0]); },
     clear() { ctx.clearRect(ox, oy, 16, 16); }
   };
   return P;
 }
 const FACE_ORDER = ["right", "left", "top", "bottom", "front", "back"];   // BoxGeometry order: +x −x +y −y +z −z
+// Inset later faces that overlap on the same plane in the authored pose.
+function separateBoxFaces(parts) {
+  const centers = new Map(), boxes = [];
+  for (const part of parts) {
+    const parent = part.parent ? centers.get(part.parent) : [0, 0, 0];
+    if (!parent || part.rotation?.some(Boolean)) continue;
+    const center = parent.map((point, axis) => point + part.pivot[axis] + part.off[axis]);
+    centers.set(part.name, center);
+    if (part.rounded || part.mawShell || part.taper || part.taperTop) continue;
+    const min = center.map((point, axis) => point - part.size[axis] / 2);
+    const max = center.map((point, axis) => point + part.size[axis] / 2);
+    const faces = [min.slice(), max.slice()];
+    for (let axis = 0; axis < 3; axis++) {
+      const neighbors = boxes.filter(prior => min.every((value, side) => side === axis ||
+        Math.min(max[side], prior.faces[1][side]) - Math.max(value, prior.faces[0][side]) > 0.05));
+      for (let side = 0; side < 2; side++) {
+        const inset = Math.min(0.16, part.size[axis] * 0.15);
+        const original = faces[side][axis];
+        while (neighbors.some(prior => Math.abs(faces[side][axis] - prior.faces[side][axis]) < 0.05)) {
+          const next = faces[side][axis] + (side ? -inset : inset);
+          if (Math.abs(next - original) > part.size[axis] * 0.3) break;
+          faces[side][axis] = next;
+        }
+      }
+    }
+    const adjusted = min.some((value, axis) => value !== faces[0][axis] || max[axis] !== faces[1][axis]);
+    boxes.push({ name: part.name, center, faces, adjusted });
+  }
+  return new Map(boxes.filter(box => box.adjusted).map(({ name, center, faces }) => [name,
+    faces.map(face => face.map((value, axis) => (value - center[axis]) / 16))]));
+}
+
 // Species with `variants` (color sets) get one skin per variant; paint functions receive the variant as a third argument.
 function makeSpecies(sp, shaded) {
   sp.geos = {}; sp.texs = [];
+  const boxFaces = sp.wildlife || ["quad", "humanoid", "creeper"].includes(sp.model.type) && !sp.boss ?
+    separateBoxFaces(sp.model.parts) : new Map();
   const count = sp.variants ? sp.variants.length : 1;
   for (let vi = 0; vi < count; vi++) {
     const canvas = document.createElement("canvas"); canvas.width = 128;
@@ -66,6 +100,14 @@ function makeSpecies(sp, shaded) {
       const g = vi === 0 ? (part.mawShell ? createMawShell(part.size) : part.rounded ? new THREE.CylinderGeometry(1, 1, 1, 8, 1).rotateX(Math.PI / 2)
         .scale(part.size[0] / 32, part.size[1] / 32, part.size[2] / 16) :
         new THREE.BoxGeometry(part.size[0] / 16, part.size[1] / 16, part.size[2] / 16)) : null;
+      const bounds = boxFaces.get(part.name);
+      if (g && bounds) {
+        const positions = g.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          positions.setXYZ(i, bounds[positions.getX(i) > 0 ? 1 : 0][0],
+            bounds[positions.getY(i) > 0 ? 1 : 0][1], bounds[positions.getZ(i) > 0 ? 1 : 0][2]);
+        }
+      }
       const originalUV = wrapped && g ? g.attributes.uv.array.slice() : null;
       if (g && (part.taper || part.taperTop)) {
         const positions = g.attributes.position;
@@ -116,6 +158,16 @@ const face = (pal, draw) => (P, f) => { P.fill(pal); if (f === "front") draw(P);
 const SKIN_G = ["#5c9a4a", "#548f43", "#63a352"], SHIRT = ["#2fa0a8", "#2a929a"], PANTS = ["#3a40a0", "#343a94"];
 const BONE = ["#d6d6ce", "#c8c8c0", "#e0e0d8"], CREEP = ["#4caf3a", "#3f9a30", "#5cc048", "#2f7a26", "#6ad055"];
 const SPIDER = ["#3a302a", "#2e2622", "#45392f"], CAVE = ["#1d4a5a", "#163e4c", "#255868"], VOID = ["#191528", "#241b36", "#302547", "#10101b"];
+function hisserFace(P) {
+  const ink = "#161a10";
+  P.rect(2, 4, 4, 4, ink);
+  P.rect(10, 4, 4, 4, ink);
+  P.rect(6, 8, 4, 2, ink);
+  P.rect(4, 10, 8, 2, ink);
+  P.rect(4, 12, 2, 4, ink);
+  P.rect(10, 12, 2, 4, ink);
+}
+
 const humanoidParts = (o) => [
   { name: "body", size: [8, 12, 4], pivot: [0, 12 + o.legLen - 12, 0], off: [0, 6, 0], paint: o.body },
   { name: "head", size: [8, 8, 8], pivot: [0, 24 + o.legLen - 12, 0], off: [0, 4, 0], paint: o.head },
@@ -137,18 +189,18 @@ export const SPECIES = {
   zombie: { name: "Groaner", hostile: true, hp: 20, speed: 2.3, w: 0.6, h: 1.95, ai: "melee", dmg: 3, reach: 1.6, burns: true, xp: 5, sound: "groan",
     drops: () => [[I.ROTTEN_FLESH, randi(0, 2)], Math.random() < 0.03 ? [I.CARROT, 1] : null, Math.random() < 0.02 ? [I.IRON_INGOT, 1] : null],
     model: { type: "humanoid", armsOut: true, parts: humanoidParts({ legLen: 12, limb: [4, 12, 4],
-      head: { all: solid(SKIN_G), top: solid(["#3a5a2e", "#33522a"]), front: face(SKIN_G, P => { P.rect(3, 6, 3, 2, "#1d2a1a"); P.rect(10, 6, 3, 2, "#1d2a1a"); P.rect(6, 11, 4, 1, "#3a5a2e"); }) },
+      head: { all: solid(SKIN_G), top: solid(["#3a5a2e", "#33522a"]), front: face(SKIN_G, P => { P.rect(2, 6, 4, 2, "#283e23"); P.rect(10, 6, 4, 2, "#283e23"); P.rect(6, 12, 4, 2, "#46633b"); }) },
       body: { all: solid(SHIRT) }, arm: { all: (P) => { P.fill(SKIN_G); P.rect(0, 0, 16, 5, SHIRT[0]); } }, leg: { all: solid(PANTS) } }) } },
   skeleton: { name: "Rattler", hostile: true, hp: 20, speed: 2.5, w: 0.6, h: 1.99, ai: "archer", dmg: 3, reach: 15, burns: true, xp: 5, sound: "rattle",
     drops: () => [[I.BONE, randi(0, 2)], [I.ARROW, randi(0, 2)]],
     model: { type: "humanoid", bow: true, parts: humanoidParts({ legLen: 12, limb: [2, 12, 2],
-      head: { all: solid(BONE), front: face(BONE, P => { P.rect(3, 6, 3, 3, "#2a2a2a"); P.rect(10, 6, 3, 3, "#2a2a2a"); P.rect(7, 10, 2, 1, "#2a2a2a"); P.rect(4, 12, 8, 1, "#3a3a3a"); }) },
+      head: { all: solid(BONE), front: face(BONE, P => { P.rect(2, 5, 4, 4, "#343231"); P.rect(10, 5, 4, 4, "#343231"); P.rect(7, 9, 2, 3, "#5b5651"); P.rect(4, 12, 8, 3, "#a59d93"); for (const x of [5, 8, 11]) P.rect(x, 13, 1, 2, "#706a60"); }) },
       body: { all: P => { P.fill(BONE); for (let y = 2; y < 16; y += 3) P.rect(2, y, 12, 1, "#3a3a3a"); P.rect(7, 0, 2, 16, "#c0c0b8"); } },
       arm: { all: solid(BONE) }, leg: { all: solid(BONE) } }) } },
   creeper: { name: "Hisser", hostile: true, hp: 20, speed: 2.4, w: 0.6, h: 1.7, ai: "creeper", xp: 5, sound: "hiss", drops: () => [[I.BOOM_POWDER, randi(0, 2)]],
     model: { type: "creeper", parts: [
       { name: "body", size: [8, 12, 4], pivot: [0, 6, 0], off: [0, 6, 0], paint: { all: solid(CREEP) } },
-      { name: "head", size: [8, 8, 8], pivot: [0, 18, 0], off: [0, 4, 0], paint: { all: solid(CREEP), front: face(CREEP, P => { P.rect(3, 4, 3, 3, "#111"); P.rect(10, 4, 3, 3, "#111"); P.rect(6, 7, 4, 4, "#111"); P.rect(5, 9, 2, 4, "#111"); P.rect(9, 9, 2, 4, "#111"); }) } },
+      { name: "head", size: [8, 8, 8], pivot: [0, 18, 0], off: [0, 4, 0], paint: { all: solid(CREEP), front: face(CREEP, hisserFace) } },
       ...[[-2, 2, "legFR"], [2, 2, "legFL"], [-2, -2, "legBR"], [2, -2, "legBL"]].map(([x, z, name]) => ({ name, size: [4, 6, 4], pivot: [x, 6, z * 1.5], off: [0, -3, 0], paint: { all: solid(CREEP) } }))] } },
   spider: { name: "Skitter", hostile: true, hp: 16, speed: 3.2, w: 1.4, h: 0.9, ai: "spider", dmg: 2, reach: 1.9, xp: 5, sound: "chitter", climbs: true,
     drops: () => [[I.STRING, randi(0, 2)], Math.random() < 0.33 ? [I.SPIDER_EYE, 1] : null], model: spiderModel(SPIDER) },
@@ -167,20 +219,20 @@ export const SPECIES = {
   cow: { name: "Cow", animal: true, hp: 10, speed: 1.6, w: 0.9, h: 1.4, ai: "animal", food: [I.WHEAT], xp: 2, sound: "moo",
     drops: e => e.baby ? [] : [[I.LEATHER, randi(0, 2)], [e.burning ? I.STEAK : I.RAW_BEEF, randi(1, 3)]],
     model: { type: "quad", parts: quadParts({ body: [12, 10, 18], head: [8, 8, 6], leg: 4, legH: 12, headUp: 4,
-      bodyPaint: { all: P => { P.fill(["#4a3424", "#402c1e"]); for (let i = 0; i < 4; i++) P.rect(Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), 6, 5, "#e8e8e8"); } },
-      headPaint: { all: solid(["#4a3424"]), front: face(["#4a3424"], P => { P.rect(2, 3, 12, 6, "#e8e8e8"); P.rect(3, 5, 2, 2, "#111"); P.rect(11, 5, 2, 2, "#111"); P.rect(4, 10, 8, 5, "#e8a8a0"); P.rect(5, 12, 2, 1, "#5a3a3a"); P.rect(9, 12, 2, 1, "#5a3a3a"); }), top: P => { P.fill(["#4a3424"]); P.rect(0, 6, 3, 3, "#d8d8c8"); P.rect(13, 6, 3, 3, "#d8d8c8"); } },
+      bodyPaint: { all: P => P.fill(["#4a3424"]), right: P => { P.fill(["#4a3424"]); P.rect(2, 2, 5, 5, "#e8e1d5"); P.rect(10, 9, 5, 5, "#e8e1d5"); }, left: P => { P.fill(["#4a3424"]); P.rect(4, 3, 5, 6, "#e8e1d5"); P.rect(11, 10, 4, 3, "#e8e1d5"); } },
+      headPaint: { all: solid(["#4a3424"]), front: face(["#4a3424"], P => { P.rect(1, 5, 4, 2, "#e9dfd4"); P.rect(11, 5, 4, 2, "#e9dfd4"); P.rect(3, 5, 2, 2, "#201912"); P.rect(11, 5, 2, 2, "#201912"); P.rect(3, 10, 10, 5, "#b59685"); P.rect(4, 11, 2, 2, "#694d42"); P.rect(10, 11, 2, 2, "#694d42"); }), top: P => { P.fill(["#4a3424"]); P.rect(0, 6, 3, 3, "#d8d8c8"); P.rect(13, 6, 3, 3, "#d8d8c8"); } },
       legPaint: { all: P => { P.fill(["#4a3424"]); P.rect(0, 12, 16, 4, "#2a2a2a"); } } }) } },
   sheep: { name: "Sheep", animal: true, hp: 8, speed: 1.6, w: 0.9, h: 1.3, ai: "animal", food: [I.WHEAT], xp: 2, sound: "baa",
     drops: e => e.baby ? [] : [e.sheared ? null : [B.WOOL, 1], [e.burning ? I.COOKED_MUTTON : I.RAW_MUTTON, randi(1, 2)]],
     model: { type: "quad", parts: [...quadParts({ body: [8, 8, 14], head: [6, 6, 8], leg: 4, legH: 12, headUp: 4,
-      bodyPaint: { all: solid(["#e8c8b8", "#e0c0b0"]) }, headPaint: { all: solid(["#e0e0e0"]), front: face(["#d8c0a8"], P => { P.rect(3, 5, 2, 2, "#111"); P.rect(11, 5, 2, 2, "#111"); P.rect(6, 11, 4, 2, "#e8a8a0"); P.rect(0, 0, 16, 3, "#e0e0e0"); }) },
+      bodyPaint: { all: solid(["#e8c8b8", "#e0c0b0"]) }, headPaint: { all: solid(["#e0e0e0"]), front: face(["#d8c0a8"], P => { P.rect(2, 6, 4, 2, "#f4f1e7"); P.rect(10, 6, 4, 2, "#f4f1e7"); P.rect(4, 6, 2, 2, "#3c2c25"); P.rect(10, 6, 2, 2, "#3c2c25"); P.rect(6, 10, 4, 2, "#ac7c73"); P.rect(0, 0, 16, 3, "#e0e0e0"); }) },
       legPaint: { all: P => { P.fill(["#d8c0a8"]); P.rect(0, 0, 16, 6, "#e8e8e8"); } } }),
       { name: "wool", size: [12, 12, 18], pivot: [0, 16, 0], off: [0, 0, 0], paint: { all: solid(["#eeeeee", "#e4e4e4", "#f6f6f6", "#dadada"]) } }] } },
   pig: { name: "Pig", animal: true, hp: 10, speed: 1.6, w: 0.9, h: 0.9, ai: "animal", food: [I.CARROT], xp: 2, sound: "oink",
     drops: e => e.baby ? [] : [[e.burning ? I.COOKED_PORK : I.RAW_PORK, randi(1, 3)]],
     model: { type: "quad", parts: quadParts({ body: [10, 8, 16], head: [8, 8, 8], leg: 4, legH: 6, headUp: 1,
       bodyPaint: { all: solid(["#f0a0a0", "#e89898", "#f4a8a8"]) }, legPaint: { all: solid(["#e89898"]) },
-      headPaint: { all: solid(["#f0a0a0"]), front: face(["#f0a0a0"], P => { P.rect(2, 4, 2, 2, "#fff"); P.rect(3, 4, 1, 2, "#111"); P.rect(12, 4, 2, 2, "#fff"); P.rect(12, 4, 1, 2, "#111"); P.rect(4, 9, 8, 5, "#f8c0c0"); P.rect(5, 11, 2, 2, "#9a5050"); P.rect(9, 11, 2, 2, "#9a5050"); }) } }) } },
+      headPaint: { all: solid(["#f0a0a0"]), front: face(["#f0a0a0"], P => { P.rect(0, 6, 4, 2, "#f5e6db"); P.rect(12, 6, 4, 2, "#f5e6db"); P.rect(2, 6, 2, 2, "#33201e"); P.rect(12, 6, 2, 2, "#33201e");  }) } }) } },
   chicken: { name: "Chicken", animal: true, hp: 4, speed: 1.6, w: 0.4, h: 0.7, ai: "animal", food: [I.SEEDS], xp: 1, sound: "cluck", flutters: true,
     drops: e => e.baby ? [] : [[I.FEATHER, randi(0, 2)], [e.burning ? I.COOKED_CHICKEN : I.RAW_CHICKEN, 1]],
     model: { type: "chicken", parts: [
@@ -968,11 +1020,7 @@ function applySurfaceArtwork() {
     P.rect(2, 13, 5, 3, "#755940");
   } };
   for (const [side, sign] of limbSides) {
-    get("zombie", "leg" + side).paint = { all: P => {
-      P.fill(["#443832", "#51423a", "#635047"]);
-      P.rect(0, 13, 16, 3, moss[1]);
-      P.rect(3, 10, 5, 4, moss[2]);
-    } };
+    get("zombie", "leg" + side).paint = { all: solid(["#51423a"]) };
     parts("zombie").push(plate("sleeve" + side, "arm" + side, [4.5, 5, 4.5], [0, 4, 0], edge(cloth, "#65858a")));
     parts("golem").push(
       plate("shoulder" + side, "arm" + side, [8, 8, 8], [0, 11, 0], edge(["#aaa494", "#c6bcaa", "#ded5c2"], "#e7ddca")),
@@ -994,13 +1042,8 @@ function applySurfaceArtwork() {
 
   for (const name of ["body", "head", "legFR", "legFL", "legBR", "legBL"]) {
     const paint = get("creeper", name).paint;
-    paint.all = P => { P.fill(moss); P.rect(1, 1, 2, 11, moss[3]); P.rect(12, 7, 2, 9, moss[0]); };
-    if (name === "head") paint.front = P => {
-      paint.all(P);
-      // Keep the familiar black face while matching the olive body palette.
-      P.rect(3, 4, 3, 3, "#13170e"); P.rect(10, 4, 3, 3, "#13170e");
-      P.rect(6, 7, 4, 4, "#13170e"); P.rect(5, 9, 2, 4, "#13170e"); P.rect(9, 9, 2, 4, "#13170e");
-    };
+    paint.all = solid([moss[1]]);
+    if (name === "head") paint.front = face([moss[1]], hisserFace);
   }
 
   for (const key of ["spider", "cave_spider"]) {
@@ -1242,9 +1285,9 @@ function applyBestiaryPass2() {
   // Wailer: a pale, sorrowful spirit with glowing tear trails
   const PALE = ["#d8d0dc", "#ccc4d2", "#e2dae6"];
   paint("wailer", "body", { all: P => { P.fill(PALE); spk(P, 10, ["#b8b0c0", "#c4bccc"]); }, front: P => {
-    P.fill(PALE); spk(P, 6, ["#b8b0c0"]);
-    for (const x of [3, 10]) { P.rect(x, 5, 3, 1, "#5a5262"); P.px(x - 1, 6, "#5a5262"); P.px(x + 3, 6, "#5a5262"); P.rect(x + 1, 6, 1, 6, "#8ad8f0"); }
-    P.rect(7, 11, 2, 2, "#4a4252");
+    P.fill(PALE);
+    for (const x of [2, 10]) { P.rect(x, 6, 4, 2, "#494350"); P.rect(x + 1, 8, 1, 4, "#8ad8f0"); }
+    P.rect(7, 11, 2, 3, "#3e3846");
   } });
   for (let i = 0; i < 9; i++) paint("wailer", "t" + i, { all: P => { P.fill(PALE); P.rect(0, 10, 16, 6, "#a8a0b0"); } });
   // the Boarkin family: leather and gold (Boarkin), iron plates and a red sash (Brute), moss and rot (Rotboar)
@@ -1740,7 +1783,7 @@ export class Entities {
   }
   attachModel(e) {
     const def = e.def;
-    const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife;
+    const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife || !!def.mutant;
     if (!def.geos) makeSpecies(def, shaded);
     const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, vertexColors: shaded, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
     const root = new THREE.Group(), parts = {};

@@ -1,27 +1,15 @@
 // Sizes and pivots use the entity renderer's sixteenth-block grid. Forward is +Z.
-function coat(dark, main, light) {
-  return { all(P, face) {
-    P.rect(0, 0, 16, 16, main);
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-      const v = ((x * 11 + y * 13 + (x ^ y) * 7) ^ (y * x * 3)) & 31;
-      if (v < 6) P.px(x, y, dark);
-      else if (v >= 27) P.px(x, y, light);
-    }
-    if (face !== "top") P.rect(0, 15, 16, 1, dark);
-  } };
-}
-
 const solidHide = color => ({ all: P => P.rect(0, 0, 16, 16, color) });
 
 const box = (name, size, pivot, paint, parent, off = [0, 0, 0], detail = false) =>
   ({ name, size, pivot, paint, parent, off, detail });
-const fur = coat("#54301f", "#75462d", "#9b633c");
-const shoulders = coat("#704227", "#94603a", "#b97f4d");
-const paws = coat("#36251f", "#4b3023", "#69422d");
-const muzzle = coat("#8d603e", "#b28154", "#d2a477");
-const black = coat("#141218", "#242029", "#403239");
-const ivory = coat("#a89982", "#dcd0b5", "#f6ebd5");
-const mouth = coat("#381924", "#622936", "#85404a");
+const fur = solidHide("#75462d");
+const shoulders = solidHide("#94603a");
+const paws = solidHide("#4b3023");
+const muzzle = solidHide("#b28154");
+const black = solidHide("#242029");
+const ivory = solidHide("#dcd0b5");
+const mouth = solidHide("#622936");
 
 const bearHead = { ...shoulders, front(P) {
   shoulders.all(P, "front");
@@ -91,9 +79,9 @@ function grizzly() {
   return { type: "wildlife", parts: parts.map(part => ({ ...part, paint: bearVariant(part.paint) })) };
 }
 
-const slate = coat("#43596b", "#5c7687", "#78909a");
-const dorsal = coat("#334555", "#4c6371", "#6e8592");
-const belly = coat("#a6baba", "#d4dfd9", "#edf1e4");
+const slate = solidHide("#5c7687");
+const dorsal = solidHide("#4c6371");
+const belly = solidHide("#d4dfd9");
 const sharkHead = {
   ...slate,
   ...Object.fromEntries(["left", "right"].map(face => [face, P => {
@@ -143,10 +131,10 @@ function shark() {
   return { type: "wildlife", parts };
 }
 
-const feather = coat("#382a24", "#5d4230", "#795944");
-const flightFeather = coat("#242029", "#3e3030", "#5a4240");
-const white = coat("#bdb8a9", "#e7e0ce", "#fffae7");
-const gold = coat("#9a5d26", "#d38c32", "#f5c367");
+const feather = solidHide("#5d4230");
+const flightFeather = solidHide("#3e3030");
+const white = solidHide("#e7e0ce");
+const gold = solidHide("#d38c32");
 const eagleHead = { ...white, ...Object.fromEntries(["left", "right"].map(face => [face, P => {
   white.all(P, face);
   const eye = face === "right" ? 4 : 9;
@@ -186,10 +174,10 @@ function eagle() {
   return { type: "wildlife", parts };
 }
 
-const whaleBack = coat("#395067", "#53778e", "#6687a0");
-const whaleSide = coat("#4e6b7e", "#6e8f9d", "#8ca4a8");
+const whaleBack = solidHide("#53778e");
+const whaleSide = solidHide("#6e8f9d");
 const whaleBelly = {
-  ...coat("#6b8793", "#99aeb2", "#b9c8c6"),
+  ...solidHide("#99aeb2"),
   bottom(P) {
     P.rect(0, 0, 16, 16, "#a5b8ba");
     for (let i = 2; i < 16; i += 3) {
@@ -246,9 +234,9 @@ function cetacean(orca) {
   return { type: "wildlife", parts };
 }
 
-const scaleGreen = coat("#3b4430", "#596047", "#798163");
-const scutes = coat("#2d382b", "#45513b", "#65734f");
-const riverBelly = coat("#78684c", "#9a8561", "#b9a77a");
+const scaleGreen = solidHide("#596047");
+const scutes = solidHide("#45513b");
+const riverBelly = solidHide("#9a8561");
 const hippoHide = solidHide("#77737b");
 const hippoFold = solidHide("#69656e");
 const hippoMuzzle = solidHide("#82767d");
@@ -332,9 +320,9 @@ const octopusPalettes = [
   ["#48515c", "#68737d", "#929da0"],
   ["#674b53", "#987581", "#b89c9e"]
 ];
-const octopusCoats = octopusPalettes.map(palette => coat(...palette));
+const octopusCoats = octopusPalettes.map(palette => solidHide(palette[1]));
 const octopusSkin = { all: (P, face, variant) => octopusCoats[variant ?? 0].all(P, face) };
-const suckers = coat("#8b675c", "#bf9480", "#dab5a0");
+const suckers = solidHide("#bf9480");
 const octopusArmPaint = { ...octopusSkin, bottom(P, face, variant) {
   octopusSkin.all(P, face, variant);
   for (const x of [3, 10]) for (const y of [2, 7, 12]) {
@@ -378,9 +366,9 @@ function octopus() {
   return { type: "wildlife", parts };
 }
 
-const rayBlue = coat("#284052", "#42596c", "#617984");
-const rayEdge = coat("#172c3f", "#304758", "#536a76");
-const rayBelly = coat("#999e98", "#c4c6b7", "#e5e2cc");
+const rayBlue = solidHide("#42596c");
+const rayEdge = solidHide("#304758");
+const rayBelly = solidHide("#c4c6b7");
 
 function mantaRay() {
   const parts = [
@@ -414,7 +402,7 @@ function mantaRay() {
 const sealCoats = [
   ["#4d5660", "#718089", "#9aa6aa"],
   ["#46515d", "#7f8e95", "#b0b9b7"]
-].map(colors => coat(...colors));
+].map(colors => solidHide(colors[1]));
 const sealSkin = { all(P, face, variant = 0) {
   sealCoats[variant].all(P, face);
   if (variant === 1 && face !== "bottom") {
@@ -424,11 +412,11 @@ const sealSkin = { all(P, face, variant = 0) {
     }
   }
 } };
-const sealPale = coat("#69757c", "#a5b3b4", "#cbd1c8");
-const wetHide = coat("#513e36", "#765846", "#957461");
-const neckFold = coat("#473830", "#694c3c", "#8e6850");
-const walrusFace = coat("#7f5846", "#9d7156", "#b28d72");
-const whisker = coat("#8c6850", "#c1a486", "#dec6a7");
+const sealPale = solidHide("#a5b3b4");
+const wetHide = solidHide("#765846");
+const neckFold = solidHide("#694c3c");
+const walrusFace = solidHide("#9d7156");
+const whisker = solidHide("#c1a486");
 
 function seal() {
   const parts = [
@@ -491,10 +479,10 @@ function walrus() {
   return { type: "wildlife", parts };
 }
 
-const lionGold = coat("#8b5938", "#b77d4d", "#d79c60");
-const lionCream = coat("#947054", "#c6a178", "#e8c396");
-const lionMane = coat("#402820", "#67402e", "#895438");
-const lionPaw = coat("#6a4636", "#9b653f", "#bb8053");
+const lionGold = solidHide("#b77d4d");
+const lionCream = solidHide("#c6a178");
+const lionMane = solidHide("#67402e");
+const lionPaw = solidHide("#9b653f");
 
 function lion() {
   const parts = [
@@ -536,7 +524,7 @@ function lion() {
   return { type: "wildlife", parts };
 }
 
-const stripeIvory = coat("#b2ad9e", "#dfdbcf", "#f6efe2");
+const stripeIvory = solidHide("#dfdbcf");
 function stripes(horizontal = false) {
   return { all(P, face) {
     stripeIvory.all(P, face);
@@ -549,8 +537,8 @@ function stripes(horizontal = false) {
   } };
 }
 const zebraBody = stripes(), zebraLeg = stripes(true);
-const zebraMuzzle = coat("#423b45", "#635a62", "#827780");
-const zebraMane = coat("#26232a", "#46404a", "#665d69");
+const zebraMuzzle = solidHide("#635a62");
+const zebraMane = solidHide("#46404a");
 
 function zebra() {
   const parts = [
@@ -586,8 +574,8 @@ function zebra() {
   return { type: "wildlife", parts };
 }
 
-const tigerOrange = coat("#a3542c", "#cc743b", "#eb9851");
-const tigerWhite = coat("#b7a58f", "#dfcfb5", "#f7e8cd");
+const tigerOrange = solidHide("#cc743b");
+const tigerWhite = solidHide("#dfcfb5");
 const tigerBands = { all(P, face) {
   tigerOrange.all(P, face);
   for (let y = 0; y < 16; y++) {
@@ -597,6 +585,11 @@ const tigerBands = { all(P, face) {
       if (y < 11 || (y + start) % 4 !== 1) P.rect(x, y, width, 1, "#302327");
     }
   }
+} };
+const tigerEye = { ...gold, front(P) {
+  gold.all(P);
+  P.rect(6, 2, 4, 12, "#251c1b");
+  P.px(6, 3, "#efc77c");
 } };
 const tigerTail = { all(P, face) {
   tigerOrange.all(P, face);
@@ -620,8 +613,7 @@ function tiger() {
   for (const s of [-1, 1]) {
     parts.push(
       box("cheek" + s, [4.7, 5.8, 5.2], [5.7 * s, -2.8, 3.7], tigerWhite, "head"),
-      box("eye" + s, [2.65, 1.4, 1.05], [4.1 * s, 0.85, 5.43], gold, "head"),
-      box("pupil" + s, [0.62, 1.1, 0.42], [0, 0, 0.52], black, "eye" + s),
+      box("eye" + s, [2.65, 1.4, 1.05], [4.1 * s, 0.85, 5.43], tigerEye, "head"),
       box("ear" + s, [4, 3.85, 3], [5.05 * s, 5.4, -0.9], tigerOrange, "head"),
       box("earSpot" + s, [2, 1.55, 0.45], [0, 0.2, -1.53], tigerWhite, "ear" + s, [0, 0, 0], true),
       box("fang" + s, [1.05, 1.9, 1], [3.15 * s, -2.6, 2.25], ivory, "muzzle", [0, 0, 0], true)
@@ -638,10 +630,10 @@ function tiger() {
   return { type: "wildlife", parts };
 }
 
-const deerHide = coat("#68483a", "#956e50", "#b98a62");
-const deerLight = coat("#987557", "#b89270", "#dcc7a6");
-const deerCream = coat("#a38b75", "#c0aa92", "#e1d0b8");
-const antler = coat("#61584f", "#9a907b", "#c2b49d");
+const deerHide = solidHide("#956e50");
+const deerLight = solidHide("#b89270");
+const deerCream = solidHide("#c0aa92");
+const antler = solidHide("#9a907b");
 
 function deer() {
   const parts = [
@@ -682,10 +674,10 @@ function deer() {
   return { type: "wildlife", parts };
 }
 
-const mooseHide = coat("#48322d", "#6c4a38", "#91634a");
-const mooseRuff = coat("#392c2c", "#513b33", "#795541");
-const mooseMuzzle = coat("#54413c", "#72554a", "#997468");
-const antlerPalm = coat("#675644", "#9d825d", "#c4a777");
+const mooseHide = solidHide("#6c4a38");
+const mooseRuff = solidHide("#513b33");
+const mooseMuzzle = solidHide("#72554a");
+const antlerPalm = solidHide("#9d825d");
 
 function moose() {
   const parts = [
@@ -733,10 +725,10 @@ function moose() {
   return { type: "wildlife", parts };
 }
 
-const pandaRust = coat("#833d2c", "#ae5830", "#d17943");
-const pandaAmber = coat("#95512f", "#bb6b3d", "#db8a51");
-const pandaDark = coat("#39292b", "#56332c", "#743b2c");
-const pandaCream = coat("#9d8571", "#d6bc99", "#f1dbb9");
+const pandaRust = solidHide("#ae5830");
+const pandaAmber = solidHide("#bb6b3d");
+const pandaDark = solidHide("#56332c");
+const pandaCream = solidHide("#d6bc99");
 const pandaRings = { all(P, face) {
   pandaAmber.all(P, face);
   if (face === "front" || face === "back") return;
@@ -782,8 +774,8 @@ function redPanda() {
   return { type: "wildlife", parts };
 }
 
-const giraffeGold = coat("#b98148", "#d9a461", "#e5bc7d");
-const giraffeCream = coat("#bc996f", "#dfc193", "#f2dab0");
+const giraffeGold = solidHide("#d9a461");
+const giraffeCream = solidHide("#dfc193");
 const giraffeSpots = { all(P, face) {
   giraffeGold.all(P, face);
   const rows = [[1, 0, 5, 5], [9, 1, 5, 4], [4, 6, 6, 5], [12, 7, 4, 5], [0, 11, 5, 4], [7, 13, 5, 3]];
@@ -794,7 +786,7 @@ const giraffeSpots = { all(P, face) {
     P.px(x + 1, y + 1, "#bc7744");
   }
 } };
-const maneBrown = coat("#3b2825", "#563328", "#754b32");
+const maneBrown = solidHide("#563328");
 
 function giraffe() {
   const parts = [
@@ -841,7 +833,7 @@ function giraffe() {
 const rhinoGray = solidHide("#77777d");
 const rhinoLight = solidHide("#838287");
 const rhinoFold = solidHide("#6a686f");
-const hornGray = coat("#92816b", "#c1ad92", "#e2d2b4");
+const hornGray = solidHide("#c1ad92");
 
 function rhinoceros() {
   const parts = [
@@ -885,12 +877,12 @@ function rhinoceros() {
   return { type: "wildlife", parts };
 }
 
-const ostrichFeather = coat("#211f26", "#343138", "#4e4750");
-const ostrichBrown = coat("#67564b", "#837367", "#a18d7d");
-const ostrichWhite = coat("#a69c92", "#ddd3c4", "#f1e9da");
-const ostrichFawn = coat("#8d7968", "#b39e87", "#c9b9a2");
-const ostrichSkin = coat("#aa8274", "#c6a695", "#dfc1a9");
-const ostrichBeak = coat("#928168", "#bca788", "#d6c3a0");
+const ostrichFeather = solidHide("#343138");
+const ostrichBrown = solidHide("#837367");
+const ostrichWhite = solidHide("#ddd3c4");
+const ostrichFawn = solidHide("#b39e87");
+const ostrichSkin = solidHide("#c6a695");
+const ostrichBeak = solidHide("#bca788");
 const ostrichBody = {
   all(P, face, variant) { (variant === 0 ? ostrichFeather : ostrichBrown).all(P, face); }
 };
@@ -930,11 +922,15 @@ function ostrich() {
   return { type: "wildlife", parts };
 }
 
-const slothFur = coat("#4d4039", "#776255", "#927865");
-const slothBack = coat("#594a40", "#806951", "#a3896c");
-const slothFace = coat("#a68d74", "#cbb299", "#e4cbb0");
-const slothMask = coat("#48362f", "#654d41", "#886953");
-const slothClaw = coat("#86725f", "#b9a085", "#e2caad");
+const slothFur = solidHide("#776255");
+const slothBack = solidHide("#806951");
+const slothFace = solidHide("#cbb299");
+const slothMask = solidHide("#654d41");
+const slothMuzzle = { ...slothFace, front(P) {
+  slothFace.all(P);
+  P.rect(6, 11, 4, 1, "#84705e");
+} };
+const slothClaw = solidHide("#b9a085");
 
 function sloth() {
   const parts = [
@@ -945,9 +941,8 @@ function sloth() {
     box("head", [10.2, 9, 8.2], [0, 11, 5.3], slothFur, null, [0, 0.6, 2.2]),
     box("face", [8.9, 7.05, 3.1], [0, -0.45, 3.42], slothFace, "head"),
     box("forehead", [6.8, 2.1, 2.1], [0, 3.4, 3.15], slothFace, "head"),
-    box("muzzle", [4.9, 3.45, 3.5], [0, -1.65, 5.17], slothFace, "head"),
-    box("nose", [2.75, 1.6, 0.85], [0, 0.45, 1.66], black, "muzzle"),
-    box("smile", [2.9, 0.50, 0.4], [0, -0.85, 1.78], slothMask, "muzzle")
+    box("muzzle", [4.9, 3.45, 3.5], [0, -1.65, 5.17], slothMuzzle, "head"),
+    box("nose", [2.75, 1.6, 0.85], [0, 0.45, 1.66], black, "muzzle")
   ];
   for (const side of [-1, 1]) {
     const mask = box("mask" + side, [3.5, 2.15, 0.62], [side * 2.65, 0.28, 5.02], slothMask, "head");
@@ -975,10 +970,10 @@ function sloth() {
   return { type: "wildlife", parts };
 }
 
-const koalaFur = coat("#53555c", "#81848a", "#a2a3a7");
-const koalaRuff = coat("#76767c", "#a4a3a5", "#c7c5bf");
-const koalaCream = coat("#a39f97", "#d0cbc0", "#e7e1d3");
-const koalaEar = coat("#695b62", "#938087", "#b8a5a8");
+const koalaFur = solidHide("#81848a");
+const koalaRuff = solidHide("#a4a3a5");
+const koalaCream = solidHide("#d0cbc0");
+const koalaEar = solidHide("#938087");
 
 function koala() {
   const parts = [
@@ -1016,17 +1011,17 @@ function koala() {
   return { type: "wildlife", parts };
 }
 
-const peacockBlue = coat("#172b72", "#244993", "#396eb5");
-const peacockTeal = coat("#12615c", "#208780", "#36a7a0");
-const peacockBrown = coat("#4c3c36", "#746156", "#a1876e");
-const peacockSage = coat("#3e5346", "#5d7763", "#88a37e");
+const peacockBlue = solidHide("#244993");
+const peacockTeal = solidHide("#208780");
+const peacockBrown = solidHide("#746156");
+const peacockSage = solidHide("#5d7763");
 const peacockBody = { all(P, face, variant) {
   (variant ? peacockBrown : peacockBlue).all(P, face);
 } };
 const peacockNeck = { all(P, face, variant) {
   (variant ? peacockSage : peacockTeal).all(P, face);
 } };
-const fanStem = coat("#274b39", "#426c45", "#73985c");
+const fanStem = solidHide("#426c45");
 const fanEye = { all(P, face) {
   fanStem.all(P, face);
   if (face !== "front" && face !== "back") return;
@@ -1082,10 +1077,10 @@ function peacock() {
   return { type: "wildlife", parts };
 }
 
-const flamingoPink = coat("#bd5c76", "#df8297", "#efa6b0");
-const flamingoRose = coat("#b8526b", "#cb6780", "#de8ca1");
-const flamingoLight = coat("#d08194", "#efb4b8", "#f7c8c4");
-const flamingoLeg = coat("#903c57", "#b65e75", "#d48894");
+const flamingoPink = solidHide("#df8297");
+const flamingoRose = solidHide("#cb6780");
+const flamingoLight = solidHide("#efb4b8");
+const flamingoLeg = solidHide("#b65e75");
 
 function flamingo() {
   const parts = [
@@ -1119,10 +1114,10 @@ function flamingo() {
   return { type: "wildlife", parts };
 }
 
-const kangarooFur = coat("#8b573e", "#b37b56", "#cd9b73");
-const kangarooDark = coat("#64433a", "#895b4b", "#a87c60");
-const kangarooCream = coat("#aa8869", "#d0ad86", "#eacaa2");
-const kangarooEar = coat("#895b57", "#ad7d6f", "#d9a598");
+const kangarooFur = solidHide("#b37b56");
+const kangarooDark = solidHide("#895b4b");
+const kangarooCream = solidHide("#d0ad86");
+const kangarooEar = solidHide("#ad7d6f");
 
 function kangaroo() {
   const parts = [
@@ -1168,9 +1163,9 @@ const elephantGray = solidHide("#818084");
 const elephantRuff = solidHide("#8b898c");
 const elephantFold = solidHide("#747278");
 const elephantEar = solidHide("#96878a");
-const elephantIvory = coat("#a89072", "#d4c1a1", "#e8d9b9");
-const elephantCloth = coat("#335b61", "#4c7b79", "#78a197");
-const elephantPack = coat("#563d30", "#875e42", "#a77d56");
+const elephantIvory = solidHide("#d4c1a1");
+const elephantCloth = solidHide("#4c7b79");
+const elephantPack = solidHide("#875e42");
 
 function elephant() {
   const parts = [
@@ -1226,10 +1221,10 @@ function elephant() {
   return { type: "wildlife", parts };
 }
 
-const falconSlate = coat("#343847", "#535a6c", "#747e90");
-const falconDark = coat("#262a37", "#424654", "#5e6371");
-const falconCream = coat("#a48b71", "#c9af91", "#e1c7a7");
-const falconFoot = coat("#927240", "#ba944e", "#d5b66f");
+const falconSlate = solidHide("#535a6c");
+const falconDark = solidHide("#424654");
+const falconCream = solidHide("#c9af91");
+const falconFoot = solidHide("#ba944e");
 const falconBars = { all(P, face) {
   falconCream.all(P, face);
   if (face === "front" || face === "bottom" || face === "left" || face === "right") {
