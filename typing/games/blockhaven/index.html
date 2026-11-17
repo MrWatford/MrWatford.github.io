@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blockhaven | Mr. Watford's Free-Time Games</title>
 <meta name="description" content="Blockhaven: explore, mine, craft, and build in a block world. Saves on your own device.">
-<meta name="blockhaven-release" content="mob-visuals-1">
+<meta name="blockhaven-release" content="lost-world-1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -554,7 +554,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
   <div class="menu">
     <h1 class="logo">BLOCKHAVEN</h1>
     <p class="tagline">Explore • Mine • Craft • Build</p>
-    <a class="whats-new" href="early-access.html">New: Wildlife Expansion · Release notes</a>
+    <a class="whats-new" href="early-access.html">New: The Lost World · Release notes</a>
     <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
@@ -616,6 +616,9 @@ body.tc-on #title .foot { color: #d9ddd2; }
     <h2>Create a new world</h2>
     <label class="field">World name <input class="text-in" id="nwName" maxlength="32" value="My World"></label>
     <label class="field">World seed <small>Leave blank for a random world. The same seed always makes the same land.</small><input class="text-in" id="nwSeed" maxlength="40" placeholder="Random"></label>
+    <label class="field">World terrain
+      <select class="text-in" id="nwTerrain"><option value="overworld">The Surface</option><option value="lost_world">The Lost World (Sandbox)</option><option value="lost_world_campaign">The Lost World (Campaign)</option></select>
+    </label>
     <div class="modes" role="radiogroup" aria-label="Game mode" id="nwModes">
       <label class="mode-opt"><input type="radio" name="mode" value="survival" checked><b>⛏️ Survival</b><span>Gather resources, craft tools, keep your health and food up.</span></label>
       <label class="mode-opt"><input type="radio" name="mode" value="creative"><b>🏗️ Creative</b><span>Every block, unlimited supplies, flying, and no damage.</span></label>
@@ -870,7 +873,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/wildlife.js": "./js/wildlife.js?v=wildlife-roster-1",
     "./js/wildlife-models.js": "./js/wildlife-models.js?v=mob-visuals-1",
     "./js/wildlife-dens.js": "./js/wildlife-dens.js?v=wildlife-preview-1",
-    "./js/entities.js": "./js/entities.js?v=mob-visuals-1",
+    "./js/entities.js": "./js/entities.js?v=lost-world-1",
     "./js/echohold-atmosphere.js": "./js/echohold-atmosphere.js?v=echohold-1",
     "./js/echohold-hunt.js": "./js/echohold-hunt.js?v=echohold-1",
     "./js/echohold-secrets.js": "./js/echohold-secrets.js?v=echohold-1",
@@ -924,7 +927,17 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/citadel-dungeon.js": "./js/citadel-dungeon.js?v=citadel-4",
     "./js/citadel-boss.js": "./js/citadel-boss.js?v=citadel-7",
     "./js/citadel-ambience.js": "./js/citadel-ambience.js?v=citadel-6",
-    "./js/main.js": "./js/main.js?v=citadel-7",
+    "./js/fern-plains.js": "./js/fern-plains.js?v=lost-world-1",
+    "./js/lost-world-brachiosaurus.js": "./js/lost-world-brachiosaurus.js?v=lost-world-1",
+    "./js/lost-world-campaign.js": "./js/lost-world-campaign.js?v=lost-world-1",
+    "./js/lost-world-raptor.js": "./js/lost-world-raptor.js?v=lost-world-1",
+    "./js/lost-world-regions.js": "./js/lost-world-regions.js?v=lost-world-1",
+    "./js/lost-world-triceratops.js": "./js/lost-world-triceratops.js?v=lost-world-1",
+    "./js/lost-world-wetland-creatures.js": "./js/lost-world-wetland-creatures.js?v=lost-world-1",
+    "./js/lost-world.js": "./js/lost-world.js?v=lost-world-1",
+    "./js/mangrove-wetlands.js": "./js/mangrove-wetlands.js?v=lost-world-1",
+    "./js/redwood-escarpment.js": "./js/redwood-escarpment.js?v=lost-world-1",
+    "./js/main.js": "./js/main.js?v=lost-world-1",
     "./js/mutants.js": "./js/mutants.js?v=mob-visuals-1",
     "./js/forsaken-reaches.js": "./js/forsaken-reaches.js?v=mutants-4",
     "./js/maps.js": "./js/maps.js?v=leviathan-1.0.0",
@@ -942,7 +955,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/rails.js": "./js/rails.js?v=leviathan-1.0.0",
     "./js/redstone.js": "./js/redstone.js?v=sparkworks-e-1",
     "./js/sandstorm.js": "./js/sandstorm.js?v=leviathan-1.0.0",
-    "./js/save.js": "./js/save.js?v=wildlife-preview-1",
+    "./js/save.js": "./js/save.js?v=lost-world-1",
     "./js/shapes.js": "./js/shapes.js?v=citadel-3",
     "./js/skins.js": "./js/skins.js?v=leviathan-1.0.0",
     "./js/solkara-annex.js": "./js/solkara-annex.js?v=leviathan-1.0.0",
@@ -952,8 +965,8 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/solkara-mural-view.js": "./js/solkara-mural-view.js?v=leviathan-1.0.0",
     "./js/starter.js": "./js/starter.js?v=citadel-2",
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
-    "./js/title-cinema.js": "./js/title-cinema.js?v=gus-1",
-    "./js/ui.js": "./js/ui.js?v=wildlife-preview-1",
+    "./js/title-cinema.js": "./js/title-cinema.js?v=lost-world-1",
+    "./js/ui.js": "./js/ui.js?v=lost-world-1",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
     "./js/world.js": "./js/world.js?v=together-1",
     "./js/multiplayer.js": "./js/multiplayer.js?v=wildlife-preview-1",
@@ -965,6 +978,6 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=citadel-7"></script>
+<script type="module" src="js/main.js?v=lost-world-1"></script>
 </body>
 </html>
