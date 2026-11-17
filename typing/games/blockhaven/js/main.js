@@ -39,6 +39,7 @@ import { makeSolkaraGateView } from "./solkara-gate-view.js";
 import { createSolkaraMuralView } from "./solkara-mural-view.js";
 import { BURIED_THRONE, THRONE_ALTAR, THRONE_TABLET } from "./buried-throne.js";
 import { createAncientSpikes } from "./ancient-spikes.js";
+import { ELEPHANT, canRideElephant } from "./wildlife-elephant.js";
 import { marineWaterRoom } from "./wildlife-ocean.js";
 import { markWildlifeDefeated, observeWildlife } from "./wildlife-journal.js";
 import { hasDesertRelic, recordLeviathanDiscovery } from "./leviathan-journal.js";
@@ -408,6 +409,7 @@ const ents = new Entities(scene, {
   // minecarts (Part D): a rider pressing W pushes the cart; right-click does what each cart is for
   cartInput: () => G.state === "play" && keys.has("KeyW") ? (d => [d.x, d.z])(lookDir()) : null,
   crouching: () => keys.has("KeyC"),
+  closeElephantCargo: e => { if (G.panelCtx === "cart:" + e.uid) closePanel(); },
   useCart: (e, slot) => useCart(e, slot), openCart: e => openCart(e), ejectCart: e => { if (e.mpRider) MP.ejectGuest(e); else if (G.riding === e) dismount(); },
   cartPull: e => R.cartPull(e), xp: (n, x, y, z) => guestFocus() ? MP.xpGuest(guestFocus(), n) : spawnOrbs(n, x, y, z),
   particles: (x, y, z, kind) => puff(x, y, z, kind), lookDir: () => lookDir(),
@@ -477,6 +479,7 @@ function useCart(e, slot) {
 function openCart(e) {
   if (!e.inv) return false;
   const k = "cart:" + e.uid;
+  if (e.sp === ELEPHANT) e.inv.label = "Elephant Cargo";
   G.world.containers.set(k, e.inv);
   Sound.door(true); R.vibrate(e.pos.x, e.pos.y + 0.5, e.pos.z, 11);
   openPanel(e.sp === "hopper_cart" ? "machine" : "chest", k);
@@ -618,6 +621,10 @@ function mount(e) {
     UI.toast("In the boat! W A S D to row (Shift rows faster), C to climb out.");
     return true;
   }
+  if (e.sp === ELEPHANT && !canRideElephant(G.world, p, e)) {
+    UI.toast("The elephant needs dry ground and room for both of you before you can mount.");
+    return true;
+  }
   if (e.tame && !e.saddled) { UI.toast(`Hold a Saddle and right-click your ${e.def.name} to equip it.`); return true; }
   if (e.def.segmentedLeviathan && (e.duneCycle?.preview && !leviathanMountRecord(e) || !canMountLeviathan(G.world, p, e))) {
     UI.toast("Your bonded Leviathan needs dry, clear footing and enough headroom before you can mount.");
@@ -631,23 +638,24 @@ function mount(e) {
     e.vel.x = e.vel.y = e.vel.z = 0;
   }
   if (e.def.airMount && e.tame) p.flying = true;
-  Sound.mob(e.def.segmentedLeviathan ? "rumble" : "neigh", 0); if (e.tame && !e.practiceMount) G.adv("ride");
-  UI.toast(e.def.segmentedLeviathan && e.tame ? `Riding! W A S D to steer, Shift to gallop, B to burrow, G for ${e.sp === "leviathan_obsidian" ? "Cinder Lance" : "Sandbreaker"}, C to get off.` : e.def.airMount && e.tame ? "Flying! W A S D to steer, Space to rise, Shift to descend, C to get off." : e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : `Hold on! This ${e.def.name} is wild and may buck you off. Keep trying to tame it.`);
+  Sound.mob(e.def.segmentedLeviathan ? "rumble" : e.sp === ELEPHANT ? "elephanttrumpet" : "neigh", 0); if (e.tame && !e.practiceMount) G.adv("ride");
+  UI.toast(e.def.segmentedLeviathan && e.tame ? `Riding! W A S D to steer, Shift to gallop, B to burrow, G for ${e.sp === "leviathan_obsidian" ? "Cinder Lance" : "Sandbreaker"}, C to get off.` : e.def.airMount && e.tame ? "Flying! W A S D to steer, Space to rise, Shift to descend, C to get off." : e.sp === ELEPHANT ? "Riding! W A S D to steer, C to get off." : e.tame ? "Riding! W A S D to steer, Shift to gallop, Space to jump, C to get off." : `Hold on! This ${e.def.name} is wild and may buck you off. Keep trying to tame it.`);
   return true;
 }
 function dismount(quiet) {
   const p = G.player, e = G.riding;
   if (!e) return;
   if (e.burrowTravel) { clearMountedBurrow(); if (G.riding !== e) return true; }
-  const leviathanExit = e.def.segmentedLeviathan ? findLeviathanExit(G.world, p, e) : null;
-  if (e.def.segmentedLeviathan && !leviathanExit && !quiet) {
+  const needsClearExit = e.def.segmentedLeviathan || e.sp === ELEPHANT;
+  const leviathanExit = needsClearExit ? findLeviathanExit(G.world, p, e) : null;
+  if (needsClearExit && !leviathanExit && !quiet) {
     UI.toast("No safe landing nearby. Move onto open, dry ground before dismounting.");
     return false;
   }
   if (e.def.airMount) p.flying = false;
   if (e.def.segmentedLeviathan) clearMountedLeviathanAttack();
   G.riding = null; p.mount = false; p.boat = false; p.cart = false; e.ridden = false; if (!e.def.cart) { e.vel.x = e.vel.y = e.vel.z = 0; }
-  if (e.def.segmentedLeviathan) {
+  if (needsClearExit) {
     // Lifecycle exits must detach even without nearby footing. Keep the current
     // position in that case; dimension travel/death will place the player next.
     if (leviathanExit) Object.assign(p.pos, leviathanExit);

@@ -11,6 +11,8 @@ function coat(dark, main, light) {
   } };
 }
 
+const solidHide = color => ({ all: P => P.rect(0, 0, 16, 16, color) });
+
 const box = (name, size, pivot, paint, parent, off = [0, 0, 0], detail = false) =>
   ({ name, size, pivot, paint, parent, off, detail });
 const fur = coat("#54301f", "#75462d", "#9b633c");
@@ -247,9 +249,9 @@ function cetacean(orca) {
 const scaleGreen = coat("#3b4430", "#596047", "#798163");
 const scutes = coat("#2d382b", "#45513b", "#65734f");
 const riverBelly = coat("#78684c", "#9a8561", "#b9a77a");
-const hippoHide = coat("#514653", "#706471", "#8e7f87");
-const hippoFold = coat("#403a47", "#615260", "#7b6977");
-const hippoMuzzle = coat("#6b4e59", "#8a6870", "#aa8487");
+const hippoHide = solidHide("#77737b");
+const hippoFold = solidHide("#69656e");
+const hippoMuzzle = solidHide("#82767d");
 
 function crocodile() {
   const parts = [
@@ -584,6 +586,703 @@ function zebra() {
   return { type: "wildlife", parts };
 }
 
+const tigerOrange = coat("#a3542c", "#cc743b", "#eb9851");
+const tigerWhite = coat("#b7a58f", "#dfcfb5", "#f7e8cd");
+const tigerBands = { all(P, face) {
+  tigerOrange.all(P, face);
+  for (let y = 0; y < 16; y++) {
+    for (const start of [2, 7, 13]) {
+      const x = start + (y > 7 ? 1 : 0) - (y > 11 ? 1 : 0);
+      const width = y > 12 ? 1 : start === 7 && y < 6 ? 3 : 2;
+      if (y < 11 || (y + start) % 4 !== 1) P.rect(x, y, width, 1, "#302327");
+    }
+  }
+} };
+const tigerTail = { all(P, face) {
+  tigerOrange.all(P, face);
+  for (const x of [1, 6, 11]) P.rect(x, 0, 2, 16, "#33252a");
+} };
+
+function tiger() {
+  const parts = [
+    box("body", [16, 13, 29], [0, 14.7, -2.5], tigerBands),
+    box("belly", [13, 6.5, 25], [0, 9.5, -2], tigerWhite),
+    box("shoulder", [17.5, 15, 12], [0, 16, 8.5], tigerBands),
+    box("haunch", [16, 14, 11], [0, 14.1, -15.2], tigerBands),
+    box("neck", [13, 12, 9], [0, 16, 14.4], tigerBands),
+    box("head", [14, 11.2, 10.7], [0, 18, 16.5], tigerBands, null, [0, 0, 2.9]),
+    box("muzzle", [9.2, 5, 7.6], [0, -2.2, 5.7], tigerWhite, "head"),
+    box("nose", [5, 2, 1.65], [0, 0.85, 3.9], black, "muzzle"),
+    box("jaw", [9, 3.3, 8], [0, -4.5, 2.2], tigerWhite, "head", [0, -0.2, 4.1]),
+    box("tail", [3.6, 3.6, 12], [0, 13.6, -19.5], tigerTail, null, [0, -0.45, -5.4]),
+    box("tailTip", [2.7, 2.8, 13], [0, 0, -5.65], tigerTail, "tail", [0, 0, -5.85])
+  ];
+  for (const s of [-1, 1]) {
+    parts.push(
+      box("cheek" + s, [4.7, 5.8, 5.2], [5.7 * s, -2.8, 3.7], tigerWhite, "head"),
+      box("eye" + s, [2.65, 1.4, 1.05], [4.1 * s, 0.85, 5.43], gold, "head"),
+      box("pupil" + s, [0.62, 1.1, 0.42], [0, 0, 0.52], black, "eye" + s),
+      box("ear" + s, [4, 3.85, 3], [5.05 * s, 5.4, -0.9], tigerOrange, "head"),
+      box("earSpot" + s, [2, 1.55, 0.45], [0, 0.2, -1.53], tigerWhite, "ear" + s, [0, 0, 0], true),
+      box("fang" + s, [1.05, 1.9, 1], [3.15 * s, -2.6, 2.25], ivory, "muzzle", [0, 0, 0], true)
+    );
+    for (const end of [-1, 1]) {
+      const id = "leg" + s + "_" + end;
+      parts.push(
+        box(id, [end === 1 ? 5.1 : 6.35, 10, 6.5], [5.4 * s, 11.4, end * 10.2],
+          tigerBands, null, [0, -4.9, 0]),
+        box(id + "paw", [5.5, 3.2, 6.6], [0, -4.8, 1.1], tigerWhite, id)
+      );
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
+const deerHide = coat("#68483a", "#956e50", "#b98a62");
+const deerLight = coat("#987557", "#b89270", "#dcc7a6");
+const deerCream = coat("#a38b75", "#c0aa92", "#e1d0b8");
+const antler = coat("#61584f", "#9a907b", "#c2b49d");
+
+function deer() {
+  const parts = [
+    box("body", [12, 13, 24], [0, 18.7, -1.5], deerHide),
+    box("belly", [10.2, 5, 21], [0, 13.4, -1.8], deerCream),
+    box("haunch", [11.6, 11, 10], [0, 18.2, -12.3], deerHide),
+    box("rumpPatch", [7.5, 6.3, 2.15], [0, 18, -17.5], deerCream),
+    box("neck", [8.3, 14, 9.6], [0, 20.4, 8.3], deerHide, null, [0, 3.5, 1]),
+    box("throat", [6, 10.5, 3], [0, 0.25, 5.3], deerLight, "neck"),
+    box("head", [8.9, 8.5, 9.4], [0, 6.1, 3.9], deerHide, "neck"),
+    box("snout", [6.75, 5.1, 7.4], [0, -1.3, 5.25], deerLight, "head"),
+    box("nose", [5.4, 2.55, 1.55], [0, 0.5, 3.7], black, "snout"),
+    box("tail", [4.5, 4.7, 6.3], [0, 20.2, -17.2], deerCream, null, [0, -0.55, -2.4])
+  ];
+  parts.find(part => part.name === "neck").rotation = [0.24, 0, 0];
+  for (const s of [-1, 1]) {
+    const rack = "antler" + s;
+    const ear = box("ear" + s, [4.65, 3.1, 6.5], [3.7 * s, 3.9, -2], deerHide, "head", [1.5 * s, 1, -1]);
+    ear.rotation = [0.15, -s * 0.76, s * 0.37];
+    parts.push(
+      ear,
+      box("earInner" + s, [3.2, 0.55, 4.6], [0, 1.55, 0], deerCream, "ear" + s, [0, 0, 0], true),
+      box("eye" + s, [0.72, 2, 2.1], [4.52 * s, 0.75, 2.2], black, "head"),
+      box(rack, [1.65, 7.6, 1.75], [3.4 * s, 3.9, -1.7], antler, "head", [1.13 * s, 3.55, -0.9]),
+      box(rack + "Beam", [1.55, 5.5, 1.6], [0.45 * s, 5.65, -1.7], antler, rack),
+      box(rack + "Outer", [1.35, 4.9, 1.35], [2.2 * s, 2.25, -0.75], antler, rack),
+      box(rack + "Brow", [1.2, 3.95, 1.2], [0, 1.55, 1.7], antler, rack)
+    );
+    for (const end of [-1, 1]) {
+      const id = "leg" + s + "_" + end;
+      parts.push(
+        box(id, [end === -1 ? 4.55 : 3.6, 8.45, 4.2], [3.7 * s, 15.3, end * 9.1], deerHide, null, [0, -3.4, 0]),
+        box(id + "Shin", [2.45, 7.2, 2.65], [0, -3.8, 0], deerHide, id, [0, -3.25, 0]),
+        box(id + "Hoof", [3.25, 2.55, 3.15], [0, -3.55, 0.25], black, id + "Shin")
+      );
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
+const mooseHide = coat("#48322d", "#6c4a38", "#91634a");
+const mooseRuff = coat("#392c2c", "#513b33", "#795541");
+const mooseMuzzle = coat("#54413c", "#72554a", "#997468");
+const antlerPalm = coat("#675644", "#9d825d", "#c4a777");
+
+function moose() {
+  const parts = [
+    box("body", [17, 16, 29], [0, 24, -2], mooseHide),
+    box("haunch", [15, 14, 13], [0, 23, -14], mooseHide),
+    box("shoulder", [18.2, 19, 14], [0, 27, 8], mooseRuff),
+    box("hump", [14.5, 6, 10], [0, 36.6, 7.7], mooseRuff),
+    box("neck", [13, 15, 14], [0, 28.3, 13.9], mooseHide, null, [0, 1.9, 4.1]),
+    box("head", [13.2, 12.5, 13.7], [0, 4.7, 6.5], mooseHide, "neck", [0, 0, 4.1]),
+    box("muzzle", [11.9, 7.5, 11.8], [0, -1.5, 8.7], mooseMuzzle, "head"),
+    box("nose", [10.9, 4.4, 4.1], [0, 0.35, 5.6], mooseRuff, "muzzle"),
+    box("bell", [5, 10, 4.9], [0, -7, 2.5], mooseRuff, "neck", [0, -2.2, 0]),
+    box("tail", [5, 4.1, 6.7], [0, 25, -19.4], mooseRuff, null, [0, -0.75, -2.4])
+  ];
+  for (const s of [-1, 1]) {
+    const rack = "antler" + s;
+    const ear = box("ear" + s, [7, 3.6, 5.25], [5.5 * s, 5, -0.25], mooseHide, "head", [2.45 * s, 0.65, -0.7]);
+    ear.rotation = [0, -s * 0.28, s * 0.35];
+    const palm = box(rack + "Palm", [12, 3.0, 6.8], [5.8 * s, 2.7, -0.05], antlerPalm,
+      rack, [3.2 * s, 0.7, -1.25]);
+    palm.rotation = [0.12, 0, s * 0.27];
+    parts.push(
+      ear,
+      box("eye" + s, [0.7, 2.05, 2.3], [6.65 * s, 1.34, 2.45], black, "head"),
+      box("nostril" + s, [2.1, 0.65, 1.8], [2.9 * s, 2.25, 0.6], black, "nose", [0, 0, 0], true),
+      box(rack, [7.5, 2.2, 2.35], [5.4 * s, 5.65, 1.65], antlerPalm, "head", [3.3 * s, 1.1, 0]),
+      palm,
+      box(rack + "Back", [8.1, 2.1, 5.8], [1.2 * s, 0.8, -3.65], antlerPalm, rack + "Palm")
+    );
+    for (let i = 0; i < 5; i++) {
+      parts.push(box(rack + "Point" + i, [1.6, 3.25 + (i % 3) * 0.85, 1.7],
+        [(i - 2) * 2.35 * s, 1.85, i % 2 === 0 ? -3.25 : -4.0],
+        antlerPalm, rack + "Palm", [0, 1.15, 0], i % 2 === 0));
+    }
+    for (const end of [-1, 1]) {
+      const id = "leg" + s + "_" + end;
+      parts.push(
+        box(id, [end === -1 ? 6.5 : 5.9, 11.6, 6.25], [5.8 * s, 19, end * 11],
+          mooseHide, null, [0, -5.2, 0]),
+        box(id + "Shin", [3.9, 10.1, 4.1], [0, -4.7, 0], mooseRuff, id, [0, -4.4, 0]),
+        box(id + "Hoof", [4.4, 3.2, 5.2], [0, -3.2, 0.8], black, id + "Shin")
+      );
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
+const pandaRust = coat("#833d2c", "#ae5830", "#d17943");
+const pandaAmber = coat("#95512f", "#bb6b3d", "#db8a51");
+const pandaDark = coat("#39292b", "#56332c", "#743b2c");
+const pandaCream = coat("#9d8571", "#d6bc99", "#f1dbb9");
+const pandaRings = { all(P, face) {
+  pandaAmber.all(P, face);
+  if (face === "front" || face === "back") return;
+  for (const band of [2, 9]) {
+    if (face === "top" || face === "bottom") P.rect(0, band, 16, 3, "#69372e");
+    else P.rect(band, 0, 3, 16, "#69372e");
+  }
+} };
+
+function redPanda() {
+  const parts = [
+    box("body", [12, 10, 18], [0, 9.4, -1], pandaRust),
+    box("back", [9.6, 4.15, 14.5], [0, 13.3, -1.7], pandaAmber),
+    box("undercoat", [10.6, 5.9, 16.5], [0, 6.1, -1.5], pandaDark),
+    box("neck", [10.3, 9.4, 7.2], [0, 11, 6.55], pandaAmber),
+    box("head", [12.5, 10.4, 10.5], [0, 13.1, 8.4], pandaRust, null, [0, 0.4, 3.2]),
+    box("mask", [10.9, 4.4, 2.2], [0, -2.2, 4.7], pandaCream, "head"),
+    box("muzzle", [7.6, 4.1, 4.7], [0, -2.5, 6.5], pandaCream, "head"),
+    box("nose", [4.55, 1.75, 1.4], [0, 1, 2.43], black, "muzzle"),
+    box("tail", [8.6, 8, 10.8], [0, 10.6, -9], pandaRings, null, [0, -0.6, -5]),
+    box("tailMid", [7.6, 7.4, 10.4], [0, -0.5, -4.75], pandaRings, "tail", [0, 0.4, -4.6]),
+    box("tailTip", [5.5, 5.4, 6.7], [0, 0.3, -4.35], pandaRings, "tailMid", [0, 0.25, -3])
+  ];
+  for (const s of [-1, 1]) {
+    const ear = box("ear" + s, [4.5, 5.1, 3.45], [4.5 * s, 4.6, -1.3], pandaAmber, "head", [0.4 * s, 1.2, 0]);
+    ear.rotation = [0.1, 0, s * -0.22];
+    parts.push(
+      ear,
+      box("earInner" + s, [2.75, 3.5, 0.68], [0, 0.35, 1.76], pandaCream, "ear" + s),
+      box("cheek" + s, [3.2, 4, 4.5], [4.8 * s, -2, 3.4], pandaCream, "head"),
+      box("brow" + s, [3.15, 1.65, 1.15], [3.45 * s, 2.3, 5.18], pandaCream, "head"),
+      box("eye" + s, [1.85, 1.9, 0.74], [3.55 * s, 0.85, 5.38], black, "head"),
+      box("eyeShine" + s, [0.45, 0.45, 0.22], [0.24 * s, 0.35, 0.39], ivory, "eye" + s, [0, 0, 0], true)
+    );
+    for (const end of [-1, 1]) {
+      const id = "leg" + s + "_" + end;
+      parts.push(
+        box(id, [4.1, 6.9, 4.7], [3.7 * s, 7.5, end * 6.35], pandaDark, null, [0, -3.4, 0]),
+        box(id + "Paw", [4.4, 2.4, 5], [0, -2.9, 0.75], pandaDark, id)
+      );
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
+const giraffeGold = coat("#b98148", "#d9a461", "#e5bc7d");
+const giraffeCream = coat("#bc996f", "#dfc193", "#f2dab0");
+const giraffeSpots = { all(P, face) {
+  giraffeGold.all(P, face);
+  const rows = [[1, 0, 5, 5], [9, 1, 5, 4], [4, 6, 6, 5], [12, 7, 4, 5], [0, 11, 5, 4], [7, 13, 5, 3]];
+  for (const [x, y, w, h] of rows) {
+    P.rect(x + 1, y, w - 2, h, "#94562e");
+    P.rect(x, y + 1, w, h - 2, "#94562e");
+    P.rect(x + 1, y + 1, w - 2, h - 2, "#a96335");
+    P.px(x + 1, y + 1, "#bc7744");
+  }
+} };
+const maneBrown = coat("#3b2825", "#563328", "#754b32");
+
+function giraffe() {
+  const parts = [
+    box("body", [14, 15, 30], [0, 34, -3], giraffeSpots),
+    box("shoulder", [15, 17, 13], [0, 37.7, 7], giraffeSpots),
+    box("rump", [12.8, 13, 10], [0, 31.2, -14], giraffeSpots),
+    box("belly", [11, 4, 22], [0, 27.2, -1], giraffeCream),
+    box("neck", [8, 20, 9.5], [0, 40, 9], giraffeSpots, null, [0, 9.2, -1.2]),
+    box("crest", [2.7, 19.5, 2.1], [0, 0.8, -4.7], maneBrown, "neck"),
+    box("neckTop", [5.8, 19.5, 6.2], [0, 8.8, -1.1], giraffeSpots, "neck", [0, 8.7, -1]),
+    box("crestTop", [2, 15.8, 1.75], [0, -0.7, -3.1], maneBrown, "neckTop"),
+    box("head", [8, 7, 10.5], [0, 8.4, 0.4], giraffeGold, "neckTop", [0, 0, 2.5]),
+    box("snout", [6.6, 4.2, 6], [0, -1.9, 5.7], giraffeCream, "head"),
+    box("jaw", [5.8, 1.7, 5.9], [0, -3.7, 2.7], giraffeCream, "head", [0, 0, 3]),
+    box("tail", [2.6, 13.5, 2.6], [0, 33.8, -18.4], giraffeSpots, null, [0, -6.5, -0.9]),
+    box("tailTuft", [3.4, 5.4, 3.1], [0, -6.7, -0.5], maneBrown, "tail")
+  ];
+  for (const side of [-1, 1]) {
+    const ear = box("ear" + side, [5.6, 2.8, 3.7], [side * 4.5, 2.25, -2.6],
+      giraffeGold, "head", [side * 1.15, 0, 0]);
+    ear.rotation = [0, 0, side * 0.35];
+    parts.push(ear,
+      box("earInner" + side, [3.8, 1.45, 0.7], [0, 0, 1.75], giraffeCream, ear.name),
+      box("ossicone" + side, [2, 4.3, 2.25], [2.35 * side, 4.7, -0.9], giraffeGold, "head"),
+      box("hornTuft" + side, [2.65, 1.6, 2.7], [0, 2.25, 0], maneBrown, "ossicone" + side),
+      box("eye" + side, [0.85, 1.85, 1.95], [4 * side, 0.85, 3], black, "head"),
+      box("glint" + side, [0.25, 0.5, 0.54], [side * 0.49, 0.35, 0.38], ivory, "eye" + side, [0, 0, 0], true),
+      box("nostril" + side, [1.2, 0.9, 0.35], [side * 1.8, 0.75, 3.04], maneBrown, "snout"));
+    for (const end of [-1, 1]) {
+      const id = "leg" + side + "_" + end;
+      const height = end === 1 ? 33 : 29;
+      parts.push(
+        box(id, [end === 1 ? 4.3 : 5.6, height - 15, 5.6], [side * 4.65, height, end * 11 - 2],
+          giraffeSpots, null, [0, -(height - 15) * 0.46, 0]),
+        box(id + "Shin", [2.45, 13.6, 3.05], [0, (15 - height) * 0.54 + 1, end === -1 ? -0.5 : 0],
+          giraffeCream, id, [0, -6.1, 0]),
+        box(id + "Hoof", [3.45, 2.8, 4.1], [0, -8.48, 0.35], maneBrown, id + "Shin")
+      );
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
+const rhinoGray = coat("#625c59", "#827c75", "#a29a8d");
+const rhinoLight = coat("#746b61", "#91877b", "#b1a391");
+const rhinoFold = coat("#514943", "#685e55", "#887a6e");
+const hornGray = coat("#92816b", "#c1ad92", "#e2d2b4");
+
+function rhinoceros() {
+  const parts = [
+    box("loin", [23, 21, 27], [0, 21, -4], rhinoGray),
+    box("rump", [21, 23, 14], [0, 20, -16], rhinoGray),
+    box("shoulder", [24.5, 25, 15], [0, 23, 10], rhinoLight),
+    box("withers", [15, 5, 13], [0, 34, 7.8], rhinoLight),
+    box("chest", [19, 15, 6], [0, 16, 15.5], rhinoFold),
+    box("head", [15, 13, 19], [0, 21, 16], rhinoGray, null, [0, -2.2, 8.6]),
+    box("snout", [13.8, 9, 9.6], [0, -2.6, 8.8], rhinoLight, "head"),
+    box("lip", [12.3, 2, 4.5], [0, -4.2, 3.1], rhinoFold, "snout"),
+    box("horn", [6.9, 7.4, 7.1], [0, 2.9, 3.0], hornGray, "snout", [0, 2.8, 0]),
+    box("hornMid", [4.7, 5.7, 4.8], [0, 3.4, -0.6], hornGray, "horn", [0, 1.7, 0]),
+    box("hornTip", [2.45, 4.65, 2.7], [0, 2.45, -0.68], hornGray, "hornMid", [0, 1.3, 0]),
+    box("secondHorn", [4.1, 4.3, 4.1], [0, 6.4, 3], hornGray, "head", [0, 1, 0]),
+    box("tail", [2.65, 9.8, 2.9], [0, 23, -23], rhinoGray, null, [0, -4.2, -0.3]),
+    box("tailTip", [3.2, 3.1, 3.3], [0, -5.3, -0.2], rhinoFold, "tail")
+  ];
+  for (const side of [-1, 1]) {
+    const ear = box("ear" + side, [3.8, 7.1, 3.7], [5.4 * side, 6.8, -3.2],
+      rhinoGray, "head", [0, 2.3, 0]);
+    ear.rotation = [0.13, 0, -side * 0.37];
+    const fold = box("shoulderFold" + side, [1.15, 18.5, 2.4], [11.95 * side, 22.5, 4], rhinoFold);
+    fold.rotation = [-0.32, 0, 0];
+    parts.push(fold, ear,
+      box("innerEar" + side, [2.15, 4.8, 0.64], [0, 0.25, 1.89], rhinoFold, ear.name),
+      box("eye" + side, [0.95, 2.5, 2.2], [7.4 * side, 2.45, 4.8], black, "head"),
+      box("brow" + side, [1.7, 1.2, 3.7], [7.2 * side, 4.2, 4.6], rhinoFold, "head"),
+      box("nostril" + side, [2.15, 1.55, 0.67], [3.95 * side, 0.8, 4.76], rhinoFold, "snout"));
+    for (const end of [-1, 1]) {
+      const id = "leg" + side + "_" + end;
+      parts.push(
+        box(id, [8.5, 15.8, 9.7], [7.1 * side, 17, end === 1 ? 11 : -14], rhinoGray, null, [0, -5, 0]),
+        box(id + "Foot", [8.4, 5.6, 9.7], [0, -9.1, 0.65], rhinoFold, id));
+      for (let i = -1; i <= 1; i++) {
+        parts.push(box(id + "Toe" + i, [1.9, 1.8, 1.2], [2.3 * i, -1.7, 4.8], hornGray,
+          id + "Foot", [0, 0, 0], true));
+      }
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
+const ostrichFeather = coat("#211f26", "#343138", "#4e4750");
+const ostrichBrown = coat("#67564b", "#837367", "#a18d7d");
+const ostrichWhite = coat("#a69c92", "#ddd3c4", "#f1e9da");
+const ostrichFawn = coat("#8d7968", "#b39e87", "#c9b9a2");
+const ostrichSkin = coat("#aa8274", "#c6a695", "#dfc1a9");
+const ostrichBeak = coat("#928168", "#bca788", "#d6c3a0");
+const ostrichBody = {
+  all(P, face, variant) { (variant === 0 ? ostrichFeather : ostrichBrown).all(P, face); }
+};
+const ostrichPlumes = {
+  all(P, face, variant) { (variant === 0 ? ostrichWhite : ostrichFawn).all(P, face); }
+};
+
+function ostrich() {
+  const parts = [
+    box("body", [17.2, 16, 22.8], [0, 22.5, -3], ostrichBody),
+    box("chest", [14, 12.8, 10.5], [0, 22.2, 6], ostrichBody),
+    box("back", [15.1, 6.2, 15.8], [0, 29.2, -4], ostrichBody),
+    box("pelvis", [13.5, 8, 12], [0, 17.4, -7.7], ostrichBody),
+    box("tail", [13.5, 6, 9.5], [0, 25.8, -12.6], ostrichPlumes, null, [0, 0.5, -3.5]),
+    box("tailTips", [9.6, 4.7, 6], [0, 0.8, -4.1], ostrichPlumes, "tail"),
+    box("neck", [5.2, 14.3, 5.4], [0, 26.4, 6.7], ostrichSkin, null, [0, 6.5, 0.5]),
+    box("neckTop", [3.65, 11.2, 3.7], [0, 5.8, 0.65], ostrichSkin, "neck", [0, 4.7, 0.2]),
+    box("head", [6.6, 6.4, 7.9], [0, 5.5, 1], ostrichSkin, "neckTop", [0, 0.8, 0]),
+    box("crown", [5.3, 2, 5.1], [0, 3.1, -1.2], ostrichPlumes, "head"),
+    box("beak", [5.1, 1.9, 5.25], [0, -0.65, 4.75], ostrichBeak, "head"),
+    box("lowerBeak", [4.2, 0.85, 4.6], [0, -1.25, 3.3], ostrichSkin, "head", [0, 0, 1.35])
+  ];
+  for (const side of [-1, 1]) {
+    const wing = "wing" + side, leg = "leg" + side;
+    parts.push(
+      box(wing, [4.2, 10.5, 19.5], [side * 7.1, 24.9, -2.2], ostrichBody, null, [side * 0.5, 0, -1.1]),
+      box(wing + "Flight", [3.3, 6.15, 16.8], [side * 1.5, -3.1, -2.2], ostrichPlumes, wing),
+      box(wing + "Tip", [1.7, 4, 8.2], [side * 0.48, -1.4, -6], ostrichPlumes, wing + "Flight", [0, 0, 0], true),
+      box("eye" + side, [0.9, 2.1, 2.3], [side * 3.22, 0.48, 1.75], black, "head"),
+      box("eyeGlint" + side, [0.28, 0.62, 0.56], [side * 0.48, 0.42, 0.36], ivory, "eye" + side, [0, 0, 0], true),
+      box(leg, [5.35, 10.25, 5.8], [side * 4.9, 19.4, -5], ostrichSkin, null, [0, -4.2, 0.4]),
+      box(leg + "Shin", [2.8, 11.8, 2.9], [0, -4.6, -0.6], ostrichSkin, leg, [0, -4.9, -0.5]),
+      box(leg + "Foot", [3.25, 1.8, 5.2], [0, -4.8, 1.1], ostrichBeak, leg + "Shin"),
+      box(leg + "Toe", [1.45, 1.05, 2.3], [side * 0.5, -0.2, 2.3], ostrichBeak, leg + "Foot")
+    );
+  }
+  return { type: "wildlife", parts };
+}
+
+const slothFur = coat("#4d4039", "#776255", "#927865");
+const slothBack = coat("#594a40", "#806951", "#a3896c");
+const slothFace = coat("#a68d74", "#cbb299", "#e4cbb0");
+const slothMask = coat("#48362f", "#654d41", "#886953");
+const slothClaw = coat("#86725f", "#b9a085", "#e2caad");
+
+function sloth() {
+  const parts = [
+    box("body", [12.3, 11, 14.8], [0, 9.3, -1.4], slothFur),
+    box("rump", [11.8, 10.8, 8.3], [0, 8.9, -6.3], slothBack),
+    box("saddle", [9.7, 4.7, 12.6], [0, 13.35, -2.5], slothBack),
+    box("belly", [9.3, 6.8, 12.7], [0, 6.25, -0.6], slothBack),
+    box("head", [10.2, 9, 8.2], [0, 11, 5.3], slothFur, null, [0, 0.6, 2.2]),
+    box("face", [8.9, 7.05, 3.1], [0, -0.45, 3.42], slothFace, "head"),
+    box("forehead", [6.8, 2.1, 2.1], [0, 3.4, 3.15], slothFace, "head"),
+    box("muzzle", [4.9, 3.45, 3.5], [0, -1.65, 5.17], slothFace, "head"),
+    box("nose", [2.75, 1.6, 0.85], [0, 0.45, 1.66], black, "muzzle"),
+    box("smile", [2.9, 0.50, 0.4], [0, -0.85, 1.78], slothMask, "muzzle")
+  ];
+  for (const side of [-1, 1]) {
+    const mask = box("mask" + side, [3.5, 2.15, 0.62], [side * 2.65, 0.28, 5.02], slothMask, "head");
+    mask.rotation = [0, side * 0.11, side * 0.34];
+    parts.push(mask,
+      box("eye" + side, [1.3, 1.35, 0.35], [-0.24 * side, 0.15, 0.39], black, mask.name),
+      box("glint" + side, [0.47, 0.42, 0.16], [0.26, 0.3, 0.21], ivory, "eye" + side, [0, 0, 0], true));
+    for (const end of [-1, 1]) {
+      const arm = end === 1, limb = (arm ? "arm" : "leg") + side;
+      parts.push(
+        box(limb, [3.8, arm ? 7.1 : 5.55, 4.3], [side * 4.75, 10.1, arm ? 4.4 : -6.4], slothBack, null, [side * 0.58, -2.5, 0]),
+        box(limb + "Lower", [2.9, arm ? 5 : 4.1, 3.45], [side * 0.55, arm ? -3.0 : -2.05, arm ? 0.24 : 0.65],
+          slothFur, limb, [0, arm ? -1.45 : -1.3, 0.55]),
+        box(limb + "Grip", [3.4, 2.05, 3.25], [0, -2, 0.8], slothMask, limb + "Lower")
+      );
+      for (let finger = -1; finger <= 1; finger++) {
+        const claw = limb + "Claw" + finger;
+        parts.push(
+          box(claw, [0.76, 1.25, 1.85], [finger * 0.85, -0.5, 1.52], slothClaw, limb + "Grip"),
+          box(claw + "Hook", [0.65, 0.85, 0.7], [0, 0.42, 0.65], slothClaw, claw, [0, 0, 0], true)
+        );
+      }
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
+const koalaFur = coat("#53555c", "#81848a", "#a2a3a7");
+const koalaRuff = coat("#76767c", "#a4a3a5", "#c7c5bf");
+const koalaCream = coat("#a39f97", "#d0cbc0", "#e7e1d3");
+const koalaEar = coat("#695b62", "#938087", "#b8a5a8");
+
+function koala() {
+  const parts = [
+    box("body", [12.1, 12.6, 10.5], [0, 8.7, -1.8], koalaFur),
+    box("back", [10.2, 7.1, 4], [0, 8.9, -5.8], koalaRuff),
+    box("bib", [8.8, 8.7, 3.55], [0, 9.3, 3.05], koalaCream),
+    box("head", [12.1, 9.5, 9.45], [0, 13.5, 1.4], koalaFur, null, [0, 1.2, 0.5]),
+    box("crown", [9.1, 1.55, 7.1], [0, 4.7, -0.35], koalaRuff, "head"),
+    box("chin", [8.1, 3.1, 3.5], [0, -3.3, 3.7], koalaCream, "head"),
+    box("nose", [4.45, 4.65, 2.7], [0, -0.05, 5.3], black, "head"),
+    box("noseBridge", [3.2, 2.2, 1.65], [0, 2.5, 4.91], black, "head"),
+    box("jaw", [3.9, 1.55, 2.35], [0, -3.55, 4.9], koalaCream, "head")
+  ];
+  for (const side of [-1, 1]) {
+    const ear = "ear" + side, arm = "arm" + side, leg = "leg" + side;
+    const outer = box(ear, [6.45, 7.4, 3.15], [side * 5.55, 2.28, -0.52],
+      koalaRuff, "head", [side * 0.97, 0.45, 0]);
+    outer.rotation = [0.04, side * 0.09, side * -0.2];
+    parts.push(outer,
+      box(ear + "Rim", [4.5, 3.3, 2.68], [side * 0.27, 2.93, -0.02], koalaCream, ear),
+      box(ear + "Inner", [3.85, 4.7, 0.85], [side * 0.29, 0.3, 1.56], koalaEar, ear),
+      box(ear + "Tuft", [2.35, 3.8, 1.75], [side * 2.95, -0.56, 0.16], koalaCream, ear, [0, 0, 0], true),
+      box("eye" + side, [1.45, 1.5, 0.46], [side * 3.86, 1.01, 4.76], black, "head"),
+      box("eyeGlint" + side, [0.44, 0.47, 0.2], [side * 0.27, 0.28, 0.24], ivory, "eye" + side, [0, 0, 0], true),
+      box(arm, [4.1, 6.6, 4.15], [side * 5.05, 10.9, 2.57], koalaFur, null, [side * 0.25, -2.65, 0.28]),
+      box(arm + "Paw", [3.15, 3.35, 3.9], [side * 0.16, -3.55, 0.55], koalaRuff, arm),
+      box(leg, [4.7, 5.6, 5.7], [side * 4.35, 5.55, -2.45], koalaFur, null, [0, -1.35, 0.27]),
+      box(leg + "Paw", [3.7, 2.6, 4.8], [0, -2.85, 1.2], koalaRuff, leg)
+    );
+    for (let finger = -1; finger <= 1; finger++) {
+      parts.push(box(arm + "Claw" + finger, [0.62, 1.0, 1.16],
+        [finger * 0.83, -0.87, 1.7], black, arm + "Paw", [0, 0, 0], true));
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
+const peacockBlue = coat("#172b72", "#244993", "#396eb5");
+const peacockTeal = coat("#12615c", "#208780", "#36a7a0");
+const peacockBrown = coat("#4c3c36", "#746156", "#a1876e");
+const peacockSage = coat("#3e5346", "#5d7763", "#88a37e");
+const peacockBody = { all(P, face, variant) {
+  (variant ? peacockBrown : peacockBlue).all(P, face);
+} };
+const peacockNeck = { all(P, face, variant) {
+  (variant ? peacockSage : peacockTeal).all(P, face);
+} };
+const fanStem = coat("#274b39", "#426c45", "#73985c");
+const fanEye = { all(P, face) {
+  fanStem.all(P, face);
+  if (face !== "front" && face !== "back") return;
+  P.rect(3, 2, 10, 12, "#75a038");
+  P.rect(1, 5, 14, 6, "#75a038");
+  P.rect(4, 3, 8, 10, "#ceaa57");
+  P.rect(3, 5, 10, 6, "#ceaa57");
+  P.rect(5, 4, 6, 8, "#248476");
+  P.rect(4, 6, 8, 4, "#248476");
+  P.rect(6, 5, 4, 5, "#1d416d");
+  P.rect(7, 6, 3, 4, "#202846");
+  P.px(6, 5, "#5fafe4");
+} };
+
+function peacock() {
+  const parts = [
+    box("body", [12.2, 10.65, 16.5], [0, 11, -2.2], peacockBody),
+    box("saddle", [10.7, 6, 12.3], [0, 14.4, -4.1], peacockNeck),
+    box("breast", [9.5, 9.3, 8.1], [0, 12.7, 4], peacockBody),
+    box("wingLeft", [3.1, 6.7, 12.45], [-5.2, 12.2, -3.6], peacockBody),
+    box("wingRight", [3.1, 6.7, 12.45], [5.2, 12.2, -3.6], peacockBody),
+    box("neck", [5.35, 10.8, 5.4], [0, 14, 4.85], peacockNeck, null, [0, 4.6, 0]),
+    box("head", [6.5, 5.8, 6.15], [0, 5.1, 0.75], peacockBody, "neck", [0, 1.95, 0.46]),
+    box("beak", [3.55, 2.17, 4.98], [0, -0.78, 4.42], ivory, "head"),
+    box("shortTail", [8.9, 3.2, 9.8], [0, 13, -9.31], peacockBody),
+    box("fan", [8.3, 4, 3.8], [0, 13.85, -9.1], fanStem)
+  ];
+  parts.find(part => part.name === "fan").rotation = [-1.45, 0, 0];
+  for (const side of [-1, 1]) {
+    parts.push(
+      box("cheek" + side, [0.48, 2.8, 3.15], [side * 3.2, 0.43, 1.29], ivory, "head"),
+      box("eye" + side, [0.44, 1.39, 1.4], [side * 0.26, 0.27, 0.35], black, "cheek" + side),
+      box("leg" + side, [1.83, 8.8, 2.3], [side * 2.95, 8.9, -1.8], peacockBrown, null, [0, -3.9, 0]),
+      box("toe" + side, [2.45, 1.65, 5.3], [0, -4.3, 1.08], peacockBrown, "leg" + side)
+    );
+  }
+  for (let i = -1; i <= 1; i++) {
+    parts.push(
+      box("crest" + i, [0.68, 3.2, 0.73], [i * 1.28, 3.6 + (i === 0 ? 0.35 : 0), -0.6], peacockNeck, "head"),
+      box("crestTip" + i, [1.2, 1.45, 0.96], [i * 0.1, 1.72, -0.07], peacockBody, "crest" + i)
+    );
+  }
+  for (let i = -4; i <= 4; i++) {
+    const name = "feather" + i, length = 30 - Math.abs(i) * 1.6;
+    const feather = box(name, [2.5, length, 1.05], [i * 0.7, 0.2, Math.abs(i) * 0.36],
+      fanStem, "fan", [0, length / 2, 0]);
+    feather.rotation = [0.02, 0, i * 0.029];
+    parts.push(feather,
+      box(name + "Vane", [5.45, 9.7, 1.55], [0, length / 2 - 2.05, 0], fanEye, name),
+      box(name + "Point", [3.25, 2.2, 1.19], [0, 4.65, 0], fanStem, name + "Vane", [0, 0, 0], true)
+    );
+  }
+  return { type: "wildlife", parts };
+}
+
+const flamingoPink = coat("#bd5c76", "#df8297", "#efa6b0");
+const flamingoRose = coat("#b8526b", "#cb6780", "#de8ca1");
+const flamingoLight = coat("#d08194", "#efb4b8", "#f7c8c4");
+const flamingoLeg = coat("#903c57", "#b65e75", "#d48894");
+
+function flamingo() {
+  const parts = [
+    box("body", [11.9, 11.8, 17.8], [0, 26.1, -2.4], flamingoPink),
+    box("breast", [10.7, 10.2, 8.15], [0, 26.2, 4.2], flamingoLight),
+    box("saddle", [9.8, 6.5, 13.1], [0, 30.45, -2.2], flamingoRose),
+    box("tail", [8.75, 4.55, 8.5], [0, 27.3, -10], flamingoRose, null, [0, 0, -2.75]),
+    box("neck", [4.65, 11.6, 4.95], [0, 28.8, 5.9], flamingoPink, null, [0, 4.2, -0.15]),
+    box("neckArc", [3.68, 7.65, 4.3], [0, 4.9, -0.7], flamingoPink, "neck", [0, 2.8, -1.05]),
+    box("neckTop", [3.32, 6.25, 4.9], [0, 3.2, 0.2], flamingoLight, "neckArc", [0, 2.35, 1.0]),
+    box("head", [5.8, 5.3, 6.85], [0, 2.85, 1.22], flamingoPink, "neckTop", [0, 0.65, 1.15]),
+    box("mask", [4.75, 3.5, 1.8], [0, -0.72, 3.3], flamingoLight, "head"),
+    box("beak", [4.32, 2.8, 4.8], [0, -1.06, 4.1], flamingoLight, "head", [0, -0.08, 1.7]),
+    box("beakHook", [3.75, 3.15, 3.3], [0, -1.65, 1.1], black, "beak", [0, -0.68, 0.5]),
+    box("beakTip", [3.15, 1.54, 1.75], [0, -1.35, 0.58], black, "beakHook")
+  ];
+  for (const side of [-1, 1]) {
+    const leg = "leg" + side, wing = "wing" + side;
+    parts.push(
+      box(wing, [3.3, 7.25, 14.65], [side * 4.85, 27.4, -1.9], flamingoRose, null, [side * 0.2, 0, -1.25]),
+      box(wing + "Flight", [2.3, 3.6, 11.45], [side * 0.55, -2.55, -2.1], black, wing),
+      box(wing + "Cover", [1.45, 4.15, 12.3], [side * 1.62, -1.24, -0.28], flamingoPink, wing),
+      box("eye" + side, [0.46, 1.36, 1.51], [side * 2.91, 0.41, 1.48], ivory, "head"),
+      box("pupil" + side, [0.26, 0.69, 0.76], [side * 0.25, -0.07, 0.1], black, "eye" + side),
+      box(leg, [2.35, 12.6, 2.55], [side * 2.7, 23.9, -1.85], flamingoLeg, null, [0, -5.45, 0]),
+      box(leg + "Shin", [1.6, 12.5, 1.75], [0, -5.83, 0.16], flamingoLeg, leg, [0, -5.75, 0.25]),
+      box(leg + "Hock", [2.3, 2.2, 2.2], [0, 4.8, 0], flamingoRose, leg + "Shin"),
+      box(leg + "Foot", [3.45, 1.35, 4.8], [0, -5.92, 1.26], flamingoLeg, leg + "Shin")
+    );
+  }
+  return { type: "wildlife", parts };
+}
+
+const kangarooFur = coat("#8b573e", "#b37b56", "#cd9b73");
+const kangarooDark = coat("#64433a", "#895b4b", "#a87c60");
+const kangarooCream = coat("#aa8869", "#d0ad86", "#eacaa2");
+const kangarooEar = coat("#895b57", "#ad7d6f", "#d9a598");
+
+function kangaroo() {
+  const parts = [
+    box("hips", [14.4, 13.3, 13.2], [0, 13.9, -2.35], kangarooFur),
+    box("torso", [11.45, 16, 10.7], [0, 19.9, 1.1], kangarooFur),
+    box("shoulders", [10.8, 7.6, 10], [0, 25.1, 3.1], kangarooDark),
+    box("pouch", [10.1, 9.8, 5], [0, 15.9, 6.15], kangarooCream),
+    box("pouchRim", [9.05, 2.3, 3.2], [0, 20.25, 7.23], kangarooDark),
+    box("joey", [5.5, 5.13, 4.9], [0, 21.8, 7], kangarooFur, null, [0, 0.55, 0.35]),
+    box("joeySnout", [3.15, 2.12, 2.55], [0, -0.69, 2.43], kangarooCream, "joey"),
+    box("joeyNose", [1.55, 1.02, 0.68], [0, 0.32, 1.18], black, "joeySnout"),
+    box("neck", [7.35, 8.6, 7.9], [0, 26.5, 4.25], kangarooFur, null, [0, 2.5, 0.8]),
+    box("head", [7.9, 7.15, 8.4], [0, 4.95, 1.02], kangarooFur, "neck", [0, 1.75, 0.88]),
+    box("muzzle", [5.8, 4.02, 5.3], [0, -1.24, 4.85], kangarooCream, "head"),
+    box("nose", [3.67, 1.86, 1.16], [0, 0.67, 2.51], black, "muzzle"),
+    box("tail", [8.1, 8.1, 11.4], [0, 12.1, -6.4], kangarooDark, null, [0, -1.35, -4.4]),
+    box("tailMid", [5.5, 5.8, 11.05], [0, -1.25, -4.75], kangarooFur, "tail", [0, -1.04, -4.45]),
+    box("tailTip", [3.85, 3.55, 10.7], [0, -0.83, -4.55], kangarooDark, "tailMid", [0, -0.64, -4.6]),
+    box("tailEnd", [2.35, 2.2, 5.8], [0, -0.53, -4.85], kangarooDark, "tailTip", [0, 0, -2.32])
+  ];
+  for (const side of [-1, 1]) {
+    const ear = "ear" + side, leg = "leg" + side, arm = "arm" + side;
+    const upright = box(ear, [2.9, 9.15, 2.4], [side * 2.7, 2.75, -1.68], kangarooDark, "head", [0, 3.95, 0]);
+    upright.rotation = [0.16, 0.04 * side, -side * 0.21];
+    parts.push(upright,
+      box(ear + "Inner", [1.62, 6.42, 0.61], [0, 0.45, 1.21], kangarooEar, ear),
+      box("eye" + side, [0.53, 1.84, 1.75], [side * 3.97, 0.57, 2.76], black, "head"),
+      box("glint" + side, [0.22, 0.48, 0.48], [side * 0.29, 0.35, 0.36], ivory, "eye" + side, [0, 0, 0], true),
+      box("joeyEar" + side, [1.45, 4.12, 1.35], [side * 1.8, 2.17, -0.72], kangarooDark, "joey", [side * 0.2, 1.6, 0]),
+      box("joeyEye" + side, [0.82, 0.9, 0.43], [side * 1.57, 0.45, 2.48], black, "joey"),
+      box(arm, [3.27, 8, 4.03], [side * 4.67, 23.3, 4], kangarooFur, null, [0, -3.3, 0.42]),
+      box(arm + "Paw", [2.6, 4.25, 3.03], [0, -3.51, 0.55], kangarooDark, arm, [0, -1.65, 0.42]),
+      box(leg, [6.8, 11.5, 9.3], [side * 4.28, 14.55, -2.25], kangarooFur, null, [side * 0.16, -4.67, 1.45]),
+      box(leg + "Shin", [3.6, 7, 4.55], [0, -4.3, 1.44], kangarooDark, leg, [0, -2.75, -0.6]),
+      box(leg + "Foot", [4.13, 2.7, 8.77], [0, -2.15, 2.17], kangarooDark, leg + "Shin"),
+      box(leg + "Toes", [3.64, 1.6, 1.8], [0, -0.45, 4], kangarooCream, leg + "Foot", [0, 0, 0], true)
+    );
+  }
+  return { type: "wildlife", parts };
+}
+
+const elephantGray = solidHide("#818084");
+const elephantRuff = solidHide("#8b898c");
+const elephantFold = solidHide("#747278");
+const elephantEar = solidHide("#96878a");
+const elephantIvory = coat("#a89072", "#d4c1a1", "#e8d9b9");
+const elephantCloth = coat("#335b61", "#4c7b79", "#78a197");
+const elephantPack = coat("#563d30", "#875e42", "#a77d56");
+
+function elephant() {
+  const parts = [
+    box("torso", [30, 26, 34], [0, 31.9, -5.7], elephantGray),
+    box("rump", [27.5, 23.5, 17], [0, 30.5, -20], elephantRuff),
+    box("shoulder", [30.9, 30.5, 20.4], [0, 34.5, 7.5], elephantGray),
+    box("ridge", [21.2, 4.95, 32.6], [0, 46, -2.6], elephantRuff),
+    box("belly", [24.3, 8.35, 28.4], [0, 20.6, -5.2], elephantFold),
+    box("neck", [21.9, 20.2, 15.3], [0, 35.8, 14], elephantGray),
+    box("head", [19, 19.8, 16.9], [0, 36.8, 18.5], elephantRuff, null, [0, 1.12, 5.55]),
+    box("forehead", [14.9, 7.9, 8.65], [0, 6.85, 5.12], elephantGray, "head"),
+    box("cheeks", [17.6, 9.6, 9.5], [0, -4.8, 5.1], elephantGray, "head"),
+    box("trunk", [8.65, 10.7, 9.1], [0, -5.75, 7.1], elephantRuff, "head", [0, -4.7, 2.65]),
+    box("trunkMid", [7, 9.55, 7.65], [0, -4.55, 0.95], elephantGray, "trunk", [0, -4.1, 0.65]),
+    box("trunkEnd", [5.45, 8.3, 6.1], [0, -4.15, 0.3], elephantRuff, "trunkMid", [0, -3.55, 0.8]),
+    box("trunkTip", [4.55, 4.48, 5.4], [0, -3.25, 0.95], elephantGray, "trunkEnd", [0, -1.75, 0.5]),
+    box("nostrils", [3.55, 1.14, 3.8], [0, -2.18, 0.1], elephantFold, "trunkTip"),
+    box("tail", [3.35, 16.4, 3.8], [0, 34.7, -27.4], elephantGray, null, [0, -7.1, -0.85]),
+    box("tailTuft", [4.45, 6.3, 4.35], [0, -7.65, 0.1], elephantFold, "tail"),
+    box("saddle", [20.5, 3.15, 18.35], [0, 49, -4.3], elephantCloth),
+    box("seat", [15.75, 2.55, 13.4], [0, 2.15, 0], elephantPack, "saddle")
+  ];
+  for (const s of [-1, 1]) {
+    const ear = "ear" + s, tusk = "tusk" + s, cargo = "pack" + s;
+    parts.push(
+      box(ear, [12.6, 19.4, 5.15], [s * 8.35, 1.75, -4.2], elephantGray, "head", [s * 5.1, -2.25, 0.7]),
+      box(ear + "Lower", [9.9, 7.85, 4.18], [-s * 0.43, -7.65, 0.15], elephantGray, ear),
+      box(ear + "Inset", [8.5, 13.8, 1.45], [s * 0.35, 0.18, 2.5], elephantEar, ear),
+      box("eye" + s, [0.76, 2.42, 2.8], [s * 9.5, 0.25, 4.71], black, "head"),
+      box("brow" + s, [1.65, 1.6, 4.35], [s * 8.78, 2.2, 4.42], elephantGray, "head"),
+      box("glint" + s, [0.29, 0.54, 0.59], [s * 0.45, 0.43, 0.23], ivory, "eye" + s, [0, 0, 0], true),
+      box(tusk, [4.45, 4.6, 10.55], [s * 6.63, -7.25, 6], elephantIvory, "head", [s * 0.45, -0.3, 4]),
+      box(tusk + "Mid", [3.2, 3.35, 6.1], [s * 0.55, 0.55, 4.85], elephantIvory, tusk, [s * 0.33, 0.38, 2.3]),
+      box(tusk + "Tip", [1.95, 2.25, 4.55], [s * 0.32, 0.55, 2.82], elephantIvory, tusk + "Mid", [0, 1.04, 1.75]),
+      box(cargo, [6.35, 10.7, 14.05], [s * 15.6, 34.45, -6], elephantPack),
+      box(cargo + "Flap", [6.75, 4.05, 14.6], [s * 0.1, 4.11, 0], elephantCloth, cargo),
+      box(cargo + "Latch", [0.8, 2.55, 2.65], [s * 3.25, 0.92, 0], elephantIvory, cargo)
+    );
+    for (const end of [-1, 1]) {
+      const leg = "leg" + s + "_" + end;
+      parts.push(
+        box(leg, [end === 1 ? 9.65 : 10.5, 15, 11.25], [s * 9.2, 23.85, end === 1 ? 10.1 : -17.3],
+          elephantGray, null, [0, -6.5, 0]),
+        box(leg + "Shin", [8.6, 10.65, 8.8], [0, -7.25, 0.25], elephantRuff, leg, [0, -4.35, 0]),
+        box(leg + "Foot", [10.2, 4.35, 10.9], [0, -3.55, 0.82], elephantFold, leg + "Shin")
+      );
+      for (let i = -1; i <= 1; i++) {
+        parts.push(box(leg + "Nail" + i, [1.88, 1.67, 0.96], [i * 2.46, -0.8, 5.41],
+          elephantIvory, leg + "Foot", [0, 0, 0], true));
+      }
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
+const falconSlate = coat("#343847", "#535a6c", "#747e90");
+const falconDark = coat("#262a37", "#424654", "#5e6371");
+const falconCream = coat("#a48b71", "#c9af91", "#e1c7a7");
+const falconFoot = coat("#927240", "#ba944e", "#d5b66f");
+const falconBars = { all(P, face) {
+  falconCream.all(P, face);
+  if (face === "front" || face === "bottom" || face === "left" || face === "right") {
+    for (const y of [5, 9, 13]) for (const x of [1, 5, 9, 13]) {
+      P.rect(x + ((y + x) % 3 === 0 ? 0 : 1), y, 2, 1, "#5a483e");
+    }
+  }
+} };
+const falconTail = { all(P, face) {
+  falconSlate.all(P, face);
+  if (face === "top" || face === "bottom") {
+    for (const y of [3, 7, 11, 15]) P.rect(0, y, 16, 1, "#282d3b");
+  }
+} };
+
+function falcon() {
+  const parts = [
+    box("body", [8.35, 7.8, 11.5], [0, 7.5, 0], falconSlate),
+    box("chest", [7.4, 6.3, 9.8], [0, 5.45, 1.26], falconBars),
+    box("back", [6.65, 3.35, 9.8], [0, 10.73, -1.2], falconDark),
+    box("neck", [6.65, 5.4, 6.6], [0, 9.05, 4.3], falconSlate),
+    box("head", [7.05, 6.55, 6.9], [0, 11.2, 4.87], falconDark, null, [0, 0.95, 2.2]),
+    box("throat", [5.8, 3.6, 4.2], [0, -2.5, 2.2], falconCream, "head"),
+    box("beak", [3.03, 2.65, 3.4], [0, -0.48, 3.78], falconFoot, "head"),
+    box("hook", [2.45, 2.5, 2.45], [0, -0.91, 1.54], black, "beak"),
+    box("tail", [5.8, 1.82, 9.75], [0, 7.6, -4.5], falconTail, null, [0, 0.1, -4.28]),
+    box("tailTip", [5.0, 1.32, 4.3], [0, -0.13, -4.61], falconTail, "tail")
+  ];
+  for (const side of [-1, 1]) {
+    const wing = "wing" + side, wrist = "wrist" + side, leg = "leg" + side;
+    parts.push(
+      box("cheek" + side, [0.72, 3.82, 3.75], [side * 3.48, -0.8, 0.8], falconCream, "head"),
+      box("malar" + side, [0.84, 3.25, 1.5], [side * 0.52, -0.19, 0.6], falconDark, "cheek" + side),
+      box("eyeRing" + side, [0.83, 2.27, 2.43], [side * 3.56, 1.0, 2.03], falconFoot, "head"),
+      box("eye" + side, [0.45, 1.46, 1.53], [side * 0.48, 0.02, 0.15], black, "eyeRing" + side),
+      box("glint" + side, [0.13, 0.38, 0.43], [side * 0.25, 0.37, 0.34], ivory, "eye" + side, [0, 0, 0], true),
+      box(wing, [10.7, 2.42, 8.45], [side * 3.42, 8.98, 1.03], falconSlate, null, [side * 4.75, 0, -0.42]),
+      box(wing + "Trailing", [9.55, 1.91, 4.05], [side * 0.58, -0.07, -3.71], falconDark, wing),
+      box(wrist, [8.28, 1.88, 5.5], [side * 4.76, 0.08, -0.35], falconSlate, wing, [side * 3.64, 0.02, -0.86]),
+      box(wrist + "Primary", [6.72, 1.48, 3.38], [side * 0.48, -0.12, -2.42], falconDark, wrist),
+      box(wrist + "Tip", [5.9, 1.22, 2.82], [side * 3.41, -0.13, -1.7], falconDark, wrist, [side * 2.35, 0, -0.95]),
+      box(wrist + "Feather", [3.25, 0.92, 1.65], [side * 2.63, -0.09, -1.47], falconDark, wrist + "Tip", [side * 0.6, 0, 0], true),
+      box(leg, [1.83, 4.2, 2.18], [side * 2.25, 4.4, -0.92], falconFoot, null, [0, -1.8, 0.21]),
+      box(leg + "Foot", [2.7, 1.45, 3.52], [0, -1.9, 0.92], falconFoot, leg)
+    );
+    for (let i = -1; i <= 1; i++) {
+      parts.push(box(leg + "Talon" + i, [0.62, 0.72, 1.12], [i * 0.67, -0.22, 1.63],
+        black, leg + "Foot", [0, 0, 0], true));
+    }
+  }
+  return { type: "wildlife", parts };
+}
+
 export const WILDLIFE_MODELS = {
   grizzly_bear: grizzly,
   great_white_shark: shark,
@@ -597,5 +1296,19 @@ export const WILDLIFE_MODELS = {
   seal,
   walrus,
   lion,
-  zebra
+  zebra,
+  tiger,
+  deer,
+  moose,
+  red_panda: redPanda,
+  giraffe,
+  rhinoceros,
+  ostrich,
+  sloth,
+  koala,
+  peacock,
+  flamingo,
+  kangaroo,
+  elephant,
+  falcon
 };

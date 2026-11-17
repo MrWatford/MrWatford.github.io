@@ -2,7 +2,9 @@ import { B, SOLID } from "./blocks.js";
 import { Sound } from "./audio.js";
 
 export const LION = "lion", ZEBRA = "zebra";
-const preySpecies = new Set([ZEBRA, "rabbit"]);
+const preySpecies = new Set([ZEBRA, "deer", "rabbit", "giraffe", "ostrich"]);
+const herdGrazers = new Set([ZEBRA, "deer", "giraffe", "ostrich", "peacock"]);
+const predators = new Set([LION, "grizzly_bear", "tiger"]);
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const homePoint = e => ({ x: e.home[0], y: e.home[1], z: e.home[2] });
 const active = e => e && !e.dead && !e.gone && e.hp > 0;
@@ -22,6 +24,14 @@ function grassyRoom(w, x, y, z, h) {
 
 export function canSpawnGrassland(w, def, x, y, z) {
   const cellX = Math.floor(x), cellZ = Math.floor(z);
+  if (def.spawnRadius) {
+    for (let dz = -def.spawnRadius; dz <= def.spawnRadius; dz++) {
+      for (let dx = -def.spawnRadius; dx <= def.spawnRadius; dx++) {
+        if (!grassyRoom(w, cellX + dx, y, cellZ + dz, def.h)) return false;
+      }
+    }
+    return true;
+  }
   return grassyRoom(w, cellX, y, cellZ, def.h) &&
     [[-0.35, 0], [0.35, 0], [0, -0.35], [0, 0.35]].every(([dx, dz]) =>
       grassyRoom(w, Math.floor(x + dx), y, Math.floor(z + dz), def.h));
@@ -35,15 +45,19 @@ export function spawnGrasslandGroup(manager, species, def, x, y, z, yaw, slots, 
     if (spawned >= slots) break;
     const px = x + dx, pz = z + dz;
     if (!w.isLoaded(Math.floor(px), Math.floor(pz))) continue;
-    const py = w.surfaceY(Math.floor(px), Math.floor(pz)) + 1;
+    const ground = species === "deer" || species === "giraffe" || species === "peacock" ?
+      w.gen.column?.(Math.floor(px), Math.floor(pz))?.h : undefined;
+    const py = (ground ?? w.surfaceY(Math.floor(px), Math.floor(pz))) + 1;
     if (Math.abs(py - y) > 1 || !canSpawnGrassland(w, def, px, py, pz)) continue;
-    const variant = species === LION ? Number(spawned > 0 || random() > 0.6) : 0;
+    const variant = species === LION ? Number(spawned > 0 || random() > 0.6) : species === "deer" ? Number(random() < 0.42) :
+      species === "ostrich" ? Number(spawned === 1 || random() < 0.42) :
+      species === "peacock" ? Number(spawned > 0) : species === "kangaroo" ? Number(random() < 0.28) : 0;
     const animal = manager.add(species, px, py, pz, { home, yaw, variant, ambient: true });
     animal.wild.role = spawned++;
   }
 }
 
-function steer(manager, e, target, speed, stop = 1.25) {
+export function steerGrassland(manager, e, target, speed, stop = 1.25) {
   if (e.age < (e.wild.routeAt ?? 0) && e.goal) return;
   e.wild.routeAt = e.age + 0.65;
   manager.moveTo(e, target, speed, stop);
@@ -51,7 +65,7 @@ function steer(manager, e, target, speed, stop = 1.25) {
   if (e.goal && w.id(Math.floor(e.goal.x), Math.floor(e.pos.y), Math.floor(e.goal.z)) === B.LAVA) e.goal = null;
 }
 
-function fleeZebra(manager, e, source) {
+function fleeGrazer(manager, e, source) {
   const s = e.wild, now = e.age;
   s.fleeFrom = { ...source };
   s.fleeUntil = Math.max(s.fleeUntil ?? 0, now + 6);
@@ -62,7 +76,7 @@ function fleeZebra(manager, e, source) {
   s.phase = "flee";
   if (now < (s.alertAt ?? 0)) return;
   s.alertAt = now + 1.5;
-  Sound.mob("zebraalarm", manager.dist(e));
+  Sound.mob(e.def.sound, manager.dist(e));
   for (const member of manager.near(e.pos.x, e.pos.y, e.pos.z, 12, other => other !== e && inGroup(e, other))) {
     member.wild.fleeFrom = { ...source };
     member.wild.fleeUntil = Math.max(member.wild.fleeUntil ?? 0, member.age + 6);
@@ -75,21 +89,21 @@ function fleeZebra(manager, e, source) {
   }
 }
 
-export function alertZebraHerd(manager, zebra, attacker) {
-  if (zebra.sp !== ZEBRA) return;
-  if (attacker === "player") fleeZebra(manager, zebra, manager.ctx.player().pos);
-  else if (attacker?.sp === LION) fleeZebra(manager, zebra, attacker.pos);
+export function alertGrazingHerd(manager, grazer, attacker) {
+  if (!herdGrazers.has(grazer.sp)) return;
+  if (attacker === "player") fleeGrazer(manager, grazer, manager.ctx.player().pos);
+  else if (predators.has(attacker?.sp)) fleeGrazer(manager, grazer, attacker.pos);
 }
 
-function zebraThink(manager, e, clearPath) {
+export function thinkGrazingHerd(manager, e, clearPath) {
   const s = e.wild, now = e.age, w = manager.world;
   if (now >= (s.scanAt ?? 0)) {
     s.scanAt = now + 1;
-    const lion = manager.near(e.pos.x, e.pos.y, e.pos.z, 10, other =>
-      other.sp === LION && active(other) && !other.inWater &&
+    const predator = manager.near(e.pos.x, e.pos.y, e.pos.z, 10, other =>
+      predators.has(other.sp) && active(other) && !other.inWater &&
       (other.wild.phase !== "sleep" && other.wild.phase !== "stalk" || distance(e.pos, other.pos) < 5.25) &&
       clearPath({ ...other.pos, y: other.pos.y + 0.75 }))[0];
-    if (lion) fleeZebra(manager, e, lion.pos);
+    if (predator) fleeGrazer(manager, e, predator.pos);
   }
   if (s.fleeFrom && now < s.fleeUntil) {
     s.phase = "flee";
@@ -99,10 +113,11 @@ function zebraThink(manager, e, clearPath) {
       const angle = away + offset;
       const x = e.pos.x + Math.cos(angle) * 7, z = e.pos.z + Math.sin(angle) * 7;
       if (!w.isLoaded(Math.floor(x), Math.floor(z))) continue;
-      const y = w.surfaceY(Math.floor(x), Math.floor(z)) + 1;
+      const ground = e.sp === "deer" || e.sp === "peacock" ? w.gen.column?.(Math.floor(x), Math.floor(z))?.h : undefined;
+      const y = (ground ?? w.surfaceY(Math.floor(x), Math.floor(z))) + 1;
       if (Math.abs(e.pos.y - y) > 1.25 ||
           !canSpawnGrassland(w, e.def, x, y, z) || !clearPath({ x, y: y + 0.75, z })) continue;
-      steer(manager, e, { x, y, z }, 6.25, 0.55);
+      steerGrassland(manager, e, { x, y, z }, e.def.fleeSpeed ?? 6.25, 0.55);
       return;
     }
     e.goal = null;
@@ -119,10 +134,10 @@ function zebraThink(manager, e, clearPath) {
   const lead = herd[0];
   if (lead && distance(e.pos, lead.pos) > 4.4) {
     s.phase = "herd";
-    steer(manager, e, lead.pos, 2.75, 3.2);
+    steerGrassland(manager, e, lead.pos, 2.75, 3.2);
   } else if (distance(e.pos, homePoint(e)) > 21) {
     s.phase = "herd";
-    steer(manager, e, homePoint(e), 2.75, 4.5);
+    steerGrassland(manager, e, homePoint(e), 2.75, 4.5);
   } else if (now % 11 > 6.0) {
     s.phase = "graze";
     e.goal = e.path = null;
@@ -171,7 +186,7 @@ function guardPlayer(manager, e, p, d, multiplier) {
       e.yaw = Math.atan2(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
       e.attackCd = 1.65;
       manager.ctx.hurtPlayer(8 * multiplier, "A lion defended its territory.", e);
-    } else steer(manager, e, p.pos, 4.85, 1.75);
+    } else steerGrassland(manager, e, p.pos, 4.85, 1.75);
     return true;
   }
   if ((d < 3.2 || e.angry > 0) && manager.canSeePlayer(e)) {
@@ -208,7 +223,7 @@ function lionThink(manager, e, d, multiplier, daylight, clearPath) {
     }
     if (gap < 8 || prey.wild?.phase === "flee" || s.phase === "pounce") {
       s.phase = "chase";
-      steer(manager, e, target, 7.45, 1.0);
+      steerGrassland(manager, e, target, 7.45, 1.0);
       return;
     }
     s.phase = "stalk";
@@ -217,7 +232,7 @@ function lionThink(manager, e, d, multiplier, daylight, clearPath) {
     const flank = { x: target.x + Math.cos(a) * 4.4, y: target.y, z: target.z + Math.sin(a) * 4.4 };
     const route = w.isLoaded(Math.floor(flank.x), Math.floor(flank.z)) &&
       clearPath({ ...flank, y: flank.y + 0.75 }) ? flank : target;
-    steer(manager, e, route, 2.35, 0.8);
+    steerGrassland(manager, e, route, 2.35, 0.8);
     return;
   }
   if (daylight > 0.77 && now % 26 > 12 && now % 26 < 18) {
@@ -237,11 +252,11 @@ function lionThink(manager, e, d, multiplier, daylight, clearPath) {
       return;
     }
   }
-  if (distance(e.pos, homePoint(e)) > 16) steer(manager, e, homePoint(e), 2.8, 3);
+  if (distance(e.pos, homePoint(e)) > 16) steerGrassland(manager, e, homePoint(e), 2.8, 3);
   else manager.wander(e);
 }
 
 export function thinkGrassland(manager, e, distanceToPlayer, multiplier, daylight, clearPath) {
   if (e.sp === LION) lionThink(manager, e, distanceToPlayer, multiplier, daylight, clearPath);
-  else zebraThink(manager, e, clearPath);
+  else thinkGrazingHerd(manager, e, clearPath);
 }

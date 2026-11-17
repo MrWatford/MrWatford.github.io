@@ -18,6 +18,11 @@ export function blockBoxes(v, x, y, z, out, world) {
   out.push([x, y, z, x + 1, y + (LOW[id] || 1), z + 1]);
 }
 
+export function wideMountBounds(mount, x, y, z, h) {
+  const radius = Math.hypot(mount.w, mount.def.length) / 2;
+  return [x - radius, y, z - radius, x + radius, y + h, z + radius];
+}
+
 export class Player {
   constructor() {
     this.pos = { x: 0.5, y: 60, z: 0.5 };
@@ -29,7 +34,10 @@ export class Player {
   }
   get height() { return this.cart ? 1.2 : this.boat ? 1.2 : this.mount ? 1 + this.mount.h : this.crouch && !this.flying ? 1.5 : 1.8; }
   get eye() { return this.cart ? 1.1 : this.boat ? 1.0 : this.mount ? 0.85 + this.mount.h : this.crouch && !this.flying ? 1.27 : 1.62; }   // riding a Trotter puts you up high; a boat sits low
-  aabb(px = this.pos.x, py = this.pos.y, pz = this.pos.z, h = this.height) { return [px - 0.3, py, pz - 0.3, px + 0.3, py + h, pz + 0.3]; }
+  aabb(px = this.pos.x, py = this.pos.y, pz = this.pos.z, h = this.height) {
+    if (this.mount?.def.wideMount && h === this.height) return wideMountBounds(this.mount, px, py, pz, h);
+    return [px - 0.3, py, pz - 0.3, px + 0.3, py + h, pz + 0.3];
+  }
 
   boxesNear(world, a) {
     const out = [];
@@ -105,7 +113,7 @@ export class Player {
     } else {
       v.y -= GRAVITY * dt;
       if (v.y < -40) v.y = -40;
-      if (input.jump && this.onGround) { v.y = (this.mount ? JUMP * 1.4 : JUMP * (this.jumpMul || 1)) * (under === B.HONEY_BLOCK ? 0.5 : 1); this.exhaust += this.mount ? 0 : 0.05 * (input.sprint ? 4 : 1); }
+      if (input.jump && this.onGround && !this.mount?.def.wideMount) { v.y = (this.mount ? JUMP * 1.4 : JUMP * (this.jumpMul || 1)) * (under === B.HONEY_BLOCK ? 0.5 : 1); this.exhaust += this.mount ? 0 : 0.05 * (input.sprint ? 4 : 1); }
     }
     }
     if (this.levitate && !this.flying) { v.y += (1.8 - v.y) * 0.25; this.airTop = null; }   // a Sheller's bullet makes you float up
