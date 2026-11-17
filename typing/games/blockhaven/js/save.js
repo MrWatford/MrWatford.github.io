@@ -9,6 +9,9 @@ import { OBSIDIAN_BADLANDS_LAYOUT } from "./obsidian-badlands.js";
 import { OBSIDIAN_VENT_LAYOUT } from "./obsidian-vent.js";
 import { SOLKARA_SCENERY_LAYOUT } from "./solkara-scenery.js";
 import { restoreWildlifeJournal } from "./wildlife-journal.js";
+import { LOST_WORLD_REGIONS, isLostWorldDimension, isLostWorldRegion } from "./lost-world-regions.js";
+import { validExpedition } from "./lost-world-campaign.js";
+import { LOST_WORLD_GEN } from "./lost-world.js";
 export const SAVE_VERSION = 4;
 const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
@@ -181,6 +184,10 @@ function validateLeviathan(expansion) {
 export const newId = () => "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 function split(w) {
   const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1, gen: w.gen || 1, hardcore: !!w.hardcore, hardcoreOver: !!w.hardcoreOver, campaign: w.campaign || null };
+  if (w.lostWorldGen !== undefined) {
+    meta.lostWorldGen = w.lostWorldGen;
+    if (w.story?.lostWorld) meta.lostWorldExpedition = true;
+  }
   const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips, voidInv: w.voidInv, adv: w.adv, story: w.story, stats: w.stats };
   return { meta, data };
 }
@@ -203,8 +210,18 @@ function validateDimensions(dims) {
 
 // Older save versions get converted here when the game is updated
 function upgrade(w) {
+  if ((w.lostWorldGen !== undefined && w.lostWorldGen !== LOST_WORLD_GEN) ||
+      (w.lostWorldGen === undefined && (isLostWorldDimension(w.player?.dim) || isLostWorldRegion(w.player?.spawn?.dim) || Object.keys(w.dims || {}).some(isLostWorldRegion))) ||
+      (w.lostWorldGen !== undefined && (w.hardcore || w.campaign))) {
+    throw new Error("This world has an unsupported Lost World configuration.");
+  }
   // version 1 → 2: block changes and containers move into the "overworld" dimension; land shapes stay the same (gen 1)
   if (!w.dims) { w.dims = { overworld: { mods: w.mods || {}, containers: w.containers || [] } }; w.gen = w.gen || 1; }
+  for (const [dim, region] of Object.entries(LOST_WORLD_REGIONS)) {
+    if (Object.hasOwn(w.dims, dim) && w.dims[dim]?.layout !== region.layout) {
+      throw new Error("This world has an unsupported terrain version for " + region.name + ".");
+    }
+  }
   delete w.mods; delete w.containers;
   // version 2 → 3: offhand slot (inventory index 40), personal Void Chest storage, fullness (saturation), Hardcore, advancements, story progress
   w.inventory = Array.isArray(w.inventory) ? w.inventory : [];
@@ -212,6 +229,9 @@ function upgrade(w) {
   while (w.voidInv.length < 27) w.voidInv.push(null);
   w.adv = w.adv && typeof w.adv === "object" ? { done: {}, prog: {}, ...w.adv } : { done: {}, prog: {} };
   w.story = w.story && typeof w.story === "object" ? w.story : {};
+  if (Object.hasOwn(w.story, "lostWorld") && (w.lostWorldGen !== LOST_WORLD_GEN || !validExpedition(w.story.lostWorld))) {
+    throw new Error("This world contains invalid Lost World expedition progress.");
+  }
   validateLeviathan(w.story.leviathan);
   if (Object.hasOwn(w.story, "wildlife")) w.story = { ...w.story, wildlife: restoreWildlifeJournal(w.story.wildlife) };
   if (w.player && w.player.sat === undefined) w.player.sat = 5;

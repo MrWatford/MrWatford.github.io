@@ -4,6 +4,15 @@ import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
+import { REDWOODS } from "./redwood-escarpment.js";
+import { installBrachiosaurus, populateBrachiosaurus, thinkBrachiosaurus, animateBrachiosaurus } from "./lost-world-brachiosaurus.js";
+import { MANGROVE } from "./mangrove-wetlands.js";
+import { isLostWorldDimension } from "./lost-world-regions.js";
+import { installWetlandCreatures, populateWetlandCreatures, thinkWetlandPredator, animateWetlandPredator } from "./lost-world-wetland-creatures.js";
+import { FERN_PLAINS } from "./fern-plains.js";
+import { installTriceratops, populateTriceratops, thinkTriceratops, animateTriceratops } from "./lost-world-triceratops.js";
+import { LOST_WORLD } from "./lost-world.js";
+import { installLostWorldRaptor, populateLostWorld, thinkLostWorldRaptor, animateLostWorldRaptor } from "./lost-world-raptor.js";
 import { installCreatures, animateCreature, thinkCreature, interactCreature, spawnCreatures } from "./creatures.js";
 import { OSTRICH, rhinoProvoked, stepOstrichEgg } from "./wildlife-savanna.js";
 import { installWildlife, spawnWildlife, thinkWildlife, animateWildlife, sharkWater, alertGrizzlyFamily } from "./wildlife.js";
@@ -86,7 +95,7 @@ function separateBoxFaces(parts) {
 // Species with `variants` (color sets) get one skin per variant; paint functions receive the variant as a third argument.
 function makeSpecies(sp, shaded) {
   sp.geos = {}; sp.texs = [];
-  const boxFaces = sp.wildlife || ["quad", "humanoid", "creeper"].includes(sp.model.type) && !sp.boss ?
+  const boxFaces = sp.wildlife || sp.lostWorldRaptor || sp.triceratops || ["quad", "humanoid", "creeper"].includes(sp.model.type) && !sp.boss ?
     separateBoxFaces(sp.model.parts) : new Map();
   const count = sp.variants ? sp.variants.length : 1;
   for (let vi = 0; vi < count; vi++) {
@@ -1459,6 +1468,10 @@ const BESTIARY_ART = new Set([
 
 installCreatures(SPECIES);
 installWildlife(SPECIES);
+installLostWorldRaptor(SPECIES);
+installTriceratops(SPECIES);
+installWetlandCreatures(SPECIES);
+installBrachiosaurus(SPECIES);
 for (const [id, def] of Object.entries(SPECIES)) if (def.expansion) BESTIARY_ART.add(id);
 for (const id of ["cow", "pig", "sheep", "rabbit", "chicken", "parrot", "sunfin"]) BESTIARY_ART.add(id);
 
@@ -1783,7 +1796,7 @@ export class Entities {
   }
   attachModel(e) {
     const def = e.def;
-    const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife || !!def.mutant;
+    const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife || !!def.mutant || !!def.lostWorldRaptor || !!def.triceratops || !!def.wetlandPredator || !!def.brachiosaurus;
     if (!def.geos) makeSpecies(def, shaded);
     const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, vertexColors: shaded, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
     const root = new THREE.Group(), parts = {};
@@ -1850,6 +1863,10 @@ export class Entities {
 
   // ----- first visit: a few animals live here -----
   populate(c) {
+    if (this.world.dim === REDWOODS) return populateBrachiosaurus(this, c);
+    if (this.world.dim === MANGROVE) return populateWetlandCreatures(this, c);
+    if (this.world.dim === FERN_PLAINS) return populateTriceratops(this, c);
+    if (this.world.dim === LOST_WORLD) return populateLostWorld(this, c);
     const w = this.world, x0 = c.cx * CHUNK, z0 = c.cz * CHUNK;
     // three Buzzers live in each wild bee nest
     if (!w.gen.isNether() && !(w.gen.isEnd && w.gen.isEnd())) for (let i = 0; i < c.data.length; i++) if ((c.data[i] & 255) === B.BEE_NEST) {
@@ -2036,10 +2053,12 @@ export class Entities {
   update(dt, daylight, camera) {
     const ctx = this.ctx, p = ctx.player(), w = this.world;
     if (this.pick) this.focus = this.pick(null);   // Play Together: creatures spawn around a different player each time
-    this.spawnTick(dt, daylight, camera);
-    spawnCreatures(this, dt, daylight, SPECIES);
-    spawnDesertMobs(this, dt);
-    spawnWildlife(this, dt, daylight);
+    if (!isLostWorldDimension(w.dim)) {
+      this.spawnTick(dt, daylight, camera);
+      spawnCreatures(this, dt, daylight, SPECIES);
+      spawnDesertMobs(this, dt);
+      spawnWildlife(this, dt, daylight);
+    }
     this.focus = null;
     for (const e of this.list) {
       if (e.gone) continue;
@@ -2575,6 +2594,10 @@ export class Entities {
       const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.eyeY), Math.floor(e.pos.z));
       if (L && L[0] >= 15) e.burning = Math.max(e.burning || 0, 3);
     }
+    if (def.brachiosaurus) return thinkBrachiosaurus(this, e, d);
+    if (def.wetlandPredator) return thinkWetlandPredator(this, e, d, dmgMul);
+    if (def.triceratops) return thinkTriceratops(this, e, d);
+    if (def.lostWorldRaptor) return thinkLostWorldRaptor(this, e, d, dmgMul);
     if (def.hostile && !def.boss && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
     if (thinkDesertMob(this, e, d, dmgMul)) return;
     if (def.wildlife) return thinkWildlife(this, e, d, dmgMul, target =>
@@ -3296,6 +3319,7 @@ export class Entities {
     if (e.def.static || e.def.object) knock = null;
     if (e.sp === "voidwalker" && attacker && attacker.projectile) { this.teleport(e); return false; }   // dodges arrows
     e.hp -= n; e.hurtT = 0.3; e.iframes = 0.5;
+    if (e.def.triceratops && attacker === "player") e.trikeAlarmUntil = e.age + 4;
     alertGrazingHerd(this, e, attacker);
     rhinoProvoked(this, e, attacker);
     kangarooProvoked(this, e, attacker);
@@ -3751,6 +3775,10 @@ export class Entities {
       updateLeviathanHitVolumes(e);
       return;
     }
+    if (def.brachiosaurus) animateBrachiosaurus(e, swing, this.ctx.reducedMotion?.());
+    if (def.wetlandPredator) animateWetlandPredator(e, swing, this.ctx.reducedMotion?.());
+    if (def.triceratops) animateTriceratops(e, swing, this.ctx.reducedMotion?.());
+    if (def.lostWorldRaptor) animateLostWorldRaptor(e, swing, this.ctx.reducedMotion?.());
     if (def.wildlife) return animateWildlife(e, dt, d2, this.ctx.reducedMotion?.());
     animateCreature(e);
     if (e.sp === "aquatic_guardian" || e.sp === "elder_guardian") {
@@ -3949,7 +3977,7 @@ export class Entities {
     // brightness from the light where it stands, flash red when hurt, white when about to explode
     const L = this.world.lightAt(Math.floor(e.pos.x), Math.floor(e.pos.y + 0.5), Math.floor(e.pos.z));
     let b = L ? Math.max(L[0] / 15 * daylight, L[1] / 15) : daylight;
-    const amb = this.world.gen.isNether() ? 0.3 : 0.12;   // the Ember Depths glow a little everywhere
+    const amb = this.world.gen.isNether() ? 0.3 : e.def.triceratops ? 0.25 : 0.12;   // the Ember Depths glow a little everywhere
     b = amb + (1 - amb) * Math.pow(b, 1.5);
     if (e.def.expansion && ["glow_squid", "allay", "vex", "breeze"].includes(e.sp)) b = Math.max(b, 0.55);
     if (e.def.lostBoss || (this.world.gen.isMap && this.world.gen.isMap())) b = Math.max(b, e.def.lostBoss ? 0.8 : 0.5);   // the Keepers' creatures glow faintly, so you can always see them in the dark

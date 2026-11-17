@@ -21,7 +21,7 @@ export const SCENES = [
   { id: "embers", name: "The Ember Depths", line: "Cindermaw waits in its citadel.", accent: "#ff7a1a", fx: "embers", focus: "50% 50%", art: [] /* waiting for ember-depths art */, status: "live" },
   { id: "hollow", name: "The Hollow", line: "Face the Hollow Wyrm.", accent: "#9a5cf0", fx: "void", focus: "50% 45%", art: [] /* waiting for hollow art */, status: "live" },
   { id: "leviathan", name: "The Leviathan Desert", line: "Titans move beneath the sands.", accent: "#f0a030", fx: "sand", focus: "55% 45%", art: ["leviathan"], status: "live" },
-  { id: "jurassic", name: "The Lost World", line: "A prehistoric land, waiting to be discovered.", accent: "#4caf50", fx: "ash", focus: "60% 35%", art: ["jurassic"], status: "planned" },
+  { id: "jurassic", name: "The Lost World", line: "Explore the Jurassic sandbox or begin the expedition in a new world.", accent: "#4caf50", fx: "leaves", focus: "60% 35%", art: ["jurassic"], status: "live" },
   { id: "furious", name: "The Fall of the Furious Four", line: "Four heroes stand against a rising storm.", accent: "#b44cff", fx: "storm", focus: "50% 40%", art: ["furious-four"], status: "planned" },
   { id: "tempest", name: "The Blight Tempest", line: "The Blightking's storm rises over the citadel.", accent: "#a040ff", fx: "storm", focus: "50% 30%", art: ["blight-citadel"], status: "live" },
   { id: "colosseum", name: "The Grand Colosseum", line: "Every legend begins with training.", accent: "#cd7f32", fx: "dust", focus: "50% 35%", art: ["colosseum"], status: "planned" },

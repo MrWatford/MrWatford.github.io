@@ -9,6 +9,7 @@ import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
 import { HOLLOW_SANDS } from "./hollow-sands.js";
 import { hollowSandsMapHTML, mountHollowSandsMap } from "./hollow-sands-map.js";
 import { Cinema } from "./title-cinema.js";
+import { expeditionJournal } from "./lost-world-campaign.js";
 import { wildlifeJournalHTML } from "./wildlife-journal.js";
 import { sparkworksGuideHTML, bindSparkworksGuide } from "./sparkworks-guide.js";
 
@@ -42,11 +43,23 @@ export const UI = {
     $("skinCancel").onclick = () => { Sound.click(); this.closeSkins(); };
     $("btnControls2").onclick = () => { backTo = "pause"; this.show("controls"); };
     document.querySelectorAll("[data-back]").forEach(b => b.onclick = () => { Sound.click(); const s = b.closest(".screen").id; this.show(s === "settings" || s === "controls" ? backTo : "title"); });
+    const terrain = $("nwTerrain");
+    if (terrain) terrain.onchange = () => {
+      const hardcore = document.querySelector("input[name=mode][value=hardcore]");
+      const creative = document.querySelector("input[name=mode][value=creative]");
+      hardcore.disabled = terrain.value !== "overworld";
+      creative.disabled = terrain.value === "lost_world_campaign";
+      if ((hardcore.disabled && hardcore.checked) || (creative.disabled && creative.checked)) {
+        document.querySelector("input[name=mode][value=survival]").checked = true;
+      }
+    };
     $("newForm").onsubmit = e => {
       e.preventDefault(); Sound.start();
       const mode = document.querySelector("input[name=mode]:checked").value;
       const settings = { difficulty: $("nwDiff").value, griefing: $("nwGrief").checked, keepInv: $("nwKeep").checked };
-      const go = () => G.newWorld({ name: $("nwName").value.trim() || "My World", seed: $("nwSeed").value.trim() || String(Math.floor(Math.random() * 1e9)), mode, settings });
+      const lostWorldCampaign = terrain?.value === "lost_world_campaign";
+      const lostWorld = lostWorldCampaign || terrain?.value === "lost_world";
+      const go = () => G.newWorld({ name: $("nwName").value.trim() || (lostWorld ? "The Lost World" : "My World"), seed: $("nwSeed").value.trim() || String(Math.floor(Math.random() * 1e9)), mode, settings, lostWorld, lostWorldCampaign });
       if (mode === "hardcore") this.confirm("Start a Hardcore world?", "Hardcore is Survival on Hard difficulty with one life. If you faint, this world's adventure ends for good: you drop everything and can only look around as a Spectator afterward. The difficulty can't be changed.", go, "Start Hardcore");
       else go();
     };
@@ -102,7 +115,7 @@ export const UI = {
     for (const w of worlds) {
       const row = document.createElement("div"); row.className = "world";
       const when = w.played ? new Date(w.played).toLocaleDateString() : "";
-      row.innerHTML = `<div><b></b><small>${w.hardcore ? (w.hardcoreOver ? "💀 Hardcore (ended)" : "💀 Hardcore") : w.mode === "creative" ? "Creative" : "Survival"} • Day ${escapeAttr(w.day || 1)} • Seed <span></span> • ${when}</small></div>
+      row.innerHTML = `<div><b></b><small>${w.hardcore ? (w.hardcoreOver ? "💀 Hardcore (ended)" : "💀 Hardcore") : w.mode === "creative" ? "Creative" : "Survival"}${w.lostWorldExpedition ? " • Lost World Expedition" : w.lostWorldGen ? " • The Lost World" : ""} • Day ${escapeAttr(w.day || 1)} • Seed <span></span> • ${when}</small></div>
         <div class="acts"><button class="btn small primary" data-a="play">Play</button><button class="btn small" data-a="dl">Download</button><button class="btn small danger" data-a="del">Delete</button></div>`;
       row.querySelector("b").textContent = w.name; row.querySelector("small span").textContent = w.seed;
       row.querySelector("[data-a=play]").onclick = () => { Sound.click(); G.loadWorld(w.id); };
@@ -311,15 +324,17 @@ export const UI = {
       p.querySelectorAll("[data-trade]").forEach(b => b.onclick = ev => G.trade(panelCtx, +b.dataset.trade, ev.shiftKey));
     } else if (panelKind === "journal") {
       const cpOn = G.campaign && G.campaign.on();
-      if (!G.journalTab || (G.journalTab === "cp" && !cpOn)) G.journalTab = cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
+      const expedition = G.story.lostWorld, lostWorld = !!G.meta.lostWorldGen;
+      if (!G.journalTab || (G.journalTab === "cp" && !cpOn) || (G.journalTab === "expedition" && !lostWorld)) G.journalTab = lostWorld ? "expedition" : cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
       const tab = G.journalTab;
-      const journalTabs = [...(cpOn ? [["cp", "Campaign"]] : []), ["fw", "Forsaken World"],
+      const journalTabs = [...(lostWorld ? [["expedition", expedition ? "Lost World Expedition" : "The Lost World"]] : []), ...(cpOn ? [["cp", "Campaign"]] : []), ["fw", "Forsaken World"],
         ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"]];
       const tabs = journalTabs.map(([key, name]) => `<button class="chip-btn ${tab === key ? "on" : ""}" data-jtab="${key}" aria-current="${tab === key ? "true" : "false"}">${name}</button>`).join("");
-      const page = tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) :
+      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) :
         tab === "leviathan" ? leviathanJournalHTML(G) : tab === "cp" ? G.campaign.journalHTML() :
         tab === "lost" ? G.lost.journalHTML() : G.forsaken.journalHTML();
       p.innerHTML = `<div class="inv-card fw-card"><h3>Journal <button type="button" class="chip-btn" data-journal-close title="J or Esc">Close</button></h3><nav class="jtabs journal-tabs" aria-label="Journal sections">${tabs}</nav>${page}</div>`;
+      p.querySelectorAll("[data-expedition-travel]").forEach(button => button.onclick = () => { Sound.click(); G.expeditionTravel(button.dataset.expeditionTravel); });
       p.querySelector("[data-journal-close]").onclick = () => G.closePanel();
       p.querySelectorAll("[data-jtab]").forEach(b => b.onclick = () => { Sound.click(); G.journalTab = b.dataset.jtab; this.renderPanel(); });
       p.querySelectorAll("[data-solkara-sanctuary]").forEach(b => b.onclick = () => { Sound.click(); G.visitSolkaraSanctuary(); });
