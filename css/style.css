@@ -1547,6 +1547,7 @@ body.dialog-open { overflow: hidden; }
   transition: background 0.15s ease;
 }
 .pp-print-btn:hover { background: var(--green-50); }
+a.pp-print-btn { text-decoration: none; }
 .pp-print-btn .ic { font-size: 1.6rem; }
 .pp-print-btn strong { display: block; line-height: 1.2; }
 .pp-print-btn small { display: block; color: var(--muted); font-weight: 700; }
