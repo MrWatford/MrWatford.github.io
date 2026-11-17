@@ -23,7 +23,7 @@ In **New World**, choose **The Lost World (Sandbox)** under **World terrain** an
 | 5. Beneath the Amber | Amber Caverns | Recover a core sample and open a return route past ambush plants and cave predators. |
 | 6. Territory of the King | Fern Plains and canyon | Track a T. rex to recover the expedition beacon. Give players a route to recover it by stealth or combat. |
 | 7. The Mountain Wakes | Volcanic Badlands | Reactivate caldera anchors in stages while eruptions change the safe routes. |
-| 8. Heart of the Caldera | Titan arena | Face the Riftback Titan, restore the anchor network, and reopen the expedition route. |
+| 8. Heart of the Caldera | Titan arena | Defeat Godzilla in a five-phase caldera fight and return to camp. |
 
 1. **Jungle preview.** Validate normal entry, the camp-to-grove loop, a single animated predator, respawn, and save compatibility.
 2. **Ecosystem and Chapter 1.** Add an expressive Triceratops herd, gathering and food progression, a second biome, and the first expedition objective. Give the campaign a separate entry point and store its progress under `story.lostWorld`. Keep sandbox traversal and building independent of chapter progression.
@@ -31,17 +31,17 @@ In **New World**, choose **The Lost World (Sandbox)** under **World terrain** an
 4. **Chapter 8.** Build the arena, checkpoint, phase transitions, and recovery logic before turning on rewards. Verify full inventories, repeated interactions, death, reload, and leaving during each phase. Keep eruptions and collapsing terrain to arena cues and reversible effects.
 5. **Release review.** Verify complete campaign progression, unbounded Survival and Creative, older exports, cache upgrades, and performance on a desktop and a representative lower-end device. Review a scoped GitHub change before any merge or deployment.
 
-## Riftback Titan
+## Godzilla
 
-A six-legged caldera creature with a basalt-plated back and luminous mineral vents. Its movements open fissures around the caldera anchors.
+Godzilla stands about 14 blocks tall above the caldera floor. His dorsal plates, tail, and jaw animate as he charges and releases blue atomic breath.
 
 | Phase | Attack and response |
 | --- | --- |
-| 1. Breach | Raised forelegs signal a ring-shaped shockwave. Cross the ring during its wind-up or take cover behind a ridge. |
-| 2. Fault Lines | Glowing cracks mark sequential eruptions. Recover at an intact anchor while the Titan exposes a flank vent. |
-| 3. Broken Circuit | Use three anchors to ground the Titan's shell charge and expose its neck. Anchor state survives retry and reload. |
-| 4. Ashfall | Ash limits long-range visibility. Audio and illuminated markers show clear lanes. Survive an eruption sequence to expose the underside. |
-| 5. Last Vent | Chain an anchor discharge with a brief opening after a sweeping blast to strike the core. Resolve victory and the exit once per save. |
+| 1. Breach | A roar warns of a close-range shockwave. Back out of the orange ring and close in when Godzilla recovers. |
+| 2. Fault Lines | A staggered line of marked faults erupts across the floor. Move out of the rings and strike during recovery. |
+| 3. Broken Circuit | Activate all three anchors while dodging atomic breath. Anchor state survives retry and reload. |
+| 4. Ashfall | Godzilla alternates a cluster of violet eruptions with fault lines. Move between the markers and attack during recovery. |
+| 5. Last Vent | Leave the blue atomic-breath lane and avoid the overlapping eruption markers. Strike during the final recovery window. |
 
 Each phase needs a readable anticipation cue, an evasion route that works on low settings, and a recovery window. Build and test one phase at a time using one saved encounter record.
 
@@ -101,3 +101,46 @@ The Redwoods are a separately versioned region. The route climbs 17 blocks above
 - Chrome 157, Apple Silicon, 1280×800, disposable IndexedDB, seed `primeval-preview`. Opened a Chapter 3-format file, verified the relay completion gate, and climbed both sections using the game's movement loop. Inspected the rendered overlook with the three Brachiosaurus rigs visible. Verified the ordered objectives, checkpoint after death, repeated reads, import/export and reopen, herd identity, return travel, earlier jungle and Mangrove edits, and Creative access.
 - The terrain check covers five seeds, traversal clearance and elevation, deterministic chunk generation, safe Brachiosaurus spawning, landmark placement, and journal rendering for all existing stages. Early Access 1 and Chapters 3–4 save round trips passed in the save API. Co-op and lower-end performance remain unverified.
 - Reran Blackwater Signal, Jurassic sandbox Survival and Creative, raptor combat and recovery, the Ember Depths return, Surface Survival/Creative/Hardcore, the Legacy Campaign start, and the Early Access 1 import/export check in Chrome. No uncaught browser errors.
+
+## Chapter 5 · Beneath the Amber
+
+Finish The Canopy Road, then choose **J → Lost World Expedition → Travel to the Amber Caverns**. Follow the amber ceiling lights down the gravel tunnel. Recover a sample from the tablet in the deepest chamber, then use the nearby winch to open the stone-brick return tunnel. Jump up the short rises to the entrance. Sandbox players can visit immediately and use both passages.
+
+The cavern is a separately versioned region built on the public Chapters 1–4 release. Amber Prowlers hunt in the chambers and Snaproots wait alongside the tunnels. Both have visible and audible attack warnings. The sample lives in the expedition journal and survives death or a full inventory. The winch records completion and opens only the authored seal cells. It does not grant repeat rewards or edit the rest of the cavern. The sample points toward the Fern Plains canyon for Chapter 6.
+
+- Local Chrome 157 on Apple Silicon, 1280×800 with disposable IndexedDB, seed `primeval-preview`. Opened saves with Chapter 4 progress and completion, verified the destination unlock, walked the descent and shortcut ascent with normal movement, and exercised both creature attacks. Checked that the unopened seal withstands Creative breaking, the sample survives death, the shortcut remains open after JSON export/import and reload, the same four creatures return, and Creative sandbox can explore without campaign gates.
+- `tools/lost-world-terrain-check.mjs` verifies both passages, the seal and tablet placements, spawn habitat across five seeds, and checkpoint order. Co-op and lower-end performance remain unverified.
+- Inspected the rendered amber chamber and reran the Redwood and Mangrove chapter checks, Jurassic sandbox and raptor checks, the Ember Depths return, original world and campaign starts, and the Early Access 1 save round-trip in Chrome. The browser runs reported no uncaught errors.
+
+## Chapter 6 · Territory of the King
+
+After opening the return passage in the Amber Caverns, choose **J → Lost World Expedition → Travel to Tyrant Canyon**. Read the tracker’s notes by the first torch. Follow the main gravel trail to confront the Tyrannosaurus or take the right-hand route between the rock walls and crouch near the far opening. Recover the beacon from the pad at the end of either route. Creative and Survival sandbox players can visit Tyrant Canyon at any time.
+
+Tyrant Canyon is a separately saved region. One persistent Tyrannosaurus patrols the exposed trail, detects movement and noise within its territory, searches the player’s last known position briefly, and roars before biting. The beacon records progress independently of whether the dinosaur lives or dies. Completing the chapter points toward the Volcanic Badlands.
+
+- Chrome 157 on Apple Silicon, 1280×800, disposable IndexedDB, seed `primeval-preview`. Opened a Chapter 5-format save, checked its destination gate and an earlier terrain edit, and completed the protected side route using ordinary movement in Survival without hurting the Tyrannosaurus. Separately exercised detection, crouching, a dodged bite, a landed bite, and beacon recovery after defeating it. Checked repeated reads, JSON export/import, reopening with the dinosaur still gone, and sandbox travel.
+- The terrain test covers both traversable routes, rock cover blocking line of sight, one valid Tyrannosaurus spawn, and ordered beacon recovery across five seeds. The save API round-tripped Chapter 5, Chapter 6 and an Early Access 1 export. Co-op and lower-end performance remain unverified.
+- Inspected the rendered canyon and Tyrannosaurus. Reran Chapter 5, the Jurassic sandbox and raptor checks, the Ember Depths return, original world and campaign starts, and the Early Access 1 save round-trip in Chrome. No uncaught browser errors.
+
+## Chapter 7 · The Mountain Wakes
+
+After recovering the expedition beacon in Tyrant Canyon, choose **J → Lost World Expedition → Travel to the Volcanic Badlands**. Follow the blackstone causeway and restore the Lower, Ridge, and Caldera anchors in order. When an orange warning ring appears, wait for it to fade or take the opposite lane. Cross between lanes on the open platforms. Each anchor quiets the pair immediately below it. With all three online, the vents stay quiet and the story stops at the caldera.
+
+The Volcanic Badlands use an independent terrain revision. Their basalt ridges, lava channels, and caldera are generated when entering the new region. The alternating eruptions reuse the game's warning rings and fire damage. These temporary hazards never alter the blocks beneath them. Reduced Motion keeps the warning outline steady, and warnings are released when the player leaves the region. Sandbox worlds can visit immediately and the vents continue to alternate without campaign anchors.
+
+- Chrome 157 on Apple Silicon, 1280×800, disposable IndexedDB, seed `primeval-preview`. Opened a Chapter 6-format save and confirmed the beacon gates travel. Checked both sides alternating, the safe lane avoiding damage, a hit in the active lane, steady Reduced Motion warnings, and unchanged vent blocks. Exercised ordered and repeated anchor reads, checkpoint survival after death, JSON export/import, reopening with all vents quiet, and Creative access.
+- The terrain test covers both lanes, their lava channels and crater, adjacent warning geometry, deterministic generation across five seeds, and anchor sequence. The save API round-tripped Chapter 6, Chapter 7, and an Early Access 1 export. Co-op and lower-end performance remain unverified.
+- Inspected the rendered volcano, lava channels, and warning ring. Verified warning cleanup on region exit. Reran Chapter 6’s two routes, Jurassic Survival and Creative, the Ember Depths return, the original modes and Legacy Campaign entry, and the Early Access 1 export round-trip in Chrome. No uncaught browser errors.
+
+
+## Chapter 8 · Heart of the Caldera
+
+After restoring all three Badlands anchors, choose **J → Lost World Expedition → Travel to the Caldera**. Take gear from the supply chest, use the terminal on the left, and enter the arena to awaken Godzilla. Dodge the marked attacks and strike during his recovery. The blue lane shows where atomic breath will fire. During Broken Circuit, use all three arena anchors to open the shield.
+
+Godzilla has a dedicated arena, an approximately 14-block model, and five health-gated phases. The fight record saves health at each phase change, grounded anchors, and victory. A death returns you to your normal respawn point, with phase and anchor progress available when you return. Attack warnings reset on return. Victory completes the expedition in the journal and leaves the world open for exploration. Sandbox players can enter the arena without campaign progress and can start the fight from the same terminal.
+
+- Chrome 157 on Apple Silicon at 1280×800, with disposable IndexedDB and seed `primeval-preview`. Opened a Chapter 7-format save, verified the final-anchor gate, viewed the Godzilla model and atomic breath, and completed all five phases using ordinary melee for an initial hit and scripted damage through the game’s entity hit path to exercise phase transitions. Tested a breath hit and dodge, shield and three anchors, progress after death, victory and repeated terminal reads, export/import and reload, and Creative sandbox access.
+- A removed supply slot stayed empty on return. The boss did not reappear after victory and reload. The terrain check covers five seeds, arena fixtures and clearance, all five phase transitions and recovery windows, anchor idempotency, and breath-lane collision.
+- Earlier Chapter 6 save carryover, Badlands anchor progress, Jurassic sandbox Survival and Creative, raptor combat and persistence, the Ember Depths return, original world modes, Legacy Campaign entry, and an Early Access 1 export round-trip passed in Chrome. No uncaught browser errors. Full manual fight balance, co-op, and lower-end performance remain unverified.
+- Release review on November 17, 2026 completed all five phases using the supply chest's bow, arrows, and iron armor on Normal difficulty. Movement, aiming, chest transfer, and equipment placement were scripted. Damage came from ordinary charged arrows, with no assigned boss health, phase changes, or player health during combat. The successful run grounded all three anchors, finished in 97 seconds with 20 player health and 54 arrows remaining, and reached expedition stage 17. An earlier test route targeted an occupied fixture cell and died during phase three. Correcting the test approach to the unobstructed side of the anchor resolved it without a gameplay change. This supports combat completion with supplied gear. Manual balance, co-op, and lower-end device acceptance remain open.
+- A connected expedition on the Chapters 1–4 build completed its original objectives, saved at the Redwood station, and refreshed normally into release `lost-world-2` with the old main module confirmed in Chrome's HTTP cache. The same world then completed Chapters 5–7 and awakened Godzilla through the journal and normal tablet interactions, reloaded in the Caldera, and returned to its preserved Redwood edit. Player, inventory, dimension, story, campaign, and settings fields matched the saved pre-upgrade record. The test positioned the player at each landmark and loaded its area. It establishes objective continuity and upgrade compatibility, while ordinary traversal was checked in the chapter reviews above. No uncaught browser errors. The first comparison snapshot preceded the title screen's final save. Comparing the finalized pre-upgrade record corrected that test timing.

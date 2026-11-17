@@ -14,6 +14,11 @@ import { Sound } from "./audio.js";
 import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.js";
 import { Adv } from "./advancements.js";
 import { FERN_PLAINS, JUNGLE_RETURN } from "./fern-plains.js";
+import { GODZILLA_CALDERA, CALDERA_CACHE, calderaSupplies, isGodzillaConsole } from "./godzilla-caldera.js";
+import { initGodzillaFight } from "./godzilla-fight.js";
+import { VOLCANIC_BADLANDS, badlandsVentActive, updateBadlandsVents } from "./volcanic-badlands.js";
+import { TYRANT_CANYON } from "./tyrant-canyon.js";
+import { AMBER_CAVERNS, AMBER_ARRIVAL, SEAL, isAmberSeal, SHORTCUT_REQUIRED_STAGE } from "./amber-caverns.js";
 import { REDWOODS } from "./redwood-escarpment.js";
 import { MANGROVE, RELAY_LIGHT } from "./mangrove-wetlands.js";
 import { LOST_WORLD_REGIONS, isLostWorldDimension, isLostWorldRegion } from "./lost-world-regions.js";
@@ -439,6 +444,8 @@ const ents = new Entities(scene, {
   cloud: (x, y, z) => addCloud(x, y, z),
   crystalGone: i => { if (typeof i === "string") return placedCrystalGone(i); const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
   bossLeft: e => { (G.dimData.end || (G.dimData.end = {})).wyrmHp = e.hp; },
+  godzillaDamage: (e, n) => GC.incomingDamage(e, n),
+  godzillaDamaged: e => GC.damaged(e),
   bossDefeated: e => e.def.segmentedLeviathan ? UI.toast(`The ${e.def.name} is defeated!`, "good") : (G.campaign && G.campaign.bossDefeated(e)) ? null : L.bossDefeated(e) ? null : e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
   arena: () => arena(), cinderPylons: () => G.cinderPylons(),
   heroHit: (e, n) => F.heroHit(e, n), warded: (x, z) => F.warded(x, z),
@@ -1711,6 +1718,7 @@ function stream(budget) {
   }
 }
 function clearWorldMeshes() {
+  GC.clear();
   ancientIntroView?.dispose(); ancientIntroView = null;
   ancientTremorRoll = 0;
   ancientBuriedView.clear();
@@ -1814,6 +1822,12 @@ function makeWorld(dim) {
   w.dim = dim;
   w.modsFromJSON(data.mods);
   for (const [k, c] of data.containers || []) w.containers.set(k, c);
+  if (dim === GODZILLA_CALDERA && !data.calderaCachePlaced) {
+    const { x, y, z } = CALDERA_CACHE;
+    const key = x + "," + y + "," + z;
+    if (!w.containers.has(key)) w.containers.set(key, calderaSupplies());
+    data.calderaCachePlaced = true;
+  }
   if (dim === "forsaken") F.setupWorld(w, data);   // the map's chests start full on the first visit
   if (LOST_DIMS.includes(dim)) L.setupWorld(w, data);
   for (const k of Object.keys(data.entities || {})) w.entityStore.set(k, data.entities[k]);
@@ -1941,16 +1955,16 @@ function placeSafely(p, x, z) {
   // make sure the land there exists first (it may be far from where the player was)
   const cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK);
   for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) w.load(cx + dx, cz + dz);
-  if (w.gen.isNether()) {   // no open sky here: look for a cave floor near the player's height
+  if (w.gen.isNether() || G.dim === AMBER_CAVERNS) {   // Look for an open floor near the requested height.
     for (let ring = 0; ring < 8; ring++) for (let dz = -ring; dz <= ring; dz++) for (let dx = -ring; dx <= ring; dx++) {
       if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
       const bx = Math.floor(x) + dx, bz = Math.floor(z) + dz;
       for (let k = 0; k < 50; k++) for (const y of [Math.floor(p.pos.y) - k, Math.floor(p.pos.y) + k]) {
         if (y < LAVA_LEVEL + 1 || y > HEIGHT - 4) continue;
-        if (SOLID[w.id(bx, y - 1, bz)] && !SOLID[w.id(bx, y, bz)] && !SOLID[w.id(bx, y + 1, bz)] && w.id(bx, y, bz) !== B.LAVA && w.id(bx, y - 1, bz) !== B.MAGMA) { p.pos.x = bx + 0.5; p.pos.y = y; p.pos.z = bz + 0.5; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; return; }
+        if (SOLID[w.id(bx, y - 1, bz)] && !SOLID[w.id(bx, y, bz)] && !SOLID[w.id(bx, y + 1, bz)] && w.id(bx, y, bz) !== B.LAVA && w.id(bx, y - 1, bz) !== B.MAGMA && (G.dim !== AMBER_CAVERNS || y < 44 && w.id(bx, y, bz) !== B.WATER)) { p.pos.x = bx + 0.5; p.pos.y = y; p.pos.z = bz + 0.5; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; return; }
       }
     }
-    return;
+    if (w.gen.isNether()) return;
   }
   for (let ring = 0; ring < 8; ring++) for (let dz = -ring; dz <= ring; dz++) for (let dx = -ring; dx <= ring; dx++) {
     if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
@@ -2245,8 +2259,9 @@ function breakBlock(x, y, z, drops, quiet) {
   if (!quiet) R.beforeBreak(x, y, z, (heldTool() || {}).type);   // shears cut a tripwire without setting it off
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
-  if (id === B.SOLKARA_GATE) return;
-  if (id === B.LORE_TABLET && G.story.lostWorld && isCampaignLandmark(G.dim, { x, y, z })) {
+  if (id === B.SOLKARA_GATE || (G.dim === AMBER_CAVERNS && id === B.GATE_FRAME && isAmberSeal(x,y,z))) return;
+  if (id === B.LORE_TABLET && (G.dim === GODZILLA_CALDERA && isGodzillaConsole({ x, y, z }) ||
+      G.story.lostWorld && isCampaignLandmark(G.dim, { x, y, z }))) {
     if (!quiet) UI.toast("This expedition tablet is protected.");
     return;
   }
@@ -2768,12 +2783,16 @@ function blocksPlayer(v, x, y, z) {
 }
 function interact(hit, kind) {
   const w = G.world, key = hit.x + "," + hit.y + "," + hit.z;
+  if (kind === "lore" && G.dim === GODZILLA_CALDERA && !G.guest && GC.interact(hit)) return;
   if (kind === "lore" && isLostWorldDimension(G.dim) && G.story.lostWorld && !G.guest) {
     const record = { ...G.story.lostWorld };
     const note = readCampaignLandmark(G.dim, record, hit);
     if (note) {
       if (record.stage !== G.story.lostWorld.stage) {
         G.story.lostWorld = record;
+        if (G.dim === AMBER_CAVERNS && record.stage === SHORTCUT_REQUIRED_STAGE) {
+          for (const {x,y,z} of SEAL) if (w.id(x,y,z) === B.GATE_FRAME) w.set(x,y,z,B.AIR);
+        }
         if (G.dim === MANGROVE && record.stage === 6) {
           const { x, y, z } = RELAY_LIGHT;
           const chunk = w.chunkAt(x, z);
@@ -3842,6 +3861,7 @@ function retireWildLeviathans() {
   leviathanWarningHUD.clear();
 }
 function die(why) {
+  GC.onFaint();
   G.deathSpot = { ...G.player.pos };   // (where you fell: the Endwatch dungeons wake you by their watchfire; Hardcore floats you here)
   retireWildLeviathans();
   clearSandsHeat();
@@ -3920,6 +3940,7 @@ G.respawn = async () => {
     if (!G.world.isLoaded(x, z)) await loadArea(x, z, "Returning to " + DIM_NAMES[home] + "…");
     UI.toast("Your bed was missing, so you woke up at the region’s arrival point.", "bad");
   }
+  if (home === AMBER_CAVERNS) p.pos.y = p.spawn.y ?? AMBER_ARRIVAL.y;
   placeSafely(p, p.spawn.x, p.spawn.z);
   if (isLostWorldRegion(home) && p.spawn.y == null) p.spawn.y = p.pos.y;
   if (p.spawn.bed && G.world.id(...p.spawn.bed) !== B.BED) { UI.toast("Your bed was missing, so you woke up at the world's starting spot.", "bad"); delete p.spawn.bed; }
@@ -5351,6 +5372,8 @@ function updateSandsDiscovery(dt) {
   }
   sandsHaze.lerp(sandsTarget.setHex(SANDS_REGIONS[sandsRegion].haze), 1 - Math.exp(-dt * 1.8));
 }
+const badlandsHaze = new THREE.Color(0xb78567);
+const canyonHaze = new THREE.Color(0xd2b18e);
 const redwoodHaze = new THREE.Color(0xc3b79d);
 const mangroveHaze = new THREE.Color(0x85aca0);
 const plainsHaze = new THREE.Color(0xb4c997);
@@ -5359,9 +5382,9 @@ function updateSky() {
   const nether = G.world && G.world.gen.isNether();
   const hollow = G.world && G.world.gen.isEnd && G.world.gen.isEnd();
   const forsaken = G.dim === "forsaken" && F.template(), lsky = L.sky();
-  const mist = G.dim === MANGROVE ? mangroveHaze : G.dim === REDWOODS ? redwoodHaze : G.dim === LOST_WORLD ? jungleHaze : null;
+  const mist = G.dim === GODZILLA_CALDERA || G.dim === VOLCANIC_BADLANDS ? badlandsHaze : G.dim === TYRANT_CANYON ? canyonHaze : G.dim === MANGROVE ? mangroveHaze : G.dim === REDWOODS ? redwoodHaze : G.dim === LOST_WORLD ? jungleHaze : null;
   const plains = G.dim === FERN_PLAINS;
-  surfaceSky.visible = (G.dim === "overworld" || isLostWorldDimension(G.dim)) && !G.player.headInWater && !G.player.inLava;
+  surfaceSky.visible = (G.dim === "overworld" || isLostWorldDimension(G.dim) && G.dim !== AMBER_CAVERNS) && !G.player.headInWater && !G.player.inLava;
   waterUniforms.rippleTime.value = G.settings.reducedMotion ? 0 : G.clock % 8;
   uniforms.coolTime.value = G.clock % (Math.PI * 2 / 1.3 * 200);   // wraps on a whole wave, so the pulse never jumps
   uniforms.coolPulse.value = G.settings.reducedMotion || G.settings.fx === "low" ? 0 : (G.settings.fx === "high" ? 0.24 : 0.18) + (G.echoDanger || 0) * 0.3 + (G.echoWake || 0) * 0.7 + (G.echoGate || 0) * 0.8;   // stronger when a Stalker is near, or when the city wakes (Phase 6)
@@ -5379,6 +5402,18 @@ function updateSky() {
     sun.visible = moon.visible = stars.visible = false;
     G.fwFog = [r * (0.25 - hollowDrift * 0.09), r * (0.74 - hollowDrift * 0.32)];
     return 0.48;
+  }
+  if (G.dim === AMBER_CAVERNS && G.player.pos.y < 44) {
+    const range = G.settings.renderDist * CHUNK;
+    uniforms.daylight.value = 0.36;
+    uniforms.ambient.value = 0.18;
+    skyCol.setHex(0x332622);
+    if (G.player.headInWater) skyCol.setHex(0x1d3f5a);
+    scene.background = skyCol;
+    uniforms.fogColor.value.copy(skyCol);
+    sun.visible = moon.visible = stars.visible = false;
+    G.fwFog = [range * 0.36, range * 0.86];
+    return 0.36;
   }
   if (lsky) {   // the Deep is dark (only lamps and crystals light it); the Expanse has a dim violet sky
     const R = G.settings.renderDist * CHUNK;
@@ -5429,9 +5464,10 @@ function updateSky() {
   const p = G.player;
   if (p.headInWater) skyCol.set(0x1d3f7a);
   else if (mist) {
-    skyCol.lerp(mist, day * 0.46);
+    const volcanic = G.dim === VOLCANIC_BADLANDS || G.dim === GODZILLA_CALDERA;
+    skyCol.lerp(mist, day * (volcanic ? 0.58 : 0.46));
     const distance = G.settings.renderDist * CHUNK;
-    G.fwFog = [distance * 0.28, distance * 0.88];
+    G.fwFog = volcanic ? [distance * 0.55, distance] : [distance * 0.28, distance * 0.88];
     uniforms.ambient.value = 0.19;
   } else if (plains) {
     skyCol.lerp(plainsHaze, day * 0.23);
@@ -5610,9 +5646,10 @@ G.expeditionDestinations = () => {
 };
 G.expeditionTravel = dim => {
   if (G.state !== "panel" || !G.expeditionDestinations().some(destination => destination.dim === dim)) return;
-  const { x, z, yaw } = dim === LOST_WORLD ? JUNGLE_RETURN : LOST_WORLD_REGIONS[dim].arrival;
+  const { x, y, z, yaw } = dim === LOST_WORLD ? JUNGLE_RETURN : LOST_WORLD_REGIONS[dim].arrival;
   return changeDim(dim, x, z, "Traveling to " + DIM_NAMES[dim] + "…", () => {
       const p = G.player;
+      if (y !== undefined) p.pos.y = y;
       placeSafely(p, x, z);
       if (p.collides(G.world, p.aabb()) || [B.LAVA, B.WATER].includes(G.world.id(Math.floor(p.pos.x), Math.floor(p.pos.y), Math.floor(p.pos.z)))) {
         throw new Error("The expedition arrival is blocked.");
@@ -5693,13 +5730,13 @@ const bossBar = document.getElementById("bossbar");
 const bossBarName = bossBar.querySelector("b"), bossBarFill = bossBar.querySelector("i");
 let bossBarPercent = -1;
 function updateBossBar(p) {
-  const hb = CP.bossInfo() || F.bossInfo() || L.bossInfo() || MU.bossInfo() || CB.bossInfo();
+  const hb = CP.bossInfo() || F.bossInfo() || L.bossInfo() || MU.bossInfo() || CB.bossInfo() || GC.bossInfo();
   let boss = null, distance = Infinity;
   if (!hb) for (const e of ents.list) {
     const grizzlyFight = e.sp === "grizzly_bear" && !e.baby && e.angry > 0 && !e.dead &&
       e.wild.phase !== "patrol" && e.wild.phase !== "rest" && !G.creative && G.wset.difficulty !== "peaceful" &&
       Math.hypot(e.pos.x - p.pos.x, e.pos.y - p.pos.y, e.pos.z - p.pos.z) < 22;
-    if ((!e.def.boss && !grizzlyFight) || e.gone || e.tame || e.duneCycle?.preview || e.sp === "castellan" ||
+    if ((!e.def.boss && !grizzlyFight) || e.gone || e.tame || e.duneCycle?.preview || e.sp === "castellan" || e.def.godzilla ||
         e.def.segmentedLeviathan && !e.emerged && !e.dead &&
         !(e.sp === "leviathan_dune" && e.duneCycle?.step === "rising")) continue;
     const d = (e.pos.x - p.pos.x) ** 2 + (e.pos.z - p.pos.z) ** 2;
@@ -5746,6 +5783,17 @@ function recordWildlifeSightings(p) {
 }
 
 // ---------- main loop ----------
+function tickBadlands(dt) {
+  const world = G.world, player = G.player;
+  updateBadlandsVents(world, player.pos, G.story.lostWorld?.stage, dt, (vent, x) => {
+    ents.addHazard(x + 0.5, vent.y, vent.z + 0.5, vent.radius, 2.4, 5, "An eruption caught you on the causeway!", 1.2, {
+      color: 0xff9a43, particle: "ember", damageKind: "fire", statusEffect: null, steadyWarning: true,
+      cancelled: () => !badlandsVentActive(world, player.pos, G.story.lostWorld?.stage, vent, x)
+    });
+    Sound.mob("rumble", Math.hypot(player.pos.x - x - 0.5, player.pos.z - vent.z - 0.5));
+  });
+}
+
 let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, stepSoundT = 0, leviathanJournalT = 0;
 function loop(now) {
   requestAnimationFrame(loop);
@@ -5876,7 +5924,11 @@ function loop(now) {
     for (let i = ancientSpikes.length - 1; i >= 0; i--) if (!ancientSpikes[i].update(dt)) ancientSpikes.splice(i, 1);
     updateObsidianEncounter();
     if (G.dim === "overworld") updateStormVortex(dt);
-    if (G.state !== "dead" && !G.guest) ents.update(dt, daylight, camera);
+    if (G.state !== "dead" && !G.guest) {
+      if (G.dim === VOLCANIC_BADLANDS) tickBadlands(dt);
+      if (G.dim === GODZILLA_CALDERA) GC.tick(dt);
+      ents.update(dt, daylight, camera);
+    }
     CO.tick(dt);
     if (mountedBurrow) mountedBurrow.view.update(mountedBurrow.session.visualState, G.settings.reducedMotion);
     updateMountedLeviathanAttack(dt);
@@ -6024,6 +6076,7 @@ G.applySettings();
 resize();
 UI.show("title");
 requestAnimationFrame(loop);
+const GC = initGodzillaFight({ G, ents, scene, Sound, UI, saveNow, hurt });
 window.__bhLoop = loop;   // lets automated tests drive frames
 G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
 G._test.obsidianWarningReview = obsidianWarningReview;
