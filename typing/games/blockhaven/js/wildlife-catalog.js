@@ -11,5 +11,19 @@ export const WILDLIFE_EGGS = [
   ["seal", "Seal", "#718089", "#cbd1c8"],
   ["walrus", "Walrus", "#765846", "#dec6a7"],
   ["lion", "Lion", "#b77d4d", "#67402e"],
-  ["zebra", "Zebra", "#dfdbcf", "#242229"]
+  ["zebra", "Zebra", "#dfdbcf", "#242229"],
+  ["tiger", "Tiger", "#cc743b", "#302327"],
+  ["deer", "Deer", "#956e50", "#e1d0b8"],
+  ["moose", "Moose", "#6c4a38", "#c4a777"],
+  ["red_panda", "Red Panda", "#ae5830", "#f1dbb9"],
+  ["giraffe", "Giraffe", "#dfa865", "#a15d34"],
+  ["rhinoceros", "Rhinoceros", "#827c75", "#c1ad92"],
+  ["ostrich", "Ostrich", "#343138", "#e5d4ad"],
+  ["sloth", "Sloth", "#776255", "#d8baa0"],
+  ["koala", "Koala", "#81848a", "#d0cbc0"],
+  ["peacock", "Peacock", "#244993", "#75a038"],
+  ["flamingo", "Flamingo", "#df8297", "#382a38"],
+  ["kangaroo", "Kangaroo", "#b37b56", "#d0ad86"],
+  ["elephant", "Elephant", "#817b80", "#d4c1a1"],
+  ["falcon", "Falcon", "#535a6c", "#c9af91"]
 ];

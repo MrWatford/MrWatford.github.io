@@ -2,6 +2,14 @@ import { B, I, HEIGHT, SOLID } from "./blocks.js";
 import { Sound } from "./audio.js";
 import { WILDLIFE_EGGS } from "./wildlife-catalog.js";
 import { findGrizzlyDen, grizzlyDenRoom } from "./wildlife-dens.js";
+import { GIRAFFE, RHINO, OSTRICH, thinkSavanna } from "./wildlife-savanna.js";
+import { FALCON, thinkFalcon } from "./wildlife-falcon.js";
+import { ELEPHANT, thinkElephant, spawnElephantFamily } from "./wildlife-elephant.js";
+import { KANGAROO, thinkKangaroo } from "./wildlife-kangaroo.js";
+import { FLAMINGO, spawnFlamingoFlock, thinkFlamingo } from "./wildlife-flamingo.js";
+import { PEACOCK, peafowlEdge, thinkPeafowl } from "./wildlife-peafowl.js";
+import { MOOSE, RED_PANDA, SLOTH, KOALA, thinkTaiga, mooseSite, spawnMooseFamily, findCanopyTree } from "./wildlife-taiga.js";
+import { TIGER, DEER, thinkWoodland, woodlandCover } from "./wildlife-woodland.js";
 import { LION, ZEBRA, canSpawnGrassland, spawnGrasslandGroup, thinkGrassland } from "./wildlife-grassland.js";
 import { SEAL, WALRUS, coastalSpawnSite, spawnCoastalColony, thinkCoastWildlife } from "./wildlife-coast.js";
 import { OCTOPUS, MANTA, reefSpawnSite, thinkReefWildlife } from "./wildlife-reef.js";
@@ -30,6 +38,20 @@ const speciesStats = {
   [WALRUS]: { w: 2.1, h: 2.02, length: 3.2, scale: 1.32, hp: 62, babyHp: 24, speed: 2.3, amphibious: true, coastal: true, sound: "walruswarn" },
   [LION]: { w: 1.3, h: 1.75, length: 2.35, scale: 1.12, hp: 36, speed: 3.2, xp: 8, grassland: true, variants: [0, 1], sound: "lionroar" },
   [ZEBRA]: { w: 1.24, h: 2.55, length: 2.48, scale: 1.06, hp: 22, speed: 2.8, xp: 3, grassland: true, sound: "zebraalarm" },
+  [TIGER]: { w: 1.37, h: 1.85, length: 2.48, scale: 1.18, hp: 48, speed: 3.35, xp: 9, woodland: true, sound: "tigerwarn" },
+  [DEER]: { w: 1.04, h: 2.18, length: 2.12, scale: 1.03, hp: 18, speed: 2.65, xp: 3, woodland: true, variants: [0, 1], sound: "deeralarm" },
+  [MOOSE]: { w: 1.94, h: 3.0, length: 2.95, scale: 1.26, hp: 68, babyHp: 25, speed: 2.7, amphibious: true, taiga: true, xp: 7, variants: [0, 1], sound: "moosewarn" },
+  [RED_PANDA]: { w: 0.81, h: 1.08, length: 1.02, scale: 0.83, hp: 16, speed: 2.05, arboreal: true, taiga: true },
+  [GIRAFFE]: { w: 1.2, h: 5.5, length: 2.55, scale: 1.06, hp: 42, speed: 3.1, savanna: true, spawnRadius: 1, sound: "giraffealarm" },
+  [RHINO]: { w: 1.92, h: 2.8, length: 4.34, scale: 1.16, hp: 76, speed: 2.55, savanna: true, spawnRadius: 2, sound: "rhinowarn" },
+  [OSTRICH]: { w: 1.25, h: 3.25, length: 1.94, hp: 26, speed: 3.2, fleeSpeed: 8.5, savanna: true, variants: [0, 1], sound: "ostrichalarm" },
+  [SLOTH]: { w: 0.78, h: 0.89, length: 1.13, scale: 0.86, hp: 14, speed: 0.85, climbSpeed: 0.74, arboreal: true, canopyHanger: true, taiga: true },
+  [KOALA]: { w: 0.84, h: 1.03, length: 0.82, scale: 0.79, hp: 14, speed: 0.95, climbSpeed: 0.8, arboreal: true, trunkDweller: true, taiga: true },
+  [PEACOCK]: { w: 0.88, h: 1.63, length: 1.8, speed: 1.95, hp: 12, fleeSpeed: 4.9, variants: [0, 1], sound: "peafowlalarm" },
+  [FLAMINGO]: { w: 0.84, h: 3.12, length: 1.6, hp: 14, speed: 1.75, wades: true, sound: "flamingocall" },
+  [KANGAROO]: { w: 1.05, h: 2.93, length: 1.72, hp: 28, speed: 2.45, boundJump: 9.7, spawnRadius: 1, variants: [0, 1], sound: "kangaroowarn" },
+  [ELEPHANT]: { w: 2.5, h: 4.12, length: 4.25, scale: 1.25, hp: 90, babyHp: 33, speed: 1.52, spawnRadius: 2, mount: true, wideMount: true, tameWith: [I.WHEAT, I.APPLE], invSize: 27, sound: "elephanttrumpet" },
+  [FALCON]: { w: 0.62, h: 0.99, hp: 15, speed: 6.3, flies: true, preciseFlight: true, flightLift: 5.3, diveSpeed: 10, sound: "falconcall" },
   [EAGLE]: { w: 0.8, h: 1.05, hp: 16, speed: 6, flies: true, sound: "eagle" }
 };
 
@@ -303,6 +325,14 @@ export function thinkWildlife(manager, e, d, multiplier, clearPath, daylight) {
   e.angry = Math.max(0, e.angry - (e.thinkT || 0.15));
   if (e.sp === BEAR) bearThink(manager, e, manager.ctx.player(), d, multiplier, daylight);
   else if (e.sp === SHARK) sharkThink(manager, e, manager.ctx.player(), d, multiplier, clearPath);
+  else if (e.sp === FALCON) thinkFalcon(manager, e, d, clearPath);
+  else if (e.sp === ELEPHANT) thinkElephant(manager, e, d, multiplier, clearPath);
+  else if (e.sp === KANGAROO) thinkKangaroo(manager, e, d, multiplier, clearPath);
+  else if (e.sp === FLAMINGO) thinkFlamingo(manager, e, d, clearPath);
+  else if (e.sp === PEACOCK) thinkPeafowl(manager, e, d, daylight, clearPath);
+  else if (e.def.savanna) thinkSavanna(manager, e, multiplier, clearPath);
+  else if (e.def.taiga) thinkTaiga(manager, e, d, multiplier);
+  else if (e.def.woodland) thinkWoodland(manager, e, d, multiplier, clearPath);
   else if (e.def.grassland) thinkGrassland(manager, e, d, multiplier, daylight, clearPath);
   else if (e.def.reefDweller) thinkReefWildlife(manager, e, clearPath);
   else if (e.def.coastal) thinkCoastWildlife(manager, e, multiplier, clearPath);
@@ -372,29 +402,212 @@ export function animateWildlife(e, dt, d2, reducedMotion) {
       to(P["finMid" + sign].rotation, "z", sign * (glide ? 0.055 : Math.sin(t * 3.45 - 0.55) * 0.2));
       to(P["finOuter" + sign].rotation, "z", sign * (glide ? 0.06 : Math.sin(t * 3.45 - 1.05) * 0.15));
     }
-  } else if (e.def.grassland) {
-    const lion = e.sp === LION, sprint = phase === "chase" || phase === "flee";
+  } else if (e.sp === FALCON) {
+    const dive = phase === "dive", landed = phase === "lookout", landing = phase === "landFalcon";
+    const glide = !landed && !landing && !dive && Math.sin(t * 1.1) > 0.24;
+    const flap = Math.sin(t * (landing ? 8.9 : 12.4)) * (reducedMotion ? 0.2 : 0.58);
+    const turn = Math.atan2(Math.sin(e.yaw - (s.lastYaw ?? e.yaw)), Math.cos(e.yaw - (s.lastYaw ?? e.yaw)));
+    s.lastYaw = e.yaw;
+    to(e.root.rotation, "x", landed ? 0 : dive ? clamp(-e.vel.y * 0.18, 0.25, 0.95) : clamp(-e.vel.y * 0.12, -0.3, 0.26));
+    to(e.root.rotation, "z", landed ? 0 : clamp(turn * 5.1, -0.55, 0.55));
+    to(P.head.rotation, "x", dive ? -0.16 : landed ? 0.04 : 0.08);
+    to(P.tail.rotation, "x", landing ? -0.36 : dive ? 0.18 : 0.03);
+    for (const side of [-1, 1]) {
+      to(P["wing" + side].rotation, "y", side * (landed ? 1.39 : dive ? 1.03 : 0.09));
+      to(P["wing" + side].rotation, "z", side * (landed ? -0.16 : dive ? -0.34 : glide ? 0.13 : flap));
+      to(P["wrist" + side].rotation, "y", side * (landed ? 0.17 : dive ? 0.26 : 0.09));
+      to(P["wrist" + side].rotation, "z", side * (landed || dive || glide ? 0.08 : flap * 0.4));
+      to(P["leg" + side].rotation, "x", landed || landing ? 0 : dive ? -0.35 : 0.94);
+    }
+  } else if (e.sp === ELEPHANT) {
+    const drink = phase === "drink", feeding = phase === "browseLeaves", warning = phase === "trunkWarn", swing = phase === "trunkSwing";
+    const swish = reducedMotion ? 0 : Math.sin(t * 2.2) * 0.11;
+    const stride = Math.sin(e.walkPhase * 1.43) * Math.min(0.48, speed * 0.17);
+    const attack = swing ? Math.sin(Math.max(0, Math.min(1, 1 - (s.until - t) / 0.65)) * Math.PI) : 0;
+    to(P.head.rotation, "x", drink ? 0.49 : feeding || warning ? -0.18 : -stride * 0.11);
+    to(P.trunk.rotation, "x", warning ? -1.25 : drink ? -0.46 : feeding ? -1.15 : -0.10 + swish);
+    to(P.trunk.rotation, "z", swing ? attack * 1.08 : 0);
+    to(P.trunkMid.rotation, "x", warning ? -0.76 : drink ? 0.10 : feeding ? -0.78 : -0.22);
+    to(P.trunkEnd.rotation, "x", feeding ? -0.71 : drink ? 0.14 : -0.26 + swish);
+    to(P.trunkTip.rotation, "x", feeding ? -0.37 : drink ? 0.24 : -0.14);
+    to(P.tail.rotation, "z", swish * 2.1);
+    P.saddle.visible = e.saddled && !e.baby;
+    for (const side of [-1, 1]) {
+      P["tusk" + side].visible = !e.baby;
+      P["pack" + side].visible = e.tame && !e.baby;
+      to(P["ear" + side].rotation, "y", side * (warning ? 0.42 : -0.12 + swish));
+      for (const end of [-1, 1]) {
+        const leg = "leg" + side + "_" + end, step = stride * side * end;
+        to(P[leg].rotation, "x", step);
+        to(P[leg + "Shin"].rotation, "x", Math.max(0, -step * 0.39));
+      }
+    }
+  } else if (e.sp === KANGAROO) {
+    const bound = phase === "bound" || phase === "escapeBound";
+    const lift = bound ? clamp(e.vel.y / 9.7, -1, 1) : 0;
+    const warning = phase === "kickWarn", kick = phase === "kick", grazing = phase === "graze";
+    const bob = reducedMotion ? 0 : Math.sin(t * 3.2) * 0.057;
+    P.joey.visible = P.pouchRim.visible = e.variant === 1 && !e.baby;
+    to(P.joey.rotation, "x", lift * 0.22 + bob);
+    to(e.root.rotation, "x", kick ? -0.44 : warning ? -0.21 : bound ? 0.18 - lift * 0.21 : grazing ? 0.21 : 0);
+    to(P.neck.rotation, "x", grazing ? 0.48 : warning ? -0.18 : bound ? -0.22 : 0);
+    to(P.head.rotation, "x", grazing ? 0.3 : bound ? 0.15 : -0.04);
+    to(P.tail.rotation, "x", kick ? -0.42 : bound ? -0.23 + lift * 0.19 : -0.08);
+    to(P.tailMid.rotation, "x", bound ? lift * 0.16 : 0.11);
+    to(P.tailTip.rotation, "x", kick ? -0.18 : bob);
+    for (const side of [-1, 1]) {
+      to(P["arm" + side].rotation, "x", warning ? -0.59 : kick ? -0.29 : bound ? -0.44 : grazing ? -0.16 : 0);
+      to(P["leg" + side].rotation, "x", kick ? -1.16 : bound ? -0.39 - lift * 0.52 : 0);
+      to(P["leg" + side + "Shin"].rotation, "x", kick ? 0.12 : bound ? 0.62 + lift * 0.34 : 0.02);
+    }
+  } else if (e.sp === FLAMINGO) {
+    const feed = phase === "filterFeed", rest = phase === "oneLeg", startled = phase === "startled";
+    const step = Math.sin(e.walkPhase * 1.4) * Math.min(0.60, speed * 0.29);
+    const ripple = feed && !reducedMotion ? Math.sin(t * 4.1) * 0.059 : 0;
+    const parkedLeg = (s.role ?? 0) % 2 ? 1 : -1;
+    to(P.neck.rotation, "x", feed ? 1.76 + ripple : startled ? 0.24 : -0.12);
+    to(P.neckArc.rotation, "x", feed ? 0.68 : rest ? 0.35 : 0.26);
+    to(P.neckTop.rotation, "x", feed ? 0.58 : rest ? 0.35 : -0.12);
+    to(P.head.rotation, "x", feed ? -0.76 + ripple : rest ? 0.54 : 0.04);
+    to(P.head.rotation, "y", ripple * 2.7);
+    to(e.root.rotation, "z", rest ? parkedLeg * 0.075 : 0);
+    for (const side of [-1, 1]) {
+      const tucked = rest && side === parkedLeg, leg = "leg" + side;
+      to(P[leg].rotation, "x", tucked ? 1.2 : step * side);
+      to(P[leg + "Shin"].rotation, "x", tucked ? -2.15 : Math.max(0, -step * side) * 0.64);
+      to(P["wing" + side].rotation, "z", startled ? side * (0.21 + (!reducedMotion ? Math.sin(t * 10) * 0.14 : 0)) : 0);
+    }
+  } else if (e.sp === PEACOCK) {
+    const display = phase === "display" && e.variant === 0 && !e.baby;
+    const stride = Math.sin(e.walkPhase * 2.4) * Math.min(0.65, speed * 0.25);
+    const shimmer = display && !reducedMotion ? Math.sin(t * 12) * 0.025 : 0;
+    P.fan.visible = e.variant === 0 && !e.baby;
+    P.shortTail.visible = !P.fan.visible;
+    to(P.fan.rotation, "x", display ? -0.13 : -1.45);
+    to(P.fan.rotation, "y", shimmer);
+    for (let i = -4; i <= 4; i++) {
+      to(P["feather" + i].rotation, "z", i * (display ? 0.315 : 0.029));
+      to(P["feather" + i].rotation, "x", display ? Math.abs(i) * 0.027 + shimmer : 0.02);
+    }
+    to(P.neck.rotation, "x", phase === "graze" ? 0.66 + Math.sin(t * 6) * 0.13 : display ? -0.12 : 0.08);
+    to(P.head.rotation, "x", phase === "graze" ? 0.42 : display ? -0.06 : 0.02);
+    for (const side of [-1, 1]) to(P["leg" + side].rotation, "x", stride * side);
+  } else if (e.sp === OSTRICH) {
+    const sprint = phase === "flee", laying = phase === "lay", peck = phase === "graze";
+    const kick = t < (s.kickPoseUntil ?? 0);
+    const swing = Math.sin(e.walkPhase * 2.2) * Math.min(sprint ? 0.9 : 0.48, speed * 0.135);
+    const gather = peck ? 0.88 + Math.sin(t * 7.2) * (reducedMotion ? 0.05 : 0.2) : sprint ? 0.42 : 0.03;
+    to(e.root.position, "y", laying ? -0.64 : 0);
+    to(P.neck.rotation, "x", gather);
+    to(P.neckTop.rotation, "x", peck ? 0.58 : sprint ? -0.39 : 0.01);
+    to(P.head.rotation, "x", peck ? 0.32 : -0.055);
+    to(P.tail.rotation, "x", sprint ? 0.26 : laying ? -0.26 : 0.02);
+    for (const side of [-1, 1]) {
+      const leg = P["leg" + side].rotation;
+      to(leg, "x", laying ? 0.78 : kick && side === 1 ? -0.91 : swing * side);
+      to(P["leg" + side + "Shin"].rotation, "x", laying ? -1.2 : Math.max(0, -swing * side) * 0.88);
+      to(P["wing" + side].rotation, "z", side * (sprint ? 0.24 + Math.abs(swing) * 0.43 : 0.03));
+      to(P["wing" + side + "Flight"].rotation, "z", side * (sprint ? 0.28 : 0.04));
+    }
+  } else if (e.def.savanna) {
+    const giraffe = e.sp === GIRAFFE, browse = phase === "treetop";
+    const charging = phase === "rhinoCharge", warning = phase === "rhinoWarn";
+    const wallow = phase === "wallow";
+    to(e.root.position, "y", wallow ? -0.38 : 0);
+    to(e.root.rotation, "z", wallow ? (reducedMotion ? 0.22 : 0.3 + Math.sin(t * 2.7) * 0.15) : 0);
+    const kicking = t < (s.kickPoseUntil ?? 0);
+    const stride = Math.sin(e.walkPhase * 1.92) * Math.min(charging ? 0.58 : 0.48, speed * 0.14);
+    to(P.tail.rotation, "z", Math.sin(t * 2.4) * (reducedMotion ? 0.1 : 0.26));
+    to(P.head.rotation, "x", giraffe ? (browse ? -0.13 : Math.sin(t * 1.6) * 0.045) :
+      warning ? 0.21 + Math.sin(t * 8) * 0.045 : charging ? 0.13 : phase === "rhinoGraze" ? 0.48 : 0.02);
+    if (giraffe) {
+      to(P.neck.rotation, "x", browse ? 0.32 : -0.035);
+      to(P.neckTop.rotation, "x", browse ? 0.21 : 0.03);
+      to(P.jaw.rotation, "x", browse ? 0.13 + Math.sin(t * 8.5) * 0.10 : 0);
+    }
+    for (const side of [-1, 1]) for (const end of [-1, 1]) {
+      const name = "leg" + side + "_" + end, swing = side * end * stride;
+      to(P[name].rotation, "x", kicking && end < 0 ? 0.83 : warning && end > 0 && side === 1 ? Math.sin(t * 11) * 0.21 : wallow ? end * 0.72 : swing);
+      if (giraffe) to(P[name + "Shin"].rotation, "x", kicking && end < 0 ? 0.1 : Math.max(0, swing * 0.6));
+    }
+  } else if (e.sp === KOALA) {
+    const rest = phase === "treeRest", feed = phase === "leafFeed";
+    const climbing = phase === "climbTree" || phase === "descendTree", holding = rest || feed || climbing;
+    const stride = rest || feed ? 0 : Math.sin(climbing ? t * 4.25 : e.walkPhase * 2.3) *
+      (reducedMotion ? 0.12 : climbing ? 0.32 : Math.min(0.42, speed * 0.24));
+    to(e.root.rotation, "x", holding ? 0.18 : 0);
+    to(P.head.rotation, "x", rest ? 0.32 : feed ? -0.33 + Math.sin(t * 4.7) * 0.06 : -0.02);
+    to(P.jaw.rotation, "x", feed ? 0.17 + Math.sin(t * 7.2) * 0.15 : 0);
+    for (const side of [-1, 1]) {
+      to(P["arm" + side].rotation, "x", (holding ? -1.01 : 0.04) + side * stride);
+      to(P["arm" + side].rotation, "z", holding ? side * 0.31 : 0);
+      to(P["arm" + side + "Paw"].rotation, "x", holding ? -0.43 : 0);
+      to(P["leg" + side].rotation, "x", (holding ? -0.72 : -0.03) - side * stride);
+      P["eye" + side].scale.y = rest ? 0.22 : 1;
+    }
+  } else if (e.sp === SLOTH) {
+    const climb = phase === "climbTree" || phase === "descendTree", rest = phase === "treeRest";
+    const hanging = phase === "branch" || rest;
+    const stroke = rest ? 0 : Math.sin(climb || hanging ? t * 3 : e.walkPhase * 2) *
+      (reducedMotion ? 0.12 : climb || hanging ? 0.41 : Math.min(0.26, speed * 0.35));
+    to(e.root.rotation, "z", hanging ? Math.PI : 0);
+    to(e.root.rotation, "x", climb ? -1.08 : 0);
+    to(e.root.position, "y", hanging ? e.h - (reducedMotion ? 0 : Math.sin(t * 1.4) * 0.018) : 0);
+    to(P.head.rotation, "x", rest ? 0.38 : climb ? 0.28 : 0.03);
+    for (const side of [-1, 1]) {
+      to(P["arm" + side].rotation, "x", (hanging ? 0.14 : climb ? -0.53 : 0) + side * stroke);
+      to(P["arm" + side + "Lower"].rotation, "x", hanging ? -0.13 - side * stroke * 0.3 : climb ? 0.31 : 0);
+      to(P["leg" + side].rotation, "x", (hanging ? -0.2 : climb ? 0.27 : 0) - side * stroke);
+      to(P["leg" + side + "Lower"].rotation, "x", hanging ? 0.12 : 0);
+      P["eye" + side].scale.y = rest ? 0.26 : 1;
+    }
+  } else if (e.def.taiga) {
+    const moose = e.sp === MOOSE, climbing = phase === "climbTree" || phase === "descendTree";
+    const perched = phase === "treeRest", charging = phase === "charge", drinking = phase === "drink";
+    const stride = climbing ? Math.sin(t * 8.4) * (reducedMotion ? 0.15 : 0.47) :
+      Math.sin(e.walkPhase * 2.15) * Math.min(charging ? 0.74 : 0.43, speed * 0.17);
+    to(e.root.rotation, "x", climbing ? -1.15 : moose && e.inWater ? clamp(-e.vel.y * 0.07, -0.12, 0.12) : 0);
+    to(e.root.position, "y", perched ? -0.16 : 0);
+    to(P.tail.rotation, "y", perched ? 0.99 : Math.sin(t * 2.9) * (reducedMotion ? 0.10 : 0.38));
+    to(P.head.rotation, "x", perched ? 0.35 : phase === "berries" ? 0.24 : 0);
+    if (moose) {
+      to(P.neck.rotation, "x", drinking ? 1.08 : charging ? 0.44 : phase === "warning" ? 0.38 : 0.08);
+      for (const side of [-1, 1]) P["antler" + side].visible = e.variant === 1 && !e.baby;
+    } else {
+      to(P.tailMid.rotation, "y", perched ? 1.10 : Math.sin(t * 2.9 - 0.78) * 0.33);
+      to(P.tailTip.rotation, "y", perched ? 0.66 : Math.sin(t * 2.9 - 1.3) * 0.24);
+      to(P.tail.rotation, "x", climbing ? -0.29 : perched ? -0.13 : 0.12);
+    }
+    for (const side of [-1, 1]) for (const end of [-1, 1]) {
+      const name = "leg" + side + "_" + end, leg = stride * side * end;
+      to(P[name].rotation, "x", perched ? 0.8 * end : leg);
+      if (moose) to(P[name + "Shin"].rotation, "x", Math.max(0, leg * 0.52));
+    }
+  } else if (e.def.grassland || e.def.woodland) {
+    const lion = e.sp === LION, tiger = e.sp === TIGER, cat = lion || tiger;
+    const sprint = phase === "chase" || phase === "flee" || phase === "leap";
     const low = phase === "stalk", sleep = phase === "sleep";
     const stride = Math.sin(e.walkPhase * (sprint ? 2.55 : 1.8)) * Math.min(sprint ? 0.82 : 0.44, speed * 0.15);
     const bob = !reducedMotion && sprint ? Math.sin(e.walkPhase * 5.1) * 0.048 : 0;
     to(e.root.position, "y", sleep ? -0.42 * e.scale : low ? -0.15 * e.scale : bob);
     to(e.root.rotation, "x", sleep ? 0.05 : low ? 0.08 : -bob);
     to(P.tail.rotation, "y", Math.sin(t * (sprint ? 4.5 : 2.3)) * (reducedMotion ? 0.095 : 0.28));
-    to(P.tail.rotation, "x", lion ? (sprint ? -0.18 : 0.18) : sprint ? -0.32 : -0.72);
-    if (lion) {
-      P.mane.visible = e.variant === 0 && !e.baby;
+    to(P.tail.rotation, "x", cat ? (sprint ? -0.18 : 0.18) : sprint ? -0.32 : -0.72);
+    if (cat) {
+      if (lion) P.mane.visible = e.variant === 0 && !e.baby;
       to(P.tailTip.rotation, "y", Math.sin(t * 2.3 - 0.55) * 0.32);
-      to(P.head.rotation, "x", sleep ? 0.22 : phase === "warnPlayer" ? -0.24 : 0);
-      to(P.jaw.rotation, "x", phase === "warnPlayer" ? 0.62 : phase === "pounce" ? 0.38 : 0.035);
+      to(P.head.rotation, "x", sleep ? 0.22 : phase === "warnPlayer" || phase === "warnTiger" ? -0.24 : phase === "leap" ? 0.15 : 0);
+      to(P.jaw.rotation, "x", phase === "warnPlayer" || phase === "warnTiger" ? 0.62 : phase === "pounce" || phase === "leap" ? 0.38 : 0.035);
     } else {
-      to(P.neck.rotation, "x", phase === "graze" ? 1.10 : phase === "flee" ? 0.22 : 0.33);
-      to(P.head.rotation, "x", phase === "graze" ? 0.24 : -0.07);
+      if (e.sp === DEER) for (const side of [-1, 1]) P["antler" + side].visible = e.variant === 1 && !e.baby;
+      to(P.neck.rotation, "x", phase === "graze" || phase === "drink" ? 1.10 : phase === "flee" ? 0.22 : e.sp === DEER ? 0.24 : 0.33);
+      to(P.head.rotation, "x", phase === "graze" || phase === "drink" ? 0.24 : -0.07);
     }
     for (const side of [-1, 1]) for (const end of [-1, 1]) {
       const name = "leg" + side + "_" + end;
       const swing = stride * side * end;
-      to(P[name].rotation, "x", sleep ? end * 1.05 : low ? swing * 0.5 : swing);
-      if (!lion) to(P[name + "Shin"].rotation, "x", Math.max(0, swing * (sprint ? 0.65 : 0.30)));
+      to(P[name].rotation, "x", sleep ? end * 1.05 : low ? swing * 0.5 : phase === "leap" ? -end * 0.64 : swing);
+      if (!cat) to(P[name + "Shin"].rotation, "x", Math.max(0, swing * (sprint ? 0.65 : 0.30)));
     }
   } else if (e.def.coastal) {
     const seal = e.sp === SEAL, slide = phase === "slide", warning = phase === "warning";
@@ -493,6 +706,11 @@ export function spawnWildlife(manager, dt, daylight, random = Math.random) {
   const count = id => manager.list.filter(e => e.sp === id && live(e)).length;
   const roll = random();
   if (w.id(x, surface, z) === B.WATER) {
+    if (roll >= 0.49 && roll < 0.69 && col.temperature >= 0.05 &&
+        !count(FLAMINGO) && !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16))) {
+      spawnFlamingoFlock(manager, x, surface, z, angle, Math.min(4 + Number(random() < 0.6), 110 - manager.list.length));
+      return;
+    }
     if (roll >= 0.385 && roll < 0.49) {
       const species = roll < 0.445 ? OCTOPUS : MANTA;
       const site = count(species) < 2 && reefSpawnSite(w, speciesStats[species], sx, surface, sz, angle);
@@ -517,6 +735,106 @@ export function spawnWildlife(manager, dt, daylight, random = Math.random) {
       if (!sharkWater(w, sx + dx, y - 0.6, sz + dz)) return;
     }
     manager.add(SHARK, sx, y, sz, { yaw: angle, ambient: true });
+    return;
+  }
+  if (roll >= 0.205 && roll < 0.242 && count(FALCON) < 2 &&
+      (col.biome === "plains" || col.biome === "mountain" || col.biome === "peak") && surface + 8 < HEIGHT &&
+      !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16))) {
+    manager.add(FALCON, sx, surface + 6, sz, { yaw: angle, ambient: true });
+    return;
+  }
+  if (roll >= 0.725 && roll < 0.925 && col.biome === "plains" &&
+      col.temperature >= 0.08 && col.moisture <= 0.12 &&
+      !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16))) {
+    const species = roll < 0.81 ? GIRAFFE : roll < 0.855 ? RHINO : OSTRICH;
+    const def = speciesStats[species], y = (col.h ?? surface) + 1;
+    if (!count(species) && canSpawnGrassland(w, def, sx, y, sz)) {
+      if (species === RHINO) manager.add(RHINO, sx, y, sz, { yaw: angle, ambient: true });
+      else spawnGrasslandGroup(manager, species, def, sx, y, sz, angle,
+        Math.min(2 + Number(random() < 0.45), 110 - manager.list.length), random);
+    }
+    return;
+  }
+  if (roll >= 0.925 && roll < 0.96 && col.biome === "plains" && col.temperature >= 0.08 && col.moisture <= 0.12 &&
+      !count(KANGAROO) && !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16))) {
+    const y = surface + 1, def = speciesStats[KANGAROO];
+    if (canSpawnGrassland(w, def, sx, y, sz)) {
+      spawnGrasslandGroup(manager, KANGAROO, def, sx, y, sz, angle, Math.min(3, 110 - manager.list.length), random);
+    }
+    return;
+  }
+  if (roll >= 0.925 && roll < 0.97 && col.biome === "forest" && col.temperature >= 0.02 &&
+      col.moisture >= 0.19 && !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16)) && count(SLOTH) < 2) {
+    const y = (col.h ?? surface) + 1, def = speciesStats[SLOTH];
+    if (canSpawnGrassland(w, def, sx, y, sz)) {
+      const tree = findCanopyTree(w, { x: sx, y, z: sz }, def);
+      if (tree) {
+        const { x: bx, y: by, z: bz } = tree.branch;
+        const yaw = Math.atan2(bx - tree.x - 0.5, bz - tree.z - 0.5);
+        const sloth = manager.add(SLOTH, bx, by, bz, { yaw, ambient: true, home: [sx, y, sz] });
+        sloth.wild.tree = tree;
+        sloth.wild.phase = "treeRest";
+        sloth.goal = { ...tree.branch, speed: 0.45 };
+      }
+    }
+    return;
+  }
+  if (roll >= 0.97 && roll < 0.995 && col.biome === "birch" &&
+      !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16)) && count(KOALA) === 0) {
+    const y = (col.h ?? surface) + 1, def = speciesStats[KOALA];
+    if (canSpawnGrassland(w, def, sx, y, sz)) {
+      const tree = findCanopyTree(w, { x: sx, y, z: sz }, def);
+      if (tree) {
+        const grip = { ...tree.from, y: tree.top };
+        const yaw = Math.atan2(grip.x - tree.x - 0.5, grip.z - tree.z - 0.5);
+        const koala = manager.add(KOALA, grip.x, grip.y, grip.z, { yaw, ambient: true, home: [sx, y, sz] });
+        koala.wild.tree = tree;
+        koala.wild.phase = "leafFeed";
+        koala.goal = { ...grip, speed: 0.55 };
+      }
+    }
+    return;
+  }
+  if (roll >= 0.865 && roll < 0.925 && (forest.has(col.biome) || col.biome === "plains") &&
+      col.temperature > 0 && !count(PEACOCK) && !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16))) {
+    const y = (col.h ?? surface) + 1, def = speciesStats[PEACOCK];
+    if (peafowlEdge(w, x, y, z) && canSpawnGrassland(w, def, sx, y, sz)) {
+      spawnGrasslandGroup(manager, PEACOCK, def, sx, y, sz, angle, Math.min(2, 110 - manager.list.length), random);
+    }
+    return;
+  }
+  if (roll >= 0.96 && roll < 0.995 && col.biome === "plains" && col.temperature >= 0.08 && col.moisture <= 0.12 &&
+      !manager.list.some(e => e.sp === ELEPHANT && !e.tame && live(e)) && !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16))) {
+    const y = surface + 1, def = speciesStats[ELEPHANT];
+    if (canSpawnGrassland(w, def, sx, y, sz)) {
+      spawnElephantFamily(manager, def, sx, y, sz, angle, Math.min(3, 110 - manager.list.length), random);
+    }
+    return;
+  }
+  const mooseRange = roll >= 0.60 && roll < 0.67 &&
+    (col.biome === "birch" || col.biome === "plains" && col.temperature <= -0.20 && col.moisture > -0.12);
+  const pandaRange = roll >= 0.67 && roll < 0.725 && forest.has(col.biome);
+  if ((mooseRange || pandaRange) && !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16))) {
+    const y = (col.h ?? surface) + 1;
+    if (mooseRange && !count(MOOSE) && mooseSite(w, speciesStats[MOOSE], sx, y, sz)) {
+      spawnMooseFamily(manager, speciesStats[MOOSE], sx, y, sz, angle, random);
+    }
+    if (pandaRange && count(RED_PANDA) < 2 && canSpawnGrassland(w, speciesStats[RED_PANDA], sx, y, sz)) {
+      const tree = findCanopyTree(w, { x: sx, y, z: sz }, speciesStats[RED_PANDA]);
+      if (tree) manager.add(RED_PANDA, sx, y, sz, { yaw: angle, ambient: true }).wild.tree = tree;
+    }
+    return;
+  }
+  const deerRange = roll >= 0.45 && roll < 0.60 && (forest.has(col.biome) || col.biome === "plains");
+  const tigerRange = roll >= 0.242 && roll < 0.268 && col.biome === "forest" && col.temperature >= 0.02 && col.moisture >= 0.19 &&
+    ctx.settings().difficulty !== "peaceful";
+  if ((deerRange || tigerRange) && !w.gen.villagePiece?.(Math.floor(x / 16), Math.floor(z / 16))) {
+    const species = tigerRange ? TIGER : DEER, y = (col.h ?? surface) + 1;
+    const def = speciesStats[species];
+    if (!count(species) && canSpawnGrassland(w, def, sx, y, sz)) {
+      if (tigerRange && woodlandCover(w, sx, y, sz) >= 2) manager.add(TIGER, sx, y, sz, { yaw: angle, ambient: true });
+      if (deerRange) spawnGrasslandGroup(manager, DEER, def, sx, y, sz, angle, Math.min(3, 110 - manager.list.length), random);
+    }
     return;
   }
   if (roll >= 0.25 && roll < 0.45 && col.biome === "plains" && col.temperature >= 0.08 && col.moisture <= 0.12) {

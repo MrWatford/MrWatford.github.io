@@ -150,6 +150,77 @@ export const Sound = {
         this.tone(118 * r(), 0.85, "sawtooth", g(0.065), -46);
         this.tone(76, 0.75, "triangle", g(0.09), -21);
         break;
+      case "ostrichalarm":
+        this.noise(1170, 0.23, g(0.13), 1.4, "bandpass");
+        this.tone(420 * r(), 0.28, "triangle", g(0.09), -160);
+        break;
+      case "ostrichboom":
+        this.tone(140 * r(), 0.39, "triangle", g(0.14), -66);
+        this.noise(280, 0.32, g(0.065), 1.1, "lowpass");
+        break;
+      case "giraffebrowse":
+        this.noise(1280, 0.24, g(0.08), 1.3, "bandpass");
+        break;
+      case "giraffealarm":
+        this.tone(215 * r(), 0.38, "triangle", g(0.11), -110);
+        this.noise(720, 0.21, g(0.10), 1.1, "bandpass");
+        break;
+      case "rhinowarn":
+        this.noise(465, 0.54, g(0.22), 1.2, "lowpass");
+        this.tone(89 * r(), 0.48, "triangle", g(0.14), -35);
+        break;
+      case "moosewarn":
+        this.tone(187 * r(), 0.79, "triangle", g(0.14), -63);
+        this.tone(391, 0.46, "sawtooth", g(0.037), -118);
+        this.noise(680, 0.39, g(0.088), 1.2, "lowpass");
+        break;
+      case "falconcall":
+        this.tone(1480 * r(), 0.18, "triangle", g(0.105), -520);
+        this.noise(2360, 0.16, g(0.048), 1.9, "bandpass");
+        break;
+      case "elephanttrumpet":
+        this.tone(170 * r(), 0.75, "sawtooth", g(0.09), 180);
+        this.tone(340 * r(), 0.62, "triangle", g(0.115), -130);
+        this.noise(520, 0.63, g(0.10), 1.1, "bandpass");
+        break;
+      case "kangaroowarn":
+        this.noise(410, 0.33, g(0.11), 1.25, "lowpass");
+        this.tone(192 * r(), 0.28, "triangle", g(0.055), -84);
+        break;
+      case "flamingocall":
+        this.tone(291 * r(), 0.46, "triangle", g(0.125), -107);
+        this.tone(528 * r(), 0.31, "sawtooth", g(0.042), -80);
+        this.noise(880, 0.29, g(0.042), 1.3, "bandpass");
+        break;
+      case "peacockcall":
+        this.tone(690 * r(), 0.31, "sawtooth", g(0.065), 370);
+        this.tone(1150 * r(), 0.46, "triangle", g(0.10), -530);
+        this.noise(1650, 0.24, g(0.048), 1.6, "bandpass");
+        break;
+      case "peafowlalarm":
+        this.tone(820 * r(), 0.21, "triangle", g(0.08), -310);
+        this.noise(1360, 0.18, g(0.063), 1.2, "bandpass");
+        break;
+      case "koalacall":
+        this.noise(430, 0.46, g(0.08), 0.85, "lowpass");
+        this.tone(116 * r(), 0.46, "triangle", g(0.053), -36);
+        break;
+      case "slothcall":
+        this.tone(640 * r(), 0.23, "sine", g(0.064), 310);
+        this.noise(1810, 0.13, g(0.027), 1.35, "bandpass");
+        break;
+      case "pandachirp":
+        this.tone(1220 * r(), 0.17, "triangle", g(0.055), -390);
+        this.noise(1720, 0.1, g(0.05), 1.2, "bandpass");
+        break;
+      case "tigerwarn":
+        this.noise(450, 0.64, g(0.17), 1, "lowpass");
+        this.tone(118 * r(), 0.64, "triangle", g(0.10), -57);
+        break;
+      case "deeralarm":
+        this.noise(1100, 0.2, g(0.10), 2.6, "bandpass");
+        this.tone(390 * r(), 0.13, "triangle", g(0.05), -155);
+        break;
       case "lionroar":
         this.tone(96 * r(), 1.05, "sawtooth", g(0.072), -53);
         this.tone(181, 0.82, "triangle", g(0.055), -93);

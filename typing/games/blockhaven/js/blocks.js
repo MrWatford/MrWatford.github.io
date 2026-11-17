@@ -116,7 +116,8 @@ export const I = {
   // The Forsaken Mutants (ids 624-639 are kept for this expansion)
   CORRUPTED_FLESH: 624, FORSAKEN_SHARD: 625, GROANER_TROPHY: 626,
   FORSAKEN_BONE: 627, BOW_LIMB: 628, RATTLER_TROPHY: 629, CORRUPTED_SILK: 630, VENOM_FANG: 631, SKITTER_TROPHY: 632,
-  VOLATILE_MUTAGEN: 633, BLAST_CORE: 634, HISSER_TROPHY: 635, FORSAKEN_PEARL: 636, VOID_ESSENCE: 637, VOIDWALKER_TROPHY: 638
+  VOLATILE_MUTAGEN: 633, BLAST_CORE: 634, HISSER_TROPHY: 635, FORSAKEN_PEARL: 636, VOID_ESSENCE: 637, VOIDWALKER_TROPHY: 638,
+  OSTRICH_EGG: 640
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -435,6 +436,7 @@ for (const [k, name, food, color] of MEAT) item(I[k], name, { icon: "meat", colo
 item(I.ROTTEN_FLESH, "Rotten Flesh", { icon: "meat", colors: ["#6a8a3a", "#4a5a2a"], kind: "food", food: 4, category: "Food", sideEffect: "queasy" });
 item(I.SPIDER_EYE, "Skitter Eye", { icon: "eye", kind: "food", food: 2, category: "Food", sideEffect: "poison" });
 item(I.EGG, "Egg", { icon: "egg", stack: 16, category: "Food" });
+item(I.OSTRICH_EGG, "Ostrich Egg", { icon: "ostrich_egg", stack: 8, category: "Food" });
 item(I.MILK_BUCKET, "Milk Bucket", { icon: "bucket", colors: ["#ffffff"], kind: "food", food: 0, stack: 1, category: "Food", sideEffect: "cure" });
 // creature drops and materials
 item(I.BONE, "Bone", { icon: "bone" });
@@ -1530,6 +1532,14 @@ Object.assign(ICON_PAINT, {
   carrot(P, c) { const g = c && c[0] === "gold"; for (let i = 0; i < 9; i++) { P.px(4 + i, 12 - i, g ? "#ffd84a" : "#f08a1a"); P.px(5 + i, 12 - i, g ? "#c89a14" : "#d86a10"); } P.rect(12, 1, 2, 3, "#4f9a33"); P.rect(13, 3, 2, 1, "#6bb544"); },
   meat(P, c) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 8) ** 2 / 25 + (y - 8.5) ** 2 / 18 < 1) P.px(x, y, c[0]); P.rect(10, 9, 3, 2, c[1]); P.rect(12, 10, 2, 3, c[1]); },
   eye(P) { for (let y = 5; y < 12; y++) for (let x = 4; x < 12; x++) if ((x - 8) ** 2 + (y - 8.5) ** 2 < 12) P.px(x, y, "#b02030"); P.rect(7, 7, 2, 2, "#1a1a1a"); },
+  ostrich_egg(P) {
+    for (let y = 1; y < 15; y++) for (let x = 2; x < 14; x++) {
+      const shell = (x - 7.5) ** 2 / (y < 8 ? 25 : 32) + (y - 7.7) ** 2 / 48;
+      if (shell >= 1) continue;
+      P.px(x, y, shell > 0.72 && (x > 8 || y > 10) ? "#b6a17c" :
+        x < 7 && y < 8 ? "#fff3d4" : (x * 3 + y * 5) % 11 === 0 ? "#c8b293" : "#e5d4ad");
+    }
+  },
   egg(P) { for (let y = 3; y < 14; y++) for (let x = 4; x < 12; x++) if ((x - 8) ** 2 / 14 + (y - 8.5) ** 2 / 28 < 1) P.px(x, y, x < 7 && y < 8 ? "#ffffff" : "#e8dcc0"); },
   bucket(P, c) { for (let y = 5; y < 14; y++) { const w = 5 - Math.floor((y - 5) / 3); P.rect(8 - w, y, w * 2, 1, y === 13 ? "#8a8a8a" : "#c8c8c8"); } P.rect(3, 4, 10, 1, "#8a8a8a"); if (c && c[0]) P.rect(4, 5, 8, 2, c[0]); P.rect(3, 2, 1, 2, "#8a8a8a"); P.rect(12, 2, 1, 2, "#8a8a8a"); P.rect(4, 1, 8, 1, "#8a8a8a"); },
   bone(P) { for (let i = 0; i < 9; i++) P.px(4 + i, 11 - i, "#eeeadc"); for (const [x, y] of [[3, 11], [4, 12], [3, 12], [12, 3], [13, 2], [13, 3]]) P.px(x, y, "#ffffff"); },

@@ -80,6 +80,94 @@ const entries = {
     behavior: "Observed herd flight. Zebras run together when a predator is spotted or a member is attacked.",
     phases: ["flee"]
   },
+  tiger: {
+    name: "Tiger", habitat: "Dense, warm forests", kind: "Solitary predator", color: "umber",
+    note: "A tiger works through cover before it springs. Deer and rabbits are its usual prey.",
+    behavior: "Observed stalking or a leap. A tiger keeps low until it is close enough to spring.",
+    phases: ["stalk", "chase", "leap"]
+  },
+  deer: {
+    name: "Deer", habitat: "Forests and plains", kind: "Herd animal", color: "ochre",
+    note: "Deer graze in small herds. Some adults have antlers. A predator can startle the entire herd.",
+    behavior: "Observed herd flight. Deer signal danger to nearby herd members.",
+    phases: ["flee"]
+  },
+  moose: {
+    name: "Moose", habitat: "Cold woodlands and their banks", kind: "Defensive", color: "umber",
+    note: "Moose browse and wade through cold woodlands. Give adults with a calf plenty of room.",
+    behavior: "Observed a warning or charge. A moose lowers its head before charging in a straight line.",
+    young: "Spotted a moose calf.",
+    phases: ["warning", "charge"]
+  },
+  red_panda: {
+    name: "Red Panda", habitat: "Forest trees", kind: "Curious climber", color: "ochre",
+    note: "Look up around tree trunks and branches. A red panda may come closer if you hold berries.",
+    behavior: "Observed a climb or a treetop rest. Red pandas curl their tails while resting under the canopy.",
+    phases: ["climbTree", "branch", "treeRest", "descendTree"]
+  },
+  giraffe: {
+    name: "Giraffe", habitat: "Warm, dry plains", kind: "Herd browser", color: "ochre",
+    note: "Giraffes browse high leaves and run together when disturbed. A cornered giraffe may kick a nearby predator.",
+    behavior: "Observed a giraffe reaching into a canopy or fleeing with its herd.",
+    phases: ["treetop", "flee"]
+  },
+  rhinoceros: {
+    name: "Rhinoceros", habitat: "Warm, dry plains", kind: "Defensive", color: "stone",
+    note: "Rhinos graze alone and sometimes wallow beside shallow banks. Give one room to settle if it snorts and paws the ground.",
+    behavior: "Observed wallowing or a defensive charge. A rhino charges in the direction it faced during the warning.",
+    phases: ["rhinoWarn", "rhinoCharge", "wallow"]
+  },
+  ostrich: {
+    name: "Ostrich", habitat: "Warm, dry plains", kind: "Flightless flock bird", color: "ochre",
+    note: "Ostriches run together when startled and can kick nearby predators. Brown adults leave large eggs while the flock forages.",
+    behavior: "Observed a flock sprinting away from danger or an ostrich laying an egg.",
+    phases: ["flee", "lay"]
+  },
+  sloth: {
+    name: "Sloth", habitat: "Warm, humid forests", kind: "Canopy dweller", color: "umber",
+    note: "Sloths climb slowly and spend long stretches asleep under leafy branches. Watch the trees for their hooked claws.",
+    behavior: "Observed a sloth hanging from a branch or sleeping in the canopy.",
+    phases: ["branch", "treeRest"]
+  },
+  koala: {
+    name: "Koala", habitat: "Birch woodland", kind: "Trunk dweller", color: "stone",
+    note: "Look high on birch trunks. Koalas feed from the canopy and sleep with their arms wrapped around the trunk.",
+    behavior: "Observed a koala feeding from leaves or sleeping on a trunk.",
+    phases: ["leafFeed", "treeRest"]
+  },
+  peacock: {
+    name: "Peacock", habitat: "Warm forest edges", kind: "Display bird", color: "slate",
+    note: "Look for blue peacocks and brown peahens near sunny clearings. Males lift their eyespot feathers into a fan.",
+    behavior: "Observed a peacock open its tail fan.",
+    phases: ["display"]
+  },
+  flamingo: {
+    name: "Flamingo", habitat: "Warm, shallow water", kind: "Wading flock bird", color: "umber",
+    note: "Flamingos wade together in warm shallows. Look for a bent bill sweeping through the water or one leg tucked up while they rest.",
+    behavior: "Observed filter feeding or a one-legged rest.",
+    phases: ["filterFeed", "oneLeg"]
+  },
+  kangaroo: {
+    name: "Kangaroo", habitat: "Warm, dry plains", kind: "Bounding marsupial", color: "ochre",
+    note: "Kangaroos travel in long bounds. Adults can rear up before a defensive kick, and some carry a joey in their pouch.",
+    behavior: "Observed a long bound or defensive kick.",
+    young: "Spotted a joey in an adult's pouch.",
+    phases: ["bound", "escapeBound", "kick"],
+    pouchYoung: true
+  },
+  elephant: {
+    name: "Elephant", habitat: "Warm, dry plains", kind: "Herd and pack animal", color: "stone",
+    note: "Elephants use their trunks to drink, browse, and defend their herd. Earn an adult's trust with spaced offerings of wheat or apples, then saddle it to ride.",
+    behavior: "Observed drinking, leaf browsing, or a defensive trunk swing.",
+    young: "Spotted an elephant calf traveling with its herd.",
+    phases: ["drink", "browseLeaves", "trunkSwing"]
+  },
+  falcon: {
+    name: "Falcon", habitat: "Plains and mountain cliffs", kind: "Aerial hunter", color: "slate",
+    note: "Falcons dive at small prey and pause on lookouts. Offer raw rabbit or chicken when one rests. A trained falcon scouts ahead when you crouch and interact.",
+    behavior: "Observed a hunting dive or scouting flight.",
+    phases: ["dive", "scoutOut", "scoutReturn"]
+  },
   ancient_grizzly: {
     name: "Ancient Grizzly", habitat: "Sheltered forest dens", kind: "Rare encounter", color: "stone",
     note: "The silver-coated Ancient Grizzly is larger than an ordinary adult and starts using its ground slam sooner.",
@@ -137,7 +225,7 @@ export function observeWildlife(story, actors, eye, direction, day, visible) {
     if (distance2 > 28 ** 2 || forward <= 0 || forward * forward < 0.91 * distance2) continue;
     const found = [];
     if (entry.phases.includes(e.wild?.phase)) found.push("behavior");
-    if (entry.young && e.baby) found.push("young");
+    if (entry.young && (e.baby || entry.pouchYoung && e.variant === 1)) found.push("young");
     if (entry.den && e.den && e.home &&
         Math.hypot(target.x - e.home[0], e.pos.y - e.home[1], target.z - e.home[2]) <= 4.5) found.push("den");
     const old = story.wildlife?.[key];
