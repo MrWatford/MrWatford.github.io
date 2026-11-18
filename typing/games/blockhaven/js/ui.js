@@ -315,6 +315,22 @@ export const UI = {
     let left = "";
     if (panelKind === "trade") {
       const e = G.ents.list.find(o => o.uid === panelCtx);
+      const sale = G.festivals?.offer(e);
+      const festival = sale ? `<div class="recipe"><div class="out"><img src="${iconURL(sale.item)}" alt=""></div>
+        <div><div class="name">${sale.name}</div><div class="ins">${sale.quantity} × ${escapeAttr(itemDef(sale.item).name)} for ${sale.price} Jade</div><div class="note" style="color:#444">${sale.remaining ? sale.remaining + " offers left here today" : "Sold out today"}</div></div>
+        <button class="btn small primary" id="btnFestivalTrade" ${sale.remaining ? "" : "disabled"}>Buy</button></div>` : "";
+      const growth = G.villageGrowth?.status(e);
+      const project = growth?.project;
+      const funding = project ? project.cost.map(([id, total], i) =>
+        `<span><img src="${iconURL(id)}" alt="">${escapeAttr(itemDef(id).name)} ${growth.paid[i]}/${total}</span>`).join(" · ") : "";
+      const settlement = growth ? `<div class="recipe"><div class="out"><img src="${iconURL(B.STONE_BRICKS)}" alt=""></div>
+        <div><div class="name">Settlement · ${growth.title}</div>
+        ${project ? `<div>${project.name} · X ${growth.x}, Z ${growth.z}</div><div class="ins">${funding}</div>` : "<div>All public projects complete</div>"}</div>
+        ${project ? `<button class="btn small primary" id="btnVillageProject">${growth.funded ? "Build" : "Contribute"}</button>` : ""}</div>` : "";
+      const defense = G.settlementRaids?.offer(e);
+      const raid = defense ? `<div class="recipe"><div class="out"><img src="${iconURL(B.BELL)}" alt=""></div>
+        <div><div class="name">${defense.title}</div><div>${defense.text}</div></div>
+        ${defense.action ? `<button class="btn small primary" id="btnSettlementDefense">${defense.action}</button>` : ""}</div>` : "";
       const JOBS = { farmer: "Composter", fletcher: "Fletching Table", shepherd: "Loom", cleric: "Healing Altar", smith: "Smithing Anvil" };
       const rows = e ? TRADES[e.def.prof].map((t, i) => {
         const can = t[0].every(([id, n]) => G.inv.count(id) >= n), sold = e.uses[i] >= t[2];
@@ -323,9 +339,15 @@ export const UI = {
           <div><div class="name">${escapeAttr(itemDef(t[1][0]).name)}${t[1][1] > 1 ? " ×" + t[1][1] : ""}</div><div class="ins">${ins}</div>${sold ? `<div class="need">Sold out for now</div>` : `<div class="note" style="color:#555;font-size:11px">${t[2] - e.uses[i]} left</div>`}</div>
           <button class="btn small ${can && !sold ? "primary" : ""}" data-trade="${i}" ${can && !sold ? "" : "disabled"}>Trade</button></div>`;
       }).join("") : `<p class="note">They wandered off.</p>`;
-      left = `<div class="inv-card"><h3>${e ? escapeAttr(e.def.name) : "Trading"} <span class="note" style="color:#444">Pay with Jade</span></h3><div class="recipes">${rows}</div>
+      left = `<div class="inv-card"><h3>${e ? escapeAttr(e.def.name) : "Trading"} <span class="note" style="color:#444">Pay with Jade</span></h3><div class="recipes">${raid}${settlement}${festival}${rows}</div>
         <p class="help">${e && JOBS[e.def.prof] ? `Sold-out trades come back while this villager works at their ${JOBS[e.def.prof]} (up to twice a day).` : "The Wanderer only stays for a few minutes!"} Shift-click Trade to trade as many times as you can.</p></div>`;
       p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
+      p.querySelector("#btnSettlementDefense")?.addEventListener("click", () => G.settlementRaids.interact(e));
+      p.querySelector("#btnVillageProject")?.addEventListener("click", () => {
+        if (growth.funded) G.villageGrowth.build(e);
+        else G.villageGrowth.contribute(e);
+      });
+      p.querySelector("#btnFestivalTrade")?.addEventListener("click", () => G.festivals.buy(e));
       p.querySelectorAll("[data-trade]").forEach(b => b.onclick = ev => G.trade(panelCtx, +b.dataset.trade, ev.shiftKey));
     } else if (panelKind === "journal") {
       const cpOn = G.campaign && G.campaign.on();
