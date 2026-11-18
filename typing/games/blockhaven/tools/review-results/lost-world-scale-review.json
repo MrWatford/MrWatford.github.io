@@ -1,0 +1,146 @@
+{
+  "release": "lost-world-4",
+  "status": "local_unpublished",
+  "base": "d9fdb7ec63455d449798883c7e110d3bca29b226",
+  "recordedAt": "2026-11-18T01:05:41.967Z",
+  "requestInterpretation": "The user’s word tree is interpreted as T. rex from the creature-sizing context. Trees are unchanged.",
+  "sizes": {
+    "godzilla": {
+      "colliderHeight": 24,
+      "standingRenderedHeight": 24.00201183808162,
+      "width": 9.87725631768953,
+      "maxAnimatedRadius": 22.348204676033006
+    },
+    "tyrannosaurus": {
+      "colliderHeight": 10,
+      "standingRenderedHeight": 10,
+      "width": 5.740458015267176
+    }
+  },
+  "sources": [
+    {
+      "path": "index.html",
+      "sha256": "09c13b0e45ac978c0e0184f79a874f75c9030529e27a006d00468f80490211b6"
+    },
+    {
+      "path": "js/godzilla-model.js",
+      "sha256": "6faa2325e17ecae4d3d40e79aace87c279e2f331e187b6873065452aea44d7c8"
+    },
+    {
+      "path": "js/lost-world-tyrannosaurus.js",
+      "sha256": "f0d1ee169183cd03d7d7b4211a13a8127a8d8fa44f2ebddbbc5bca9c68ae7726"
+    },
+    {
+      "path": "tools/lost-world-scale-check.mjs",
+      "sha256": "1af5243c5db544bf56808ebac9fef83b9486eea036b4b941e84c3e4edfb49f08"
+    }
+  ],
+  "checks": {
+    "scaleGeometry": true,
+    "modelGeometry": true,
+    "terrainAndProgression": true,
+    "tyrannosaurus": "Chapter 5 carryover, ordinary Survival cover-route traversal, awareness, bite warning/hit/dodge, combat, JSON/reload, no duplicate, Creative passed.",
+    "godzilla": "All five phases, ordinary melee, breath hit/dodge, three shield anchors, death checkpoint, victory, JSON/reload, used supply slot and Creative passed.",
+    "upgrade": {
+      "passed": true,
+      "oldRex": {
+        "uid": "mwlezpyq-1uto",
+        "parts": 39,
+        "height": 4.25,
+        "width": 2.35
+      },
+      "newRex": {
+        "uid": "mwlezpyq-1uto",
+        "parts": 39,
+        "height": 10,
+        "width": 5.740458015267176
+      },
+      "oldBoss": {
+        "parts": 87,
+        "height": 14.1,
+        "width": 5.7
+      },
+      "newBoss": {
+        "parts": 87,
+        "height": 24,
+        "width": 9.87725631768953,
+        "record": {
+          "hp": 120,
+          "anchors": 1
+        },
+        "block": true,
+        "empty": true
+      },
+      "oldMainAndEntitiesCached": true,
+      "saveFieldsPreserved": true,
+      "errors": []
+    },
+    "ordinaryBowFight": {
+      "result": {
+        "ok": true,
+        "hp": 0,
+        "shots": 33,
+        "reached": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "health": 20,
+        "arrows": 54,
+        "seconds": 96.726,
+        "stage": 17
+      },
+      "errors": []
+    },
+    "cleanup": {
+      "breath": {
+        "mouthDistance": 0.22303684616141453,
+        "glow": 1.8,
+        "lowEffects": true,
+        "highEffects": true,
+        "effectCleanup": true
+      },
+      "cleanup": {
+        "reducedMotion": true,
+        "disposedBody": 12,
+        "disposedGlow": 12,
+        "memories": [
+          {
+            "geometries": 143,
+            "textures": 3
+          },
+          {
+            "geometries": 143,
+            "textures": 3
+          }
+        ],
+        "sharedGeometry": true,
+        "remainingGodzilla": 0
+      },
+      "errors": []
+    },
+    "preview": {
+      "detail": {
+        "height": 10,
+        "width": 5.740458015267176,
+        "renderedTop": 10,
+        "feet": -7.105427357601002e-15,
+        "parts": 39
+      },
+      "errors": []
+    }
+  },
+  "notes": [
+    "Scale is applied to the existing shared geometry, with no additional triangles or textures.",
+    "The full-length Godzilla tail uses a curved rest pose within the existing arena. Reduced Motion retains the curve without sway.",
+    "T. rex neutral feet are grounded before scaling, and its tail is raised above the canyon cover walls. Attack damage and timing are unchanged.",
+    "A staged paused T. rex preview uses the normal entity animation update to apply its runtime transform. The first preview attempts inspected the rig before that update and were corrected.",
+    "Bow-fight movement and aiming were scripted, with normal equipment and damage."
+  ],
+  "limitations": [
+    "Physical lower-end hardware and co-op not verified.",
+    "The existing shared entity body collision does not model individual limbs or tails."
+  ]
+}
