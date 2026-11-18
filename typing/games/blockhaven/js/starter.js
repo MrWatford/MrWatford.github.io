@@ -9,6 +9,8 @@ import { newStack, OFF } from "./inventory.js";
 import { hash3 } from "./noise.js";
 import { Generator } from "./worldgen.js";
 import { LEVIATHAN_MAP_TYPES, leviathanDestinations } from "./leviathan-navigation.js";
+import { isLostWorldDimension } from "./lost-world-regions.js";
+import { lostWorldWaypoint } from "./lost-world-map.js";
 
 const KEEP = 65535;
 const SIZE = 40, C = 20, R0 = 15, R1 = 20;   // the house stamp: 40 × 40, leveled ground out to 15 blocks, blended out to 20
@@ -410,6 +412,10 @@ export function initStarter(api) {
 
   // ---------- the held map's dial and the on-screen waypoint ----------
   S.reading = () => {
+    if (isLostWorldDimension(G.dim)) {
+      const d = lostWorldWaypoint(G), p = G.player;
+      return d ? { yaw: Math.atan2(-(d.x - p.pos.x), -(d.z - p.pos.z)) - p.yaw, text: `${d.title}: ${fmt(Math.hypot(d.x - p.pos.x, d.z - p.pos.z))} blocks` } : { yaw: null, text: "Choose a Lost World landmark (M)" };
+    }
     const s = data(), d = s && destOf(s.dest);
     if (!d) return { yaw: null, text: "The map is blank here" };
     if (G.dim !== "overworld") return { yaw: null, text: "The map only shows the Surface" };
@@ -423,12 +429,13 @@ export function initStarter(api) {
     const s = data();
     const active = (G.state === "play" || G.state === "panel") && !G.cutscene;
     const sands = active && G.dim === "hollow_sands" && !G.sandsWaypointHidden ? G.sandsWaypoint : null;
-    const d = sands || (active && G.dim === "overworld" && s?.waypoint && (s.house || s.campaign) ? destOf(s.dest) : null);
+    const jurassic = active && isLostWorldDimension(G.dim) ? lostWorldWaypoint(G) : null;
+    const d = jurassic || sands || (active && G.dim === "overworld" && s?.waypoint && (s.house || s.campaign) ? destOf(s.dest) : null);
     hudEl.hidden = !d;
     if (!d) return;
     const p = G.player, dist = Math.hypot(d.x - p.pos.x, d.z - p.pos.z), ang = Math.atan2(-(d.x - p.pos.x), -(d.z - p.pos.z)) - p.yaw;
     hudEl.querySelector("i").style.transform = `rotate(${-ang}rad)`;
-    hudEl.querySelector("i").style.background = sands ? "#b9ddfa" : TYPES[d.kind].color;
+    hudEl.querySelector("i").style.background = jurassic ? jurassic.color : sands ? "#b9ddfa" : TYPES[d.kind].color;
     hudEl.querySelector("b").textContent = d.title + (d.kind === "excavation" ? " (entrance)" : "");
     hudEl.querySelector("em").textContent = dist < 8 ? "You're here!" : `${fmt(dist)} blocks ${compass8(d.x - p.pos.x, d.z - p.pos.z)}` + (d.kind === "excavation" ? " · underground" : "");
   }
