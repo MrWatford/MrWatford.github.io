@@ -26,6 +26,22 @@ To restore an exported campaign, choose **Play → Load a world file**. When the
 
 Verification used separate Chrome profiles on Apple silicon with macOS 15.7.3 and software WebGL. The daytime and nighttime views used a nine-chunk render distance. In the fixed campaign seed, the fountain is at X 396, Z 68. Browser checks completed the nine-location exploration quest, opened both new trade menus, and exported and imported the campaign with its layout and progress. A save made before the redesign reopened with the original village, its quest progress, and a test block edit. Generator checks compared the full old village stamp and verified reachable quest areas, fixture positions, and resident spawn clearance.
 
+## Campaign Stonehaven preview
+
+In a fresh **Legacy Campaign**, open the Explorer’s Map with **M** and choose **Stonehaven**. The campaign city is centered at **X 282, Z −194** in the fixed campaign seed. Twin stair towers mark the south gate. A passage behind the castle connects the north gate with the rest of the city. The square has colored market awnings and a tiled well. Find **Tailor Elin** at the loom in the south row of shops. The castle stairs lead to the royal records room and its Expedition Table.
+
+The city uses the existing quest, barracks, chests, and Waystone locations. Captain Brenna still leads the three-wave campaign defense after the Ruined Watchtower report. The game records the city’s layout when it plans the campaign, so older saves can continue with their original city and progress. The standard-world capital uses its own layout.
+
+Local verification used separate Chrome profiles on Apple silicon with macOS 15.7.3 and software WebGL. The city views used a nine-chunk render distance. The browser opened the map, Waystone, and Elin's trade menu, then started Captain Brenna's defense and advanced all three waves using simulated defeats. Export and import preserved the new city layout, activated Waystone, and completed raid. A save created with the preceding release reopened with the earlier city, Captain Brenna, its Waystone, and a player block edit. Generator checks compared the original stamp byte for byte and verified floor-level routes through all four gates and to the main quest sites. Separate `Riverbend` worlds started successfully in Survival, Creative, and Hardcore.
+
+## Sandspire campaign preview
+
+Start a fresh **Legacy Campaign** and select **Sandspire** on the Explorer’s Map. The oasis is at **X 464, Z −346**. The sandstone avenues lead through four tiled gates to an oasis footbridge, six shaded bazaar stalls, courtyard homes, and Potter Nia's working kiln. **Mapmaker Zahir** trades compasses, shelves, and Expedition Tables in the east bazaar. The Sun Palace has a stepped dome and a furnished map hall where Elder Rasha directs travelers to the Sunken Pyramid of Aurelis.
+
+The spire's original staircase leads to a shaded lookout. The Waystone, named supply chests, Elder Rasha’s quest, and the **Top of the World** objective keep their existing positions. Older campaign saves keep the Sandspire layout they started with.
+
+Local verification used isolated Chrome profiles on Apple silicon with macOS 15.7.3 and software WebGL. The browser opened the Sandspire map marker, Waystone, and Zahir's trade menu. A staged quest advanced from Elder Rasha to the Sunken Pyramid, and the tower objective completed upon reaching the lookout. Export and import preserved both results. An earlier campaign reopened with its original town, resident, activated Waystone, and player block edit. Generator checks compared the old stamp byte for byte and verified routes from the four gates, original fixtures, and clearance at all 27 stair and landing positions. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
+
 ## Stonehaven in standard worlds
 
 Create a new standard Overworld and open the Explorer’s Map with **M**. Select **Stonehaven** to set the South Gate waypoint. In the tested `Riverbend` world, the gate is at **X 776, Y 33, Z 681**.
