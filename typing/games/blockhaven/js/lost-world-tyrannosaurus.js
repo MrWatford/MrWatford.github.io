@@ -1,43 +1,113 @@
 import { B, I, SOLID } from "./blocks.js";
 import { Sound } from "./audio.js";
 import { REX_HOME } from "./tyrant-canyon.js";
+import { reptileSurface, reptileTail } from "./lost-world-model-geometry.js";
 
 const REX = "lost_world_tyrannosaurus";
 const hide = P => {
-  P.fill(["#705540"]);
-  for (let y = 1; y < 13; y += 2) for (let x = y % 3; x < 16; x += 3) P.px(x, y, "#4b4035");
-  P.rect(0, 13, 16, 3, "#b19466");
+  P.fill(["#856047"]);
+  for (let y = 0; y < 15; y += 3) for (let x = y % 2; x < 16; x += 4) {
+    P.rect(x, y, 3, 2, (x + y) % 3 ? "#9c744b" : "#79583e");
+    P.px(x + 1, y, "#b68a59");
+  }
 };
 const flank = P => {
   hide(P);
-  for (const x of [2, 7, 12]) P.rect(x, 0, 2, 7, "#4c4137");
+  for (const x of [1, 7, 13]) {
+    P.rect(x, 0, 3, 8, "#493b2d");
+    P.rect(x + 1, 7, 2, 4, "#57422e");
+  }
+  P.rect(0, 13, 16, 3, "#bea16d");
 };
-const face = P => {
-  hide(P);
-  P.rect(7, 3, 6, 4, "#3d3028");
-  P.rect(9, 4, 3, 2, "#ffd273");
-  P.px(10, 4, "#221f1b");
+const belly = P => {
+  P.fill(["#c3a879"]);
+  for (let y = 1; y < 15; y += 5) {
+    for (let x = y % 3; x < 15; x += 6) P.rect(x, y, 2, 2, "#d2b988");
+  }
 };
-const ivory = P => P.fill(["#e7d4aa"]);
-const part = (name, size, pivot, off, paint = { all: hide }, extra) => ({ name, size, pivot, off, paint, ...extra });
+const ivory = P => {
+  P.fill(["#ebddba"]);
+  P.rect(3, 0, 10, 10, "#fff1ce");
+  P.rect(0, 13, 16, 3, "#a48a62");
+};
+const dark = P => P.fill(["#30251f"]);
+const mouth = P => {
+  P.fill(["#4e2527"]);
+  P.rect(3, 9, 10, 6, "#9a5250");
+};
+const eye = P => {
+  P.fill(["#dd951d"]);
+  P.rect(3, 3, 10, 8, "#ffd673");
+  P.rect(8, 2, 3, 11, "#342211");
+  P.px(5, 4, "#fff1c9");
+};
+const part = (name, size, pivot, off = [0, 0, 0], paint = { all: hide }, extra) =>
+  ({ name, size, pivot, off, paint, ...extra });
+const scaled = (name, size, pivot, off, paint = { all: flank }, extra) =>
+  part(name, size, pivot, off, paint, { voxels: reptileSurface(size, 3.5, 0.6), voxelShell: true, ...extra });
+const tail = (name, length, sections, pivot, off, parent) => {
+  const { size, voxels } = reptileTail(length, sections, 4.5, 0.65);
+  return part(name, size, pivot, off, { all: flank }, { voxels, ...(parent ? { parent } : {}) });
+};
 
 export function installTyrannosaurus(species) {
   const parts = [
-    part("body", [34, 30, 50], [0, 39, 0], [0, 0, 0], { all: flank }),
-    part("neck", [25, 29, 26], [0, 44, 18], [0, 6, 5], { all: flank }, { rotation: [-0.23, 0, 0] }),
-    part("head", [28, 22, 39], [0, 56, 24], [0, 0, 15], { all: hide, right: face, left: face }),
-    part("jaw", [23, 10, 36], [0, 46, 25], [0, 0, 16]),
-    part("tail", [22, 20, 29], [0, 40, -20], [0, 0, -13], { all: flank }),
-    part("tailMid", [13, 14, 25], [0, 0, -12], [0, 0, -10], { all: flank }, { parent: "tail" }),
-    part("tailTip", [6, 8, 23], [0, 0, -10], [0, 0, -10], undefined, { parent: "tailMid" })
+    scaled("body", [35, 31, 52], [0, 38, -1], undefined, { all: flank, bottom: belly }),
+    scaled("haunches", [37, 32, 31], [0, 38, -15]),
+    scaled("chest", [28, 28, 27], [0, 39, 19], undefined, { all: hide, bottom: belly, front: belly }),
+    scaled("neck", [24, 27, 29], [0, 45, 26], undefined, { all: flank, front: belly }),
+    scaled("head", [27, 22, 33], [0, 56, 36], undefined, { all: hide, top: flank }),
+    scaled("snout", [25, 17, 27], [0, -1, 19], undefined, { all: hide }, { parent: "head" }),
+    part("nasalRidge", [22, 5, 24], [0, 7, 15], undefined, { all: flank }, {
+      parent: "head", voxels: [[0, 3, -4, 16, 3, 14], [0, 1, 14, 19, 4, 6]]
+    }),
+    part("mouth", [21, 9, 2], [0, -9, 31], undefined, { all: mouth }, { parent: "head" }),
+    scaled("jaw", [23, 8, 36], [0, -9, 2], [0, -5, 14], { all: hide, bottom: belly }, { parent: "head" }),
+    tail("tail", 38, [[23, 22], [19, 19], [15, 15]], [0, 41, -22], [0, 0, -17]),
+    tail("tailMid", 35, [[16, 16], [12, 13], [9, 10]], [0, -1, -17], [0, -1, -16], "tail"),
+    tail("tailTip", 34, [[9, 10], [6, 8], [4, 6]], [0, -1, -16], [0, -1, -15], "tailMid"),
+    part("tailPoint", [4, 6, 28], [0, -1, -15], [0, -1, -12], { all: flank }, { parent: "tailTip" })
   ];
+  const upperTeeth = [], lowerTeeth = [];
   for (const side of [-1, 1]) {
-    parts.push(part("teeth" + side, [2, 3, 30], [side * 9, 5, 1], [0, 0, 0], { all: ivory }, { parent: "jaw" }));
-    parts.push(part("thigh" + side, [13, 28, 17], [side * 14, 37, -4], [0, -11, 0], { all: flank }));
-    parts.push(part("shin" + side, [8, 18, 10], [0, -11, -1], [0, -6, 0], undefined, { parent: "thigh" + side }));
-    parts.push(part("foot" + side, [12, 5, 19], [0, -5, 0], [0, 0, 5], undefined, { parent: "shin" + side }));
-    parts.push(part("arm" + side, [5, 12, 7], [side * 11, 34, 20], [0, -4, 3]));
+    parts.push(scaled("cheek" + side, [7, 18, 18], [side * 12, -1, -3], undefined,
+      { all: hide }, { parent: "head" }));
+    parts.push(part("eyeSocket" + side, [2, 7, 11], [side * 14.5, 4, 3], undefined,
+      { all: dark }, { parent: "head" }));
+    parts.push(part("eye" + side, [1, 3.5, 5], [side * 15.7, 4.5, 5], undefined,
+      { all: eye }, { parent: "head", fullbright: true }));
+    parts.push(part("brow" + side, [6, 5, 14], [side * 13, 8, 6], undefined,
+      { all: hide }, { parent: "head" }));
+    parts.push(part("nostril" + side, [2, 3, 4], [side * 12, 1, 28], undefined,
+      { all: dark }, { parent: "head" }));
+    parts.push(scaled("thigh" + side, [15, 28, 22], [side * 13, 39, -8], [0, -12, 0]));
+    parts.push(scaled("shin" + side, [9, 18, 11], [0, -10, -3], [0, -5, 0], undefined,
+      { parent: "thigh" + side }));
+    parts.push(part("foot" + side, [14, 6, 21], [0, -6, 2], [0, -1, 6], { all: hide }, {
+      parent: "shin" + side,
+      voxels: [-4.5, 0, 4.5].map(x => [x, -0.5, 13, 4, 5, 9])
+    }));
+    parts.push(part("claws" + side, [3, 3, 7], [0, 0, 18], undefined, { all: ivory }, {
+      parent: "foot" + side, voxels: [[-4.5, 0, 0, 3, 3, 7], [4.5, 0, 0, 3, 3, 7]]
+    }));
+    parts.push(part("arm" + side, [5, 12, 6], [side * 12, 37, 21], [0, -4, 3], { all: hide }));
+    parts.push(part("hand" + side, [5, 5, 10], [0, -4, 1], [0, -1, 4], { all: hide }, {
+      parent: "arm" + side, voxels: [[-1.5, -1, 7, 2, 5, 5], [1.5, -1, 7, 2, 5, 5]]
+    }));
+    parts.push(part("fingerClaws" + side, [1.5, 3, 3], [-1.5, -3, 10], undefined,
+      { all: ivory }, { parent: "hand" + side, voxels: [[3, 0, 0, 1.5, 3, 3]] }));
+    for (const z of [3, 9, 15, 21, 27]) {
+      upperTeeth.push([side * 9.5, -10, z, 2.5, 5, 3], [side * 9.5, -13, z, 1.5, 2, 2]);
+      lowerTeeth.push([side * 9, 6, z - 12, 2, 4, 3], [side * 9, 8.5, z - 12, 1, 1.5, 2]);
+    }
   }
+  for (const x of [-6, 6]) upperTeeth.push([x, -10, 31, 3, 4.5, 3]);
+  parts.push(part("upperTeeth", [3, 4.5, 3], [0, -10, 31], undefined, { all: ivory }, {
+    parent: "head", voxels: upperTeeth.map(([x, y, z, ...size]) => [x, y + 10, z - 31, ...size])
+  }));
+  parts.push(part("lowerTeeth", [2, 4, 3], [0, 6, 17], undefined, { all: ivory }, {
+    parent: "jaw", voxels: lowerTeeth.map(([x, y, z, ...size]) => [x, y - 6, z - 17, ...size])
+  }));
   species[REX] = {
     name: "Tyrannosaurus", tyrannosaurus: true, hostile: true, persist: true,
     hp: 135, w: 2.35, h: 4.25, speed: 3.8, dmg: 12, reach: 3.65,

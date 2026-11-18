@@ -1,0 +1,456 @@
+{
+  "date": "2026-11-17",
+  "scope": "Published startup review and local creature models",
+  "publishedStartup": {
+    "release": "lost-world-2",
+    "browser": "157.0.8103.79",
+    "results": [
+      {
+        "terrain": "overworld",
+        "mode": "survival",
+        "created": true,
+        "reopened": true,
+        "first": {
+          "dim": "overworld",
+          "mode": "survival",
+          "hc": false,
+          "legacy": false,
+          "lost": false,
+          "player": [
+            -154.5,
+            34,
+            -149.5
+          ],
+          "entities": 71,
+          "drawn": 192
+        }
+      },
+      {
+        "terrain": "overworld",
+        "mode": "creative",
+        "created": true,
+        "reopened": true,
+        "first": {
+          "dim": "overworld",
+          "mode": "creative",
+          "hc": false,
+          "legacy": false,
+          "lost": false,
+          "player": [
+            -154.5,
+            34,
+            -149.5
+          ],
+          "entities": 84,
+          "drawn": 210
+        }
+      },
+      {
+        "terrain": "overworld",
+        "mode": "hardcore",
+        "created": true,
+        "reopened": true,
+        "first": {
+          "dim": "overworld",
+          "mode": "survival",
+          "hc": true,
+          "legacy": false,
+          "lost": false,
+          "player": [
+            -154.5,
+            34,
+            -149.5
+          ],
+          "entities": 66,
+          "drawn": 203
+        }
+      },
+      {
+        "terrain": "lost_world",
+        "mode": "survival",
+        "created": true,
+        "reopened": true,
+        "first": {
+          "dim": "lost_world",
+          "mode": "survival",
+          "hc": false,
+          "legacy": false,
+          "lost": true,
+          "player": [
+            0.5,
+            36,
+            0.5
+          ],
+          "entities": 5,
+          "drawn": 65
+        }
+      },
+      {
+        "terrain": "lost_world",
+        "mode": "creative",
+        "created": true,
+        "reopened": true,
+        "first": {
+          "dim": "lost_world",
+          "mode": "creative",
+          "hc": false,
+          "legacy": false,
+          "lost": true,
+          "player": [
+            0.5,
+            36,
+            0.5
+          ],
+          "entities": 5,
+          "drawn": 65
+        }
+      },
+      {
+        "terrain": "lost_world_campaign",
+        "mode": "survival",
+        "created": true,
+        "reopened": true,
+        "first": {
+          "dim": "lost_world",
+          "mode": "survival",
+          "hc": false,
+          "legacy": false,
+          "expedition": 0,
+          "lost": true,
+          "player": [
+            0.5,
+            36,
+            0.5
+          ],
+          "entities": 5,
+          "drawn": 65
+        }
+      },
+      {
+        "terrain": "legacy_campaign",
+        "created": true,
+        "reopenedThroughCampaignMenu": true,
+        "first": {
+          "dim": "overworld",
+          "mode": "survival",
+          "hc": false,
+          "legacy": true,
+          "lost": false,
+          "player": [
+            396.5,
+            36,
+            78.5
+          ],
+          "entities": 102,
+          "drawn": 82
+        }
+      }
+    ],
+    "errors": [],
+    "failures": []
+  },
+  "localStartup": {
+    "release": "lost-world-3",
+    "cpuThrottlingRate": 4,
+    "browser": "157.0.8103.79",
+    "results": [
+      {
+        "terrain": "overworld",
+        "mode": "survival",
+        "created": true,
+        "reopened": true,
+        "first": {
+          "dim": "overworld",
+          "mode": "survival",
+          "hc": false,
+          "legacy": false,
+          "lost": false,
+          "player": [
+            -154.5,
+            34,
+            -149.5
+          ],
+          "entities": 97,
+          "drawn": 239
+        }
+      },
+      {
+        "terrain": "overworld",
+        "mode": "creative",
+        "created": true,
+        "reopened": true,
+        "first": {
+          "dim": "overworld",
+          "mode": "creative",
+          "hc": false,
+          "legacy": false,
+          "lost": false,
+          "player": [
+            -154.5,
+            34,
+            -149.5
+          ],
+          "entities": 82,
+          "drawn": 189
+        }
+      },
+      {
+        "terrain": "lost_world_campaign",
+        "mode": "survival",
+        "created": true,
+        "reopened": true,
+        "first": {
+          "dim": "lost_world",
+          "mode": "survival",
+          "hc": false,
+          "legacy": false,
+          "expedition": 0,
+          "lost": true,
+          "player": [
+            0.5,
+            36,
+            0.5
+          ],
+          "entities": 5,
+          "drawn": 64
+        }
+      },
+      {
+        "terrain": "legacy_campaign",
+        "created": true,
+        "reopenedThroughCampaignMenu": true,
+        "first": {
+          "dim": "overworld",
+          "mode": "survival",
+          "hc": false,
+          "legacy": true,
+          "lost": false,
+          "player": [
+            396.5,
+            36,
+            78.5
+          ],
+          "entities": 97,
+          "drawn": 96
+        }
+      }
+    ],
+    "errors": [],
+    "failures": []
+  },
+  "geometry": {
+    "detail": [
+      {
+        "pos": {
+          "x": 0.5,
+          "y": 41,
+          "z": 27.5
+        },
+        "foot": [
+          -1.5499523746022805,
+          41.4375,
+          27.145288480786892
+        ],
+        "bounds": [
+          -5.72674184852667,
+          41,
+          20.487846088206645
+        ],
+        "light": [
+          15,
+          0
+        ],
+        "color": [
+          1,
+          1,
+          1
+        ],
+        "species": "lost_world_godzilla",
+        "parts": 87,
+        "voxels": 2984,
+        "triangles": 27626,
+        "glow": true,
+        "verticesValid": true,
+        "height": 14.1,
+        "renderedHeight": 13.849823508775728
+      },
+      {
+        "pos": {
+          "x": -9,
+          "y": 41,
+          "z": 18
+        },
+        "foot": [
+          -9.740853100279676,
+          41.3125,
+          18.382686795965043
+        ],
+        "bounds": [
+          -10.861591247404203,
+          41.125,
+          13.565635461528517
+        ],
+        "light": [
+          15,
+          6
+        ],
+        "color": [
+          1,
+          1,
+          1
+        ],
+        "species": "lost_world_tyrannosaurus",
+        "parts": 39,
+        "voxels": 2233,
+        "triangles": 19848,
+        "glow": true,
+        "verticesValid": true,
+        "height": 4.25,
+        "renderedHeight": 4.565196801043108
+      }
+    ],
+    "errors": []
+  },
+  "resources": {
+    "breath": {
+      "mouthDistance": 0.12942312864756392,
+      "glow": 1.8,
+      "lowEffects": true,
+      "highEffects": true,
+      "effectCleanup": true
+    },
+    "cleanup": {
+      "reducedMotion": true,
+      "disposedBody": 12,
+      "disposedGlow": 12,
+      "memories": [
+        {
+          "geometries": 145,
+          "textures": 3
+        },
+        {
+          "geometries": 145,
+          "textures": 3
+        }
+      ],
+      "sharedGeometry": true,
+      "remainingGodzilla": 0
+    },
+    "errors": []
+  },
+  "ordinaryCombat": {
+    "result": {
+      "ok": true,
+      "hp": 0,
+      "shots": 33,
+      "reached": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "health": 20,
+      "arrows": 54,
+      "seconds": 97.06060000002384,
+      "stage": 17
+    },
+    "errors": []
+  },
+  "regressionResults": [
+    "Godzilla five phases, melee, breath hit/dodge, anchors, death checkpoint, victory, JSON/reload, and repeat-safe supplies passed.",
+    "Tyrannosaurus stealth route, detection, bite hit/dodge, combat, save/reload, and Creative access passed.",
+    "Terrain and ordered objectives passed across five seeds.",
+    "Model parent hierarchy, texture tile bounds, geometry positions, normal counts, and indices passed."
+  ],
+  "sources": [
+    {
+      "file": "js/entities.js",
+      "sha256": "ca51d63a5f2398e35c788df5f471bc2d11319d9ca14cf3442ef2c1f3548cb726"
+    },
+    {
+      "file": "js/godzilla-model.js",
+      "sha256": "407fc828760d3258fa3d89988d893b6eef12aa30f5417046c6e08bf000787447"
+    },
+    {
+      "file": "js/godzilla-view.js",
+      "sha256": "0652ca848179c96df62981917100b89f5149482187421d418fff474c333234e8"
+    },
+    {
+      "file": "js/godzilla-fight.js",
+      "sha256": "226a848b5bbf273ddd53b2b75bff46ba81106040684f31ea93392545d95301bf"
+    },
+    {
+      "file": "js/lost-world-tyrannosaurus.js",
+      "sha256": "4591d3d4c37dda6ebc350e289af1895223424c10d45fadea73e5aae6dee01144"
+    },
+    {
+      "file": "js/lost-world-model-geometry.js",
+      "sha256": "b752ccd57b5246ed006060353cb630adf0211d3aa9a0d73f3d86eb8ad57ce4e0"
+    },
+    {
+      "file": "index.html",
+      "sha256": "944f71d31f9bd448ba49d24ec3757282849716845abac28cf2e79504487acd17"
+    },
+    {
+      "file": "early-access.html",
+      "sha256": "0455b44b95d9e9cf1e9867098d45ca95619d6bb468e89eb0e0b573391fc25205"
+    },
+    {
+      "file": "tools/lost-world-model-check.mjs",
+      "sha256": "8c3e8a1a9088d1c035ec28377f0f9b7981fccafa4cd11e198d052ab8f41736c3"
+    }
+  ],
+  "findingsResolved": [
+    "Added model surface detail is baked into shared body-part geometry.",
+    "New dinosaur palettes match the existing linear-output renderer.",
+    "Dedicated glow materials isolate eyes and dorsal plates from hide lighting and are disposed with their entity.",
+    "Atomic breath follows the animated mouth.",
+    "Dorsal plates face along the spine and tails taper through stepped sections.",
+    "Head pose interpolation uses elapsed time.",
+    "Spatially indexed hidden-face removal reduces Godzilla triangles by 24.5 percent and Tyrannosaurus triangles by 26.8 percent.",
+    "Baked voxel corner shading adds surface depth at geometry creation.",
+    "The breath halo is removed on Low effects, and all temporary effect materials are disposed."
+  ],
+  "limitations": [
+    "The in-game rigs approximate the concept image. Cinematic lighting and final visual matching remain open.",
+    "Startup review covers the published seven entry paths and save/reopen, with no uncaught browser errors or failed game responses. It is not a full Legacy Campaign playthrough.",
+    "The full ordinary bow fight used scripted movement and aiming.",
+    "Visual comparison stages both creatures in one disposable arena. Normal gameplay places the T. rex in Tyrant Canyon.",
+    "GPU stability was checked in Chrome on this Mac with software WebGL. Lower-end hardware, co-op, and full manual balance remain unverified.",
+    "Prepared release is unpublished pending the owner’s merge and deployment approval.",
+    "Four-times CPU throttling covers startup. It does not establish frame rates on physical lower-end hardware."
+  ],
+  "reference": "img/concepts/trex-godzilla-reference.png",
+  "prompt": "img/concepts/trex-godzilla-reference.prompt.txt",
+  "preparedRelease": "lost-world-3",
+  "status": "ready for owner publication approval",
+  "base": "8682f00483cac401e350a0b8f5539fd6cc1a17aa",
+  "cachedPublishedUpgrade": {
+    "passed": true,
+    "oldRex": {
+      "uid": "mwlcp1y3-1jzt",
+      "parts": 17
+    },
+    "newRex": {
+      "uid": "mwlcp1y3-1jzt",
+      "parts": 39
+    },
+    "oldBoss": {
+      "parts": 34
+    },
+    "newBoss": {
+      "parts": 87,
+      "record": {
+        "hp": 120,
+        "anchors": 1
+      },
+      "block": true,
+      "empty": true
+    },
+    "oldMainAndEntitiesCached": true,
+    "saveFieldsPreserved": true,
+    "errors": []
+  },
+  "resolvedImports": 547
+}

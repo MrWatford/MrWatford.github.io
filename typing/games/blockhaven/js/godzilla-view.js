@@ -13,7 +13,9 @@ export function createGodzillaView(scene) {
   const beam = new THREE.Mesh(cylinder, material(SKY_BLUE, 0.72));
   const core = new THREE.Mesh(cylinder, material(0xe1fcff, 0.94));
   const ground = new THREE.Mesh(cylinder, material(0x35b7ff, 0.62));
-  const meshes = [band, beam, core, ground];
+  const halo = new THREE.Mesh(cylinder, material(SKY_BLUE, 0.11));
+  halo.material.blending = THREE.AdditiveBlending;
+  const meshes = [band, beam, core, ground, halo];
   for (const m of meshes) { m.visible = false; m.renderOrder = 12; scene.add(m); }
   const start = new THREE.Vector3(), elbow = new THREE.Vector3(), end = new THREE.Vector3(), direction = new THREE.Vector3();
   const orient = (mesh, a, b, radius) => {
@@ -23,23 +25,25 @@ export function createGodzillaView(scene) {
     mesh.quaternion.setFromUnitVectors(UP, direction.normalize());
   };
   return {
-    update(cycle, e, reducedMotion) {
+    update(cycle, e, reducedMotion, effects) {
       const breath = cycle?.attack === "breath";
       const warning = breath && cycle.mode === "warning";
       const active = breath && cycle.mode === "strike";
       band.visible = warning || active;
       beam.visible = core.visible = ground.visible = active;
+      halo.visible = active && effects !== "low";
       if (!band.visible) return;
       const { x, y, z } = GODZILLA_SITE, { dx, dz } = cycle;
       band.position.set(x + dx * 14, y + 0.032, z + dz * 14);
       band.rotation.set(-Math.PI / 2, 0, Math.atan2(dx, dz), "YXZ");
       band.material.opacity = active ? 0.67 : reducedMotion ? 0.37 : 0.27 + Math.sin(cycle.timer * 7) * 0.08;
       if (!active) return;
-      start.set(e.pos.x + dx * 3.45, e.pos.y + 11.8, e.pos.z + dz * 3.45);
+      e.parts.mouth.children[0].getWorldPosition(start);
       elbow.set(x + dx * 9, y + 0.48, z + dz * 9);
       end.set(x + dx * 28, y + 0.48, z + dz * 28);
       orient(beam, start, elbow, 1.03);
       orient(core, start, elbow, 0.48);
+      if (halo.visible) orient(halo, start, elbow, 1.7);
       orient(ground, elbow, end, 0.74);
     },
     dispose() {
