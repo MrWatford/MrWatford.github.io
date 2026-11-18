@@ -1,6 +1,10 @@
 import { GODZILLA_ID, GODZILLA_NAME, GODZILLA_HP } from "./godzilla-encounter.js";
 import { reptileSurface, reptileTail } from "./lost-world-model-geometry.js";
 
+export const GODZILLA_HEIGHT = 24;
+// The detailed rig stands 13.85 blocks tall before its encounter scale is applied.
+const GODZILLA_SCALE = GODZILLA_HEIGHT / 13.85;
+
 const hide = P => {
   P.fill(["#525d67"]);
   for (let y = 0; y < 16; y += 4) {
@@ -154,7 +158,7 @@ export function installGodzilla(species) {
   }
   species[GODZILLA_ID] = {
     godzilla: true, name: GODZILLA_NAME, boss: true, hostile: true, static: true, fireproof: true, noSave: true,
-    hp: GODZILLA_HP, w: 5.7, h: 14.1, speed: 0, sound: "roar", drops: () => [],
+    hp: GODZILLA_HP, scale: GODZILLA_SCALE, w: 5.7 * GODZILLA_SCALE, h: GODZILLA_HEIGHT, speed: 0, sound: "roar", drops: () => [],
     model: { type: "godzilla", parts }
   };
 }
@@ -171,9 +175,11 @@ export function animateGodzilla(e, dt, reducedMotion) {
   p["arm-1"].rotation.x = p.arm1.rotation.x;
   p.forearm1.rotation.x = p["forearm-1"].rotation.x = -0.45;
   const sway = reducedMotion ? 0 : Math.sin(e.age * 0.77) * 0.08;
-  p.tail.rotation.y = sway;
-  p.tailMid.rotation.y = sway * 0.75;
-  p.tailEnd.rotation.y = -sway * 0.65;
+  // Curl the full-length tail inside the existing arena instead of cutting into its rim.
+  p.tail.rotation.y = 0.45 + sway;
+  p.tailMid.rotation.y = 0.75 + sway * 0.75;
+  p.tailEnd.rotation.y = 0.75 - sway * 0.65;
+  p.tailTip.rotation.y = 0.6;
   const pulse = reducedMotion ? 0 : Math.sin(e.age * 5) * 0.1;
   e.glowMat?.color.setScalar(firing ? 1.8 : charged ? 1.35 + pulse : 0.9);
 }

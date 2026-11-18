@@ -1,0 +1,135 @@
+{
+  "release": "lost-world-4",
+  "status": "local_preview_unpublished",
+  "base": "d9fdb7ec63455d449798883c7e110d3bca29b226",
+  "recordedAt": "2026-11-18T00:51:43.995Z",
+  "sources": [
+    {
+      "path": "index.html",
+      "sha256": "565180b69ffee90ff12e3abe405432f4a4a96406157b74496ab601f6cdabf44b"
+    },
+    {
+      "path": "js/main.js",
+      "sha256": "08773793cfaf0c20bf695406ccb72786551d87881586f7764b118da5a71f06f2"
+    },
+    {
+      "path": "js/ui.js",
+      "sha256": "39b70c294d963df70c25dd74930bdb9107c00ed92741f54aaa67405bb92ee158"
+    },
+    {
+      "path": "js/starter.js",
+      "sha256": "a1fba25b9df727562e35d882d1278b74acb7426027234325459b8f03f1e9b141"
+    },
+    {
+      "path": "js/lost-world-map.js",
+      "sha256": "19f9909df4958b4862254af774ad7dfc7ff624c405b236f88a4936eeb19da0fb"
+    },
+    {
+      "path": "tools/lost-world-map-check.mjs",
+      "sha256": "dd11711201a77759ae67766956aa6f8e480bd296125dbf94ddb5a287099ff306"
+    }
+  ],
+  "unitCheck": "node tools/lost-world-map-check.mjs",
+  "coreBrowser": {
+    "release": "lost-world-4",
+    "browser": "157.0.8103.79",
+    "results": [
+      {
+        "existingSave": true,
+        "returningCache": true,
+        "importExport": true,
+        "preservedEdit": true,
+        "chapterGates": true,
+        "readOnly": true,
+        "canvasSelection": true,
+        "zoomPan": true,
+        "timerCleanupCycles": 10,
+        "regions": [
+          {
+            "dim": "lost_world",
+            "openMs": 46
+          },
+          {
+            "dim": "fern_plains",
+            "openMs": 35
+          },
+          {
+            "dim": "mangrove_wetlands",
+            "openMs": 115
+          },
+          {
+            "dim": "redwood_escarpment",
+            "openMs": 35
+          },
+          {
+            "dim": "amber_caverns",
+            "openMs": 46
+          },
+          {
+            "dim": "tyrant_canyon",
+            "openMs": 46
+          },
+          {
+            "dim": "volcanic_badlands",
+            "openMs": 32
+          },
+          {
+            "dim": "godzilla_caldera",
+            "openMs": 33
+          }
+        ]
+      },
+      {
+        "sandbox": "survival",
+        "opensWithoutMapItem": true,
+        "visitedRegions": 1
+      },
+      {
+        "sandbox": "creative",
+        "opensWithoutMapItem": true,
+        "visitedRegions": 8
+      },
+      {
+        "surfaceMap": true
+      },
+      {
+        "legacyCampaignMap": true
+      }
+    ],
+    "cached": [
+      "http://127.0.0.1:4186/js/main.js?v=lost-world-3"
+    ],
+    "errors": [],
+    "failures": []
+  },
+  "finalFocusAndSands": {
+    "keyboardSelection": true,
+    "focusPreservedOnRefresh": true,
+    "listScrollPreserved": true,
+    "narrowLayout": true,
+    "hollowSandsMap": true,
+    "errors": []
+  },
+  "hardcore": {
+    "surfaceHardcoreMap": true,
+    "saveReopen": true,
+    "errors": []
+  },
+  "syntaxAndRevisionsPassed": true,
+  "coverageNotes": [
+    "Full map suite preceded the focus/scroll retention refinement. A focused final browser run verifies the refinement, narrow layout and Hollow Sands regression.",
+    "The initial cache assertion watched disk cache only. The final passing run observes both HTTP memory and disk cache events.",
+    "Lost World creation supports Survival and Creative. Hardcore regression uses the existing Surface mode."
+  ],
+  "limits": [
+    "Desktop Chrome 157 with software WebGL, not a physical mobile or lower-end device.",
+    "No co-op verification.",
+    "Terrain is a generator survey. Player builds are not drawn. Habitat markers are not live creature tracking."
+  ],
+  "screenshots": [
+    "/Users/kadenwatford/.codex/visualizations/2026/11/17/01a1e7d4-6bc6-7003-a743-9d055a4d4f55/lost-world-map.png",
+    "/Users/kadenwatford/.codex/visualizations/2026/11/17/01a1e7d4-6bc6-7003-a743-9d055a4d4f55/lost-world-route.png",
+    "/Users/kadenwatford/.codex/visualizations/2026/11/17/01a1e7d4-6bc6-7003-a743-9d055a4d4f55/lost-world-caldera-map.png",
+    "/Users/kadenwatford/.codex/visualizations/2026/11/17/01a1e7d4-6bc6-7003-a743-9d055a4d4f55/lost-world-map-narrow.png"
+  ]
+}

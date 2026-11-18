@@ -22,6 +22,7 @@ import { AMBER_CAVERNS, AMBER_ARRIVAL, SEAL, isAmberSeal, SHORTCUT_REQUIRED_STAG
 import { REDWOODS } from "./redwood-escarpment.js";
 import { MANGROVE, RELAY_LIGHT } from "./mangrove-wetlands.js";
 import { LOST_WORLD_REGIONS, isLostWorldDimension, isLostWorldRegion } from "./lost-world-regions.js";
+import { toggleLostWorldWaypoint } from "./lost-world-map.js";
 import { expedition, isCampaignLandmark, readCampaignLandmark } from "./lost-world-campaign.js";
 import { LOST_WORLD, LOST_WORLD_GEN, LostWorldGenerator, worldHome } from "./lost-world.js";
 import { initForsaken, isQuestItem } from "./forsaken.js";
@@ -2067,6 +2068,7 @@ function openPanel(kind, ctx) {
 G.openAdvancements = () => openPanel("advancements");
 G.openJournal = () => { if (G.world && ["play", "pause", "panel"].includes(G.state)) openPanel("journal"); };
 G.openHollowSandsMap = () => { if (G.dim === HOLLOW_SANDS && G.state === "panel") openPanel("xmap"); };
+G.openLostWorldMap = () => { if (isLostWorldDimension(G.dim) && ["play", "pause", "panel"].includes(G.state)) openPanel("xmap"); };
 G.openNoteRaw = n => { if (G.state === "play" || G.state === "panel") openPanel("note", n); };
 G.closePanel = () => closePanel();
 function closePanel() {
@@ -2104,9 +2106,12 @@ window.addEventListener("keydown", e => {
   else if (e.code === G.settings.keySwap) swapHands();
   else if (e.code === "KeyL") openPanel("advancements");
   else if (e.code === "KeyJ") openPanel("journal");
-  else if (e.code === "KeyM") { if (G.dim === HOLLOW_SANDS || ST.canOpen()) openPanel("xmap"); else UI.toast("You need an Explorer's Map. Right-click the Expedition Table in your Starter Home for a new one.", "bad"); }
+  else if (e.code === "KeyM") { if (isLostWorldDimension(G.dim) || G.dim === HOLLOW_SANDS || ST.canOpen()) openPanel("xmap"); else UI.toast("You need an Explorer's Map. Right-click the Expedition Table in your Starter Home for a new one.", "bad"); }
   else if (e.code === "KeyN") {
-    if (G.dim === HOLLOW_SANDS) {
+    if (isLostWorldDimension(G.dim)) {
+      const visible = toggleLostWorldWaypoint(G);
+      UI.toast(visible === null ? "Choose a landmark on the Lost World map (M)." : visible ? "Lost World waypoint on." : "Lost World waypoint hidden.");
+    } else if (G.dim === HOLLOW_SANDS) {
       if (G.sandsWaypoint) G.sandsWaypointHidden = !G.sandsWaypointHidden;
       else UI.toast("Choose a destination on the Hollow Sands map (M).");
     } else if (ST.canOpen()) ST.toggleWaypoint();

@@ -4,6 +4,8 @@ import { REX_HOME } from "./tyrant-canyon.js";
 import { reptileSurface, reptileTail } from "./lost-world-model-geometry.js";
 
 const REX = "lost_world_tyrannosaurus";
+export const TYRANNOSAURUS_HEIGHT = 10;
+const REX_SCALE = TYRANNOSAURUS_HEIGHT / 4.09375;
 const hide = P => {
   P.fill(["#856047"]);
   for (let y = 0; y < 15; y += 3) for (let x = y % 2; x < 16; x += 4) {
@@ -108,9 +110,11 @@ export function installTyrannosaurus(species) {
   parts.push(part("lowerTeeth", [2, 4, 3], [0, 6, 17], undefined, { all: ivory }, {
     parent: "jaw", voxels: lowerTeeth.map(([x, y, z, ...size]) => [x, y - 6, z - 17, ...size])
   }));
+  // Put the neutral feet on the ground before scaling the detailed rig up.
+  for (const p of parts) if (!p.parent) p.pivot[1] -= 2;
   species[REX] = {
     name: "Tyrannosaurus", tyrannosaurus: true, hostile: true, persist: true,
-    hp: 135, w: 2.35, h: 4.25, speed: 3.8, dmg: 12, reach: 3.65,
+    hp: 135, scale: REX_SCALE, w: 2.35 * REX_SCALE, h: TYRANNOSAURUS_HEIGHT, speed: 3.8, dmg: 12, reach: 3.65,
     xp: 25, sound: "roar", drops: () => [[I.BONE, 8]],
     model: { type: "tyrannosaurus", parts }
   };
@@ -120,7 +124,7 @@ export function populateTyrannosaurus(manager, { cx, cz }) {
   if (cx !== 0 || cz !== 1) return;
   const [x, y, z] = REX_HOME, world = manager.world;
   if (SOLID[world.id(Math.floor(x), y - 1, Math.floor(z))] &&
-      [0, 1, 2, 3, 4].every(dy => !SOLID[world.id(Math.floor(x), y + dy, Math.floor(z))])) {
+      Array.from({ length: TYRANNOSAURUS_HEIGHT }, (_, dy) => dy).every(dy => !SOLID[world.id(Math.floor(x), y + dy, Math.floor(z))])) {
     manager.add(REX, x, y, z, { home: [...REX_HOME], yaw: Math.PI / 2 });
   }
 }
@@ -174,6 +178,7 @@ export function animateTyrannosaurus(e, swing, reducedMotion) {
   p.shin1.rotation.x = -Math.max(0, gait) * 0.8;
   p["shin-1"].rotation.x = -Math.max(0, -gait) * 0.8;
   p.tail.rotation.y = -gait * 0.27;
+  p.tail.rotation.x = 0.18;
   p.tailMid.rotation.y = gait * 0.25;
   p.tailTip.rotation.y = gait * 0.32;
   p.jaw.rotation.x = e.rexBite ? 0.72 : 0.06;

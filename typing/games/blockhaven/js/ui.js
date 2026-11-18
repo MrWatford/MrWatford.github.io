@@ -8,6 +8,8 @@ import { leviathanJournalHTML, bindLeviathanBondControls } from "./leviathan-jou
 import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
 import { HOLLOW_SANDS } from "./hollow-sands.js";
 import { hollowSandsMapHTML, mountHollowSandsMap } from "./hollow-sands-map.js";
+import { isLostWorldDimension } from "./lost-world-regions.js";
+import { lostWorldMapHTML, mountLostWorldMap } from "./lost-world-map.js";
 import { Cinema } from "./title-cinema.js";
 import { expeditionJournal } from "./lost-world-campaign.js";
 import { wildlifeJournalHTML } from "./wildlife-journal.js";
@@ -15,6 +17,7 @@ import { sparkworksGuideHTML, bindSparkworksGuide } from "./sparkworks-guide.js"
 
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
+let disposeLostWorldMap = null;
 const screens = ["title", "worlds", "newWorld", "loading", "pause", "settings", "controls", "death", "panel", "skins", "campaign", "together"];
 let current = "title", backTo = "title", skinFrom = "title", skinPick = "explorer";
 let cursor = null, hoverRef = null, panelKind = null, panelCtx = null, craftFilter = "can", craftSearch = "", creativeCat = "All", creativeSearch = "", advCat = CATEGORIES[0];
@@ -292,6 +295,7 @@ export const UI = {
     this.show("panel"); this.renderPanel();
   },
   closePanel() {
+    disposeLostWorldMap?.(); disposeLostWorldMap = null;
     if (cursor) { const left = G.inv.add(cursor.id, cursor.n, cursor); if (left) G.dropItem(cursor.id, left, cursor); cursor = null; }
     panelKind = null; panelCtx = null; $("cursorItem").hidden = true; $("tooltip").hidden = true;
     this.hud();
@@ -299,6 +303,7 @@ export const UI = {
   refreshPanel() { if (panelKind) this.renderPanel(true); },
 
   renderPanel(soft) {
+    disposeLostWorldMap?.(); disposeLostWorldMap = null;
     const p = $("panel");
     const scroll = p.querySelector(".recipes, .palette");
     const keep = scroll ? scroll.scrollTop : 0;
@@ -335,6 +340,12 @@ export const UI = {
         tab === "lost" ? G.lost.journalHTML() : G.forsaken.journalHTML();
       p.innerHTML = `<div class="inv-card fw-card"><h3>Journal <button type="button" class="chip-btn" data-journal-close title="J or Esc">Close</button></h3><nav class="jtabs journal-tabs" aria-label="Journal sections">${tabs}</nav>${page}</div>`;
       p.querySelectorAll("[data-expedition-travel]").forEach(button => button.onclick = () => { Sound.click(); G.expeditionTravel(button.dataset.expeditionTravel); });
+      if (tab === "expedition" && isLostWorldDimension(G.dim)) {
+        const mapButton = document.createElement("button");
+        mapButton.type = "button"; mapButton.className = "btn small"; mapButton.textContent = "Open Lost World Map (M)";
+        mapButton.onclick = () => { Sound.click(); G.openLostWorldMap(); };
+        p.querySelector(".fw-card").append(mapButton);
+      }
       p.querySelector("[data-journal-close]").onclick = () => G.closePanel();
       p.querySelectorAll("[data-jtab]").forEach(b => b.onclick = () => { Sound.click(); G.journalTab = b.dataset.jtab; this.renderPanel(); });
       p.querySelectorAll("[data-solkara-sanctuary]").forEach(b => b.onclick = () => { Sound.click(); G.visitSolkaraSanctuary(); });
@@ -368,6 +379,11 @@ export const UI = {
       G.campaign.mountTalk(p);
       return;
     } else if (panelKind === "xmap") {
+      if (isLostWorldDimension(G.dim)) {
+        p.innerHTML = lostWorldMapHTML();
+        disposeLostWorldMap = mountLostWorldMap(p, G, () => Sound.click());
+        return;
+      }
       if (G.dim === HOLLOW_SANDS) {
         p.innerHTML = hollowSandsMapHTML(G);
         mountHollowSandsMap(p, G, () => this.renderPanel());

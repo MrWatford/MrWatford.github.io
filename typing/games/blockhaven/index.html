@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blockhaven | Mr. Watford's Free-Time Games</title>
 <meta name="description" content="Blockhaven: explore, mine, craft, and build in a block world. Saves on your own device.">
-<meta name="blockhaven-release" content="lost-world-3">
+<meta name="blockhaven-release" content="lost-world-4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -282,6 +282,19 @@ details.more .set { margin-top: 10px; }
 .xmap .xm-info p { margin: 4px 0; }
 .xmap .xm-coords { color: #555; font-size: 12px; }
 .xmap .xm-guide { background: #efe6cf; border-left: 4px solid #b89a5a; padding: 6px 8px; }
+.lw-map h3 { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lw-map-intro { margin: 0 0 10px; color: #444; font-size: 13px; }
+.lw-map-regions { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+.lw-map-regions .chip-btn { font-size: 12px; min-height: 32px; }
+.lw-map #lwMapCanvas { width: 100%; height: auto; aspect-ratio: 1; display: block; border: 3px solid #3a2e1e; border-radius: 6px; background: #203e32; touch-action: none; cursor: grab; image-rendering: pixelated; }
+.lw-map .xm-body > * { min-width: 0; }
+.lw-map h4 { margin: 0 0 8px; color: #283d2d; }
+.lw-map .xm-dest { grid-template-columns: 20px minmax(0, 1fr) auto; }
+.lw-map .xm-dest > b { color: #526b3e; }
+.lw-map .lw-map-key { display: flex; flex-wrap: wrap; gap: 5px 14px; font-size: 12px; color: #333; margin: 8px 0; }
+.lw-map [data-lw-map-info] { border-left: 3px solid #718957; padding-left: 9px; line-height: 1.45; }
+.lw-map button:focus-visible { outline: 3px solid #286a72; outline-offset: 2px; }
+@media (max-width: 560px) { .lw-map .xm-dest { grid-template-columns: 18px minmax(0, 1fr); } .lw-map .xm-dest em { grid-column: 2; } .lw-map .xm-list { max-height: 240px; } }
 #compass i { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 4px; margin-left: -2px; background: linear-gradient(#e04030 50%, #333 50%); border-radius: 2px; }
 .beacon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin: 8px 0; }
 .beacon-pow { text-align: left; }
@@ -559,6 +572,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
     <button class="btn campaign-btn" id="btnCampaign">⚔️ Legacy Campaign</button>
+    <a class="btn campaign-btn" href="gus.html">Gus, the Iron Golem · Preview</a>
     <button class="btn" id="btnTogether">👥 Play Together</button>
     <div class="row"><button class="btn" id="btnSettings">Settings</button><button class="btn" id="btnControls">Controls</button></div>
     <button class="btn" id="btnSkins">👕 Skins</button>
@@ -714,7 +728,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     <h2>Controls</h2>
     <table class="keys">
       <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Walk</td></tr>
-      <tr><td><kbd>M</kbd></td><td>Open or close the Explorer's Map (pick a destination there)</td></tr>
+      <tr><td><kbd>M</kbd></td><td>Open or close the Explorer's Map or Lost World Map (pick a destination there)</td></tr>
       <tr><td><kbd>N</kbd></td><td>Show or hide the on-screen waypoint arrow</td></tr>
       <tr><td>Mouse or touchpad</td><td>Look around (click the game first). No mouse? Use <kbd>R</kbd> and <kbd>F</kbd> in place of the mouse buttons</td></tr>
       <tr><td><kbd>Space</kbd></td><td>Jump, swim up. In Creative, tap twice to fly, hold to rise</td></tr>
@@ -934,21 +948,22 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/amber-caverns.js": "./js/amber-caverns.js?v=lost-world-2",
     "./js/lost-world-cave-creatures.js": "./js/lost-world-cave-creatures.js?v=lost-world-2",
     "./js/tyrant-canyon.js": "./js/tyrant-canyon.js?v=lost-world-2",
-    "./js/lost-world-tyrannosaurus.js": "./js/lost-world-tyrannosaurus.js?v=lost-world-3",
+    "./js/lost-world-tyrannosaurus.js": "./js/lost-world-tyrannosaurus.js?v=lost-world-4",
     "./js/volcanic-badlands.js": "./js/volcanic-badlands.js?v=lost-world-2",
     "./js/godzilla-caldera.js": "./js/godzilla-caldera.js?v=lost-world-2",
     "./js/godzilla-encounter.js": "./js/godzilla-encounter.js?v=lost-world-2",
     "./js/godzilla-fight.js": "./js/godzilla-fight.js?v=lost-world-3",
-    "./js/godzilla-model.js": "./js/godzilla-model.js?v=lost-world-3",
+    "./js/godzilla-model.js": "./js/godzilla-model.js?v=lost-world-4",
     "./js/godzilla-view.js": "./js/godzilla-view.js?v=lost-world-3",
     "./js/lost-world-model-geometry.js": "./js/lost-world-model-geometry.js?v=lost-world-3",
+    "./js/lost-world-map.js": "./js/lost-world-map.js?v=lost-world-4",
     "./js/lost-world-regions.js": "./js/lost-world-regions.js?v=lost-world-2",
     "./js/lost-world-triceratops.js": "./js/lost-world-triceratops.js?v=lost-world-1",
     "./js/lost-world-wetland-creatures.js": "./js/lost-world-wetland-creatures.js?v=lost-world-1",
     "./js/lost-world.js": "./js/lost-world.js?v=lost-world-1",
     "./js/mangrove-wetlands.js": "./js/mangrove-wetlands.js?v=lost-world-1",
     "./js/redwood-escarpment.js": "./js/redwood-escarpment.js?v=lost-world-1",
-    "./js/main.js": "./js/main.js?v=lost-world-3",
+    "./js/main.js": "./js/main.js?v=lost-world-4",
     "./js/mutants.js": "./js/mutants.js?v=mob-visuals-1",
     "./js/forsaken-reaches.js": "./js/forsaken-reaches.js?v=mutants-4",
     "./js/maps.js": "./js/maps.js?v=leviathan-1.0.0",
@@ -974,10 +989,10 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/solkara-lore.js": "./js/solkara-lore.js?v=leviathan-1.0.0",
     "./js/solkara-scenery.js": "./js/solkara-scenery.js?v=leviathan-1.0.0",
     "./js/solkara-mural-view.js": "./js/solkara-mural-view.js?v=leviathan-1.0.0",
-    "./js/starter.js": "./js/starter.js?v=citadel-2",
+    "./js/starter.js": "./js/starter.js?v=lost-world-4",
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
     "./js/title-cinema.js": "./js/title-cinema.js?v=lost-world-1",
-    "./js/ui.js": "./js/ui.js?v=lost-world-1",
+    "./js/ui.js": "./js/ui.js?v=lost-world-4",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
     "./js/world.js": "./js/world.js?v=together-1",
     "./js/multiplayer.js": "./js/multiplayer.js?v=wildlife-preview-1",
@@ -989,6 +1004,6 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=lost-world-3"></script>
+<script type="module" src="js/main.js?v=lost-world-4"></script>
 </body>
 </html>
