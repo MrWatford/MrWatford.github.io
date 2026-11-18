@@ -4,13 +4,18 @@
 // All builders are deterministic: the same inputs always make the same blocks.
 import { B, HEIGHT, SEA, make, TOP } from "./blocks.js";
 import { makeKit } from "./campaign-kit.js";
+import { finishCampaignStonehaven } from "./campaign-stonehaven.js";
+import { finishCampaignSandspire } from "./campaign-sandspire.js";
 
 export const TOWNS_V = 1;
+export const STONEHAVEN_LAYOUT = 2;
+export const SANDSPIRE_LAYOUT = 2;
 export const SIZES = { stonehaven: 112, ruin: 64, sandspire: 96, oakwood: 96, seabreak: 96, keyruin: 40, wreck: 40, throne: 80 };
 const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
 // ======================= STONEHAVEN: the walled kingdom =======================
-export function buildStonehaven(g, groundAt) {
+export function buildStonehaven(g, groundAt, layout = 1) {
+  const renewed = layout === 2;
   const K = makeKit(SIZES.stonehaven, g), { set, box } = K;
   K.ground(groundAt, 46, 54);
   const W = 42;
@@ -78,7 +83,8 @@ export function buildStonehaven(g, groundAt) {
   const shops = [[10, -12, 18, -6, "n", "Armorer", "smith2", "shopArmor"], [22, -12, 30, -6, "n", "General Store", null, "shopGeneral"], [10, 6, 18, 12, "s", "Bakery", "baker", "shopBakery"], [22, 6, 30, 12, "s", "Tailor", null, "shopTailor"]];
   shops.forEach(([x0, z0, x1, z1, face, name, who, loot], i) => {
     const door = face === "n" ? "s" : "n", dz = face === "n" ? z1 : z0;
-    K.house({ x0, z0, x1, z1, h: 4, wall: i % 2 ? B.PLANKS : B.BIRCH_PLANKS, corner: B.LOG, floor: B.PLANKS, roof: i % 2 ? B.BRICKS : B.COBBLE, doorSide: door, doorAt: (x0 + x1) >> 1 });
+    const roof = renewed ? (i % 2 ? B.ROOF_TILES : B.DARKSLATE_BRICKS) : (i % 2 ? B.BRICKS : B.COBBLE);
+    K.house({ x0, z0, x1, z1, h: renewed ? 5 : 4, wall: i % 2 ? B.PLANKS : B.BIRCH_PLANKS, corner: B.LOG, floor: B.PLANKS, roof, ridge: renewed ? "z" : "x", doorSide: door, doorAt: (x0 + x1) >> 1 });
     K.sign(((x0 + x1) >> 1) + 2, g + 1, dz + (face === "n" ? 1 : -1), face === "n" ? 0 : 2, name + "\n\nOpen for business. Everything on the shelves is free for heroes of the realm!");
     K.chest(x0 + 1, g + 1, face === "n" ? z0 + 1 : z1 - 1, 1, loot, "Stonehaven " + name);
     box(x0 + 2, g + 1, face === "n" ? z0 + 1 : z1 - 1, x1 - 2, g + 1, face === "n" ? z0 + 1 : z1 - 1, B.PLANKS);
@@ -86,18 +92,20 @@ export function buildStonehaven(g, groundAt) {
   });
   K.place("shMarket", 20, 0, 12);
   // the barracks
-  K.house({ x0: -38, z0: -16, x1: -24, z1: -6, h: 5, wall: B.COBBLE, corner: B.STONE_BRICKS, floor: B.PLANKS, roof: B.COBBLE, doorSide: "s", doorAt: -31 });
+  K.house({ x0: -38, z0: -16, x1: -24, z1: -6, h: 5, wall: B.COBBLE, corner: B.STONE_BRICKS, floor: B.PLANKS, roof: renewed ? B.DARKSLATE_BRICKS : B.COBBLE, doorSide: "s", doorAt: -31 });
   for (let x = -37; x <= -25; x += 3) K.bed(x, g + 1, -14);
   K.chest(-37, g + 1, -8, 1, "shBarracks", "Barracks Locker"); K.chest(-25, g + 1, -8, 3, "shBarracks2", "Barracks Locker");
   K.npc("captainB", -31, -3); K.place("shBarracks", -31, -11, 8);
   K.sign(-28, g + 1, -5, 0, "Barracks of the Stonehaven Guard\n\nCaptain Brenna drills the guard here every morning.");
   // homes
-  [[-36, 8], [-24, 8], [-36, 20], [-24, 20], [-36, 32], [-24, 32]].forEach(([x0, z0], i) => {
-    K.house({ x0, z0, x1: x0 + 6, z1: z0 + 6, h: 4, wall: i % 2 ? B.PLANKS : B.BIRCH_PLANKS, corner: B.LOG, floor: B.PLANKS, roof: i % 3 ? B.BRICKS : B.COBBLE, ridge: "z", doorSide: "e", doorAt: z0 + 3 });
+  const homes = [[-36, 8], [-24, 8], [-36, 20], [-24, 20], [-36, 32], [-24, 32]];
+  homes.forEach(([x0, z0], i) => {
+    const roof = renewed ? (i % 3 ? B.ROOF_TILES : B.DARKSLATE_BRICKS) : (i % 3 ? B.BRICKS : B.COBBLE);
+    K.house({ x0, z0, x1: x0 + 6, z1: z0 + 6, h: 4, wall: i % 2 ? B.PLANKS : B.BIRCH_PLANKS, corner: B.LOG, floor: B.PLANKS, roof, ridge: renewed ? "x" : "z", doorSide: "e", doorAt: z0 + 3 });
     K.bed(x0 + 1, g + 1, z0 + 2); set(x0 + 1, g + 1, z0 + 5, B.TABLE); K.chest(x0 + 1, g + 1, z0 + 3, 1, "home", "Home Supplies");
   });
   // the inn
-  K.house({ x0: -14, z0: 26, x1: -6, z1: 38, h: 5, wall: B.PLANKS, corner: B.LOG, floor: B.PLANKS, roof: B.BRICKS, ridge: "z", doorSide: "e", doorAt: 32 });
+  K.house({ x0: -14, z0: 26, x1: -6, z1: 38, h: 5, wall: B.PLANKS, corner: B.LOG, floor: B.PLANKS, roof: renewed ? B.ROOF_TILES : B.BRICKS, ridge: renewed ? "x" : "z", doorSide: "e", doorAt: 32 });
   box(-12, g + 1, 28, -8, g + 1, 28, B.PLANKS); for (const z of [31, 35]) { set(-12, g + 1, z, B.PLANKS); set(-11, g + 1, z, B.OAK_FENCE); }
   K.bed(-13, g + 1, 37); K.chest(-13, g + 1, 33, 1, "inn", "Innkeeper's Pantry");
   K.sign(-5, g + 1, 30, 1, "The Sleeping Griffin Inn\n\nWarm beds and warmer soup.");
@@ -110,6 +118,7 @@ export function buildStonehaven(g, groundAt) {
   K.npc("guardB", 0, 38);
   // where raiders gather (outside the gates)
   K.info.marks.raid = [K.at(0, 50), K.at(50, 0), K.at(-50, 0)].map(p => ({ ...p, y: g + 1 }));
+  if (renewed) finishCampaignStonehaven(K, shops, homes);
   return K;
 }
 
@@ -152,7 +161,7 @@ export function buildRuin(g, groundAt) {
 }
 
 // ======================= SANDSPIRE: the desert town =======================
-export function buildSandspire(g, groundAt) {
+export function buildSandspire(g, groundAt, layout = 1) {
   const K = makeKit(SIZES.sandspire, g), { set, box } = K;
   K.ground(groundAt, 38, 46, B.SAND, B.SAND);
   const W = 36;
@@ -183,19 +192,22 @@ export function buildSandspire(g, groundAt) {
   K.tower(24, -24, 9, 26, B.SANDSTONE, "w");
   K.place("spire", 24, -24, 5); K.place("spireTop", 24, -24, 5, g + 26);
   // the bazaar
-  for (const [x, z] of [[8, -6], [16, -6], [24, -6], [8, 6], [16, 6], [24, 6]]) {
+  const stalls = [[8, -6], [16, -6], [24, -6], [8, 6], [16, 6], [24, 6]];
+  for (const [x, z] of stalls) {
     for (const [dx, dz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) box(x + dx, g + 1, z + dz, x + dx, g + 3, z + dz, B.OAK_FENCE);
     box(x - 2, g + 4, z - 2, x + 2, g + 4, z + 2, (xx, y, zz) => ((xx + zz) % 2 ? B.WOOL : B.BLACK_WOOL));
     box(x - 1, g + 1, z + (z < 0 ? 1 : -1), x + 1, g + 1, z + (z < 0 ? 1 : -1), B.SANDSTONE);
   }
   K.chest(16, g + 1, -7, 0, "bazaar", "Bazaar Crate"); K.npc("kadir", 16, -3); K.place("bazaar", 16, 0, 12);
   // flat-roofed houses
-  [[-30, 8], [-20, 8], [-30, 20], [-20, 20], [8, 20], [20, 20]].forEach(([x0, z0], i) => {
+  const homes = [[-30, 8], [-20, 8], [-30, 20], [-20, 20], [8, 20], [20, 20]];
+  for (const [x0, z0] of homes) {
     K.house({ x0, z0, x1: x0 + 7, z1: z0 + 6, h: 4, wall: B.SANDSTONE, corner: B.SUN_BRICKS, floor: B.SANDSTONE, roof: B.SANDSTONE, flat: true, doorSide: "n", doorAt: x0 + 3, win: B.AIR });
     K.bed(x0 + 1, g + 1, z0 + 5); K.chest(x0 + 6, g + 1, z0 + 5, 2, "spHome", "Clay Jar Chest");
-  });
+  }
   K.npc("potter", -24, 4);
   for (const [x, z] of [[-26, -12], [-14, -10], [30, 30], [-30, 30]]) { box(x, g + 1, z, x, g + 3, z, B.SANDSTONE); set(x, g + 4, z, B.TORCH); }
+  if (layout === 2) finishCampaignSandspire(K, stalls, homes);
   return K;
 }
 
