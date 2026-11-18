@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blockhaven | Mr. Watford's Free-Time Games</title>
 <meta name="description" content="Blockhaven: explore, mine, craft, and build in a block world. Saves on your own device.">
-<meta name="blockhaven-release" content="lost-world-4">
+<meta name="blockhaven-release" content="stonehaven-capital-1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -405,6 +405,7 @@ details.more .set { margin-top: 10px; }
 /* Shared top rail lets wrapped boss names, waypoints and tips size themselves. */
 #hudTop { position: absolute; inset: 12px 14px auto; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
 #hudTop #bossbar, #hudTop #waypoint, #hudTop #toasts { position: static; transform: none; }
+#settlementRaidHud { max-width: 100%; text-align: center; color: #ffe1ad; background: #2f1e18ed; border: 2px solid #a76538; border-radius: 8px; padding: 6px 11px; font-size: 13px; font-weight: 800; }
 #hudTop #bossbar { width: min(520px, 100%); }
 #leviathanWarning { --warning-ink: #ffe0a2; box-sizing: border-box; position: relative; width: min(370px, 100%); display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 9px; overflow: hidden; padding: 6px 10px 9px; border: 1px solid var(--warning-ink); border-radius: 7px; background: #18181bee; color: #fff6e8; }
 #leviathanWarning[data-family=obsidian] { --warning-ink: #ffba84; }
@@ -542,6 +543,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
       <span class="warning-symbol" aria-hidden="true">!</span><span><b></b><small></small></span><i aria-hidden="true"></i>
     </div>
     <div id="waypoint" hidden><span class="wp-arrow"><i></i></span><span class="wp-text"><b></b><em></em></span></div>
+    <div id="settlementRaidHud" role="status" hidden></div>
     <div id="tip" hidden></div>
     <div id="toasts" aria-live="polite"></div>
     <div id="effects"></div>
@@ -887,7 +889,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/wildlife.js": "./js/wildlife.js?v=wildlife-roster-1",
     "./js/wildlife-models.js": "./js/wildlife-models.js?v=mob-visuals-1",
     "./js/wildlife-dens.js": "./js/wildlife-dens.js?v=wildlife-preview-1",
-    "./js/entities.js": "./js/entities.js?v=lost-world-3",
+    "./js/entities.js": "./js/entities.js?v=settlement-defense-1",
     "./js/echohold-atmosphere.js": "./js/echohold-atmosphere.js?v=echohold-1",
     "./js/echohold-hunt.js": "./js/echohold-hunt.js?v=echohold-1",
     "./js/echohold-secrets.js": "./js/echohold-secrets.js?v=echohold-1",
@@ -948,22 +950,22 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/amber-caverns.js": "./js/amber-caverns.js?v=lost-world-2",
     "./js/lost-world-cave-creatures.js": "./js/lost-world-cave-creatures.js?v=lost-world-2",
     "./js/tyrant-canyon.js": "./js/tyrant-canyon.js?v=lost-world-2",
-    "./js/lost-world-tyrannosaurus.js": "./js/lost-world-tyrannosaurus.js?v=lost-world-4",
+    "./js/lost-world-tyrannosaurus.js": "./js/lost-world-tyrannosaurus.js?v=kingdoms-preview-1",
     "./js/volcanic-badlands.js": "./js/volcanic-badlands.js?v=lost-world-2",
     "./js/godzilla-caldera.js": "./js/godzilla-caldera.js?v=lost-world-2",
     "./js/godzilla-encounter.js": "./js/godzilla-encounter.js?v=lost-world-2",
     "./js/godzilla-fight.js": "./js/godzilla-fight.js?v=lost-world-3",
-    "./js/godzilla-model.js": "./js/godzilla-model.js?v=lost-world-4",
+    "./js/godzilla-model.js": "./js/godzilla-model.js?v=kingdoms-preview-1",
     "./js/godzilla-view.js": "./js/godzilla-view.js?v=lost-world-3",
     "./js/lost-world-model-geometry.js": "./js/lost-world-model-geometry.js?v=lost-world-3",
-    "./js/lost-world-map.js": "./js/lost-world-map.js?v=lost-world-4",
+    "./js/lost-world-map.js": "./js/lost-world-map.js?v=kingdoms-preview-1",
     "./js/lost-world-regions.js": "./js/lost-world-regions.js?v=lost-world-2",
     "./js/lost-world-triceratops.js": "./js/lost-world-triceratops.js?v=lost-world-1",
     "./js/lost-world-wetland-creatures.js": "./js/lost-world-wetland-creatures.js?v=lost-world-1",
     "./js/lost-world.js": "./js/lost-world.js?v=lost-world-1",
     "./js/mangrove-wetlands.js": "./js/mangrove-wetlands.js?v=lost-world-1",
     "./js/redwood-escarpment.js": "./js/redwood-escarpment.js?v=lost-world-1",
-    "./js/main.js": "./js/main.js?v=lost-world-4",
+    "./js/main.js": "./js/main.js?v=stonehaven-capital-1",
     "./js/mutants.js": "./js/mutants.js?v=mob-visuals-1",
     "./js/forsaken-reaches.js": "./js/forsaken-reaches.js?v=mutants-4",
     "./js/maps.js": "./js/maps.js?v=leviathan-1.0.0",
@@ -989,21 +991,27 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/solkara-lore.js": "./js/solkara-lore.js?v=leviathan-1.0.0",
     "./js/solkara-scenery.js": "./js/solkara-scenery.js?v=leviathan-1.0.0",
     "./js/solkara-mural-view.js": "./js/solkara-mural-view.js?v=leviathan-1.0.0",
-    "./js/starter.js": "./js/starter.js?v=lost-world-4",
+    "./js/starter.js": "./js/starter.js?v=kingdoms-preview-3",
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
     "./js/title-cinema.js": "./js/title-cinema.js?v=lost-world-1",
-    "./js/ui.js": "./js/ui.js?v=lost-world-4",
+    "./js/ui.js": "./js/ui.js?v=settlement-defense-1",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
-    "./js/world.js": "./js/world.js?v=together-1",
+    "./js/world.js": "./js/world.js?v=village-overhaul-1",
     "./js/multiplayer.js": "./js/multiplayer.js?v=wildlife-preview-1",
     "./js/mp-words.js": "./js/mp-words.js?v=together-1",
-    "./js/worldgen.js": "./js/worldgen.js?v=citadel-7",
+    "./js/settlement-festivals.js": "./js/settlement-festivals.js?v=stonehaven-capital-1",
+    "./js/stonehaven.js": "./js/stonehaven.js?v=stonehaven-capital-1",
+    "./js/lantern-vale.js": "./js/lantern-vale.js?v=village-overhaul-1",
+    "./js/settlement-raids.js": "./js/settlement-raids.js?v=stonehaven-capital-1",
+    "./js/village-growth.js": "./js/village-growth.js?v=village-growth-1",
+    "./js/village-overhaul.js": "./js/village-overhaul.js?v=village-overhaul-1",
+    "./js/worldgen.js": "./js/worldgen.js?v=stonehaven-capital-1",
     "./js/dune-leviathan.js?v=pose-2": "./js/dune-leviathan.js?v=leviathan-1.0.0",
     "./js/leviathan-glow.js?v=charge-1": "./js/leviathan-glow.js?v=leviathan-1.0.0",
     "./js/dune-warning.js?v=physical-2": "./js/dune-warning.js?v=leviathan-1.0.0",
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=lost-world-4"></script>
+<script type="module" src="js/main.js?v=stonehaven-capital-1"></script>
 </body>
 </html>
