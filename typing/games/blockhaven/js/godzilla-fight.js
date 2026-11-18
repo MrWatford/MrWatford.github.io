@@ -114,7 +114,7 @@ export function initGodzillaFight({ G, ents, scene, Sound, UI, saveNow, hurt }) 
     actor.atomicCharge = breath && cycle.mode === "warning";
     actor.atomicFiring = breath && cycle.mode === "strike";
     if (actor.atomicCharge || actor.atomicFiring || view) {
-      (view ||= createGodzillaView(scene)).update(cycle, actor, G.settings.reducedMotion);
+      (view ||= createGodzillaView(scene)).update(cycle, actor, G.settings.reducedMotion, G.settings.fx);
     }
     if (actor.atomicFiring && !cycle.hit && inAtomicBreath(cycle, player.pos)) {
       cycle.hit = true;

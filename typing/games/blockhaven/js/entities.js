@@ -5,6 +5,7 @@ import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAW
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
 import { installGodzilla, animateGodzilla } from "./godzilla-model.js";
+import { createVoxelGeometry } from "./lost-world-model-geometry.js";
 import { TYRANT_CANYON } from "./tyrant-canyon.js";
 import { installTyrannosaurus, populateTyrannosaurus, thinkTyrannosaurus, animateTyrannosaurus } from "./lost-world-tyrannosaurus.js";
 import { AMBER_CAVERNS } from "./amber-caverns.js";
@@ -111,7 +112,7 @@ function makeSpecies(sp, shaded) {
     for (const part of sp.model.parts) {
       const firstTile = tile;
       const wrapped = part.rounded || part.mawShell;
-      const g = vi === 0 ? (part.mawShell ? createMawShell(part.size) : part.rounded ? new THREE.CylinderGeometry(1, 1, 1, 8, 1).rotateX(Math.PI / 2)
+      const g = vi === 0 ? (part.voxels ? createVoxelGeometry(part) : part.mawShell ? createMawShell(part.size) : part.rounded ? new THREE.CylinderGeometry(1, 1, 1, 8, 1).rotateX(Math.PI / 2)
         .scale(part.size[0] / 32, part.size[1] / 32, part.size[2] / 16) :
         new THREE.BoxGeometry(part.size[0] / 16, part.size[1] / 16, part.size[2] / 16)) : null;
       const bounds = boxFaces.get(part.name);
@@ -136,7 +137,15 @@ function makeSpecies(sp, shaded) {
         const tx = (tile % 8) * 16, ty = Math.floor(tile / 8) * 16; tile++;
         const paint = part.paint[face] || part.paint.all;
         paint(painterFor(ctx, tx, ty), face, sp.variants && sp.variants[vi]);
-        if (uv && !wrapped) for (let k = 0; k < 4; k++) { const i = f * 4 + k, u = uv.getX(i), v = uv.getY(i); uv.setXY(i, (tx + 0.05 + u * 15.9) / 128, 1 - (ty + 0.05 + (1 - v) * 15.9) / canvas.height); }
+        if (uv && !wrapped) {
+          for (let box = 0; box < uv.count / 24; box++) {
+            for (let k = 0; k < 4; k++) {
+              const i = box * 24 + f * 4 + k, u = uv.getX(i), v = uv.getY(i);
+              uv.setXY(i, (tx + 0.05 + u * 15.9) / 128,
+                1 - (ty + 0.05 + (1 - v) * 15.9) / canvas.height);
+            }
+          }
+        }
       });
       if (g) {
         if (wrapped) {
@@ -151,7 +160,12 @@ function makeSpecies(sp, shaded) {
           const colors = wrapped ? Array.from({ length: g.attributes.position.count }, (_, i) => {
             const tone = 0.58 + 0.42 * Math.max(0, (g.attributes.normal.getY(i) + 1) / 2);
             return [tone, tone, tone];
-          }).flat() : [0.65, 0.81, 1, 0.48, 0.92, 0.72].flatMap(tone => Array(12).fill(tone));
+          }).flat() : Array.from({ length: g.attributes.position.count / 24 }, () =>
+            [0.65, 0.81, 1, 0.48, 0.92, 0.72].flatMap(tone => Array(12).fill(tone))).flat();
+          if (g.userData.occlusion) {
+            for (let i = 0; i < colors.length; i++) colors[i] *= g.userData.occlusion[Math.floor(i / 3)];
+            delete g.userData.occlusion;
+          }
           g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
         }
         uv.needsUpdate = true;
@@ -159,7 +173,8 @@ function makeSpecies(sp, shaded) {
       }
     }
     const tex = new THREE.CanvasTexture(canvas);
-    if (shaded) tex.colorSpace = THREE.SRGBColorSpace;
+    // These palettes are authored for the game's linear-output renderer.
+    if (shaded && !sp.godzilla && !sp.tyrannosaurus) tex.colorSpace = THREE.SRGBColorSpace;
     tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
     sp.texs.push(tex);
   }
@@ -1812,7 +1827,13 @@ export class Entities {
       const pivot = new THREE.Group(); pivot.position.set(p.pivot[0] / 16, p.pivot[1] / 16, p.pivot[2] / 16);
       if (p.rotation) pivot.rotation.set(...p.rotation);
       if (p.name.startsWith("mawRim")) pivot.userData.mawRest = pivot.position.clone();
-      const m = new THREE.Mesh(def.geos[p.name], mat); m.position.set(p.off[0] / 16, p.off[1] / 16, p.off[2] / 16);
+      let partMaterial = mat;
+      if (p.fullbright) {
+        e.glowMat ||= mat.clone();
+        e.glowMat.vertexColors = false;
+        partMaterial = e.glowMat;
+      }
+      const m = new THREE.Mesh(def.geos[p.name], partMaterial); m.position.set(p.off[0] / 16, p.off[1] / 16, p.off[2] / 16);
       pivot.add(m); (p.parent ? parts[p.parent].children[0] : root).add(pivot); parts[p.name] = pivot;
     }
     if (def.model.armsOut) { parts.armR.rotation.x = parts.armL.rotation.x = -Math.PI / 2; }
@@ -3800,7 +3821,7 @@ export class Entities {
       updateLeviathanHitVolumes(e);
       return;
     }
-    if (def.godzilla) animateGodzilla(e, this.ctx.reducedMotion?.());
+    if (def.godzilla) animateGodzilla(e, dt, this.ctx.reducedMotion?.());
     if (def.tyrannosaurus) animateTyrannosaurus(e, swing, this.ctx.reducedMotion?.());
     if (def.caveCreature) animateCaveCreature(e,swing,this.ctx.reducedMotion?.());
     if (def.brachiosaurus) animateBrachiosaurus(e, swing, this.ctx.reducedMotion?.());
@@ -4012,8 +4033,7 @@ export class Entities {
     if (e.fuse > 0 && Math.sin(e.age * 25) > 0) e.mat.color.setRGB(1, 1, 1);
     else if (e.hurtT > 0) e.mat.color.setRGB(1, 0.35 * b, 0.35 * b);
     else if (e.burning > 0) e.mat.color.setRGB(Math.min(1, b * 1.4), b * 0.7, b * 0.4);
-    else if (def.godzilla && (e.atomicCharge || e.atomicFiring)) e.mat.color.setRGB(0.62, 1.05, 1.72);
-    else e.mat.color.setScalar(def.godzilla ? Math.max(b, 0.54) : b);
+    else e.mat.color.setScalar(def.godzilla ? Math.max(b, 0.7) : b);
     if (e.heldMesh) e.heldMesh.material.color.setScalar(b);
     if (e.def.mutant) animateMutant(e, dt);
   }
