@@ -12,12 +12,13 @@ import { B, I, CHUNK, SEA, itemDef, make } from "./blocks.js";
 import { untouchedFootprint } from "./structure-placement.js";
 import { newStack } from "./inventory.js";
 import { buildVillage, VSIZE, VC, VILLAGE_V } from "./campaign-village.js";
-import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
+import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, STONEHAVEN_LAYOUT, SANDSPIRE_LAYOUT, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
 import { buildIronhold, buildBlightCitadel, buildOutpost, buildSealShrine, buildHollowmere, SIZES2, TOWNS2_V } from "./campaign-towns2.js";
 import { buildSkyreach, buildCapital, SIZES3, TOWNS3_V } from "./campaign-towns3.js";
 import { initBosses, BOSSES } from "./campaign-bosses.js";
 import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS, BOSS_NAMES, CHAPTER_START, PLAYABLE, FINAL_QUEST, ENDINGS } from "./campaign-data.js";
-export { CAMPAIGN_SEED, CAMPAIGN_WORLD, VILLAGE_V as CAMPAIGN_VILLAGE_LAYOUT };
+export { CAMPAIGN_SEED, CAMPAIGN_WORLD, STONEHAVEN_LAYOUT as CAMPAIGN_STONEHAVEN_LAYOUT,
+  SANDSPIRE_LAYOUT as CAMPAIGN_SANDSPIRE_LAYOUT, VILLAGE_V as CAMPAIGN_VILLAGE_LAYOUT };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const k3 = (x, y, z) => x + "," + y + "," + z;
@@ -111,10 +112,17 @@ export function initCampaign(api) {
     const add = (id, kind, p, extra) => { if (!p) return; s.sites[id] = { cx: p.x, cz: p.z, g: p.g, kind, v: TOWNS_V, ...extra }; occ.push({ x: p.x, z: p.z, r: SZ[kind] / 2 + 2 }); };
     const toward = (a, b, k) => ({ x: Math.round(a.x + (b.x - a.x) * k), z: Math.round(a.z + (b.z - a.z) * k) });
     const vc = { x: v.cx, z: v.cz }, desert = ts.desert && { x: ts.desert.x + 16, z: ts.desert.z + 16 }, jungle = ts.jungle && { x: ts.jungle.x + 16, z: ts.jungle.z + 16 }, sea = ts.sea && { x: ts.sea.x + 16, z: ts.sea.z + 16 };
-    if (!s.sites.stonehaven) add("stonehaven", "stonehaven", search(desert ? toward(vc, desert, 0.75) : { x: vc.x - 200, z: vc.z }, "stonehaven", 0, 260, (x, z, h, r) => land(x, z, h, r, ["plains"])));
+    if (!s.sites.stonehaven) {
+      const origin = desert ? toward(vc, desert, 0.75) : { x: vc.x - 200, z: vc.z };
+      const site = search(origin, "stonehaven", 0, 260, (x, z, h, r) => land(x, z, h, r, ["plains"]));
+      add("stonehaven", "stonehaven", site, { v: G.meta.campaign.stonehavenLayout ?? TOWNS_V });
+    }
     const sh = s.sites.stonehaven;
     if (!s.sites.ruin && sh) add("ruin", "ruin", search(toward(vc, { x: sh.cx, z: sh.cz }, 0.5), "ruin", 0, 160, (x, z, h, r) => land(x, z, h, r)));
-    if (!s.sites.sandspire && desert) add("sandspire", "sandspire", search(desert, "sandspire", 60, 260, (x, z, h, r) => land(x, z, h, r, ["sandy"])));
+    if (!s.sites.sandspire && desert) {
+      const site = search(desert, "sandspire", 60, 260, (x, z, h, r) => land(x, z, h, r, ["sandy"]));
+      add("sandspire", "sandspire", site, { v: G.meta.campaign.sandspireLayout ?? TOWNS_V });
+    }
     if (!s.sites.oakwood && jungle) add("oakwood", "oakwood", search(jungle, "oakwood", 60, 260, (x, z, h, r) => land(x, z, h, r, ["forest", "birch"])));
     if (!s.sites.seabreak && sea) {
       const p = search(sea, "seabreak", 50, 260, (x, z, h, r) => { const c = gen.column(x, z); if (c.h <= SEA + 1) return null; let water = 0; for (let a = 0; a < 8; a++) if (gen.column(x + Math.cos(a * 0.785) * 44, z + Math.sin(a * 0.785) * 44).h <= SEA) water++; if (!water || water > 5) return null; return { s: Math.abs(water - 3) * 2 + r / 50, g: SEA + 2 }; });
@@ -162,7 +170,7 @@ export function initCampaign(api) {
   function siteBuild(id, rec, gen) {
     if (id === "village") return built(id, rec, () => buildVillage(rec.g, groundFor(gen, rec), rec.v));
     const k = rec.kind || id, gnd = groundFor(gen, rec);
-    return built(id, rec, () => k === "stonehaven" ? buildStonehaven(rec.g, gnd) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd) : k === "oakwood" ? buildOakwood(rec.g, gnd)
+    return built(id, rec, () => k === "stonehaven" ? buildStonehaven(rec.g, gnd, rec.v) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd, rec.v) : k === "oakwood" ? buildOakwood(rec.g, gnd)
       : k === "seabreak" ? buildSeabreak(rec.g, gnd, rec.rot || 0) : k === "keyruin" ? buildKeyRuin(rec.n, rec.g, gnd)
       : k === "ironhold" ? buildIronhold(rec.g, gnd) : k === "blightcitadel" ? buildBlightCitadel(rec.g, gnd) : k === "outpost" ? buildOutpost(rec.g, gnd) : k === "hollowmere" ? buildHollowmere(rec.g, gnd)
       : k === "skyreach" ? buildSkyreach(rec.g, gnd) : k === "capital" ? buildCapital(rec.g, gnd) : buildWreck(rec.g));
