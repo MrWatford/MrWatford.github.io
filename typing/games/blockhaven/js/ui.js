@@ -75,7 +75,12 @@ export const UI = {
     $("importFile").onchange = async e => {
       const f = e.target.files[0]; e.target.value = "";
       if (!f) return;
-      try { await G.importWorld(f); this.toast("World loaded from file!", "good"); this.showWorlds(); }
+      try {
+        const world = await G.importWorld(f);
+        this.toast("World loaded from file!", "good");
+        if (world.campaign) await this.showCampaigns();
+        else await this.showWorlds();
+      }
       catch (err) { this.toast(err.message, "bad"); }
     };
     $("importFile").previousElementSibling.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("importFile").click(); } };
@@ -331,7 +336,11 @@ export const UI = {
       const raid = defense ? `<div class="recipe"><div class="out"><img src="${iconURL(B.BELL)}" alt=""></div>
         <div><div class="name">${defense.title}</div><div>${defense.text}</div></div>
         ${defense.action ? `<button class="btn small primary" id="btnSettlementDefense">${defense.action}</button>` : ""}</div>` : "";
-      const JOBS = { farmer: "Composter", fletcher: "Fletching Table", shepherd: "Loom", cleric: "Healing Altar", smith: "Smithing Anvil" };
+      const review = G.villageRenovation?.status(e);
+      const renovation = review ? `<div class="recipe"><div class="out"><img src="${iconURL(B.ROOF_TILES)}" alt=""></div>
+        <div><div class="name">Village renovation</div><div>${review.text}</div></div>
+        ${review.eligible ? `<button class="btn small primary" id="btnVillageRenovate">Review</button>` : ""}</div>` : "";
+      const JOBS = { farmer: "Composter", fletcher: "Fletching Table", shepherd: "Loom", cleric: "Healing Altar", smith: "Smithing Anvil", scribe: "Bookshelf", beekeeper: "Beehive" };
       const rows = e ? TRADES[e.def.prof].map((t, i) => {
         const can = t[0].every(([id, n]) => G.inv.count(id) >= n), sold = e.uses[i] >= t[2];
         const ins = t[0].map(([id, n]) => `<span class="${G.inv.count(id) >= n ? "" : "miss"}"><img src="${iconURL(id)}" alt="">${n} ${escapeAttr(itemDef(id).name)}</span>`).join(" + ");
@@ -339,9 +348,10 @@ export const UI = {
           <div><div class="name">${escapeAttr(itemDef(t[1][0]).name)}${t[1][1] > 1 ? " ×" + t[1][1] : ""}</div><div class="ins">${ins}</div>${sold ? `<div class="need">Sold out for now</div>` : `<div class="note" style="color:#555;font-size:11px">${t[2] - e.uses[i]} left</div>`}</div>
           <button class="btn small ${can && !sold ? "primary" : ""}" data-trade="${i}" ${can && !sold ? "" : "disabled"}>Trade</button></div>`;
       }).join("") : `<p class="note">They wandered off.</p>`;
-      left = `<div class="inv-card"><h3>${e ? escapeAttr(e.def.name) : "Trading"} <span class="note" style="color:#444">Pay with Jade</span></h3><div class="recipes">${raid}${settlement}${festival}${rows}</div>
+      left = `<div class="inv-card"><h3>${e ? escapeAttr(e.def.name) : "Trading"} <span class="note" style="color:#444">Pay with Jade</span></h3><div class="recipes">${renovation}${raid}${settlement}${festival}${rows}</div>
         <p class="help">${e && JOBS[e.def.prof] ? `Sold-out trades come back while this villager works at their ${JOBS[e.def.prof]} (up to twice a day).` : "The Wanderer only stays for a few minutes!"} Shift-click Trade to trade as many times as you can.</p></div>`;
       p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
+      p.querySelector("#btnVillageRenovate")?.addEventListener("click", () => G.villageRenovation.queue(e));
       p.querySelector("#btnSettlementDefense")?.addEventListener("click", () => G.settlementRaids.interact(e));
       p.querySelector("#btnVillageProject")?.addEventListener("click", () => {
         if (growth.funded) G.villageGrowth.build(e);

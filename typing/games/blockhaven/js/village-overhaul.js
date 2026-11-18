@@ -2,6 +2,8 @@ import { B, CHUNK, HEIGHT, SEA, HEAD, OPEN, TOP, WET, make } from "./blocks.js";
 import { hash3 } from "./noise.js";
 
 export const VILLAGE_OVERHAUL_GEN = 12;
+export const VILLAGE_PROFESSIONS_GEN = 14;
+export const VILLAGE_TERRAIN_GEN = 15;
 
 const PLOTS = [
   ["farm", "farmer"], ["house", "cleric"], ["house", "shepherd"], ["house", "smith"],
@@ -49,19 +51,37 @@ function terrainPlan(gen, village, cache) {
   return plan;
 }
 
-export function detailedVillagePiece(gen, village, cx, cz, cache) {
-  const minX = (village.vx - 1) * CHUNK, minZ = (village.vz - 1) * CHUNK;
-  const size = 3 * CHUNK;
-  if (gen.stamps?.some(s => s.x < minX + size && s.x + s.size > minX &&
-    s.z < minZ + size && s.z + s.size > minZ)) return null;
+function villagePlotReserved(gen, minX, minZ, size = CHUNK) {
+  return gen.stamps?.some(s => s.x < minX + size && s.x + s.size > minX &&
+    s.z < minZ + size && s.z + s.size > minZ);
+}
+
+export function detailedVillagePiece(gen, village, cx, cz, cache, legacy, layoutVersion = gen.version) {
+  // New and explicitly renovated plots can work around nearby landmarks one plot at a time.
+  const singlePlot = !!legacy || gen.version >= VILLAGE_PROFESSIONS_GEN;
+  const minX = (singlePlot ? cx : village.vx - 1) * CHUNK;
+  const minZ = (singlePlot ? cz : village.vz - 1) * CHUNK;
+  const size = (singlePlot ? 1 : 3) * CHUNK;
+  if (villagePlotReserved(gen, minX, minZ, size)) return null;
   const plan = terrainPlan(gen, village, cache);
   const dx = cx - village.vx, dz = cz - village.vz, x0 = cx * CHUNK, z0 = cz * CHUNK;
   const i = AROUND.findIndex(([x, z]) => x === dx && z === dz);
-  const [type, prof] = i === -1 ? ["plaza", "cleric"] : PLOTS[(i + plan.shift) % PLOTS.length];
-  const y = plan.gentle ? plan.y + dz * plan.slope : plan.levels[(dx + 1) + (dz + 1) * 3];
-  if (y === null) return null;
-  const p = { type, prof, dx, dz, y, biome: plan.biome, detailed: true, rough: !plan.gentle,
+  const slot = (i + plan.shift) % PLOTS.length;
+  const [type, earlierProf] = legacy ? [legacy.type, legacy.prof] : i === -1 ? ["plaza", "cleric"] : PLOTS[slot];
+  const modern = !legacy && i !== -1 && gen.version >= VILLAGE_PROFESSIONS_GEN;
+  const prof = modern && slot === 6 ? "beekeeper" : modern && slot === 7 ? "scribe" : earlierProf;
+  const level = plan.gentle ? plan.y + dz * plan.slope : plan.levels[(dx + 1) + (dz + 1) * 3];
+  const compact = level === null;
+  if (compact && layoutVersion < VILLAGE_TERRAIN_GEN && !legacy) return null;
+  const natural = compact ? gen.column(x0 + 8, z0 + 8).h : null;
+  const y = compact ? Math.max(SEA + 1, Math.min(HEIGHT - 12, natural)) : legacy?.y ?? level;
+  const p = { type, prof, dx, dz, y, biome: plan.biome, detailed: true, rough: !!legacy || !plan.gentle,
     center: [village.vx * CHUNK + 8, village.vz * CHUNK + 8] };
+  if (compact) {
+    p.compact = true;
+    p.waterside = natural <= SEA + 2;
+    p.entry = [x0 + 7.5, y + 1, z0 + 12.5];
+  }
   if (type === "house") {
     p.bed = [x0 + 5, y + 1, z0 + 5];
     p.job = [x0 + 10, y + 1, z0 + 6];
@@ -174,7 +194,7 @@ export function buildDetailedVillage(data, p, cols, seed, x0, z0, jobBlock) {
   const chapel = p.prof === "cleric", smithy = p.prof === "smith", loft = p.prof === "fletcher";
   const width = chapel || smithy ? 9 : 8, right = 3 + width;
   const back = p.prof === "shepherd" ? 4 : 3;
-  const eaves = chapel || loft ? 6 : smithy ? 4 : 5;
+  const eaves = chapel || loft || p.prof === "scribe" ? 6 : smithy ? 4 : 5;
   for (let x = 4; x <= right; x++) for (let z = back; z <= 10; z++) {
     const front = z === 10, end = front || z === back, side = x === 4 || x === right;
     put(x, 0, z, desert ? stone : B.PLANKS);
@@ -227,6 +247,15 @@ export function buildDetailedVillage(data, p, cols, seed, x0, z0, jobBlock) {
     fill(6, 15, 4, 10, 15, 8, roof);
     fill(7, 16, 5, 9, 16, 7, roof);
     put(8, 17, 6, B.BRAZIER);
+  } else if (p.prof === "scribe") {
+    fill(9, 1, 4, 10, 2, 4, B.BOOKSHELF);
+    put(9, 1, 8, B.MAP_TABLE);
+    put(10, 1, 8, B.CHEST);
+  } else if (p.prof === "beekeeper") {
+    for (const z of [5, 7, 9]) planter(13, z);
+    put(13, 1, 6, B.LOG);
+    put(13, 2, 6, make(B.BEE_NEST, 1));
+    put(8, 1, 9, B.TABLE);
   } else if (loft) {
     fill(5, 3, 4, 8, 3, 7, B.PLANKS);
     fill(5, 4, 8, 8, 4, 8, B.OAK_FENCE);
@@ -248,4 +277,131 @@ export function buildDetailedVillage(data, p, cols, seed, x0, z0, jobBlock) {
     fill(14, 1, 4, 14, 1, 9, B.OAK_FENCE);
   }
   lamp(13, 10);
+}
+
+export function buildCompactVillage(data, p, cols, seed, x0, z0, jobBlock) {
+  const { stone, worn, timber, wall, roof, ground } = PALETTES[p.biome];
+  const dry = p.biome === "sandy";
+  const put = (x, y, z, block) => {
+    if (y > 0 && y < HEIGHT) data[x + z * CHUNK + y * CHUNK * CHUNK] = block;
+  };
+  const fill = (x1, y1, z1, x2, y2, z2, block) => {
+    for (let z = z1; z <= z2; z++) for (let x = x1; x <= x2; x++) {
+      for (let y = y1; y <= y2; y++) put(x, y, z, block);
+    }
+  };
+  const y = p.y, heightAt = (x, z) => cols[x + z * CHUNK].h;
+  const paving = (x, z) => hash3(seed, x0 + x, 86, z0 + z) < .25 ? worn : stone;
+  // Support a small court or house on piers. Keep the shoreline and the sides of the hill around it.
+  for (let z = 3; z <= 12; z++) for (let x = 3; x <= 12; x++) {
+    const h = heightAt(x, z);
+    const perimeter = x === 3 || x === 12 || z === 3 || z === 12;
+    if (h < y) {
+      const pier = (x === 3 || x === 8 || x === 12) && (z === 3 || z === 7 || z === 12);
+      if (pier || h >= SEA) fill(x, h + 1, z, x, y - 1, z, perimeter || pier ? stone : B.DIRT);
+    }
+    put(x, y, z, perimeter ? paving(x, z) : p.waterside ? B.PLANKS : ground);
+    fill(x, y + 1, z, x, Math.max(y + 10, h + 8), z, B.AIR);
+  }
+  // One-block grades at the stairs where possible. The remaining apron keeps its natural contours.
+  function approach(dx, dz) {
+    for (let i = 0; i < 3; i++) for (const t of [7, 8]) {
+      const x = dx < 0 ? 2 - i : dx > 0 ? 13 + i : t;
+      const z = dz < 0 ? 2 - i : dz > 0 ? 13 + i : t;
+      const natural = heightAt(x, z);
+      const surface = Math.max(SEA + 1, y + Math.max(-(i + 1), Math.min(i + 1, natural - y)));
+      fill(x, Math.min(natural, surface), z, x, surface - 1, z, stone);
+      put(x, surface, z, p.waterside ? B.PLANKS : paving(x, z));
+      fill(x, surface + 1, z, x, Math.max(surface + 3, natural + 7), z, B.AIR);
+    }
+  }
+  if (p.type === "plaza") {
+    for (const [dx, dz] of [[1,0], [-1,0], [0,1], [0,-1]]) approach(dx, dz);
+  } else {
+    approach(0, 1);
+    if (p.dx) approach(-Math.sign(p.dx), 0);
+    else if (p.dz > 0) approach(0, -1);
+  }
+  function lamp(x, z) {
+    put(x, y + 1, z, stone);
+    put(x, y + 2, z, B.OAK_FENCE);
+    put(x, y + 3, z, B.BRAZIER);
+  }
+  function box(x, z, crop) {
+    put(x, y, z, dry ? stone : B.GRASS);
+    put(x, y + 1, z, crop);
+  }
+
+  if (p.type === "farm") {
+    for (let z = 4; z <= 11; z++) for (let x = 4; x <= 11; x++) {
+      put(x, y, z, z === 7 ? B.WATER : make(B.FARMLAND, WET));
+      if (z !== 7) put(x, y + 1, z, make(x < 8 ? B.WHEAT : B.CARROTS, 5 + (x + z) % 3));
+    }
+    put(3, y + 1, 3, jobBlock);
+    put(12, y + 1, 5, B.HAY);
+    put(12, y + 1, 6, B.HAY);
+    lamp(12, 10);
+    return;
+  }
+  if (p.type === "garden") {
+    for (const z of [5, 8]) for (let x = 4; x <= 11; x++) box(x, z, x % 2 ? B.FLOWER_RED : B.FLOWER_YELLOW);
+    for (const x of [5, 10]) {
+      fill(x, y + 1, 6, x, y + 3, 6, timber);
+      fill(x - 1, y + 3, 5, x + 1, y + 4, 7, B.LEAVES);
+    }
+    put(7, y + 1, 10, B.STONE_STEP);
+    put(8, y + 1, 10, B.STONE_STEP);
+    lamp(11, 11);
+    return;
+  }
+  if (p.type === "plaza") {
+    fill(4, y, 4, 11, y, 11, stone);
+    fill(6, y - 1, 6, 9, y - 1, 9, stone);
+    fill(7, y, 7, 8, y, 8, B.WATER);
+    for (const x of [6, 9]) for (const z of [6, 9]) fill(x, y + 1, z, x, y + 3, z, timber);
+    fill(6, y + 4, 6, 9, y + 4, 9, roof);
+    for (let x = 4; x < 11; x++) put(x, y + 4, 4, x % 2 ? B.CRIMSON_PLANKS : B.WOOL);
+    for (const x of [4, 10]) fill(x, y + 1, 4, x, y + 3, 4, B.OAK_FENCE);
+    put(5, y + 1, 4, B.TABLE);
+    put(9, y + 1, 4, B.CHEST);
+    put(11, y + 1, 10, B.BELL);
+    lamp(4, 10);
+    return;
+  }
+
+  const tiles = p.prof === "smith" ? B.DARKSLATE_BRICKS : roof;
+  const eaves = p.prof === "cleric" ? 5 : 4;
+  fill(4, y, 4, 11, y, 10, dry ? stone : B.PLANKS);
+  for (const z of [4, 10]) fill(4, y + 1, z, 11, y + eaves, z, wall);
+  for (const x of [4, 11]) fill(x, y + 1, 4, x, y + eaves, 10, wall);
+  for (const x of [4, 11]) for (const z of [4, 10]) fill(x, y + 1, z, x, y + eaves, z, timber);
+  for (const x of [4, 11]) for (const z of [6, 8]) {
+    put(x, y + 2, z, p.prof === "cleric" ? B.STAINED_GLASS : B.GLASS);
+    put(x, y + 3, z, timber);
+  }
+  for (let x = 3; x <= 12; x++) {
+    const rise = Math.min(x - 3, 12 - x);
+    fill(x, y + eaves + 1 + rise, 3, x, y + eaves + 1 + rise, 11, tiles);
+    for (const z of [4, 10]) fill(x, y + eaves + 1, z, x, y + eaves + rise, z, x === 8 ? timber : wall);
+  }
+  put(7, y + 1, 10, make(B.DOOR, OPEN));
+  put(7, y + 2, 10, make(B.DOOR, OPEN | TOP));
+  for (const x of [7, 8]) for (const z of [11, 12]) put(x, y, z, paving(x, z));
+  put(5, y + 1, 5, make(B.BED, 0));
+  put(5, y + 1, 6, make(B.BED, HEAD));
+  put(6, y + 1, 5, B.CHEST);
+  put(8, y + 1, 5, B.BOOKSHELF);
+  put(10, y + 1, 6, jobBlock);
+  put(10, y + 2, 6, B.TORCH);
+  put(10, y + 1, 8, B.FURNACE);
+  fill(10, y + 2, 8, 10, y + eaves + 4, 8, B.BRICKS);
+  if (p.prof === "scribe") put(8, y + 1, 8, B.MAP_TABLE);
+  if (p.prof === "beekeeper") {
+    put(12, y + 1, 6, timber);
+    put(12, y + 2, 6, make(B.BEE_NEST, 1));
+    box(12, 8, B.FLOWER_YELLOW);
+  }
+  box(5, 12, B.FLOWER_RED);
+  box(10, 12, B.FLOWER_YELLOW);
+  lamp(12, 11);
 }

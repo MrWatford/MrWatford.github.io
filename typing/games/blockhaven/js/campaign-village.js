@@ -2,13 +2,14 @@
 // Built at runtime into one 160 × 160 Surface stamp around the village's middle, the same way the Starter Home is,
 // so it's identical every time the world opens and nothing natural (trees, ruins, villages) can draw over it.
 // X runs east, Z runs south. The fountain is at (0, 0); the castle is to the north; the main gate is to the south.
-// buildVillage(g, groundAt) returns { cells, info }:
+// buildVillage(g, groundAt, version) returns { cells, info }:
 //   g          the village's ground level (grass at y = g, you stand at g + 1)
 //   groundAt   (X, Z) => natural ground height there, used to slope the edges into the land around the village
 import { B, HEIGHT, SEA, make, TOP, HEAD, WET } from "./blocks.js";
+import { finishLegacyVillage } from "./campaign-village-finish.js";
 
 export const VSIZE = 160, VC = 80;     // stamp size and its middle
-export const VILLAGE_V = 1;            // raise only with a builder that keeps old campaign worlds the same
+export const VILLAGE_V = 2;
 export const LEVEL = 60;               // leveled ground out to 60 blocks (a square), sloped out to 78
 const KEEP = 65535, EDGE = 78;
 
@@ -27,7 +28,8 @@ const FONT = {
 };
 const SIDE = { s: 0, e: 1, n: 2, w: 3 };   // facing meta (0 = +z, 1 = +x, 2 = -z, 3 = -x)
 
-export function buildVillage(g, groundAt) {
+export function buildVillage(g, groundAt, version = 1) {
+  const renewed = version === 2;
   const S = VSIZE, C = VC;
   const cells = new Uint16Array(S * S * HEIGHT).fill(KEEP);
   const info = { chests: [], signs: [], npcs: [], animals: [], crops: [], places: [], waystones: [], arenas: {}, marks: {}, spawn: null };
@@ -62,12 +64,15 @@ export function buildVillage(g, groundAt) {
   // ---------- building helpers ----------
   // A house: floor, walls with log corners, windows, a door, a flat ceiling, and a gable roof.
   function house(o) {
-    const { x0, z0, x1, z1, h = 4, wall = B.PLANKS, corner = B.LOG, floor = B.PLANKS, roof = B.BRICKS, ridge = (x1 - x0 >= z1 - z0) ? "x" : "z", doorSide, doorAt, base = g } = o;
+    const { x0, z0, x1, z1, h = 4, wall = B.PLANKS, corner = B.LOG, floor = B.PLANKS, roof: roofMaterial = B.BRICKS, ridge = (x1 - x0 >= z1 - z0) ? "x" : "z", doorSide, doorAt, base = g } = o;
+    const roof = renewed ? (roofMaterial === B.COBBLE ? B.DARKSLATE_BRICKS : B.ROOF_TILES) : roofMaterial;
     box(x0, base, z0, x1, base, z1, floor);
     for (let y = base + 1; y <= base + h; y++) for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
       const ex = x === x0 || x === x1, ez = z === z0 || z === z1;
       if (!ex && !ez) { set(x, y, z, y === base + h ? B.PLANKS : B.AIR); continue; }
-      set(x, y, z, (ex && ez) || y === base + h ? corner : wall);
+      const trim = (ex && ez) || y === base + h;
+      const stoneSkirt = renewed && y === base + 1;
+      set(x, y, z, trim ? corner : stoneSkirt ? B.COBBLE : wall);
     }
     // windows (two high) along each wall, skipping corners and the door
     const win = (x, z) => { set(x, base + 2, z, B.GLASS); set(x, base + 3, z, B.GLASS); };
@@ -87,15 +92,15 @@ export function buildVillage(g, groundAt) {
     if (ridge === "x") for (let k = 0; ; k++) {
       const za = z0 - 1 + k, zb = z1 + 1 - k, y = base + h + 1 + k; if (za > zb || y >= HEIGHT - 1) break;
       for (let z = za; z <= zb; z++) for (let x = x0 - 1; x <= x1 + 1; x++) {
-        if (z === za || z === zb) set(x, y, z, roof);
-        else if (x === x0 || x === x1) set(x, y, z, wall);
+        if (z === za || z === zb) set(x, y, z, renewed && (x === x0 - 1 || x === x1 + 1 || k === 0) ? B.DARKSLATE_BRICKS : roof);
+        else if (x === x0 || x === x1) set(x, y, z, renewed && z === Math.floor((z0 + z1) / 2) ? corner : wall);
         else if (x > x0 && x < x1) set(x, y, z, B.AIR);
       }
     } else for (let k = 0; ; k++) {
       const xa = x0 - 1 + k, xb = x1 + 1 - k, y = base + h + 1 + k; if (xa > xb || y >= HEIGHT - 1) break;
       for (let x = xa; x <= xb; x++) for (let z = z0 - 1; z <= z1 + 1; z++) {
-        if (x === xa || x === xb) set(x, y, z, roof);
-        else if (z === z0 || z === z1) set(x, y, z, wall);
+        if (x === xa || x === xb) set(x, y, z, renewed && (z === z0 - 1 || z === z1 + 1 || k === 0) ? B.DARKSLATE_BRICKS : roof);
+        else if (z === z0 || z === z1) set(x, y, z, renewed && x === Math.floor((x0 + x1) / 2) ? corner : wall);
         else if (z > z0 && z < z1) set(x, y, z, B.AIR);
       }
     }
@@ -362,17 +367,19 @@ export function buildVillage(g, groundAt) {
   place("vault", 9, -44, 3);
   place("castle", 0, -40, 14);
 
-  // ---------- the floating BLOCKHAVEN sign, high above the castle ----------
-  const word = "BLOCKHAVEN", top = Math.min(HEIGHT - 4, g + 27), base = top - 6, x0 = -Math.floor((word.length * 6 - 1) / 2), ZS = -30;
-  const lit = new Set();
-  [...word].forEach((ch, i) => FONT[ch].forEach((row, r) => [...row].forEach((c, k) => { if (c === "#") lit.add((x0 + i * 6 + k) + "," + (top - r)); })));
-  for (const key of lit) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-    const [x, y] = key.split(",").map(Number), nk = (x + dx) + "," + (y + dy);
-    if (!lit.has(nk)) set(x + dx, y + dy, ZS, B.BLACK_WOOL);
-    set(x + dx, y + dy, ZS - 1, B.BLACK_WOOL);
+  // The floating title belongs to the original layout. The redesigned keep defines the new skyline.
+  if (!renewed) {
+    const word = "BLOCKHAVEN", top = Math.min(HEIGHT - 4, g + 27), base = top - 6, x0 = -Math.floor((word.length * 6 - 1) / 2), ZS = -30;
+    const lit = new Set();
+    [...word].forEach((ch, i) => FONT[ch].forEach((row, r) => [...row].forEach((c, k) => { if (c === "#") lit.add((x0 + i * 6 + k) + "," + (top - r)); })));
+    for (const key of lit) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const [x, y] = key.split(",").map(Number), nk = (x + dx) + "," + (y + dy);
+      if (!lit.has(nk)) set(x + dx, y + dy, ZS, B.BLACK_WOOL);
+      set(x + dx, y + dy, ZS - 1, B.BLACK_WOOL);
+    }
+    for (const key of lit) { const [x, y] = key.split(",").map(Number); set(x, y, ZS, B.STONE); }
+    info.signY = base;
   }
-  for (const key of lit) { const [x, y] = key.split(",").map(Number); set(x, y, ZS, B.STONE); }
-  info.signY = base;
 
   // ---------- the tutorial grove and the tutorial pavilion (just north of the plaza) ----------
   tree(-22, -6); tree(-15, -8, 6); tree(-9, -5); tree(-26, -9, 4);
@@ -464,7 +471,7 @@ export function buildVillage(g, groundAt) {
   ];
   homes.forEach((hm, i) => {
     const zc = (hm.z0 + hm.z1) / 2;
-    house({ x0: hm.x0, z0: hm.z0, x1: hm.x1, z1: hm.z1, h: 4, wall: hm.wall, corner: B.LOG, floor: B.PLANKS, roof: i % 2 ? B.BRICKS : B.COBBLE, ridge: "z", doorSide: hm.side, doorAt: zc });
+    house({ x0: hm.x0, z0: hm.z0, x1: hm.x1, z1: hm.z1, h: renewed && i % 3 === 2 ? 5 : 4, wall: hm.wall, corner: B.LOG, floor: B.PLANKS, roof: i % 2 ? B.BRICKS : B.COBBLE, ridge: renewed ? "x" : "z", doorSide: hm.side, doorAt: zc });
     const back = hm.side === "e" ? hm.x0 + 1 : hm.x1 - 1;
     bed(back, g + 1, hm.z0 + 2);
     set(back, g + 1, hm.z1 - 1, B.TABLE); set(back + (hm.side === "e" ? 1 : -1), g + 1, hm.z1 - 1, make(B.FURNACE, 2));
@@ -542,7 +549,14 @@ export function buildVillage(g, groundAt) {
   npc("miner", 40, -31); place("mine", 40, -36, 6); place("mineDeep", 40, -56, 8);
 
   // ---------- the Elder and a merchant by the plaza ----------
-  npc("elder", 3, 7); npc("merchant", 9, -6);
+  npc("elder", 3, 7); npc("merchant", renewed ? 10 : 9, renewed ? -5 : -6);
+
+  if (renewed) {
+    finishLegacyVillage({ g, get, set, box, homes });
+    for (const [x, z] of [[-27, 18], [-31, 26], [-22, 25], [24, 23], [21, 32], [18, 46]]) tree(x, z, 4);
+    npc("legacyScribe", 10, 23);
+    npc("legacyBeekeeper", -18, 33);
+  }
 
   return { cells, info };
 }

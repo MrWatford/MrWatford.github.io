@@ -9,6 +9,7 @@ import { KINGDOMS_GEN, LANTERN_VALE_SEED } from "./lantern-vale.js";
 import { prepareStonehaven, stonehavenPlacementData } from "./stonehaven.js";
 import { initSettlementFestivals } from "./settlement-festivals.js";
 import { initVillageGrowth } from "./village-growth.js";
+import { initVillageRenovation, prepareVillageRenovations } from "./village-renovation.js";
 import { initSettlementRaids } from "./settlement-raids.js";
 import { idx, Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRENT_GEN, LEGACY_CHUNK_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
@@ -43,7 +44,7 @@ import { initCitadelBoss } from "./citadel-boss.js";
 import { initCitadelAmbience } from "./citadel-ambience.js";
 import { initStarter } from "./starter.js";
 import { leviathanShrineBearings, sandcallerPreparation } from "./leviathan-navigation.js";
-import { initCampaign, CAMPAIGN_SEED } from "./campaign.js";
+import { initCampaign, CAMPAIGN_SEED, CAMPAIGN_VILLAGE_LAYOUT } from "./campaign.js";
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
@@ -374,6 +375,7 @@ G.adv = (type, arg) => { Adv.event(type, arg); if (G.campaign) G.campaign.event(
 const festivals = G.festivals = initSettlementFestivals({ THREE, scene, G, UI, Sound });
 G.villageGrowth = initVillageGrowth({ G, UI, Sound });
 const raids = G.settlementRaids = initSettlementRaids({ G, UI, Sound, SPECIES, hud: document.getElementById("settlementRaidHud"), closePanel });
+G.villageRenovation = initVillageRenovation({ G, UI });
 window.__bh = G;   // handy for testing in the browser console
 
 // ---------- creatures ----------
@@ -1787,7 +1789,7 @@ function clearWorldMeshes() {
 }
 
 // ---------- dimensions: each has its own generator, block changes, containers, and creatures ----------
-function makeWorld(dim) {
+function makeWorld(dim, applyVillageRenovation = false) {
   if (!G.dimData[dim]) {
     if (dim === HOLLOW_SANDS) G.dimData[dim] = { sandsLandmarks: SANDS_LANDMARK_LAYOUT, solkaraScenery: SOLKARA_SCENERY_LAYOUT };
     else if (isSolkaraRealm(dim)) G.dimData[dim] = { solkaraScenery: SOLKARA_SCENERY_LAYOUT };
@@ -1832,6 +1834,7 @@ function makeWorld(dim) {
     }
     CG.reset(); CK.reset(); CD.reset(); CB.reset(); CIT.prepare(gen, data);   // the Endwatch Citadels: castles over the strongholds nobody has reached yet (js/citadel.js)
     if (gen.version === KINGDOMS_GEN || L.loadedSurface() || Object.hasOwn(G.story, "stonehaven")) prepareStonehaven(gen, data, G.story);
+    prepareVillageRenovations(gen, data, G.meta, G.story, applyVillageRenovation && !G.guest);
   }
   const w = new World(gen);
   w.dim = dim;
@@ -1905,7 +1908,7 @@ async function startWorld(save) {
   // the Lost Civilization's maps (the Surface needs the excavation site's map too)
   if (!isLostWorldDimension(G.dim)) try { UI.setLoading(0.08, "Unrolling the Keepers' maps…"); await L.ready(); }
   catch (e) { if (LOST_DIMS.includes(G.dim)) { G.dim = "overworld"; if (save.player) save.player.pos = { ...(save.player.spawn || { x: 0, y: 70, z: 0 }) }; UI.toast("The Deep couldn't load right now, so you woke up on the Surface.", "bad"); } }
-  G.world = makeWorld(G.dim); G.gen = G.world.gen;
+  G.world = makeWorld(G.dim, true); G.gen = G.world.gen;
   G.inv = new Inventory(); G.inv.load(save.inventory);
   G.time = save.time ?? 0.02; G.tips = save.tips || {};
   const p = G.player = new Player();
@@ -1930,8 +1933,12 @@ async function startWorld(save) {
   if (G.spectator) { p.flying = true; p.noclip = true; p.health = 20; }
   // build the land around the player before dropping them in
   await loadArea(p.pos.x, p.pos.z, G.dim === "nether" ? "Heating up the Ember Depths" : "Shaping hills and valleys");
+  const cx = Math.floor(p.pos.x / CHUNK), cz = Math.floor(p.pos.z / CHUNK);
+  const renovated = G.gen.renovatedNow?.get(chunkKey(cx, cz));
   if (p.spawn.y == null) { placeSafely(p, p.spawn.x, p.spawn.z); p.spawn.y = p.pos.y; }
-  else if (!save.player) placeSafely(p, p.pos.x, p.pos.z);
+  else if (renovated) {
+    placeSafely(p, renovated.entry?.[0] ?? cx * CHUNK + 2.5, renovated.entry?.[2] ?? cz * CHUNK + 13.5);
+  } else if (!save.player) placeSafely(p, p.pos.x, p.pos.z);
   else if (!needsRespawn && p.collides(G.world, p.aabb())) placeSafely(p, p.pos.x, p.pos.z);
   G.autosaveT = 0; heldId = -1; offId = -1;
   portalCooldown = true; portalT = 0;   // waking up inside a portal doesn't send you through it until you step out
@@ -5684,7 +5691,8 @@ G.newWorld = ({ name, seed, mode, settings, campaign, lostWorld, lostWorldCampai
   const hardcore = mode === "hardcore";
   if (hardcore) settings = { ...settings, difficulty: "hard", keepInv: false };
   const gen = campaign || lostWorld ? LEGACY_CHUNK_GEN : seed === LANTERN_VALE_SEED ? KINGDOMS_GEN : CURRENT_GEN;
-  const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaign || null };
+  const campaignMeta = campaign ? { ...campaign, villageLayout: CAMPAIGN_VILLAGE_LAYOUT } : null;
+  const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaignMeta };
   if (lostWorld && !campaign && !hardcore) {
     save.lostWorldGen = LOST_WORLD_GEN;
     if (lostWorldCampaign && mode === "survival") save.story.lostWorld = expedition();

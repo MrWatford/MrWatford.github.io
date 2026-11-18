@@ -372,9 +372,11 @@ export const TRADES = {
   shepherd: [[[[B.WOOL, 18]], [I.JADE, 1], 12], [[[I.JADE, 2]], [I.SHEARS, 1], 6], [[[I.JADE, 3]], [B.BED, 1], 6], [[[I.JADE, 1]], [B.WOOL, 4], 12]],
   cleric: [[[[I.ROTTEN_FLESH, 32]], [I.JADE, 1], 12], [[[I.WART, 22]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.SHINE_DUST, 2], 12], [[[I.JADE, 5]], [I.VOID_PEARL, 1], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 2], 8], [[[I.JADE, 1]], [I.SPARKDUST, 2], 12]],
   smith: [[[[I.COAL, 15]], [I.JADE, 1], 12], [[[I.IRON_INGOT, 4]], [I.JADE, 1], 12], [[[I.JADE, 6]], [I.IRON_PICK, 1], 4], [[[I.JADE, 7]], [I.IRON_SWORD, 1], 4], [[[I.JADE, 9]], [I.IRON_CHEST, 1], 3], [[[I.JADE, 4]], [I.IRON_HELMET, 1], 4], [[[I.JADE, 16]], [B.BELL, 1], 2]],
+  scribe: [[[[I.LEATHER, 10]], [I.JADE, 1], 8], [[[I.JADE, 2]], [B.BOOKSHELF, 2], 8], [[[I.JADE, 3]], [I.COMPASS, 1], 4], [[[I.JADE, 4]], [B.MAP_TABLE, 1], 3]],
+  beekeeper: [[[[B.FLOWER_RED, 8]], [I.JADE, 1], 8], [[[I.JADE, 1]], [I.HONEY_BOTTLE, 2], 8], [[[I.JADE, 2]], [I.HONEYCOMB, 4], 8], [[[I.JADE, 3]], [B.BEEHIVE, 1], 4]],
   wanderer: [[[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1], [[[I.JADE, 3]], [I.NAME_TAG, 1], 2], [[[I.JADE, 2]], [I.LEAD, 2], 2]]
 };
-const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], wanderer: ["#2a5aa0", "#245094"] };
+const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], scribe: ["#346462", "#254d4a"], beekeeper: ["#b58536", "#906926"], wanderer: ["#2a5aa0", "#245094"] };
 const VSKIN = ["#e8b890", "#deae86"];
 const villagerModel = prof => ({ type: "villager", parts: [
   { name: "body", size: [8, 12, 6], pivot: [0, 12, 0], off: [0, 6, 0], paint: { all: P => { P.fill(ROBE[prof]); if (prof === "smith") P.rect(3, 4, 10, 12, "#5a3a20"); if (prof === "farmer") P.rect(3, 6, 10, 10, "#e8e0c8"); if (prof === "cleric") P.rect(6, 0, 4, 16, "#ffe27a"); } } },
@@ -383,7 +385,7 @@ const villagerModel = prof => ({ type: "villager", parts: [
   { name: "nose", parent: "head", size: [2, 4, 2], pivot: [0, -1.5, 5], off: [0, 0, 0], paint: { all: solid(["#d8a078"]) } },
   { name: "arms", size: [10, 4, 4], pivot: [0, 19, 3], off: [0, 0, 0], paint: { all: solid(ROBE[prof]), front: P => { P.fill(ROBE[prof]); P.rect(5, 4, 6, 8, VSKIN[0]); } } }] });
 Object.assign(SPECIES, {
-  ...Object.fromEntries(["farmer", "fletcher", "shepherd", "cleric", "smith", "wanderer"].map(prof => [prof, {
+  ...Object.fromEntries(["farmer", "fletcher", "shepherd", "cleric", "smith", "scribe", "beekeeper", "wanderer"].map(prof => [prof, {
     name: prof === "wanderer" ? "Wanderer" : "Villager (" + prof[0].toUpperCase() + prof.slice(1) + ")", villager: true, persist: prof !== "wanderer", prof,
     hp: 20, speed: 1.8, w: 0.6, h: 1.95, ai: "villager", xp: 0, sound: "hmm", drops: () => [], model: villagerModel(prof) }])),
   golem: { name: "Ironwarden", persist: true, hp: 100, speed: 1.8, w: 1.4, h: 2.7, ai: "golem", dmg: 9, xp: 0, sound: "clank", knockUp: true,
