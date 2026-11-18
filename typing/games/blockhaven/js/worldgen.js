@@ -4,16 +4,14 @@ import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD } from "./blocks.j
 
 import { isLanternVale, buildLanternValePlot } from "./lantern-vale.js";
 
-import { VILLAGE_OVERHAUL_GEN, detailedVillagePiece, buildDetailedVillage, villagePlotHasLandmark } from "./village-overhaul.js";
-
-import { STONEHAVEN_GEN } from "./stonehaven.js";
+import { VILLAGE_OVERHAUL_GEN, VILLAGE_TERRAIN_GEN, detailedVillagePiece, buildDetailedVillage, buildCompactVillage, villagePlotHasLandmark } from "./village-overhaul.js";
 
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
 // Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade, 6 = bee nests + berry bushes. Raise this when generation changes.
 export const LEGACY_CHUNK_GEN = 9;   // 7: Spark Ore; 8: village bells; 9: Hollow ships
-export const CURRENT_GEN = STONEHAVEN_GEN;
+export const CURRENT_GEN = VILLAGE_TERRAIN_GEN;
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
-const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE };
+const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE, scribe: B.BOOKSHELF, beekeeper: B.BEEHIVE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
 export function strongholdSpots(seed) {
   const r = rng(seed ^ 0x51ed27), base = r() * Math.PI * 2;
@@ -161,7 +159,8 @@ export class Generator {
     if (ver >= 4) for (const s of this.strongholds) if (!s.citadel && Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
     if (ver >= 5) {
       const vp = this.villagePiece(cx, cz, Math.min(ver, this.version));
-      if (vp?.detailed) buildDetailedVillage(data, vp, cols, this.seed, x0, z0, JOB_BLOCK[vp.prof]);
+      if (vp?.compact) buildCompactVillage(data, vp, cols, this.seed, x0, z0, JOB_BLOCK[vp.prof]);
+      else if (vp?.detailed) buildDetailedVillage(data, vp, cols, this.seed, x0, z0, JOB_BLOCK[vp.prof]);
       else if (vp) this.buildVillagePiece(data, vp, x0, z0, ver);
     }
     return applyStamps(this, data, cx, cz);   // hand-built sites (the Keeper excavation, temples) in never-visited land
@@ -177,13 +176,25 @@ export class Generator {
     if (Math.abs(cx - vx) > 1 || Math.abs(cz - vz) > 1) return null;
     return { vx, vz, sandy: col.biome === "sandy" };
   }
-  villagePiece(cx, cz, layoutVersion = this.version) {
+  renovationPiece(cx, cz) {
+    const village = this.villageAt(cx, cz);
+    if (!village || villagePlotHasLandmark(this.seed, cx, cz)) return null;
+    if (this.version >= VILLAGE_OVERHAUL_GEN && this.villagePiece(cx, cz, this.version, false)?.detailed) return null;
+    const legacy = this.villagePiece(cx, cz, LEGACY_CHUNK_GEN, false);
+    if (!legacy || legacy.lanternVale) return null;
+    return detailedVillagePiece(this, village, cx, cz, this.villageTerrain, legacy);
+  }
+  villagePiece(cx, cz, layoutVersion = this.version, applyRenovation = true) {
     const v = this.villageAt(cx, cz);
     if (!v) return null;
+    if (applyRenovation && this.renovatedVillages?.has(cx + "," + cz)) {
+      const renovated = this.renovationPiece(cx, cz);
+      if (renovated) return renovated;
+    }
     if (layoutVersion >= VILLAGE_OVERHAUL_GEN) {
       if (villagePlotHasLandmark(this.seed, cx, cz)) return null;
-      const piece = detailedVillagePiece(this, v, cx, cz, this.villageTerrain);
-      if (piece) return piece;
+      const piece = detailedVillagePiece(this, v, cx, cz, this.villageTerrain, null, layoutVersion);
+      if (piece || layoutVersion >= VILLAGE_TERRAIN_GEN) return piece;
     }
     const dx = cx - v.vx, dz = cz - v.vz, x0 = cx * 16, z0 = cz * 16;
     const lanternVale = isLanternVale(this, v);

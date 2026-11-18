@@ -64,7 +64,8 @@ export function initSettlementFestivals({ THREE, scene, G, UI, Sound }) {
     const [cx, cz] = piece.center;
     const plaza = world.gen.villagePiece(Math.floor(cx / CHUNK), Math.floor(cz / CHUNK));
     if (!plaza?.detailed || plaza.type !== "plaza") return null;
-    return { id: "village:" + cx + "," + cz, name: "the village", x: cx, y: plaza.y, z: cz + 5, radius: 27, span: 6, width: 2 };
+    return { id: "village:" + cx + "," + cz, name: "the village", x: cx, y: plaza.y,
+      z: cz + (plaza.compact ? 4 : 5), radius: 27, span: plaza.compact ? 4 : 6, width: 2 };
   }
   function merchantSite(e) {
     if (!enabled() || G.dim !== "overworld" || G.guest || G.spectator ||

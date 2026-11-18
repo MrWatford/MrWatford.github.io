@@ -67,6 +67,8 @@ export const NPCS = {
   fisher: { name: "Fisher Juno", prof: "fletcher", role: "Fisher", hello: "Patience is the whole trick. Cast, wait, and pull when the bobber dips." },
   miner: { name: "Miner Brock", prof: "smith", role: "Miner", hello: "The old mine goes down further than anyone remembers. There's iron below, if you bring torches." },
   merchant: { name: "Merchant Pell", prof: "farmer", role: "Merchant", hello: "Welcome, welcome! Jade buys anything in Legacy Village. Well, almost anything." },
+  legacyScribe: { name: "Scribe Tamsin", prof: "scribe", role: "Village Scribe", hello: "Odessa keeps the histories. I copy maps and repair books. Do you need a compass for the road?" },
+  legacyBeekeeper: { name: "Beekeeper Nell", prof: "beekeeper", role: "Beekeeper", hello: "The flowers beside the apiary keep the hives busy. I trade honey and supplies if you want to start a hive of your own." },
   // Stonehaven
   king: { name: "King Aldric", prof: "cleric", role: "King of Stonehaven", hello: "Welcome to Stonehaven, friend of Legacy. These walls have stood for a thousand years. I mean to keep it that way." },
   captainB: { name: "Captain Brenna", prof: "fletcher", role: "Captain of the Stonehaven Guard", hello: "Keep your sword sharp and your boots laced. Trouble doesn't knock." },

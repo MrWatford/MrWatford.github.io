@@ -10,6 +10,15 @@ const PROJECTS = [
   { name: "Watch Gate", site: "plaza", cost: [[B.STONE_BRICKS, 48], [B.LOG, 12]],
     bounds: [0, 0, 0, 4, 7, 2], place: watchGate }
 ];
+const COMPACT_WATCH_GATE = {
+  ...PROJECTS[2], bounds: [3, 0, 6, 5, 7, 9],
+  place(fill, stone) {
+    // Turn the gate across the western approach, where the compact plaza has a level deck.
+    watchGate((xa, ya, za, xb, yb, zb, block) => {
+      fill(3 + za, ya, 6 + xa, 3 + zb, yb, 6 + xb, block);
+    }, stone, 1);
+  }
+};
 
 function pavilion(fill, stone) {
   fill(5, 1, 9, 11, 5, 11, B.AIR);
@@ -41,17 +50,17 @@ function hall(fill, stone) {
   fill(9, 2, 4, 9, 2, 4, B.TORCH);
 }
 
-function watchGate(fill, stone) {
+function watchGate(fill, stone, facing = 0) {
   for (const x of [0, 3]) {
     fill(x, 1, 0, x, 4, 2, stone);
     fill(x, 5, 0, x, 5, 2, B.BRAZIER);
   }
   fill(0, 4, 0, 3, 4, 2, stone);
-  fill(1, 1, 1, 2, 1, 1, make(B.OAK_GATE, OPEN));
+  fill(1, 1, 1, 2, 1, 1, make(B.OAK_GATE, OPEN | facing));
   fill(1, 5, 0, 2, 5, 2, B.DARKSLATE_BRICKS);
   fill(1, 6, 1, 2, 6, 1, B.LOG);
-  fill(0, 3, 2, 0, 3, 2, make(B.CASTLE_BANNER, 0));
-  fill(3, 3, 2, 3, 3, 2, make(B.CASTLE_BANNER, 0));
+  fill(0, 3, 2, 0, 3, 2, make(B.CASTLE_BANNER, facing));
+  fill(3, 3, 2, 3, 3, 2, make(B.CASTLE_BANNER, facing));
 }
 
 export function initVillageGrowth({ G, UI, Sound }) {
@@ -79,7 +88,7 @@ export function initVillageGrowth({ G, UI, Sound }) {
     if (!site) return null;
     const record = G.story.villageGrowth?.[site.id];
     const tier = Number.isInteger(record?.tier) && record.tier >= 0 && record.tier < TIERS.length ? record.tier : 0;
-    const project = PROJECTS[tier];
+    const project = tier === 2 && site.plaza.compact ? COMPACT_WATCH_GATE : PROJECTS[tier];
     if (!project) return { site, tier, title: TIERS[tier] };
     const plot = site[project.site];
     const cx = site.x + plot.dx, cz = site.z + plot.dz;

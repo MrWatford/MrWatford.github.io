@@ -17,7 +17,7 @@ import { buildIronhold, buildBlightCitadel, buildOutpost, buildSealShrine, build
 import { buildSkyreach, buildCapital, SIZES3, TOWNS3_V } from "./campaign-towns3.js";
 import { initBosses, BOSSES } from "./campaign-bosses.js";
 import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS, BOSS_NAMES, CHAPTER_START, PLAYABLE, FINAL_QUEST, ENDINGS } from "./campaign-data.js";
-export { CAMPAIGN_SEED, CAMPAIGN_WORLD };
+export { CAMPAIGN_SEED, CAMPAIGN_WORLD, VILLAGE_V as CAMPAIGN_VILLAGE_LAYOUT };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const k3 = (x, y, z) => x + "," + y + "," + z;
@@ -74,7 +74,7 @@ export function initCampaign(api) {
       if (best && best.s <= 6) break;
     }
     best = best || { x: Math.round(sp.x), z: Math.round(sp.z), g: SEA + 4 };
-    return { cx: best.x, cz: best.z, g: best.g, v: VILLAGE_V };
+    return { cx: best.x, cz: best.z, g: best.g, v: G.meta.campaign.villageLayout ?? 1 };
   }
   // The other places, chosen once (after the temples, so they can sit near them), only in land nobody has visited
   function planSites(gen, wdata) {
@@ -160,7 +160,7 @@ export function initCampaign(api) {
   let genRef = null;   // the Surface generator (for sloping town edges into the land)
   const groundFor = (gen, rec) => (X, Z) => gen.column(rec.cx + X, rec.cz + Z).h;
   function siteBuild(id, rec, gen) {
-    if (id === "village") return built(id, rec, () => buildVillage(rec.g, groundFor(gen, rec)));
+    if (id === "village") return built(id, rec, () => buildVillage(rec.g, groundFor(gen, rec), rec.v));
     const k = rec.kind || id, gnd = groundFor(gen, rec);
     return built(id, rec, () => k === "stonehaven" ? buildStonehaven(rec.g, gnd) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd) : k === "oakwood" ? buildOakwood(rec.g, gnd)
       : k === "seabreak" ? buildSeabreak(rec.g, gnd, rec.rot || 0) : k === "keyruin" ? buildKeyRuin(rec.n, rec.g, gnd)
