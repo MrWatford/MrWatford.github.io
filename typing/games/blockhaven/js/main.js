@@ -5,7 +5,12 @@ import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, 
 import { initRedstone } from "./redstone.js";
 import { selectBox } from "./shapes.js";
 import { Entities, SPECIES, TRADES, lineOfSight } from "./entities.js";
-import { idx, Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRENT_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
+import { KINGDOMS_GEN, LANTERN_VALE_SEED } from "./lantern-vale.js";
+import { prepareStonehaven, stonehavenPlacementData } from "./stonehaven.js";
+import { initSettlementFestivals } from "./settlement-festivals.js";
+import { initVillageGrowth } from "./village-growth.js";
+import { initSettlementRaids } from "./settlement-raids.js";
+import { idx, Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRENT_GEN, LEGACY_CHUNK_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
 import { Player, raycast, blockBoxes, REACH } from "./player.js";
@@ -366,6 +371,9 @@ const G = {
   get useSlot() { return this.useHand ?? this.selected; }   // the hand being used right now: the main hand unless the offhand is acting
 };
 G.adv = (type, arg) => { Adv.event(type, arg); if (G.campaign) G.campaign.event(type, arg); };
+const festivals = G.festivals = initSettlementFestivals({ THREE, scene, G, UI, Sound });
+G.villageGrowth = initVillageGrowth({ G, UI, Sound });
+const raids = G.settlementRaids = initSettlementRaids({ G, UI, Sound, SPECIES, hud: document.getElementById("settlementRaidHud"), closePanel });
 window.__bh = G;   // handy for testing in the browser console
 
 // ---------- creatures ----------
@@ -455,6 +463,8 @@ const ents = new Entities(scene, {
   push: (vx, vy, vz) => { if (guestFocus()) { MP.pushGuest(guestFocus(), vx, vy, vz); return; } const p = G.player; if (G.creative || G.spectator) return; p.vel.x += vx; p.vel.y = Math.max(p.vel.y, vy); p.vel.z += vz; },
   time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m),
   openTrade: e => openPanel("trade", e.uid),
+  settlementRaiderDefeated: e => raids.defeated(e),
+  festivalGathering: e => festivals.gatheringPoint(e),
   mount: e => mount(e), riding: () => !!G.riding, boating: () => !!(G.riding && G.riding.def.boat),
   itemMesh: (id, size) => itemMesh(id, size),
   hitBlock: (pr, bx, by, bz, x, y, z) => { R.projectileHit(pr, bx, by, bz, x, y, z); R.vibrate(x, y, z, 2); },
@@ -1719,6 +1729,8 @@ function stream(budget) {
   }
 }
 function clearWorldMeshes() {
+  raids.clear();
+  festivals.clear();
   GC.clear();
   ancientIntroView?.dispose(); ancientIntroView = null;
   ancientTremorRoll = 0;
@@ -1805,11 +1817,12 @@ function makeWorld(dim) {
   if (dim === "nether") { gen.citadel = chooseCitadel(); CP.stampNether(gen, data); }   // where Cindermaw's citadel stands in this world (+ the campaign's seal shrines)
   if (dim === "overworld") {
     if (!CP.plan(gen, data)) ST.plan(gen, data);   // campaign worlds get Legacy Village instead of the Starter Home's spot (chosen once per world, before any land is made)
-    L.prepareOverworld(gen, data);   // the Keeper excavation and temple entrances, stamped into land nobody has visited yet
+    const placementData = stonehavenPlacementData(gen, data, G.story);
+    L.prepareOverworld(gen, placementData);   // the Keeper excavation and temple entrances, stamped into land nobody has visited yet
     if (CP.on()) CP.stamp(gen, data); else ST.stamp(gen);   // the village (or the house) goes in last, so nothing else draws over it
     const expansion = G.story.leviathan ||= {};
     const temple = G.story.lost?.tsites?.desert;
-    expansion.sites = planRelicSites(gen, data, expansion.sites, temple);
+    expansion.sites = planRelicSites(gen, placementData, expansion.sites, temple);
     gen.stamps ||= [];
     for (const def of DESERT_SITES) {
       const site = expansion.sites[def.key];
@@ -1818,6 +1831,7 @@ function makeWorld(dim) {
       gen.stamps.push(buildRelicStamp(def, site));
     }
     CG.reset(); CK.reset(); CD.reset(); CB.reset(); CIT.prepare(gen, data);   // the Endwatch Citadels: castles over the strongholds nobody has reached yet (js/citadel.js)
+    if (gen.version === KINGDOMS_GEN || L.loadedSurface() || Object.hasOwn(G.story, "stonehaven")) prepareStonehaven(gen, data, G.story);
   }
   const w = new World(gen);
   w.dim = dim;
@@ -1979,6 +1993,7 @@ function placeSafely(p, x, z) {
 }
 
 function snapshot() {
+  raids.capture();
   if (mountedBurrow && !mountedBurrow.session.savePosition) clearMountedBurrow();
   clearArenaFractures();
   const p = G.player;
@@ -3866,6 +3881,7 @@ function retireWildLeviathans() {
   leviathanWarningHUD.clear();
 }
 function die(why) {
+  raids.clear();
   GC.onFaint();
   G.deathSpot = { ...G.player.pos };   // (where you fell: the Endwatch dungeons wake you by their watchfire; Hardcore floats you here)
   retireWildLeviathans();
@@ -5667,7 +5683,8 @@ G.storageOK = () => Saves.persistent();
 G.newWorld = ({ name, seed, mode, settings, campaign, lostWorld, lostWorldCampaign }) => {   // mode: survival | creative | hardcore
   const hardcore = mode === "hardcore";
   if (hardcore) settings = { ...settings, difficulty: "hard", keepInv: false };
-  const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen: CURRENT_GEN, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaign || null };
+  const gen = campaign || lostWorld ? LEGACY_CHUNK_GEN : seed === LANTERN_VALE_SEED ? KINGDOMS_GEN : CURRENT_GEN;
+  const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaign || null };
   if (lostWorld && !campaign && !hardcore) {
     save.lostWorldGen = LOST_WORLD_GEN;
     if (lostWorldCampaign && mode === "survival") save.story.lostWorld = expedition();
@@ -5910,6 +5927,8 @@ function loop(now) {
   if (p.hurtT > 0) p.hurtT -= dt;
 
   stream(G.state === "play" ? 7 : 4);
+  festivals.update(dt);
+  if (running) raids.update(dt);
   if (running) updateSandsDiscovery(dt);
   const daylight = updateSky();
   (echoholdAtmosphere ||= (G._echoAtmo = createEchoholdAtmosphere({ THREE, scene, camera, G, emitParticle, fog: uniforms }))).update(running ? dt : 0);

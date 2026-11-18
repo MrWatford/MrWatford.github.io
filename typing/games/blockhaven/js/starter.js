@@ -7,6 +7,7 @@
 import { B, I, CHUNK, HEIGHT, SEA, make, idOf, itemDef, OPEN, TOP, HEAD, WET } from "./blocks.js";
 import { newStack, OFF } from "./inventory.js";
 import { hash3 } from "./noise.js";
+import { stonehavenDestination } from "./stonehaven.js";
 import { Generator } from "./worldgen.js";
 import { LEVIATHAN_MAP_TYPES, leviathanDestinations } from "./leviathan-navigation.js";
 import { isLostWorldDimension } from "./lost-world-regions.js";
@@ -19,13 +20,14 @@ export const HOUSE_V = 1;                     // raise only with a new builder t
 // The landmark types the map knows, in the order the list shows them
 const TYPES = {
   ...LEVIATHAN_MAP_TYPES,
+  stonehaven: { label: "Stonehaven", color: "#cc9136", dark: "#63401e", where: "Overworld capital" },
   excavation: { label: "Ancient City", color: "#3fc8c0", dark: "#155a5a", where: "Underground" },
   sea: { label: "Sea Temple", color: "#3a8ae8", dark: "#163a6a", where: "Under the sea" },
   jungle: { label: "Jungle Temple", color: "#4cbf3a", dark: "#1d5a16", where: "Forest clearing" },
   desert: { label: "Desert Temple", color: "#f0b830", dark: "#6a4a10", where: "Buried in sand" },
   home: { label: "Starter Home", color: "#e8553a", dark: "#6a1e10", where: "Your house" }
 };
-const ORDER = ["excavation", "sea", "jungle", "desert", "home", ...Object.keys(LEVIATHAN_MAP_TYPES)];
+const ORDER = ["excavation", "sea", "jungle", "desert", "home", "stonehaven", ...Object.keys(LEVIATHAN_MAP_TYPES)];
 const ZOOMS = [0.5, 1, 2, 4, 8];   // blocks per map pixel
 
 // ---------- what goes in the four starter chests ----------
@@ -327,6 +329,8 @@ export function initStarter(api) {
       out.push({ kind: t.kind, title: t.name, name: "Waystone", x: t.x + 0.5, y: t.y, z: t.z + 0.5 });
     }
     out.push(...leviathanDestinations(G.story));
+    const capital = G.dim === "overworld" ? G.world?.gen.stonehaven : stonehavenDestination(G.meta, G.story);
+    if (capital) out.push(capital);
     if (G.citadel) for (const c of G.citadel.landmarks()) {   // the Endwatch Citadels (and any old, buried strongholds)
       TYPES[c.kind] = TYPES[c.kind] || { label: c.title, color: c.castle ? "#c8423a" : "#8a8a9a", dark: c.castle ? "#4a1414" : "#2a2a34", where: c.castle ? "Island castle" : "Underground" };
       out.push({ kind: c.kind, title: c.title, name: c.name, x: c.x + 0.5, y: c.y, z: c.z + 0.5, center: c.center, guide: c.castle ?
@@ -447,7 +451,7 @@ export function initStarter(api) {
     TYPES.home.label = s && s.campaign ? "Legacy Village" : "Starter Home";
     if (!s || (!s.house && !s.campaign)) return `<div class="inv-card"><h3>Explorer's Map</h3><p class="help">This world has no Starter Home or map data yet.</p></div>`;
     const visibleKinds = new Set(destinations().map(d => d.kind));
-    const legend = ORDER.filter(k => !LEVIATHAN_MAP_TYPES[k] || visibleKinds.has(k)).map(k => `<span><canvas class="xm-ico" data-ico="${k}" width="22" height="22"></canvas>${TYPES[k].label}</span>`).join("") +
+    const legend = ORDER.filter(k => (!LEVIATHAN_MAP_TYPES[k] && k !== "stonehaven") || visibleKinds.has(k)).map(k => `<span><canvas class="xm-ico" data-ico="${k}" width="22" height="22"></canvas>${TYPES[k].label}</span>`).join("") +
       `<span><canvas class="xm-ico" data-ico="you" width="22" height="22"></canvas>You (arrow = facing)</span><span><canvas class="xm-ico" data-ico="shore" width="22" height="22"></canvas>Boat launch (shore)</span><span><i class="xm-dash"></i>Direction only, not a path</span>` +
       `<span><i class="xm-sw" style="background:#7cbd56"></i>Grass</span><span><i class="xm-sw" style="background:#3f8a2c"></i>Forest</span><span><i class="xm-sw" style="background:#e2d39b"></i>Sand</span><span><i class="xm-sw" style="background:#2f62b8"></i>Water</span><span><i class="xm-sw" style="background:#96988c"></i>Mountain</span><span><i class="xm-sw" style="background:#f2f2f2"></i>Snow</span>`;
     return `<div class="inv-card xmap"><h3>Explorer's Map <span class="note" style="color:#444">M or Esc to close</span></h3>
@@ -523,6 +527,12 @@ export function initStarter(api) {
       info.innerHTML = `<h4>${d.title}: ${d.name}</h4><p class="xm-coords">${pos(d)} · ${TYPES[d.kind].where}</p>${notes.map(n => `<p>${n}</p>`).join("")}<p class="xm-guide"></p>`;
       info.querySelector(".xm-guide").textContent = guide(d);
     } else info.innerHTML = "";
+    const calendar = G.festivals?.calendar();
+    if (calendar) {
+      const notice = document.createElement("p");
+      notice.textContent = calendar;
+      info.appendChild(notice);
+    }
     way.textContent = s.waypoint ? "On-screen waypoint: ON (N)" : "On-screen waypoint: OFF (N)";
   }
   // ----- drawing -----
@@ -662,7 +672,7 @@ export function initStarter(api) {
     } else if (kind === "desert") {   // a gold pyramid
       ctx.fillStyle = T.color; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r, r * 0.8); ctx.lineTo(-r, r * 0.8); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.2, r * 0.8); ctx.stroke();
-    } else if (String(kind).startsWith("endwatch")) {   // a castle: grey walls, two towers with red roofs
+    } else if (kind === "stonehaven" || String(kind).startsWith("endwatch")) {   // a castle: grey walls, two towers with red roofs
       ctx.fillStyle = "#9a9aa6"; ctx.fillRect(-r * 0.85, -r * 0.1, r * 1.7, r * 0.9); ctx.strokeRect(-r * 0.85, -r * 0.1, r * 1.7, r * 0.9);
       for (const sx of [-1, 1]) { ctx.fillStyle = "#b4b4c0"; ctx.fillRect(sx * r * 0.62 - r * 0.25, -r * 0.45, r * 0.5, r * 1.25); ctx.strokeRect(sx * r * 0.62 - r * 0.25, -r * 0.45, r * 0.5, r * 1.25); ctx.fillStyle = T ? T.color : "#c8423a"; ctx.beginPath(); ctx.moveTo(sx * r * 0.62 - r * 0.35, -r * 0.45); ctx.lineTo(sx * r * 0.62, -r); ctx.lineTo(sx * r * 0.62 + r * 0.35, -r * 0.45); ctx.closePath(); ctx.fill(); ctx.stroke(); }
       ctx.fillStyle = "#3a2a1a"; ctx.fillRect(-r * 0.18, r * 0.3, r * 0.36, r * 0.5);

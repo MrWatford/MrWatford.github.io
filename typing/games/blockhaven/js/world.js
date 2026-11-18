@@ -1,6 +1,6 @@
 // Holds the blocks of the world in 16×16 columns ("chunks") and remembers every change the player makes.
 import { B, CHUNK, HEIGHT, idOf, lightOf } from "./blocks.js";
-import { idx, CURRENT_GEN } from "./worldgen.js";
+import { idx, LEGACY_CHUNK_GEN } from "./worldgen.js";
 
 export const chunkKey = (cx, cz) => cx + "," + cz;
 
@@ -39,10 +39,10 @@ export class World {
     const m = this.mods.get(key);
     // older worlds: places the player already changed keep their original shapes; untouched places get new features
     let opts = {};
-    if (this.gen.version < CURRENT_GEN) {
+    if (this.gen.version < LEGACY_CHUNK_GEN) {
       const fresh = !m || this.newGen.has(key);
       if (fresh) this.newGen.add(key);
-      opts = { version: fresh ? CURRENT_GEN : this.gen.version };
+      opts = { version: fresh ? LEGACY_CHUNK_GEN : this.gen.version };
     }
     const data = this.gen.generate(cx, cz, opts);
     if (m) for (const [i, v] of m) data[i] = v;

@@ -1,5 +1,6 @@
 // Creatures and moving things: models, animation, movement, path finding, behavior, spawning, and saving.
 // Each species is described by data (size, health, behavior, drops, model) and shares the same body physics.
+import { stonehavenResidents } from "./stonehaven.js";
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate } from "./blocks.js";
 import { blockBoxes } from "./player.js";
@@ -1899,6 +1900,18 @@ export class Entities {
     if (this.world.dim === FERN_PLAINS) return populateTriceratops(this, c);
     if (this.world.dim === LOST_WORLD) return populateLostWorld(this, c);
     const w = this.world, x0 = c.cx * CHUNK, z0 = c.cz * CHUNK;
+    if (w.gen.stonehaven) {
+      const residents = stonehavenResidents(w.gen, c.cx, c.cz);
+      if (residents) {
+        for (const { species, home, job } of residents) {
+          const [x, y, z] = home;
+          if (!solidCell(w, Math.floor(x), y, Math.floor(z)) && !solidCell(w, Math.floor(x), y + 1, Math.floor(z))) {
+            this.add(species, x, y, z, { home, job });
+          }
+        }
+        return;
+      }
+    }
     // three Buzzers live in each wild bee nest
     if (!w.gen.isNether() && !(w.gen.isEnd && w.gen.isEnd())) for (let i = 0; i < c.data.length; i++) if ((c.data[i] & 255) === B.BEE_NEST) {
       const x = x0 + (i % CHUNK), z = z0 + (Math.floor(i / CHUNK) % CHUNK), y = Math.floor(i / (CHUNK * CHUNK));
@@ -2100,7 +2113,7 @@ export class Entities {
       const fp = this.pick ? (this.focus = this.pick(e.pos)) : p;   // Play Together: the nearest player
       const dx = e.pos.x - fp.pos.x, dz = e.pos.z - fp.pos.z, d2 = dx * dx + dz * dz;
       // far-away monsters wander off (despawn); animals and named creatures stay
-      if (!e.persist && !e.def.noSave && (d2 > 72 * 72 || (d2 > 36 * 36 && Math.random() < dt / 30))) { e.gone = true; continue; }
+      if (!e.persist && !e.def.noSave && !e.settlementRaid && (d2 > 72 * 72 || (d2 > 36 * 36 && Math.random() < dt / 30))) { e.gone = true; continue; }
       if (e.def.boss && !e.persist && d2 > 200 * 200) { e.gone = true; continue; }
       if (e.sp === "wanderer" && e.age > 300) { this.ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "poof"); e.gone = true; continue; }   // the Wanderer moves on
       if (!w.isLoaded(e.pos.x, e.pos.z)) continue;
@@ -2683,6 +2696,7 @@ export class Entities {
     const calm = def.ai === "spider" && !e.angry && (() => { const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.pos.y), Math.floor(e.pos.z)); return L && L[0] * daylight > 11; })();
     const chasing = can && !calm && (sees || (d < 10 && Math.abs(p.pos.y - e.pos.y) < 6) || (e.target && d < 32));   // monsters also sense you up close
     e.target = chasing ? p : null;
+    if (!chasing && e.settlementRaid) { this.moveTo(e, e.settlementRaid.rally, def.speed, 2); return; }
     if (!chasing) { this.wander(e); if (e.fuse > 0) e.fuse = Math.max(0, e.fuse - 0.3); return; }
     const tp = p.pos;
     if (def.ai === "archer") {
@@ -2874,6 +2888,8 @@ export class Entities {
     }
     if (Math.random() < 0.01) Sound.mob("hmm", d);
     if (night && home) { this.moveTo(e, home, e.def.speed); return; }
+    const celebration = ctx.festivalGathering?.(e);
+    if (celebration) { this.moveTo(e, celebration, e.def.speed, .8); return; }
     e.taskT -= 0.15;
     if (e.taskT <= 0) { e.taskT = rand(8, 18); e.task = e.job && Math.random() < 0.55 ? "work" : "wander"; }
     if (e.task === "work" && e.job) {
@@ -3386,6 +3402,7 @@ export class Entities {
     e.dead = e.def.boss ? 4 : 0.6; e.goal = null; e.path = null;
     const ctx = this.ctx;
     if (e.encounterOwner) return;
+    if (e.settlementRaid) { ctx.settlementRaiderDefeated?.(e); return; }
     if (attacker === "player" && ctx.adv) ctx.adv("kill", e.sp);
     if (attacker === "player" && e.def.wildlife) ctx.wildlifeDefeated?.(e);
     if (e.def.mutant && this.mutantKilled) this.mutantKilled(this, e, attacker);   // a longer fall, and the record in the journal

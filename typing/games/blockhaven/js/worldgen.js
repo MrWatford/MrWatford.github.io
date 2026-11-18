@@ -2,9 +2,16 @@
 import { Noise, hashSeed, rng, hash3 } from "./noise.js";
 import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD } from "./blocks.js";
 
+import { isLanternVale, buildLanternValePlot } from "./lantern-vale.js";
+
+import { VILLAGE_OVERHAUL_GEN, detailedVillagePiece, buildDetailedVillage, villagePlotHasLandmark } from "./village-overhaul.js";
+
+import { STONEHAVEN_GEN } from "./stonehaven.js";
+
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
 // Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade, 6 = bee nests + berry bushes. Raise this when generation changes.
-export const CURRENT_GEN = 9;   // 7: Spark Ore; 8: a bell in each new village plaza; 9: Hollow ships
+export const LEGACY_CHUNK_GEN = 9;   // 7: Spark Ore; 8: village bells; 9: Hollow ships
+export const CURRENT_GEN = STONEHAVEN_GEN;
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -29,6 +36,7 @@ export class Generator {
     this.n = new Noise(this.seed);
     this.c = new Noise(this.seed ^ 0x5bd1e995);   // caves
     this.strongholds = strongholdSpots(this.seed);
+    this.villageTerrain = new Map();
   }
 
   // Ground height and land type for one column of the world
@@ -151,7 +159,11 @@ export class Generator {
     if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
     else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
     if (ver >= 4) for (const s of this.strongholds) if (!s.citadel && Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
-    if (ver >= 5) { const vp = this.villagePiece(cx, cz); if (vp) this.buildVillagePiece(data, vp, x0, z0, ver); }
+    if (ver >= 5) {
+      const vp = this.villagePiece(cx, cz, Math.min(ver, this.version));
+      if (vp?.detailed) buildDetailedVillage(data, vp, cols, this.seed, x0, z0, JOB_BLOCK[vp.prof]);
+      else if (vp) this.buildVillagePiece(data, vp, x0, z0, ver);
+    }
     return applyStamps(this, data, cx, cz);   // hand-built sites (the Keeper excavation, temples) in never-visited land
   }
 
@@ -165,20 +177,28 @@ export class Generator {
     if (Math.abs(cx - vx) > 1 || Math.abs(cz - vz) > 1) return null;
     return { vx, vz, sandy: col.biome === "sandy" };
   }
-  villagePiece(cx, cz) {
+  villagePiece(cx, cz, layoutVersion = this.version) {
     const v = this.villageAt(cx, cz);
     if (!v) return null;
+    if (layoutVersion >= VILLAGE_OVERHAUL_GEN) {
+      if (villagePlotHasLandmark(this.seed, cx, cz)) return null;
+      const piece = detailedVillagePiece(this, v, cx, cz, this.villageTerrain);
+      if (piece) return piece;
+    }
     const dx = cx - v.vx, dz = cz - v.vz, x0 = cx * 16, z0 = cz * 16;
-    const y = Math.max(SEA + 1, this.column(x0 + 8, z0 + 8).h);
+    const lanternVale = isLanternVale(this, v);
+    const y = lanternVale ? this.column(v.vx * 16 + 8, v.vz * 16 + 8).h + dz : Math.max(SEA + 1, this.column(x0 + 8, z0 + 8).h);
     const type = !dx && !dz ? "plaza" : hash3(this.seed, cx, 1235, cz) < 0.3 ? "farm" : "house";
-    const prof = type === "farm" ? "farmer" : PROFESSIONS[Math.floor(hash3(this.seed, cx, 1236, cz) * PROFESSIONS.length)];
+    const prof = type === "farm" ? "farmer" : lanternVale && dx === 1 && dz === 0 ? "smith" : PROFESSIONS[Math.floor(hash3(this.seed, cx, 1236, cz) * PROFESSIONS.length)];
     const piece = { type, y, dx, dz, sandy: v.sandy, prof, center: [v.vx * 16 + 8, v.vz * 16 + 8] };
+    if (lanternVale) piece.lanternVale = true;
     if (type === "house") { piece.bed = [x0 + 5, y + 1, z0 + 5]; piece.job = [x0 + 9, y + 1, z0 + 9]; piece.home = [x0 + 7.5, y + 1, z0 + 7.5]; }
     if (type === "farm") { piece.job = [x0 + 3, y + 1, z0 + 3]; piece.home = [x0 + 7.5, y + 1, z0 + 2.5]; }
     if (type === "plaza") piece.home = [x0 + 7.5, y + 1, z0 + 12.5];
     return piece;
   }
   buildVillagePiece(data, vp, x0, z0, ver = CURRENT_GEN) {
+    if (vp.lanternVale) return buildLanternValePlot(data, vp, this.seed, x0, z0, JOB_BLOCK[vp.prof]);
     const y = vp.y, put = (lx, yy, lz, v) => { if (lx >= 0 && lx < 16 && lz >= 0 && lz < 16 && yy > 0 && yy < HEIGHT) data[idx(lx, yy, lz)] = v; };
     const wall = vp.sandy ? B.SANDSTONE : B.PLANKS, post = vp.sandy ? B.SANDSTONE : B.LOG, ground = vp.sandy ? B.SAND : B.GRASS;
     // level the building site: fill below, clear above
