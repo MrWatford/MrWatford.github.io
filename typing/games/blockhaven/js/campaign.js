@@ -9,12 +9,13 @@
 //   bosses { id: time }    relics [chapter numbers]               flags { name: true }
 // The game reports events with G.campaign.event(type, arg); quests move forward on their own.
 import { B, I, CHUNK, SEA, itemDef, make } from "./blocks.js";
+import { idx } from "./worldgen.js";
 import { untouchedFootprint } from "./structure-placement.js";
 import { newStack } from "./inventory.js";
 import { buildVillage, VSIZE, VC, VILLAGE_V } from "./campaign-village.js";
 import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, STONEHAVEN_LAYOUT, SANDSPIRE_LAYOUT, OAKWOOD_LAYOUT, SEABREAK_LAYOUT, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
 import { buildIronhold, buildBlightCitadel, buildOutpost, buildSealShrine, buildHollowmere, SIZES2, IRONHOLD_LAYOUT, EMBER_OUTPOST_LAYOUT, TOWNS2_V } from "./campaign-towns2.js";
-import { buildSkyreach, buildCapital, SIZES3, TOWNS3_V } from "./campaign-towns3.js";
+import { buildSkyreach, buildCapital, SIZES3, SKYREACH_LAYOUT, RUINED_CAPITAL_LAYOUT, TOWNS3_V } from "./campaign-towns3.js";
 import { hollowmereMist, HOLLOWMERE_LAYOUT } from "./campaign-hollowmere.js";
 import { initBosses, BOSSES } from "./campaign-bosses.js";
 import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS, BOSS_NAMES, CHAPTER_START, PLAYABLE, FINAL_QUEST, ENDINGS } from "./campaign-data.js";
@@ -22,6 +23,7 @@ export { CAMPAIGN_SEED, CAMPAIGN_WORLD, STONEHAVEN_LAYOUT as CAMPAIGN_STONEHAVEN
   SANDSPIRE_LAYOUT as CAMPAIGN_SANDSPIRE_LAYOUT, OAKWOOD_LAYOUT as CAMPAIGN_OAKWOOD_LAYOUT,
   SEABREAK_LAYOUT as CAMPAIGN_SEABREAK_LAYOUT, IRONHOLD_LAYOUT as CAMPAIGN_IRONHOLD_LAYOUT,
   EMBER_OUTPOST_LAYOUT as CAMPAIGN_EMBER_OUTPOST_LAYOUT, HOLLOWMERE_LAYOUT as CAMPAIGN_HOLLOWMERE_LAYOUT,
+  SKYREACH_LAYOUT as CAMPAIGN_SKYREACH_LAYOUT, RUINED_CAPITAL_LAYOUT as CAMPAIGN_RUINED_CAPITAL_LAYOUT,
   VILLAGE_V as CAMPAIGN_VILLAGE_LAYOUT };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -190,9 +192,14 @@ export function initCampaign(api) {
       add("hollowmere", "hollowmere", site, { v: G.meta.campaign.hollowmereLayout ?? TOWNS2_V });
     }
     // Chapter 8: Skyreach on the side opposite Hollowmere; the Ruined Capital between it and Ironhold's road, far from home
-    const v3 = { v: TOWNS3_V };
-    if (!s.sites.skyreach) add("skyreach", "skyreach", search({ x: Math.round(vc.x + away.z * 250), z: Math.round(vc.z - away.x * 250) }, "skyreach", 0, 300, (x, z, h, r) => land(x, z, h, r, ["plains", "forest", "birch"])), v3);
-    if (!s.sites.capital) add("capital", "capital", search({ x: Math.round(vc.x + (away.x + away.z) * 240), z: Math.round(vc.z + (away.z - away.x) * 240) }, "capital", 0, 340, (x, z, h, r) => land(x, z, h, r, ["plains"])), v3);
+    if (!s.sites.skyreach) {
+      const site = search({ x: Math.round(vc.x + away.z * 250), z: Math.round(vc.z - away.x * 250) }, "skyreach", 0, 300, (x, z, h, r) => land(x, z, h, r, ["plains", "forest", "birch"]));
+      add("skyreach", "skyreach", site, { v: G.meta.campaign.skyreachLayout ?? TOWNS3_V });
+    }
+    if (!s.sites.capital) {
+      const site = search({ x: Math.round(vc.x + (away.x + away.z) * 240), z: Math.round(vc.z + (away.z - away.x) * 240) }, "capital", 0, 340, (x, z, h, r) => land(x, z, h, r, ["plains"]));
+      add("capital", "capital", site, { v: G.meta.campaign.ruinedCapitalLayout ?? TOWNS3_V });
+    }
   }
   // every built place (stamp) in a dimension: { id, kind, dim, cx, cz, size, built: { cells, info } }
   const builtCache = new Map();
@@ -210,7 +217,7 @@ export function initCampaign(api) {
     return built(id, rec, () => k === "stonehaven" ? buildStonehaven(rec.g, gnd, rec.v) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd, rec.v) : k === "oakwood" ? buildOakwood(rec.g, gnd, rec.v)
       : k === "seabreak" ? buildSeabreak(rec.g, gnd, rec.rot || 0, rec.v) : k === "keyruin" ? buildKeyRuin(rec.n, rec.g, gnd)
       : k === "ironhold" ? buildIronhold(rec.g, gnd, rec.v) : k === "blightcitadel" ? buildBlightCitadel(rec.g, gnd) : k === "outpost" ? buildOutpost(rec.g, gnd, rec.v) : k === "hollowmere" ? buildHollowmere(rec.g, gnd, rec.v)
-      : k === "skyreach" ? buildSkyreach(rec.g, gnd) : k === "capital" ? buildCapital(rec.g, gnd) : buildWreck(rec.g));
+      : k === "skyreach" ? buildSkyreach(rec.g, gnd, rec.v) : k === "capital" ? buildCapital(rec.g, gnd, rec.v) : buildWreck(rec.g));
   }
   function sitesIn(dim) {
     const s = st(), out = [];
@@ -857,16 +864,34 @@ export function initCampaign(api) {
     return { ...m, rune: W(site, m.rune.X, m.rune.y, m.rune.Z), site };
   }
   const RELIC_IDS = [I.RELIC_EARTH, I.RELIC_NATURE, I.RELIC_TIDES, I.RELIC_DECAY, I.RELIC_FLAME, I.RELIC_SHADOWS, I.RELIC_ABYSS, I.RELIC_VOID];
+  function clearCapitalSeal(cd) {
+    const world = G.world, z = cd.site.cz + cd.z0, cz = Math.floor(z / CHUNK);
+    let removed = 0;
+    for (let x = cd.site.cx + cd.x0; x <= cd.site.cx + cd.x1; x++) {
+      const chunk = world.load(Math.floor(x / CHUNK), cz), changes = world.mods.get(chunk.key);
+      for (let y = cd.y0; y <= cd.y1; y++) {
+        const cell = idx(x - chunk.cx * CHUNK, y, z - cz * CHUNK);
+        if (changes?.has(cell) || world.get(x, y, z) !== B.VIOLET_PILLAR) continue;
+        world.set(x, y, z, B.AIR);
+        if (++removed % 3 === 1) puff(x + 0.5, y + 0.5, z + 0.5, removed % 2 ? "xp" : "portal");
+      }
+    }
+    return removed;
+  }
   function useCapDoor(cd) {
     const s = st();
-    const p0 = W(cd.site, 0, cd.y0, cd.z0);
-    if (s.flags.capitalOpen && G.world.id(p0.x, p0.y, p0.z) !== B.VIOLET_PILLAR) { UI.toast("The Gate of Eight stands open. The Throne Court waits."); C.event("flag", "capitalOpen"); return; }
+    if (s.flags.capitalOpen) {
+      // An earlier build could save the flag before the last seal blocks were removed.
+      const repaired = clearCapitalSeal(cd);
+      UI.toast("The Gate of Eight stands open. The Throne Court waits.");
+      C.event("flag", "capitalOpen");
+      if (repaired) saveNow(false);
+      return;
+    }
     const have = RELIC_IDS.filter(id => countItem(id) > 0).length, key = countItem(I.CROWN_KEY) > 0;
     if (have < 8 || !key) { UI.toast(`Eight marks glow on the sealed gate, and a keyhole shaped like a crown. You carry ${have} of 8 Relics${key ? " and the Crown Key" : have === 8 ? ", but not the Crown Key (the Sky Sovereign in Skyreach has it)" : ""}.`, ""); return; }
     takeItem(I.CROWN_KEY, 1);
-    const pts = [];
-    for (let x = cd.x0; x <= cd.x1; x++) for (let y = cd.y0; y <= cd.y1; y++) pts.push(W(cd.site, x, y, cd.z0));
-    pts.forEach((p, k) => setTimeout(() => { G.world.set(p.x, p.y, p.z, B.AIR); puff(p.x + 0.5, p.y + 0.5, p.z + 0.5, k % 2 ? "xp" : "portal"); if (k % 7 === 0) Sound.tone(300 + k * 9, 0.4, "sine", 0.06, 0); }, k * 60));
+    clearCapitalSeal(cd);
     for (let k = 0; k < 16; k++) puff(cd.rune.x + 0.5, cd.rune.y + 1 + k * 0.3, cd.rune.z + 0.5, "xp");
     Sound.levelUp(); UI.toast("The eight Relics blaze with light, and the Crown Key turns by itself. The Gate of Eight opens!", "good");
     C.event("flag", "capitalOpen"); saveNow(false);

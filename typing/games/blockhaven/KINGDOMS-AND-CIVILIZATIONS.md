@@ -88,6 +88,22 @@ Speak to Ilsa, then search the Meeting Hall, the Old Well, and **Dr. Vell’s ob
 
 Local verification used isolated Chrome profiles on Apple silicon with macOS 15.7.3 and software WebGL. The screenshots used an eight-chunk render distance. The review checked the fog inside and outside town and simulated the victory flag to verify clearing. It opened the map marker and Waystone, spoke to Ilsa, staged visits to the three locations, and took the original Pale Lantern through the cabinet inventory. The lantern and Return Gate brought the player back to the saved point under the observatory dome. Export and import preserved the lantern, looted cabinet, Waystone, layout, and quest progress. An earlier campaign reopened with its original village, edit, and active quest. Generator checks compared the entire old layout and verified each approach. Player movement testing walked up the observatory steps without jumping. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
 
+## Skyreach campaign preview
+
+In a fresh **Legacy Campaign**, press **M** and choose **Skyreach Landing** at **X 429, Z −224**. The landing and stair tower lead to a five-block-wide bridge with lit railings. On the island, there are furnished Sky Keeper residences, a reflecting pool with a crossing, and a garden pavilion. Two paths circle the Relic Forge and reach the Storm Spire approach.
+
+Follow Chapter 8 to meet **Keeper Solenne** in the Relic Forge. The eight pedestals, beacon, and supply chests remain in their original positions. Activate both Waystones to travel between the ground and the island. The Storm Spire keeps its original arena and three Rune Stones. Older campaigns retain their saved Skyreach layout.
+
+The local review used isolated Chrome profiles on Apple silicon with macOS 15.7.3, software WebGL, and an eight-chunk render distance for the screenshots. With the Skyreach objective staged after the Wyrm, the review opened the map marker, verified the elevation requirement, traveled between the two Waystones, and spoke to Solenne. The Sky Sovereign encounter started in its original arena and reset when the player left. Export and import kept the new island, Waystones, and completed visit. A save from the public release reopened with its original layout, resident, quest progress, and block edit. Generator checks compared the full old island and the protected arena volume. Player movement testing climbed all 26 steps, and route checks verified the bridge, residences, Relic Forge, garden crossing, and Storm Spire approach. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
+
+## Ruined Capital campaign preview
+
+In a fresh **Legacy Campaign**, press **M** and select **Ruined Capital** at **X 832, Z −72**. Enter through the rebuilt south gateway. The allied camp has furnished sleeping tents, covered supply and armory stations, and a command pavilion where **Captain Brenna** gives the Chapter 8 objective. Beyond the camp, Grand Avenue runs between broken arches, lit monuments, and twelve overgrown ruins with rooms to explore.
+
+Bring the eight Relics and the Crown Key from Skyreach to the Rune Stone beneath the **Gate of Eight**. The gate now finishes opening before the game saves. If an older save has an already-unlocked gate with pieces of the original seal still in place, use the Rune Stone again to clear those pieces. The game preserves player-placed blocks. Earlier saves retain their original city layout. The Waystone, quest supplies, named chests, and the entire Throne Court are in their original positions.
+
+An isolated Chrome review checked the map destination, Brenna’s dialogue, both gate requirements, and the complete opening of the seal. Export and import preserved the new layout, activated Waystone, and open gate. An earlier save retained its original layout, resident, and block edits while the Rune Stone repaired a partial opening. The Forgotten King spawned in the Throne Court. A staged victory exercised the ending choice, Homecoming, and the credits. Generator checks verified walking routes to the camp, chests, and arena, and compared the protected court block for block. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
+
 ## Stonehaven in standard worlds
 
 Create a new standard Overworld and open the Explorer’s Map with **M**. Select **Stonehaven** to set the South Gate waypoint. In the tested `Riverbend` world, the gate is at **X 776, Y 33, Z 681**.

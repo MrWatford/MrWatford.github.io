@@ -44,7 +44,7 @@ import { initCitadelBoss } from "./citadel-boss.js";
 import { initCitadelAmbience } from "./citadel-ambience.js";
 import { initStarter } from "./starter.js";
 import { leviathanShrineBearings, sandcallerPreparation } from "./leviathan-navigation.js";
-import { initCampaign, CAMPAIGN_SEED, CAMPAIGN_STONEHAVEN_LAYOUT, CAMPAIGN_SANDSPIRE_LAYOUT, CAMPAIGN_OAKWOOD_LAYOUT, CAMPAIGN_SEABREAK_LAYOUT, CAMPAIGN_IRONHOLD_LAYOUT, CAMPAIGN_EMBER_OUTPOST_LAYOUT, CAMPAIGN_HOLLOWMERE_LAYOUT, CAMPAIGN_VILLAGE_LAYOUT } from "./campaign.js";
+import { initCampaign, CAMPAIGN_SEED, CAMPAIGN_STONEHAVEN_LAYOUT, CAMPAIGN_SANDSPIRE_LAYOUT, CAMPAIGN_OAKWOOD_LAYOUT, CAMPAIGN_SEABREAK_LAYOUT, CAMPAIGN_IRONHOLD_LAYOUT, CAMPAIGN_EMBER_OUTPOST_LAYOUT, CAMPAIGN_HOLLOWMERE_LAYOUT, CAMPAIGN_SKYREACH_LAYOUT, CAMPAIGN_RUINED_CAPITAL_LAYOUT, CAMPAIGN_VILLAGE_LAYOUT } from "./campaign.js";
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
@@ -5704,7 +5704,8 @@ G.newWorld = ({ name, seed, mode, settings, campaign, lostWorld, lostWorldCampai
   const campaignMeta = campaign ? { ...campaign, villageLayout: CAMPAIGN_VILLAGE_LAYOUT,
     stonehavenLayout: CAMPAIGN_STONEHAVEN_LAYOUT, sandspireLayout: CAMPAIGN_SANDSPIRE_LAYOUT,
     oakwoodLayout: CAMPAIGN_OAKWOOD_LAYOUT, seabreakLayout: CAMPAIGN_SEABREAK_LAYOUT, ironholdLayout: CAMPAIGN_IRONHOLD_LAYOUT,
-    emberOutpostLayout: CAMPAIGN_EMBER_OUTPOST_LAYOUT, hollowmereLayout: CAMPAIGN_HOLLOWMERE_LAYOUT } : null;
+    emberOutpostLayout: CAMPAIGN_EMBER_OUTPOST_LAYOUT, hollowmereLayout: CAMPAIGN_HOLLOWMERE_LAYOUT,
+    skyreachLayout: CAMPAIGN_SKYREACH_LAYOUT, ruinedCapitalLayout: CAMPAIGN_RUINED_CAPITAL_LAYOUT } : null;
   const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaignMeta };
   if (lostWorld && !campaign && !hardcore) {
     save.lostWorldGen = LOST_WORLD_GEN;
