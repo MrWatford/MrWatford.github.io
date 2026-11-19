@@ -78,6 +78,7 @@ export const NPCS = {
   townFarmer: { name: "Farmer Joss", prof: "farmer", role: "Farmer", hello: "Best wheat in the kingdom, and I'll arm-wrestle anyone who says otherwise." },
   guardB: { name: "Gate Guard Pim", prof: "fletcher", role: "Gate Guard", hello: "Halt! Oh, it's you. Carry on, hero." },
   stonehavenTailor: { name: "Tailor Elin", prof: "shepherd", role: "Stonehaven Tailor", hello: "I weave the guard's banners here. Bring me wool if you have any to spare." },
+  stonehavenCourtsmith: { name: "Smith Fenna", prof: "smith", role: "Trade Court Smith", hello: "The court keeps my forge busy. I trade tools and armor. Elin can help if you came for wool or shears." },
   // Sandspire
   rasha: { name: "Elder Rasha", prof: "cleric", role: "Elder of Sandspire", hello: "The sand remembers everything, traveler. Even the things we'd rather forget." },
   kadir: { name: "Merchant Kadir", prof: "fletcher", role: "Bazaar Merchant", hello: "Spices, silks, and stories! Two of those are for sale." },

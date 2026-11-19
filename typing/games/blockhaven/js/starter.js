@@ -39,7 +39,8 @@ const CAMPAIGN_TOWN_GUIDES = {
   t_hollowmere: "Start with Watcher Ilsa, then look for the Old Well, the Meeting Hall, and Dr. Vell’s observatory.",
   t_skyreach: "From the landing, climb the Sky Stair and cross the bridge to reach the Relic Forge.",
   t_capital: "Enter through the south gate to reach Captain Brenna's camp. Follow Grand Avenue to the Gate of Eight.",
-  t_legacyCommons: "Scribe Tamsin keeps the records hall. Beekeeper Nell tends the workshop and flower garden across the lane."
+  t_legacyCommons: "Scribe Tamsin keeps the records hall. Beekeeper Nell tends the workshop and flower garden across the lane.",
+  t_stonehavenTradeCourt: "Tailor Elin works in the Cloth Hall. Smith Fenna trades tools and armor at the forge across the square."
 };
 
 // ---------- what goes in the four starter chests ----------

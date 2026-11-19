@@ -122,6 +122,16 @@ The game checks for explored areas, edits, nearby landmark reservations, portals
 
 An isolated Chrome review used a copy of an older campaign on the fixed Legacy seed. The Commons appeared at **X 376, Z 296** in that copy. The original village stamp matched block for block, and an edited home block, opened supply chest, original resident, quest state, and Waystone were preserved. The review opened both new trade panels and used the Waystones in both directions. Export and import kept the district, its Waystone, and a player edit made there. A late edit prevented construction at the approved site and survived reopening. The first district layout was reviewed in all four orientations for routes to the halls, garden, and Waystone.
 
+## Stonehaven Trade Court in older campaigns
+
+In an older **Legacy Campaign** with an explored or protected Stonehaven, select **Stonehaven** in the **Explorer’s Map (M)** while on the Surface. Choose **Add trade court → Queue trade court** to approve the proposed coordinates. Return to the title from the Surface and reopen the campaign. Select the new **Stonehaven Trade Court** marker to find its entrance.
+
+The court uses its own 48 × 48 plot. Tailor Elin sells wool and shears in the Cloth Hall. Smith Fenna trades tools and armor in the Forge Hall. Covered stalls, a fountain, and flower beds line the square. Activate both Waystones to travel between the city and the Trade Court.
+
+The game rechecks the approved plot for visits, existing landmarks, portals, and saved changes before building. If the plot becomes protected, use the map to review another available location. Eligible untouched cities can still opt into the full rebuild.
+
+The Chrome review started with an edited old Stonehaven on the fixed Legacy seed. Its Trade Court appeared at **X 120, Z −200**. The original city stamp, player edit, opened treasury chest, King Aldric, quest progress, and Waystone were preserved. Both trade menus and the Waystones in both directions worked. Export and import preserved the court, both traders, and a block edit made there. A late edit protected a queued site. Generator checks covered walking routes and safe Waystone landings in all four orientations and matched the previously published Legacy Village Commons layouts.
+
 ## Stonehaven in standard worlds
 
 Create a new standard Overworld and open the Explorer’s Map with **M**. Select **Stonehaven** to set the South Gate waypoint. In the tested `Riverbend` world, the gate is at **X 776, Y 33, Z 681**.
