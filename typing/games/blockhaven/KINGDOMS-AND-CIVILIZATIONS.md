@@ -42,6 +42,52 @@ The spire's original staircase leads to a shaded lookout. The Waystone, named su
 
 Local verification used isolated Chrome profiles on Apple silicon with macOS 15.7.3 and software WebGL. The browser opened the Sandspire map marker, Waystone, and Zahir's trade menu. A staged quest advanced from Elder Rasha to the Sunken Pyramid, and the tower objective completed upon reaching the lookout. Export and import preserved both results. An earlier campaign reopened with its original town, resident, activated Waystone, and player block edit. Generator checks compared the old stamp byte for byte and verified routes from the four gates, original fixtures, and clearance at all 27 stair and landing positions. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
 
+## Oakwood campaign preview
+
+Start a fresh **Legacy Campaign** and choose **Chapter 2** to begin with the Oakwood quest. Open the Explorer’s Map with **M** and select **Oakwood** at **X −477, Z −91**. The palisade’s timber gates lead to furnished cabins, flower beds, and three lit stream crossings. Across the stream are an irrigated kitchen garden and a covered timber workshop. **Explorer Fenn** hands out the Expedition Map from the green-roofed camp east of the main road.
+
+Spiral stairways wrap around the four great oaks. Each stairway reaches a furnished treehouse and a loop of level canopy bridges with railings and braziers. Look for **Canopy Keeper Iona** beside the flower beds and beehives on the southeast deck. Visit all four platforms to earn Glider Wings in **Life in the Treetops**.
+
+Oakwood keeps its original Waystone, quest markers, named chests, and resident positions. The layout version is recorded with the site, so earlier campaigns keep the town they started with.
+
+The local review used an isolated Chrome profile on Apple silicon with macOS 15.7.3 and software WebGL. The browser selected Oakwood on the map, activated its Waystone, opened Iona’s honey trades, and advanced Chapter 2 through Fenn’s dialogue. Placing the player successively at the checkpoints verified that the treetop quest requires all four visits at elevation. A separate physics check climbed each stairway using the standard move and jump inputs, and route checks verified all four bridge spans and access to the furnished houses. A browser reload from the preceding release retained the original Oakwood layout, Waystone, active Chapter 2 objective, and a player block edit. Export and import preserved the new layout and completed treetop quest. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
+
+## Seabreak campaign preview
+
+Start a fresh **Legacy Campaign** at **Chapter 3**. Press **M** and select **Seabreak** on the Explorer’s Map. The port is centered at **X −553, Z −193**, with its waterfront facing north in the fixed campaign seed. Stone walks link eight furnished sailors’ homes, a planted fountain square, and four market stalls. **Chartmaker Ren** trades compasses and map supplies at the stall near the east pier.
+
+Meet **Captain Mira** in the Harbor Office to get the Tide Charm and a boat. The center pier has a gangway to the moored ship and a stepped launch into open water. Follow the promenade to the lighthouse stairs for a view above the harbor. The town lighthouse is on shore. Chapter 3’s lift is at the offshore lighthouse.
+
+The rebuilt harbor keeps the original Waystone, named chests, resident positions, and quest markers. Older campaigns keep their original version of Seabreak.
+
+Local verification used isolated Chrome profiles on Apple silicon with macOS 15.7.3, software WebGL, and an eight-chunk render distance for the screenshots. A save created before the update reopened with its original harbor, Captain Mira, Waystone, active quest, and a player block edit. In a fresh Chapter 3 campaign, the browser selected the Seabreak map marker, opened Ren’s trade menu, and launched Mira’s boat from the dock. The review placed the player at the wreck, took the Ancient Ocean Map from the Captain’s Chest interface, and returned it to Mira to open the Drowned Citadel quest. Export and import preserved the map, quest state, and upgraded harbor. Generator checks compared the old blocks at all four rotations and verified the new walking routes and lighthouse climb. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
+
+## Ironhold campaign preview
+
+Start a fresh **Legacy Campaign** at **Chapter 4** and talk to Elder Maren. Press **M** and select **Ironhold** at **X 633, Z 200**. Three stone gatehouses lead to Anvil Square, six furnished miners’ homes, and Healer Rue’s kitchen garden. The Forge Hall has two masonry chimneys, smithing stations, and a lit central aisle. **Quartermaster Sela** trades picks and supplies in the covered Ore Yard beside the Mine Head.
+
+Speak to **Forgemaster Hilda** in the Forge Hall before heading underground. The Mine Head has railings and lighting over its entry stairs. Follow the timber braces and signs in the Deep Mine to the west, south, and east galleries. Their Blackened Strongboxes keep the original Blight Skulls and loot. Return to Hilda with all three skulls to unlock the Blight Citadel quest.
+
+Ironhold keeps its original Waystone, resident positions, quest markers, and named chests. The layout is recorded when the site is planned, so earlier campaigns retain the Ironhold they started with.
+
+Local verification used an isolated Chrome profile on Apple silicon with macOS 15.7.3 and software WebGL. The screenshots used an eight-chunk render distance. Chapter 4 started with Maren’s dialogue, then the browser opened the Ironhold map marker, Waystone, and Sela’s trade menu. Visiting the mine at surface height gave no quest credit. At mine level, the review took the three skulls through the strongbox inventory panels and returned them to Hilda. Export and import kept the skulls, emptied slots, Waystone, upgraded layout, and completed mine quest. An earlier campaign reopened with its original town and mine, saved block edit, and Chapter 4 objective. Generator checks compared the entire earlier stamp and verified routes through the gates and galleries. A player physics check climbed the full mine stair using the standard movement and jump inputs. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
+
+## Ember Outpost campaign preview
+
+Start a fresh **Legacy Campaign** at **Chapter 5**. Press **M** and choose **Ember Outpost** at **X 538, Z 161**. Three covered entrances lead into the expedition camp. Follow the stone path to Sable’s command pavilion, the furnished bunk tents, or Quill’s field library. **Provisioner Tova** trades food in the covered supply hall. The kitchen garden is by the south entrance.
+
+Speak to **Expedition Leader Sable** and take the Flint and Steel from the original Expedition Supplies chest. Use it on the inside edge of the Ember Gate, then step through to the Ember Depths. The new gate court keeps the obsidian frame, Waystone, chest positions, and quest marker in their original places. Earlier campaign saves retain their version of the camp.
+
+Local verification used isolated Chrome profiles on Apple silicon with macOS 15.7.3 and software WebGL. The screenshots used an eight-chunk render distance. The review opened the map marker, Waystone, and Tova’s trade menu, took the original Flint and Steel through the supply chest interface, and used it to light the gate. Placing the player inside each portal triggered the normal dimension changes and returned the player to the camp. The Chapter 5 quest advanced to the three Dragon Seals. Export and import preserved the lit portal, its links in both dimensions, and the emptied chest slot. The earlier campaign retained its original camp, unlit frame, Waystone, saved edit, and active quest. Generator checks compared the old blocks and all three shrine templates and verified clear paths to the camp fixtures and both sides of the portal. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
+
+## Hollowmere campaign preview
+
+Start a fresh **Legacy Campaign** at **Chapter 6**. Press **M** and select **Hollowmere** at **X 333, Z 219**. Fog gathers over the village and thins as you leave the valley. Mossy lanes run between six abandoned cottages, the Old Well, and the timbered Meeting Hall. **Watcher Ilsa** still lives on the southwest road. Look for the warm porch light and the small garden behind her house.
+
+Speak to Ilsa, then search the Meeting Hall, the Old Well, and **Dr. Vell’s observatory**. The observatory’s half-block steps lead to a glass dome, the original journals, and the cabinet containing the Pale Lantern. A safe spot where you use the lantern inside Hollowmere is preserved when you return from the Forsaken World. The original Waystone, quest markers, and chest positions are retained. Older campaign saves keep their original village layout.
+
+Local verification used isolated Chrome profiles on Apple silicon with macOS 15.7.3 and software WebGL. The screenshots used an eight-chunk render distance. The review checked the fog inside and outside town and simulated the victory flag to verify clearing. It opened the map marker and Waystone, spoke to Ilsa, staged visits to the three locations, and took the original Pale Lantern through the cabinet inventory. The lantern and Return Gate brought the player back to the saved point under the observatory dome. Export and import preserved the lantern, looted cabinet, Waystone, layout, and quest progress. An earlier campaign reopened with its original village, edit, and active quest. Generator checks compared the entire old layout and verified each approach. Player movement testing walked up the observatory steps without jumping. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
+
 ## Stonehaven in standard worlds
 
 Create a new standard Overworld and open the Explorer’s Map with **M**. Select **Stonehaven** to set the South Gate waypoint. In the tested `Riverbend` world, the gate is at **X 776, Y 33, Z 681**.
