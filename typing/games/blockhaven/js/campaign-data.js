@@ -87,18 +87,22 @@ export const NPCS = {
   fenn: { name: "Explorer Fenn", prof: "fletcher", role: "Jungle Explorer", hello: "Mind the roots! I've tripped on every one of them, so you don't have to." },
   elm: { name: "Warden Elm", prof: "cleric", role: "Warden of Oakwood", hello: "The trees here are older than the kingdoms. Treat them kindly and they'll shelter you." },
   lumber: { name: "Woodcutter Ash", prof: "smith", role: "Woodcutter", hello: "We only cut fallen trees in Oakwood. The big ones would never forgive us." },
+  oakwoodBeekeeper: { name: "Canopy Keeper Iona", prof: "beekeeper", role: "Treetop Beekeeper", hello: "The bees sleep up here, among the flowers. I trade honey and hive supplies if you want to keep a colony of your own." },
   // Seabreak
   mira: { name: "Captain Mira", prof: "fletcher", role: "Harbor Captain", hello: "Fair winds, landlubber. The sea gives and the sea takes. Mostly it takes boats." },
   fishmonger: { name: "Fishmonger Dory", prof: "farmer", role: "Fishmonger", hello: "Fresh fish! Today's fish! Possibly yesterday's fish!" },
   shipwright: { name: "Shipwright Tobin", prof: "smith", role: "Shipwright", hello: "A boat is just a house that learned to swim." },
+  seabreakChartmaker: { name: "Chartmaker Ren", prof: "scribe", role: "Harbor Chartmaker", hello: "Need your bearings? The middle dock has a launch ramp. I trade compasses and supplies for making your own charts." },
   // Ironhold (Chapter 4)
   hilda: { name: "Forgemaster Hilda", prof: "smith", role: "Leader of Ironhold", hello: "Ironhold doesn't bend and it doesn't break. Mostly it just makes a lot of noise." },
+  ironholdQuartermaster: { name: "Quartermaster Sela", prof: "smith", role: "Ore Yard Quartermaster", hello: "Coal in the west bin and iron in the east. If you're heading below, I can trade you a pick and supplies." },
   dag: { name: "Miner Dag", prof: "smith", role: "Mine Foreman", hello: "Forty years under the mountain and I never saw stone go black like that. Never." },
   rue: { name: "Healer Rue", prof: "cleric", role: "Healer", hello: "Sit down, sit down. Nobody leaves my house hungry or bleeding. Ideally neither." },
   orrin: { name: "Captain Orrin", prof: "fletcher", role: "Gate Captain", hello: "Ironhold's gates stay open to honest folk. The blight is not honest folk." },
   // the Ember Outpost (Chapter 5)
   sable: { name: "Expedition Leader Sable", prof: "fletcher", role: "Royal Expedition", hello: "Welcome to the hottest camp in the five kingdoms. Literally. Don't touch the portal frame." },
   quill: { name: "Scholar Quill", prof: "cleric", role: "Expedition Scholar", hello: "Did you know the First Builders wrote everything twice? Once for people, once for dragons." },
+  emberProvisioner: { name: "Provisioner Tova", prof: "farmer", role: "Expedition Cook", hello: "The garden keeps this camp fed. If you're going through the gate, take some bread for the road." },
   // Hollowmere (Chapter 6)
   ilsa: { name: "Watcher Ilsa", prof: "shepherd", role: "The Last Villager", hello: "Someone has to keep the lamps lit. The fog doesn't like light, and I don't like the fog." },
   // Skyreach and the Ruined Capital (Chapter 8)

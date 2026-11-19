@@ -12,13 +12,17 @@ import { B, I, CHUNK, SEA, itemDef, make } from "./blocks.js";
 import { untouchedFootprint } from "./structure-placement.js";
 import { newStack } from "./inventory.js";
 import { buildVillage, VSIZE, VC, VILLAGE_V } from "./campaign-village.js";
-import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, STONEHAVEN_LAYOUT, SANDSPIRE_LAYOUT, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
-import { buildIronhold, buildBlightCitadel, buildOutpost, buildSealShrine, buildHollowmere, SIZES2, TOWNS2_V } from "./campaign-towns2.js";
+import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, STONEHAVEN_LAYOUT, SANDSPIRE_LAYOUT, OAKWOOD_LAYOUT, SEABREAK_LAYOUT, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
+import { buildIronhold, buildBlightCitadel, buildOutpost, buildSealShrine, buildHollowmere, SIZES2, IRONHOLD_LAYOUT, EMBER_OUTPOST_LAYOUT, TOWNS2_V } from "./campaign-towns2.js";
 import { buildSkyreach, buildCapital, SIZES3, TOWNS3_V } from "./campaign-towns3.js";
+import { hollowmereMist, HOLLOWMERE_LAYOUT } from "./campaign-hollowmere.js";
 import { initBosses, BOSSES } from "./campaign-bosses.js";
 import { CAMPAIGN_SEED, CAMPAIGN_WORLD, INTRO, CHAPTERS, PLACES, NPCS, LOOT, START_KIT, SKIP_KIT, QUESTS, QUEST_ORDER, NEXT, CHAPTER_AFTER, BOSS_REWARDS, BOSS_NAMES, CHAPTER_START, PLAYABLE, FINAL_QUEST, ENDINGS } from "./campaign-data.js";
 export { CAMPAIGN_SEED, CAMPAIGN_WORLD, STONEHAVEN_LAYOUT as CAMPAIGN_STONEHAVEN_LAYOUT,
-  SANDSPIRE_LAYOUT as CAMPAIGN_SANDSPIRE_LAYOUT, VILLAGE_V as CAMPAIGN_VILLAGE_LAYOUT };
+  SANDSPIRE_LAYOUT as CAMPAIGN_SANDSPIRE_LAYOUT, OAKWOOD_LAYOUT as CAMPAIGN_OAKWOOD_LAYOUT,
+  SEABREAK_LAYOUT as CAMPAIGN_SEABREAK_LAYOUT, IRONHOLD_LAYOUT as CAMPAIGN_IRONHOLD_LAYOUT,
+  EMBER_OUTPOST_LAYOUT as CAMPAIGN_EMBER_OUTPOST_LAYOUT, HOLLOWMERE_LAYOUT as CAMPAIGN_HOLLOWMERE_LAYOUT,
+  VILLAGE_V as CAMPAIGN_VILLAGE_LAYOUT };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const k3 = (x, y, z) => x + "," + y + "," + z;
@@ -36,6 +40,27 @@ export function initCampaign(api) {
   const C = {};
   const on = () => !!(G.meta && G.meta.campaign);
   C.on = on;
+  const hollowmereSite = () => {
+    const site = G.story?.campaign?.sites?.hollowmere;
+    return G.dim === "overworld" && on() && site?.v === HOLLOWMERE_LAYOUT ? site : null;
+  };
+  C.hollowmereMist = pos => {
+    const site = hollowmereSite();
+    return site && !G.story.campaign.bosses?.herobrine ? hollowmereMist(site, pos) : 0;
+  };
+  C.restoreHollowmereReturn = ({ x, y, z }) => {
+    const site = hollowmereSite(), half = SIZES2.hollowmere / 2;
+    if (!site || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)
+      || Math.abs(x - site.cx) >= half || Math.abs(z - site.cz) >= half || y < site.g - 6 || y > site.g + 24) return false;
+    const { world, player } = G;
+    const feet = world.id(Math.floor(x), Math.floor(y), Math.floor(z));
+    if (feet === B.WATER || feet === B.LAVA) return false;
+    // Keep the saved floor when it is still clear and supported, including under the observatory dome.
+    const body = player.aabb(x, y, z), support = [body[0], y - 0.05, body[2], body[3], y, body[5]];
+    if (player.collides(world, body) || !player.collides(world, support)) return false;
+    Object.assign(player.pos, { x, y, z });
+    return true;
+  };
   // unbroken: still on track for "The Whole Story" (played from Chapter 1 without jumping ahead)   startAt: a chapter picked on the new-campaign screen
   const fresh = () => {
     const startAt = Math.max(1, Math.min(PLAYABLE, +((G.meta && G.meta.campaign && G.meta.campaign.startAt) || 1)));
@@ -123,13 +148,16 @@ export function initCampaign(api) {
       const site = search(desert, "sandspire", 60, 260, (x, z, h, r) => land(x, z, h, r, ["sandy"]));
       add("sandspire", "sandspire", site, { v: G.meta.campaign.sandspireLayout ?? TOWNS_V });
     }
-    if (!s.sites.oakwood && jungle) add("oakwood", "oakwood", search(jungle, "oakwood", 60, 260, (x, z, h, r) => land(x, z, h, r, ["forest", "birch"])));
+    if (!s.sites.oakwood && jungle) {
+      const site = search(jungle, "oakwood", 60, 260, (x, z, h, r) => land(x, z, h, r, ["forest", "birch"]));
+      add("oakwood", "oakwood", site, { v: G.meta.campaign.oakwoodLayout ?? TOWNS_V });
+    }
     if (!s.sites.seabreak && sea) {
       const p = search(sea, "seabreak", 50, 260, (x, z, h, r) => { const c = gen.column(x, z); if (c.h <= SEA + 1) return null; let water = 0; for (let a = 0; a < 8; a++) if (gen.column(x + Math.cos(a * 0.785) * 44, z + Math.sin(a * 0.785) * 44).h <= SEA) water++; if (!water || water > 5) return null; return { s: Math.abs(water - 3) * 2 + r / 50, g: SEA + 2 }; });
       if (p) {   // turn the town so its harbor (local +Z) faces the open water
         const dirs = [[0, 1], [-1, 0], [0, -1], [1, 0]]; let rot = 0, bestW = -1;
         dirs.forEach(([dx, dz], k) => { let w = 0; for (let d = 30; d <= 60; d += 6) for (const o of [-12, 0, 12]) if (gen.column(p.x + dx * d + dz * o, p.z + dz * d + dx * o).h <= SEA) w++; if (w > bestW) { bestW = w; rot = k; } });
-        add("seabreak", "seabreak", p, { rot });
+        add("seabreak", "seabreak", p, { rot, v: G.meta.campaign.seabreakLayout ?? TOWNS_V });
       }
     }
     if (jungle) for (let n = 0; n < 3; n++) {
@@ -147,11 +175,20 @@ export function initCampaign(api) {
     const v2 = { v: TOWNS2_V };
     let ax = 0, az = 0; for (const q of Object.values(s.sites)) { ax += q.cx - vc.x; az += q.cz - vc.z; }
     const al = Math.hypot(ax, az) || 1, away = { x: -ax / al, z: -az / al };
-    if (!s.sites.ironhold) add("ironhold", "ironhold", search({ x: Math.round(vc.x + away.x * 280), z: Math.round(vc.z + away.z * 280) }, "ironhold", 0, 260, (x, z, h, r) => land(x, z, h, r, ["plains", "forest"])), v2);
+    if (!s.sites.ironhold) {
+      const site = search({ x: Math.round(vc.x + away.x * 280), z: Math.round(vc.z + away.z * 280) }, "ironhold", 0, 260, (x, z, h, r) => land(x, z, h, r, ["plains", "forest"]));
+      add("ironhold", "ironhold", site, { v: G.meta.campaign.ironholdLayout ?? TOWNS2_V });
+    }
     const ih = s.sites.ironhold;
     if (ih && !s.sites.blightcitadel) add("blightcitadel", "blightcitadel", search({ x: Math.round(ih.cx + away.x * 130), z: Math.round(ih.cz + away.z * 130) }, "blightcitadel", 0, 200, (x, z, h, r) => land(x, z, h, r)), v2);
-    if (ih && !s.sites.outpost) add("outpost", "outpost", search(toward({ x: ih.cx, z: ih.cz }, vc, 0.3), "outpost", 0, 160, (x, z, h, r) => land(x, z, h, r)), v2);
-    if (!s.sites.hollowmere) add("hollowmere", "hollowmere", search({ x: Math.round(vc.x - away.z * 260), z: Math.round(vc.z + away.x * 260) }, "hollowmere", 0, 260, (x, z, h, r) => land(x, z, h, r, ["forest", "birch"])), v2);
+    if (ih && !s.sites.outpost) {
+      const site = search(toward({ x: ih.cx, z: ih.cz }, vc, 0.3), "outpost", 0, 160, (x, z, h, r) => land(x, z, h, r));
+      add("outpost", "outpost", site, { v: G.meta.campaign.emberOutpostLayout ?? TOWNS2_V });
+    }
+    if (!s.sites.hollowmere) {
+      const site = search({ x: Math.round(vc.x - away.z * 260), z: Math.round(vc.z + away.x * 260) }, "hollowmere", 0, 260, (x, z, h, r) => land(x, z, h, r, ["forest", "birch"]));
+      add("hollowmere", "hollowmere", site, { v: G.meta.campaign.hollowmereLayout ?? TOWNS2_V });
+    }
     // Chapter 8: Skyreach on the side opposite Hollowmere; the Ruined Capital between it and Ironhold's road, far from home
     const v3 = { v: TOWNS3_V };
     if (!s.sites.skyreach) add("skyreach", "skyreach", search({ x: Math.round(vc.x + away.z * 250), z: Math.round(vc.z - away.x * 250) }, "skyreach", 0, 300, (x, z, h, r) => land(x, z, h, r, ["plains", "forest", "birch"])), v3);
@@ -170,9 +207,9 @@ export function initCampaign(api) {
   function siteBuild(id, rec, gen) {
     if (id === "village") return built(id, rec, () => buildVillage(rec.g, groundFor(gen, rec), rec.v));
     const k = rec.kind || id, gnd = groundFor(gen, rec);
-    return built(id, rec, () => k === "stonehaven" ? buildStonehaven(rec.g, gnd, rec.v) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd, rec.v) : k === "oakwood" ? buildOakwood(rec.g, gnd)
-      : k === "seabreak" ? buildSeabreak(rec.g, gnd, rec.rot || 0) : k === "keyruin" ? buildKeyRuin(rec.n, rec.g, gnd)
-      : k === "ironhold" ? buildIronhold(rec.g, gnd) : k === "blightcitadel" ? buildBlightCitadel(rec.g, gnd) : k === "outpost" ? buildOutpost(rec.g, gnd) : k === "hollowmere" ? buildHollowmere(rec.g, gnd)
+    return built(id, rec, () => k === "stonehaven" ? buildStonehaven(rec.g, gnd, rec.v) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd, rec.v) : k === "oakwood" ? buildOakwood(rec.g, gnd, rec.v)
+      : k === "seabreak" ? buildSeabreak(rec.g, gnd, rec.rot || 0, rec.v) : k === "keyruin" ? buildKeyRuin(rec.n, rec.g, gnd)
+      : k === "ironhold" ? buildIronhold(rec.g, gnd, rec.v) : k === "blightcitadel" ? buildBlightCitadel(rec.g, gnd) : k === "outpost" ? buildOutpost(rec.g, gnd, rec.v) : k === "hollowmere" ? buildHollowmere(rec.g, gnd, rec.v)
       : k === "skyreach" ? buildSkyreach(rec.g, gnd) : k === "capital" ? buildCapital(rec.g, gnd) : buildWreck(rec.g));
   }
   function sitesIn(dim) {
