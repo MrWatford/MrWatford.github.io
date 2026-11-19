@@ -5,8 +5,17 @@
    due:     plain words shown on the card, e.g. "Friday, Nov. 21" (optional)
    seconds: optional time limit; leave it out to type the whole passage
    goal:    optional targets shown on the results, e.g. { wpm: 25, accuracy: 90 }
-   text:    the passage students type (one paragraph). */
+   text:    the passage students type (one paragraph).
+   link:    optional — the Start button opens this page instead (for projects that aren't typed here)
+   kind:    optional — words shown on the card instead of the timing, e.g. "Google Docs project" */
 var TYPING_ASSIGNMENTS = [
+  {
+    id: "sea-otter-formatting",
+    title: "Sea Otter Fact Sheet: Google Docs Formatting",
+    status: "current",
+    kind: "Google Docs project • 10 steps with a walkthrough",
+    link: "sea-otter-formatting.html"
+  },
   {
     id: "home-row-warmup",
     title: "Home Row Warm-Up",

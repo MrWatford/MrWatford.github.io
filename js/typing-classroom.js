@@ -80,13 +80,14 @@
         h.appendChild(document.createTextNode(a.title));
         info.appendChild(h);
         var bits = [];
-        bits.push(a.seconds ? TypingBox.fmtTime(a.seconds) + " timed" : "Type the whole passage");
+        if (a.kind) bits.push(a.kind);
+        else bits.push(a.seconds ? TypingBox.fmtTime(a.seconds) + " timed" : "Type the whole passage");
         if (a.goal && a.goal.wpm) bits.push("goal " + a.goal.wpm + " WPM");
         if (a.goal && a.goal.accuracy) bits.push("goal " + a.goal.accuracy + "% accuracy");
         info.appendChild(el("p", null, bits.join(" • ")));
         li.appendChild(info);
         var go = el("a", "btn small", status === "past" ? "Open" : "Start →");
-        go.href = "assignment.html#" + a.id;
+        go.href = a.link || ("assignment.html#" + a.id);
         li.appendChild(go);
         ul.appendChild(li);
       });
@@ -98,6 +99,7 @@
     var show = function () {
       var id = location.hash.slice(1);
       var a = LIST.filter(function (x) { return x.id === id; })[0];
+      if (a && a.link) { location.replace(a.link); return; }
       var titleEl = document.getElementById("tc-a-title"), dirEl = document.getElementById("tc-a-directions");
       var boxEl = document.getElementById("tc-a-box"), resEl = document.getElementById("tc-a-result");
       var tagEl = document.getElementById("tc-a-tag");
