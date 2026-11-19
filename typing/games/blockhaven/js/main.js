@@ -1789,7 +1789,7 @@ function clearWorldMeshes() {
 }
 
 // ---------- dimensions: each has its own generator, block changes, containers, and creatures ----------
-function makeWorld(dim, applyVillageRenovation = false) {
+function makeWorld(dim, reopening = false) {
   if (!G.dimData[dim]) {
     if (dim === HOLLOW_SANDS) G.dimData[dim] = { sandsLandmarks: SANDS_LANDMARK_LAYOUT, solkaraScenery: SOLKARA_SCENERY_LAYOUT };
     else if (isSolkaraRealm(dim)) G.dimData[dim] = { solkaraScenery: SOLKARA_SCENERY_LAYOUT };
@@ -1834,7 +1834,8 @@ function makeWorld(dim, applyVillageRenovation = false) {
     }
     CG.reset(); CK.reset(); CD.reset(); CB.reset(); CIT.prepare(gen, data);   // the Endwatch Citadels: castles over the strongholds nobody has reached yet (js/citadel.js)
     if (gen.version === KINGDOMS_GEN || L.loadedSurface() || Object.hasOwn(G.story, "stonehaven")) prepareStonehaven(gen, data, G.story);
-    prepareVillageRenovations(gen, data, G.meta, G.story, applyVillageRenovation && !G.guest);
+    if (reopening && !G.guest) CP.applySettlementRenovations(gen, data);
+    prepareVillageRenovations(gen, data, G.meta, G.story, reopening && !G.guest);
   }
   const w = new World(gen);
   w.dim = dim;

@@ -29,6 +29,18 @@ const TYPES = {
 };
 const ORDER = ["excavation", "sea", "jungle", "desert", "home", "stonehaven", ...Object.keys(LEVIATHAN_MAP_TYPES)];
 const ZOOMS = [0.5, 1, 2, 4, 8];   // blocks per map pixel
+const CAMPAIGN_TOWN_GUIDES = {
+  t_stonehaven: "The castle is north of the plaza. Look for the market to the east and the barracks to the west.",
+  t_sandspire: "Look for Elder Rasha in the Sun Palace. The bazaar and the tall Sandspire overlook the oasis.",
+  t_oakwood: "Visit Explorer Fenn at the camp. The stairways connect the forest floor to the treetop platforms.",
+  t_seabreak: "Find Captain Mira at the Harbor Office before heading out from the docks.",
+  t_ironhold: "Talk to Forgemaster Hilda in the Forge Hall. The stairs at the Mine Head lead down to the Deep Mine.",
+  t_outpost: "Talk to Expedition Leader Sable at the camp. The Ember Gate leads to the Ember Depths once lit.",
+  t_hollowmere: "Start with Watcher Ilsa, then look for the Old Well, the Meeting Hall, and Dr. Vell’s observatory.",
+  t_skyreach: "From the landing, climb the Sky Stair and cross the bridge to reach the Relic Forge.",
+  t_capital: "Enter through the south gate to reach Captain Brenna's camp. Follow Grand Avenue to the Gate of Eight.",
+  t_legacyCommons: "Scribe Tamsin keeps the records hall. Beekeeper Nell tends the workshop and flower garden across the lane."
+};
 
 // ---------- what goes in the four starter chests ----------
 const S64 = 64;
@@ -404,6 +416,8 @@ export function initStarter(api) {
     }
     if (d.kind === "jungle") return `The Verdant Labyrinth's entrance is a vine-covered step temple in a forest clearing. Climb the stairs on its south face to the very top, where the lift waits (at ${pos(d)}). The labyrinth itself is underneath.`;
     if (d.kind === "desert") return `Only the tip of the Sunken Pyramid of Aurelis shows above the sand. Go in through the doorway on its south side to the lift chamber (the lift is at ${pos(d)}). The rest of the pyramid is buried below.`;
+    if (Object.hasOwn(CAMPAIGN_TOWN_GUIDES, d.kind)) return CAMPAIGN_TOWN_GUIDES[d.kind];
+    if (d.kind === "home" && G.campaign?.on()) return "The fountain is at the center of Legacy Village. Follow the road north to the castle.";
     return `Your Starter Home: bed, workbench, two furnaces, the four supply chests, and the Expedition Table (right-click it for a spare Explorer's Map). You first arrived on the path at ${pos(d)}.`;
   }
   const pos = d => `x ${Math.floor(d.x)}, y ${d.y}, z ${Math.floor(d.z)}`;
@@ -498,7 +512,15 @@ export function initStarter(api) {
     });
     draw(); renderSide();
     clearInterval(tickT);
-    tickT = setInterval(() => { if (G.panelKind !== "xmap" || !document.body.contains(cv)) { clearInterval(tickT); return; } if (view.follow && G.dim === "overworld") { view.cx = G.player.pos.x; view.cz = G.player.pos.z; } draw(true); }, 400);
+    const world = G.world;
+    tickT = setInterval(() => {
+      if (G.world !== world || !G.meta || G.panelKind !== "xmap" || !document.body.contains(cv)) {
+        clearInterval(tickT);
+        return;
+      }
+      if (view.follow && G.dim === "overworld") { view.cx = G.player.pos.x; view.cz = G.player.pos.z; }
+      draw(true);
+    }, 400);
   };
   function pick(kind) {
     const s = data(); s.dest = kind; Sound.click();
@@ -526,6 +548,19 @@ export function initStarter(api) {
       const notes = here ? travelNotes(d) : [`You're ${G.dim === "nether" ? "in the Ember Depths" : "away from the Surface"}. The map works again when you return.`];
       info.innerHTML = `<h4>${d.title}: ${d.name}</h4><p class="xm-coords">${pos(d)} · ${TYPES[d.kind].where}</p>${notes.map(n => `<p>${n}</p>`).join("")}<p class="xm-guide"></p>`;
       info.querySelector(".xm-guide").textContent = guide(d);
+      const renovation = G.campaign?.settlementRenovation(d.kind);
+      if (renovation) {
+        const notice = document.createElement("p");
+        notice.textContent = renovation.text;
+        info.appendChild(notice);
+        if (renovation.available) {
+          const button = document.createElement("button");
+          button.className = "btn small";
+          button.textContent = renovation.label || "Upgrade settlement";
+          button.onclick = () => G.campaign.queueSettlementRenovation(d.kind, renderSide);
+          info.appendChild(button);
+        }
+      }
     } else info.innerHTML = "";
     const calendar = G.festivals?.calendar();
     if (calendar) {

@@ -11,6 +11,8 @@
 import { B, I, CHUNK, SEA, itemDef, make } from "./blocks.js";
 import { idx } from "./worldgen.js";
 import { untouchedFootprint } from "./structure-placement.js";
+import { overlapsSettlement, settlementChangesOverlap, settlementIsUntouched, updateSettlementCrops } from "./campaign-renovation.js";
+import { COMMONS_SIZE, buildLegacyCommons, canPlaceLegacyCommons, findLegacyCommons } from "./campaign-commons.js";
 import { newStack } from "./inventory.js";
 import { buildVillage, VSIZE, VC, VILLAGE_V } from "./campaign-village.js";
 import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, STONEHAVEN_LAYOUT, SANDSPIRE_LAYOUT, OAKWOOD_LAYOUT, SEABREAK_LAYOUT, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
@@ -31,9 +33,20 @@ const k3 = (x, y, z) => x + "," + y + "," + z;
 const TEMPLE_DIMS = ["desert", "jungle", "sea"];
 const WAY_NAMES = { village: "Legacy Village", stonehaven: "Stonehaven", ruin: "The Ruined Watchtower", sandspire: "Sandspire", oakwood: "Oakwood", seabreak: "Seabreak",
   ironhold: "Ironhold", blightcitadel: "The Blight Citadel", outpost: "The Ember Outpost", hollowmere: "Hollowmere",
-  skyreach: "Skyreach Landing", skyreachTop: "Skyreach (the floating city)", capital: "The Ruined Capital" };
-const TOWN_SITES = ["stonehaven", "ruin", "sandspire", "oakwood", "seabreak", "ironhold", "blightcitadel", "outpost", "hollowmere", "skyreach", "capital"];
-const SZ = { ...SIZES, ...SIZES2, ...SIZES3 };   // every site kind's stamp size
+  skyreach: "Skyreach Landing", skyreachTop: "Skyreach (the floating city)", capital: "The Ruined Capital", legacyCommons: "Legacy Village Commons" };
+const TOWN_SITES = ["stonehaven", "ruin", "sandspire", "oakwood", "seabreak", "ironhold", "blightcitadel", "outpost", "hollowmere", "skyreach", "capital", "legacyCommons"];
+const SZ = { ...SIZES, ...SIZES2, ...SIZES3, legacyCommons: COMMONS_SIZE };   // every site kind's stamp size
+const SETTLEMENT_UPGRADES = {
+  stonehaven: { layout: STONEHAVEN_LAYOUT, quest: "rumors", arrivalStep: 1, flag: "raidWon" },
+  sandspire: { layout: SANDSPIRE_LAYOUT },
+  oakwood: { layout: OAKWOOD_LAYOUT },
+  seabreak: { layout: SEABREAK_LAYOUT },
+  ironhold: { layout: IRONHOLD_LAYOUT, arrivalStep: 1 },
+  outpost: { layout: EMBER_OUTPOST_LAYOUT, quest: "embers" },
+  hollowmere: { layout: HOLLOWMERE_LAYOUT },
+  skyreach: { layout: SKYREACH_LAYOUT },
+  capital: { layout: RUINED_CAPITAL_LAYOUT, flag: "capitalOpen" }
+};
 const SEAL_F = 38;   // the Dragon Seal shrines' floor height in the Ember Depths
 const RAID_WAVES = [["zombie", "zombie", "skeleton"], ["zombie", "spider", "skeleton", "zombie"], ["zombie", "zombie", "skeleton", "skeleton", "spider"]];
 
@@ -211,13 +224,15 @@ export function initCampaign(api) {
   }
   let genRef = null;   // the Surface generator (for sloping town edges into the land)
   const groundFor = (gen, rec) => (X, Z) => gen.column(rec.cx + X, rec.cz + Z).h;
-  function siteBuild(id, rec, gen) {
+  function siteBuild(id, rec, gen, preview = false) {
     if (id === "village") return built(id, rec, () => buildVillage(rec.g, groundFor(gen, rec), rec.v));
     const k = rec.kind || id, gnd = groundFor(gen, rec);
-    return built(id, rec, () => k === "stonehaven" ? buildStonehaven(rec.g, gnd, rec.v) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd, rec.v) : k === "oakwood" ? buildOakwood(rec.g, gnd, rec.v)
+    const makeSite = () => k === "stonehaven" ? buildStonehaven(rec.g, gnd, rec.v) : k === "ruin" ? buildRuin(rec.g, gnd) : k === "sandspire" ? buildSandspire(rec.g, gnd, rec.v) : k === "oakwood" ? buildOakwood(rec.g, gnd, rec.v)
       : k === "seabreak" ? buildSeabreak(rec.g, gnd, rec.rot || 0, rec.v) : k === "keyruin" ? buildKeyRuin(rec.n, rec.g, gnd)
       : k === "ironhold" ? buildIronhold(rec.g, gnd, rec.v) : k === "blightcitadel" ? buildBlightCitadel(rec.g, gnd) : k === "outpost" ? buildOutpost(rec.g, gnd, rec.v) : k === "hollowmere" ? buildHollowmere(rec.g, gnd, rec.v)
-      : k === "skyreach" ? buildSkyreach(rec.g, gnd, rec.v) : k === "capital" ? buildCapital(rec.g, gnd, rec.v) : buildWreck(rec.g));
+      : k === "skyreach" ? buildSkyreach(rec.g, gnd, rec.v) : k === "capital" ? buildCapital(rec.g, gnd, rec.v)
+      : k === "legacyCommons" ? buildLegacyCommons(rec.g, gnd, rec.rot) : buildWreck(rec.g);
+    return preview ? makeSite() : built(id, rec, makeSite);
   }
   function sitesIn(dim) {
     const s = st(), out = [];
@@ -239,6 +254,119 @@ export function initCampaign(api) {
   const W = (site, X, y, Z) => ({ x: site.cx + X, y, z: site.cz + Z });
   C.info = () => (on() && st().village ? siteBuild("village", st().village, genRef || G.world.gen).info : null);
 
+  function oldSettlement(s, id) {
+    if (!Object.hasOwn(SETTLEMENT_UPGRADES, id)) return null;
+    const rec = s.sites?.[id];
+    return rec && (rec.kind ?? id) === id && (rec.v ?? 1) === 1 ? rec : null;
+  }
+  function pendingSettlements(s) {
+    return Array.isArray(s.pendingSettlementLayouts) ? s.pendingSettlementLayouts : [];
+  }
+  function canAddCommons(s) {
+    return s.village && (s.village.v ?? 1) === 1 && !s.sites?.legacyCommons;
+  }
+  function renovationData() {
+    const w = G.world;
+    return {
+      ...G.dimData.overworld, visited: w.visited, mods: Object.fromEntries(w.mods),
+      containers: [...w.containers], entities: ents.toJSON(), drops: G.drops, crops: w.crops, beacons: w.beacons
+    };
+  }
+  function commonsRenovation(s) {
+    if (s.sites?.legacyCommons) return { text: "The new district has its own Legacy Village Commons marker on this map." };
+    if (!canAddCommons(s)) return null;
+    if (s.pendingLegacyCommons) return { text: "Commons queued. Return to the title from the Surface and reopen this campaign." };
+    const plot = findLegacyCommons(G.world.gen, s.village, renovationData(), G.player);
+    const blocked = s.legacyCommonsBlocked ? "The previously reserved plot is now protected. " : "";
+    if (!plot) return { text: blocked + "No clear, unexplored plot for the Commons is available near Legacy Village." };
+    return { text: blocked + `Add a records hall, apiary, and garden at X ${plot.cx}, Z ${plot.cz}. The new district uses its own plot.`,
+      label: "Add village commons", available: true, plot };
+  }
+  function queueCommons(plot, refresh) {
+    const world = G.world;
+    UI.confirm("Build the Legacy Village Commons?", `The district is planned at X ${plot.cx}, Z ${plot.cz}. Reopen from the Surface to build it if the plot is still clear.`, async () => {
+      if (G.world !== world || G.panelKind !== "xmap") return;
+      const s = st();
+      if (!canAddCommons(s) || s.pendingLegacyCommons ||
+        !canPlaceLegacyCommons(world.gen, s.village, plot, renovationData(), G.player)) return;
+      s.pendingLegacyCommons = plot;
+      await saveNow(false);
+      if (G.world === world && G.panelKind === "xmap") refresh();
+    }, "Queue commons");
+  }
+  function settlementEligible(id, rec, gen, data, player) {
+    const s = st(), { info, cells } = siteBuild(id, rec, gen);
+    const { layout, quest = id, arrivalStep = 0, flag } = SETTLEMENT_UPGRADES[id];
+    if (info.waystones.some(w => s.ways[w.id]) || (flag && s.flags[flag])) return false;
+    if ((s.done[quest] && !s.skipped?.[quest]) || s.prog[quest]?.i > arrivalStep || info.places.some(p => s.places[p.id]) ||
+      info.npcs.some(n => s.spawned[n.id]) || info.animals.some((_, i) => s.spawned[id + ":a" + i]) ||
+      Object.keys(info.arenas).some(boss => s.bosses[boss])) return false;
+    const size = SZ[id];
+    if (!settlementIsUntouched(rec, size, info, data, player, chestContents)) return false;
+    const reservations = (gen.stamps || []).filter(stamp => stamp.cells !== cells && overlapsSettlement(rec, size, stamp));
+    if (!reservations.length) return true;
+    // A seal or landmark may share an edge with the original stamp. Keep all intersecting blocks unchanged.
+    const next = siteBuild(id, { ...rec, v: layout }, gen, true).cells;
+    return !reservations.some(stamp => settlementChangesOverlap(rec, size, cells, next, stamp));
+  }
+  C.applySettlementRenovations = (gen, data) => {
+    if (!on()) return;
+    const s = st(), pending = pendingSettlements(s);
+    if (!pending.length && !s.pendingLegacyCommons) return;
+    let changed = false;
+    for (const [id, { layout }] of Object.entries(SETTLEMENT_UPGRADES)) {
+      const rec = oldSettlement(s, id);
+      if (!rec || !pending.includes(id) || !settlementEligible(id, rec, gen, data, G.meta.player)) continue;
+      const before = siteBuild(id, rec, gen);
+      const stamp = gen.stamps.find(stamp => stamp.cells === before.cells);
+      if (!stamp) continue;
+      const upgraded = { ...rec, v: layout };
+      const after = siteBuild(id, upgraded, gen);
+      if (s.filledSites[id]) updateSettlementCrops(data, rec, before.info.crops, after.info.crops);
+      stamp.cells = after.cells;
+      s.sites[id] = upgraded;
+      changed = true;
+    }
+    if (s.pendingLegacyCommons) {
+      const plot = s.pendingLegacyCommons;
+      delete s.pendingLegacyCommons;
+      if (canAddCommons(s) && canPlaceLegacyCommons(gen, s.village, plot, data, G.meta.player)) {
+        const { cells } = siteBuild("legacyCommons", plot, gen);
+        s.sites.legacyCommons = plot;
+        gen.stamps.push({ x: plot.cx - COMMONS_SIZE / 2, z: plot.cz - COMMONS_SIZE / 2, size: COMMONS_SIZE, cells });
+        delete s.legacyCommonsBlocked;
+        changed = true;
+      } else if (canAddCommons(s)) s.legacyCommonsBlocked = true;
+    }
+    if (changed) writeSigns("overworld", data);
+    delete s.pendingSettlementLayouts;
+  };
+  C.settlementRenovation = kind => {
+    if (!on() || G.dim !== "overworld" || !G.world || G.guest || G.spectator) return null;
+    const s = st();
+    if (kind === "home") return commonsRenovation(s);
+    if (!kind?.startsWith("t_")) return null;
+    const id = kind.slice(2), rec = oldSettlement(s, id);
+    if (!rec) return null;
+    if (pendingSettlements(s).includes(id)) return { text: "Upgrade queued. Return to the title from the Surface, then reopen this campaign to apply it if the site is still untouched." };
+    if (!settlementEligible(id, rec, G.world.gen, renovationData(), G.player)) return { text: "This site is protected. Your campaign will keep its original layout." };
+    return { text: "This site is untouched and can use the rebuilt layout in this campaign.", available: true };
+  };
+  C.queueSettlementRenovation = (kind, refresh) => {
+    if (G.panelKind !== "xmap") return;
+    const renovation = C.settlementRenovation(kind);
+    if (!renovation?.available) return;
+    if (kind === "home") { queueCommons(renovation.plot, refresh); return; }
+    const world = G.world, id = kind.slice(2);
+    UI.confirm("Upgrade " + WAY_NAMES[id] + "?", "Reopen this campaign to apply the rebuilt layout. The game will check again for visits, quest progress, and player changes.", async () => {
+      if (G.world !== world || G.panelKind !== "xmap" || !C.settlementRenovation(kind)?.available) return;
+      const s = st();
+      s.pendingSettlementLayouts = [...pendingSettlements(s), id];
+      await saveNow(false);
+      if (G.world === world && G.panelKind === "xmap") refresh();
+    }, "Queue upgrade");
+  };
+
   // ======================= called from makeWorld (before any land is made) =======================
   C.plan = (gen, wdata) => {
     if (!on()) return false;
@@ -257,6 +385,8 @@ export function initCampaign(api) {
     }
     L.avoid = [];
     for (const a of [-64, -32, 0, 32, 64]) for (const c of [-64, -32, 0, 32, 64]) L.avoid.push({ x: v.cx + a - 16, z: v.cz + c - 16 });
+    const commons = s.sites?.legacyCommons;
+    if (commons) for (const x of [-24, -8]) for (const z of [-24, -8]) L.avoid.push({ x: commons.cx + x, z: commons.cz + z });
     if (!G.story.starter) G.story.starter = { v: 1, fresh: true, house: null, campaign: true, waypoint: true, zoom: 2, granted: Date.now(), welcomed: true, mapGiven: true, dest: "home" };
     return true;
   };
@@ -322,14 +452,17 @@ export function initCampaign(api) {
   };
 
   // ======================= one-time setup inside the world: chests, people, animals =======================
+  function chestContents(c) {
+    const slots = new Array(27).fill(null);
+    (LOOT[c.loot] || []).forEach(([id, n], j) => { if (j < 27 && id && itemDef(id)) slots[j] = newStack(id, n); });
+    return slots;
+  }
   function fillSite(site) {
     const s = st(), w = G.world, info = site.built.info;
     for (const c of info.chests) {
       const p = W(site, c.X, c.y, c.Z), key = k3(p.x, p.y, p.z);
       if (w.containers.has(key)) continue;
-      const slots = new Array(27).fill(null);
-      (LOOT[c.loot] || []).forEach(([id, n], j) => { if (j < 27 && id && itemDef(id)) slots[j] = newStack(id, n); });
-      w.containers.set(key, { type: "chest", slots, label: c.label });
+      w.containers.set(key, { type: "chest", slots: chestContents(c), label: c.label });
     }
     for (const c of info.crops) { const p = W(site, c.X, c.y, c.Z); w.crops.add(k3(p.x, p.y, p.z)); }
     if (site.id === "ironhold") s.blightSkullsFixed = true;
