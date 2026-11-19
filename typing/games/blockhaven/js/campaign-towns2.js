@@ -5,14 +5,20 @@
 // Each builder returns { cells, info } for one stamp (see js/campaign-kit.js). All builders are deterministic.
 import { B, HEIGHT, make } from "./blocks.js";
 import { makeKit } from "./campaign-kit.js";
+import { finishIronholdTown, finishIronholdMine } from "./campaign-ironhold.js";
+import { buildEmberShelters, finishEmberOutpost } from "./campaign-ember-outpost.js";
+import { finishHollowmere, finishHollowmereObservatory, HOLLOWMERE_LAYOUT } from "./campaign-hollowmere.js";
 
 export const TOWNS2_V = 1;
+export const IRONHOLD_LAYOUT = 2;
+export const EMBER_OUTPOST_LAYOUT = 2;
 export const SIZES2 = { ironhold: 112, blightcitadel: 80, outpost: 48, hollowmere: 88, sealshrine: 56 };
 const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
 // ======================= IRONHOLD: the mining town under Mount Ferrum =======================
-export function buildIronhold(g, groundAt) {
+export function buildIronhold(g, groundAt, layout = TOWNS2_V) {
   const K = makeKit(SIZES2.ironhold, g), { set, box } = K;
+  const renewed = layout === IRONHOLD_LAYOUT;
   K.ground(groundAt, 46, 54);
   // Mount Ferrum rises behind the north wall (stone with veins of iron and coal)
   for (let Z = -56; Z <= -17; Z++) for (let X = -56; X < 56; X++) {
@@ -39,7 +45,8 @@ export function buildIronhold(g, groundAt) {
   for (let Z = 26; Z <= 42; Z += 8) { K.lamp(-4, Z); K.lamp(4, Z); }
   K.place("ironhold", 0, 14, 40);
   // the Forge Hall (Forgemaster Hilda)
-  K.house({ x0: -32, z0: -12, x1: -12, z1: 4, h: 6, wall: B.STONE_BRICKS, corner: B.COBBLE, floor: B.STONE_BRICKS, roof: B.COBBLE, ridge: "x", doorSide: "s", doorAt: -22 });
+  K.house({ x0: -32, z0: -12, x1: -12, z1: 4, h: 6, wall: B.STONE_BRICKS, corner: B.COBBLE, floor: B.STONE_BRICKS,
+    roof: renewed ? B.DARKSLATE_BRICKS : B.COBBLE, ridge: "x", doorSide: "s", doorAt: -22 });
   for (const x of [-30, -28, -26]) set(x, g + 1, -11, make(B.FURNACE, 0));
   set(-24, g + 1, -11, B.SMITH_TABLE); set(-22, g + 1, -11, B.TABLE);
   box(-18, g, -10, -15, g, -9, B.LAVA); box(-19, g + 1, -11, -14, g + 1, -8, (x, y, z) => (x === -19 || x === -14 || z === -11 || z === -8 ? B.STONE_BRICKS : B.AIR)); box(-18, g + 2, -10, -15, g + 2, -9, B.GLASS);
@@ -47,18 +54,23 @@ export function buildIronhold(g, groundAt) {
   K.sign(-25, g + 1, 5, 0, "The Forge Hall\n\nAnything made of iron in the five kingdoms was probably hammered here.");
   K.npc("hilda", -22, -4); K.place("ihForge", -22, -4, 10);
   // the Mine Head: the way down to the deep mine (where the blight is spreading)
-  K.house({ x0: 14, z0: -14, x1: 26, z1: -2, h: 5, wall: B.COBBLE, corner: B.LOG, floor: B.PLANKS, roof: B.COBBLE, ridge: "z", doorSide: "s", doorAt: 16 });
+  K.house({ x0: 14, z0: -14, x1: 26, z1: -2, h: 5, wall: renewed ? B.STONE_BRICKS : B.COBBLE, corner: B.LOG,
+    floor: B.PLANKS, roof: renewed ? B.DARKSLATE_BRICKS : B.COBBLE, ridge: "z", doorSide: "s", doorAt: 16 });
   K.npc("dag", 16, 0); K.place("ihMineHead", 20, -8, 6);
   K.sign(23, g + 1, -1, 0, "The Mine Head\n\nCLOSED by order of the Forgemaster. Something down there is turning the stone black. Ask Hilda before going down.");
   for (let k = 0; k < 26; k++) { const x = 8 + Math.floor(hash(k, 41) * 24), z = -1 + Math.floor(hash(k, 42) * 8); if (Math.abs(x) > 2 && K.get(x, g, z) === B.GRASS) set(x, g, z, hash(k, 43) < 0.5 ? B.BLACKSTONE : B.SOUL_SAND); }
   for (let z = -1; z <= 10; z++) set(12, g + 1, z, B.RAIL);   // an old cart line from the mine to the ore yard
   K.chest(11, g + 1, 10, 1, "ihYard", "Ore Yard Crate");
   // homes, the healer's house, the guard post
+  const homeWalls = renewed ? [B.BIRCH_PLANKS, B.STONE_BRICKS] : [B.PLANKS, B.COBBLE];
+  const homeRoofs = renewed ? [B.ROOF_TILES, B.DARKSLATE_BRICKS] : [B.BRICKS, B.COBBLE];
   [[-38, 20], [-28, 20], [-38, 32], [-28, 32], [24, 22], [34, 22]].forEach(([x0, z0], i) => {
-    K.house({ x0, z0, x1: x0 + 7, z1: z0 + 6, h: 4, wall: i % 2 ? B.COBBLE : B.PLANKS, corner: B.LOG, floor: B.PLANKS, roof: i % 3 ? B.COBBLE : B.BRICKS, doorSide: "n", doorAt: x0 + 3 });
+    K.house({ x0, z0, x1: x0 + 7, z1: z0 + 6, h: 4, wall: homeWalls[i % 2], corner: B.LOG, floor: B.PLANKS,
+      roof: homeRoofs[i % 3 ? 1 : 0], doorSide: "n", doorAt: x0 + 3 });
     K.bed(x0 + 1, g + 1, z0 + 5); K.chest(x0 + 6, g + 1, z0 + 5, 2, "ihHome", "Miner's Locker");
   });
-  K.house({ x0: 24, z0: 32, x1: 36, z1: 40, h: 4, wall: B.BIRCH_PLANKS, corner: B.LOG, floor: B.PLANKS, roof: B.BRICKS, doorSide: "n", doorAt: 30 });
+  K.house({ x0: 24, z0: 32, x1: 36, z1: 40, h: 4, wall: B.BIRCH_PLANKS, corner: B.LOG, floor: B.PLANKS,
+    roof: renewed ? B.ROOF_TILES : B.BRICKS, doorSide: "n", doorAt: 30 });
   K.bed(25, g + 1, 39); K.bed(27, g + 1, 39); K.chest(35, g + 1, 39, 3, "ihHealer", "Healer's Shelf");
   K.npc("rue", 30, 36); K.sign(32, g + 1, 31, 2, "Healer Rue\n\nBandages, broth, and good advice. No charge.");
   K.house({ x0: -12, z0: 34, x1: -5, z1: 41, h: 4, wall: B.STONE_BRICKS, corner: B.COBBLE, floor: B.PLANKS, roof: B.COBBLE, doorSide: "e", doorAt: 37 });
@@ -100,6 +112,10 @@ export function buildIronhold(g, groundAt) {
   K.animal("blight", 17, 37, F); K.animal("blight", 23, 33, F);
   K.animal("blight", 47, 8, F); K.animal("cave_spider", 43, 15, F);
   K.info.marks.mineFloor = F;
+  if (renewed) {
+    finishIronholdTown(K);
+    finishIronholdMine(K, F);
+  }
   return K;
 }
 
@@ -152,8 +168,9 @@ export function buildBlightCitadel(g, groundAt) {
 }
 
 // ======================= the Ember Outpost: an expedition camp with an unlit portal =======================
-export function buildOutpost(g, groundAt) {
+export function buildOutpost(g, groundAt, layout = TOWNS2_V) {
   const K = makeKit(SIZES2.outpost, g), { set, box } = K;
+  const renewed = layout === EMBER_OUTPOST_LAYOUT;
   K.ground(groundAt, 16, 22);
   for (let i = -17; i <= 17; i++) for (const [x, z] of [[i, 17], [i, -17], [17, i], [-17, i]]) if (Math.abs(i) > 2 || z === -17) { set(x, g + 1, z, B.LOG); if (i % 2) set(x, g + 2, z, B.OAK_FENCE); }
   // the portal frame (obsidian, waiting for a spark)
@@ -162,8 +179,11 @@ export function buildOutpost(g, groundAt) {
   K.sign(3, g + 1, -10, 0, "The Ember Gate\n\nA portal frame, built by the expedition. Strike it with Flint and Steel (in the supply chest) to open the way to the Ember Depths.");
   K.info.marks.portal = { ...K.at(0, -10), y: g + 2 };
   // tents, a map table, the supply chests
-  const tent = (cx, cz, wool) => { for (let z = cz - 3; z <= cz + 3; z++) for (let x = cx - 3; x <= cx + 3; x++) { const h = 4 - Math.abs(x - cx); if (h < 1) continue; set(x, g + h, z, wool); } box(cx, g + 1, cz - 3, cx, g + 3, cz - 3, B.LOG); };
-  tent(-9, 4, B.WOOL); tent(9, 4, B.BLACK_WOOL); tent(-9, -4, B.BLACK_WOOL);
+  if (renewed) buildEmberShelters(K);
+  else {
+    const tent = (cx, cz, wool) => { for (let z = cz - 3; z <= cz + 3; z++) for (let x = cx - 3; x <= cx + 3; x++) { const h = 4 - Math.abs(x - cx); if (h < 1) continue; set(x, g + h, z, wool); } box(cx, g + 1, cz - 3, cx, g + 3, cz - 3, B.LOG); };
+    tent(-9, 4, B.WOOL); tent(9, 4, B.BLACK_WOOL); tent(-9, -4, B.BLACK_WOOL);
+  }
   K.bed(-10, g + 1, 6); K.bed(8, g + 1, 6);
   set(2, g + 1, 2, B.MAP_TABLE); set(-2, g + 1, 2, B.TABLE);
   K.chest(4, g + 1, -6, 2, "outpost", "Expedition Supplies"); K.chest(5, g + 1, -6, 2, "outpost2", "Expedition Supplies");
@@ -172,6 +192,7 @@ export function buildOutpost(g, groundAt) {
   K.npc("sable", 0, 3); K.npc("quill", -5, -2);
   K.sign(-4, g + 1, 10, 0, "The Ember Outpost\n\nBase camp of the Royal Expedition to the Ember Depths. Wipe your boots. Some of us still have to sleep here.");
   K.place("outpost", 0, 0, 14);
+  if (renewed) finishEmberOutpost(K);
   return K;
 }
 
@@ -210,8 +231,9 @@ export function buildSealShrine(n, F) {
 }
 
 // ======================= HOLLOWMERE: the village in the fog =======================
-export function buildHollowmere(g, groundAt) {
+export function buildHollowmere(g, groundAt, layout = TOWNS2_V) {
   const K = makeKit(SIZES2.hollowmere, g), { set, box } = K;
+  const renewed = layout === HOLLOWMERE_LAYOUT;
   K.ground(groundAt, 36, 42);
   for (let Z = -40; Z < 40; Z++) for (let X = -40; X < 40; X++) { const r = hash(X + 3000, Z + 77); if (K.get(X, g, Z) === B.GRASS && r < 0.22) set(X, g, Z, r < 0.08 ? B.GRAVEL : r < 0.16 ? B.DIRT : B.MOSSY); }
   K.road(-1, -36, 1, 40, B.GRAVEL, B.MOSSY); K.road(-36, -1, 36, 1, B.GRAVEL, B.MOSSY);
@@ -221,28 +243,32 @@ export function buildHollowmere(g, groundAt) {
   K.sign(3, g + 1, 3, 0, "The Old Well\n\nScratched on the stones, in a child's writing: \"The tall man with the white eyes looks down the well at night. He never says anything. He just looks.\"");
   K.place("hmWell", 0, 0, 5);
   // abandoned cottages: holes in the walls, gaps in the roofs
-  [[-32, -12], [-20, 8], [10, 8], [22, 8], [10, 22], [-32, 22]].forEach(([x0, z0], i) => {
-    K.house({ x0, z0, x1: x0 + 7, z1: z0 + 6, h: 4, wall: i % 2 ? B.COBBLE : B.MOSSY, corner: B.LOG, floor: B.PLANKS, roof: B.COBBLE, doorSide: "n", doorAt: x0 + 3 });
+  const cottages = [[-32, -12], [-20, 8], [10, 8], [22, 8], [10, 22], [-32, 22]];
+  cottages.forEach(([x0, z0], i) => {
+    const roof = renewed ? (i % 3 === 1 ? B.ROOF_TILES : B.DARKSLATE_BRICKS) : B.COBBLE;
+    K.house({ x0, z0, x1: x0 + 7, z1: z0 + 6, h: 4, wall: i % 2 ? B.COBBLE : B.MOSSY, corner: B.LOG, floor: B.PLANKS, roof, doorSide: "n", doorAt: x0 + 3 });
     for (let k = 0; k < 9; k++) { const x = x0 + Math.floor(hash(x0, k + 9) * 8), z = z0 + Math.floor(hash(z0, k + 9) * 7), y = g + 2 + Math.floor(hash(k, x0 + z0) * 6); if (K.get(x, y, z) !== B.AIR && !(x === x0 + 3 && z === z0)) set(x, y, z, B.AIR); }
     K.chest(x0 + 6, g + 1, z0 + 5, 2, "hmHome", "Dusty Chest");
   });
   // the Old Meeting Hall
-  K.house({ x0: -30, z0: -36, x1: -12, z1: -22, h: 6, wall: B.STONE_BRICKS, corner: B.MOSSY, floor: B.PLANKS, roof: B.COBBLE, ridge: "z", doorSide: "e", doorAt: -29 });
+  K.house({ x0: -30, z0: -36, x1: -12, z1: -22, h: 6, wall: B.STONE_BRICKS, corner: B.MOSSY, floor: B.PLANKS,
+    roof: renewed ? B.DARKSLATE_BRICKS : B.COBBLE, ridge: "z", doorSide: "e", doorAt: -29 });
   for (let z = -33; z <= -25; z += 2) box(-26, g + 1, z, -16, g + 1, z, (x) => (x === -21 ? B.AIR : B.PLANKS));
   set(-28, g + 1, -29, B.BELL);
   K.sign(-27, g + 1, -31, 1, "The Meeting Hall\n\nA notice, nailed to the wall: \"The fog came down from the hills on the night Dr. Vell's machine first hummed. By morning the birds had stopped singing. Everyone is to leave for Ironhold.\"");
   K.place("hmHall", -21, -29, 8);
   // Ilsa's house: the only one still cared for
-  K.house({ x0: -16, z0: 20, x1: -8, z1: 28, h: 4, wall: B.PLANKS, corner: B.LOG, floor: B.PLANKS, roof: B.BRICKS, doorSide: "n", doorAt: -12 });
+  K.house({ x0: -16, z0: 20, x1: -8, z1: 28, h: 4, wall: renewed ? B.BIRCH_PLANKS : B.PLANKS, corner: B.LOG, floor: B.PLANKS,
+    roof: renewed ? B.ROOF_TILES : B.BRICKS, doorSide: "n", doorAt: -12 });
   K.bed(-15, g + 1, 27); K.chest(-9, g + 1, 27, 3, "hmIlsa", "Ilsa's Pantry");
   for (const x of [-17, -7]) { set(x, g + 1, 19, B.FLOWER_YELLOW); set(x, g + 1, 22, B.FLOWER_RED); }
   K.npc("ilsa", -12, 17);
   // Dr. Vell's observatory on the hill
   const HX = 24, HZ = -24, top = g + 5;
   for (let dz = -11; dz <= 11; dz++) for (let dx = -11; dx <= 11; dx++) { const d = Math.max(Math.abs(dx), Math.abs(dz)); if (d > 11) continue; const h = Math.min(5, 11 - d); for (let y = g + 1; y <= g + h; y++) set(HX + dx, y, HZ + dz, y === g + h ? B.GRASS : B.DIRT); }
-  for (let k = 0; k < 6; k++) box(HX - 1, g + 1 + k - 1, HZ + 12 - k, HX + 1, g + k, HZ + 12 - k, B.COBBLE);
+  if (!renewed) for (let k = 0; k < 6; k++) box(HX - 1, g + 1 + k - 1, HZ + 12 - k, HX + 1, g + k, HZ + 12 - k, B.COBBLE);
   K.house({ x0: HX - 6, z0: HZ - 6, x1: HX + 6, z1: HZ + 6, h: 5, wall: B.STONE_BRICKS, corner: B.COBBLE, floor: B.STONE_BRICKS, roof: B.STONE_BRICKS, flat: true, doorSide: "s", doorAt: HX, base: top });
-  for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) { const d = Math.hypot(dx, dz); if (d <= 4.5) set(HX + dx, top + 6 + (d < 2.5 ? 1 : 0), HZ + dz, d > 3.5 ? B.STONE_BRICKS : B.GLASS); }
+  if (!renewed) for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) { const d = Math.hypot(dx, dz); if (d <= 4.5) set(HX + dx, top + 6 + (d < 2.5 ? 1 : 0), HZ + dz, d > 3.5 ? B.STONE_BRICKS : B.GLASS); }
   for (let x = HX - 5; x <= HX + 5; x++) set(x, top + 1, HZ - 5, B.BOOKSHELF);
   set(HX - 4, top + 1, HZ + 2, B.MAP_TABLE); set(HX + 4, top + 1, HZ + 2, B.TABLE);
   box(HX - 1, top + 1, HZ - 2, HX + 1, top + 1, HZ, B.PALE_BRICKS); set(HX, top + 2, HZ - 1, B.SHINESTONE);
@@ -262,5 +288,9 @@ export function buildHollowmere(g, groundAt) {
   K.sign(-4, g + 1, 38, 0, "Hollowmere\n\nOnce a quiet farming village. Now only fog lives here. (And Ilsa. Ilsa still lives here.)");
   for (let Z = -30; Z <= 30; Z += 10) if (Math.abs(Z) > 5) K.lamp(3, Z);
   K.place("hollowmere", 0, 0, 34);
+  if (renewed) {
+    finishHollowmere(K, cottages);
+    finishHollowmereObservatory(K, HX, HZ, top);
+  }
   return K;
 }

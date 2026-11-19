@@ -87,7 +87,8 @@ export function initForsaken(api) {
     const s = fw(), r = s.returnTo || { dim: "overworld", x: G.player.spawn.x, z: G.player.spawn.z };
     clearHero();
     return changeDim(r.dim || "overworld", Math.floor(r.x), Math.floor(r.z), "Returning home…", () => {
-      api.placeSafely(G.player, r.x, r.z); UI.toast("Home again. Your Pale Lantern can take you back any time.", "good");
+      if (!G.campaign?.restoreHollowmereReturn?.(r)) api.placeSafely(G.player, r.x, r.z);
+      UI.toast("Home again. Your Pale Lantern can take you back any time.", "good");
     });
   };
 

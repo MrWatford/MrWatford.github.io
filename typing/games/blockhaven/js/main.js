@@ -44,7 +44,7 @@ import { initCitadelBoss } from "./citadel-boss.js";
 import { initCitadelAmbience } from "./citadel-ambience.js";
 import { initStarter } from "./starter.js";
 import { leviathanShrineBearings, sandcallerPreparation } from "./leviathan-navigation.js";
-import { initCampaign, CAMPAIGN_SEED, CAMPAIGN_STONEHAVEN_LAYOUT, CAMPAIGN_SANDSPIRE_LAYOUT, CAMPAIGN_VILLAGE_LAYOUT } from "./campaign.js";
+import { initCampaign, CAMPAIGN_SEED, CAMPAIGN_STONEHAVEN_LAYOUT, CAMPAIGN_SANDSPIRE_LAYOUT, CAMPAIGN_OAKWOOD_LAYOUT, CAMPAIGN_SEABREAK_LAYOUT, CAMPAIGN_IRONHOLD_LAYOUT, CAMPAIGN_EMBER_OUTPOST_LAYOUT, CAMPAIGN_HOLLOWMERE_LAYOUT, CAMPAIGN_VILLAGE_LAYOUT } from "./campaign.js";
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
@@ -5406,6 +5406,7 @@ const redwoodHaze = new THREE.Color(0xc3b79d);
 const mangroveHaze = new THREE.Color(0x85aca0);
 const plainsHaze = new THREE.Color(0xb4c997);
 const jungleHaze = new THREE.Color(0x92b69e);
+const hollowmereHaze = new THREE.Color(0xa1aba2);
 function updateSky() {
   const nether = G.world && G.world.gen.isNether();
   const hollow = G.world && G.world.gen.isEnd && G.world.gen.isEnd();
@@ -5490,6 +5491,7 @@ function updateSky() {
   const dusk = Math.max(0, 1 - Math.abs(h) * 4) * (day > 0.05 ? 1 : 0.4);
   skyCol.lerp(SKY_SET, dusk * 0.45);
   const p = G.player;
+  const villageMist = !p.headInWater && !p.inLava ? CP.hollowmereMist(p.pos) : 0;
   if (p.headInWater) skyCol.set(0x1d3f7a);
   else if (mist) {
     const volcanic = G.dim === VOLCANIC_BADLANDS || G.dim === GODZILLA_CALDERA;
@@ -5508,6 +5510,13 @@ function updateSky() {
     skyCol.lerp(ASH_SKY, badlandsAsh * 0.72);
     const distance = (1 - badlandsAsh * 0.42) * G.settings.renderDist * CHUNK;
     G.fwFog = [distance * 0.46, distance];
+  } else if (villageMist > 0) {
+    const range = G.settings.renderDist * CHUNK;
+    skyCol.lerp(hollowmereHaze, villageMist * (0.28 + day * 0.48));
+    uniforms.desat.value = villageMist * 0.32;
+    uniforms.ambient.value += villageMist * 0.05;
+    const near = Math.min(24, range * 0.38), far = Math.min(67, range - 2);
+    G.fwFog = [range * 0.67 * (1 - villageMist) + near * villageMist, (range - 2) * (1 - villageMist) + far * villageMist];
   }
   scene.background = skyCol; uniforms.fogColor.value.copy(skyCol);
   const cam = camera.position, R = 80;
@@ -5518,6 +5527,7 @@ function updateSky() {
     sky.zenith.value.copy(SKY_TOP_NIGHT).lerp(SKY_TOP_DAY, day);
     if (stormStage) sky.zenith.value.lerp(skyCol, stormStage * 0.22);
     else if (badlandsAsh) sky.zenith.value.lerp(skyCol, badlandsAsh * 0.48);
+    else if (villageMist > 0) sky.zenith.value.lerp(skyCol, villageMist * 0.62);
     sky.cloudLight.value = day;
     sky.cloudDrift.value = G.settings.reducedMotion ? 0 : G.clock * 0.52;
   }
@@ -5692,7 +5702,9 @@ G.newWorld = ({ name, seed, mode, settings, campaign, lostWorld, lostWorldCampai
   if (hardcore) settings = { ...settings, difficulty: "hard", keepInv: false };
   const gen = campaign || lostWorld ? LEGACY_CHUNK_GEN : seed === LANTERN_VALE_SEED ? KINGDOMS_GEN : CURRENT_GEN;
   const campaignMeta = campaign ? { ...campaign, villageLayout: CAMPAIGN_VILLAGE_LAYOUT,
-    stonehavenLayout: CAMPAIGN_STONEHAVEN_LAYOUT, sandspireLayout: CAMPAIGN_SANDSPIRE_LAYOUT } : null;
+    stonehavenLayout: CAMPAIGN_STONEHAVEN_LAYOUT, sandspireLayout: CAMPAIGN_SANDSPIRE_LAYOUT,
+    oakwoodLayout: CAMPAIGN_OAKWOOD_LAYOUT, seabreakLayout: CAMPAIGN_SEABREAK_LAYOUT, ironholdLayout: CAMPAIGN_IRONHOLD_LAYOUT,
+    emberOutpostLayout: CAMPAIGN_EMBER_OUTPOST_LAYOUT, hollowmereLayout: CAMPAIGN_HOLLOWMERE_LAYOUT } : null;
   const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaignMeta };
   if (lostWorld && !campaign && !hardcore) {
     save.lostWorldGen = LOST_WORLD_GEN;

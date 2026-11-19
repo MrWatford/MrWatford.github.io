@@ -6,10 +6,14 @@ import { B, HEIGHT, SEA, make, TOP } from "./blocks.js";
 import { makeKit } from "./campaign-kit.js";
 import { finishCampaignStonehaven } from "./campaign-stonehaven.js";
 import { finishCampaignSandspire } from "./campaign-sandspire.js";
+import { buildOakwoodCanopy, buildOakwoodCamp, finishOakwoodGround } from "./campaign-oakwood.js";
+import { buildSeabreakHarbor, SEABREAK_HOMES } from "./campaign-seabreak.js";
 
 export const TOWNS_V = 1;
 export const STONEHAVEN_LAYOUT = 2;
 export const SANDSPIRE_LAYOUT = 2;
+export const OAKWOOD_LAYOUT = 2;
+export const SEABREAK_LAYOUT = 2;
 export const SIZES = { stonehaven: 112, ruin: 64, sandspire: 96, oakwood: 96, seabreak: 96, keyruin: 40, wreck: 40, throne: 80 };
 const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
@@ -212,10 +216,10 @@ export function buildSandspire(g, groundAt, layout = 1) {
 }
 
 // ======================= OAKWOOD: the forest town in the treetops =======================
-export function buildOakwood(g, groundAt) {
+export function buildOakwood(g, groundAt, layout = 1) {
+  const renewed = layout === 2;
   const K = makeKit(SIZES.oakwood, g), { set, box } = K;
   K.ground(groundAt, 38, 46);
-  const P = g + 10;   // the treetop walkways
   // a palisade with four gates
   for (let i = -40; i <= 40; i++) for (const [x, z] of [[i, 40], [i, -40], [40, i], [-40, i]]) if (Math.abs(i) > 2) { set(x, g + 1, z, B.LOG); set(x, g + 2, z, B.LOG); if (i % 2) set(x, g + 3, z, B.OAK_FENCE); }
   // a stream across the town, with bridges
@@ -224,6 +228,34 @@ export function buildOakwood(g, groundAt) {
   K.road(-1, -40, 1, 40, B.GRAVEL, B.DIRT); K.road(-40, -1, 40, 1, B.GRAVEL, B.DIRT);
   // four giant trees with spiral stairs, platforms, and little huts; bridges between them high above
   const trees = [[-22, -18], [20, -22], [22, 26], [-20, 28]];
+  if (renewed) buildOakwoodCanopy(K, trees);
+  else buildOriginalOakwoodCanopy(K, trees);
+  // the explorers' camp (a big tent), log cabins, a sawmill
+  if (renewed) buildOakwoodCamp(K);
+  else {
+    for (let z = -6; z <= 2; z++) for (let x = 6; x <= 14; x++) { const h = 4 - Math.abs(z + 2) * 0.8; if (h < 0.5) continue; set(x, g + Math.round(h), z, (x + z) % 2 ? B.WOOL : B.BLACK_WOOL); }
+    box(6, g + 1, -2, 6, g + 4, -2, B.LOG); box(14, g + 1, -2, 14, g + 4, -2, B.LOG);
+  }
+  set(10, g + 1, -5, B.TABLE); K.chest(12, g + 1, -5, 0, "camp", "Expedition Supplies");
+  K.sign(8, g + 1, 3, 0, "Explorers' Camp\n\nExplorer Fenn has mapped every root and river in these woods. Almost.");
+  K.npc("fenn", 10, -1); K.place("camp", 10, -2, 6);
+  const cabins = [[-34, -6], [-34, 4], [26, 4], [30, -8]];
+  cabins.forEach(([x0, z0], i) => {
+    const roof = renewed ? (i % 2 === 0 ? B.DARKSLATE_BRICKS : B.ROOF_TILES) : B.PLANKS;
+    K.house({ x0, z0, x1: x0 + 6, z1: z0 + 5, h: 4, wall: renewed ? B.BIRCH_PLANKS : B.LOG, corner: B.LOG, floor: B.PLANKS, roof, ridge: "x", doorSide: x0 < 0 ? "e" : "w", doorAt: z0 + 2 });
+    K.bed(x0 + (x0 < 0 ? 1 : 5), g + 1, z0 + 2); K.chest(x0 + (x0 < 0 ? 1 : 5), g + 1, z0 + 4, x0 < 0 ? 1 : 3, "cabin", "Cabin Chest");
+  });
+  K.npc("elm", -30, -10); K.npc("lumber", 30, -12);
+  for (let k = 0; k < 18; k++) { const x = Math.round((hash(k, 9) - 0.5) * 70), z = Math.round((hash(k, 10) - 0.5) * 70); if (Math.abs(x) > 4 && Math.abs(z) > 4 && (z < 11 || z > 18) && [-1, 0, 1].every(d => K.get(x + d, g + 1, z) === B.AIR && K.get(x, g + 1, z + d) === B.AIR) && K.get(x, g, z) === B.GRASS && trees.every(([a, b]) => Math.hypot(a - x, b - z) > 10) && Math.hypot(x - 10, z + 2) > 8) K.tree(x, z, 5 + Math.floor(hash(k, 11) * 3)); }
+  K.waystone("oakwood", -4, 4);
+  K.sign(-4, g + 1, 6, 0, "Oakwood\n\nThe town in the trees. Climb the stairs around the great oaks to reach the walkways.");
+  K.place("oakwood", 0, 0, 38);
+  if (renewed) finishOakwoodGround(K, trees, cabins);
+  return K;
+}
+
+function buildOriginalOakwoodCanopy(K, trees) {
+  const { g, set, box } = K, P = g + 10;
   trees.forEach(([cx, cz], i) => {
     for (let y = g - 2; y <= g + 22; y++) box(cx - 1, y, cz - 1, cx + 1, y, cz + 1, B.LOG);
     for (let dz = -8; dz <= 8; dz++) for (let dx = -8; dx <= 8; dx++) for (let dy = -3; dy <= 5; dy++) {
@@ -258,26 +290,12 @@ export function buildOakwood(g, groundAt) {
     }
   };
   walk(trees[0], trees[1]); walk(trees[1], trees[2]); walk(trees[2], trees[3]); walk(trees[3], trees[0]);
-  // the explorers' camp (a big tent), log cabins, a sawmill
-  for (let z = -6; z <= 2; z++) for (let x = 6; x <= 14; x++) { const h = 4 - Math.abs(z + 2) * 0.8; if (h < 0.5) continue; set(x, g + Math.round(h), z, (x + z) % 2 ? B.WOOL : B.BLACK_WOOL); }
-  box(6, g + 1, -2, 6, g + 4, -2, B.LOG); box(14, g + 1, -2, 14, g + 4, -2, B.LOG); set(10, g + 1, -5, B.TABLE); K.chest(12, g + 1, -5, 0, "camp", "Expedition Supplies");
-  K.sign(8, g + 1, 3, 0, "Explorers' Camp\n\nExplorer Fenn has mapped every root and river in these woods. Almost.");
-  K.npc("fenn", 10, -1); K.place("camp", 10, -2, 6);
-  [[-34, -6], [-34, 4], [26, 4], [30, -8]].forEach(([x0, z0], i) => {
-    K.house({ x0, z0, x1: x0 + 6, z1: z0 + 5, h: 4, wall: B.LOG, corner: B.LOG, floor: B.PLANKS, roof: B.PLANKS, ridge: "x", doorSide: x0 < 0 ? "e" : "w", doorAt: z0 + 2 });
-    K.bed(x0 + (x0 < 0 ? 1 : 5), g + 1, z0 + 2); K.chest(x0 + (x0 < 0 ? 1 : 5), g + 1, z0 + 4, x0 < 0 ? 1 : 3, "cabin", "Cabin Chest");
-  });
-  K.npc("elm", -30, -10); K.npc("lumber", 30, -12);
-  for (let k = 0; k < 18; k++) { const x = Math.round((hash(k, 9) - 0.5) * 70), z = Math.round((hash(k, 10) - 0.5) * 70); if (Math.abs(x) > 4 && Math.abs(z) > 4 && (z < 11 || z > 18) && [-1, 0, 1].every(d => K.get(x + d, g + 1, z) === B.AIR && K.get(x, g + 1, z + d) === B.AIR) && K.get(x, g, z) === B.GRASS && trees.every(([a, b]) => Math.hypot(a - x, b - z) > 10) && Math.hypot(x - 10, z + 2) > 8) K.tree(x, z, 5 + Math.floor(hash(k, 11) * 3)); }
-  K.waystone("oakwood", -4, 4);
-  K.sign(-4, g + 1, 6, 0, "Oakwood\n\nThe town in the trees. Climb the stairs around the great oaks to reach the walkways.");
-  K.place("oakwood", 0, 0, 38);
-  return K;
 }
 
 // ======================= SEABREAK: the harbor city (built facing the sea: local +Z is the water) =======================
-export function buildSeabreak(g, groundAt, rot) {
+export function buildSeabreak(g, groundAt, rot, layout = 1) {
   const K = makeKit(SIZES.seabreak, g, rot), { set, box } = K;
+  if (layout === SEABREAK_LAYOUT) return buildSeabreakHarbor(K, groundAt);
   K.ground(groundAt, 30, 44, B.GRASS, B.DIRT);
   for (let x = -30; x <= 30; x++) for (let z = 27; z <= 30; z++) set(x, g, z, B.STONE_BRICKS);   // the promenade
   for (let x = -30; x <= 30; x += 2) set(x, g + 1, 30, B.OAK_FENCE);
@@ -313,7 +331,7 @@ export function buildSeabreak(g, groundAt, rot) {
   for (const x of [-26, -18, 12, 22]) { for (const [dx, dz] of [[-2, -1], [2, -1], [-2, 1], [2, 1]]) box(x + dx, g + 1, 24 + dz, x + dx, g + 3, 24 + dz, B.OAK_FENCE); box(x - 2, g + 4, 23, x + 2, g + 4, 25, (xx) => (xx % 2 ? B.WOOL : B.BLACK_WOOL)); }
   K.npc("fishmonger", -22, 22); K.npc("shipwright", 4, 32);
   // houses in rows behind the harbor
-  [[-30, -30], [-18, -30], [8, -30], [20, -30], [-30, -14], [-18, -14], [12, -10], [22, -10]].forEach(([x0, z0], i) => {
+  SEABREAK_HOMES.forEach(([x0, z0], i) => {
     K.house({ x0, z0, x1: x0 + 7, z1: z0 + 6, h: 4, wall: i % 2 ? B.PLANKS : B.COBBLE, corner: B.LOG, floor: B.PLANKS, roof: i % 2 ? B.BRICKS : B.COBBLE, doorSide: "s", doorAt: x0 + 3 });
     K.bed(x0 + 1, g + 1, z0 + 2); K.chest(x0 + 6, g + 1, z0 + 1, 0, "sbHome", "Sailor's Chest");
   });
