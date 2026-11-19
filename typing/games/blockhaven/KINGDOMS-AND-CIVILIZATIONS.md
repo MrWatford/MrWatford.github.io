@@ -42,6 +42,16 @@ The spire's original staircase leads to a shaded lookout. The Waystone, named su
 
 Local verification used isolated Chrome profiles on Apple silicon with macOS 15.7.3 and software WebGL. The browser opened the Sandspire map marker, Waystone, and Zahir's trade menu. A staged quest advanced from Elder Rasha to the Sunken Pyramid, and the tower objective completed upon reaching the lookout. Export and import preserved both results. An earlier campaign reopened with its original town, resident, activated Waystone, and player block edit. Generator checks compared the old stamp byte for byte and verified routes from the four gates, original fixtures, and clearance at all 27 stair and landing positions. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
 
+## Sandspire Caravan Court in older campaigns
+
+In an older **Legacy Campaign** with an explored or edited Sandspire, open the **Explorer’s Map (M)** on the Surface. Select **Sandspire → Add caravan court → Queue caravan court** to approve the proposed plot. Return to the title from the Surface and reopen the campaign. The new **Sandspire Caravan Court** marker leads to the district’s entrance and Waystone.
+
+The court adds a sandstone gateway, shaded market stalls, a cistern, and an irrigated kitchen garden. **Mapmaker Zahir** trades compasses and expedition tables in the Chart House. **Provisioner Suri** trades bread and other food in Provision Hall. Touch both Waystones to travel between the court and original Sandspire.
+
+The district uses a separate 48 × 48 plot. The game checks for explored terrain, saved changes, nearby landmarks, and other approved districts before accepting a plot. It checks the same plot again on reopen. Untouched older Sandspire sites still offer the full town upgrade.
+
+The isolated Chrome review used older Chapter 8 saves on the fixed Legacy seed. The sample Caravan Court appeared at **X 616, Z −344**. The original Sandspire stamp, player edit, looted palace storeroom, Elder Rasha, quest progress, and Waystone were preserved. The review opened both trade menus and used both directions of Waystone travel. Export and import retained the district and player edits. An edit made after queuing protected the approved plot. Generator checks verified the walking routes, garden and sign positions, and Waystone landings in all four orientations.
+
 ## Oakwood campaign preview
 
 Start a fresh **Legacy Campaign** and choose **Chapter 2** to begin with the Oakwood quest. Open the Explorer’s Map with **M** and select **Oakwood** at **X −477, Z −91**. The palisade’s timber gates lead to furnished cabins, flower beds, and three lit stream crossings. Across the stream are an irrigated kitchen garden and a covered timber workshop. **Explorer Fenn** hands out the Expedition Map from the green-roofed camp east of the main road.
@@ -51,6 +61,16 @@ Spiral stairways wrap around the four great oaks. Each stairway reaches a furnis
 Oakwood keeps its original Waystone, quest markers, named chests, and resident positions. The layout version is recorded with the site, so earlier campaigns keep the town they started with.
 
 The local review used an isolated Chrome profile on Apple silicon with macOS 15.7.3 and software WebGL. The browser selected Oakwood on the map, activated its Waystone, opened Iona’s honey trades, and advanced Chapter 2 through Fenn’s dialogue. Placing the player successively at the checkpoints verified that the treetop quest requires all four visits at elevation. A separate physics check climbed each stairway using the standard move and jump inputs, and route checks verified all four bridge spans and access to the furnished houses. A browser reload from the preceding release retained the original Oakwood layout, Waystone, active Chapter 2 objective, and a player block edit. Export and import preserved the new layout and completed treetop quest. Separate `Riverbend` worlds started in Survival, Creative, and Hardcore.
+
+## Oakwood Canopy Grove in older campaigns
+
+In an older **Legacy Campaign** with an explored or edited Oakwood, open the **Explorer’s Map (M)** on the Surface. Select **Oakwood → Add canopy grove → Queue canopy grove** to approve the proposed coordinates. Return to the title from the Surface and reopen the campaign. The **Oakwood Canopy Grove** marker leads to its entrance and Waystone.
+
+A half-step stair climbs to a lit wooden bridge between **Iona’s Hive House** and **Lark’s Bridge Workshop**. Iona offers honey and hive supplies, and Lark trades iron tools. The garden and covered apiary are on the ground beside the entrance. Activate both Waystones to travel between the Grove and Oakwood.
+
+The Grove uses a separate 48 × 48 plot. Oakwood searches farther out for suitable ground because the original town is surrounded by water, steep slopes, and protected landmarks. The game checks the exact approved plot again on reopen. Eligible untouched older Oakwood saves can still choose the full town upgrade.
+
+The isolated Chrome review used older Chapter 8 saves. The sample Grove appeared at **X −216, Z −104**. The test preserved Oakwood’s original stamp, player edit, opened expedition chest, Explorer Fenn, quest progress, and Waystone. Both trade panels and round-trip Waystone travel worked, and export/import retained the Grove and edits. An edit made after queuing protected the proposed plot. Walking tests climbed the stair without jumping in all four rotations and reached both workshops, the garden, and the apiary.
 
 ## Seabreak campaign preview
 
