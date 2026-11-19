@@ -4,16 +4,21 @@
 // Each builder returns { cells, info } for one stamp (see js/campaign-kit.js). All builders are deterministic.
 import { B, HEIGHT } from "./blocks.js";
 import { makeKit } from "./campaign-kit.js";
+import { finishSkyreach } from "./campaign-skyreach.js";
+import { buildCapitalTents, finishRuinedCapital } from "./campaign-ruined-capital.js";
 
 export const TOWNS3_V = 1;
+export const SKYREACH_LAYOUT = 2;
+export const RUINED_CAPITAL_LAYOUT = 2;
 export const SIZES3 = { skyreach: 96, capital: 128 };
 const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
 // ======================= SKYREACH: the city above the clouds =======================
 // The landing (south) has the Waystone and the Sky Stair, a tall white tower whose top joins the island by a bridge.
 // The island floats to the north: the Relic Forge (Keeper Solenne), the Sky Gardens, houses, and the Storm Spire arena.
-export function buildSkyreach(g, groundAt) {
+export function buildSkyreach(g, groundAt, layout = TOWNS3_V) {
   const K = makeKit(SIZES3.skyreach, g), { set, box } = K;
+  const renewed = layout === SKYREACH_LAYOUT;
   K.ground(groundAt, 40, 47);
   const I = Math.min(HEIGHT - 14, g + 26), IC = -16, R = 28;   // island top height, island middle (Z), island radius
   K.info.marks.island = { y: I };
@@ -59,7 +64,7 @@ export function buildSkyreach(g, groundAt) {
   set(0, I + 1, -6, B.BEACON);
   K.chest(5, I + 1, -9, 2, "skyForge", "The Relic Forge's Chest");
   K.sign(-4, I + 1, -3, 2, "The Relic Forge\n\nHere the First Builders poured their power into eight Relics, one for every realm. Eight pedestals still wait for them.");
-  K.npc("solenne", 0, -4, I + 1);
+  K.npc("solenne", renewed ? -1 : 0, -4, I + 1);
   K.place("skyForge", 0, -6, 6, I + 1);
   K.waystone("skyreachTop", 4, 4, I);
   // ---- the Sky Gardens (east) ----
@@ -95,6 +100,7 @@ export function buildSkyreach(g, groundAt) {
   K.sign(2, I + 1, AZ + AR + 2, 0, "The Storm Spire\n\nThe Sky Sovereign guards the Crown Key here. Every strike it makes glows first. When it raises its shield, light the three Rune Stones.\n\nStay inside the wall!");
   K.place("stormSpire", 0, AZ, AR, I + 1);
   K.place("skyreach", 0, 30, 14);
+  if (renewed) finishSkyreach(K, I, TZ);
   return K;
 }
 
@@ -102,8 +108,9 @@ export function buildSkyreach(g, groundAt) {
 // South: the kingdoms' camp inside the broken south gate (Waystone, tents, friends from earlier chapters).
 // The Grand Avenue runs north between ruined houses to the Gate of Eight (eight pedestals and a Rune Stone),
 // which opens the sealed gate of the Throne Court, a round open-sky arena with the Forgotten King's throne.
-export function buildCapital(g, groundAt) {
+export function buildCapital(g, groundAt, layout = TOWNS3_V) {
   const K = makeKit(SIZES3.capital, g), { set, box } = K;
+  const renewed = layout === RUINED_CAPITAL_LAYOUT;
   K.ground(groundAt, 56, 63, B.GRASS);
   const stone = (x, y, z) => { const r = hash(x * 5 + y * 31, z * 3 - y); return r < 0.2 ? B.MOSSY : r < 0.3 ? B.COBBLE : r < 0.36 ? B.VIOLET_BRICKS : B.STONE_BRICKS; };
   // the cursed ground: purple stains spreading from the Throne Court
@@ -127,12 +134,13 @@ export function buildCapital(g, groundAt) {
   // ---- the kingdoms' camp (inside the south gate) ----
   K.waystone("capital", 6, 44);
   K.sign(-6, g + 1, 46, 0, "The Ruined Capital\n\nThe first city of the First Builders, and the last. Its king became the Forgotten King.\n\nThe kingdoms have sent their bravest to camp here. The Gate of Eight lies straight ahead, at the end of the Grand Avenue.");
-  const tent = (x0, z0, wool) => {   // a small tent with a bed
-    for (let k = 0; k < 3; k++) box(x0 - 2 + k, g + 1 + k, z0, x0 + 2 - k, g + 1 + k, z0 + 4, wool);
-    box(x0 - 1, g + 1, z0 + 1, x0 + 1, g + 1, z0 + 3, B.AIR); set(x0, g + 2, z0 + 1, B.AIR); set(x0, g + 1, z0 + 4, B.AIR); set(x0, g + 2, z0 + 4, B.AIR);
-    K.bed(x0, g + 1, z0 + 2);
-  };
-  tent(-16, 36, B.WOOL); tent(-26, 38, B.WOOL); tent(16, 36, B.WOOL); tent(26, 38, B.WOOL);
+  const camps = [[-16, 36], [-26, 38], [16, 36], [26, 38]];
+  if (renewed) buildCapitalTents(K, camps);
+  else for (const [x, z] of camps) {
+    for (let k = 0; k < 3; k++) box(x - 2 + k, g + 1 + k, z, x + 2 - k, g + 1 + k, z + 4, B.WOOL);
+    box(x - 1, g + 1, z + 1, x + 1, g + 1, z + 3, B.AIR); set(x, g + 2, z + 1, B.AIR); set(x, g + 1, z + 4, B.AIR); set(x, g + 2, z + 4, B.AIR);
+    K.bed(x, g + 1, z + 2);
+  }
   set(0, g, 40, B.COBBLE); set(0, g + 1, 40, B.TORCH);   // the campfire's lantern
   for (const [x, z] of [[-1, 40], [1, 40], [0, 39], [0, 41]]) set(x, g + 1, z, B.COBBLE);
   K.chest(-10, g + 1, 44, 0, "capSupplies", "The Kingdoms' Supply Chest");
@@ -160,10 +168,13 @@ export function buildCapital(g, groundAt) {
     }
     for (let k = 0; k < 3; k++) { const x = x0 + 1 + Math.floor(hash(seed, k) * (w - 1)), z = z0 + 1 + Math.floor(hash(k, seed) * (d - 1)); set(x, g + 1, z, k ? B.COBBLE : B.MOSSY); }
   };
+  const ruins = [];
   let n = 0;
   for (const side of [-1, 1]) for (let Z = 6; Z <= 18; Z += 12) for (let k = 0; k < 3; k++) {
     const x0 = side < 0 ? -44 + k * 13 : 8 + k * 13, seed = ++n * 17;
-    ruin(x0, Z, 8 + Math.floor(hash(seed, 1) * 3), 7 + Math.floor(hash(seed, 2) * 3), seed);
+    const w = 8 + Math.floor(hash(seed, 1) * 3), d = 7 + Math.floor(hash(seed, 2) * 3);
+    ruin(x0, Z, w, d, seed);
+    ruins.push([x0, Z, w, d]);
     if (n === 4) K.chest(x0 + 2, g + 1, Z + 2, 0, "capRuin1", "A Buried Chest");
     if (n === 9) K.chest(x0 + 2, g + 1, Z + 2, 0, "capRuin2", "A Buried Chest");
   }
@@ -214,5 +225,6 @@ export function buildCapital(g, groundAt) {
     set(x, top + 1, z, B.SHINESTONE);
   }
   K.place("throneCourt", 0, AZ, AR - 2);
+  if (renewed) finishRuinedCapital(K, ruins);
   return K;
 }
