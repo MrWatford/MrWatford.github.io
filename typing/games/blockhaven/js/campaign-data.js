@@ -84,11 +84,13 @@ export const NPCS = {
   kadir: { name: "Merchant Kadir", prof: "fletcher", role: "Bazaar Merchant", hello: "Spices, silks, and stories! Two of those are for sale." },
   potter: { name: "Potter Nia", prof: "shepherd", role: "Potter", hello: "Every jar in Sandspire is mine. I count them every morning. There are a lot." },
   sandspireMapmaker: { name: "Mapmaker Zahir", prof: "scribe", role: "Desert Mapmaker", hello: "The dunes shift with the wind, but the spire always points you home. I keep fresh compasses and maps at my stall." },
+  sandspireProvisioner: { name: "Provisioner Suri", prof: "farmer", role: "Caravan Provisioner", hello: "Take bread for the road. The cistern keeps our garden growing through the dry season." },
   // Oakwood
   fenn: { name: "Explorer Fenn", prof: "fletcher", role: "Jungle Explorer", hello: "Mind the roots! I've tripped on every one of them, so you don't have to." },
   elm: { name: "Warden Elm", prof: "cleric", role: "Warden of Oakwood", hello: "The trees here are older than the kingdoms. Treat them kindly and they'll shelter you." },
   lumber: { name: "Woodcutter Ash", prof: "smith", role: "Woodcutter", hello: "We only cut fallen trees in Oakwood. The big ones would never forgive us." },
   oakwoodBeekeeper: { name: "Canopy Keeper Iona", prof: "beekeeper", role: "Treetop Beekeeper", hello: "The bees sleep up here, among the flowers. I trade honey and hive supplies if you want to keep a colony of your own." },
+  oakwoodWoodworker: { name: "Woodworker Lark", prof: "smith", role: "Bridge Workshop", hello: "I cut timbers for the canopy bridges and mend the railings. I trade picks and other iron tools if you need one." },
   // Seabreak
   mira: { name: "Captain Mira", prof: "fletcher", role: "Harbor Captain", hello: "Fair winds, landlubber. The sea gives and the sea takes. Mostly it takes boats." },
   fishmonger: { name: "Fishmonger Dory", prof: "farmer", role: "Fishmonger", hello: "Fresh fish! Today's fish! Possibly yesterday's fish!" },

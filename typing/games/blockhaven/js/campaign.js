@@ -15,6 +15,8 @@ import { overlapsSettlement, settlementChangesOverlap, settlementIsUntouched, up
 import { buildLegacyCommons } from "./campaign-commons.js";
 import { DISTRICT_SIZE, canPlaceCampaignDistrict, findCampaignDistrict } from "./campaign-districts.js";
 import { buildStonehavenTradeCourt } from "./campaign-trade-court.js";
+import { buildSandspireCaravanCourt } from "./campaign-caravan-court.js";
+import { buildOakwoodCanopyGrove } from "./campaign-canopy-grove.js";
 import { newStack } from "./inventory.js";
 import { buildVillage, VSIZE, VC, VILLAGE_V } from "./campaign-village.js";
 import { buildStonehaven, buildRuin, buildSandspire, buildOakwood, buildSeabreak, buildKeyRuin, buildWreck, buildThrone, SIZES, STONEHAVEN_LAYOUT, SANDSPIRE_LAYOUT, OAKWOOD_LAYOUT, SEABREAK_LAYOUT, TOWNS_V, THRONE_Z } from "./campaign-towns.js";
@@ -36,17 +38,24 @@ const TEMPLE_DIMS = ["desert", "jungle", "sea"];
 const WAY_NAMES = { village: "Legacy Village", stonehaven: "Stonehaven", ruin: "The Ruined Watchtower", sandspire: "Sandspire", oakwood: "Oakwood", seabreak: "Seabreak",
   ironhold: "Ironhold", blightcitadel: "The Blight Citadel", outpost: "The Ember Outpost", hollowmere: "Hollowmere",
   skyreach: "Skyreach Landing", skyreachTop: "Skyreach (the floating city)", capital: "The Ruined Capital",
-  legacyCommons: "Legacy Village Commons", stonehavenTradeCourt: "Stonehaven Trade Court" };
-const TOWN_SITES = ["stonehaven", "ruin", "sandspire", "oakwood", "seabreak", "ironhold", "blightcitadel", "outpost", "hollowmere", "skyreach", "capital", "legacyCommons", "stonehavenTradeCourt"];
-const SZ = { ...SIZES, ...SIZES2, ...SIZES3, legacyCommons: DISTRICT_SIZE, stonehavenTradeCourt: DISTRICT_SIZE };
+  legacyCommons: "Legacy Village Commons", stonehavenTradeCourt: "Stonehaven Trade Court",
+  sandspireCaravanCourt: "Sandspire Caravan Court", oakwoodCanopyGrove: "Oakwood Canopy Grove" };
+const TOWN_SITES = ["stonehaven", "ruin", "sandspire", "oakwood", "seabreak", "ironhold", "blightcitadel", "outpost", "hollowmere", "skyreach", "capital"];
 const DISTRICTS = {
   legacyCommons: { id: "legacyCommons", parent: "village", clearance: VC + DISTRICT_SIZE / 2,
     pending: "pendingLegacyCommons", blocked: "legacyCommonsBlocked", name: "Commons", parentName: "Legacy Village",
     label: "Add village commons", description: "Add a records hall, apiary, and garden", build: buildLegacyCommons },
   stonehavenTradeCourt: { id: "stonehavenTradeCourt", parent: "stonehaven", clearance: SIZES.stonehaven / 2 + DISTRICT_SIZE / 2,
     pending: "pendingStonehavenTradeCourt", blocked: "stonehavenTradeCourtBlocked", name: "Trade Court", parentName: "Stonehaven",
-    label: "Add trade court", description: "Add a cloth hall, forge, and covered market", build: buildStonehavenTradeCourt }
+    label: "Add trade court", description: "Add a cloth hall, forge, and covered market", build: buildStonehavenTradeCourt },
+  sandspireCaravanCourt: { id: "sandspireCaravanCourt", parent: "sandspire", clearance: SIZES.sandspire / 2 + DISTRICT_SIZE / 2,
+    pending: "pendingSandspireCaravanCourt", blocked: "sandspireCaravanCourtBlocked", name: "Caravan Court", parentName: "Sandspire",
+    label: "Add caravan court", description: "Add a chart house, provisions hall, and shaded market", build: buildSandspireCaravanCourt },
+  oakwoodCanopyGrove: { id: "oakwoodCanopyGrove", parent: "oakwood", clearance: SIZES.oakwood / 2 + DISTRICT_SIZE / 2, searchDistance: 304,
+    pending: "pendingOakwoodCanopyGrove", blocked: "oakwoodCanopyGroveBlocked", name: "Canopy Grove", parentName: "Oakwood",
+    label: "Add canopy grove", description: "Add raised walkways, an apiary, and a bridge workshop", build: buildOakwoodCanopyGrove }
 };
+const SZ = { ...SIZES, ...SIZES2, ...SIZES3, ...Object.fromEntries(Object.keys(DISTRICTS).map(id => [id, DISTRICT_SIZE])) };
 const SETTLEMENT_UPGRADES = {
   stonehaven: { layout: STONEHAVEN_LAYOUT, quest: "rumors", arrivalStep: 1, flag: "raidWon" },
   sandspire: { layout: SANDSPIRE_LAYOUT },
@@ -290,11 +299,17 @@ export function initCampaign(api) {
     const parent = districtParent(s, district);
     if (!parent) return null;
     if (s[district.pending]) return { text: `${district.name} queued. Return to the title from the Surface and reopen this campaign.` };
-    const plot = findCampaignDistrict(G.world.gen, parent, district, data ?? renovationData(), G.player);
+    const plot = findCampaignDistrict(G.world.gen, parent, district, data ?? renovationData(), G.player, pendingDistrictPlots(s, district));
     const blocked = s[district.blocked] ? "The previously reserved plot is now protected. " : "";
     if (!plot) return { text: blocked + `No clear, unexplored plot for the ${district.name} is available near ${district.parentName}.` };
     return { text: blocked + `${district.description} at X ${plot.cx}, Z ${plot.cz}. The new district uses its own plot.`,
       label: district.label, available: true, district, plot };
+  }
+  function pendingDistrictPlots(s, district) {
+    return Object.values(DISTRICTS).filter(other => other !== district && s[other.pending]).map(other => {
+      const { cx, cz } = s[other.pending];
+      return { x: cx - DISTRICT_SIZE / 2, z: cz - DISTRICT_SIZE / 2, size: DISTRICT_SIZE };
+    });
   }
   function queueDistrict(district, plot, refresh) {
     const world = G.world;
@@ -302,7 +317,7 @@ export function initCampaign(api) {
       if (G.world !== world || G.panelKind !== "xmap") return;
       const s = st(), parent = districtParent(s, district);
       if (!parent || s[district.pending] ||
-        !canPlaceCampaignDistrict(world.gen, parent, district, plot, renovationData(), G.player)) return;
+        !canPlaceCampaignDistrict(world.gen, parent, district, plot, renovationData(), G.player, pendingDistrictPlots(s, district))) return;
       s[district.pending] = plot;
       await saveNow(false);
       if (G.world === world && G.panelKind === "xmap") refresh();
@@ -369,7 +384,8 @@ export function initCampaign(api) {
     if (pendingSettlements(s).includes(id)) return { text: "Upgrade queued. Return to the title from the Surface, then reopen this campaign to apply it if the site is still untouched." };
     const data = renovationData();
     if (!settlementEligible(id, rec, G.world.gen, data, G.player)) {
-      if (id === "stonehaven") return districtRenovation(s, DISTRICTS.stonehavenTradeCourt, data);
+      const district = Object.values(DISTRICTS).find(d => d.parent === id);
+      if (district) return districtRenovation(s, district, data);
       return { text: "This site is protected. Your campaign will keep its original layout." };
     }
     return { text: "This site is untouched and can use the rebuilt layout in this campaign.", available: true };
@@ -469,7 +485,7 @@ export function initCampaign(api) {
   C.home = () => { const p = C.spawnPoint(); return p && { x: p.x, y: p.y, z: p.z }; };
   C.towns = () => {   // for the Explorer's Map: the towns (and the watchtower) on the Surface
     if (!on()) return [];
-    return sitesIn("overworld").filter(q => TOWN_SITES.includes(q.id)).map(q => {
+    return sitesIn("overworld").filter(q => TOWN_SITES.includes(q.id) || Object.hasOwn(DISTRICTS, q.id)).map(q => {
       const w = q.built.info.waystones[0], p = w ? W(q, w.X, w.y, w.Z) : { x: q.cx, y: q.g + 1, z: q.cz };
       return { kind: "t_" + q.id, name: WAY_NAMES[q.id], x: p.x, y: p.y, z: p.z + 2 };
     });
