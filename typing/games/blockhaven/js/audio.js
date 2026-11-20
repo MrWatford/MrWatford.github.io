@@ -1,9 +1,11 @@
 import { createAncientScore } from "./ancient-score.js";
+import { createCalmScore } from "./calm-score.js";
 // Small sound effects made on the fly with the Web Audio API (no sound files needed).
 let ctx = null, master = null, noiseBuf = null, volume = 0.6, muted = false;
 let wind = null;
 let ancientScore = null;
 let ancientMusicState = null;
+let calmScore = null, musicLevel = 0.5;
 
 export const Sound = {
   start() {   // must be called after a click or key press (browser rule)
@@ -18,9 +20,20 @@ export const Sound = {
     if (ctx.state === "suspended") ctx.resume();
   },
   pause() { this.ancientMusic(null); if (ctx && ctx.state === "running") ctx.suspend(); },
-  stop() { this.ancientMusic(null); if (ctx) { this.wind(0); ctx.close(); ctx = null; master = null; } },
+  stop() { this.ancientMusic(null); calmScore?.dispose(); calmScore = null; if (ctx) { this.wind(0); ctx.close(); ctx = null; master = null; } },
   setVolume(v) { volume = v; if (master) master.gain.value = muted ? 0 : v * 0.5;
     if (muted || volume <= 0) this.ancientMusic(null); },
+  // Background music (calm-score.js). on = the game says music fits right now.
+  setMusicVolume(v) { musicLevel = v; calmScore?.setLevel(v); },
+  calmMusic(on) {
+    if (!ctx || ctx.state !== "running") return;
+    const allowed = on && !muted && volume > 0 && musicLevel > 0 && !ancientScore;
+    if (!calmScore) { if (!allowed) return; calmScore = createCalmScore(ctx, master); calmScore.setLevel(musicLevel); }
+    calmScore.update(allowed);
+  },
+  calmMusicEnd() { calmScore?.dispose(); calmScore = null; },   // leaving a world
+  calmMusicNow() { if (!calmScore && ctx) { calmScore = createCalmScore(ctx, master); calmScore.setLevel(musicLevel); } calmScore?.playNow(); },
+  calmMusicReview() { return calmScore ? calmScore.review() : { playing: false, context: ctx?.state || "closed" }; },
   setMuted(m) { muted = m; this.setVolume(volume); },
 
   ancientMusic(state) {

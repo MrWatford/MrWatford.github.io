@@ -194,6 +194,7 @@ export const UI = {
     const s = G.settings;
     $("sSens").value = s.sensitivity; $("oSens").textContent = s.sensitivity.toFixed(1);
     $("sVol").value = s.volume; $("oVol").textContent = Math.round(s.volume * 100) + "%";
+    $("sMusic").value = s.music ?? 0.5; $("oMusic").textContent = Math.round((s.music ?? 0.5) * 100) + "%";
     $("sMute").checked = s.muted; $("sDist").value = s.renderDist; $("oDist").textContent = s.renderDist + " chunks";
     $("sQuality").value = s.quality; $("sFx").value = s.fx || "medium"; $("sFov").value = s.fov; $("oFov").textContent = s.fov + "°"; $("sMotion").checked = s.reducedMotion;
     $("sSwap").textContent = keyName(s.keySwap);
@@ -210,6 +211,7 @@ export const UI = {
     const upd = (k, v) => { G.settings[k] = v; G.applySettings(k); this.syncSettings(); };
     $("sSens").oninput = e => upd("sensitivity", +e.target.value);
     $("sVol").oninput = e => upd("volume", +e.target.value);
+    $("sMusic").oninput = e => upd("music", +e.target.value);
     $("sMute").onchange = e => upd("muted", e.target.checked);
     $("sDist").oninput = e => upd("renderDist", +e.target.value);
     $("sQuality").onchange = e => upd("quality", e.target.value);

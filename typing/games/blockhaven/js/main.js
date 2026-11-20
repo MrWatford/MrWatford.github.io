@@ -1774,6 +1774,7 @@ function clearWorldMeshes() {
   sandsHaze.setHex(SANDS_REGIONS[0].haze);
   Sound.wind(0);
   Sound.ancientMusic(null);
+  Sound.calmMusicEnd();
   stormStage = 0; stormSampleT = 0; stormDustT = 0;
   badlandsAsh = 0; badlandsAshT = 0;
   stormVortex = null; stormVortexT = 10;
@@ -5636,7 +5637,7 @@ G.applySkin = id => { G.settings.skin = skinById(id).id; saveSettings(G.settings
 G.applySettings = (k) => {
   const s = G.settings;
   saveSettings(s);
-  Sound.setVolume(s.volume); Sound.setMuted(s.muted);
+  Sound.setVolume(s.volume); Sound.setMuted(s.muted); Sound.setMusicVolume(s.music ?? 0.5);
   camera.fov = s.fov;
   resize();
   if (k === "quality" && G.world) for (const c of G.world.chunks.values()) { c.dirty = true; }
@@ -5987,6 +5988,8 @@ function loop(now) {
   updateAncientArrival();
   updateAncientFury();
   updateAncientPresentation(running);
+  // calm background music: only in the Overworld, and never while a boss bar is up
+  Sound.calmMusic(running && G.state !== "dead" && G.dim === "overworld" && bossBar.hidden);
   updateDuneSweep(dt, running);
   updateDuneDevour(dt, running);
   updateDuneVortex(dt, running);
@@ -6131,6 +6134,8 @@ G._test.ancientWarningReview = ancientWarningReview;
 G._test.ancientArrivalReview = ancientArrivalReview;
 G._test.ancientFuryReview = ancientFuryReview;
 G._test.ancientMusicReview = () => Sound.ancientMusicReview();
+G._test.calmMusicReview = () => Sound.calmMusicReview();
+G._test.calmMusicNow = () => Sound.calmMusicNow();
 G._test.ancientTremorReview = () => ({ roll: ancientTremorRoll, cameraRoll: camera.rotation.z });
 G._test.ancientBuriedReview = () => ancientBuriedView.review();
 G._test.ancientOpeningReview = () => ancientOpeningView.review();
