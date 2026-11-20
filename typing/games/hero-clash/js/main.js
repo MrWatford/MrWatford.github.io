@@ -137,7 +137,7 @@ function title() {
   const menu = h("div.menu", null, items.map(([l, fn], i) => { const b = btn(l, fn); if (i === 0) b.setAttribute("data-first", ""); return b; }));
   if (exam) menu.appendChild(btn(save.professor ? "THE FINAL EXAM (REMATCH)" : "??? THE FINAL EXAM ???", examFight, "wide secret"));
   show(scr("title", h("h1.logo.disp", null, "Hero Clash", h("small", { text: "Ultimate Showdown" }), h("em", { text: "LEGENDS COLLIDE" })), menu,
-    h("div.foot", null, "Lighthouse Baptist Academy • Mr. Watford · ", h("a", { href: "../../../arcade/index.html", text: "Back to the Arcade" }))), { hint: "Arrow keys or WASD: move · Enter: choose · F: full screen" });
+    h("div.foot", null, "Mr. Watford · ", h("a", { href: "../../../arcade/index.html", text: "Back to the Arcade" }))), { hint: "Arrow keys or WASD: move · Enter: choose · F: full screen" });
   if (!loaded.ok && !title.warned) { title.warned = true; toast(loaded.reason === "blocked" ? "This browser is blocking saved data, so progress will not be kept." : "Saved data could not be read, so the game started fresh."); }
 }
 
@@ -368,7 +368,7 @@ function champion() {
   }
   bgPreview(p.char, p.cpu ? 0 : costumeOf(p.char), { still: true, win: true });
   const aw = TN.awards(b);
-  const cert = () => { const c = $("#cert"); c.innerHTML = ""; c.append(h("p", { text: b.room || "Lighthouse Baptist Academy" }), h("h1", { text: b.title }), h("p", { text: "This certifies that" }), h("h2", { text: p.name }), h("p", { text: "is the CHAMPION, fighting as " + f.name + " in a bracket of " + b.size + " players." }), h("p", { text: aw.map((a) => a[0] + ": " + a[1]).join("  •  ") }), h("p", { text: new Date().toLocaleDateString() + "   •   Hero Clash: Ultimate Showdown   •   Mr. Watford" })); window.print(); };
+  const cert = () => { const c = $("#cert"); c.innerHTML = ""; c.append(h("p", { text: b.room || "Hero Clash: Ultimate Showdown" }), h("h1", { text: b.title }), h("p", { text: "This certifies that" }), h("h2", { text: p.name }), h("p", { text: "is the CHAMPION, fighting as " + f.name + " in a bracket of " + b.size + " players." }), h("p", { text: aw.map((a) => a[0] + ": " + a[1]).join("  •  ") }), h("p", { text: new Date().toLocaleDateString() + "   •   Hero Clash: Ultimate Showdown   •   Mr. Watford" })); window.print(); };
   show(scr("center" + (b.display ? ".display" : ""), h("div.trophy", { text: "🏆" }), h("h1.disp", { text: p.name + " is the champion!" }), h("p.sub", { text: b.title + (b.room ? " · " + b.room : "") + " · " + f.name }),
     h("div.panel", { style: "min-width:min(520px,92vw)" }, h("table.moves", null, h("tr", null, h("th", { text: "Player" }), h("th", { text: "Hero" }), h("th", { text: "Wins" }), h("th", { text: "Losses" })), b.players.slice().sort((x, y) => y.wins - x.wins).slice(0, 8).map((q) => h("tr", null, h("td", { text: q.name }), h("td", { text: BY_ID[q.char].name }), h("td", { text: q.wins }), h("td", { text: q.losses })))),
       aw.length ? h("div.list", { style: "margin-top:8px" }, aw.map((a) => h("div.item", null, h("span", { text: "⭐" }), h("b", { text: a[0] }), h("span", { text: a[1] })))) : null),
