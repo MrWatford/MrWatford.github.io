@@ -66,7 +66,7 @@ export const STARTER_CHESTS = [
     ...stacks(B.HUSH_CARPET, 2), st(I.ECHO_SHARD, 16), ...stacks(B.DIRT, 2), ...stacks(B.TORCH, 2), st(I.SHEARS), st(I.FISHING_ROD)] }
 ];
 
-const WELCOME = "Welcome to Block Haven! Your starter home is stocked, your adventure map is ready, and legendary places are waiting to be discovered.";
+const WELCOME = "Welcome to Blockhaven! Your starter home is stocked, your adventure map is ready, and legendary places are waiting to be discovered.";
 
 export function initStarter(api) {
   const { G, UI, Sound, L, openPanel, closePanel } = api;
@@ -184,7 +184,7 @@ export function initStarter(api) {
     box(-1, g, 6, 1, g, 13, B.GRAVEL);
     for (const [X, Z] of [[-2, 9], [2, 9], [-2, 13], [2, 13]]) { set(X, g + 1, Z, B.OAK_FENCE); set(X, g + 2, Z, B.OAK_FENCE); set(X, g + 3, Z, B.TORCH); }
     // two signs by the path, facing the way you arrive
-    set(-2, g + 1, 6, make(B.SIGN, 0)); info.signs.push({ X: -2, y: g + 1, Z: 6, title: "Sign", text: "Welcome to Block Haven!" });
+    set(-2, g + 1, 6, make(B.SIGN, 0)); info.signs.push({ X: -2, y: g + 1, Z: 6, title: "Sign", text: "Welcome to Blockhaven!" });
     set(2, g + 1, 6, make(B.SIGN, 0)); info.signs.push({ X: 2, y: g + 1, Z: 6, title: "Sign", text: "Starter Home\n\nThis house is yours. Supplies are in the four chests along the right-hand wall. The Expedition Table beside them keeps a spare Explorer's Map." });
     // the garden: fenced, with a water channel, ripe wheat and carrots, and a gate on the front side
     for (let Z = -3; Z <= 3; Z++) for (let X = 9; X <= 14; X++) {
@@ -293,11 +293,11 @@ export function initStarter(api) {
     if (s.fresh) text = WELCOME + "\n\n" + controlsText();
     else {
       const h = S.house(), d = Math.round(Math.hypot(h.x - G.player.pos.x, h.z - G.player.pos.z));
-      text = "Block Haven has a new welcome gift for this world: a furnished Starter Home, stocked supply chests, and an Explorer's Map that leads to the legendary places.\n\n" +
+      text = "Blockhaven has a new welcome gift for this world: a furnished Starter Home, stocked supply chests, and an Explorer's Map that leads to the legendary places.\n\n" +
         `Your Starter Home was built about ${d} blocks to the ${compass8(h.x - G.player.pos.x, h.z - G.player.pos.z)}, on open land nobody had visited, so none of your builds were touched.` +
         (s.mapGiven ? " The map is in your inventory." : " Your inventory was full, so pick up the map from the Expedition Table inside the house (the map's waypoint arrow is already on).") + "\n\n" + controlsText();
     }
-    openPanel("note", { title: "Welcome to Block Haven!", text });
+    openPanel("note", { title: "Welcome to Blockhaven!", text });
     Sound.levelUp();
   }
 

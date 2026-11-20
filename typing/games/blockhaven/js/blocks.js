@@ -283,7 +283,7 @@ block(B.LUMEN_GRASS, "Lumen Grass", { hardness: 0.6, tool: "shovel", drops: B.EC
 block(B.KEEPER_BEACON, "Keeper Beacon", { hardness: Infinity, drops: 0, light: 11, interact: "checkpoint", tex: ["beacon_k_top", "beacon_k_side", "keeper_stone"], category: LOST });
 block(B.DEEP_LIFT, "Keeper Lift", { hardness: Infinity, drops: 0, light: 8, interact: "lift", tex: ["lift_top", "lift_side", "keeper_stone"], category: LOST });
 block(B.MURAL, "Keeper Mural", { hardness: Infinity, drops: 0, interact: "mural", tex: "mural", category: LOST });
-block(B.ANCHOR_STATION, "Resonance Anchor", { hardness: Infinity, drops: 0, light: 4, interact: "anchorstation", tex: ["anchor_top", "anchor_s_side", "echostone"], category: LOST });
+block(B.ANCHOR_STATION, "Resonance Anchor", { hardness: Infinity, drops: 0, light: 4, interact: "anchorstation", tex: ["anchor_s_top", "anchor_s_side", "echostone"], category: LOST });
 block(B.HUSH_CARPET, "Hush Carpet", { hardness: 0.3, tex: "hush_carpet", category: LOST });
 block(B.WARDEN_TROPHY, "First Warden Trophy", { hardness: 3, tool: "pick", tier: 1, light: 6, tex: ["warden_t_top", "warden_t_side", "darkslate"], front: "warden_t_front", category: LOST });
 block(B.SOVEREIGN_TROPHY, "Sovereign's Crown", { hardness: 3, tool: "pick", tier: 1, light: 10, tex: ["crown_top", "crown_side", "echostone"], category: LOST });
@@ -917,7 +917,7 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "pale_altar_top", "pale_altar_side", "pale_effigy", "pale_effigy_top", "pale_effigy_front", "ward_candle",
   "darkslate", "darkslate_bricks", "hushmoss", "hushmoss_side", "hush_node", "keeper_lamp", "keeper_copper", "resonator_top", "resonator_side", "socket_top", "socket_top_on", "socket_side",
   "gate_frame", "gate_veil", "gate_veil_open", "lumen_crystal", "dripstone", "cave_moss", "echostone", "resonant_glass", "rootwood", "rootwood_top", "tablet_top", "tablet_side", "keeper_stone",
-  "lumen_grass", "lumen_grass_side", "beacon_k_top", "beacon_k_side", "lift_top", "lift_side", "mural", "anchor_top", "anchor_top_on", "anchor_s_side", "hush_carpet",
+  "lumen_grass", "lumen_grass_side", "beacon_k_top", "beacon_k_side", "lift_top", "lift_side", "mural", "anchor_s_top", "anchor_top_on", "anchor_s_side", "hush_carpet",
   "warden_t_top", "warden_t_side", "warden_t_front", "crown_top", "crown_side", "switch_top", "switch_top_on", "switch_side",
   "tide_bricks", "tide_lamp", "vine_bricks", "vines", "sun_bricks", "sun_glyph", "mirror_top", "mirror_top_on", "mirror_side", "trap_vent", "cracked_floor", "pedestal_top", "pedestal_side",
   // Sparkworks (the atlas grew to 16 × 32 tiles for these)
@@ -1347,7 +1347,7 @@ Object.assign(PAINT, {
   lift_top(P) { P.fill(["#2a2c34"]); P.rect(1, 1, 14, 14, "#b8703a"); P.rect(4, 4, 8, 8, "#2a2c34"); P.rect(7, 4, 2, 8, "#5ae0d0"); },
   mural(P) { P.fill(["#3a3e48"]); P.rect(1, 1, 14, 14, "#c8b890"); P.rect(3, 9, 10, 4, "#4a6a8a"); P.rect(6, 3, 4, 6, "#2a6a70"); P.rect(7, 2, 2, 2, "#5ae0d0"); P.rect(2, 12, 12, 1, "#8a7a5a"); },
   anchor_s_side(P) { PAINT.echostone(P); P.rect(5, 2, 6, 12, "#2a2c34"); P.rect(7, 3, 2, 10, "#5a6a8a"); },
-  anchor_top(P) { PAINT.echostone(P); P.rect(3, 3, 10, 10, "#2a2c34"); P.rect(6, 6, 4, 4, "#5a6a8a"); },
+  anchor_s_top(P) { PAINT.echostone(P); P.rect(3, 3, 10, 10, "#2a2c34"); P.rect(6, 6, 4, 4, "#5a6a8a"); },
   anchor_top_on(P) { PAINT.echostone(P); P.rect(3, 3, 10, 10, "#2a2c34"); P.rect(5, 5, 6, 6, "#5ae0d0"); P.rect(7, 7, 2, 2, "#ffffff"); },
   hush_carpet(P) { P.fill(["#2a4a5a", "#264656", "#2e4e5e"]); for (let i = 0; i < 16; i += 4) P.rect(0, i, 16, 1, "#1e3a48"); },
   warden_t_side(P) { P.fill(["#1a3a44", "#16343e"]); P.rect(5, 4, 6, 8, "#2a5a6a"); },

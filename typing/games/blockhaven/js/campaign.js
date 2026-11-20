@@ -1325,7 +1325,7 @@ export function initCampaign(api) {
       ${sec("LEGENDS YOU FACED", beaten)}
       ${sec("THE PEOPLE OF THE KINGDOMS", ["Elder Maren", "King Aldric and Captain Brenna of Stonehaven", "Elder Rasha of Sandspire", "Forgemaster Hilda of Ironhold", "Expedition Leader Sable", "Captain Mira of Seabreak", "Watcher Ilsa of Hollowmere", "Keeper Solenne of Skyreach", "and King Elarion, the first king of Blockhaven"])}
       ${sec("SPECIAL THANKS", ["To every builder who played all the way to the end.", "Thank you for playing!"])}
-      <div style="height:40vh"></div><div style="font-size:14px;opacity:.7">Lighthouse Baptist Academy • Mr. Watford</div><div style="height:30vh"></div>
+      <div style="height:40vh"></div><div style="font-size:14px;opacity:.7">Mr. Watford</div><div style="height:30vh"></div>
       </div></div><button class="btn small" data-skip style="position:absolute;right:16px;bottom:16px;z-index:2">Skip ▸</button>`, 47);
     el.style.background = "rgba(8,6,16,.94)";
     if (!document.getElementById("cpFinalCss")) { const st2 = document.createElement("style"); st2.id = "cpFinalCss"; st2.textContent = "body.cp-final #pause{display:none!important}"; document.head.appendChild(st2); }
