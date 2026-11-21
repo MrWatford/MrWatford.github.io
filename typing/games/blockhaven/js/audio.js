@@ -35,6 +35,7 @@ export const Sound = {
     if (!menuTheme) { if (!allowed) return; menuTheme = createMenuTheme(ctx, master); menuTheme.setLevel(musicLevel); }
     menuTheme.update(allowed);
   },
+  running() { return !!ctx && ctx.state === "running"; },
   menuMusicReview() { return menuTheme ? menuTheme.review() : { on: false, context: ctx?.state || "closed" }; },
   // boss battle music; frac = the boss's health left (0-1). The Buried King keeps its own score.
   bossMusic(on, frac = 1) {

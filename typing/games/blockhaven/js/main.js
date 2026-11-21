@@ -114,6 +114,7 @@ import { beginDuneMountedAttack, createDuneMountedWave } from "./leviathan-mount
 import { beginObsidianMountedAttack, createObsidianMountedEruptions } from "./leviathan-obsidian-mounted.js";
 import { beginMountedBurrow } from "./leviathan-mounted-burrow.js";
 import { createBurrowView } from "./leviathan-burrow-view.js";
+import { initTitleTips } from "./title-tips.js";
 
 THREE.ColorManagement.enabled = false;
 const DAY_LENGTH = 720;          // seconds for a full day and night (12 minutes)
@@ -6143,7 +6144,12 @@ G._test.calmMusicNow = () => Sound.calmMusicNow();
 G._test.menuMusicReview = () => Sound.menuMusicReview();
 G._test.bossMusicReview = () => Sound.bossMusicReview();
 // browsers only allow sound after a click or key press, so the title theme starts on the first one
-for (const type of ["pointerdown", "keydown"]) window.addEventListener(type, () => { if (!G.world) Sound.start(); });
+// (Safari only counts some kinds of clicks, so listen for all of them)
+for (const type of ["pointerdown", "mousedown", "click", "touchend", "keydown", "keyup"]) window.addEventListener(type, () => { if (!G.world) Sound.start(); });
+// title tips, and a small note until the browser lets the music play
+const titleScreen = document.getElementById("title"), soundHint = document.getElementById("soundHint");
+initTitleTips(document.getElementById("splash"), { reducedMotion: () => !!G.settings.reducedMotion, visible: () => !titleScreen.hidden });
+setInterval(() => { soundHint.hidden = titleScreen.hidden || Sound.running() || G.settings.muted || !(G.settings.music ?? 0.5) || !(G.settings.volume > 0); }, 500);
 G._test.ancientTremorReview = () => ({ roll: ancientTremorRoll, cameraRoll: camera.rotation.z });
 G._test.ancientBuriedReview = () => ancientBuriedView.review();
 G._test.ancientOpeningReview = () => ancientOpeningView.review();
