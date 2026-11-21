@@ -339,7 +339,83 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
-## Milestone 16, Part A: melons, the Cauldron, the Brewing Stand, and every drinkable potion (built and browser-tested 2026-11-21, not published)
+## Milestone 20, Part E: biome creatures, map colors, achievements, Journal (built and browser-tested 2026-11-21, not published). Milestone 20 is now complete.
+Code: `js/biomes-guide.js` (new), `js/world.js` (`biomeAt`, `caveBiomeAt`, `hasNewBiomes`), `js/entities.js` (biome animals, biome monsters), `js/creatures.js` (biome rules for the bestiary creatures), `js/starter.js` (map colors and key), `js/main.js` (`trackBiome`), `js/advancements.js`, `js/ui.js`, `index.html` (tags `?v=biomes-e-1`, new biomes-guide entry). Backups: `tools/backups/pre-m20-partE-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Biome animals | Done | Jungle: pandas, ocelots, parrots. Snowy Plains and Frozen Ocean: polar bears, rabbits, foxes. Taiga: wolves (Scouts), foxes. Savanna: horses, llamas, armadillos. Swamp: frogs. Badlands: armadillos. Cherry Grove: rabbits, sheep. Mushroom Fields: Mooshrooms. Seen in a test world (for example 10 Mooshrooms in the mushroom fields, 21 armadillos in the badlands, 5 pandas in the jungle) |
+| Biome monsters | Done | Mushroom Fields never get monsters (like Java). Snowy biomes get Strays instead of Rattlers; swamps get slimes and Witches at night; dark forests get Witches. Axolotls, tadpoles and frogs can appear in swamp and lush-cave water |
+| “You found…” | Done | The first visit to each new biome (and to lush or dripstone caves) shows a message. Your found biomes are saved with the world |
+| Explorer's Map | Done | Every new biome has its own color, and the map's key lists them |
+| 6 achievements | Done | Exploration tab: New Horizons (a new biome), World Traveler (10 biomes), Seen It All (all 18), Into the Deep (deep ocean), Glow in the Dark (lush cave), Watch Your Step (dripstone cave). All 6 unlocked in a test world |
+| Journal: “Biomes” | Done | All 20 biomes and cave biomes, each with its map color, a block, what you'll find there, and a ✔ when you've found it, plus where you are now |
+| Not yet checked | Partial | Not played by hand; Chromebook speed not checked |
+
+## Milestone 20, Part D: lush caves and dripstone caves (built and browser-tested 2026-11-21, not published)
+Code: `js/worldgen.js` (`caveBiome`, `caves`), `js/blocks.js` (blocks 305–312, Glow Berries item 684, 10 textures, light from ripe vines), `js/shapes.js`, `js/trees.js` (azalea tree), `js/main.js`, `index.html` (tags `?v=biomes-d-1`). Backups: `tools/backups/pre-m20-partD-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Lush caves | Done | About 1 in 5 stretches of cave: moss floors and ceilings, moss carpets, azaleas and flowering azaleas, cave vines hanging from the ceiling (some with glowing berries), spore blossoms. Seen in a test world |
+| Dripstone caves | Done | About 1 in 5 stretches: dripstone floors and ceilings, stalactites hanging down and stalagmites pointing up (Pointed Dripstone, 1–3 long) |
+| Where | Done | Caves under new worlds, and under the unexplored squares of older worlds (same rule as Part C). Older worlds' explored land is unchanged (8.8 million block cells compared) |
+| Glow Berries | Done | Food (2). Right-click the underside of a block to plant cave vines; vines ripen (about a minute) and then give light 14; right-click a ripe vine to pick a berry. Vines sometimes grow longer. Breaking the block above makes the whole vine fall (tested) |
+| Pointed Dripstone | Done | Placed on a ceiling it hangs down; on the floor it points up. Landing on one hurts much more than a normal fall (tested: 9 instead of 3). 4 make a Dripstone block |
+| Moss and azaleas | Done | Bone Meal on moss spreads it over nearby stone and dirt, with carpets and azaleas on top (tested: 30 blocks). An azalea grows into a small tree with azalea leaves (Bone Meal or time). 2 moss blocks = 3 carpets |
+| Not yet built | Missing | Axolotls and glow squid living in lush cave pools, dripping water: Part E |
+
+## Milestone 20, Part C: nine new land biomes (built and browser-tested 2026-11-21, not published)
+Code: `js/worldgen.js` (`landBiome`, `decorate`, `SPECIAL_BIOMES`, `BIOME_NAMES`), `js/world.js` (`biomeRegion`, `regions`), `js/trees.js` (giant mushrooms), `js/blocks.js` (blocks 281–304, items 680–683, 28 textures), `js/shapes.js`, `js/main.js`, `js/player.js` (slippery ice), `index.html` (tags `?v=biomes-c-1`). Backups: `tools/backups/pre-m20-partC-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Nine new biomes | Done | Taiga (spruce, berry bushes, snow in the coldest parts), Snowy Plains (snow cover, frozen water, a few spruces), Jungle (tall jungle trees with cocoa pods, bamboo, wild melons), Savanna (acacias, tall grass), Dark Forest (2 × 2 dark oaks, giant mushrooms), Swamp (mangroves on their roots, mud, lily pads), Badlands (red sand over colorful terracotta bands, cactus, dead bushes), Cherry Grove (cherry trees, pink petals), Mushroom Fields (mycelium, small and giant mushrooms). Plus Frozen Oceans, and cactus and dead bushes in deserts. Each was visited and its blocks counted in a test world; all 18 biomes appear within 1,200 blocks of spawn in 3 test seeds |
+| How common | Done | In a new world: plains 12%, ocean 12%, taiga 9%, deep ocean 8%, snowy plains 8%, mountains 8%, jungle 7%, desert 6%, dark forest 4%, peaks 4%, savanna 4%, frozen ocean 3%, forest 3%, badlands 3%, mushroom fields 2.5%, cherry grove 2.4%, swamp 2.3%, birch 2% |
+| Older worlds | Done | The world is split into 256 × 256 squares. A square gets the new biomes only if nobody has visited or changed any of it; that's decided once and saved with the world. Tested on a copy of an old world: the home squares stayed exactly the same, and an unexplored square 1,500 blocks out became snowy taiga. Land outside the new-biome squares is identical to before (18 million block cells compared) |
+| Structures unchanged | Done | Biomes only change what's on the ground, never its height, and villages, strongholds and other structures are placed exactly as before |
+| New blocks | Done | Snow Layer, Ice (breaks into water unless Silk Touch; slippery), Packed Ice (9 ice), Bamboo (grows up to 12 tall, about 2½ minutes; 2 bamboo = 1 stick; fuel), Cocoa (plant beans on the side of a Jungle Log; ripens in 3 sizes), Mud (use a Water Bottle on dirt), Lily Pad (goes on water; you can stand on it), Red Sand (smelts into glass), 7 Terracottas (clay blocks smelt into plain Terracotta), Cactus (hurts to touch; grows to 3 on sand; nothing may be next to it), Dead Bush (drops sticks), Mycelium, Brown and Red Mushrooms (Bone Meal grows a giant one), mushroom blocks and stems, Pink Petals |
+| New food | Done | Cookies (2 wheat + 1 cocoa beans → 8), Bowls (3 planks → 4), Mushroom Stew (brown + red mushroom + bowl; you keep the bowl) |
+| Not yet built | Missing | Biome creatures (pandas in jungles, polar bears in snow, mooshrooms…), achievements, Journal chapter, Explorer's Map biome colors: Part E. Lush and dripstone caves: done in Part D |
+| Not yet checked | Partial | Not played by hand; Chromebook speed in dense jungles not checked |
+
+## Milestone 20, Part B: six new woods (built and browser-tested 2026-11-21, not published)
+Code: `js/trees.js` (new: the six tree shapes, reused by Part C's biomes), `js/blocks.js` (blocks numbered 256–280: the first ones past the old limit; 31 textures), `js/main.js` (growWood, leaf drops, sounds), `js/entities.js` (Wanderer trades), `index.html` (tags `?v=biomes-b-1` on blocks, main + script tag, entities, and the new trees entry). Backups: `tools/backups/pre-m20-partB-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Six woods | Done | Spruce, Jungle, Acacia, Dark Oak, Cherry (pink leaves), Mangrove: each has a log, leaves, planks, and a sapling (Mangrove's is a Propagule), plus Mangrove Roots. 25 new blocks, all in Creative |
+| Tree shapes | Done | Spruce: a tall stepped cone. Jungle: tall and bare with a round crown. Acacia: leans to one side under a flat umbrella. Dark Oak: thick 2 × 2 trunk, wide dark crown (needs 4 saplings in a square, like Java; a single one won't grow, tested). Cherry: a wide pink cloud with blossoms hanging down. Mangrove: stands on arching roots. All six grown and looked at in a test world |
+| Growing | Done | Plant saplings on grass or dirt; they grow like oak (a jungle tree took about 5 minutes in the test), and Bone Meal helps |
+| Leaves | Done | Drop their own sapling (6%; jungle 2.5%, like Java); dark oak leaves also drop apples; shears keep the leaves; swords cut them fast; leafy sounds |
+| Crafting | Done | Each log makes 4 planks; the new planks and logs work in every recipe that takes “any planks” or “any logs” (sticks, workbench, chests…). Logs cook into coal; logs and planks burn as fuel |
+| Getting them | Partial | The Wanderer now sells all six saplings (so older worlds can grow them too). Forests of them in the wild come with Part C's biomes |
+| Saving | Done | Grown trees (high-numbered blocks) survive save and reload |
+| Not yet built | Missing | Doors, fences, slabs, stairs, and other building blocks for the new woods come with Milestone 21 (the building palette) |
+
+## Milestone 20, Part A: real oceans and deep oceans (built and browser-tested 2026-11-21, not published)
+Code: `js/worldgen.js` (`BIOME_GEN = 17` = land version 17, `Generator.oceanness`, ocean shaping in `column`, biomes `ocean` / `deep_ocean`, gravel deep-sea floors) and `index.html` (worldgen tag `?v=biomes-a-1`). Backups: `tools/backups/pre-m20-partA-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Oceans | Done | New worlds (land version 17) get wide seas: about 23% of the land in 5 test seeds, a tenth of it deep ocean. The sea floor goes down to about 20 blocks below sea level, with gentle hills; deep floors are mostly gravel. Squid and glow squid show up in them (seen in the test world) |
+| Starting area and strongholds stay dry | Done | No sea within about 220–420 blocks of the world's middle, or within 200–330 blocks of each stronghold (so the Endwatch castles and Hollow portals are never flooded). Spawn was on dry land in all 5 test seeds; the nearest sea was 300–575 blocks away |
+| Old worlds | Done | Only brand-new worlds get oceans, because oceans lower the land and older worlds already have structures planned on today's land. Checked: land versions 16, 15, 9 and 5 generate exactly as before (16 million block cells compared, no differences). (Part C's land biomes, which don't reshape the ground, are planned to reach unexplored land in older worlds too) |
+| Structure placement | Done | The sea temple, Starter Home, villages, and adventure sites already check the ground height, so they stay on land (the sea temple can now use a real sea) |
+| Not yet checked | Partial | Not played by hand; Chromebook frame rate over big seas not checked |
+
+## The block-limit step: room for 1,024 kinds of blocks (built and browser-tested 2026-11-21, not published)
+Code: `js/blocks.js` (`ID_MASK`, `ID_SPACE`, `NB()`, `idOf`, `metaOf`, bigger lookup tables, `isBlockItem`), `js/world.js` (chunk data becomes 32-bit as it loads), `js/mesher.js`, `js/worldgen.js`, and every other place that read a block number with `& 255` (`campaign-kit`, `citadel`, `echohold-atmosphere`, `desert-monument`, `forsaken`, `entities`, `multiplayer`, `redstone`, `maps`). Version tags `?v=blocks-1024-1`. Backups: `tools/backups/pre-block-limit-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| 1,024 kinds of blocks | Done | Was 256 (244 used). New block numbers: `NB(256)` and up (block 256 is stored as 65536, because its extra number bits sit above the block's 8 settings bits) |
+| Old worlds unchanged | Done | Every existing block keeps its exact stored number, so saves need no converting. Checked: 2.9 million generated cells decode identically; a copy of an old land-version-9 world loads, draws, and keeps its changes |
+| New high-numbered blocks | Done | A test block numbered 300 placed, drew, broke, and kept its number and setting through save and reload |
+| Hand-built structures | Partial | Stamps and the packed adventure maps (Forsaken World, Lost Civilization, campaign towns) still use 16-bit storage, so they can only contain blocks 0–255 (all of today's blocks). Fine unless a future structure needs a new block |
+| Note | — | The “500” error seen during local testing is the page-visit counter on the game page (an outside service, abacus.jasoncameron.dev, failing for the local “test” counter), not the game |
+
+## Milestone 16, Part A: melons, the Cauldron, the Brewing Stand, and every drinkable potion (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #29)
 Code: `js/potions.js` (new: every potion, its effects and times, the brewing recipes, potion pictures), plus `js/blocks.js` (blocks 240–243, items 654–664, 11 textures, 6 icons, 7 recipes), `js/shapes.js` (Brewing Stand and Cauldron models), `js/main.js`, `js/ui.js`, `js/entities.js` (Rabbit's Foot, trades, Invisibility), `js/player.js` (Slow Falling), `js/audio.js`, `js/multiplayer.js`, and `index.html` (styles; version tags `?v=brew-a-1` on blocks, main + script tag, ui, entities, shapes, multiplayer, audio, player, and the new potions entry). Backups: `tools/backups/pre-m16-partA-2026-11-21/`. Block numbers used: 244 of 256 (12 left). Recipes, times and strengths follow Java 1.20.1 (swaps are listed in MILESTONES-14-21-PLAN.md section 7).
 
 | Feature | Status | Notes |
@@ -358,7 +434,7 @@ Code: `js/potions.js` (new: every potion, its effects and times, the brewing rec
 | Part C | Done | See the next section |
 | Not yet checked | Partial | Not played by hand on a Chromebook; sounds not listened to; potion in the hand and dropped on the ground shows one plain blue bottle |
 
-## Milestone 16, Part C: achievements, the Brewing guide, Creative potions, treasure, trades (built and browser-tested 2026-11-21). Milestone 16 is now complete.
+## Milestone 16, Part C: achievements, the Brewing guide, Creative potions, treasure, trades (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #29). Milestone 16 is now complete.
 Code: `js/brewing-guide.js` (new), plus `js/advancements.js`, `js/main.js`, `js/ui.js`, `js/entities.js` (Cleric trades), `js/audio.js`, and `index.html` (all Milestone 16 files now `?v=brew-c-1`, plus a new brewing-guide import-map entry; advancements moved to `brew-c-1`). Backups: `tools/backups/pre-m16-partC-2026-11-21/`.
 
 | Feature | Status | Notes |
@@ -371,7 +447,7 @@ Code: `js/brewing-guide.js` (new), plus `js/advancements.js`, `js/main.js`, `js/
 | Drinking sound | Done | Potions gulp instead of crunching (checked it runs; not listened to) |
 | Not yet checked | Partial | Not played by hand on a Chromebook; sounds not listened to |
 
-## Milestone 16, Part B: splash and lingering potions, clouds, tipped arrows, Witches (built and browser-tested 2026-11-21, not published)
+## Milestone 16, Part B: splash and lingering potions, clouds, tipped arrows, Witches (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #29)
 Code: `js/main.js` (throwPotion, potionBurst, potionOnCreature, potion clouds, Wyrm's Breath, tipped arrows from the bow, tipped-arrow crafting), `js/entities.js` (thrown potions breaking on blocks, creatures and you; creature effects `e.fx`; Slowness on creatures), `js/creatures.js` (Witches), `js/blocks.js` (items 665–679 tipped arrows + 15 recipes), `js/ui.js`, `js/audio.js`, and `index.html` (version tags `?v=brew-b-1`, creatures included). Backups: `tools/backups/pre-m16-partB-2026-11-21/`.
 
 | Feature | Status | Notes |
@@ -385,7 +461,7 @@ Code: `js/main.js` (throwPotion, potionBurst, potionOnCreature, potion clouds, W
 | Play Together | Partial | Throwing potions is host-only while playing together |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Witches are about as dangerous as before (Harming does 3 hearts); they can be deadly without armor, like Java's |
 
-## Milestone 15, Part A: the Enchanting Table and every enchantment (built and browser-tested 2026-11-21, not published)
+## Milestone 15, Part A: the Enchanting Table and every enchantment (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #29)
 Code: `js/enchanting.js` (new: the enchantment list, what each goes on, the table's offers, armor math), plus changes in `js/blocks.js` (blocks 234–236, items 650–653, 4 textures), `js/main.js`, `js/entities.js`, `js/ui.js`, `js/shapes.js`, `js/worldgen.js` (land version 16), `js/world.js`, `js/multiplayer.js`, and `index.html` (styles; version tags are now `?v=ench-b-1`, see Part B). Backups of the changed files: `tools/backups/pre-m15-partA-2026-11-21/`.
 
 | Feature | Status | Notes |
@@ -411,7 +487,7 @@ Code: `js/enchanting.js` (new: the enchantment list, what each goes on, the tabl
 | Part C | Done | See the next section |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Hits, mining, and the table were driven with test shortcuts in the built-in browser |
 
-## Milestone 15, Part B: the Anvil, the Grindstone, and enchanted treasure (built and browser-tested 2026-11-21, not published)
+## Milestone 15, Part B: the Anvil, the Grindstone, and enchanted treasure (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #29)
 Code: `js/enchanting.js` (anvilResult, grindResult, repair materials, treasure books, villagerBook), plus `js/blocks.js` (blocks 237–239, 7 textures, 2 icons, 2 recipes), `js/shapes.js` (Anvil and Grindstone models), `js/main.js`, `js/ui.js`, `js/entities.js` (trades), `js/multiplayer.js`, and `index.html` (styles; version tags `?v=ench-b-1` on blocks, main + script tag, ui, entities, worldgen, world, shapes, multiplayer, enchanting). Backups: `tools/backups/pre-m15-partB-2026-11-21/`. Block numbers used: 240 of 256 (16 left).
 
 | Feature | Status | Notes |
@@ -427,7 +503,7 @@ Code: `js/enchanting.js` (anvilResult, grindResult, repair materials, treasure b
 | Play Together | Partial | The Anvil and the Grindstone are host-only while playing together |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Screens were clicked through with test scripts in the built-in browser. Anvils don't fall (no falling blocks until Milestone 18) |
 
-## Milestone 15, Part C: achievements, the Enchanting guide, sounds, Creative books (built and browser-tested 2026-11-21, not published). Milestone 15 is now complete.
+## Milestone 15, Part C: achievements, the Enchanting guide, sounds, Creative books (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #29). Milestone 15 is now complete.
 Code: `js/enchanting-guide.js` (new), plus `js/advancements.js`, `js/audio.js`, `js/main.js`, `js/ui.js`, `js/enchanting.js`, and `index.html` (styles; every Milestone 15 file now has the version tag `?v=ench-c-1`, including new import-map entries for enchanting-guide, and advancements and audio moved to `ench-c-1`). Backups: `tools/backups/pre-m15-partC-2026-11-21/`.
 
 | Feature | Status | Notes |
