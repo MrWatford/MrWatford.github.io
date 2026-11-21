@@ -472,7 +472,7 @@ function rotated(base, rot) {
     const [rx, rz] = turn(x, z), a = (x + O) + (z + O) * S, b = (rx + O) + (rz + O) * S;
     for (let y = 0; y < HEIGHT; y++) {
       let v = base.cells[a + y * S * S];
-      if (v !== KEEP && TURNS.has(v & 255)) { const m = v >> 8; v = make(v & 255, (m & ~3) | (((m & 3) + rot * 3) % 4)); }   // facing turns with the castle
+      if (v !== KEEP && TURNS.has(v & 0xFFFF00FF)) { const m = (v >> 8) & 255; v = make(v & 0xFFFF00FF, (m & ~3) | (((m & 3) + rot * 3) % 4)); }   // facing turns with the castle
       out[b + y * S * S] = v;
     }
   }
@@ -499,11 +499,11 @@ export function citadelLand(cx, cz, rot) {
     for (let lz = 0; lz < 16; lz++) for (let lx = 0; lx < 16; lx++) {
       const x = x0 + lx, z = z0 + lz, [u, v] = toLocal(x - cx, z - cz, rot), d = Math.hypot(u, v);
       if (d > C.shore + 3) continue;
-      let yT = 0; for (let y = HEIGHT - 2; y > 0; y--) { const id = data[idx(lx, y, lz)] & 255; if (GROUND.has(id)) { yT = y; break; } }
+      let yT = 0; for (let y = HEIGHT - 2; y > 0; y--) { const id = data[idx(lx, y, lz)] & 0xFFFF00FF; if (GROUND.has(id)) { yT = y; break; } }
       if (!yT) yT = SEA - 6;
       const col = (top, topId, under, waterTo) => {   // set the column: solid to `top`, water to `waterTo`, then open sky
         for (let y = Math.min(yT, top) - 4; y <= top; y++) if (y > 0) data[idx(lx, y, lz)] = y === top ? topId : y >= top - 3 ? under : B.STONE;
-        for (let y = top + 1; y <= HEIGHT - 2; y++) { const id = data[idx(lx, y, lz)] & 255; if (y <= waterTo) data[idx(lx, y, lz)] = B.WATER; else if (y <= Math.max(yT, top) + 16 || PLANT.has(id) || id === B.WATER) data[idx(lx, y, lz)] = 0; }
+        for (let y = top + 1; y <= HEIGHT - 2; y++) { const id = data[idx(lx, y, lz)] & 0xFFFF00FF; if (y <= waterTo) data[idx(lx, y, lz)] = B.WATER; else if (y <= Math.max(yT, top) + 16 || PLANT.has(id) || id === B.WATER) data[idx(lx, y, lz)] = 0; }
       };
       const onBridge = Math.abs(u) <= C.bridgeHalf + 1 && v > 40;
       if (d <= C.island) {
@@ -516,7 +516,7 @@ export function citadelLand(cx, cz, rot) {
         // the shore: from the water's edge up to the natural ground (a raised landing where the bridge arrives)
         const t = (d - C.lake) / (C.shore - C.lake), land = smooth01(1 - (Math.abs(u) - 6) / 8) * smooth01(v / 40);
         const g = SEA + 1 + (G0 - SEA - 1) * land, target = Math.round(g + (yT - g) * smooth01(t));
-        const nat = data[idx(lx, yT, lz)] & 255;
+        const nat = data[idx(lx, yT, lz)] & 0xFFFF00FF;
         col(target, t < 0.25 && land < 0.5 ? B.SAND : (nat === B.SAND || nat === B.SANDSTONE ? B.SAND : B.GRASS), B.DIRT, target < SEA ? SEA : -1);
       }
       // the bridge over the lake: a deck at the island's level, parapets with merlons, and arches between piers
@@ -538,7 +538,7 @@ export function citadelLand(cx, cz, rot) {
       // two watchtowers at the shore end of the bridge (archers keep watch from their tops)
       for (const [tx, tz] of GATE.towers) {
         const r = Math.hypot(u - tx, v - tz); if (r > 2.6) continue;
-        let top = 0; for (let y = HEIGHT - 2; y > 0; y--) if (GROUND.has(data[idx(lx, y, lz)] & 255)) { top = y; break; }
+        let top = 0; for (let y = HEIGHT - 2; y > 0; y--) if (GROUND.has(data[idx(lx, y, lz)] & 0xFFFF00FF)) { top = y; break; }
         for (let y = Math.max(1, top - 2); y <= GATE.towerTop + 1; y++) {
           const shell = r >= 1.5, base = y <= top + 1;
           data[idx(lx, y, lz)] = y === GATE.towerTop ? B.PLANKS : y === GATE.towerTop + 1 ? (shell && (x + z) % 2 === 0 ? B.STONE_BRICKS : 0) : (shell || y <= top ? (base ? B.DARKSLATE_BRICKS : (hashL(x, y, z) < 0.12 ? B.CRACKED_BRICKS : B.STONE_BRICKS)) : 0);
@@ -546,11 +546,11 @@ export function citadelLand(cx, cz, rot) {
       }
       // the outer Gate Winch, on the landing beside the bridge
       if (Math.round(u) === GATE.winch[0] && vr === GATE.winch[1]) {
-        let top = 0; for (let y = HEIGHT - 2; y > 0; y--) if (GROUND.has(data[idx(lx, y, lz)] & 255)) { top = y; break; }
+        let top = 0; for (let y = HEIGHT - 2; y > 0; y--) if (GROUND.has(data[idx(lx, y, lz)] & 0xFFFF00FF)) { top = y; break; }
         if (top) data[idx(lx, top + 1, lz)] = B.GATE_WINCH;
       }
       // trees and leaves left hanging near the shore
-      if (d > C.lake && d <= C.shore + 3) for (let y = 1; y < HEIGHT - 1; y++) { const id = data[idx(lx, y, lz)] & 255; if ((id === B.LEAVES || id === B.BIRCH_LEAVES) && d < C.shore - 6) data[idx(lx, y, lz)] = 0; }
+      if (d > C.lake && d <= C.shore + 3) for (let y = 1; y < HEIGHT - 1; y++) { const id = data[idx(lx, y, lz)] & 0xFFFF00FF; if ((id === B.LEAVES || id === B.BIRCH_LEAVES) && d < C.shore - 6) data[idx(lx, y, lz)] = 0; }
     }
   } };
 }

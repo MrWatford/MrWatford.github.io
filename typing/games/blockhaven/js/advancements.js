@@ -37,6 +37,13 @@ export const ADVANCEMENTS = [
   { id: "walk", cat: "Exploration", icon: I.LEATHER_BOOTS, title: "Wanderlust", desc: "Travel 2,000 blocks on foot.", check: G => (G.stats.walked || 0) >= 2000, progress: G => [Math.min(2000, Math.floor(G.stats.walked || 0)), 2000] },
   { id: "loot", cat: "Exploration", icon: B.CHEST, title: "Treasure Hunter", desc: "Open a treasure chest in a ruin or structure.", ev: "loot" },
   { id: "trade", cat: "Exploration", icon: I.JADE, title: "Fair Trade", desc: "Trade with a villager.", ev: "trade" },
+  // Milestone 20: biomes (events from main.js trackBiome: "biome" with its name, "cavebiome")
+  { id: "newhorizons", cat: "Exploration", icon: B.CHERRY_SAPLING, title: "New Horizons", desc: "Find one of the new biomes (jungle, taiga, badlands, cherry grove…).", ev: "biome", match: b => ["snowy_plains", "taiga", "jungle", "savanna", "dark_forest", "swamp", "badlands", "cherry_grove", "mushroom_fields", "frozen_ocean"].includes(b), reward: { xp: 15 } },
+  { id: "traveler", cat: "Exploration", icon: B.SPRUCE_SAPLING, title: "World Traveler", desc: "Visit 10 different biomes.", parent: "newhorizons", ev: "biome", count: 10, reward: { xp: 50 } },
+  { id: "seenitall", cat: "Exploration", icon: B.JUNGLE_SAPLING, title: "Seen It All", desc: "Visit all 18 biomes.", parent: "traveler", ev: "biome", count: 18, reward: { xp: 200 } },
+  { id: "deepdive", cat: "Exploration", icon: B.ICE, title: "Into the Deep", desc: "Reach a deep ocean.", ev: "biome", match: b => b === "deep_ocean", reward: { xp: 20 } },
+  { id: "glowcave", cat: "Exploration", icon: B.MOSS_BLOCK, title: "Glow in the Dark", desc: "Find a lush cave.", ev: "cavebiome", match: b => b === "lush_caves", reward: { xp: 20 } },
+  { id: "dripcave", cat: "Exploration", icon: B.POINTED_DRIPSTONE, title: "Watch Your Step", desc: "Find a dripstone cave.", ev: "cavebiome", match: b => b === "dripstone_caves", reward: { xp: 20 } },
   { id: "nether", cat: "Exploration", icon: B.EMBERRACK, title: "Into the Depths", desc: "Travel to the Ember Depths.", ev: "dim", match: d => d === "nether", reward: { xp: 20 } },
   { id: "eye", cat: "Exploration", icon: I.EYE, title: "Eye Spy", desc: "Throw an Eye of the Void to find a stronghold.", parent: "nether", ev: "eye" },
   { id: "end", cat: "Exploration", icon: B.HOLLOWSTONE, title: "The Hollow", desc: "Enter the Hollow.", parent: "eye", ev: "dim", match: d => d === "end", reward: { xp: 30 } },

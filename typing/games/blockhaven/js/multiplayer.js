@@ -198,7 +198,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       if (far || !validBlock(v) || !guestMayChange(x, y, z, old, v)) { if (w.isLoaded(x, z)) undo.push(x, y, z, old); continue; }
       if (!w.isLoaded(x, z)) { setUnloaded(w, x, y, z, v); blocks.set(x + "," + y + "," + z, v); continue; }
       // the guest broke something: let the game do everything breaking does (doors, chests spilling, story pieces)
-      const nid = v & 255, oid = old & 255;
+      const nid = v & 0xFFFF00FF, oid = old & 0xFFFF00FF;
       if ((nid === 0 || nid === WATER) && oid !== 0 && oid !== WATER && oid !== LAVA) breakBlock(x, y, z, false, true);
       else w.set(x, y, z, v);
     }

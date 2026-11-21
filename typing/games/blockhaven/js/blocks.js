@@ -11,6 +11,8 @@ import { WILDLIFE_EGGS } from "./wildlife-catalog.js";
 
 export const CHUNK = 16, HEIGHT = 80, SEA = 30;
 
+// Block numbers 256 and up keep their extra bits above the 8 settings bits (see NB below); nb is the same, needed this early.
+const nb = k => (k & 255) | ((k >> 8) << 16);
 export const B = {
   AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, COBBLE: 4, SAND: 5, GRAVEL: 6, LOG: 7, LEAVES: 8, PLANKS: 9,
   GLASS: 10, WATER: 11, COAL_ORE: 12, IRON_ORE: 13, SKY_ORE: 14, TABLE: 15, FURNACE: 16, CHEST: 17,
@@ -72,7 +74,21 @@ export const B = {
   LAPIS_ORE: 234, SUGAR_CANE: 235, ENCH_TABLE: 236,
   ANVIL: 237, GRINDSTONE: 238, FROSTED_ICE: 239,   // Milestone 15, Part B
   // Milestone 16: brewing (js/potions.js)
-  MELON: 240, MELON_STEM: 241, BREWING_STAND: 242, CAULDRON: 243
+  MELON: 240, MELON_STEM: 241, BREWING_STAND: 242, CAULDRON: 243,
+  // Milestone 20, Part B: six new woods (the first blocks numbered 256 and up)
+  SPRUCE_LOG: nb(256), SPRUCE_LEAVES: nb(257), SPRUCE_PLANKS: nb(258), SPRUCE_SAPLING: nb(259),
+  JUNGLE_LOG: nb(260), JUNGLE_LEAVES: nb(261), JUNGLE_PLANKS: nb(262), JUNGLE_SAPLING: nb(263),
+  ACACIA_LOG: nb(264), ACACIA_LEAVES: nb(265), ACACIA_PLANKS: nb(266), ACACIA_SAPLING: nb(267),
+  DARK_OAK_LOG: nb(268), DARK_OAK_LEAVES: nb(269), DARK_OAK_PLANKS: nb(270), DARK_OAK_SAPLING: nb(271),
+  CHERRY_LOG: nb(272), CHERRY_LEAVES: nb(273), CHERRY_PLANKS: nb(274), CHERRY_SAPLING: nb(275),
+  MANGROVE_LOG: nb(276), MANGROVE_LEAVES: nb(277), MANGROVE_PLANKS: nb(278), MANGROVE_SAPLING: nb(279), MANGROVE_ROOTS: nb(280),
+  // Milestone 20, Part C: the new land biomes
+  SNOW_LAYER: nb(281), ICE: nb(282), BAMBOO: nb(283), COCOA: nb(284), MUD: nb(285), LILY_PAD: nb(286), RED_SAND: nb(287),
+  TERRACOTTA: nb(288), ORANGE_TERRACOTTA: nb(289), YELLOW_TERRACOTTA: nb(290), WHITE_TERRACOTTA: nb(291), RED_TERRACOTTA: nb(292), BROWN_TERRACOTTA: nb(293), LIGHT_GRAY_TERRACOTTA: nb(294),
+  CACTUS: nb(295), DEAD_BUSH: nb(296), MYCELIUM: nb(297), BROWN_MUSHROOM: nb(298), RED_MUSHROOM: nb(299), BROWN_MUSHROOM_BLOCK: nb(300), RED_MUSHROOM_BLOCK: nb(301),
+  MUSHROOM_STEM: nb(302), PINK_PETALS: nb(303), PACKED_ICE: nb(304),
+  // Milestone 20, Part D: lush caves and dripstone caves
+  MOSS_BLOCK: nb(305), MOSS_CARPET: nb(306), AZALEA: nb(307), FLOWERING_AZALEA: nb(308), AZALEA_LEAVES: nb(309), CAVE_VINES: nb(310), SPORE_BLOSSOM: nb(311), POINTED_DRIPSTONE: nb(312)
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -133,13 +149,21 @@ export const I = {
   // Milestone 16: brewing
   MELON_SLICE: 654, MELON_SEEDS: 655, GLISTERING_MELON: 656, SUGAR: 657, FERMENTED_EYE: 658, RABBIT_FOOT: 659, PHANTOM_MEMBRANE: 660,
   POTION: 661, SPLASH_POTION: 662, LINGERING_POTION: 663, DRAGON_BREATH: 664,
-  TIPPED_ARROW: 665   // 665-679: one tipped arrow per potion (TIPPED_KEYS order)
+  TIPPED_ARROW: 665,   // 665-679: one tipped arrow per potion (TIPPED_KEYS order)
+  // Milestone 20, Part C
+  COCOA_BEANS: 680, COOKIE: 681, BOWL: 682, MUSHROOM_STEW: 683,
+  GLOW_BERRIES: 684   // Milestone 20, Part D
 };
 
-// A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
-export const idOf = v => v & 255;
-export const metaOf = v => v >> 8;
+// A block value stores the block id in the low 8 bits and extra state ("meta") in the next 8 bits.
+// The block limit step (2026-11-21) made room for 1,024 kinds of blocks without changing any existing number:
+// blocks 256 and up keep their extra id bits ABOVE the meta (bits 16-17), so block 256 is the number 65536.
+// Use idOf/metaOf/make, never "& 255", to read a block value. NB(k) turns a plain number k into a block id.
+export const ID_MASK = 0xFFFF00FF, ID_SPACE = 1 << 18;
+export const idOf = v => v & ID_MASK;
+export const metaOf = v => (v >> 8) & 255;
 export const make = (id, meta = 0) => id | (meta << 8);
+export const NB = k => (k & 255) | ((k >> 8) << 16);
 // Meta bits: facing 0-3 (0 = +z, 1 = +x, 2 = -z, 3 = -x), OPEN for doors, TOP for door tops, LIT for furnaces
 export const OPEN = 4, TOP = 8, LIT = 4, HEAD = 8, WET = 1, EYE_IN = 4;
 // Bee nests and hives keep their honey level (0-5) above the facing bits
@@ -402,6 +426,45 @@ block(B.SUGAR_CANE, "Sugar Cane", { shape: "cross", render: "cutout", solid: fal
 block(B.ANVIL, "Anvil", { shape: "model", render: "cutout", hardness: 5, tool: "pick", tier: 1, interact: "anvil", faces: true, icon: "anvil", tex: ["anvil_top", "anvil_side", "anvil_side"], category: "Useful" });
 block(B.GRINDSTONE, "Grindstone", { shape: "model", render: "cutout", hardness: 2, tool: "pick", tier: 1, interact: "grindstone", faces: true, icon: "grindstone", tex: ["grind_side", "grind_wheel", "grind_side"], category: "Useful" });
 block(B.FROSTED_ICE, "Frosted Ice", { hardness: 0.5, drops: 0, tex: "frosted_ice", noItem: true, category: "Nature" });   // made by Frost Walker boots; melts back into water
+// Milestone 20, Part B: six new woods. Leaves remember their sapling (saplingOf); saplings remember their tree (tree, see js/trees.js).
+export const NEW_WOODS = [["SPRUCE", "Spruce", "spruce"], ["JUNGLE", "Jungle", "jungle"], ["ACACIA", "Acacia", "acacia"], ["DARK_OAK", "Dark Oak", "dark_oak"], ["CHERRY", "Cherry", "cherry"], ["MANGROVE", "Mangrove", "mangrove"]];
+for (const [K, name, t] of NEW_WOODS) {
+  block(B[K + "_LOG"], name + " Log", { hardness: 2, tool: "axe", tex: [t + "_log_top", t + "_log_side", t + "_log_top"], category: "Nature", log: true });
+  block(B[K + "_LEAVES"], name + " Leaves", { hardness: 0.2, render: "cutout", drops: "leaves", tex: t + "_leaves", category: "Nature", saplingOf: B[K + "_SAPLING"] });
+  block(B[K + "_PLANKS"], name + " Planks", { hardness: 2, tool: "axe", tex: t + "_planks" });
+  block(B[K + "_SAPLING"], K === "MANGROVE" ? "Mangrove Propagule" : name + " Sapling", { shape: "cross", render: "cutout", solid: false, hardness: 0, tex: t + "_sapling", category: "Nature", tree: t });
+}
+// Milestone 20, Part C: blocks of the new land biomes
+block(B.SNOW_LAYER, "Snow Layer", { shape: "model", render: "cutout", solid: false, replaceable: true, hardness: 0.1, tool: "shovel", drops: 0, tex: "snow", iconBox: 2 / 16, category: "Nature" });
+block(B.ICE, "Ice", { hardness: 0.5, tool: "pick", render: "cutout", drops: 0, tex: "ice", category: "Nature", slippery: true });
+block(B.PACKED_ICE, "Packed Ice", { hardness: 0.5, tool: "pick", drops: 0, tex: "packed_ice", category: "Nature", slippery: true });
+block(B.BAMBOO, "Bamboo", { shape: "model", render: "cutout", hardness: 1, tool: "axe", tex: ["bamboo_top", "bamboo", "bamboo_top"], icon: "bamboo", category: "Nature" });
+block(B.COCOA, "Cocoa", { shape: "model", render: "cutout", solid: false, hardness: 0.2, tool: "axe", drops: "cocoa", tex: "cocoa0", noItem: true, category: "Nature" });
+block(B.MUD, "Mud", { hardness: 0.5, tool: "shovel", tex: "mud", category: "Nature" });
+block(B.LILY_PAD, "Lily Pad", { shape: "model", render: "cutout", hardness: 0, tex: "lily_pad", icon: "tile:lily_pad", category: "Nature" });
+block(B.RED_SAND, "Red Sand", { hardness: 0.5, tool: "shovel", tex: "red_sand", category: "Nature" });
+for (const [k, name] of [["TERRACOTTA", "Terracotta"], ["ORANGE_TERRACOTTA", "Orange Terracotta"], ["YELLOW_TERRACOTTA", "Yellow Terracotta"], ["WHITE_TERRACOTTA", "White Terracotta"],
+  ["RED_TERRACOTTA", "Red Terracotta"], ["BROWN_TERRACOTTA", "Brown Terracotta"], ["LIGHT_GRAY_TERRACOTTA", "Light Gray Terracotta"]])
+  block(B[k], name, { hardness: 1.25, tool: "pick", tier: 1, tex: k.toLowerCase(), category: "Building" });
+block(B.CACTUS, "Cactus", { shape: "model", render: "cutout", hardness: 0.4, tex: ["cactus_top", "cactus_side", "cactus_top"], category: "Nature", prickly: true });
+block(B.DEAD_BUSH, "Dead Bush", { shape: "cross", render: "cutout", solid: false, replaceable: true, hardness: 0, drops: "deadbush", tex: "dead_bush", category: "Nature" });
+block(B.MYCELIUM, "Mycelium", { hardness: 0.6, tool: "shovel", drops: B.DIRT, tex: ["mycelium_top", "mycelium_side", "dirt"], category: "Nature" });
+block(B.BROWN_MUSHROOM, "Brown Mushroom", { shape: "cross", render: "cutout", solid: false, hardness: 0, light: 1, tex: "brown_mushroom", category: "Nature", tree: "brown_mushroom" });
+block(B.RED_MUSHROOM, "Red Mushroom", { shape: "cross", render: "cutout", solid: false, hardness: 0, tex: "red_mushroom", category: "Nature", tree: "red_mushroom" });
+block(B.BROWN_MUSHROOM_BLOCK, "Brown Mushroom Block", { hardness: 0.2, tool: "axe", drops: "bigmushroom", tex: "brown_mushroom_block", category: "Nature" });
+block(B.RED_MUSHROOM_BLOCK, "Red Mushroom Block", { hardness: 0.2, tool: "axe", drops: "bigmushroom", tex: "red_mushroom_block", category: "Nature" });
+block(B.MUSHROOM_STEM, "Mushroom Stem", { hardness: 0.2, tool: "axe", drops: 0, tex: "mushroom_stem", category: "Nature" });
+block(B.PINK_PETALS, "Pink Petals", { shape: "model", render: "cutout", solid: false, replaceable: true, hardness: 0, tex: "pink_petals", icon: "tile:pink_petals", category: "Nature" });
+// Milestone 20, Part D: lush caves and dripstone caves
+block(B.MOSS_BLOCK, "Moss Block", { hardness: 0.1, tool: "hoe", tex: "moss_block", category: "Nature" });
+block(B.MOSS_CARPET, "Moss Carpet", { shape: "model", render: "cutout", solid: false, hardness: 0.1, tex: "moss_block", iconBox: 1 / 16, category: "Nature" });
+block(B.AZALEA, "Azalea", { render: "cutout", hardness: 0, tex: ["azalea_top", "azalea_side", "azalea_side"], category: "Nature", tree: "azalea" });
+block(B.FLOWERING_AZALEA, "Flowering Azalea", { render: "cutout", hardness: 0, tex: ["flowering_azalea_top", "flowering_azalea_side", "azalea_side"], category: "Nature", tree: "azalea" });
+block(B.AZALEA_LEAVES, "Azalea Leaves", { hardness: 0.2, render: "cutout", drops: "leaves", tex: "azalea_leaves", category: "Nature", saplingOf: B.AZALEA });
+block(B.CAVE_VINES, "Cave Vines", { shape: "cross", render: "cutout", solid: false, hardness: 0, drops: "vines", interact: "berries_vine", tex: "cave_vines", noItem: true, category: "Nature" });
+block(B.SPORE_BLOSSOM, "Spore Blossom", { shape: "cross", render: "cutout", solid: false, hardness: 0, tex: "spore_blossom", category: "Nature" });
+block(B.POINTED_DRIPSTONE, "Pointed Dripstone", { shape: "model", render: "cutout", hardness: 1.5, tool: "pick", tex: "pointed_dripstone", icon: "tile:pointed_dripstone", category: "Nature" });
+block(B.MANGROVE_ROOTS, "Mangrove Roots", { hardness: 0.7, tool: "axe", render: "cutout", tex: "mangrove_roots", category: "Nature" });
 // Milestone 16: brewing
 block(B.MELON, "Melon", { hardness: 1, tool: "axe", drops: "melon", tex: ["melon_top", "melon_side", "melon_top"], category: "Nature" });
 block(B.MELON_STEM, "Melon Stem", { shape: "crop", render: "cutout", solid: false, hardness: 0, drops: "crop", tex: "melon_stem0", category: "Nature", noItem: true });
@@ -412,12 +475,12 @@ block(B.ENCH_TABLE, "Enchanting Table", { shape: "model", render: "cutout", hard
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
 export const BLOCKS = defs;
-export const blockDef = v => defs[v & 255] || defs[0];
+export const blockDef = v => defs[v & ID_MASK] || defs[0];
 
 // Lookup tables for speed (used thousands of times per frame by the mesher and physics)
-export const OPAQUE = new Uint8Array(256);     // full cube that hides neighbors and blocks light
-export const SOLID = new Uint8Array(256);      // player collides with it
-export const EMIT = new Uint8Array(256);       // light given off
+export const OPAQUE = new Uint8Array(ID_SPACE);     // full cube that hides neighbors and blocks light
+export const SOLID = new Uint8Array(ID_SPACE);      // player collides with it
+export const EMIT = new Uint8Array(ID_SPACE);       // light given off
 for (const d of Object.values(defs)) {
   OPAQUE[d.id] = d.shape === "cube" && d.render === "opaque" ? 1 : 0;
   SOLID[d.id] = d.solid ? 1 : 0;
@@ -425,8 +488,8 @@ for (const d of Object.values(defs)) {
 }
 // Echohold Reborn: blocks whose light is cool teal instead of warm torchlight, and blocks whose own faces glow faintly
 // (that glow pulses slowly in the shader). Their light still counts as light for creatures and spawning.
-export const COOL = new Uint8Array(256);
-export const FACEGLOW = new Float32Array(256);
+export const COOL = new Uint8Array(ID_SPACE);
+export const FACEGLOW = new Float32Array(ID_SPACE);
 for (const id of [B.HUSH_NODE, B.RESONATOR, B.GATE_SOCKET, B.GATE_FRAME, B.GATE_VEIL, B.LUMEN_CRYSTAL, B.KEEPER_BEACON, B.ANCHOR_STATION,
   B.WARDEN_TROPHY, B.SOVEREIGN_TROPHY, B.TIDE_LAMP, B.HUSH_SENSOR, B.TUNED_SENSOR, B.SKY_ORE]) if (id != null) COOL[id] = 1;
 for (const [id, g] of [[B.HUSHMOSS, 0.4], [B.HUSH_NODE, 0.65], [B.LUMEN_GRASS, 0.5], [B.HUSH_CARPET, 0.18], [B.LUMEN_CRYSTAL, 0.7], [B.GATE_FRAME, 0.35]]) if (id != null) FACEGLOW[id] = g;
@@ -453,8 +516,8 @@ export const isFence = id => id >= B.OAK_FENCE && id <= B.WARPED_FENCE;
 export const isGate = id => id >= B.OAK_GATE && id <= B.WARPED_GATE;
 export const isButton = id => id >= B.STONE_BUTTON && id <= B.WARPED_BUTTON;
 export const isPlate = id => id >= B.OAK_PLATE && id <= B.IRON_PLATE;
-export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
-  (idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) ? (metaOf(v) & 1 ? 9 : 0) : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & 255];
+export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
+  (idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) ? (metaOf(v) & 1 ? 9 : 0) : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & ID_MASK];
 
 // ---------- Items ----------
 const items = {};
@@ -741,17 +804,23 @@ const TIP_NAMES = ["Night Vision", "Invisibility", "Leaping", "Fire Resistance",
 TIPPED_KEYS.forEach((k, i) => item(I.TIPPED_ARROW + i, "Arrow of " + TIP_NAMES[i], { icon: "tipped_arrow", colors: [TIP_COLORS[i]], tip: k, arrow: true, category: "Tools",
   desc: "Shoot it from a bow: whatever it hits gets a short dose of the potion. Made from 8 arrows around a lingering potion" }));
 items[I.ARROW].arrow = true;
+// Milestone 20, Part C
+item(I.GLOW_BERRIES, "Glow Berries", { icon: "glow_berries", kind: "food", food: 2, category: "Food", desc: "Right-click the underside of a block to plant cave vines. Ripe vines glow" });   // Milestone 20, Part D
+item(I.COCOA_BEANS, "Cocoa Beans", { icon: "cocoa_beans", category: "Food", desc: "Right-click the side of a Jungle Log to plant them" });
+item(I.COOKIE, "Cookie", { icon: "cookie", kind: "food", food: 2, category: "Food" });
+item(I.BOWL, "Bowl", { icon: "bowl", category: "Items" });
+item(I.MUSHROOM_STEW, "Mushroom Stew", { icon: "bowl", colors: ["stew"], kind: "food", food: 6, stack: 1, sideEffect: "bowl", category: "Food" });
 item(I.DRAGON_BREATH, "Wyrm's Breath", { icon: "bottle", colors: ["#c060ff"], category: "Items", desc: "Bottled from the Hollow Wyrm's breath. Turns splash potions into lingering ones" });
 SPAWN_EGGS.push(...WILDLIFE_EGGS);
 export const spawnEggId = index => index < I.FISHING_ROD - I.SPAWN ? I.SPAWN + index : I.SPAWN_OVERFLOW + index - (I.FISHING_ROD - I.SPAWN);
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(spawnEggId(i), name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
 export const ITEMS = items;
 export const itemDef = id => items[id];
-export const isBlockItem = id => id > 0 && id < 256;
+export const isBlockItem = id => id > 0 && (id < 256 || (id >= 65536 && !!defs[id]));
 
 // ---------- Crafting ----------
 // Ingredient ids can be a tag like "planks" meaning any kind of planks.
-export const TAGS = { planks: [B.PLANKS, B.BIRCH_PLANKS], logs: [B.LOG, B.BIRCH_LOG] };
+export const TAGS = { planks: [B.PLANKS, B.BIRCH_PLANKS, ...NEW_WOODS.map(([K]) => B[K + "_PLANKS"])], logs: [B.LOG, B.BIRCH_LOG, ...NEW_WOODS.map(([K]) => B[K + "_LOG"])] };
 export const RECIPES = [
   ...["HELMET", "CHEST", "LEGS", "BOOTS"].map((piece, slot) => ({
     out: [I["ANCIENT_" + piece], 1], ins: [[I.ANCIENT_PLATE, [1, 3, 2, 2][slot]], [I.SKYSHARD, [3, 5, 4, 2][slot]]], table: true
@@ -766,6 +835,15 @@ export const RECIPES = [
   { out: [I.SANDCALLER_HORN, 1], ins: [[I.BONE, 3], [I.GOLD_INGOT, 2], [I.LEATHER, 1]], table: true },
   { out: [B.PLANKS, 4], ins: [[B.LOG, 1]] },
   { out: [B.BIRCH_PLANKS, 4], ins: [[B.BIRCH_LOG, 1]] },
+  ...NEW_WOODS.map(([K]) => ({ out: [B[K + "_PLANKS"], 4], ins: [[B[K + "_LOG"], 1]] })),   // Milestone 20
+  // Milestone 20, Part C
+  { out: [I.STICK, 1], ins: [[B.BAMBOO, 2]] },
+  { out: [I.COOKIE, 8], ins: [[I.WHEAT, 2], [I.COCOA_BEANS, 1]], table: true },
+  { out: [I.BOWL, 4], ins: [["planks", 3]], table: true },
+  { out: [I.MUSHROOM_STEW, 1], ins: [[B.BROWN_MUSHROOM, 1], [B.RED_MUSHROOM, 1], [I.BOWL, 1]] },
+  { out: [B.PACKED_ICE, 1], ins: [[B.ICE, 9]], table: true },
+  { out: [B.DRIPSTONE, 1], ins: [[B.POINTED_DRIPSTONE, 4]] },
+  { out: [B.MOSS_CARPET, 3], ins: [[B.MOSS_BLOCK, 2]] },
   { out: [I.STICK, 4], ins: [["planks", 2]] },
   { out: [B.TABLE, 1], ins: [["planks", 4]] },
   { out: [B.TORCH, 4], ins: [[I.STICK, 1], [I.COAL, 1]] },
@@ -957,6 +1035,8 @@ export const FUEL = { [I.COAL]: 40, [B.LOG]: 8, [B.BIRCH_LOG]: 8, [B.PLANKS]: 7,
   [B.OAK_FENCE]: 7, [B.BIRCH_FENCE]: 7, [B.OAK_GATE]: 7, [B.BIRCH_GATE]: 7, [B.OAK_TRAPDOOR]: 7, [B.BIRCH_TRAPDOOR]: 7, [B.NOTE_BLOCK]: 7, [B.DAYLIGHT]: 7,
   [B.OAK_BUTTON]: 2.5, [B.BIRCH_BUTTON]: 2.5, [B.OAK_PLATE]: 7, [B.BIRCH_PLATE]: 7, [B.LEVER]: 1.5 };
 export const SMELT_TIME = 5;
+SMELT[B.RED_SAND] = B.GLASS; SMELT[B.CLAY] = B.TERRACOTTA; FUEL[B.BAMBOO] = 1.5;   // Milestone 20, Part C
+for (const [K] of NEW_WOODS) { SMELT[B[K + "_LOG"]] = I.COAL; FUEL[B[K + "_LOG"]] = 8; FUEL[B[K + "_PLANKS"]] = 7; }   // Milestone 20: new woods cook into coal and burn
 
 // ---------- Textures ----------
 // One 256×256 picture ("atlas") holds every 16×16 block texture.
@@ -1006,7 +1086,14 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "lapis_ore", "sugar_cane", "ench_top", "ench_side",
   "anvil_top", "anvil_top_chipped", "anvil_top_damaged", "anvil_side", "grind_side", "grind_wheel", "frosted_ice",
   // Milestone 16: brewing
-  "melon_top", "melon_side", "melon_stem0", "melon_stem1", "melon_stem2", "melon_stem3", "brew_base", "brew_rod", "cauldron_top", "cauldron_side", "cauldron_inner"];
+  "melon_top", "melon_side", "melon_stem0", "melon_stem1", "melon_stem2", "melon_stem3", "brew_base", "brew_rod", "cauldron_top", "cauldron_side", "cauldron_inner",
+  // Milestone 20, Part B: six new woods
+  ...["spruce", "jungle", "acacia", "dark_oak", "cherry", "mangrove"].flatMap(t => [t + "_log_top", t + "_log_side", t + "_leaves", t + "_planks", t + "_sapling"]), "mangrove_roots",
+  // Milestone 20, Part C
+  "ice", "packed_ice", "bamboo", "bamboo_top", "cocoa0", "cocoa1", "cocoa2", "mud", "lily_pad", "red_sand", "terracotta", "orange_terracotta", "yellow_terracotta", "white_terracotta", "red_terracotta", "brown_terracotta", "light_gray_terracotta",
+  "cactus_top", "cactus_side", "dead_bush", "mycelium_top", "mycelium_side", "brown_mushroom", "red_mushroom", "brown_mushroom_block", "red_mushroom_block", "mushroom_stem", "pink_petals",
+  // Milestone 20, Part D
+  "moss_block", "azalea_top", "azalea_side", "flowering_azalea_top", "flowering_azalea_side", "azalea_leaves", "cave_vines", "cave_vines_berries", "spore_blossom", "pointed_dripstone"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1035,6 +1122,8 @@ export function faceTile(v, dir, front) {
   if (idOf(v) === B.DAYLIGHT && dir === 0) return TILE[metaOf(v) & INVERT ? "daylight_inv_top" : "daylight_top"];
   if (idOf(v) >= B.POWERED_RAIL && idOf(v) <= B.ACTIVATOR_RAIL && (metaOf(v) & RAIL_ON)) return TILE[t + "_on"];
   if (idOf(v) === B.HUSH_SENSOR && dir === 0) return TILE[(metaOf(v) & 3) === 1 ? "hush_sensor_top_on" : "hush_sensor_top"];
+  if (idOf(v) === B.CAVE_VINES) return TILE[metaOf(v) & 1 ? "cave_vines_berries" : "cave_vines"];
+  if (idOf(v) === B.COCOA) return TILE["cocoa" + Math.min(2, (metaOf(v) >> 2) & 3)];
   if (idOf(v) === B.MELON_STEM) return TILE["melon_stem" + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.WHEAT || idOf(v) === B.CARROTS) return TILE[(idOf(v) === B.WHEAT ? "wheat" : "carrots") + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.FARMLAND && dir === 0) return TILE[metaOf(v) & WET ? "farmland_wet" : "farmland_dry"];
@@ -1624,6 +1713,65 @@ for (let s = 0; s < 8; s++) {
   };
 }
 
+// Milestone 20, Part B: the six new woods share the oak/birch painters with their own colors
+// [ring/center, ring line, bark colors, bark line, leaves, planks, plank seam, sapling leaves]
+const WOOD_PAL = {
+  spruce: ["#7a5a34", "#4e3820", ["#3e2c1a", "#352616", "#4a3520", "#2e2113"], "#24190e", ["#2f5a3a", "#28503a", "#386544", "#21452e", "#3e6e4a"], ["#7a5a36", "#714f2f", "#83633d"], "#4e3720", ["#2f5a3a", "#386544"]],
+  jungle: ["#b0844a", "#7a5a2e", ["#5f4b2a", "#6b5534", "#55432a", "#4a6a2a"], "#3e3018", ["#3fa034", "#36912c", "#4ab03c", "#2f8226", "#56b844"], ["#b0784a", "#a56e42", "#bb8352"], "#7a5030", ["#3fa034", "#56b844"]],
+  acacia: ["#b85a2a", "#7a3a18", ["#6a645c", "#5f5a52", "#757068", "#545048"], "#45413a", ["#6a8a2a", "#5f7f24", "#769632", "#53701e", "#82a23a"], ["#c0602e", "#b55828", "#ca6a36"], "#8a3e1a", ["#6a8a2a", "#82a23a"]],
+  dark_oak: ["#5a4026", "#3a2816", ["#3a2a1a", "#332414", "#423020", "#2a1e10"], "#1e150a", ["#2e5a1e", "#285219", "#356624", "#224814", "#3e702a"], ["#4a321c", "#422c18", "#543a22"], "#2a1c0e", ["#2e5a1e", "#3e702a"]],
+  cherry: ["#c88a9a", "#8a5060", ["#3a2230", "#331e2a", "#432838", "#2b1824"], "#22121c", ["#f0a8c8", "#e898bc", "#f8b8d4", "#dc88b0", "#fcc8dc"], ["#e8b8b0", "#dfaea6", "#f0c2ba"], "#b88078", ["#f0a8c8", "#fcc8dc"]],
+  mangrove: ["#7a3a2e", "#4e2018", ["#4a3a2a", "#423224", "#544232", "#3a2c1e"], "#2a1e14", ["#4a8a2e", "#427e28", "#549836", "#3a7022", "#5ea43e"], ["#7a3028", "#702a22", "#843830"], "#4e1a14", ["#4a8a2e", "#5ea43e"]]
+};
+for (const [t, [ring, line, bark, barkLine, leaf, plank, seam, sap]] of Object.entries(WOOD_PAL)) {
+  PAINT[t + "_log_top"] = P => { P.fill([barkLine]); for (let y = 1; y < 15; y++) for (let x = 1; x < 15; x++) { const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5)); P.px(x, y, Math.round(d) % 3 === 0 ? line : ring); } };
+  PAINT[t + "_log_side"] = P => { patches(P, bark, 45, 2, 10); for (const [x, y, h] of [[1, 1, 8], [5, 4, 7], [9, 9, 7], [13, 0, 11]]) { P.rect(x, y, 1, h, barkLine); P.rect(x + 1, y + 2, 1, h - 3, bark[2]); } if (t === "jungle") P.specks(6, ["#4a7a2a", "#5a8a32"]); };
+  PAINT[t + "_leaves"] = P => foliage(P, leaf);
+  PAINT[t + "_planks"] = P => PAINT.planks(P, plank, seam);
+  PAINT[t + "_sapling"] = P => { P.rect(7, 9, 2, 7, bark[0]); for (const [x, y] of [[6, 4], [4, 6], [9, 5], [7, 2], [10, 7], [5, 8]]) P.rect(x, y, 3, 3, P.pick(sap)); };
+}
+// Milestone 20, Part C: textures for the new land biomes
+Object.assign(PAINT, {
+  ice(P) { P.fill(["rgba(150,200,245,.85)", "rgba(140,190,240,.85)", "rgba(165,210,250,.85)"]); for (const [x, y, w] of [[2, 3, 6], [8, 9, 5], [3, 12, 4]]) P.rect(x, y, w, 1, "rgba(230,245,255,.95)"); },
+  packed_ice(P) { P.fill(["#8eb8e8", "#84aee0", "#98c2ef"]); for (const [x, y] of [[3, 4], [10, 2], [6, 11], [12, 12]]) P.rect(x, y, 3, 1, "#c8e0fa"); },
+  bamboo(P) { for (let y = 0; y < 16; y++) { P.rect(6, y, 4, 1, y % 5 === 0 ? "#4a7a1e" : "#6aa832"); P.px(9, y, "#4f8a24"); } P.rect(10, 6, 3, 1, "#6aa832"); P.rect(3, 11, 3, 1, "#6aa832"); },
+  bamboo_top(P) { P.rect(6, 6, 4, 4, "#8ac04a"); P.rect(7, 7, 2, 2, "#c8e098"); },
+  cocoa0(P) { P.rect(6, 6, 4, 5, "#7aa83a"); P.rect(7, 7, 2, 3, "#9ac85a"); },
+  cocoa1(P) { P.rect(5, 5, 6, 7, "#b89040"); P.rect(6, 6, 2, 5, "#d0a85a"); },
+  cocoa2(P) { P.rect(4, 4, 8, 9, "#8a4a1e"); P.rect(5, 5, 2, 7, "#a8602a"); P.rect(9, 6, 2, 5, "#6a3814"); },
+  mud(P) { patches(P, ["#3c3237", "#362c31", "#44393e", "#2e2629"], 50, 3, 2); },
+  lily_pad(P) { for (let y = 1; y < 15; y++) for (let x = 1; x < 15; x++) { const d = Math.hypot(x - 7.5, y - 7.5); if (d < 7 && !(x > 7 && Math.abs(y - 7.5) < 1)) P.px(x, y, d < 2 ? "#4a8a2a" : (x + y) % 3 ? "#2f6e1e" : "#3a7e26"); } },
+  red_sand(P) { patches(P, ["#be6621", "#b25e1c", "#c87028", "#a85618"], 60, 2, 2); },
+  terracotta(P) { patches(P, ["#985e43", "#8e573e", "#a06648"], 40, 3, 2); },
+  orange_terracotta(P) { patches(P, ["#a1532a", "#974d26", "#aa5a2f"], 40, 3, 2); },
+  yellow_terracotta(P) { patches(P, ["#b9852b", "#ae7d27", "#c28c31"], 40, 3, 2); },
+  white_terracotta(P) { patches(P, ["#d1b2a1", "#c8a998", "#d8b9a8"], 40, 3, 2); },
+  red_terracotta(P) { patches(P, ["#8f3c2e", "#86372a", "#984234"], 40, 3, 2); },
+  brown_terracotta(P) { patches(P, ["#4d3324", "#462f21", "#553828"], 40, 3, 2); },
+  light_gray_terracotta(P) { patches(P, ["#876b62", "#7f645b", "#8f7269"], 40, 3, 2); },
+  cactus_top(P) { P.fill(["#5a8a2a"]); P.rect(1, 1, 14, 14, "#6a9a34"); P.rect(4, 4, 8, 8, "#7aaa40"); },
+  cactus_side(P) { P.fill(["#4f7e24", "#558a28"]); for (let x = 2; x < 16; x += 4) { P.rect(x, 0, 1, 16, "#3a6218"); for (let y = 2; y < 16; y += 5) P.px(x - 1, y, "#e8e0b8"); } },
+  dead_bush(P) { for (const [x0, y0, dx] of [[8, 15, 0], [8, 10, -1], [8, 9, 1], [6, 7, -1], [10, 6, 1]]) for (let k = 0; k < 5; k++) P.px(Math.max(0, Math.min(15, x0 + dx * k)), Math.max(0, y0 - k), "#8a5a2a"); },
+  mycelium_top(P) { patches(P, ["#6f6265", "#675a5d", "#7a6c70", "#5e5154"], 55, 3, 2); P.specks(8, ["#9a8ea0", "#8a7c8a"]); },
+  mycelium_side(P) { PAINT.dirt(P); for (let x = 0; x < 16; x++) { const h = 2 + ((x * 7) % 3); P.rect(x, 0, 1, h, x % 2 ? "#6f6265" : "#7a6c70"); } },
+  brown_mushroom(P) { P.rect(7, 10, 2, 5, "#e0d4c0"); P.rect(4, 7, 8, 3, "#a07050"); P.rect(5, 6, 6, 1, "#b08060"); },
+  red_mushroom(P) { P.rect(7, 10, 2, 5, "#e0d4c0"); P.rect(4, 5, 8, 5, "#d83a2a"); P.rect(5, 4, 6, 1, "#e84a3a"); P.px(6, 6, "#ffffff"); P.px(9, 7, "#ffffff"); },
+  brown_mushroom_block(P) { patches(P, ["#957051", "#8a674b", "#9f7a59"], 40, 3, 2); },
+  red_mushroom_block(P) { P.fill(["#c8302a", "#be2c26", "#d23630"]); for (const [x, y, s] of [[2, 2, 3], [9, 3, 2], [5, 9, 3], [12, 11, 2]]) P.rect(x, y, s, s, "#f0ece0"); },
+  mushroom_stem(P) { P.fill(["#e0d8c8", "#d8d0c0", "#e8e0d0"]); for (let x = 1; x < 16; x += 3) P.rect(x, 0, 1, 16, "#cfc4b0"); },
+  moss_block(P) { patches(P, ["#596e2d", "#52672a", "#637a33", "#4a5e25"], 55, 3, 3); },
+  azalea_top(P) { foliage(P, ["#6a8e2e", "#5e8228", "#76a034", "#527622"]); },
+  azalea_side(P) { foliage(P, ["#6a8e2e", "#5e8228", "#76a034", "#527622"]); P.rect(6, 10, 4, 6, "#6a4e2e"); P.rect(7, 10, 2, 6, "#7e603a"); },
+  flowering_azalea_top(P) { PAINT.azalea_top(P); for (const [x, y] of [[3, 3], [10, 2], [6, 7], [12, 10], [3, 12], [9, 13]]) { P.rect(x, y, 2, 2, "#d870c8"); P.px(x, y, "#f4a8e8"); } },
+  flowering_azalea_side(P) { PAINT.azalea_side(P); for (const [x, y] of [[2, 2], [11, 3], [5, 6]]) { P.rect(x, y, 2, 2, "#d870c8"); P.px(x, y, "#f4a8e8"); } },
+  azalea_leaves(P) { foliage(P, ["#6a8e2e", "#5e8228", "#76a034", "#527622", "#80aa3c"]); },
+  cave_vines(P) { for (let y = 0; y < 16; y++) { const x = 7 + Math.round(Math.sin(y * 0.7) * 2); P.rect(x, y, 2, 1, y % 3 ? "#4a7a22" : "#5e9230"); } P.rect(4, 5, 3, 2, "#4a7a22"); P.rect(10, 11, 3, 2, "#4a7a22"); },
+  cave_vines_berries(P) { PAINT.cave_vines(P); for (const [x, y] of [[4, 7], [10, 3], [6, 12], [11, 13]]) { P.rect(x, y, 3, 3, "#f0a020"); P.px(x, y, "#fff0a0"); } },
+  spore_blossom(P) { for (let y = 0; y < 4; y++) P.rect(7, y, 2, 1, "#4a7a22"); for (const [x, y] of [[2, 4], [11, 4], [4, 8], [10, 9], [6, 6], [8, 11]]) { P.rect(x, y, 3, 3, "#e870b0"); P.px(x + 1, y + 1, "#f8b0d8"); } P.rect(6, 4, 4, 3, "#7aaa3a"); },
+  pointed_dripstone(P) { for (let y = 0; y < 16; y++) { const w = Math.max(1, Math.round((16 - y) / 3)); P.rect(8 - w, y, w * 2, 1, y % 3 ? "#7a6a5a" : "#8a7a68"); P.px(8 - w, y, "#5e5044"); } },
+  pink_petals(P) { for (const [x, y] of [[2, 3], [7, 2], [11, 5], [4, 9], [9, 10], [13, 12], [2, 13], [6, 6]]) { P.rect(x, y, 2, 2, "#f4a8cc"); P.px(x, y, "#fcd0e4"); } }
+});
+PAINT.mangrove_roots = P => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const a = (x + y) % 5 < 2, b = (x - y + 16) % 6 < 2; if (a || b) P.px(x, y, (x * 3 + y) % 4 ? "#4a3a2a" : "#5a4834"); } };
 let atlasCanvas = null;
 export function buildAtlas() {
   if (atlasCanvas) return atlasCanvas;
@@ -1724,6 +1872,12 @@ Object.assign(ICON_PAINT, {
   potion(P) { P.rect(6, 1, 4, 2, "#8a6235"); P.rect(6, 3, 4, 3, "#c8dce8"); for (let y = 6; y < 15; y++) for (let x = 2; x < 14; x++) { const d = (x - 7.5) ** 2 + (y - 10.5) ** 2; if (d < 24) P.px(x, y, d > 17 ? "#8aa4b8" : y > 8 ? "#385dc6" : "#c8dce8"); } },
   brewing_stand(P) { P.rect(7, 1, 2, 12, "#e8b830"); P.rect(1, 13, 14, 2, "#7a7a78"); for (const x of [2, 11]) { P.rect(x, 8, 3, 5, "#c8dce8"); P.rect(x, 10, 3, 3, "#385dc6"); } },
   cauldron(P) { P.rect(2, 3, 12, 10, "#3c3c40"); P.rect(2, 3, 12, 2, "#56565c"); P.rect(4, 4, 8, 1, "#232327"); P.rect(2, 13, 3, 2, "#2a2a2e"); P.rect(11, 13, 3, 2, "#2a2a2e"); },
+  // Milestone 20, Part C
+  bamboo(P) { for (let y = 1; y < 15; y++) { P.rect(7, y, 2, 1, y % 4 === 0 ? "#4a7a1e" : "#6aa832"); } P.rect(9, 3, 3, 1, "#6aa832"); P.rect(4, 8, 3, 1, "#6aa832"); },
+  glow_berries(P) { for (const [x, y] of [[4, 5], [9, 4], [6, 9], [10, 10]]) { P.rect(x, y, 3, 3, "#f0a020"); P.px(x, y, "#fff0a0"); } P.rect(7, 1, 2, 4, "#4a7a22"); },
+  cocoa_beans(P) { for (const [x, y] of [[4, 6], [8, 5], [6, 9], [10, 9]]) { P.rect(x, y, 3, 2, "#6a3814"); P.px(x, y, "#8a4a1e"); } },
+  cookie(P) { for (let y = 3; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 7.5) ** 2 + (y - 7.5) ** 2 < 24) P.px(x, y, "#d8a050"); for (const [x, y] of [[5, 5], [9, 6], [6, 9], [10, 10], [8, 8]]) P.px(x, y, "#5a3010"); },
+  bowl(P, c) { const stew = c && c[0] === "stew"; P.rect(2, 7, 12, 2, stew ? "#c09060" : "#7a5530"); for (let y = 9; y < 13; y++) P.rect(2 + (y - 9), y, 12 - 2 * (y - 9), 1, y === 12 ? "#5a3d20" : "#8a6235"); if (stew) { P.rect(3, 6, 10, 2, "#b08048"); P.px(5, 6, "#d8c0a0"); P.px(9, 6, "#7a5030"); } },
   nametag(P) { P.rect(4, 3, 9, 11, "#e8dcc0"); P.rect(4, 3, 9, 1, "#c8b890"); P.rect(4, 13, 9, 1, "#b8a880"); P.rect(5, 1, 7, 2, "#e8dcc0"); P.rect(7, 2, 3, 2, "#6a5a3a"); for (const y of [6, 8, 10]) P.rect(6, y, 5, 1, "#8a7a5a"); P.rect(2, 1, 4, 1, "#9a9a9a"); P.rect(2, 1, 1, 4, "#9a9a9a"); },
   horse_armor(P, c) { const a = (c && c[0]) || "#dcdcdc", b = (c && c[1]) || "#a8a8a8"; P.rect(2, 6, 12, 6, a); P.rect(2, 11, 12, 1, b); P.rect(10, 2, 4, 6, a); P.rect(13, 3, 1, 4, b); P.rect(3, 12, 2, 3, b); P.rect(11, 12, 2, 3, b); P.rect(4, 7, 5, 1, "#ffffff"); },
   void_crystal(P) { for (let y = 1; y < 15; y++) { const w = 7 - Math.abs(y - 8); for (let x = 8 - w; x < 8 + w; x++) P.px(x, y, (x + y) % 3 ? "#d8b8f8" : "#f4e8ff"); } P.rect(6, 6, 4, 4, "#8a3ad0"); P.rect(7, 7, 2, 2, "#f070ff"); for (const [x, y] of [[8, 1], [8, 14], [1, 8], [14, 8]]) P.px(x, y, "#ffffff"); },

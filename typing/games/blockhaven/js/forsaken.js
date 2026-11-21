@@ -60,7 +60,7 @@ export function initForsaken(api) {
     doors = [];
     for (const [key, data] of tpl.chunks) {
       const [cx, cz] = key.split(",").map(Number);
-      for (let i = 0; i < data.length; i++) if ((data[i] & 255) === B.DOOR && !((data[i] >> 8) & TOP)) doors.push({ x: cx * 16 + (i % 16), y: Math.floor(i / 256), z: cz * 16 + (Math.floor(i / 16) % 16) });
+      for (let i = 0; i < data.length; i++) if ((data[i] & 0xFFFF00FF) === B.DOOR && !((data[i] >> 8) & TOP)) doors.push({ x: cx * 16 + (i % 16), y: Math.floor(i / 256), z: cz * 16 + (Math.floor(i / 16) % 16) });
     }
   }
 

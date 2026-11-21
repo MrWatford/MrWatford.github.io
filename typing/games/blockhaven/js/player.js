@@ -1,5 +1,5 @@
 // Player body: walking, jumping, crouching, swimming, flying, and bumping into blocks.
-import { B, SOLID, idOf, metaOf, TOP, isDoor } from "./blocks.js";
+import { B, BLOCKS, SOLID, idOf, metaOf, TOP, isDoor } from "./blocks.js";
 import { shapeBoxes } from "./shapes.js";
 const LOW = { [B.BED]: 9 / 16, [B.FARMLAND]: 15 / 16 };   // blocks shorter than a full cube
 import { doorBox } from "./mesher.js";
@@ -100,7 +100,7 @@ export class Player {
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     let mx = -sin * input.f + cos * input.r, mz = -cos * input.f - sin * input.r;
     const len = Math.hypot(mx, mz); if (len > 1) { mx /= len; mz /= len; }
-    const grip = this.flying ? 0.2 : this.onGround ? 0.35 : this.inWater ? 0.12 : 0.08;
+    const grip = this.flying ? 0.2 : this.onGround ? (BLOCKS[under]?.slippery ? 0.06 : 0.35) : this.inWater ? 0.12 : 0.08;   // ice is slippery (Milestone 20)
     v.x += (mx * speed - v.x) * grip; v.z += (mz * speed - v.z) * grip;
 
     if (this.flying) {
