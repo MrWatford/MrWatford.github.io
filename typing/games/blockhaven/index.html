@@ -487,6 +487,19 @@ body.tc-on #titleScene { display: none; }
 body.tc-on #title .menu { padding: 18px; border-radius: 14px; background: rgba(10, 14, 12, .58); border: 2px solid rgba(255,255,255,.1); border-top: 3px solid var(--tc-accent, #f5c431); box-shadow: 0 12px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); transition: border-color 1.8s; }
 body.tc-on #title .menu { width: min(500px, 100%); }
 body.tc-on #title .logo { font-size: clamp(16px, 6.4vw, 38px); }
+/* yellow title tips */
+.logo-wrap { position: relative; padding-bottom: 24px; }
+.splash { position: absolute; right: 0; bottom: 6px; z-index: 2; max-width: 62%; cursor: pointer; user-select: none;
+  font: 400 calc(clamp(8px, 1.9vw, 12px) * var(--tip-scale, 1))/1.35 var(--pixel); color: #ffff4d; text-align: center;
+  text-shadow: 2px 2px 0 #3c3c0e, 0 0 6px rgba(0,0,0,.55); transform: rotate(-14deg); transform-origin: center; animation: splash-pulse .55s ease-in-out infinite alternate; }
+.splash.pop { animation: splash-pop .25s ease-out, splash-pulse .55s ease-in-out .25s infinite alternate; }
+.splash.still { animation: none; }
+@keyframes splash-pulse { from { transform: rotate(-14deg) scale(1); } to { transform: rotate(-14deg) scale(1.09); } }
+@keyframes splash-pop { from { transform: rotate(-14deg) scale(.3); opacity: 0; } to { transform: rotate(-14deg) scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .splash, .splash.pop { animation: none; } }
+@media (max-width: 480px) { .splash { bottom: 4px; max-width: 75%; } }
+.sound-hint { margin: -8px 0 8px; text-align: center; font-size: 12px; font-weight: 800; color: #24481a; opacity: .85; }
+body.tc-on #title .sound-hint { color: #e9f1dc; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
 .whats-new { display: block; margin: -4px 0 6px; text-align: center; font-size: 13px; font-weight: 800; color: #24481a; text-decoration: none; }
 .whats-new:hover, .whats-new:focus-visible { text-decoration: underline; }
 body.tc-on #title .whats-new { color: #ffd98a; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
@@ -567,8 +580,9 @@ body.tc-on #title .foot { color: #d9ddd2; }
   <div id="titleCinema" hidden aria-hidden="true"></div>
   <canvas id="titleScene" width="320" height="160" aria-hidden="true"></canvas>
   <div class="menu">
-    <h1 class="logo">BLOCKHAVEN</h1>
+    <div class="logo-wrap"><h1 class="logo">BLOCKHAVEN</h1><span class="splash" id="splash" title="Click for another tip"></span></div>
     <p class="tagline">Explore • Mine • Craft • Build</p>
+    <p class="sound-hint" id="soundHint" hidden>🔊 Click anywhere to turn on the music</p>
     <a class="whats-new" href="early-access.html">New: The Lost World · Release notes</a>
     <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
     <button class="btn primary" id="btnPlay">Play</button>
@@ -844,7 +858,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/ancient-warning-view.js": "./js/ancient-warning-view.js?v=leviathan-1.0.0",
     "./js/ancient-warning.js": "./js/ancient-warning.js?v=leviathan-1.0.0",
     "./js/arena-fractures.js": "./js/arena-fractures.js?v=leviathan-1.0.0",
-    "./js/audio.js": "./js/audio.js?v=music-3",
+    "./js/audio.js": "./js/audio.js?v=music-4",
     "./js/calm-score.js": "./js/calm-score.js?v=music-2",
     "./js/epic-score.js": "./js/epic-score.js?v=music-3",
     "./js/blocks.js": "./js/blocks.js?v=review-fix-1",
@@ -985,7 +999,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/lost-world.js": "./js/lost-world.js?v=lost-world-1",
     "./js/mangrove-wetlands.js": "./js/mangrove-wetlands.js?v=lost-world-1",
     "./js/redwood-escarpment.js": "./js/redwood-escarpment.js?v=lost-world-1",
-    "./js/main.js": "./js/main.js?v=music-3",
+    "./js/main.js": "./js/main.js?v=tips-1",
     "./js/mutants.js": "./js/mutants.js?v=mob-visuals-1",
     "./js/forsaken-reaches.js": "./js/forsaken-reaches.js?v=mutants-4",
     "./js/maps.js": "./js/maps.js?v=leviathan-1.0.0",
@@ -1014,6 +1028,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/starter.js": "./js/starter.js?v=review-fix-1",
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
     "./js/title-cinema.js": "./js/title-cinema.js?v=lost-world-1",
+    "./js/title-tips.js": "./js/title-tips.js?v=tips-1",
     "./js/ui.js": "./js/ui.js?v=music-2",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
     "./js/world.js": "./js/world.js?v=village-overhaul-1",
@@ -1033,6 +1048,6 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=music-3"></script>
+<script type="module" src="js/main.js?v=tips-1"></script>
 </body>
 </html>
