@@ -1,7 +1,7 @@
 // Turns a chunk's blocks into triangles the graphics card can draw.
 // Only faces that touch air (or see-through blocks) are drawn, and each corner gets
 // sunlight, torchlight, and soft corner shadows.
-import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL, COOL, FACEGLOW } from "./blocks.js";
+import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL, COOL, FACEGLOW, WATERY } from "./blocks.js";
 import { model, dustConn, dustPoints } from "./shapes.js";
 import { chunkKey } from "./world.js";
 import { hash3 } from "./noise.js";
@@ -37,7 +37,7 @@ for (const f of FACES) {
   f.front = f.d[0] + f.d[2] * RW + f.d[1] * AREA;
 }
 const AO = [0.42, 0.62, 0.8, 1];
-const isWater = v => (v & 0xFFFF00FF) === B.WATER;
+const isWater = v => WATERY[v & 0xFFFF00FF] === 1;   // Milestone 17: water plants count as water
 
 function quad(buf, pts, tile, uvs, lights) {
   if (buf.n >= buf.max) return;
@@ -92,7 +92,7 @@ export function buildChunk(world, chunk, fancy) {
     for (; y >= 0; y--) {
       const id = vals[c + y * AREA] & 0xFFFF00FF;
       if (OPAQUE[id]) break;
-      if (id === B.WATER || id === B.LEAVES || id === B.BIRCH_LEAVES) s = Math.max(0, s - 1);
+      if (WATERY[id] || id === B.LEAVES || id === B.BIRCH_LEAVES) s = Math.max(0, s - 1);
       sky[c + y * AREA] = s;
     }
     tops[c] = y + 1;
@@ -123,10 +123,24 @@ export function buildChunk(world, chunk, fancy) {
   // 4) build faces for the blocks inside this chunk
   solidBuf.n = 0; waterBuf.n = 0;
   const lights = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
+  // the see-through water surface of one watery cell (plain water, or water with a plant in it)
+  const WATER_V = B.WATER;
+  const waterFaces = (x, y, z, i, v, id) => {
+    const topY = isWater(vals[i + AREA]) ? 1 : 0.88;
+    for (let f = 0; f < 6; f++) {
+      const F = FACES[f], ni = i + F.front, nv = vals[ni];
+      if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
+      if (isWater(nv) || OPAQUE[nv & 0xFFFF00FF]) continue;
+      const l = [sky[ni] / 15, blk[ni] / 15, F.shade, Math.max(cool[ni], COOL[id] ? cool[i] : 0) / 15];
+      const pts = F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]);
+      quad(waterBuf, pts, faceTile(v, F.tex), UV, [l, l, l, l]);
+    }
+  };
   for (let y = 0; y < HEIGHT; y++) for (let z = 0; z < CHUNK; z++) for (let x = 0; x < CHUNK; x++) {
     const i = ri(x, y, z), v = vals[i], id = v & 0xFFFF00FF;
     if (!id) continue;
     const def = blockDef(v);
+    if (def.aquatic) waterFaces(x, y, z, i, WATER_V, B.WATER);   // Milestone 17: kelp, seagrass, coral... sit in water
     if (def.shape === "cube") {
       const frontDir = def.front6 ? PF_FACE[metaOf(v) & 7] : def.front ? FACING_DIR[metaOf(v) & 3] : -1;
       const glow = FACEGLOW[id];
@@ -156,16 +170,7 @@ export function buildChunk(world, chunk, fancy) {
         else quad(solidBuf, pts, tile, uv, lights);
       }
     } else if (def.shape === "water") {
-      const above = vals[i + AREA];
-      const topY = isWater(above) ? 1 : 0.88;
-      for (let f = 0; f < 6; f++) {
-        const F = FACES[f], ni = i + F.front, nv = vals[ni];
-        if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
-        if (isWater(nv) || OPAQUE[nv & 0xFFFF00FF]) continue;
-        const l = [sky[ni] / 15, blk[ni] / 15, F.shade, Math.max(cool[ni], COOL[id] ? cool[i] : 0) / 15];
-        const pts = F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]);
-        quad(waterBuf, pts, faceTile(v, F.tex), UV, [l, l, l, l]);
-      }
+      waterFaces(x, y, z, i, v, id);
     } else if (def.shape === "endportal") {   // a flat starry surface
       const l = [1, 1, 1], L = [l, l, l, l], tile = faceTile(v, 0), h = y + 0.75;
       const q = [[x, h, z + 1], [x + 1, h, z + 1], [x + 1, h, z], [x, h, z]];

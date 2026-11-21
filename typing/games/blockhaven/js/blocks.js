@@ -88,8 +88,15 @@ export const B = {
   CACTUS: nb(295), DEAD_BUSH: nb(296), MYCELIUM: nb(297), BROWN_MUSHROOM: nb(298), RED_MUSHROOM: nb(299), BROWN_MUSHROOM_BLOCK: nb(300), RED_MUSHROOM_BLOCK: nb(301),
   MUSHROOM_STEM: nb(302), PINK_PETALS: nb(303), PACKED_ICE: nb(304),
   // Milestone 20, Part D: lush caves and dripstone caves
-  MOSS_BLOCK: nb(305), MOSS_CARPET: nb(306), AZALEA: nb(307), FLOWERING_AZALEA: nb(308), AZALEA_LEAVES: nb(309), CAVE_VINES: nb(310), SPORE_BLOSSOM: nb(311), POINTED_DRIPSTONE: nb(312)
+  MOSS_BLOCK: nb(305), MOSS_CARPET: nb(306), AZALEA: nb(307), FLOWERING_AZALEA: nb(308), AZALEA_LEAVES: nb(309), CAVE_VINES: nb(310), SPORE_BLOSSOM: nb(311), POINTED_DRIPSTONE: nb(312),
+  // Milestone 17, Part A: the ocean floor (coral ids are filled in just below: block, dead block, plant, dead plant, fan, dead fan)
+  KELP: nb(313), SEAGRASS: nb(314), SEA_PICKLE: nb(315), SPONGE: nb(316), WET_SPONGE: nb(317), DRIED_KELP_BLOCK: nb(318),
+  PRISMARINE: nb(319), PRISMARINE_BRICKS: nb(320), DARK_PRISMARINE: nb(321), SEA_LANTERN: nb(322), BLUE_ICE: nb(323),
+  CONDUIT: nb(354)   // Milestone 17, Part B (324-353 are the corals)
 };
+// Milestone 17, Part A: five corals, each with six blocks (living and dead block, plant, and fan)
+export const CORALS = [["TUBE", "Tube", "#3050d8"], ["BRAIN", "Brain", "#e070b0"], ["BUBBLE", "Bubble", "#a040c0"], ["FIRE", "Fire", "#d03030"], ["HORN", "Horn", "#e8d040"]];
+CORALS.forEach(([K], i) => { const n = 324 + i * 6; Object.assign(B, { [K + "_CORAL_BLOCK"]: nb(n), ["DEAD_" + K + "_CORAL_BLOCK"]: nb(n + 1), [K + "_CORAL"]: nb(n + 2), ["DEAD_" + K + "_CORAL"]: nb(n + 3), [K + "_CORAL_FAN"]: nb(n + 4), ["DEAD_" + K + "_CORAL_FAN"]: nb(n + 5) }); });
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
   WOOD_PICK: 270, WOOD_AXE: 271, WOOD_SHOVEL: 272, WOOD_SWORD: 273,
@@ -152,7 +159,9 @@ export const I = {
   TIPPED_ARROW: 665,   // 665-679: one tipped arrow per potion (TIPPED_KEYS order)
   // Milestone 20, Part C
   COCOA_BEANS: 680, COOKIE: 681, BOWL: 682, MUSHROOM_STEW: 683,
-  GLOW_BERRIES: 684   // Milestone 20, Part D
+  GLOW_BERRIES: 684,   // Milestone 20, Part D
+  DRIED_KELP: 685, PRISMARINE_SHARD: 686, PRISMARINE_CRYSTALS: 687,   // Milestone 17, Part A
+  HEART_OF_THE_SEA: 688, NAUTILUS_SHELL: 689, TREASURE_MAP: 690   // Milestone 17, Part B
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the next 8 bits.
@@ -465,6 +474,31 @@ block(B.CAVE_VINES, "Cave Vines", { shape: "cross", render: "cutout", solid: fal
 block(B.SPORE_BLOSSOM, "Spore Blossom", { shape: "cross", render: "cutout", solid: false, hardness: 0, tex: "spore_blossom", category: "Nature" });
 block(B.POINTED_DRIPSTONE, "Pointed Dripstone", { shape: "model", render: "cutout", hardness: 1.5, tool: "pick", tex: "pointed_dripstone", icon: "tile:pointed_dripstone", category: "Nature" });
 block(B.MANGROVE_ROOTS, "Mangrove Roots", { hardness: 0.7, tool: "axe", render: "cutout", tex: "mangrove_roots", category: "Nature" });
+// Milestone 17, Part A: the ocean floor. "aquatic" blocks are water with something growing in it: you swim through them,
+// they're drawn with water around them, and breaking one leaves the water behind. They can only be placed in water.
+block(B.KELP, "Kelp", { shape: "cross", render: "cutout", solid: false, aquatic: true, hardness: 0, tex: "kelp", category: "Nature" });
+block(B.SEAGRASS, "Seagrass", { shape: "cross", render: "cutout", solid: false, aquatic: true, replaceable: true, hardness: 0, drops: 0, tex: "seagrass", category: "Nature" });
+block(B.SEA_PICKLE, "Sea Pickle", { shape: "model", render: "cutout", solid: false, aquatic: true, hardness: 0, drops: "pickles", tex: "sea_pickle", icon: "tile:sea_pickle", category: "Nature" });
+block(B.SPONGE, "Sponge", { hardness: 0.6, tool: "hoe", tex: "sponge", category: "Useful" });
+block(B.WET_SPONGE, "Wet Sponge", { hardness: 0.6, tool: "hoe", tex: "wet_sponge", category: "Useful" });
+block(B.DRIED_KELP_BLOCK, "Dried Kelp Block", { hardness: 0.5, tool: "hoe", tex: ["dried_kelp_top", "dried_kelp_side", "dried_kelp_top"] });
+block(B.PRISMARINE, "Prismarine", { hardness: 1.5, tool: "pick", tier: 1, tex: "prismarine" });
+block(B.PRISMARINE_BRICKS, "Prismarine Bricks", { hardness: 1.5, tool: "pick", tier: 1, tex: "prismarine_bricks" });
+block(B.DARK_PRISMARINE, "Dark Prismarine", { hardness: 1.5, tool: "pick", tier: 1, tex: "dark_prismarine" });
+block(B.SEA_LANTERN, "Sea Lantern", { hardness: 0.3, light: 15, drops: "crystals", tex: "sea_lantern", category: "Useful" });
+block(B.BLUE_ICE, "Blue Ice", { hardness: 2.8, tool: "pick", drops: 0, tex: "blue_ice", category: "Nature", slippery: 2 });
+// Milestone 17, Part B: the Conduit lives in water too. Framed with prismarine it gives Conduit Power (main.js).
+block(B.CONDUIT, "Conduit", { shape: "model", render: "cutout", solid: false, aquatic: true, floats: true, hardness: 3, tool: "pick", light: 15, tex: "conduit", icon: "tile:conduit", category: "Useful" });
+for (const [K, name] of CORALS) {
+  const k = K.toLowerCase(), plant = { shape: "cross", render: "cutout", solid: false, aquatic: true, hardness: 0, drops: 0, category: "Nature" };
+  // a living coral block turns into its dead block a few seconds after nothing watery touches it (main.js)
+  block(B[K + "_CORAL_BLOCK"], name + " Coral Block", { hardness: 1.5, tool: "pick", tier: 1, drops: B["DEAD_" + K + "_CORAL_BLOCK"], tex: k + "_coral_block", category: "Nature", deadAs: B["DEAD_" + K + "_CORAL_BLOCK"] });
+  block(B["DEAD_" + K + "_CORAL_BLOCK"], "Dead " + name + " Coral Block", { hardness: 1.5, tool: "pick", tier: 1, tex: "dead_" + k + "_coral_block", category: "Nature" });
+  block(B[K + "_CORAL"], name + " Coral", { ...plant, tex: k + "_coral" });
+  block(B["DEAD_" + K + "_CORAL"], "Dead " + name + " Coral", { ...plant, tex: "dead_coral" });
+  block(B[K + "_CORAL_FAN"], name + " Coral Fan", { ...plant, tex: k + "_coral_fan" });
+  block(B["DEAD_" + K + "_CORAL_FAN"], "Dead " + name + " Coral Fan", { ...plant, tex: "dead_coral_fan" });
+}
 // Milestone 16: brewing
 block(B.MELON, "Melon", { hardness: 1, tool: "axe", drops: "melon", tex: ["melon_top", "melon_side", "melon_top"], category: "Nature" });
 block(B.MELON_STEM, "Melon Stem", { shape: "crop", render: "cutout", solid: false, hardness: 0, drops: "crop", tex: "melon_stem0", category: "Nature", noItem: true });
@@ -486,6 +520,9 @@ for (const d of Object.values(defs)) {
   SOLID[d.id] = d.solid ? 1 : 0;
   EMIT[d.id] = d.light;
 }
+// Milestone 17, Part A: water, and water with a plant in it (kelp, seagrass, sea pickles, coral plants and fans)
+export const WATERY = new Uint8Array(ID_SPACE);
+for (const d of Object.values(defs)) if (d.id === B.WATER || d.aquatic) WATERY[d.id] = 1;
 // Echohold Reborn: blocks whose light is cool teal instead of warm torchlight, and blocks whose own faces glow faintly
 // (that glow pulses slowly in the shader). Their light still counts as light for creatures and spawning.
 export const COOL = new Uint8Array(ID_SPACE);
@@ -516,7 +553,7 @@ export const isFence = id => id >= B.OAK_FENCE && id <= B.WARPED_FENCE;
 export const isGate = id => id >= B.OAK_GATE && id <= B.WARPED_GATE;
 export const isButton = id => id >= B.STONE_BUTTON && id <= B.WARPED_BUTTON;
 export const isPlate = id => id >= B.OAK_PLATE && id <= B.IRON_PLATE;
-export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
+export const lightOf = v => (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SEA_PICKLE ? 6 + 3 * (metaOf(v) & 3) : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
   (idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) ? (metaOf(v) & 1 ? 9 : 0) : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & ID_MASK];
 
 // ---------- Items ----------
@@ -805,6 +842,12 @@ TIPPED_KEYS.forEach((k, i) => item(I.TIPPED_ARROW + i, "Arrow of " + TIP_NAMES[i
   desc: "Shoot it from a bow: whatever it hits gets a short dose of the potion. Made from 8 arrows around a lingering potion" }));
 items[I.ARROW].arrow = true;
 // Milestone 20, Part C
+item(I.DRIED_KELP, "Dried Kelp", { icon: "dried_kelp", kind: "food", food: 1, category: "Food", desc: "Cook kelp in a furnace. Nine make a Dried Kelp Block, a long-burning fuel." });   // Milestone 17, Part A
+item(I.PRISMARINE_SHARD, "Prismarine Shard", { icon: "prismarine_shard" });
+item(I.PRISMARINE_CRYSTALS, "Prismarine Crystals", { icon: "prismarine_crystals" });
+item(I.HEART_OF_THE_SEA, "Heart of the Sea", { icon: "heart_sea", desc: "Found in buried treasure. With 8 Nautilus Shells it makes a Conduit." });   // Milestone 17, Part B
+item(I.NAUTILUS_SHELL, "Nautilus Shell", { icon: "nautilus", desc: "From fishing, sunken ruins, shipwrecks, and the Wanderer." });
+item(I.TREASURE_MAP, "Treasure Map", { icon: "treasure_map", stack: 1, category: "Tools", desc: "Hold it and follow the arrow at the top of the screen to the X on a beach, then dig down." });
 item(I.GLOW_BERRIES, "Glow Berries", { icon: "glow_berries", kind: "food", food: 2, category: "Food", desc: "Right-click the underside of a block to plant cave vines. Ripe vines glow" });   // Milestone 20, Part D
 item(I.COCOA_BEANS, "Cocoa Beans", { icon: "cocoa_beans", category: "Food", desc: "Right-click the side of a Jungle Log to plant them" });
 item(I.COOKIE, "Cookie", { icon: "cookie", kind: "food", food: 2, category: "Food" });
@@ -844,6 +887,15 @@ export const RECIPES = [
   { out: [B.PACKED_ICE, 1], ins: [[B.ICE, 9]], table: true },
   { out: [B.DRIPSTONE, 1], ins: [[B.POINTED_DRIPSTONE, 4]] },
   { out: [B.MOSS_CARPET, 3], ins: [[B.MOSS_BLOCK, 2]] },
+  // Milestone 17, Part A
+  { out: [B.PRISMARINE, 1], ins: [[I.PRISMARINE_SHARD, 4]] },
+  { out: [B.PRISMARINE_BRICKS, 1], ins: [[I.PRISMARINE_SHARD, 9]], table: true },
+  { out: [B.DARK_PRISMARINE, 1], ins: [[I.PRISMARINE_SHARD, 8], [I.INK_SAC, 1]], table: true },
+  { out: [B.SEA_LANTERN, 1], ins: [[I.PRISMARINE_SHARD, 4], [I.PRISMARINE_CRYSTALS, 5]], table: true },
+  { out: [B.DRIED_KELP_BLOCK, 1], ins: [[I.DRIED_KELP, 9]], table: true },
+  { out: [I.DRIED_KELP, 9], ins: [[B.DRIED_KELP_BLOCK, 1]] },
+  { out: [B.BLUE_ICE, 1], ins: [[B.PACKED_ICE, 9]], table: true },
+  { out: [B.CONDUIT, 1], ins: [[I.NAUTILUS_SHELL, 8], [I.HEART_OF_THE_SEA, 1]], table: true },   // Milestone 17, Part B
   { out: [I.STICK, 4], ins: [["planks", 2]] },
   { out: [B.TABLE, 1], ins: [["planks", 4]] },
   { out: [B.TORCH, 4], ins: [[I.STICK, 1], [I.COAL, 1]] },
@@ -1036,6 +1088,7 @@ export const FUEL = { [I.COAL]: 40, [B.LOG]: 8, [B.BIRCH_LOG]: 8, [B.PLANKS]: 7,
   [B.OAK_BUTTON]: 2.5, [B.BIRCH_BUTTON]: 2.5, [B.OAK_PLATE]: 7, [B.BIRCH_PLATE]: 7, [B.LEVER]: 1.5 };
 export const SMELT_TIME = 5;
 SMELT[B.RED_SAND] = B.GLASS; SMELT[B.CLAY] = B.TERRACOTTA; FUEL[B.BAMBOO] = 1.5;   // Milestone 20, Part C
+SMELT[B.KELP] = I.DRIED_KELP; SMELT[B.WET_SPONGE] = B.SPONGE; FUEL[B.DRIED_KELP_BLOCK] = 100;   // Milestone 17, Part A
 for (const [K] of NEW_WOODS) { SMELT[B[K + "_LOG"]] = I.COAL; FUEL[B[K + "_LOG"]] = 8; FUEL[B[K + "_PLANKS"]] = 7; }   // Milestone 20: new woods cook into coal and burn
 
 // ---------- Textures ----------
@@ -1093,7 +1146,11 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "ice", "packed_ice", "bamboo", "bamboo_top", "cocoa0", "cocoa1", "cocoa2", "mud", "lily_pad", "red_sand", "terracotta", "orange_terracotta", "yellow_terracotta", "white_terracotta", "red_terracotta", "brown_terracotta", "light_gray_terracotta",
   "cactus_top", "cactus_side", "dead_bush", "mycelium_top", "mycelium_side", "brown_mushroom", "red_mushroom", "brown_mushroom_block", "red_mushroom_block", "mushroom_stem", "pink_petals",
   // Milestone 20, Part D
-  "moss_block", "azalea_top", "azalea_side", "flowering_azalea_top", "flowering_azalea_side", "azalea_leaves", "cave_vines", "cave_vines_berries", "spore_blossom", "pointed_dripstone"];
+  "moss_block", "azalea_top", "azalea_side", "flowering_azalea_top", "flowering_azalea_side", "azalea_leaves", "cave_vines", "cave_vines_berries", "spore_blossom", "pointed_dripstone",
+  // Milestone 17, Part A
+  "kelp", "seagrass", "sea_pickle", "sponge", "wet_sponge", "dried_kelp_top", "dried_kelp_side", "prismarine", "prismarine_bricks", "dark_prismarine", "sea_lantern", "blue_ice",
+  ...CORALS.flatMap(([K]) => { const k = K.toLowerCase(); return [k + "_coral_block", "dead_" + k + "_coral_block", k + "_coral", k + "_coral_fan"]; }), "dead_coral", "dead_coral_fan",
+  "conduit"];   // Milestone 17, Part B
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1772,6 +1829,45 @@ Object.assign(PAINT, {
   pink_petals(P) { for (const [x, y] of [[2, 3], [7, 2], [11, 5], [4, 9], [9, 10], [13, 12], [2, 13], [6, 6]]) { P.rect(x, y, 2, 2, "#f4a8cc"); P.px(x, y, "#fcd0e4"); } }
 });
 PAINT.mangrove_roots = P => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const a = (x + y) % 5 < 2, b = (x - y + 16) % 6 < 2; if (a || b) P.px(x, y, (x * 3 + y) % 4 ? "#4a3a2a" : "#5a4834"); } };
+// ----- Milestone 17, Part A: the ocean floor's pictures -----
+const tone = (hex, k) => { const n = parseInt(hex.slice(1), 16), c = v => Math.max(0, Math.min(255, Math.round(v * k))); return "#" + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => c(v).toString(16).padStart(2, "0")).join(""); };
+Object.assign(PAINT, {
+  kelp(P) { for (let y = 0; y < 16; y++) { const x = 7 + Math.round(Math.sin(y * 0.55) * 1.5); P.rect(x, y, 2, 1, y % 4 ? "#3f6e1c" : "#4c8022"); }
+    for (const [x, y, d] of [[3, 2, 1], [10, 6, -1], [4, 10, 1], [10, 13, -1]]) for (let i = 0; i < 4; i++) P.px(x + d * i, y - (i >> 1), i === 0 ? "#5f9a2c" : "#4c8022"); },
+  seagrass(P) { for (const [x, h, c] of [[3, 11, "#3c8a2a"], [6, 15, "#47a032"], [9, 13, "#3c8a2a"], [12, 9, "#52aa3a"], [8, 7, "#47a032"]]) for (let y = 16 - h; y < 16; y++) P.px(x + Math.round(Math.sin((y + x) * 0.5) * 0.8), y, c); },
+  sea_pickle(P) { P.fill(["#5a8a2a", "#628f30", "#548228"]); for (let y = 0; y < 16; y += 3) P.rect(0, y, 16, 1, "#4a7420"); P.specks(6, ["#7ab040", "#86c048"]); P.rect(6, 0, 4, 2, "#c8f070"); },
+  sponge(P) { patches(P, ["#cdbb46", "#c4b23e", "#d6c450", "#bba838"], 40, 2, 2); for (let i = 0; i < 14; i++) { const x = Math.floor(P.r() * 15), y = Math.floor(P.r() * 15); P.rect(x, y, 2, 2, "#9c8a2a"); P.px(x, y, "#7e6e1e"); } },
+  wet_sponge(P) { patches(P, ["#a8a034", "#9e962e", "#b2aa3c", "#94882a"], 40, 2, 2); for (let i = 0; i < 14; i++) { const x = Math.floor(P.r() * 15), y = Math.floor(P.r() * 15); P.rect(x, y, 2, 2, "#6e6a24"); P.px(x, y + 1, "#5a8ab0"); } },
+  dried_kelp_top(P) { P.fill(["#3e4a24", "#424e26", "#3a4520"]); for (let r = 2; r < 8; r += 2) for (let a = 0; a < 24; a++) P.px(Math.round(7.5 + Math.cos(a / 24 * 6.28) * r), Math.round(7.5 + Math.sin(a / 24 * 6.28) * r), "#2e3818"); },
+  dried_kelp_side(P) { P.fill(["#3e4a24", "#424e26", "#3a4520"]); for (let x = 1; x < 16; x += 3) P.rect(x, 0, 1, 16, "#2e3818"); P.rect(0, 3, 16, 1, "#565e30"); P.rect(0, 12, 16, 1, "#565e30"); },
+  prismarine(P) { patches(P, ["#63a594", "#5a9c8c", "#6cae9c", "#56a0a0", "#4e9284", "#76b4a8"], 60, 3, 3); },
+  prismarine_bricks(P) { P.fill(["#63ab9c", "#5ea494", "#6ab4a4"]); for (const y of [0, 8]) P.rect(0, y, 16, 1, "#3e7e70"); for (const [x, y] of [[0, 0], [8, 0], [4, 8], [12, 8]]) P.rect(x, y, 1, 8, "#3e7e70"); P.specks(10, ["#8ad0c0", "#4e9484"]); },
+  dark_prismarine(P) { P.fill(["#335a4c", "#2e5446", "#386052"]); P.rect(0, 0, 16, 1, "#1e3a30"); P.rect(0, 15, 16, 1, "#1e3a30"); P.rect(0, 0, 1, 16, "#1e3a30"); P.rect(15, 0, 1, 16, "#1e3a30"); for (const x of [5, 10]) P.rect(x, 1, 1, 14, "#264a3e"); P.specks(8, ["#4a7a68"]); },
+  sea_lantern(P) { P.fill(["#d8ece4", "#cfe6de", "#e4f4ee"]); for (const [x, y] of [[0, 0], [8, 0], [0, 8], [8, 8]]) { P.rect(x + 1, y + 1, 6, 6, "#f4fffa"); P.rect(x + 3, y + 3, 2, 2, "#a8d4c8"); } P.rect(0, 7, 16, 2, "#8ab8ac"); P.rect(7, 0, 2, 16, "#8ab8ac"); },
+  blue_ice(P) { P.fill(["#74a8f0", "#6c9ee8", "#7cb0f6"]); for (const [x, y, w] of [[2, 3, 5], [9, 6, 4], [4, 11, 6], [11, 12, 3]]) P.rect(x, y, w, 1, "#b4d4ff"); for (const [x, y] of [[6, 8], [12, 2], [3, 6]]) P.px(x, y, "#5482c8"); },
+  dead_coral(P) { PAINT._coralPlant(P, "#8a8580", 0); },
+  dead_coral_fan(P) { PAINT._coralFan(P, "#8a8580"); },
+  _coralPlant(P, c, kind) {   // five different growth shapes: tubes, a brain-like clump, bubbles, flames, antlers
+    const lo = tone(c, 0.7), hi = tone(c, 1.25);
+    if (kind === 0) for (const [x, h] of [[3, 9], [6, 13], [9, 11], [12, 8]]) { P.rect(x, 16 - h, 2, h, c); P.rect(x, 16 - h, 2, 1, hi); P.px(x + 1, 16 - h + 2, lo); }
+    else if (kind === 1) { for (let y = 6; y < 16; y++) for (let x = 2; x < 14; x++) if (Math.hypot(x - 7.5, (y - 11) * 1.3) < 6) P.px(x, y, (x + y * 2) % 4 ? c : lo); }
+    else if (kind === 2) for (const [x, y, r] of [[5, 6, 2], [10, 5, 2], [7, 10, 2], [11, 11, 1], [4, 12, 1]]) { P.rect(x - r, y - r, r * 2 + 1, r * 2 + 1, c); P.px(x - r + 1, y - r + 1, hi); P.rect(x, y + r, 1, 16 - y - r, lo); }
+    else if (kind === 3) for (const x0 of [4, 8, 12]) for (let y = 3; y < 16; y++) { const x = x0 + Math.round(Math.sin(y * 0.9 + x0) * 1.2); P.px(x, y, y < 6 ? hi : c); if (y > 9) P.px(x - 1, y, lo); }
+    else { for (let y = 4; y < 16; y++) P.rect(7, y, 2, 1, c); for (const [x, y, d] of [[6, 8, -1], [9, 6, 1], [6, 11, -1], [9, 10, 1]]) for (let i = 0; i < 4; i++) P.px(x + d * i, y - i, i === 3 ? hi : c); }
+  },
+  _coralFan(P, c) { const lo = tone(c, 0.72), hi = tone(c, 1.25); for (let y = 2; y < 16; y++) for (let x = 0; x < 16; x++) { const dx = x - 7.5, dy = 15 - y, a = Math.atan2(dx, dy); if (Math.hypot(dx, dy) < 12.5 && Math.abs(a) < 1.05) P.px(x, y, (Math.round(a * 9) % 2) ? c : (y < 6 ? hi : lo)); } P.rect(7, 12, 2, 4, lo); }
+});
+PAINT.conduit = P => {   // a shell-like cage around a glowing heart
+  P.fill(["#7a6a50", "#86765a", "#6e5e46"]); for (let i = 0; i < 16; i += 4) { P.rect(i, 0, 1, 16, "#a89270"); P.rect(0, i, 16, 1, "#a89270"); }
+  P.rect(5, 5, 6, 6, "#2a8aa8"); P.rect(6, 6, 4, 4, "#6ae0f0"); P.rect(7, 7, 2, 2, "#ffffff");
+};
+CORALS.forEach(([K, , c], i) => {
+  const k = K.toLowerCase();
+  PAINT[k + "_coral_block"] = P => { patches(P, [c, tone(c, 0.88), tone(c, 1.12), tone(c, 0.8)], 45, 2, 2); for (let n = 0; n < 12; n++) P.px(Math.floor(P.r() * 16), Math.floor(P.r() * 16), tone(c, 0.6)); };
+  PAINT["dead_" + k + "_coral_block"] = P => { const g = ["#8a8580", "#827d78", "#938e89", "#7a7570"][i % 4]; patches(P, [g, tone(g, 0.9), tone(g, 1.08)], 45, 2, 2); for (let n = 0; n < 12; n++) P.px(Math.floor(P.r() * 16), Math.floor(P.r() * 16), tone(g, 0.7)); };
+  PAINT[k + "_coral"] = P => PAINT._coralPlant(P, c, i);
+  PAINT[k + "_coral_fan"] = P => PAINT._coralFan(P, c);
+});
 let atlasCanvas = null;
 export function buildAtlas() {
   if (atlasCanvas) return atlasCanvas;
@@ -1943,6 +2039,15 @@ Object.assign(ICON_PAINT, {
 function blob(P, pal) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) { const dx = x - 8, dy = y - 8.5; if (dx * dx + dy * dy < 16 + P.r() * 6) P.px(x, y, P.pick(pal)); } }
 function handle(P) { for (let i = 0; i < 10; i++) P.px(3 + i, 14 - i, i % 2 ? "#6a4825" : "#8a6235"); }
 
+// Milestone 17, Part A
+Object.assign(ICON_PAINT, {
+  dried_kelp(P) { for (let y = 2; y < 15; y++) { const x = 6 + Math.round(Math.sin(y * 0.6) * 1.5); P.rect(x, y, 4, 1, y % 3 ? "#3e4a24" : "#4e5a2e"); } P.px(7, 3, "#68743c"); },
+  prismarine_shard(P) { for (const [x, y, w] of [[7, 2, 2], [6, 4, 4], [5, 6, 5], [5, 8, 5], [6, 10, 4], [7, 12, 2]]) P.rect(x, y, w, 2, "#5ea898"); P.rect(6, 5, 1, 6, "#8ad4c4"); P.rect(9, 7, 1, 5, "#3e7e70"); },
+  heart_sea(P) { for (let y = 2; y < 14; y++) for (let x = 2; x < 14; x++) { const d = Math.hypot(x - 7.5, y - 7.5); if (d < 5.8) P.px(x, y, d < 2 ? "#e8fbff" : d < 3.6 ? "#5ad0f0" : "#1e6ab0"); } P.px(5, 5, "#ffffff"); for (const [x, y] of [[1, 7], [14, 8], [7, 1], [8, 14]]) P.px(x, y, "#3aa0d8"); },
+  nautilus(P) { for (let a = 0; a < 60; a++) { const t = a / 60 * 12, r = 1 + t * 0.55, x = 8 + Math.cos(t) * r, y = 8 + Math.sin(t) * r; P.rect(Math.round(x), Math.round(y), 2, 2, a % 6 < 3 ? "#e8d8c0" : "#c06a40"); } },
+  treasure_map(P) { P.rect(2, 2, 12, 12, "#e6d2a0"); P.rect(2, 2, 12, 1, "#c0a870"); P.rect(2, 13, 12, 1, "#c0a870"); P.rect(3, 4, 5, 4, "#7cb8d8"); P.rect(8, 7, 4, 5, "#9cc070"); for (let i = 0; i < 4; i++) { P.px(9 + i, 8 + i, "#c02020"); P.px(12 - i, 8 + i, "#c02020"); } P.px(5, 10, "#8a6a40"); P.px(6, 11, "#8a6a40"); P.px(7, 10, "#8a6a40"); },
+  prismarine_crystals(P) { for (const [x, y] of [[3, 4], [9, 2], [6, 9], [11, 9], [3, 11]]) { P.rect(x, y, 3, 3, "#bfe8dc"); P.px(x + 1, y + 1, "#ffffff"); P.px(x + 2, y + 2, "#7cbcae"); } }
+});
 const iconCache = new Map();
 // Returns a canvas (32×32) picture of an item for the inventory.
 export function iconCanvas(id) {

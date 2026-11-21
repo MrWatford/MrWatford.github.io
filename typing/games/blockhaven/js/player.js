@@ -1,5 +1,5 @@
 // Player body: walking, jumping, crouching, swimming, flying, and bumping into blocks.
-import { B, BLOCKS, SOLID, idOf, metaOf, TOP, isDoor } from "./blocks.js";
+import { B, BLOCKS, SOLID, idOf, metaOf, TOP, isDoor, WATERY } from "./blocks.js";
 import { shapeBoxes } from "./shapes.js";
 const LOW = { [B.BED]: 9 / 16, [B.FARMLAND]: 15 / 16 };   // blocks shorter than a full cube
 import { doorBox } from "./mesher.js";
@@ -57,8 +57,8 @@ export class Player {
     if (this.cart) { this.onGround = true; this.inWater = false; this.airTop = null; return { fall: 0, crash: 0 }; }   // a minecart carries you (main.js)
     const feet = world.id(Math.floor(p.x), Math.floor(p.y + 0.1), Math.floor(p.z)), body = world.id(Math.floor(p.x), Math.floor(p.y + 0.9), Math.floor(p.z));
     this.inLava = feet === B.LAVA || body === B.LAVA;
-    this.inWater = feet === B.WATER || body === B.WATER || this.inLava;   // lava is swum through like (very slow) water
-    this.headInWater = world.id(Math.floor(p.x), Math.floor(p.y + this.eye), Math.floor(p.z)) === B.WATER;
+    this.inWater = !!(WATERY[feet] || WATERY[body]) || this.inLava;   // Milestone 17: kelp and seagrass are water too   // lava is swum through like (very slow) water
+    this.headInWater = !!WATERY[world.id(Math.floor(p.x), Math.floor(p.y + this.eye), Math.floor(p.z))];
     // crouching: only stand back up if there is head room
     const wantCrouch = !!input.crouch && !this.flying;
     if (this.crouch && !wantCrouch) { if (!this.collides(world, this.aabb(p.x, p.y, p.z, 1.8))) this.crouch = false; }
@@ -69,8 +69,8 @@ export class Player {
       // rowing a boat: fast on water, a slow scrape on land; it floats on the surface
       const fx = Math.floor(p.x), fz = Math.floor(p.z);
       let top = null;
-      for (const yy of [Math.floor(p.y + 0.4), Math.floor(p.y + 0.4) - 1]) if (world.id(fx, yy, fz) === B.WATER) { top = yy; break; }
-      if (top !== null) while (world.id(fx, top + 1, fz) === B.WATER) top++;
+      for (const yy of [Math.floor(p.y + 0.4), Math.floor(p.y + 0.4) - 1]) if (WATERY[world.id(fx, yy, fz)]) { top = yy; break; }
+      if (top !== null) while (WATERY[world.id(fx, top + 1, fz)]) top++;
       this.inWater = false; this.inLava = false; this.headInWater = false;
       const afloat = top !== null, speed = afloat ? (input.sprint ? 10 : 7) : 1.2;
       const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
@@ -100,7 +100,7 @@ export class Player {
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     let mx = -sin * input.f + cos * input.r, mz = -cos * input.f - sin * input.r;
     const len = Math.hypot(mx, mz); if (len > 1) { mx /= len; mz /= len; }
-    const grip = this.flying ? 0.2 : this.onGround ? (BLOCKS[under]?.slippery ? 0.06 : 0.35) : this.inWater ? 0.12 : 0.08;   // ice is slippery (Milestone 20)
+    const grip = this.flying ? 0.2 : this.onGround ? (BLOCKS[under]?.slippery ? (BLOCKS[under].slippery === 2 ? 0.025 : 0.06) : 0.35) : this.inWater ? 0.12 : 0.08;   // ice is slippery (Milestone 20), Blue Ice even more (Milestone 17)
     v.x += (mx * speed - v.x) * grip; v.z += (mz * speed - v.z) * grip;
 
     if (this.flying) {

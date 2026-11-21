@@ -22,6 +22,7 @@ const TYPES = {
   ...LEVIATHAN_MAP_TYPES,
   stonehaven: { label: "Stonehaven", color: "#cc9136", dark: "#63401e", where: "Overworld capital" },
   excavation: { label: "Ancient City", color: "#3fc8c0", dark: "#155a5a", where: "Underground" },
+  treasure: { label: "Buried treasure", color: "#e0a030", dark: "#6a4410", where: "Beach" },   // Milestone 17, Part B: a Treasure Map's X
   sea: { label: "Sea Temple", color: "#3a8ae8", dark: "#163a6a", where: "Under the sea" },
   jungle: { label: "Jungle Temple", color: "#4cbf3a", dark: "#1d5a16", where: "Forest clearing" },
   desert: { label: "Desert Temple", color: "#f0b830", dark: "#6a4a10", where: "Buried in sand" },
@@ -451,14 +452,17 @@ export function initStarter(api) {
     const active = (G.state === "play" || G.state === "panel") && !G.cutscene;
     const sands = active && G.dim === "hollow_sands" && !G.sandsWaypointHidden ? G.sandsWaypoint : null;
     const jurassic = active && isLostWorldDimension(G.dim) ? lostWorldWaypoint(G) : null;
-    const d = jurassic || sands || (active && G.dim === "overworld" && s?.waypoint && (s.house || s.campaign) ? destOf(s.dest) : null);
+    // Milestone 17, Part B: holding a Treasure Map points the way to its X
+    const held = active && G.dim === "overworld" && !jurassic && !sands ? G.inv.slots[G.selected] : null;
+    const tmap = held && held.id === I.TREASURE_MAP && held.tx != null ? { kind: "treasure", title: "Buried treasure", x: held.tx + 0.5, z: held.tz + 0.5 } : null;
+    const d = jurassic || sands || tmap || (active && G.dim === "overworld" && s?.waypoint && (s.house || s.campaign) ? destOf(s.dest) : null);
     hudEl.hidden = !d;
     if (!d) return;
     const p = G.player, dist = Math.hypot(d.x - p.pos.x, d.z - p.pos.z), ang = Math.atan2(-(d.x - p.pos.x), -(d.z - p.pos.z)) - p.yaw;
     hudEl.querySelector("i").style.transform = `rotate(${-ang}rad)`;
     hudEl.querySelector("i").style.background = jurassic ? jurassic.color : sands ? "#b9ddfa" : TYPES[d.kind].color;
     hudEl.querySelector("b").textContent = d.title + (d.kind === "excavation" ? " (entrance)" : "");
-    hudEl.querySelector("em").textContent = dist < 8 ? "You're here!" : `${fmt(dist)} blocks ${compass8(d.x - p.pos.x, d.z - p.pos.z)}` + (d.kind === "excavation" ? " · underground" : "");
+    hudEl.querySelector("em").textContent = tmap && dist < 3 ? "X marks the spot: dig down!" : dist < 8 ? "You're here!" : `${fmt(dist)} blocks ${compass8(d.x - p.pos.x, d.z - p.pos.z)}` + (d.kind === "excavation" ? " · underground" : "");
   }
 
   // ---------- the map screen ----------
@@ -471,7 +475,7 @@ export function initStarter(api) {
     const legend = ORDER.filter(k => (!LEVIATHAN_MAP_TYPES[k] && k !== "stonehaven") || visibleKinds.has(k)).map(k => `<span><canvas class="xm-ico" data-ico="${k}" width="22" height="22"></canvas>${TYPES[k].label}</span>`).join("") +
       `<span><canvas class="xm-ico" data-ico="you" width="22" height="22"></canvas>You (arrow = facing)</span><span><canvas class="xm-ico" data-ico="shore" width="22" height="22"></canvas>Boat launch (shore)</span><span><i class="xm-dash"></i>Direction only, not a path</span>` +
       `<span><i class="xm-sw" style="background:#7cbd56"></i>Grass</span><span><i class="xm-sw" style="background:#3f8a2c"></i>Forest</span><span><i class="xm-sw" style="background:#e2d39b"></i>Sand</span><span><i class="xm-sw" style="background:#2f62b8"></i>Water</span><span><i class="xm-sw" style="background:#96988c"></i>Mountain</span><span><i class="xm-sw" style="background:#f2f2f2"></i>Snow</span>` +
-      (surf().version >= BIOME_GEN || G.world?.regions?.size ? [["#3e6e4a", "Taiga"], ["#2e9628", "Jungle"], ["#b0ac58", "Savanna"], ["#285a1e", "Dark Forest"], ["#506e46", "Swamp"], ["#c46630", "Badlands"], ["#eca0c4", "Cherry Grove"], ["#826e82", "Mushroom Fields"]].map(([c, n]) => `<span><i class="xm-sw" style="background:${c}"></i>${n}</span>`).join("") : "");   // Milestone 20
+      (surf().version >= BIOME_GEN || G.world?.regions?.size ? [["#3e6e4a", "Taiga"], ["#2e9628", "Jungle"], ["#b0ac58", "Savanna"], ["#285a1e", "Dark Forest"], ["#506e46", "Swamp"], ["#c46630", "Badlands"], ["#eca0c4", "Cherry Grove"], ["#826e82", "Mushroom Fields"], ...(surf().version >= BIOME_GEN ? [["#3cb4c8", "Warm Ocean"]] : [])].map(([c, n]) => `<span><i class="xm-sw" style="background:${c}"></i>${n}</span>`).join("") : "");   // Milestone 20
     return `<div class="inv-card xmap"><h3>Explorer's Map <span class="note" style="color:#444">M or Esc to close</span></h3>
       <div class="xm-body">
         <div class="xm-left"><div class="xm-wrap"><canvas id="xmCanvas" width="480" height="480"></canvas>
@@ -674,6 +678,7 @@ export function initStarter(api) {
   }
   function terrainColor(c, slope) {
     let base;
+    if (c.h < SEA && c.b === "warm_ocean") { const d = Math.min(1, (SEA - c.h) / 12); return `rgb(${Math.round(60 - d * 20)},${Math.round(180 - d * 40)},${Math.round(200 - d * 30)})`; }   // Milestone 17: warm, coral seas
     if (c.h < SEA) { const d = Math.min(1, (SEA - c.h) / 12); return `rgb(${Math.round(60 - d * 30)},${Math.round(120 - d * 50)},${Math.round(220 - d * 50)})`; }
     if (c.b === "peak") base = [242, 242, 242];          // snow caps, as in the game
     else if (c.b === "mountain") base = [150, 152, 140];   // bare rock and patchy grass

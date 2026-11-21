@@ -40,7 +40,7 @@ export const ADVANCEMENTS = [
   // Milestone 20: biomes (events from main.js trackBiome: "biome" with its name, "cavebiome")
   { id: "newhorizons", cat: "Exploration", icon: B.CHERRY_SAPLING, title: "New Horizons", desc: "Find one of the new biomes (jungle, taiga, badlands, cherry grove…).", ev: "biome", match: b => ["snowy_plains", "taiga", "jungle", "savanna", "dark_forest", "swamp", "badlands", "cherry_grove", "mushroom_fields", "frozen_ocean"].includes(b), reward: { xp: 15 } },
   { id: "traveler", cat: "Exploration", icon: B.SPRUCE_SAPLING, title: "World Traveler", desc: "Visit 10 different biomes.", parent: "newhorizons", ev: "biome", count: 10, reward: { xp: 50 } },
-  { id: "seenitall", cat: "Exploration", icon: B.JUNGLE_SAPLING, title: "Seen It All", desc: "Visit all 18 biomes.", parent: "traveler", ev: "biome", count: 18, reward: { xp: 200 } },
+  { id: "seenitall", cat: "Exploration", icon: B.JUNGLE_SAPLING, title: "Seen It All", desc: "Visit all 19 biomes.", parent: "traveler", ev: "biome", count: 19, reward: { xp: 200 } },
   { id: "deepdive", cat: "Exploration", icon: B.ICE, title: "Into the Deep", desc: "Reach a deep ocean.", ev: "biome", match: b => b === "deep_ocean", reward: { xp: 20 } },
   { id: "glowcave", cat: "Exploration", icon: B.MOSS_BLOCK, title: "Glow in the Dark", desc: "Find a lush cave.", ev: "cavebiome", match: b => b === "lush_caves", reward: { xp: 20 } },
   { id: "dripcave", cat: "Exploration", icon: B.POINTED_DRIPSTONE, title: "Watch Your Step", desc: "Find a dripstone cave.", ev: "cavebiome", match: b => b === "dripstone_caves", reward: { xp: 20 } },

@@ -2,7 +2,7 @@
 // Each species is described by data (size, health, behavior, drops, model) and shares the same body physics.
 import { stonehavenResidents } from "./stonehaven.js";
 import * as THREE from "../lib/three.module.min.js";
-import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate } from "./blocks.js";
+import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate, WATERY } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
 import { installGodzilla, animateGodzilla } from "./godzilla-model.js";
@@ -378,7 +378,7 @@ export const TRADES = {
     // Milestone 15: paper for Jade, plain books, and an enchanted book (which one depends on the Scribe; price set in main.js G.tradeOffer)
     [[[I.PAPER, 24]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.BOOK, 2], 8], [[[I.JADE, 0], [I.BOOK, 1]], [I.ENCH_BOOK, 1], 4], [[[I.JADE, 1]], [I.LAPIS, 4], 8]],
   beekeeper: [[[[B.FLOWER_RED, 8]], [I.JADE, 1], 8], [[[I.JADE, 1]], [I.HONEY_BOTTLE, 2], 8], [[[I.JADE, 2]], [I.HONEYCOMB, 4], 8], [[[I.JADE, 3]], [B.BEEHIVE, 1], 4]],
-  wanderer: [[[[I.JADE, 0]], [I.ENCH_BOOK, 1], 1], [[[I.JADE, 1]], [B.SUGAR_CANE, 4], 4], [[[I.JADE, 1]], [I.MELON_SEEDS, 2], 4], [[[I.JADE, 1]], [B.SPRUCE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.JUNGLE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.ACACIA_SAPLING, 2], 4], [[[I.JADE, 2]], [B.DARK_OAK_SAPLING, 4], 4], [[[I.JADE, 1]], [B.CHERRY_SAPLING, 2], 4], [[[I.JADE, 1]], [B.MANGROVE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1], [[[I.JADE, 3]], [I.NAME_TAG, 1], 2], [[[I.JADE, 2]], [I.LEAD, 2], 2]]
+  wanderer: [[[[I.JADE, 0]], [I.ENCH_BOOK, 1], 1], [[[I.JADE, 1]], [B.SUGAR_CANE, 4], 4], [[[I.JADE, 1]], [I.MELON_SEEDS, 2], 4], [[[I.JADE, 1]], [B.SPRUCE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.JUNGLE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.ACACIA_SAPLING, 2], 4], [[[I.JADE, 2]], [B.DARK_OAK_SAPLING, 4], 4], [[[I.JADE, 1]], [B.CHERRY_SAPLING, 2], 4], [[[I.JADE, 1]], [B.MANGROVE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1], [[[I.JADE, 3]], [I.NAME_TAG, 1], 2], [[[I.JADE, 2]], [I.LEAD, 2], 2], [[[I.JADE, 5]], [I.NAUTILUS_SHELL, 1], 4]]
 };
 const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], scribe: ["#346462", "#254d4a"], beekeeper: ["#b58536", "#906926"], wanderer: ["#2a5aa0", "#245094"] };
 const VSKIN = ["#e8b890", "#deae86"];
@@ -1660,7 +1660,7 @@ function solidCell(world, x, y, z) {
   if (isDoor(id) || isGate(id) || isTrapdoor(id)) return !(metaOf(v) & OPEN);
   return SOLID[id] === 1;
 }
-const liquidAt = (world, x, y, z) => { const id = world.id(Math.floor(x), Math.floor(y), Math.floor(z)); return id === B.WATER ? "water" : id === B.LAVA ? "lava" : null; };
+const liquidAt = (world, x, y, z) => { const id = world.id(Math.floor(x), Math.floor(y), Math.floor(z)); return WATERY[id] ? "water" : id === B.LAVA ? "lava" : null; };
 // Clear view between two points (only full blocks block it)?
 export function lineOfSight(world, a, b) {
   const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, len = Math.hypot(dx, dy, dz), steps = Math.ceil(len * 3);
@@ -1674,7 +1674,7 @@ function standable(world, x, y, z, tall, doors) {
   if (blocked(x, y, z) || blocked(x, y + 1, z) || (tall > 2 && blocked(x, y + 2, z))) return false;
   const below = world.id(x, y - 1, z);
   if (below === B.LAVA || world.id(x, y, z) === B.LAVA) return false;
-  return solidCell(world, x, y - 1, z) || below === B.WATER;
+  return solidCell(world, x, y - 1, z) || !!WATERY[below];
 }
 export function findPath(world, sx, sy, sz, tx, ty, tz, tall, maxNodes = 350, doors = false) {
   const key = (x, y, z) => x + "," + y + "," + z;
@@ -2041,9 +2041,9 @@ export class Entities {
       if (!w.isLoaded(x, z)) continue;
       const top = w.surfaceY(x, z);
       if (w.id(x, top, z) !== B.WATER) continue;
-      let depth = 0; while (depth < 12 && w.id(x, top - depth, z) === B.WATER) depth++;
+      let depth = 0; while (depth < 12 && !!WATERY[w.id(x, top - depth, z)]) depth++;
       if (depth < 2) continue;
-      const wide = [[7, 0], [-7, 0], [0, 7], [0, -7]].every(([dx, dz]) => w.isLoaded(x + dx, z + dz) && w.id(x + dx, top, z + dz) === B.WATER);
+      const wide = [[7, 0], [-7, 0], [0, 7], [0, -7]].every(([dx, dz]) => w.isLoaded(x + dx, z + dz) && !!WATERY[w.id(x + dx, top, z + dz)]);
       const count = sp => swimmers.filter(e => e.sp === sp).length;
       const pool = [["minnow", 30], ["puffer", 5]];
       if (depth <= 4 || w.gen.column(x, z).biome === "sandy") pool.push(["sunfin", 18]);
@@ -2054,7 +2054,7 @@ export class Entities {
       const n = sp === "minnow" ? randi(3, 5) : sp === "sunfin" ? randi(2, 4) : sp === "dolphin" ? randi(1, 3) : 1;
       for (let i = 0; i < n; i++) {
         const sx = x + 0.5 + rand(-1.2, 1.2), sz = z + 0.5 + rand(-1.2, 1.2), sy = top - 1 + 0.1;
-        if (w.id(Math.floor(sx), Math.floor(sy), Math.floor(sz)) === B.WATER && w.id(Math.floor(sx), Math.floor(sy + SPECIES[sp].h), Math.floor(sz)) === B.WATER) this.add(sp, sx, sy, sz);
+        if (!!WATERY[w.id(Math.floor(sx), Math.floor(sy), Math.floor(sz))] && !!WATERY[w.id(Math.floor(sx), Math.floor(sy + SPECIES[sp].h), Math.floor(sz))]) this.add(sp, sx, sy, sz);
       }
       return;
     }
@@ -2622,9 +2622,9 @@ export class Entities {
   waterTop(x, y, z) {
     const w = this.world, fx = Math.floor(x), fz = Math.floor(z);
     let t = null;
-    for (const yy of [Math.floor(y + 0.4), Math.floor(y + 0.4) - 1]) if (w.id(fx, yy, fz) === B.WATER) { t = yy; break; }
+    for (const yy of [Math.floor(y + 0.4), Math.floor(y + 0.4) - 1]) if (!!WATERY[w.id(fx, yy, fz)]) { t = yy; break; }
     if (t === null) return null;
-    while (w.id(fx, t + 1, fz) === B.WATER) t++;
+    while (!!WATERY[w.id(fx, t + 1, fz)]) t++;
     return t + 1;
   }
   // Pick a spot in the water to swim to (a direction can be given to swim away from something)
@@ -2633,7 +2633,7 @@ export class Entities {
     for (let k = 0; k < 8; k++) {
       const x = e.pos.x + (dir ? dir.x * r : 0) + rand(-r, r) * (dir ? 0.4 : 1), z = e.pos.z + (dir ? dir.z * r : 0) + rand(-r, r) * (dir ? 0.4 : 1), y = e.pos.y + rand(-1.5, 1.5);
       if (e.sp === "great_white_shark" && !sharkWater(w, x, y, z)) continue;
-      if (w.id(Math.floor(x), Math.floor(y), Math.floor(z)) === B.WATER && w.id(Math.floor(x), Math.floor(y + e.h), Math.floor(z)) === B.WATER && lineOfSight(w, { x: e.pos.x, y: e.pos.y + e.h / 2, z: e.pos.z }, { x, y: y + e.h / 2, z })) {
+      if (!!WATERY[w.id(Math.floor(x), Math.floor(y), Math.floor(z))] && !!WATERY[w.id(Math.floor(x), Math.floor(y + e.h), Math.floor(z))] && lineOfSight(w, { x: e.pos.x, y: e.pos.y + e.h / 2, z: e.pos.z }, { x, y: y + e.h / 2, z })) {
         e.goal = { x, y, z, speed }; return true;
       }
     }
@@ -3273,7 +3273,7 @@ export class Entities {
         const x = Math.floor(birth.x), y = Math.floor(birth.y), z = Math.floor(birth.z);
         let water;
         for (let dz = -3; dz <= 3 && !water; dz++) for (let dx = -3; dx <= 3 && !water; dx++) {
-          if (this.world.id(x + dx, y - 1, z + dz) === B.WATER) water = { x: x + dx + 0.5, y: y - 0.7, z: z + dz + 0.5 };
+          if (!!WATERY[this.world.id(x + dx, y - 1, z + dz)]) water = { x: x + dx + 0.5, y: y - 0.7, z: z + dz + 0.5 };
         }
         if (!water) { e.love = mate.love = 0; return false; }
         birth = water;
@@ -3696,15 +3696,15 @@ export class Entities {
   updateBobber(pr, dt) {
     const w = this.world, ctx = this.ctx, p = ctx.player();
     if (Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z) > 32 || !ctx.holds(I.FISHING_ROD)) { pr.gone = true; return; }   // the line snaps
-    if (!pr.surf && !pr.stuck && w.id(Math.floor(pr.x), Math.floor(pr.y), Math.floor(pr.z)) === B.WATER) {
-      let t = Math.floor(pr.y); while (w.id(Math.floor(pr.x), t + 1, Math.floor(pr.z)) === B.WATER) t++;
+    if (!pr.surf && !pr.stuck && !!WATERY[w.id(Math.floor(pr.x), Math.floor(pr.y), Math.floor(pr.z))]) {
+      let t = Math.floor(pr.y); while (!!WATERY[w.id(Math.floor(pr.x), t + 1, Math.floor(pr.z))]) t++;
       pr.surf = t + 0.92; pr.waitT = Math.max(1.5, rand(4, 13) - 2.5 * (pr.lure || 0)); pr.vx *= 0.3; pr.vz *= 0.3;
       ctx.particles(pr.x, pr.surf, pr.z, "splash"); Sound.splash();
     }
     if (pr.surf) {
       pr.vx *= 0.92; pr.vz *= 0.92;
       const nx = pr.x + pr.vx * dt, nz = pr.z + pr.vz * dt;
-      if (w.id(Math.floor(nx), Math.floor(pr.surf - 0.5), Math.floor(nz)) === B.WATER) { pr.x = nx; pr.z = nz; }
+      if (!!WATERY[w.id(Math.floor(nx), Math.floor(pr.surf - 0.5), Math.floor(nz))]) { pr.x = nx; pr.z = nz; }
       if (pr.biteT > 0) {   // a fish is on the hook!
         pr.biteT -= dt; pr.y = pr.surf - 0.28;
         if (pr.biteT <= 0) pr.waitT = Math.max(1.5, rand(4, 13) - 2.5 * (pr.lure || 0));   // too slow: it got away
