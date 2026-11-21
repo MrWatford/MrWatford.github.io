@@ -103,6 +103,21 @@ export function model(v, get) {
     return { T: floorT(f), parts };
   }
   if (id === B.STONE_STEP) return { T: floorT(0), parts: [p([0, 0, 0, 16, 8, 16], tex)] };
+  // Milestone 16: the Brewing Stand (three feet around a golden rod) and the Cauldron (its water rises with meta 0-3)
+  if (id === B.BREWING_STAND) return { T: floorT(0), parts: [p([2, 0, 2, 6, 2, 6], TILE.brew_base), p([10, 0, 5, 14, 2, 9], TILE.brew_base), p([2, 0, 10, 6, 2, 14], TILE.brew_base), p([7, 0, 7, 9, 14, 9], TILE.brew_rod)] };
+  if (id === B.CAULDRON) {
+    const side = TILE.cauldron_side, rim = TILE.cauldron_top, inner = TILE.cauldron_inner, lv = Math.min(3, m & 3);
+    const parts = [p([0, 0, 0, 16, 4, 16], [inner, side, side]), p([0, 4, 0, 16, 16, 2], [rim, side, side]), p([0, 4, 14, 16, 16, 16], [rim, side, side]), p([0, 4, 2, 2, 16, 14], [rim, side, side]), p([14, 4, 2, 16, 16, 14], [rim, side, side])];
+    if (lv) parts.push(p([2, 4 + lv * 3.5, 2, 14, 5 + lv * 3.5, 14], TILE.water));
+    return { T: floorT(0), parts };
+  }
+  // Milestone 15, Part B: the Anvil (its top gets more cracked as it wears) and the Grindstone, both facing the way they were placed
+  if (id === B.ANVIL) {
+    const top = [TILE.anvil_top, TILE.anvil_top_chipped, TILE.anvil_top_damaged][Math.min(2, (m >> 2) & 3)], side = TILE.anvil_side;
+    return { T: floorT(m & 3), parts: [p([2, 0, 2, 14, 4, 14], [side, side, side]), p([4, 4, 3, 12, 5, 13], [side, side, side]), p([6, 5, 4, 10, 10, 12], [side, side, side]), p([3, 10, 0, 13, 16, 16], [top, side, side])] };
+  }
+  if (id === B.GRINDSTONE) return { T: floorT(m & 3), parts: [p([2, 0, 6, 4, 7, 10], TILE.log_side), p([12, 0, 6, 14, 7, 10], TILE.log_side), p([2, 7, 5, 4, 13, 11], TILE.planks), p([12, 7, 5, 14, 13, 11], TILE.planks), p([4, 4, 2, 12, 16, 14], [TILE.grind_side, TILE.grind_wheel, TILE.grind_side])] };
+  if (id === B.ENCH_TABLE) return { T: floorT(0), parts: [p([0, 0, 0, 16, 12, 16], [faceTile(v, 0), tex, faceTile(v, 2)]), p([4, 14, 5, 12, 15, 11], [TILE.tome_top, TILE.tome_side, TILE.tome_side])] };   // Milestone 15: the table with an open book floating above it
   if (id === B.CASTLE_TOME) return { T: floorT(m & 3), parts: [p([5, 0, 5, 11, 11, 11], TILE.tome_side), p([2, 11, 3, 14, 13, 13], [TILE.tome_top, TILE.tome_side, TILE.tome_side])] };   // an open book on a stand
   if (id === B.PORTCULLIS) return { T: floorT(m & 3), parts: [p([0, 0, 7, 16, 16, 9], [TILE.portcullis, TILE.portcullis, TILE.portcullis])] };   // a grid of iron bars
   if (id === B.CASTLE_BANNER) return { T: floorT(m & 3), parts: [p([0, 0, 7.5, 16, 16, 8.5], [TILE.castle_banner, TILE.castle_banner, TILE.castle_banner])] };   // a cloth hanging flat (facing set by meta)
@@ -164,6 +179,8 @@ export function shapeBoxes(v, get) {
   if (id === B.REPEATER || id === B.COMPARATOR) return [[0, 0, 0, 1, 2 * S, 1]];
   if (id === B.DAYLIGHT) return [[0, 0, 0, 1, 6 * S, 1]];
   if (id === B.TEMPLE_STEP || id === B.STONE_STEP) return [[0, 0, 0, 1, 0.5, 1]];
+  if (id === B.ENCH_TABLE) return [[0, 0, 0, 1, 0.75, 1]];
+  if (id === B.BREWING_STAND) return [[2 * S, 0, 2 * S, 14 * S, 2 * S, 14 * S], [7 * S, 0, 7 * S, 9 * S, 14 * S, 9 * S]];
   if (id === B.CASTLE_BANNER) return [];
   if (id === B.PORTCULLIS) return [box(floorT(m & 3), [0, 0, 7 * S, 1, 1, 9 * S])];
   if (isHush(id)) return [[0, 0, 0, 1, 0.5, 1]];

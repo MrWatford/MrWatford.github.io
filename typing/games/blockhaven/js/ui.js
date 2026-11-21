@@ -14,6 +14,10 @@ import { Cinema } from "./title-cinema.js";
 import { expeditionJournal } from "./lost-world-campaign.js";
 import { wildlifeJournalHTML } from "./wildlife-journal.js";
 import { sparkworksGuideHTML, bindSparkworksGuide } from "./sparkworks-guide.js";
+import { enchantingGuideHTML, bindEnchantingGuide } from "./enchanting-guide.js";
+import * as PO from "./potions.js";
+import { brewingGuideHTML, bindBrewingGuide } from "./brewing-guide.js";
+import { isEnchanted, tooltipLines, enchantability, enchName, enchList, ENCH, ENCH_KEYS, repairMaterialName } from "./enchanting.js";
 
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
@@ -267,8 +271,8 @@ export const UI = {
     $("armor").innerHTML = survival && armor ? icons(armor, "shield") : "";
     const lv = G.levelInfo(); $("xpbar").style.visibility = survival ? "visible" : "hidden";
     $("xpbar").querySelector("i").style.width = Math.round(lv.frac * 100) + "%"; $("xpbar").querySelector("b").textContent = lv.level ? lv.level : "";
-    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer", absorb: "💛 Absorption", fireRes: "🧯 Fire Resistance", haste: "⛏️ Haste", resist: "🛡️ Resistance", jump: "🐇 Jump Boost", strength: "💪 Strength" };
-    const roman = k => (G.elv[k] || 1) > 1 ? " " + ["", "I", "II", "III", "IV"][G.elv[k]] : "";
+    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer", absorb: "💛 Absorption", fireRes: "🧯 Fire Resistance", haste: "⛏️ Haste", resist: "🛡️ Resistance", jump: "🐇 Jump Boost", strength: "💪 Strength", slow: "🐌 Slowness", weakness: "🥀 Weakness", waterBreath: "🫧 Water Breathing", invis: "👻 Invisible", nightVision: "🌙 Night Vision", slowFall: "🪶 Slow Falling" };
+    const roman = k => (G.elv[k] || 1) > 1 ? " " + ["", "I", "II", "III", "IV", "V", "VI"][G.elv[k]] : "";
     $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${escapeAttr(names[k] || k)}${roman(k)} <small>${Math.ceil(G.effects[k])}s</small></span>`).join("");
     $("modeTag").textContent = G.mode === "spectator" ? "SPECTATOR • HARDCORE OVER" : survival ? (G.meta && G.meta.hardcore ? "HARDCORE" : "") : "CREATIVE" + (p.flying ? " • FLYING" : "");
   },
@@ -304,6 +308,7 @@ export const UI = {
   closePanel() {
     disposeLostWorldMap?.(); disposeLostWorldMap = null;
     if (cursor) { const left = G.inv.add(cursor.id, cursor.n, cursor); if (left) G.dropItem(cursor.id, left, cursor); cursor = null; }
+    if (["enchant", "anvil", "grind"].includes(panelKind)) G.enchantClose(panelCtx);   // Milestone 15: the table hands its items back
     panelKind = null; panelCtx = null; $("cursorItem").hidden = true; $("tooltip").hidden = true;
     this.hud();
   },
@@ -343,11 +348,12 @@ export const UI = {
         <div><div class="name">Village renovation</div><div>${review.text}</div></div>
         ${review.eligible ? `<button class="btn small primary" id="btnVillageRenovate">Review</button>` : ""}</div>` : "";
       const JOBS = { farmer: "Composter", fletcher: "Fletching Table", shepherd: "Loom", cleric: "Healing Altar", smith: "Smithing Anvil", scribe: "Bookshelf", beekeeper: "Beehive" };
-      const rows = e ? TRADES[e.def.prof].map((t, i) => {
+      const rows = e ? TRADES[e.def.prof].map((_, i) => {
+        const t = G.tradeOffer(e, i), bookName = t[3] && !t[3].pot ? ": " + enchList(t[3]).map(([k, l]) => enchName(k, l)).join(", ") : "";   // Milestone 15: enchanted books
         const can = t[0].every(([id, n]) => G.inv.count(id) >= n), sold = e.uses[i] >= t[2];
         const ins = t[0].map(([id, n]) => `<span class="${G.inv.count(id) >= n ? "" : "miss"}"><img src="${iconURL(id)}" alt="">${n} ${escapeAttr(itemDef(id).name)}</span>`).join(" + ");
-        return `<div class="recipe ${can && !sold ? "ok" : ""}"><div class="out"><img src="${iconURL(t[1][0])}" alt="">${t[1][1] > 1 ? `<b>${t[1][1]}</b>` : ""}</div>
-          <div><div class="name">${escapeAttr(itemDef(t[1][0]).name)}${t[1][1] > 1 ? " ×" + t[1][1] : ""}</div><div class="ins">${ins}</div>${sold ? `<div class="need">Sold out for now</div>` : `<div class="note" style="color:#555;font-size:11px">${t[2] - e.uses[i]} left</div>`}</div>
+        return `<div class="recipe ${can && !sold ? "ok" : ""}"><div class="out"><img src="${t[3] && t[3].pot ? PO.potionIconURL(t[3]) : iconURL(t[1][0])}" alt="">${t[1][1] > 1 ? `<b>${t[1][1]}</b>` : ""}</div>
+          <div><div class="name">${escapeAttr(t[3] && t[3].pot ? PO.potionName(t[3]) : itemDef(t[1][0]).name + bookName)}${t[1][1] > 1 ? " ×" + t[1][1] : ""}</div><div class="ins">${ins}</div>${sold ? `<div class="need">Sold out for now</div>` : `<div class="note" style="color:#555;font-size:11px">${t[2] - e.uses[i]} left</div>`}</div>
           <button class="btn small ${can && !sold ? "primary" : ""}" data-trade="${i}" ${can && !sold ? "" : "disabled"}>Trade</button></div>`;
       }).join("") : `<p class="note">They wandered off.</p>`;
       left = `<div class="inv-card"><h3>${e ? escapeAttr(e.def.name) : "Trading"} <span class="note" style="color:#444">Pay with Jade</span></h3><div class="recipes">${renovation}${raid}${settlement}${festival}${rows}</div>
@@ -367,9 +373,9 @@ export const UI = {
       if (!G.journalTab || (G.journalTab === "cp" && !cpOn) || (G.journalTab === "expedition" && !lostWorld)) G.journalTab = lostWorld ? "expedition" : cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
       const tab = G.journalTab;
       const journalTabs = [...(lostWorld ? [["expedition", expedition ? "Lost World Expedition" : "The Lost World"]] : []), ...(cpOn ? [["cp", "Campaign"]] : []), ["fw", "Forsaken World"],
-        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"]];
+        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"], ["ench", "Enchanting"], ["brew", "Brewing"]];
       const tabs = journalTabs.map(([key, name]) => `<button class="chip-btn ${tab === key ? "on" : ""}" data-jtab="${key}" aria-current="${tab === key ? "true" : "false"}">${name}</button>`).join("");
-      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) :
+      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) : tab === "ench" ? enchantingGuideHTML(G) : tab === "brew" ? brewingGuideHTML(G) :
         tab === "leviathan" ? leviathanJournalHTML(G) : tab === "cp" ? G.campaign.journalHTML() :
         tab === "lost" ? G.lost.journalHTML() : G.forsaken.journalHTML();
       p.innerHTML = `<div class="inv-card fw-card"><h3>Journal <button type="button" class="chip-btn" data-journal-close title="J or Esc">Close</button></h3><nav class="jtabs journal-tabs" aria-label="Journal sections">${tabs}</nav>${page}</div>`;
@@ -388,6 +394,8 @@ export const UI = {
       });
       bindLeviathanBondControls(p, G, () => this.renderPanel(), () => Sound.click());
       bindSparkworksGuide(p, G, () => this.renderPanel(), () => Sound.click());
+      bindEnchantingGuide(p, G, () => this.renderPanel(), () => Sound.click());
+      bindBrewingGuide(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
       if (tab === "fw") G.forsaken.drawMap($("fwMap"));
       p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
@@ -436,6 +444,64 @@ export const UI = {
       p.innerHTML = `<div style="display:grid;gap:12px">${Adv.html(advCat)}</div>`;
       p.querySelectorAll("[data-advcat]").forEach(b => b.onclick = () => { advCat = b.dataset.advcat; Sound.click(); this.renderPanel(); });
       return;
+    } else if (panelKind === "brew") {   // Milestone 16: the Brewing Stand
+      const c = G.world.containers.get(panelCtx) || { slots: [], fuel: 0, prog: 0 }, ing = c.slots[3];
+      const works = ing && [0, 1, 2].some(i => PO.brew(c.slots[i], ing.id));
+      const status = !ing ? "Put an ingredient in the top slot." : !works ? "That ingredient won't change these bottles. Check the recipes in the Journal." :
+        c.fuel <= 0 && !(c.slots[4] && c.slots[4].id === I.FLARE_POWDER) ? "Needs Flare Powder to heat it." : "Brewing…";
+      left = `<div class="inv-card ench-card"><h3>Brewing Stand <span class="note" style="color:#444">Heat left: ${c.fuel || 0} brew${c.fuel === 1 ? "" : "s"}</span></h3>
+        <div class="brew-grid"><div class="brew-top"><div class="label">Ingredient</div>${slotHTML("box:3")}</div>
+          <div class="brew-fuel"><div class="label">Flare Powder</div>${slotHTML("box:4")}</div>
+          <div class="brew-bar"><i id="brewProg" style="width:${Math.round((c.prog || 0) / PO.BREW_TIME * 100)}%"></i></div>
+          <div class="brew-bottles">${slotHTML("box:0")}${slotHTML("box:1")}${slotHTML("box:2")}</div></div>
+        <p class="help">${status} A brew takes 20 seconds and changes all 3 bottles at once. Start with Water Bottles (fill a Glass Bottle at water or a Cauldron), add Ember Wart to make Awkward Potions, then add an ingredient. Sparkdust makes a potion last longer; Shinestone dust makes it stronger.</p></div>`;
+      p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
+    } else if (panelKind === "anvil" || panelKind === "grind") {   // Milestone 15, Part B: the Anvil and the Grindstone
+      const anvil = panelKind === "anvil", st = anvil ? G.anvilState(panelCtx) : G.grindState(panelCtx), res = st && st.res;
+      const out = res && res.out, lv = G.levelInfo().level;
+      const preview = out ? `<div class="slot">${stackInner(out)}</div><div><div class="name">${escapeAttr(out.name || itemDef(out.id).name)}</div>${enchList(out).map(([k, l]) => `<div class="${ENCH[k].curse ? "need" : "ench-line"}">${escapeAttr(enchName(k, l))}</div>`).join("")}${out.dur !== undefined && itemDef(out.id) ? `<small>Uses left: ${out.dur}</small>` : ""}</div>`
+        : `<div class="slot"></div><div class="help" style="margin:0">${escapeAttr(res && res.note ? res.note : anvil ? "Put an item on the left. On the right: its material to repair it, the same item to join them, or an Enchanted Book. Or just type a new name." : "Put in an enchanted item to remove its enchantments (curses stay) and get some experience back. Two of the same worn item join into one.")}</div>`;
+      let button;
+      if (anvil) {
+        const can = out && !res.too && (G.creative || lv >= res.cost);
+        const label = !out ? "Make it" : res.too ? "Too expensive!" : G.creative ? "Make it (Creative: free)" : `Make it: ${res.cost} level${res.cost === 1 ? "" : "s"}`;
+        button = `<button class="btn ${can ? "primary" : ""}" id="anvilGo" ${can ? "" : "disabled"}>${label}</button>`;
+      } else button = `<button class="btn ${out ? "primary" : ""}" id="grindGo" ${out ? "" : "disabled"}>Grind${out && res.xp ? ` (+${res.xp} experience)` : ""}</button>`;
+      const mat = anvil && st && st.c.slots[0] && repairMaterialName(st.c.slots[0].id);
+      left = `<div class="inv-card ench-card"><h3>${anvil ? "Anvil" : "Grindstone"}</h3>
+        ${anvil ? `<label class="anvil-name">Name <input id="anvilName" maxlength="30" value="${escapeAttr(st ? st.name : "")}" placeholder="${escapeAttr(st && st.c.slots[0] ? itemDef(st.c.slots[0].id).name : "Put an item in first")}" ${st && st.c.slots[0] ? "" : "disabled"}></label>` : ""}
+        <div class="ench-row"><div class="ench-slots"><div class="label">${anvil ? "Item" : "Item"}</div>${slotHTML("box:0")}<div class="label">${anvil ? "Add" : "Item"}</div>${slotHTML("box:1")}</div>
+        <div class="ench-offers"><div class="anvil-out" id="anvilOut">${preview}</div>${button}</div></div>
+        <p class="help">${anvil ? `${mat ? `This repairs with ${escapeAttr(mat)} (each one fixes a quarter). ` : ""}Each time an item goes through the Anvil, the next time costs more. At 40 levels or more it's “Too expensive!”. The Anvil sometimes chips, and breaks after being badly damaged.` : "A Grindstone also resets how much the Anvil charges for that item."}</p></div>`;
+      p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
+      const nameBox = p.querySelector("#anvilName");
+      if (nameBox) {
+        nameBox.addEventListener("keydown", ev => ev.stopPropagation());
+        nameBox.addEventListener("keyup", ev => ev.stopPropagation());
+        nameBox.addEventListener("change", () => { G.anvilRename(panelCtx, nameBox.value); this.renderPanel(true); });
+        nameBox.addEventListener("input", () => { G.anvilRename(panelCtx, nameBox.value); const at = nameBox.selectionStart; this.renderPanel(true); const nb = $("anvilName"); if (nb) { nb.focus(); nb.setSelectionRange(at, at); } });
+      }
+      p.querySelector("#anvilGo")?.addEventListener("click", () => G.anvilMake(panelCtx));
+      p.querySelector("#grindGo")?.addEventListener("click", () => G.grindMake(panelCtx));
+    } else if (panelKind === "enchant") {   // Milestone 15: the Enchanting Table
+      const st = G.enchantState(panelCtx), item = st && st.c.slots[0], lap = st && st.c.slots[1];
+      const lapis = lap ? lap.n : 0, free = G.creative;
+      const why = !item ? "Put in a tool, weapon, armor piece, bow, fishing rod, or a Book." :
+        item.n > 1 ? "Put in just one at a time." : isEnchanted(item) ? "This is already enchanted." :
+        enchantability(item.id) <= 0 ? "That can't be enchanted here." : "";
+      const offers = st ? st.offers : [null, null, null];
+      const rows = [0, 1, 2].map(i => {
+        const o = offers[i];
+        if (!o || why) return `<button class="btn ench-offer" disabled><span class="ench-cost">—</span><span class="ench-hint">${i + 1} Lapis</span></button>`;
+        const can = free || (st.level >= o.cost && lapis >= i + 1);
+        const need = free ? "Creative: free" : `Level ${o.cost} needed • costs ${i + 1} level${i ? "s" : ""} + ${i + 1} Lapis`;
+        return `<button class="btn ench-offer ${can ? "primary" : ""}" data-ench="${i}" ${can ? "" : "disabled"}><span class="ench-cost">${o.cost}</span><span class="ench-hint">${escapeAttr(enchName(o.hint[0], o.hint[1]))}${o.ench.length > 1 ? " . . . ?" : ""}<small>${need}</small></span></button>`;
+      }).join("");
+      left = `<div class="inv-card ench-card"><h3>Enchanting Table <span class="note" style="color:#444">${st ? st.shelves : 0} of 15 bookshelves</span></h3>
+        <div class="ench-row"><div class="ench-slots"><div class="label">Item</div>${slotHTML("box:0")}<div class="label">Lapis</div>${slotHTML("box:1")}</div><div class="ench-offers">${rows}</div></div>
+        <p class="help">${why || "Each offer shows one enchantment it will give (sometimes there are more, marked “?”). Bigger numbers need higher levels and give stronger enchantments."} More bookshelves (one block away from the table, with nothing in between) raise the offers, up to level 30.</p></div>`;
+      p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
+      p.querySelectorAll("[data-ench]").forEach(b => b.onclick = () => G.enchantChoose(panelCtx, +b.dataset.ench));
     } else if (panelKind === "beacon") {
       const st = G.beaconState(panelCtx), c = st.c || {}, P = G.BEACON_POWERS;
       const pow = (k, d) => `<button class="chip-btn beacon-pow" data-pow="${k}" aria-pressed="${c.primary === k}" ${d.level > st.level ? "disabled" : ""}>${d.name}<small>${d.desc}${d.level > st.level ? ` • needs ${d.level} layers` : ""}</small></button>`;
@@ -496,11 +562,13 @@ export const UI = {
         <p class="help">Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore.</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (G.mode === "creative") {
-      const cats = ["All", "Building", "Nature", "Useful", "Mechanisms", "Village", "Tools", "Food", "Items", "Ember Depths", "The Hollow", "Creatures"];
-      const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || d.category === creativeCat) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
+      const cats = ["All", "Building", "Nature", "Useful", "Mechanisms", "Village", "Tools", "Food", "Items", "Enchanting", "Brewing", "Ember Depths", "The Hollow", "Creatures"];
+      const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || (creativeCat === "Enchanting" ? ENCH_KIT.includes(d.id) : creativeCat === "Brewing" ? BREW_KIT.includes(d.id) : d.category === creativeCat)) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
+      const q = creativeSearch.toLowerCase(), books = creativeCat === "Enchanting" || (creativeCat === "All" && q) ? ENCH_KEYS.filter(k => bookName(k).toLowerCase().includes(q)) : [];   // Milestone 15
+      const pots = creativeCat === "Brewing" || (creativeCat === "All" && q) ? READY_POTIONS.filter(st => PO.potionName(st).toLowerCase().includes(q)) : [];   // Milestone 16
       left = `<div class="inv-card"><h3>Every block <span class="note" style="color:#444">Click to grab a stack</span></h3>
         <div class="filters"><input id="cSearch" placeholder="Search blocks…" value="${escapeAttr(creativeSearch)}">${cats.map(c => `<button class="chip-btn" data-cat="${c}" aria-pressed="${c === creativeCat}">${c}</button>`).join("")}</div>
-        <div class="palette">${list.map(d => `<div class="slot" data-ref="new:${d.id}" title="${escapeAttr(d.name)}"><img src="${iconURL(d.id)}" alt=""></div>`).join("")}</div>
+        <div class="palette">${list.map(d => `<div class="slot" data-ref="new:${d.id}" title="${escapeAttr(d.name)}"><img src="${iconURL(d.id)}" alt=""></div>`).join("")}${books.map(k => `<div class="slot" data-ref="ebook:${k}" title="${escapeAttr(bookName(k))}">${stackInner(readyBook(k))}</div>`).join("")}${pots.map(st => `<div class="slot" data-ref="pot:${READY_POTIONS.indexOf(st)}" title="${escapeAttr(PO.potionName(st))}">${stackInner(st)}</div>`).join("")}</div>
         <div class="grid9" style="margin-top:8px">${`<div class="slot trash" data-ref="trash" title="Drop an item here to delete it">🗑️</div>`}</div></div>`;
       p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
       const cs = $("cSearch");
@@ -536,9 +604,20 @@ export const UI = {
       else cursor = cursor && cursor.id === id && !right ? { ...cursor, n: maxStack(id) } : newStack(id, right ? 1 : maxStack(id));
       Sound.click(); this.renderPanel(true); this.hud(); return;
     }
+    if (ref.startsWith("pot:")) {   // Creative: a ready-made potion
+      const st = { ...READY_POTIONS[+ref.slice(4)] };
+      if (e.shiftKey) G.inv.add(st.id, 1, st); else cursor = st;
+      Sound.click(); this.renderPanel(true); this.hud(); return;
+    }
+    if (ref.startsWith("ebook:")) {   // Creative: a ready-made Enchanted Book
+      const b = readyBook(ref.slice(6));
+      if (e.shiftKey) G.inv.add(b.id, 1, b); else cursor = b;
+      Sound.click(); this.renderPanel(true); this.hud(); return;
+    }
     if (ref === "trash") { cursor = null; Sound.click(); this.renderPanel(true); return; }
     const lockBox = panelKind === "machine" && ref.startsWith("box:") && !cursor && !getSlot(ref) ? G.world.containers.get(panelCtx) : null;
     if (lockBox && lockBox.locked) { const i = +ref.slice(4); lockBox.locked[i] = !lockBox.locked[i]; Sound.click(); this.renderPanel(true); return; }
+    if (/^inv:3[6-9]$/.test(ref) && getSlot(ref)?.ench?.binding_curse && !G.creative) { Sound.error(); this.toast("Curse of Binding: this armor can't come off until it breaks or you faint.", "bad"); return; }
     if (e.shiftKey && !right) { quickMove(ref); }
     else {
       const s = getSlot(ref), max = cursor ? maxStack(cursor.id) : 0;
@@ -565,14 +644,18 @@ export const UI = {
     hoverRef = el ? el.dataset.ref : null;
     let s = null;
     if (hoverRef && hoverRef.startsWith("new:")) s = { id: +hoverRef.slice(4), n: 1 };
+    else if (hoverRef && hoverRef.startsWith("ebook:")) s = readyBook(hoverRef.slice(6));
+    else if (hoverRef && hoverRef.startsWith("pot:")) s = READY_POTIONS[+hoverRef.slice(4)];
     else if (hoverRef && hoverRef !== "trash") s = getSlot(hoverRef);
     if (!s || cursor) { tip.hidden = true; return; }
     const d = itemDef(s.id);
-    tip.innerHTML = ""; tip.append(d.name);
+    tip.innerHTML = ""; if (PO.isPotion(s.id)) { tip.append(PO.potionName(s)); for (const t of PO.potionLines(s)) { const sm = document.createElement("small"); sm.textContent = t; sm.style.color = /Poison|Harm|Damage|Slowness|Weakness/.test(t) ? "#ff7a7a" : "#9ad0ff"; tip.append(sm); } } else if (s.name) { const em = document.createElement("i"); em.textContent = s.name; tip.append(em); } else tip.append(d.name);   // a name from the Anvil
+    for (const t of tooltipLines(s)) { const sm = document.createElement("small"); sm.textContent = t.text + (s.id === I.ENCH_BOOK ? ": " + t.desc : ""); sm.style.color = t.curse ? "#ff7a7a" : "#c9a8ff"; tip.append(sm); }   // Milestone 15
     if (d.tool) { const sm = document.createElement("small"); sm.textContent = `Uses left: ${s.dur ?? d.tool.dur} / ${d.tool.dur}`; tip.append(sm); }
     const line = text => { const sm = document.createElement("small"); sm.textContent = text; tip.append(sm); };
     if (d.desc) line(d.desc);
-    if (d.kind === "food") {
+    if (d.potion) line(s.id === I.POTION ? "Hold right-click to drink (1.6 s). You keep the bottle" : s.id === I.SPLASH_POTION ? "Right-click to throw it. It splashes everyone close by" : "Right-click to throw it. It leaves a cloud for 30 seconds");
+    if (d.kind === "food" && !d.potion) {
       if (d.food) line(`Food +${d.food / 2} 🍗   Fullness +${(d.sat || 0).toFixed(1)}`);
       line(d.sat >= 9 ? "Very filling: keeps you healing for a long time" : d.sat >= 5 ? "Filling" : d.food ? "Not very filling: you'll be hungry again soon" : "Doesn't fill you up");
       const fx = { poison: "Makes you sick (poison)", queasy: "Often makes you queasy", cure: "Clears all effects", blink: "Teleports you a short way", puffer: "Poisonous! Don't eat it", honey: "Cures poison", golden: "Regeneration II (5 s) + 2 golden hearts (2 min)" }[d.sideEffect];
@@ -608,6 +691,7 @@ export const UI = {
     if (!hoverRef || !(hoverRef.startsWith("inv:") || hoverRef.startsWith("box:") || hoverRef.startsWith("fur:") || hoverRef.startsWith("void:"))) return false;
     const target = "inv:" + n, a = getSlot(hoverRef), b = getSlot(target);
     if (hoverRef === target) return true;
+    if (/^inv:3[6-9]$/.test(hoverRef) && a?.ench?.binding_curse && !G.creative) { Sound.error(); return true; }   // Curse of Binding
     if (b && !accepts(hoverRef, b)) { bad(hoverRef); return true; }
     if (a && !accepts(target, a)) { bad(target); return true; }
     if (hoverRef === "fur:2" && b) return true;
@@ -642,6 +726,9 @@ function accepts(ref, s) {
   if (ref.startsWith("box:") && s.id === B.SHELL_BOX && isShellBox()) return false;
   if ((ref.startsWith("box:") || ref.startsWith("void:")) && itemDef(s.id).quest) return false;   // story items stay with you
   if (panelKind === "beacon" && ref === "box:0") return G.beaconPay.includes(s.id);
+  if (panelKind === "brew" && ref.startsWith("box:")) { const i = +ref.slice(4); return i < 3 ? PO.isPotion(s.id) && s.n === 1 : i === 3 ? PO.isIngredient(s.id) : s.id === I.FLARE_POWDER; }   // Milestone 16
+  if (panelKind === "enchant" && ref === "box:1") return s.id === I.LAPIS;
+  if (panelKind === "enchant" && ref === "box:0") return s.id !== I.LAPIS && (enchantability(s.id) > 0 || s.id === I.ENCH_BOOK || isEnchanted(s));
   if (panelKind === "machine" && ref.startsWith("box:")) { const c = G.world.containers.get(panelCtx); if (c && c.locked && c.locked[+ref.slice(4)]) return false; }
   if (ref === "fur:0") return SMELT[s.id] !== undefined;
   if (ref === "fur:1") return FUEL[s.id] !== undefined;
@@ -660,6 +747,9 @@ function quickMove(ref) {
   let targets;
   if (kind === "inv") {
     if (panelKind === "beacon") targets = G.beaconPay.includes(s.id) ? ["box:0"] : [];
+    else if (panelKind === "brew") targets = s.id === I.FLARE_POWDER ? ["box:4", "box:3"] : PO.isPotion(s.id) ? ["box:0", "box:1", "box:2"] : PO.isIngredient(s.id) ? ["box:3"] : [];
+    else if (panelKind === "anvil" || panelKind === "grind") targets = ["box:0", "box:1"];
+    else if (panelKind === "enchant") targets = s.id === I.LAPIS ? ["box:1"] : accepts("box:0", s) ? ["box:0"] : [];
     else if (panelKind === "chest") { targets = range("box", 0, 27); if (s.id === B.SHELL_BOX && isShellBox()) targets = []; }
     else if (panelKind === "machine") { const c = G.world.containers.get(panelCtx); targets = c ? range("box", 0, c.slots.length) : []; }
     else if (panelKind === "voidchest") targets = range("void", 0, 27);
@@ -675,6 +765,15 @@ function quickMove(ref) {
   if (!s.n) setSlot(ref, null);
   if (ref === "fur:2") G.onTakeSmelted(s);
 }
+// Milestone 15: the Creative "Enchanting" tab
+const ENCH_KIT = [B.ENCH_TABLE, B.BOOKSHELF, B.ANVIL, B.GRINDSTONE, B.LAPIS_ORE, I.LAPIS, B.SUGAR_CANE, I.PAPER, I.BOOK];
+// Milestone 16: the Creative "Brewing" tab: every potion (plain, longer, stronger) as a drink, splash, and lingering potion
+const BREW_KIT = [B.BREWING_STAND, B.CAULDRON, I.BOTTLE, I.FLARE_POWDER, I.WART, I.SUGAR, I.RABBIT_FOOT, I.GLISTERING_MELON, I.FERMENTED_EYE, I.PHANTOM_MEMBRANE,
+  I.DRAGON_BREATH, I.MELON_SEEDS, I.MELON_SLICE, B.MELON, I.SPARKDUST, I.SHINE_DUST, I.BOOM_POWDER];
+const READY_POTIONS = [I.POTION, I.SPLASH_POTION, I.LINGERING_POTION].flatMap(id => PO.POTION_KEYS.flatMap(k =>
+  [undefined, PO.canLong(k) ? "long" : null, PO.canStrong(k) ? "strong" : null].filter(m => m !== null).map(mod => ({ id, n: 1, pot: k, ...(mod ? { mod } : {}) }))));
+const readyBook = k => ({ id: I.ENCH_BOOK, n: 1, ench: { [k]: ENCH[k].max } });
+const bookName = k => "Enchanted Book (" + enchName(k, ENCH[k].max) + ")";
 const range = (k, a, b) => Array.from({ length: b - a }, (_, i) => k + ":" + (a + i));
 
 function slots(kind, a, b) { return range(kind, a, b).map(slotHTML).join(""); }
@@ -685,7 +784,10 @@ function slotHTML(ref) {
 function stackInner(s) {
   if (!s) return "";
   const d = itemDef(s.id);
-  let h = `<img src="${iconURL(s.id)}" alt="">`;
+  const pic = PO.isPotion(s.id) ? PO.potionIconURL(s) : iconURL(s.id);   // Milestone 16: each potion has its own color
+  let h = `<img src="${pic}" alt="">`;
+  if (PO.isPotion(s.id) && PO.hasEffect(s)) h += `<span class="glint" style="--ic:url(${pic})"></span>`;
+  if (isEnchanted(s) || s.id === I.ENCH_BOOK) h += `<span class="glint" style="--ic:url(${iconURL(s.id)})"></span>`;   // Milestone 15: enchanted items shimmer
   if (s.n > 1) h += `<b>${escapeAttr(s.n)}</b>`;
   if (d && d.tool && s.dur < d.tool.dur) { const f = s.dur / d.tool.dur; h += `<span class="dur"><i style="width:${Math.round(f * 100)}%;background:${f > 0.5 ? "#5fd35f" : f > 0.2 ? "#f5c431" : "#e0453a"}"></i></span>`; }
   return h;
@@ -702,7 +804,7 @@ function recipeRows(atTable) {
   RECIPES.forEach((r, i) => {
     const out = itemDef(r.out[0]);
     if (q && !out.name.toLowerCase().includes(q)) return;
-    const have = r.ins.map(([id, n]) => [id, n, G.inv.count(id)]);
+    const have = r.ins.map(([id, n]) => [id, n, G.countFor ? G.countFor(r, id) : G.inv.count(id)]);   // (tipped arrows need the right potion)
     const enough = have.every(([, n, h]) => h >= n), place = !r.table || atTable, ok = enough && place;
     if (craftFilter === "can" && !ok) return;
     const ins = have.map(([id, n, h]) => {

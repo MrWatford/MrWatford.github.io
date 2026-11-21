@@ -21,7 +21,7 @@ const ENV_EVERY = 5;               // seconds between time-of-day updates from t
 const REACH = 9;                   // how far (blocks) from a guest the host accepts their changes (play reach is 5, plus lag)
 export const QUICK = ["Follow me!", "Over here!", "Nice build!", "Help!", "Thanks!", "Be right back"];
 // things only the host can use while playing together (story pieces, machines with their own storage, sleeping)
-const HOST_ONLY = new Set(["hopper", "dropper", "dispenser", "crafter", "beacon", "anchor", "anchorstation", "cinderaltar", "lodestone", "frame",
+const HOST_ONLY = new Set(["brew", "cauldron", "enchant", "anvil", "grindstone", "hopper", "dropper", "dispenser", "crafter", "beacon", "anchor", "anchorstation", "cinderaltar", "lodestone", "frame",
   "solkara_gate", "pedestal", "waystone", "wardstone", "wardaltar", "socket", "rune", "returngate", "resonator", "palealtar", "mural", "mirror",
   "lift", "checkpoint", "arenaward", "maptable", "hive"]);
 const BOX_KINDS = new Set(["chest", "shellbox", "furnace"]);

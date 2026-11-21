@@ -98,7 +98,37 @@ kbd { display: inline-block; min-width: 26px; padding: 3px 7px; border-radius: 6
 .icons i { width: 18px; height: 18px; background-size: 100% 100%; image-rendering: pixelated; }
 #hotbar { display: flex; background: rgba(20, 24, 21, .72); border: 3px solid #111; border-radius: 8px; padding: 3px; gap: 3px; }
 .slot { position: relative; width: 48px; height: 48px; background: rgba(120, 130, 122, .35); border: 2px solid rgba(0,0,0,.55); border-radius: 6px; pointer-events: auto; }
-.slot img { position: absolute; inset: 6px; width: 32px; height: 32px; image-rendering: pixelated; pointer-events: none; }
+.slot img, .slot .glint { position: absolute; inset: 6px; width: 32px; height: 32px; image-rendering: pixelated; pointer-events: none; }
+/* Milestone 15: a purple shimmer across enchanted items, shaped like the item's own picture */
+.slot .glint { -webkit-mask: var(--ic) center / 100% 100% no-repeat; mask: var(--ic) center / 100% 100% no-repeat; mix-blend-mode: screen;
+  background: linear-gradient(115deg, rgba(150, 80, 255, 0) 30%, rgba(205, 150, 255, .9) 45%, rgba(140, 90, 255, .35) 55%, rgba(150, 80, 255, 0) 70%) 0 0 / 300% 300%, rgba(150, 90, 255, .2);
+  animation: glint 3.2s linear infinite; }
+@keyframes glint { from { background-position: 100% 100%, 0 0; } to { background-position: 0 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) { .slot .glint { animation: none; background-position: 50% 50%, 0 0; } }
+.ench-row { display: flex; gap: 14px; align-items: flex-start; margin: 8px 0; }
+.ench-slots { display: grid; gap: 4px; justify-items: center; font-weight: 800; font-size: 12px; }
+.ench-offers { display: grid; gap: 6px; flex: 1; min-width: 0; }
+.ench-offer { display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; min-height: 46px; }
+.ench-offer .ench-cost { min-width: 28px; font-size: 20px; font-weight: 900; color: #7cf05a; text-shadow: 1px 1px 0 #1c3a10; text-align: center; }
+.ench-offer[disabled] .ench-cost { color: #888; text-shadow: none; }
+.ench-offer .ench-hint { display: grid; font-weight: 800; color: #3a1a6a; }
+.ench-offer .ench-hint small { font-weight: 600; color: #444; font-size: 11px; }
+.anvil-out { display: flex; gap: 10px; align-items: center; min-height: 52px; margin-bottom: 6px; }
+.anvil-out .slot { flex: none; }
+.anvil-out .name { font-weight: 800; }
+.anvil-out .ench-line { color: #5a2a9a; font-weight: 700; font-size: 12px; }
+.anvil-out small { color: #444; }
+.anvil-name { display: flex; gap: 8px; align-items: center; font-weight: 800; font-size: 13px; margin: 4px 0; }
+.anvil-name input { flex: 1; min-width: 0; font: inherit; padding: 4px 6px; }
+.ench-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+.ench-table th, .ench-table td { text-align: left; padding: 4px 6px; border-bottom: 1px solid rgba(0,0,0,.15); vertical-align: top; }
+.ench-table tr.curse td { color: #a02020; }
+/* Milestone 16: the Brewing Stand */
+.brew-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; justify-items: center; margin: 8px 0; }
+.brew-top, .brew-fuel { display: grid; justify-items: center; font-weight: 800; font-size: 12px; gap: 2px; }
+.brew-bar { grid-column: 1 / -1; width: 80%; height: 8px; background: #555; border: 2px solid #333; border-radius: 4px; overflow: hidden; }
+.brew-bar i { display: block; height: 100%; background: linear-gradient(90deg, #e8b830, #ff8a3a); }
+.brew-bottles { grid-column: 1 / -1; display: flex; gap: 10px; }
 .slot b { position: absolute; right: 3px; bottom: 1px; font: 800 14px var(--body); color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; pointer-events: none; }
 .slot .dur { position: absolute; left: 5px; right: 5px; bottom: 4px; height: 3px; background: #000; pointer-events: none; }
 .slot .dur i { display: block; height: 100%; background: #5fd35f; }
@@ -395,9 +425,9 @@ details.more .set { margin-top: 10px; }
   #panel .grid9, #panel .palette { grid-template-columns: repeat(9, var(--inventory-slot)); gap: 2px; }
   #panel .inv-row { gap: 5px; }
   #panel .slot { width: var(--inventory-slot); height: var(--inventory-slot); }
-  #panel .slot img { inset: 12%; width: 76%; height: 76%; }
+  #panel .slot img, #panel .slot .glint { inset: 12%; width: 76%; height: 76%; }
   #panel .slot b { font-size: 11px; }
-  .slot { width: 34px; height: 34px; } .slot img { inset: 3px; width: 26px; height: 26px; }
+  .slot { width: 34px; height: 34px; } .slot img, .slot .glint { inset: 3px; width: 26px; height: 26px; }
   .modes { grid-template-columns: 1fr; }
   .set { grid-template-columns: 1fr; }
 }
@@ -444,7 +474,7 @@ details.more .set { margin-top: 10px; }
   #bottom .hotrow-wrap { gap: 4px; }
   #hotbar { gap: 2px; padding: 2px; }
   #bottom .slot { width: var(--quick-slot); height: var(--quick-slot); border-radius: 4px; }
-  #bottom .slot img { inset: 13%; width: 74%; height: 74%; }
+  #bottom .slot img, #bottom .slot .glint { inset: 13%; width: 74%; height: 74%; }
   #bottom .slot b { right: 1px; font-size: 11px; }
   #bottom .icons { flex-wrap: wrap; }
   #bottom .icons i { width: var(--hud-icon); height: var(--hud-icon); }
@@ -840,7 +870,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
   "imports": {
     "./js/abyssal-quicksand-view.js": "./js/abyssal-quicksand-view.js?v=leviathan-1.0.0",
     "./js/abyssal-quicksand.js": "./js/abyssal-quicksand.js?v=leviathan-1.0.0",
-    "./js/advancements.js": "./js/advancements.js?v=mutants-4",
+    "./js/advancements.js": "./js/advancements.js?v=brew-c-1",
     "./js/ancient-arena-view.js": "./js/ancient-arena-view.js?v=leviathan-1.0.0",
     "./js/ancient-arrival.js": "./js/ancient-arrival.js?v=leviathan-1.0.0",
     "./js/ancient-awakening-view.js": "./js/ancient-awakening-view.js?v=leviathan-1.0.0",
@@ -859,10 +889,10 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/ancient-warning-view.js": "./js/ancient-warning-view.js?v=leviathan-1.0.0",
     "./js/ancient-warning.js": "./js/ancient-warning.js?v=leviathan-1.0.0",
     "./js/arena-fractures.js": "./js/arena-fractures.js?v=leviathan-1.0.0",
-    "./js/audio.js": "./js/audio.js?v=music-5",
+    "./js/audio.js": "./js/audio.js?v=brew-c-1",
     "./js/calm-score.js": "./js/calm-score.js?v=music-2",
     "./js/epic-score.js": "./js/epic-score.js?v=music-3",
-    "./js/blocks.js": "./js/blocks.js?v=review-fix-1",
+    "./js/blocks.js": "./js/blocks.js?v=brew-c-1",
     "./js/buried-throne.js": "./js/buried-throne.js?v=leviathan-1.0.0",
     "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=campaign-8",
     "./js/campaign-data.js": "./js/campaign-data.js?v=kingdoms-sandspire-oakwood-districts-1",
@@ -889,7 +919,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/campaign-caravan-court.js": "./js/campaign-caravan-court.js?v=kingdoms-sandspire-oakwood-districts-1",
     "./js/campaign.js": "./js/campaign.js?v=review-fix-1",
     "./js/creature-catalog.js": "./js/creature-catalog.js?v=leviathan-1.0.0",
-    "./js/creatures.js": "./js/creatures.js?v=mob-visuals-1",
+    "./js/creatures.js": "./js/creatures.js?v=brew-c-1",
     "./js/crystal-resonance-view.js": "./js/crystal-resonance-view.js?v=leviathan-1.0.0",
     "./js/crystal-resonance.js": "./js/crystal-resonance.js?v=leviathan-1.0.0",
     "./js/desert-mob-catalog.js": "./js/desert-mob-catalog.js?v=leviathan-1.0.0",
@@ -924,7 +954,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/wildlife.js": "./js/wildlife.js?v=wildlife-roster-1",
     "./js/wildlife-models.js": "./js/wildlife-models.js?v=mob-visuals-1",
     "./js/wildlife-dens.js": "./js/wildlife-dens.js?v=wildlife-preview-1",
-    "./js/entities.js": "./js/entities.js?v=music-3",
+    "./js/entities.js": "./js/entities.js?v=brew-c-1",
     "./js/echohold-atmosphere.js": "./js/echohold-atmosphere.js?v=echohold-1",
     "./js/echohold-hunt.js": "./js/echohold-hunt.js?v=echohold-1",
     "./js/echohold-secrets.js": "./js/echohold-secrets.js?v=echohold-1",
@@ -956,6 +986,10 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/leviathan-journal.js": "./js/leviathan-journal.js?v=leviathan-1.0.0",
     "./js/sparkworks-guide.js": "./js/sparkworks-guide.js?v=sparkworks-e-1",
     "./js/companions.js": "./js/companions.js?v=m14-1",
+    "./js/enchanting.js": "./js/enchanting.js?v=ench-c-1",
+    "./js/enchanting-guide.js": "./js/enchanting-guide.js?v=ench-c-1",
+    "./js/potions.js": "./js/potions.js?v=brew-c-1",
+    "./js/brewing-guide.js": "./js/brewing-guide.js?v=brew-c-1",
     "./js/leviathan-mounted-burrow.js": "./js/leviathan-mounted-burrow.js?v=leviathan-1.0.0",
     "./js/leviathan-mounted-combat.js": "./js/leviathan-mounted-combat.js?v=leviathan-1.0.0",
     "./js/leviathan-mounted-contact.js": "./js/leviathan-mounted-contact.js?v=leviathan-1.0.0",
@@ -1000,7 +1034,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/lost-world.js": "./js/lost-world.js?v=lost-world-1",
     "./js/mangrove-wetlands.js": "./js/mangrove-wetlands.js?v=lost-world-1",
     "./js/redwood-escarpment.js": "./js/redwood-escarpment.js?v=lost-world-1",
-    "./js/main.js": "./js/main.js?v=tips-2",
+    "./js/main.js": "./js/main.js?v=brew-c-1",
     "./js/mutants.js": "./js/mutants.js?v=mob-visuals-1",
     "./js/forsaken-reaches.js": "./js/forsaken-reaches.js?v=mutants-4",
     "./js/maps.js": "./js/maps.js?v=leviathan-1.0.0",
@@ -1013,13 +1047,13 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/obsidian-shrapnel.js": "./js/obsidian-shrapnel.js?v=leviathan-1.0.0",
     "./js/obsidian-warning-view.js": "./js/obsidian-warning-view.js?v=leviathan-1.0.0",
     "./js/obsidian-warning.js": "./js/obsidian-warning.js?v=leviathan-1.0.0",
-    "./js/player.js": "./js/player.js?v=wildlife-roster-1",
+    "./js/player.js": "./js/player.js?v=brew-c-1",
     "./js/projectile-collision.js": "./js/projectile-collision.js?v=leviathan-1.0.0",
     "./js/rails.js": "./js/rails.js?v=leviathan-1.0.0",
     "./js/redstone.js": "./js/redstone.js?v=sparkworks-e-1",
     "./js/sandstorm.js": "./js/sandstorm.js?v=leviathan-1.0.0",
     "./js/save.js": "./js/save.js?v=music-2",
-    "./js/shapes.js": "./js/shapes.js?v=citadel-3",
+    "./js/shapes.js": "./js/shapes.js?v=brew-c-1",
     "./js/skins.js": "./js/skins.js?v=leviathan-1.0.0",
     "./js/solkara-annex.js": "./js/solkara-annex.js?v=leviathan-1.0.0",
     "./js/solkara-gate-view.js": "./js/solkara-gate-view.js?v=leviathan-1.0.0",
@@ -1030,10 +1064,10 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
     "./js/title-cinema.js": "./js/title-cinema.js?v=lost-world-1",
     "./js/title-tips.js": "./js/title-tips.js?v=tips-2",
-    "./js/ui.js": "./js/ui.js?v=music-2",
+    "./js/ui.js": "./js/ui.js?v=brew-c-1",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
-    "./js/world.js": "./js/world.js?v=village-overhaul-1",
-    "./js/multiplayer.js": "./js/multiplayer.js?v=wildlife-preview-1",
+    "./js/world.js": "./js/world.js?v=ench-c-1",
+    "./js/multiplayer.js": "./js/multiplayer.js?v=brew-c-1",
     "./js/mp-words.js": "./js/mp-words.js?v=together-1",
     "./js/settlement-festivals.js": "./js/settlement-festivals.js?v=village-terrain-preview-1",
     "./js/stonehaven.js": "./js/stonehaven.js?v=stonehaven-capital-1",
@@ -1042,13 +1076,13 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/village-growth.js": "./js/village-growth.js?v=village-terrain-preview-1",
     "./js/village-renovation.js": "./js/village-renovation.js?v=village-terrain-preview-1",
     "./js/village-overhaul.js": "./js/village-overhaul.js?v=village-terrain-preview-1",
-    "./js/worldgen.js": "./js/worldgen.js?v=village-terrain-preview-1",
+    "./js/worldgen.js": "./js/worldgen.js?v=ench-c-1",
     "./js/dune-leviathan.js?v=pose-2": "./js/dune-leviathan.js?v=leviathan-1.0.0",
     "./js/leviathan-glow.js?v=charge-1": "./js/leviathan-glow.js?v=leviathan-1.0.0",
     "./js/dune-warning.js?v=physical-2": "./js/dune-warning.js?v=leviathan-1.0.0",
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=tips-2"></script>
+<script type="module" src="js/main.js?v=brew-c-1"></script>
 </body>
 </html>

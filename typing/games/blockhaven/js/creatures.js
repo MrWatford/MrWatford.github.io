@@ -1,6 +1,7 @@
 // Bestiary expansion. Meshes use the existing articulated box renderer and shared atlases.
 import { CREATURES } from './creature-catalog.js';
 import { B, I, SOLID, itemDef } from './blocks.js';
+import { POTIONS } from './potions.js';
 
 function blend(color, other, amount) {
   const a = Number.parseInt(color.slice(1), 16), b = Number.parseInt(other.slice(1), 16);
@@ -382,9 +383,13 @@ export function thinkCreature(manager,e,daylight) {
     }else if(e.sp==='witch'||e.sp==='breeze'){
       const dx=p.pos.x-e.pos.x,dy=p.pos.y+.9-e.eyeY,dz=p.pos.z-e.pos.z;
       const speed=10/(Math.hypot(dx,dy,dz)||1);
-      manager.addProjectile(e.sp==='witch'?'witchbrew':'windburst',e.pos.x,e.eyeY,e.pos.z,
+      if(e.sp==='witch'){   // Milestone 16: Witches throw real splash potions, picked like Java's witches pick them
+        const has=k=>ctx.playerEffect?.(k),pot=d>8&&!has('slow')?'slowness':!has('poison')?'poison':Math.random()<.25&&!has('weakness')?'weakness':'harming';
+        manager.addProjectile('potion',e.pos.x,e.eyeY,e.pos.z,dx*speed,dy*speed,dz*speed,
+          {owner:e,noGrav:true,stack:{id:I.SPLASH_POTION,n:1,pot},color:parseInt(POTIONS[pot].color.slice(1),16)});
+      }else manager.addProjectile('windburst',e.pos.x,e.eyeY,e.pos.z,
         dx*speed,dy*speed,dz*speed,{owner:e,dmg:3*difficulty,noGrav:true});
-      e.attackCd=2.5;
+      e.attackCd=e.sp==='witch'?3:2.5;   // Java witches throw every 3 s
       if(e.sp==='witch')e.hp=Math.min(e.maxHp,e.hp+1);
     }else if(d<2.5){ctx.hurtPlayer(4*difficulty,`A ${def.name} struck you!`,e);e.attackCd=1.5;}
     return true;
