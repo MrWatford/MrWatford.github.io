@@ -6,20 +6,30 @@ let ctx = null, master = null, noiseBuf = null, volume = 0.6, muted = false;
 let wind = null;
 let ancientScore = null;
 let ancientMusicState = null;
-let calmScore = null, musicLevel = 0.5, menuTheme = null, bossScore = null;
+let calmScore = null, musicLevel = 0.5, menuTheme = null, bossScore = null, lastError = "", musicBroken = false;   // after a music error, stop retrying every frame
 
 export const Sound = {
   start() {   // must be called after a click or key press (browser rule)
-    if (!ctx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      ctx = new AC(); master = ctx.createGain(); master.connect(ctx.destination);
-      noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-      const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      this.setVolume(volume);
-    }
-    if (ctx.state === "suspended") ctx.resume();
+    try {
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) { lastError = "this browser has no Web Audio"; return; }
+        ctx = new AC(); master = ctx.createGain(); master.connect(ctx.destination);
+        noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        this.setVolume(volume);
+      }
+      // "suspended", or Safari's "interrupted": ask to run again (only works during a click or key press)
+      if (ctx.state !== "running" && ctx.state !== "closed") {
+        const p = ctx.resume(); if (p && p.catch) p.catch(e => { lastError = e.message || String(e); });
+        // Safari: playing a tiny silent sound during the click unlocks audio
+        const b = ctx.createBuffer(1, 1, ctx.sampleRate), src = ctx.createBufferSource();
+        src.buffer = b; src.connect(ctx.destination); src.start(0);
+      }
+    } catch (e) { lastError = e.message || String(e); }
   },
+  // for the title screen's sound note: is sound allowed, and did anything go wrong?
+  status() { return { state: ctx ? ctx.state : "none", error: lastError }; },
   pause() { this.ancientMusic(null); if (ctx && ctx.state === "running") ctx.suspend(); },
   stop() { this.ancientMusic(null); calmScore?.dispose(); calmScore = null; menuTheme?.dispose(); menuTheme = null; bossScore?.dispose(); bossScore = null; if (ctx) { this.wind(0); ctx.close(); ctx = null; master = null; } },
   setVolume(v) { volume = v; if (master) master.gain.value = muted ? 0 : v * 0.5;
@@ -29,7 +39,8 @@ export const Sound = {
   // true while a boss bar is up: monsters nearby growl louder and more often (entities.js)
   bossFight: false,
   // the title-screen theme (epic-score.js); on = we're on the menus with no world open
-  menuMusic(on) {
+  menuMusic(on) { if (musicBroken) return; try { this._menu(on); } catch (e) { lastError = e.message || String(e); try { menuTheme?.dispose(); } catch (_) { /* already gone */ } menuTheme = null; musicBroken = true; } },
+  _menu(on) {
     if (!ctx || ctx.state !== "running") return;
     const allowed = on && !muted && volume > 0 && musicLevel > 0;
     if (!menuTheme) { if (!allowed) return; menuTheme = createMenuTheme(ctx, master); menuTheme.setLevel(musicLevel); }
@@ -38,8 +49,8 @@ export const Sound = {
   running() { return !!ctx && ctx.state === "running"; },
   menuMusicReview() { return menuTheme ? menuTheme.review() : { on: false, context: ctx?.state || "closed" }; },
   // boss battle music; frac = the boss's health left (0-1). The Buried King keeps its own score.
-  bossMusic(on, frac = 1) {
-    this.bossFight = !!on;
+  bossMusic(on, frac = 1) { this.bossFight = !!on; if (musicBroken) return; try { this._boss(on, frac); } catch (e) { lastError = e.message || String(e); bossScore = null; musicBroken = true; } },
+  _boss(on, frac) {
     if (!ctx || ctx.state !== "running") return;
     const allowed = on && !muted && volume > 0 && musicLevel > 0 && !ancientScore;
     if (!bossScore) { if (!allowed) return; bossScore = createBossScore(ctx, master); bossScore.setLevel(musicLevel); }
@@ -47,7 +58,8 @@ export const Sound = {
   },
   bossMusicEnd() { this.bossFight = false; bossScore?.dispose(); bossScore = null; },
   bossMusicReview() { return bossScore ? bossScore.review() : { on: false, context: ctx?.state || "closed" }; },
-  calmMusic(on) {
+  calmMusic(on) { if (musicBroken) return; try { this._calm(on); } catch (e) { lastError = e.message || String(e); calmScore = null; musicBroken = true; } },
+  _calm(on) {
     if (!ctx || ctx.state !== "running") return;
     const allowed = on && !muted && volume > 0 && musicLevel > 0 && !ancientScore;
     if (!calmScore) { if (!allowed) return; calmScore = createCalmScore(ctx, master); calmScore.setLevel(musicLevel); }

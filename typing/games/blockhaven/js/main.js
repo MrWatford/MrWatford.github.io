@@ -6145,11 +6145,23 @@ G._test.menuMusicReview = () => Sound.menuMusicReview();
 G._test.bossMusicReview = () => Sound.bossMusicReview();
 // browsers only allow sound after a click or key press, so the title theme starts on the first one
 // (Safari only counts some kinds of clicks, so listen for all of them)
-for (const type of ["pointerdown", "mousedown", "click", "touchend", "keydown", "keyup"]) window.addEventListener(type, () => { if (!G.world) Sound.start(); });
+let titleClickedAt = 0;
+for (const type of ["pointerdown", "mousedown", "click", "touchend", "keydown", "keyup"]) window.addEventListener(type, () => { if (!G.world) { Sound.start(); titleClickedAt ||= performance.now(); } });
 // title tips, and a small note until the browser lets the music play
 const titleScreen = document.getElementById("title"), soundHint = document.getElementById("soundHint");
 initTitleTips(document.getElementById("splash"), { reducedMotion: () => !!G.settings.reducedMotion, visible: () => !titleScreen.hidden });
-setInterval(() => { soundHint.hidden = titleScreen.hidden || Sound.running() || G.settings.muted || !(G.settings.music ?? 0.5) || !(G.settings.volume > 0); }, 500);
+setInterval(() => {
+  const st = Sound.status(), off = G.settings.muted || !(G.settings.music ?? 0.5) || !(G.settings.volume > 0);
+  let text = "";
+  if (titleScreen.hidden) text = "";
+  else if (off) text = "🔇 Music is off. Turn it on in Settings (Sound volume, Music volume, Mute).";
+  else if (st.error) text = "🔇 The music couldn't start: " + st.error;
+  else if (st.state === "running") text = "";
+  else if (titleClickedAt && performance.now() - titleClickedAt > 1500) text = `🔇 The browser hasn't allowed sound yet (${st.state}). Click again, and make sure this tab isn't muted.`;
+  else text = "🔊 Click anywhere to turn on the music";
+  if (soundHint.textContent !== text) soundHint.textContent = text;
+  soundHint.hidden = !text;
+}, 500);
 G._test.ancientTremorReview = () => ({ roll: ancientTremorRoll, cameraRoll: camera.rotation.z });
 G._test.ancientBuriedReview = () => ancientBuriedView.review();
 G._test.ancientOpeningReview = () => ancientOpeningView.review();

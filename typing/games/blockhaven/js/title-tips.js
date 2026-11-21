@@ -93,11 +93,17 @@ export function initTitleTips(el, { every = 7000, reducedMotion = () => false, v
     do i = Math.floor(Math.random() * TITLE_TIPS.length); while (i === last && TITLE_TIPS.length > 1);
     last = i;
     el.textContent = TITLE_TIPS[i];
-    // longer tips get a little smaller so they fit
-    el.style.setProperty("--tip-scale", TITLE_TIPS[i].length > 28 ? 0.8 : TITLE_TIPS[i].length > 20 ? 0.9 : 1);
+    fit();
     el.classList.toggle("still", !!reducedMotion());
     el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
   }
+  // keep each tip on one line: shrink long ones until they fit beside the logo
+  function fit() {
+    el.style.setProperty("--tip-scale", 1);
+    const room = (el.parentElement?.clientWidth || 400) * 0.7;
+    for (let k = 1; k > 0.7 && el.scrollWidth > room; k -= 0.05) el.style.setProperty("--tip-scale", k.toFixed(2));
+  }
+  addEventListener("resize", fit);
   next();
   const timer = setInterval(() => { if (visible() && !document.hidden) next(); }, every);
   el.addEventListener("click", next);
