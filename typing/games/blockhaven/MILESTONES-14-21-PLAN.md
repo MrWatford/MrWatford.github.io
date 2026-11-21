@@ -1,6 +1,6 @@
-# Blockhaven: the next big batch (Milestones 14–21)
+# Blockhaven: the next big batch (Milestones 14–24)
 
-**Written:** 2026-11-12
+**Written:** 2026-11-12 · **Updated:** 2026-11-21 (added the "everything Minecraft" check, section 6)
 **Your request:** "Add enchanting, brewing and potions, the world, smaller gaps, Redstone Part E, and ocean extras."
 **Where these come from:**
 - **Original Blockhaven spec (Oct 28):**
@@ -33,9 +33,9 @@ This is about 8 milestones of work. As always, each one is built and tested in t
 | Order | Milestone | What you get | Size |
 |---|---|---|---|
 | 1 ✔ published 2026-11-12 | **12 Part E: Redstone finish** | Finishes the Sparkworks: 11 advancements, "Mechanisms" Creative tab, "Sparkworks" guide chapter with 12 example builds, sounds pass | Medium |
-| 2 ✔ built 2026-11-12 | **14: Smaller gaps** | Leads, name tags, horse armor, donkeys and mules (with chests), more horse colors, pet breeding, summoning the Hollow Wyrm again, ships at the Hollow towers, creatures going through portals, Hogbeasts turning "rotten" in the Surface world | Medium |
-| 3 | **15: Enchanting and repair** | Enchanting Table, bookshelf power, XP finally gets spent, ~27 enchantments that really work (curses included), enchanted books, Anvil, Grindstone, shiny "glint" on enchanted items | Large |
-| 4 | **16: Brewing and potions** | Brewing Stand, Cauldron, sugar cane and melons as real plants, ~15 potions + longer/stronger versions, splash and lingering potions, ~10 new status effects, recipe guide | Large |
+| 2 ✔ published 2026-11-12 | **14: Smaller gaps** | Leads, name tags, horse armor, donkeys and mules (with chests), more horse colors, pet breeding, summoning the Hollow Wyrm again, ships at the Hollow towers, creatures going through portals, Hogbeasts turning "rotten" in the Surface world | Medium |
+| 3 ✔ built 2026-11-21 (all 3 parts, not published) | **15: Enchanting and repair** | Enchanting Table, bookshelf power, XP finally gets spent, ~27 enchantments that really work (curses included), enchanted books, Anvil, Grindstone, shiny "glint" on enchanted items | Large |
+| 4 ✔ built 2026-11-21 (all 3 parts) | **16: Brewing and potions** | Brewing Stand, Cauldron, sugar cane and melons as real plants, ~15 potions + longer/stronger versions, splash and lingering potions, ~10 new status effects, recipe guide | Large |
 | 5 | **17: Ocean extras** | Prismarine blocks, Sea Lanterns, Ocean Monuments with Guardians, shipwrecks, ocean ruins, treasure maps and buried treasure, coral reefs, sponges, Conduits, fish in buckets, Splashers leading you to treasure | Large |
 | 6 | **18: The world, part 1** | Flowing water and lava, water + lava makes cobblestone/stone/obsidian, falling sand and gravel, fire spreading (with a setting), leaf decay, plants that need support, crops needing water, waterlogging | Large |
 | 7 | **19: The world, part 2** | Rain, snow, thunderstorms, lightning and its creature changes, snow building up, freezing and melting, sleeping through storms | Medium |
@@ -61,7 +61,7 @@ This is about 8 milestones of work. As always, each one is built and tested in t
 
 **New things:**
 - **Lapis Ore**: found deep underground, drops Lapis.
-- **Enchanting Table** (crafted from 4 obsidian, 2 Lapis, and a book).
+- **Enchanting Table** (crafted from 4 obsidian, 2 Skyshard, and a book, like Java's diamonds; this line first said Lapis by mistake).
 - **Book** (paper + leather) and **Paper** (made from 3 sugar cane, which arrives with Milestone 16, so Milestone 15 adds sugar cane early).
 - **Enchanted Book.**
 - **Anvil** (3 iron blocks + 4 iron).
@@ -109,3 +109,67 @@ This is about 8 milestones of work. As always, each one is built and tested in t
 2. The blue gem is called **Lapis**.
 3. **Add the real plants**: sugar cane, melons, rabbit's foot from rabbits.
 4. **Curses included.**
+
+---
+
+## 6. The "everything Minecraft" check (2026-11-21)
+
+**Your goal:** every block, creature, potion, redstone part, and enchantment from Minecraft (Java 1.20.1), so the game is complete.
+
+**How this was checked:** the game's real block list (234 blocks), item list (355 items), and creature list were read from the code and compared with Minecraft. This section is the plan; nothing below is built yet.
+
+### 6.1 Already done
+- Redstone and minecarts (all of Milestone 12)
+- The Ember Depths (Nether), the Hollow (End), the Blightking (Wither), the Hollow Wyrm (Ender Dragon), the First Warden and Echohold (Ancient City)
+- Villages, pets, horses, donkeys and mules, leads, name tags, horse armor
+- Fish, squid, dolphins, bees, foxes, parrots
+- The offhand slot, shields, totems, golden apples, hunger, Hardcore, achievements
+
+### 6.2 What is still missing, by milestone
+
+Milestones 15–20 are the ones in section 2 above. The four after them are new.
+
+| Order | Milestone | What it adds | Size |
+|---|---|---|---|
+| 3 | **15: Enchanting and repair** | See section 4. In 3 parts. **A** (built 2026-11-21, not published): Lapis, sugar cane, paper, books, the Enchanting Table, every enchantment working, shimmer. **B** (built 2026-11-21, not published): Anvil, Grindstone, enchanted books and gear in treasure, the Wanderer, Scribe book trades (our librarian, instead of a new "Scholar"), Frost Walker. **C** (built 2026-11-21, not published): 10 achievements, a 6-page Journal chapter, sounds, ready-made books in Creative. **Milestone 15 is complete.** | Large |
+| 4 ✔ built 2026-11-21 (all 3 parts) | **16: Brewing and potions** | Brewing Stand, Cauldron, about 15 potions with longer/stronger versions, splash and lingering potions, new status effects (today only poison, hunger, and fire exist), sugar cane, melons, rabbit's foot | Large |
+| 5 | **17: Ocean extras** | Prismarine, Sea Lanterns, Ocean Monuments, shipwrecks, ocean ruins, coral, kelp, sponges, Conduits, buried treasure, fish in buckets, trident | Large |
+| 6 | **18: The world, part 1** | Flowing water and lava, falling sand and gravel, waterlogging, leaf decay, fire spreading, plants that need support | Large |
+| 7 | **19: The world, part 2** | Rain, snow, thunderstorms, lightning (today the Surface world has no weather; only the desert sandstorm exists) | Medium |
+| — | **Block-limit step** (needed before 20 and 21) | Raise the 256-block limit (see 6.3) | Medium, risky |
+| 8 | **20: The world, part 3** | New biomes. Today the Surface world has only 6 kinds of land: plains, forest, birch forest, mountains, snowy peaks, sandy. Add jungle, taiga, swamp, savanna, dark forest, badlands, cherry grove, mushroom islands, deep ocean, lush caves, dripstone caves, plus their woods: spruce, jungle, acacia, dark oak, cherry, mangrove. Unexplored land only | Large |
+| 9 | **21: Building blocks** (new) | Slabs, stairs, walls, all 16 colors of wool, glass, concrete, and terracotta, carpets, ladders, scaffolding, lanterns, candles, paintings, item frames, armor stands, banners (today: one Stained Glass and one Black Wool) | Large |
+| 10 | **22: Farming, food, and gadgets** (new) | Pumpkins, potatoes, beetroot, cocoa, cactus, bamboo, mushrooms, dyes from flowers; cake, pie, stews, cookies; crossbow, spyglass, clock, fireworks, jukebox and music discs | Large |
+| 11 | **23: Villages, part 2** (new) | Working job blocks (smoker, blast furnace, barrel, stonecutter, lectern, cartography table…), villager levels and breeding, zombie villagers and curing, pillager raids, outposts, witch huts, mansions | Large |
+| 12 | **24: Creature behaviors** (new) | About 40 Minecraft creatures already exist with spawn eggs (`js/creature-catalog.js`) but only walk, bite, or shoot. Give each one its real behavior, for example Guardian lasers, Witch potions, Phantoms after skipped sleep, goats ramming, Evoker fangs and Vexes, Axolotls playing dead, the Allay fetching items, the Sniffer digging seeds, Snow Golem snowballs, the Breeze's wind charges. Needs 16 (potions) and 17 (ocean) first | Large |
+
+### 6.3 The block limit
+- Each block is stored as one of 256 numbers. **234 are used, so only 22 are left.**
+- That is enough for Milestones 15–19.
+- Building blocks and new biomes need hundreds more, so the limit must be raised before Milestone 20.
+- Raising it changes how worlds are saved. As always: back up saves, test old worlds, and **ask you before starting**.
+
+### 6.4 Smaller leftovers
+- Frost Walker (Milestone 15) is only fully useful after flowing water (Milestone 18).
+- Play Together guests still can't use some things (machines, leads, name tags, feeding, fishing, riding animals). Those stay host-only for now.
+
+### 6.5 Not decided yet
+- Whether you want Milestones 21–24, and in what order. The suggested order above puts the building blocks after the new biomes, because both need the block-limit step.
+
+---
+
+## 7. Milestone 16 in detail: Brewing and potions (started 2026-11-21)
+
+Built in 3 parts, like Milestone 15. Minecraft Java 1.20.1 is the guide for recipes, times, and effects.
+
+| Part | What it adds |
+|---|---|
+| **A** | Melons (seeds, stems, melon blocks, slices), Sugar, Glistering Melon, Fermented Skitter Eye, Rabbit's Foot, Phantom Membrane, Water Bottles, the **Cauldron**, the **Brewing Stand**, and every drinkable potion (with longer and stronger versions) working, plus 6 new effects: Slowness, Weakness, Water Breathing, Invisibility, Night Vision, Slow Falling (and instant Healing and Harming) |
+| **B** | Splash potions (add Boom Powder), lingering potions and Dragon's Breath (bottled from the Hollow Wyrm's breath), potion clouds, potions working on creatures (Healing hurts undead, Harming heals them), tipped arrows, Witches throwing real potions |
+| **C** | Achievements, a Journal chapter with every recipe, sounds, potions in Creative, potions in treasure chests and Cleric trades |
+
+**Swaps (Blockhaven doesn't have these things yet):**
+- **Turtle Master** is brewed with a **Sheller Shell** (Minecraft uses a turtle shell; there are no turtle shells yet).
+- **Fermented Skitter Eye** = Skitter Eye + Sugar + **Ember Wart** (Minecraft uses a brown mushroom; there are no mushrooms yet).
+- **Melon seeds** come from Farmer and Wanderer trades and treasure chests (Minecraft's melons grow wild in jungles, which come with Milestone 20).
+- **Phantoms** now drop Phantom Membrane (for Slow Falling), and Rabbits sometimes drop a Rabbit's Foot (for Leaping), like Minecraft.

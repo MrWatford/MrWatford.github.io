@@ -339,6 +339,105 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
+## Milestone 16, Part A: melons, the Cauldron, the Brewing Stand, and every drinkable potion (built and browser-tested 2026-11-21, not published)
+Code: `js/potions.js` (new: every potion, its effects and times, the brewing recipes, potion pictures), plus `js/blocks.js` (blocks 240–243, items 654–664, 11 textures, 6 icons, 7 recipes), `js/shapes.js` (Brewing Stand and Cauldron models), `js/main.js`, `js/ui.js`, `js/entities.js` (Rabbit's Foot, trades, Invisibility), `js/player.js` (Slow Falling), `js/audio.js`, `js/multiplayer.js`, and `index.html` (styles; version tags `?v=brew-a-1` on blocks, main + script tag, ui, entities, shapes, multiplayer, audio, player, and the new potions entry). Backups: `tools/backups/pre-m16-partA-2026-11-21/`. Block numbers used: 244 of 256 (12 left). Recipes, times and strengths follow Java 1.20.1 (swaps are listed in MILESTONES-14-21-PLAN.md section 7).
+
+| Feature | Status | Notes |
+|---|---|---|
+| Melons | Done | Melon Seeds (Farmer: 4 for 1 Jade; Wanderer; or 1 Melon Slice → 1 seed) grow on farmland into a stem; a full-grown stem keeps putting Melons on the dirt or grass beside it (first one took about 2½ minutes on wet farmland in the test). A Melon breaks into 3–7 slices (Silk Touch keeps it whole); 9 slices make a Melon. Slices are food. Farmers buy 4 slices for 1 Jade |
+| New ingredients | Done | Sugar (1 Sugar Cane), Glistering Melon Slice (slice + 8 gold nuggets), Fermented Skitter Eye (Skitter Eye + Sugar + Ember Wart), Rabbit's Foot (Rabbits, 10%), Phantom Membrane (Phantoms, 0–1). Tested drop rates: 10% feet, about 0.45 membranes per Phantom |
+| Water Bottles | Done | Right-click water with a Glass Bottle, or use a Cauldron. Drinking water puts out fire |
+| Cauldron | Done | 7 iron ingots. Holds 3 bottles of water (you can see the water level). Water bucket fills it; an empty bucket takes a full one back; a bottle takes one; a water bottle adds one |
+| Brewing Stand | Done | 1 Flare Rod + 3 cobblestone. 3 bottle slots, an ingredient slot, a Flare Powder slot (1 powder = 20 brews). A brew takes 20 seconds and changes all 3 bottles. Keeps brewing with the screen closed (like a furnace). Tested in a real world: Water → Awkward → Swiftness |
+| Potions | Done | Awkward, Mundane, Thick, and 15 real potions: Night Vision, Invisibility, Leaping, Fire Resistance, Swiftness, Slowness, Turtle Master, Water Breathing, Healing, Harming, Poison, Regeneration, Strength, Weakness, Slow Falling. Sparkdust = longer, Shinestone dust = stronger (II), Fermented Skitter Eye = the opposite. Every recipe chain checked against Java |
+| New effects | Done | Slowness, Weakness (−4 melee damage), Water Breathing, Invisibility (monsters only notice you up close; each armor piece gives you away a bit), Night Vision (bright; flickers in the last 10 s), Slow Falling (gentle fall, no fall damage), Instant Health and Instant Damage. All tested |
+| Drinking | Done | Hold right-click 1.6 s, like food; you keep the bottle. Each potion has its own color and shimmers if it does something; tooltips show the effect and time (for example “Speed II (1:30)”) |
+| Saving | Done | Potions, Brewing Stand contents and heat, and Cauldron water survive save and reload (tested) |
+| Play Together | Partial | The Brewing Stand and Cauldron are host-only while playing together |
+| Part B | Done | See the next section |
+| Part C | Done | See the next section |
+| Not yet checked | Partial | Not played by hand on a Chromebook; sounds not listened to; potion in the hand and dropped on the ground shows one plain blue bottle |
+
+## Milestone 16, Part C: achievements, the Brewing guide, Creative potions, treasure, trades (built and browser-tested 2026-11-21). Milestone 16 is now complete.
+Code: `js/brewing-guide.js` (new), plus `js/advancements.js`, `js/main.js`, `js/ui.js`, `js/entities.js` (Cleric trades), `js/audio.js`, and `index.html` (all Milestone 16 files now `?v=brew-c-1`, plus a new brewing-guide import-map entry; advancements moved to `brew-c-1`). Backups: `tools/backups/pre-m16-partC-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| “Brewing” achievements tab | Done | 11 achievements: One in a Melon, Bottled Up, Local Brewery, First Sip, Strong Stuff (a level II potion), Bombs Away (throw a splash potion), You Need a Mint (bottle Wyrm's Breath), It Lingers, Sharp Shooter (tipped arrows), Mixed Bag (6 effects at once), Brewmaster (12 different potions). All 11 unlocked in a test world |
+| Journal: “Brewing” chapter | Done | Four pages in our own words: Getting started, Every potion (a table of all 11 Awkward-potion recipes with ingredient icons, what each does, and whether it can be longer or II, plus the 4 Fermented Skitter Eye flips), Longer / stronger / throwable, Finding ingredients |
+| Creative “Brewing” tab | Done | The Brewing Stand, Cauldron, and every ingredient, plus 123 ready-made potions (every potion, plain / longer / II, as a drink, splash, and lingering). Searching “All” finds potions too |
+| Treasure and trades | Done | Ordinary treasure chests: a potion 18% of the time (some splash, some longer or II) and Melon Seeds 25%; Ember Depths chests: Fire Resistance 20%; Hollow chests: a potion 20%. Clerics now sell 3 Glass Bottles for 1 Jade and a Potion of Healing for 3 Jade. Tested: 60 fresh chests had 13 potions and 21 seed stacks |
+| Ember Wart fix | Done | Ember Wart now plants on Wailing Sand (like Java) and grows (about 3 minutes to ripen). Before, it could only go on farmland and never grew |
+| Drinking sound | Done | Potions gulp instead of crunching (checked it runs; not listened to) |
+| Not yet checked | Partial | Not played by hand on a Chromebook; sounds not listened to |
+
+## Milestone 16, Part B: splash and lingering potions, clouds, tipped arrows, Witches (built and browser-tested 2026-11-21, not published)
+Code: `js/main.js` (throwPotion, potionBurst, potionOnCreature, potion clouds, Wyrm's Breath, tipped arrows from the bow, tipped-arrow crafting), `js/entities.js` (thrown potions breaking on blocks, creatures and you; creature effects `e.fx`; Slowness on creatures), `js/creatures.js` (Witches), `js/blocks.js` (items 665–679 tipped arrows + 15 recipes), `js/ui.js`, `js/audio.js`, and `index.html` (version tags `?v=brew-b-1`, creatures included). Backups: `tools/backups/pre-m16-partB-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Splash potions | Done | Brew any potion with Boom Powder. Right-click to throw it; it breaks where it lands and touches you and every creature within 4 blocks (weaker the farther away). Tested: Harming healed a zombie and hurt a cow 1 block away; a cow 6 blocks away was untouched |
+| Lingering potions and Wyrm's Breath | Done | Hold a Glass Bottle in the Hollow Wyrm's purple breath clouds to bottle Wyrm's Breath. Brew a splash potion with it to make a lingering one. It leaves a colored cloud for 30 seconds that shrinks; anyone inside gets a short dose each second. Tested: a Poison cloud poisoned me and a cow, the zombie ignored it |
+| Potions on creatures | Done | Creatures can be Poisoned, Regenerating, or Slowed (they walk at half speed); Healing and Harming work instantly. Undead creatures (zombies, Rattlers, and the like) are healed by Harming, hurt by Healing, and ignore Poison and Regeneration, like Java. Bosses aren't affected |
+| Tipped arrows | Done | 8 arrows + 1 lingering potion at a workbench = 8 Arrows of that potion (15 kinds; it must be a lingering potion of the right kind). The bow uses your offhand arrows first, then the hotbar and pack. A hit gives the creature ⅛ of the potion (Slowness: 11 seconds, tested). Infinity only saves plain arrows, like Java |
+| Witches | Done | Witches now throw real splash potions, choosing like Java: Slowness if you're far away, Poison if you aren't poisoned, sometimes Weakness, otherwise Harming. They throw every 3 seconds (was 2.5). They drop brewing things: bottles, sugar, Skitter eyes, Shinestone dust, Sparkdust, Boom Powder, or sticks |
+| Sound | Done | Glass breaking when a potion bursts (checked it runs; not listened to) |
+| Play Together | Partial | Throwing potions is host-only while playing together |
+| Not yet checked | Partial | Not played by hand on a Chromebook. Witches are about as dangerous as before (Harming does 3 hearts); they can be deadly without armor, like Java's |
+
+## Milestone 15, Part A: the Enchanting Table and every enchantment (built and browser-tested 2026-11-21, not published)
+Code: `js/enchanting.js` (new: the enchantment list, what each goes on, the table's offers, armor math), plus changes in `js/blocks.js` (blocks 234–236, items 650–653, 4 textures), `js/main.js`, `js/entities.js`, `js/ui.js`, `js/shapes.js`, `js/worldgen.js` (land version 16), `js/world.js`, `js/multiplayer.js`, and `index.html` (styles; version tags are now `?v=ench-b-1`, see Part B). Backups of the changed files: `tools/backups/pre-m15-partA-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Lapis Ore and Lapis | Done | Deep underground (levels 3–29), about 9 ore blocks per chunk. Needs a stone pickaxe. Drops 4–9 Lapis. In every world, old ones too: it only replaces buried stone, so nothing a player built or dug changes (a cave wall someone already saw could show a new ore) |
+| Sugar Cane | Done | Land version 16: grows on sand, grass, or dirt right beside water at sea level, 1–3 tall. Older worlds get it only in land nobody has visited yet. Plant it next to water (or on more cane); planted cane grows up to 3 tall (about a minute per block). Breaking the bottom drops the whole stalk |
+| Paper, Book, Bookshelf | Done | 3 Sugar Cane → 3 Paper; 3 Paper + 1 Leather → Book; **Bookshelf is now 6 planks + 3 Books** (was 3 leather), like Minecraft |
+| Enchanting Table | Done | 4 Obsidian + 2 Skyshard + 1 Book (like Minecraft's diamonds; the plan said Lapis, but Java uses diamonds). ¾-height block with a floating book, gives off a little light. Put in one item and Lapis; 3 offers cost 1/2/3 levels and 1/2/3 Lapis; each shows one enchantment it gives (“?” = there are more). Creative: free |
+| Bookshelf power | Done | Bookshelves 2 blocks away (a ring around the table, at its level and one up) with an empty block between. Up to 15. With 15 the bottom offer is always level 30 (tested: offers average 6 / 13 / 30) |
+| Offers | Done | Java 1.20.1 rules: item “enchantability” by material, level ranges per enchantment, weights, bonus enchantments, books get one fewer. Offers stay the same until you enchant something. Tested over thousands of rolls: never two enchantments that clash, never a treasure enchantment, never one that doesn't fit |
+| Shimmer and tooltips | Done | Enchanted items and Enchanted Books shimmer purple (in the inventory, hotbar, and chests; it stays still with “reduced motion”). Tooltips list the enchantments; curses are red; Enchanted Books also explain each one |
+| Weapon enchantments | Done | Sharpness (+0.5 per level + 0.5), Smite and Bane of Arthropods (+2.5 per level against undead / spiders, bugs and scarabs), Knockback, Fire Aspect (4 s per level), Looting (+0–3 per drop), Sweeping Edge (hits creatures right next to the target). All tested on real hits |
+| Tool enchantments | Done | Efficiency (much faster mining), Silk Touch (ores, glass, grass, leaves… drop themselves), Fortune (ore drops: Fortune III ≈ 2.4×), Unbreaking (III wears out 4× slower), Mending (picked-up experience repairs 2 uses per point) |
+| Bow and fishing rod | Done | Power (V = 2.5× damage), Punch, Flame, Infinity (needs 1 arrow; arrows can't be picked up), Luck of the Sea (more treasure, less junk), Lure (bites come sooner) |
+| Armor enchantments | Done | Protection, Fire / Blast / Projectile Protection, Feather Falling (Java math: each point takes 4% off, up to 80%; tested), Thorns (15% per level to hurt the attacker), Respiration (air lasts up to 4×), Aqua Affinity, Depth Strider (swim up to 2× faster) |
+| Curses | Done | Curse of Binding (armor can't be taken off until it breaks or you faint) and Curse of Vanishing (gone when you faint, unless “keep inventory” is on). Both tested. They only come from treasure (Part B) |
+| Frost Walker | Done | Finished in Part B (see below) |
+| New Java rule: slow digging underwater | Done | Digging with your head underwater is 5× slower, like Minecraft. Aqua Affinity removes that |
+| Experience from ores | Done | Coal, Lapis, Skyshard, Jade, Ember Quartz, Spark, and Ember Gold ores now give experience (Java amounts), so there are more ways to earn levels |
+| Saving | Done | Enchantments stay on items in your pack, chests, dropped items, and hoppers, through save and reload (tested). Old worlds load fine (tested on a copy of a land-version-9 world) |
+| Play Together | Partial | The Enchanting Table is host-only while playing together. Guests' enchanted weapons still deal the extra damage, but Fire Aspect, Looting and Sweeping Edge only work for the host |
+| Part B | Done | See the next section |
+| Part C | Done | See the next section |
+| Not yet checked | Partial | Not played by hand on a Chromebook. Hits, mining, and the table were driven with test shortcuts in the built-in browser |
+
+## Milestone 15, Part B: the Anvil, the Grindstone, and enchanted treasure (built and browser-tested 2026-11-21, not published)
+Code: `js/enchanting.js` (anvilResult, grindResult, repair materials, treasure books, villagerBook), plus `js/blocks.js` (blocks 237–239, 7 textures, 2 icons, 2 recipes), `js/shapes.js` (Anvil and Grindstone models), `js/main.js`, `js/ui.js`, `js/entities.js` (trades), `js/multiplayer.js`, and `index.html` (styles; version tags `?v=ench-b-1` on blocks, main + script tag, ui, entities, worldgen, world, shapes, multiplayer, enchanting). Backups: `tools/backups/pre-m15-partB-2026-11-21/`. Block numbers used: 240 of 256 (16 left).
+
+| Feature | Status | Notes |
+|---|---|---|
+| Anvil | Done | 3 Blocks of Iron + 4 iron ingots. Faces the way you place it. Left: the item. Right: its material (repairs a quarter per piece), the same item (joins them, +12% extra), or an Enchanted Book. A name box renames it (up to 30 letters; the name shows in tooltips). The result and its level cost show before you make it. Java prices: rarer enchantments cost more, books half; the same level twice makes the next level (III + III = IV, up to the max) |
+| Anvil “prior work” | Done | Each trip through the Anvil adds to the next one's price (1, 3, 7, 15…). 40 levels or more: “Too expensive!” (Creative ignores it). The Grindstone resets it |
+| Anvil wear | Done | 12% of uses: normal → chipped → badly damaged → breaks. The top shows the cracks. Never wears in Creative |
+| Grindstone | Done | 2 sticks + 1 stone + 2 planks. Removes all enchantments except curses and gives experience back (Java's average amount, shown on the button). Enchanted Books become plain Books. Two of the same worn item join (+5% extra). Keeps an Anvil name |
+| Enchanted treasure | Done | Ordinary treasure chests: Enchanted Book 25% (any enchantment, curses too), enchanted iron gear or bow 12%. Ember Depths treasure: book 15%, enchanted gold armor 18%. Hollow towers and ships: book 35%, enchanted Skyshard or iron gear (strong, level 20–39) 50%. Fishing treasure can be an Enchanted Book (no curses). Tested: 80 fresh chests gave 14 books (2 with a curse) and 12 enchanted items |
+| Scribe trades | Done | The Scribe (our librarian; the plan called it “Scholar”) now also buys 24 Paper for 1 Jade, sells 2 Books for 1 Jade and 4 Lapis for 1 Jade, and sells one Enchanted Book for a Book + Jade. Each Scribe has its own book (decided by who they are, so it doesn't change); price 6–48 Jade by level (treasure ones like Mending cost double); never a curse |
+| Wanderer trades | Done | The Wanderer sells one Enchanted Book (a little pricier) and 4 Sugar Cane |
+| Frost Walker | Done | Boots with it freeze water around your feet (2 + level blocks) into Frosted Ice while you walk; it melts back in about 20 seconds (stays solid near you). Also stops Magma Blocks from hurting you, like Java |
+| Play Together | Partial | The Anvil and the Grindstone are host-only while playing together |
+| Not yet checked | Partial | Not played by hand on a Chromebook. Screens were clicked through with test scripts in the built-in browser. Anvils don't fall (no falling blocks until Milestone 18) |
+
+## Milestone 15, Part C: achievements, the Enchanting guide, sounds, Creative books (built and browser-tested 2026-11-21, not published). Milestone 15 is now complete.
+Code: `js/enchanting-guide.js` (new), plus `js/advancements.js`, `js/audio.js`, `js/main.js`, `js/ui.js`, `js/enchanting.js`, and `index.html` (styles; every Milestone 15 file now has the version tag `?v=ench-c-1`, including new import-map entries for enchanting-guide, and advancements and audio moved to `ench-c-1`). Backups: `tools/backups/pre-m15-partC-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| “Enchanting” achievements tab | Done | 10 new achievements: Into the Blue (Lapis), Bookworm (a Book), Enchanter, Spellbook (an Enchanted Book), Max Power (a level 30 offer), Repair Shop (Anvil repair or combine), Name Brand (rename on an Anvil), Clean Slate (Grindstone), Decked Out (4 enchanted armor pieces), Ice Skater (Frost Walker on water). All 10 unlocked in a test world |
+| Journal: “Enchanting” chapter | Done | Six pages in our own words: Getting started, The Enchanting Table (with a picture of the bookshelf ring), Every enchantment (a table of all 30: what each goes on, best level, what it does; curses in red), The Anvil, The Grindstone, Finding enchanted books |
+| Sounds | Done | A magic chime when you enchant, a page turn when you open the table, a metal clang on the Anvil (a crash when it breaks), a stone rasp on the Grindstone, a soft crackle when Frost Walker ice forms. All made in code like the other sounds. Checked that they run without errors; not checked by ear |
+| Creative “Enchanting” tab | Done | The table, bookshelves, Anvil, Grindstone, Lapis, sugar cane, paper, and books, plus a ready-made Enchanted Book for all 30 enchantments at their best level. Searching “All” (for example “protection”) finds the books too |
+| Not yet checked | Partial | Not played by hand on a Chromebook; sounds not listened to |
+
 ## Starter Home + Explorer's Map (built, browser-tested, and published 2026-11-05)
 | Feature | Status | Notes |
 |---|---|---|
