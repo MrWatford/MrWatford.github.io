@@ -7,7 +7,7 @@ import { chunkKey } from "./world.js";
 import { hash3 } from "./noise.js";
 
 const M = 8, RW = CHUNK + 2 * M, AREA = RW * RW, SIZE = AREA * HEIGHT;
-const vals = new Uint16Array(SIZE), sky = new Uint8Array(SIZE), blk = new Uint8Array(SIZE), cool = new Uint8Array(SIZE), queue = new Int32Array(SIZE * 2);
+const vals = new Uint32Array(SIZE), sky = new Uint8Array(SIZE), blk = new Uint8Array(SIZE), cool = new Uint8Array(SIZE), queue = new Int32Array(SIZE * 2);
 const ri = (x, y, z) => (x + M) + (z + M) * RW + y * AREA;
 
 // Scratch buffers (reused for every chunk)
@@ -37,7 +37,7 @@ for (const f of FACES) {
   f.front = f.d[0] + f.d[2] * RW + f.d[1] * AREA;
 }
 const AO = [0.42, 0.62, 0.8, 1];
-const isWater = v => (v & 255) === B.WATER;
+const isWater = v => (v & 0xFFFF00FF) === B.WATER;
 
 function quad(buf, pts, tile, uvs, lights) {
   if (buf.n >= buf.max) return;
@@ -63,12 +63,12 @@ function flood(L, start, end) {
     if (l <= 0) continue;
     const y = Math.floor(i / AREA), rem = i - y * AREA, z = Math.floor(rem / RW), x = rem - z * RW;
     let j;
-    if (x > 0 && L[j = i - 1] < l && !OPAQUE[vals[j] & 255]) { L[j] = l; queue[tail++] = j; }
-    if (x < RW - 1 && L[j = i + 1] < l && !OPAQUE[vals[j] & 255]) { L[j] = l; queue[tail++] = j; }
-    if (z > 0 && L[j = i - RW] < l && !OPAQUE[vals[j] & 255]) { L[j] = l; queue[tail++] = j; }
-    if (z < RW - 1 && L[j = i + RW] < l && !OPAQUE[vals[j] & 255]) { L[j] = l; queue[tail++] = j; }
-    if (y > 0 && L[j = i - AREA] < l && !OPAQUE[vals[j] & 255]) { L[j] = l; queue[tail++] = j; }
-    if (y < HEIGHT - 1 && L[j = i + AREA] < l && !OPAQUE[vals[j] & 255]) { L[j] = l; queue[tail++] = j; }
+    if (x > 0 && L[j = i - 1] < l && !OPAQUE[vals[j] & 0xFFFF00FF]) { L[j] = l; queue[tail++] = j; }
+    if (x < RW - 1 && L[j = i + 1] < l && !OPAQUE[vals[j] & 0xFFFF00FF]) { L[j] = l; queue[tail++] = j; }
+    if (z > 0 && L[j = i - RW] < l && !OPAQUE[vals[j] & 0xFFFF00FF]) { L[j] = l; queue[tail++] = j; }
+    if (z < RW - 1 && L[j = i + RW] < l && !OPAQUE[vals[j] & 0xFFFF00FF]) { L[j] = l; queue[tail++] = j; }
+    if (y > 0 && L[j = i - AREA] < l && !OPAQUE[vals[j] & 0xFFFF00FF]) { L[j] = l; queue[tail++] = j; }
+    if (y < HEIGHT - 1 && L[j = i + AREA] < l && !OPAQUE[vals[j] & 0xFFFF00FF]) { L[j] = l; queue[tail++] = j; }
   }
 }
 
@@ -90,7 +90,7 @@ export function buildChunk(world, chunk, fancy) {
   for (let c = 0; c < AREA; c++) {
     let s = 15, y = HEIGHT - 1;
     for (; y >= 0; y--) {
-      const id = vals[c + y * AREA] & 255;
+      const id = vals[c + y * AREA] & 0xFFFF00FF;
       if (OPAQUE[id]) break;
       if (id === B.WATER || id === B.LEAVES || id === B.BIRCH_LEAVES) s = Math.max(0, s - 1);
       sky[c + y * AREA] = s;
@@ -109,7 +109,7 @@ export function buildChunk(world, chunk, fancy) {
   flood(sky, 0, tail);
   // 3) torchlight (warm), then cool teal light from Echohold's crystals, moss nodes, and gate stones
   tail = 0; let coolN = 0;
-  for (let i = 0; i < SIZE; i++) { const v = vals[i]; if (v && lightOf(v)) { if (COOL[v & 255]) { cool[i] = lightOf(v); coolN++; } else { blk[i] = lightOf(v); queue[tail++] = i; } } }
+  for (let i = 0; i < SIZE; i++) { const v = vals[i]; if (v && lightOf(v)) { if (COOL[v & 0xFFFF00FF]) { cool[i] = lightOf(v); coolN++; } else { blk[i] = lightOf(v); queue[tail++] = i; } } }
   flood(blk, 0, tail);
   if (coolN) { tail = 0; for (let i = 0; i < SIZE; i++) if (cool[i]) queue[tail++] = i; flood(cool, 0, tail); }
 
@@ -124,7 +124,7 @@ export function buildChunk(world, chunk, fancy) {
   solidBuf.n = 0; waterBuf.n = 0;
   const lights = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
   for (let y = 0; y < HEIGHT; y++) for (let z = 0; z < CHUNK; z++) for (let x = 0; x < CHUNK; x++) {
-    const i = ri(x, y, z), v = vals[i], id = v & 255;
+    const i = ri(x, y, z), v = vals[i], id = v & 0xFFFF00FF;
     if (!id) continue;
     const def = blockDef(v);
     if (def.shape === "cube") {
@@ -133,7 +133,7 @@ export function buildChunk(world, chunk, fancy) {
       for (let f = 0; f < 6; f++) {
         const F = FACES[f];
         if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
-        const ni = i + F.front, nv = vals[ni], nid = nv & 255;
+        const ni = i + F.front, nv = vals[ni], nid = nv & 0xFFFF00FF;
         if (OPAQUE[nid]) continue;
         if (nid === id && def.render === "cutout" && (!fancy || id === B.GLASS)) continue;
         const tile = faceTile(v, F.tex, f === frontDir);
@@ -142,7 +142,7 @@ export function buildChunk(world, chunk, fancy) {
         const uv = TURNED_UV[rotation];
         for (let k = 0; k < 4; k++) {
           const [a, b, c] = F.ao[k];
-          const s1 = OPAQUE[vals[i + a] & 255], s2 = OPAQUE[vals[i + b] & 255], cc = OPAQUE[vals[i + c] & 255];
+          const s1 = OPAQUE[vals[i + a] & 0xFFFF00FF], s2 = OPAQUE[vals[i + b] & 0xFFFF00FF], cc = OPAQUE[vals[i + c] & 0xFFFF00FF];
           const ao = s1 && s2 ? 0 : 3 - (s1 + s2 + cc);
           let ls = sky[ni], lb = blk[ni], lc = cool[ni], cnt = 1;
           if (!s1) { ls += sky[i + a] | 0; lb += blk[i + a] | 0; lc += cool[i + a] | 0; cnt++; }
@@ -161,7 +161,7 @@ export function buildChunk(world, chunk, fancy) {
       for (let f = 0; f < 6; f++) {
         const F = FACES[f], ni = i + F.front, nv = vals[ni];
         if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
-        if (isWater(nv) || OPAQUE[nv & 255]) continue;
+        if (isWater(nv) || OPAQUE[nv & 0xFFFF00FF]) continue;
         const l = [sky[ni] / 15, blk[ni] / 15, F.shade, Math.max(cool[ni], COOL[id] ? cool[i] : 0) / 15];
         const pts = F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]);
         quad(waterBuf, pts, faceTile(v, F.tex), UV, [l, l, l, l]);
@@ -178,11 +178,11 @@ export function buildChunk(world, chunk, fancy) {
       const q = alongX ? [[x, y, z + 0.5], [x + 1, y, z + 0.5], [x + 1, y + 1, z + 0.5], [x, y + 1, z + 0.5]] : [[x + 0.5, y, z + 1], [x + 0.5, y, z], [x + 0.5, y + 1, z], [x + 0.5, y + 1, z + 1]];
       quad(waterBuf, q, tile, UV, L); quad(waterBuf, [q[1], q[0], q[3], q[2]], tile, [UV[1], UV[0], UV[3], UV[2]], L);
     } else if (def.shape === "liquid") {   // lava: like water but glowing and solid-looking
-      const topY = (vals[i + AREA] & 255) === id ? 1 : 0.88;
+      const topY = (vals[i + AREA] & 0xFFFF00FF) === id ? 1 : 0.88;
       for (let f = 0; f < 6; f++) {
         const F = FACES[f], ni = i + F.front, nv = vals[ni];
         if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
-        if ((nv & 255) === id || OPAQUE[nv & 255]) continue;
+        if ((nv & 0xFFFF00FF) === id || OPAQUE[nv & 0xFFFF00FF]) continue;
         const l = [1, 1, F.shade];
         quad(solidBuf, F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]), faceTile(v, F.tex), UV, [l, l, l, l]);
       }
@@ -191,8 +191,8 @@ export function buildChunk(world, chunk, fancy) {
       const facing = metaOf(v) & 3;
       for (let f = 0; f < 6; f++) {
         const F = FACES[f], ni = i + F.front;
-        if (f === 3 && OPAQUE[vals[ni] & 255]) continue;
-        if (f !== 2 && f !== 3 && OPAQUE[vals[ni] & 255] && def.shape === "farmland") continue;
+        if (f === 3 && OPAQUE[vals[ni] & 0xFFFF00FF]) continue;
+        if (f !== 2 && f !== 3 && OPAQUE[vals[ni] & 0xFFFF00FF] && def.shape === "farmland") continue;
         const lc = f === 2 ? i : ni, l = [sky[lc] / 15, blk[lc] / 15, F.shade];
         const pts = F.c.map(p => [x + p[0], y + (p[1] ? top : 0), z + p[2]]);
         let uv = UV;
@@ -220,7 +220,7 @@ export function buildChunk(world, chunk, fancy) {
       const tile = faceTile(v, 1), ls = sky[i] / 15, lb = blk[i] / 15;
       for (let f = 0; f < 6; f++) {
         const F = FACES[f], nv = vals[i + F.front];
-        if ((nv & 255) === id || OPAQUE[nv & 255]) continue;
+        if ((nv & 0xFFFF00FF) === id || OPAQUE[nv & 0xFFFF00FF]) continue;
         const l = [Math.max(ls, sky[i + F.front] / 15), Math.max(lb, blk[i + F.front] / 15), F.shade];
         quad(waterBuf, F.c.map(p => [x + p[0], y + p[1], z + p[2]]), tile, UV, [l, l, l, l]);
       }
@@ -277,8 +277,8 @@ function drawModel(mo, x, y, z, ls, lb, lc = 0) {
 }
 // Rails: a flat strip (or a slope up to the next block). Curves use their own picture, turned to fit.
 function drawRail(v, x, y, z, s, b) {
-  const sh = Math.min(9, metaOf(v) & 15), tile = (v & 255) === B.RAIL && sh >= 6 ? TILE.rail_curve : faceTile(v, 1);
-  const on = (v & 255) !== B.RAIL && (metaOf(v) & 16);
+  const sh = Math.min(9, metaOf(v) & 15), tile = (v & 0xFFFF00FF) === B.RAIL && sh >= 6 ? TILE.rail_curve : faceTile(v, 1);
+  const on = (v & 0xFFFF00FF) !== B.RAIL && (metaOf(v) & 16);
   const l = [s / 15, Math.max(b / 15, on ? 0.45 : 0), 1], L = [l, l, l, l], e = 1 / 16;
   const h = (lx, lz) => y + e + (sh === 2 ? lx : sh === 3 ? 1 - lx : sh === 4 ? 1 - lz : sh === 5 ? lz : 0);
   const C = [[0, 1], [1, 1], [1, 0], [0, 0]];

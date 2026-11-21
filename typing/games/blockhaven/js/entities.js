@@ -378,7 +378,7 @@ export const TRADES = {
     // Milestone 15: paper for Jade, plain books, and an enchanted book (which one depends on the Scribe; price set in main.js G.tradeOffer)
     [[[I.PAPER, 24]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.BOOK, 2], 8], [[[I.JADE, 0], [I.BOOK, 1]], [I.ENCH_BOOK, 1], 4], [[[I.JADE, 1]], [I.LAPIS, 4], 8]],
   beekeeper: [[[[B.FLOWER_RED, 8]], [I.JADE, 1], 8], [[[I.JADE, 1]], [I.HONEY_BOTTLE, 2], 8], [[[I.JADE, 2]], [I.HONEYCOMB, 4], 8], [[[I.JADE, 3]], [B.BEEHIVE, 1], 4]],
-  wanderer: [[[[I.JADE, 0]], [I.ENCH_BOOK, 1], 1], [[[I.JADE, 1]], [B.SUGAR_CANE, 4], 4], [[[I.JADE, 1]], [I.MELON_SEEDS, 2], 4], [[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1], [[[I.JADE, 3]], [I.NAME_TAG, 1], 2], [[[I.JADE, 2]], [I.LEAD, 2], 2]]
+  wanderer: [[[[I.JADE, 0]], [I.ENCH_BOOK, 1], 1], [[[I.JADE, 1]], [B.SUGAR_CANE, 4], 4], [[[I.JADE, 1]], [I.MELON_SEEDS, 2], 4], [[[I.JADE, 1]], [B.SPRUCE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.JUNGLE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.ACACIA_SAPLING, 2], 4], [[[I.JADE, 2]], [B.DARK_OAK_SAPLING, 4], 4], [[[I.JADE, 1]], [B.CHERRY_SAPLING, 2], 4], [[[I.JADE, 1]], [B.MANGROVE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1], [[[I.JADE, 3]], [I.NAME_TAG, 1], 2], [[[I.JADE, 2]], [I.LEAD, 2], 2]]
 };
 const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], scribe: ["#346462", "#254d4a"], beekeeper: ["#b58536", "#906926"], wanderer: ["#2a5aa0", "#245094"] };
 const VSKIN = ["#e8b890", "#deae86"];
@@ -1919,7 +1919,7 @@ export class Entities {
       }
     }
     // three Buzzers live in each wild bee nest
-    if (!w.gen.isNether() && !(w.gen.isEnd && w.gen.isEnd())) for (let i = 0; i < c.data.length; i++) if ((c.data[i] & 255) === B.BEE_NEST) {
+    if (!w.gen.isNether() && !(w.gen.isEnd && w.gen.isEnd())) for (let i = 0; i < c.data.length; i++) if ((c.data[i] & 0xFFFF00FF) === B.BEE_NEST) {
       const x = x0 + (i % CHUNK), z = z0 + (Math.floor(i / CHUNK) % CHUNK), y = Math.floor(i / (CHUNK * CHUNK));
       for (let k = 0; k < 3; k++) this.leaveHive(this.add("bee", x + 0.5, y, z + 0.5, { home: [x, y, z] }));   // they hover beside the nest
     }
@@ -1943,7 +1943,14 @@ export class Entities {
     const biome = w.gen.column(x0 + 8, z0 + 8).biome;
     if (biome === "peak") return;
     const woods = biome === "forest" || biome === "birch";
-    const pool = biome === "sandy" ? [["rabbit", 12], ["camel", 6], ["camel_husk", 1]] : [["cow", 25], ["sheep", 25], ["pig", 20], ["chicken", 20], ["rabbit", 10], ["whisker", 4],
+    // Milestone 20, Part E: the new biomes have their own animals
+    const nb = w.biomeAt ? w.biomeAt(x0 + 8, z0 + 8) : null;
+    const BIOME_ANIMALS = { jungle: [["panda", 10], ["ocelot", 8], ["parrot", 12], ["chicken", 6]], snowy_plains: [["polar_bear", 6], ["rabbit", 14], ["fox", 6]],
+      taiga: [["scout", 12], ["fox", 14], ["rabbit", 10], ["sheep", 10], ["cow", 6]], savanna: [["trotter", 14], ["llama", 8], ["armadillo", 8], ["cow", 8], ["sheep", 8]],
+      dark_forest: [["rabbit", 6], ["chicken", 6], ["scout", 4]], swamp: [["frog", 12], ["pig", 6], ["cow", 6]], badlands: [["armadillo", 10], ["rabbit", 6]],
+      cherry_grove: [["rabbit", 12], ["sheep", 8], ["pig", 6]], mushroom_fields: [["mooshroom", 30]], frozen_ocean: [["polar_bear", 4]] };
+    const special = nb && BIOME_ANIMALS[nb] && BIOME_ANIMALS[nb].filter(([k]) => SPECIES[k]);
+    const pool = special && special.length ? special : biome === "sandy" ? [["rabbit", 12], ["camel", 6], ["camel_husk", 1]] : [["cow", 25], ["sheep", 25], ["pig", 20], ["chicken", 20], ["rabbit", 10], ["whisker", 4],
       ...(woods ? [["scout", 14], ["fox", 12], ["parrot", 8]] : []), ...(biome === "plains" ? [["trotter", 14], ["packass", 5], ["llama", 5], ["bone_trotter", 0.5], ["rot_trotter", 0.5]] : [])];
     let t = Math.random() * pool.reduce((s, p) => s + p[1], 0), sp = pool[0][0];
     for (const [k, wgt] of pool) { t -= wgt; if (t <= 0) { sp = k; break; } }
@@ -1951,7 +1958,7 @@ export class Entities {
     const n = sp === "whisker" || (def.mount && !def.food.length) ? 1 : sp === "fox" || sp === "parrot" ? randi(1, 2) : randi(2, 4);
     for (let i = 0; i < n; i++) {
       const x = x0 + randi(1, 14), z = z0 + randi(1, 14), y = w.surfaceY(x, z), top = w.id(x, y, z);
-      if (![B.GRASS, B.SAND, B.SNOW].includes(top)) continue;
+      if (![B.GRASS, B.SAND, B.SNOW, B.MYCELIUM, B.RED_SAND, B.MUD, B.ICE].includes(top)) continue;
       const baby = (!def.mount || def.food.length > 0) && Math.random() < 0.15;
       const height = Math.ceil(def.h * (baby ? 0.5 : 1));
       if (Array.from({ length: height }, (_, i) => i + 1).some(dy => solidCell(w, x, y + dy, z))) continue;
@@ -2002,6 +2009,7 @@ export class Entities {
       const x = Math.floor(p.pos.x + Math.cos(ang) * dist), z = Math.floor(p.pos.z + Math.sin(ang) * dist);
       if (!w.isLoaded(x, z)) continue;
       const surface = w.surfaceY(x, z), under = Math.random() < 0.5 && surface > 12;
+      if (!under && w.biomeAt && w.biomeAt(x, z) === "mushroom_fields") continue;   // Milestone 20: no monsters in mushroom fields
       let y = surface + 1;
       if (under) {   // a cave pocket somewhere below
         let yy = randi(4, surface - 6), found = -1;
@@ -2091,6 +2099,10 @@ export class Entities {
   pickHostile(w, x, y, z, underground) {
     const slimeChunk = ((Math.floor(x / 16) * 31 + Math.floor(z / 16) * 17) & 7) === 0;
     const pool = [["zombie", 30], ["skeleton", 25], ["creeper", 22], ["spider", 18]];
+    const nb = !underground && w.biomeAt ? w.biomeAt(x, z) : null;   // Milestone 20, Part E
+    if ((nb === "snowy_plains" || nb === "frozen_ocean") && SPECIES.stray) pool[1][0] = "stray";   // the snow has Strays instead of Rattlers
+    if (nb === "swamp") pool.push(["slime", 25]);
+    if ((nb === "swamp" || nb === "dark_forest") && SPECIES.witch) pool.push(["witch", 6]);
     if (!underground) pool.push(["voidwalker", 5]);
     if (underground && y < 40 && slimeChunk) pool.push(["slime", 40]);
     if (underground && y < 30) pool.push(["cave_spider", 6]);

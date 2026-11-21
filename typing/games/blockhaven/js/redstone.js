@@ -612,7 +612,7 @@ export function initRedstone(ctx) {
     const st = w.rs;
     if (!st) return;
     const d = c.data;
-    for (let i = 0; i < d.length; i++) { const id = d[i] & 255; if (id === B.HUSH_SENSOR || id === B.TUNED_SENSOR) st.hush.add(key(c.cx * CHUNK + (i % CHUNK), Math.floor(i / (CHUNK * CHUNK)), c.cz * CHUNK + Math.floor(i / CHUNK) % CHUNK)); }
+    for (let i = 0; i < d.length; i++) { const id = d[i] & 0xFFFF00FF; if (id === B.HUSH_SENSOR || id === B.TUNED_SENSOR) st.hush.add(key(c.cx * CHUNK + (i % CHUNK), Math.floor(i / (CHUNK * CHUNK)), c.cz * CHUNK + Math.floor(i / CHUNK) % CHUNK)); }
   }
 
   // ---------- bells ----------

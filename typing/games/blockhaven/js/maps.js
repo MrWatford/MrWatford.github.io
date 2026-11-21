@@ -62,7 +62,7 @@ export class Grid {
   inside(x, y, z) { return x >= this.x0 && x < this.x0 + this.sx && z >= this.z0 && z < this.z0 + this.sz && y >= 0 && y < HEIGHT; }
   i(x, y, z) { return (x - this.x0) + (z - this.z0) * this.sx + y * this.sx * this.sz; }
   get(x, y, z) { return this.inside(x, y, z) ? this.data[this.i(x, y, z)] : 0; }
-  id(x, y, z) { const v = this.get(x, y, z); return v === KEEP ? -1 : v & 255; }
+  id(x, y, z) { const v = this.get(x, y, z); return v === KEEP ? -1 : v & 0xFFFF00FF; }
   set(x, y, z, v) { if (this.inside(x, y, z)) this.data[this.i(x, y, z)] = v; }
   box(x0, y0, z0, x1, y1, z1, v) {
     for (let y = Math.max(0, Math.min(y0, y1)); y <= Math.min(HEIGHT - 1, Math.max(y0, y1)); y++) for (let z = Math.min(z0, z1); z <= Math.max(z0, z1); z++) for (let x = Math.min(x0, x1); x <= Math.max(x0, x1); x++) {

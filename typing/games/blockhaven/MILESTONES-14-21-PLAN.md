@@ -39,7 +39,7 @@ This is about 8 milestones of work. As always, each one is built and tested in t
 | 5 | **17: Ocean extras** | Prismarine blocks, Sea Lanterns, Ocean Monuments with Guardians, shipwrecks, ocean ruins, treasure maps and buried treasure, coral reefs, sponges, Conduits, fish in buckets, Splashers leading you to treasure | Large |
 | 6 | **18: The world, part 1** | Flowing water and lava, water + lava makes cobblestone/stone/obsidian, falling sand and gravel, fire spreading (with a setting), leaf decay, plants that need support, crops needing water, waterlogging | Large |
 | 7 | **19: The world, part 2** | Rain, snow, thunderstorms, lightning and its creature changes, snow building up, freezing and melting, sleeping through storms | Medium |
-| 8 | **20: The world, part 3** | New biomes (swamps, savannas, badlands, cherry groves, dark forests, snowy plains, mushroom islands, deep oceans, lush caves, dripstone caves) in **unexplored land only** | Large |
+| 8 ✔ built 2026-11-21 (all 5 parts, not published) | **20: The world, part 3** | New biomes (swamps, savannas, badlands, cherry groves, dark forests, snowy plains, mushroom islands, deep oceans, lush caves, dripstone caves) in **unexplored land only** | Large |
 
 ## 3. Things to know before we start
 
@@ -137,7 +137,7 @@ Milestones 15–20 are the ones in section 2 above. The four after them are new.
 | 6 | **18: The world, part 1** | Flowing water and lava, falling sand and gravel, waterlogging, leaf decay, fire spreading, plants that need support | Large |
 | 7 | **19: The world, part 2** | Rain, snow, thunderstorms, lightning (today the Surface world has no weather; only the desert sandstorm exists) | Medium |
 | — | **Block-limit step** (needed before 20 and 21) | Raise the 256-block limit (see 6.3) | Medium, risky |
-| 8 | **20: The world, part 3** | New biomes. Today the Surface world has only 6 kinds of land: plains, forest, birch forest, mountains, snowy peaks, sandy. Add jungle, taiga, swamp, savanna, dark forest, badlands, cherry grove, mushroom islands, deep ocean, lush caves, dripstone caves, plus their woods: spruce, jungle, acacia, dark oak, cherry, mangrove. Unexplored land only | Large |
+| 8 ✔ built 2026-11-21 (all 5 parts, not published) | **20: The world, part 3** | New biomes. Today the Surface world has only 6 kinds of land: plains, forest, birch forest, mountains, snowy peaks, sandy. Add jungle, taiga, swamp, savanna, dark forest, badlands, cherry grove, mushroom islands, deep ocean, lush caves, dripstone caves, plus their woods: spruce, jungle, acacia, dark oak, cherry, mangrove. Unexplored land only | Large |
 | 9 | **21: Building blocks** (new) | Slabs, stairs, walls, all 16 colors of wool, glass, concrete, and terracotta, carpets, ladders, scaffolding, lanterns, candles, paintings, item frames, armor stands, banners (today: one Stained Glass and one Black Wool) | Large |
 | 10 | **22: Farming, food, and gadgets** (new) | Pumpkins, potatoes, beetroot, cocoa, cactus, bamboo, mushrooms, dyes from flowers; cake, pie, stews, cookies; crossbow, spyglass, clock, fireworks, jukebox and music discs | Large |
 | 11 | **23: Villages, part 2** (new) | Working job blocks (smoker, blast furnace, barrel, stonecutter, lectern, cartography table…), villager levels and breeding, zombie villagers and curing, pillager raids, outposts, witch huts, mansions | Large |
@@ -173,3 +173,48 @@ Built in 3 parts, like Milestone 15. Minecraft Java 1.20.1 is the guide for reci
 - **Fermented Skitter Eye** = Skitter Eye + Sugar + **Ember Wart** (Minecraft uses a brown mushroom; there are no mushrooms yet).
 - **Melon seeds** come from Farmer and Wanderer trades and treasure chests (Minecraft's melons grow wild in jungles, which come with Milestone 20).
 - **Phantoms** now drop Phantom Membrane (for Slow Falling), and Rabbits sometimes drop a Rabbit's Foot (for Leaping), like Minecraft.
+
+---
+
+## 8. Change of order (2026-11-21): Milestone 20 before 17
+
+While starting Milestone 17 (Ocean extras), the land turned out to have almost no oceans: about 1% of the land is below sea level, at most 8 blocks deep, mostly lakes and rivers. Ocean Monuments, shipwrecks, and reefs need real seas, so **you chose to do Milestone 20 (new biomes, including deep oceans) first**, then come back to Milestone 17.
+
+### 8.1 The block-limit step: done 2026-11-21 (not published yet)
+- The game can now have **1,024 kinds of blocks** instead of 256 (you said yes on 2026-11-21).
+- **Every existing block keeps its number**, so old worlds and saves don't need converting. Blocks 256 and up keep their extra number bits above the block's settings.
+- Checked: 2.9 million generated block cells read exactly the same as before; an old saved world (land version 9) loads, draws, and keeps its changes; a test block numbered 300 places, draws, breaks, and survives save and reload.
+
+### 8.2 Milestone 20 in parts (new land only)
+Like before, new things appear only in land nobody has visited or changed. The world is split into big squares; a square gets new biomes only if nobody has been anywhere in it, and that's decided once and remembered. New worlds get everything.
+
+| Part | What it adds |
+|---|---|
+| **A** | **Real oceans and deep oceans** (wide seas up to about 18 blocks deep), beaches, and the system that decides biomes per square |
+| **B** | **New trees and woods**: spruce, jungle, acacia, dark oak, cherry, mangrove (logs, leaves, planks, saplings) |
+| **C** | **New biomes on land**: taiga and snowy plains (snow, ice), jungle (bamboo, cocoa, wild melons), savanna, dark forest, swamp (mud, lily pads), badlands (terracotta, red sand, cactus), cherry grove, mushroom fields (mycelium, giant mushrooms, Mooshrooms) |
+| **D** | **New caves**: lush caves (moss, azaleas, glow berries, Axolotls) and dripstone caves (pointed dripstone) |
+| **E** | Creatures that live in each biome, achievements, a Journal chapter, Creative tab, final checks |
+
+Then Milestone 17 (Ocean extras) goes into the new oceans.
+
+### 8.3 Part A done (2026-11-21, not published)
+- **Oceans only in brand-new worlds** (land version 17). Lowering land in older worlds could flood structures that are already planned there (strongholds, villages, campaign towns, temple entrances), so older worlds keep their land exactly as it is.
+- About 23% of a new world is sea, up to about 20 blocks deep. The starting area and the three strongholds always stay dry.
+
+### 8.4 Part B done (2026-11-21, not published)
+- Six woods (spruce, jungle, acacia, dark oak, cherry, mangrove): logs, leaves, planks, saplings, mangrove roots. These are the first blocks numbered above 256.
+- For now, the Wanderer sells the saplings. Wild forests of them come with Part C.
+
+### 8.5 Part C done (2026-11-21, not published)
+- Nine new land biomes: taiga, snowy plains, jungle, savanna, dark forest, swamp, badlands, cherry grove, mushroom fields (plus frozen oceans).
+- New worlds get them everywhere. Older worlds get them in 256 × 256 squares nobody has visited or changed (decided once and remembered).
+- They never change the land's height, so structures are placed exactly as before.
+
+### 8.6 Part D done (2026-11-21, not published)
+- Lush caves and dripstone caves, each about 1 in 5 stretches of cave, under new worlds and under the unexplored squares of older worlds.
+
+### 8.7 Part E done: Milestone 20 complete (2026-11-21, not published)
+- Biome animals and monsters, map colors, “You found…” messages, 6 achievements, a Journal chapter.
+- **Next in your order:** back to Milestone 17 (Ocean extras), now that new worlds have real oceans.
+- Still to publish: the block-limit step and all of Milestone 20.

@@ -103,6 +103,23 @@ export function model(v, get) {
     return { T: floorT(f), parts };
   }
   if (id === B.STONE_STEP) return { T: floorT(0), parts: [p([0, 0, 0, 16, 8, 16], tex)] };
+  // Milestone 20, Part C: thin and odd-shaped blocks of the new biomes
+  // Milestone 20, Part D: moss carpet, and pointed dripstone (meta bit 0 = hanging from a ceiling)
+  if (id === B.MOSS_CARPET) return { T: floorT(0), parts: [p([0, 0, 0, 16, 1, 16], TILE.moss_block)] };
+  if (id === B.POINTED_DRIPSTONE) {
+    const t = TILE.pointed_dripstone, down = m & 1, Y = (a, b) => down ? [16 - b, 16 - a] : [a, b];
+    const seg = (r, a, b) => { const [y0, y1] = Y(a, b); return p([8 - r, y0, 8 - r, 8 + r, y1, 8 + r], t); };
+    return { T: floorT(0), parts: [seg(4, 0, 6), seg(3, 6, 11), seg(1.5, 11, 16)] };
+  }
+  if (id === B.SNOW_LAYER) return { T: floorT(0), parts: [p([0, 0, 0, 16, 2, 16], TILE.snow)] };
+  if (id === B.BAMBOO) return { T: floorT(0), parts: [p([6, 0, 6, 10, 16, 10], [TILE.bamboo_top, TILE.bamboo, TILE.bamboo_top])] };
+  if (id === B.CACTUS) return { T: floorT(0), parts: [p([1, 0, 1, 15, 16, 15], [TILE.cactus_top, TILE.cactus_side, TILE.cactus_top])] };
+  if (id === B.LILY_PAD) return { T: floorT(0), parts: [p([0, 0, 0, 16, 0.25, 16], TILE.lily_pad)] };
+  if (id === B.PINK_PETALS) return { T: floorT(0), parts: [p([0, 0, 0, 16, 0.25, 16], TILE.pink_petals)] };
+  if (id === B.COCOA) {   // a pod hanging on the side of a jungle log; meta: which side (bits 0-1), how ripe (bits 2-3)
+    const age = Math.min(2, (m >> 2) & 3), w = 4 + age * 2, hgt = 5 + age * 2, t = TILE["cocoa" + age];
+    return { T: floorT(m & 3), parts: [p([8 - w / 2, 12 - hgt, 16 - w, 8 + w / 2, 12, 16], t)] };
+  }
   // Milestone 16: the Brewing Stand (three feet around a golden rod) and the Cauldron (its water rises with meta 0-3)
   if (id === B.BREWING_STAND) return { T: floorT(0), parts: [p([2, 0, 2, 6, 2, 6], TILE.brew_base), p([10, 0, 5, 14, 2, 9], TILE.brew_base), p([2, 0, 10, 6, 2, 14], TILE.brew_base), p([7, 0, 7, 9, 14, 9], TILE.brew_rod)] };
   if (id === B.CAULDRON) {
@@ -180,6 +197,10 @@ export function shapeBoxes(v, get) {
   if (id === B.DAYLIGHT) return [[0, 0, 0, 1, 6 * S, 1]];
   if (id === B.TEMPLE_STEP || id === B.STONE_STEP) return [[0, 0, 0, 1, 0.5, 1]];
   if (id === B.ENCH_TABLE) return [[0, 0, 0, 1, 0.75, 1]];
+  if (id === B.CACTUS) return [[S, 0, S, 15 * S, 1, 15 * S]];
+  if (id === B.BAMBOO) return [[6 * S, 0, 6 * S, 10 * S, 1, 10 * S]];
+  if (id === B.LILY_PAD) return [[0, 0, 0, 1, S / 4, 1]];
+  if (id === B.POINTED_DRIPSTONE) return [[4 * S, 0, 4 * S, 12 * S, 1, 12 * S]];
   if (id === B.BREWING_STAND) return [[2 * S, 0, 2 * S, 14 * S, 2 * S, 14 * S], [7 * S, 0, 7 * S, 9 * S, 14 * S, 9 * S]];
   if (id === B.CASTLE_BANNER) return [];
   if (id === B.PORTCULLIS) return [box(floorT(m & 3), [0, 0, 7 * S, 1, 1, 9 * S])];

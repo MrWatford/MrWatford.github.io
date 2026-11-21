@@ -1,6 +1,6 @@
 // Holds the blocks of the world in 16×16 columns ("chunks") and remembers every change the player makes.
 import { B, CHUNK, HEIGHT, idOf, lightOf } from "./blocks.js";
-import { idx, LEGACY_CHUNK_GEN, ENCHANT_GEN } from "./worldgen.js";
+import { idx, LEGACY_CHUNK_GEN, ENCHANT_GEN, BIOME_GEN } from "./worldgen.js";
 
 export const chunkKey = (cx, cz) => cx + "," + cz;
 
@@ -14,6 +14,7 @@ export class World {
     this.entityStore = new Map();  // creatures waiting in unloaded chunks: key → [saved creature]
     this.visited = new Set();      // chunks that already got their starting animals
     this.newGen = new Set();       // (older worlds only) chunks first made with the newest land features
+    this.regions = new Map();      // (older worlds only) Milestone 20: 256 × 256 squares → 1 if they get the new biomes, 0 if not. Saved.
     this.crops = new Set();        // "x,y,z" of crops and saplings that grow over time
     this.editCount = 0;            // bumps on every block change (creatures re-plan their paths)
     this.onLoad = null; this.onUnload = null;
@@ -49,12 +50,30 @@ export class World {
       if (fresh) this.newGen.add(key);
       opts = { cane: fresh };
     }
-    const data = this.gen.generate(cx, cz, opts);
+    if (this.gen.lateFeatures && this.gen.version < BIOME_GEN) opts.biomes = this.biomeRegion(cx, cz);   // Milestone 20, Part C
+    let data = this.gen.generate(cx, cz, opts);
+    if (!(data instanceof Uint32Array)) data = Uint32Array.from(data);   // room for block ids 256 and up (the block limit step)
     if (m) for (const [i, v] of m) data[i] = v;
     c = { cx, cz, key, data, dirty: true, mesh: null };
     this.chunks.set(key, c);
     if (this.onLoad) this.onLoad(c);
     return c;
+  }
+  // Milestone 20, Part E: the biome at a spot, as the land there was actually made (new biomes only where they were allowed)
+  hasNewBiomes(x, z) { return !!this.gen.landBiome && (this.gen.version >= BIOME_GEN || this.regions.get((Math.floor(x / CHUNK) >> 4) + "," + (Math.floor(z / CHUNK) >> 4)) === 1); }
+  biomeAt(x, z) { if (!this.gen.landBiome) return null; const c = this.gen.column(x, z); return this.hasNewBiomes(x, z) ? this.gen.landBiome(c, x, z) : c.biome; }
+  caveBiomeAt(x, z) { return this.hasNewBiomes(x, z) && this.gen.caveBiome ? this.gen.caveBiome(Math.floor(x / CHUNK) * CHUNK + 8, Math.floor(z / CHUNK) * CHUNK + 8) : null; }
+  // Milestone 20, Part C: an older world's square of 16 × 16 chunks gets the new biomes only if nobody has been anywhere in it
+  // (no chunk visited, no block changed). Decided the first time any of its land is made, then remembered forever.
+  biomeRegion(cx, cz) {
+    const rx = cx >> 4, rz = cz >> 4, rk = rx + "," + rz;
+    let d = this.regions.get(rk);
+    if (d === undefined) {
+      d = 1;
+      for (let i = 0; i < 16 && d; i++) for (let j = 0; j < 16; j++) { const k = chunkKey(rx * 16 + i, rz * 16 + j); if (this.visited.has(k) || this.mods.has(k)) { d = 0; break; } }
+      this.regions.set(rk, d);
+    }
+    return d === 1;
   }
   unload(c) { if (this.onUnload) this.onUnload(c); this.chunks.delete(c.key); this.dirtyQueue.delete(c); }
 

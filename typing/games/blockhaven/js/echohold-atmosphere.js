@@ -110,7 +110,7 @@ export function createEchoholdAtmosphere({ THREE, scene, camera, G, emitParticle
     const found = [];
     for (let y = Math.max(1, py - SCAN_DOWN); y <= Math.min(HEIGHT - 2, py + SCAN_UP); y++)
       for (let z = pz - SCAN_R; z <= pz + SCAN_R; z++) for (let x = px - SCAN_R; x <= px + SCAN_R; x++) {
-        const id = w.get(x, y, z) & 255;
+        const id = w.get(x, y, z) & 0xFFFF00FF;
         if (EMIT[id] < 9 && !(COOL[id] && EMIT[id] >= 4)) continue;
         const dx = x - px, dy = y - py, dz = z - pz;
         found.push([dx * dx + dy * dy + dz * dz, x, y, z, id]);
@@ -154,7 +154,7 @@ export function createEchoholdAtmosphere({ THREE, scene, camera, G, emitParticle
       dripT = fx === "high" ? 0.6 : 1.1;
       const x = Math.floor(p.pos.x + (Math.random() - 0.5) * 16), z = Math.floor(p.pos.z + (Math.random() - 0.5) * 16);
       for (let y = Math.floor(p.pos.y) + 2; y < Math.min(HEIGHT - 1, Math.floor(p.pos.y) + 14); y++) {
-        const id = G.world.get(x, y, z) & 255;
+        const id = G.world.get(x, y, z) & 0xFFFF00FF;
         if (id && id !== B.WATER) { emitParticle(x + 0.5, y - 0.05, z + 0.5, 0, -7, 0, 1.6, DRIP, false); break; }
       }
     }

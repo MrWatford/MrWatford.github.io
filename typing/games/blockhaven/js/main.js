@@ -50,6 +50,8 @@ import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
 import * as EN from "./enchanting.js";
 import * as PO from "./potions.js";
+import { treeShape, NEEDS_SQUARE } from "./trees.js";
+import { SPECIAL_BIOMES, BIOME_NAMES } from "./worldgen.js";
 import { nextLeviathanStorm, sandstormStage } from "./sandstorm.js";
 import { StormActivity, stormCallStatus, stormDaytime, severalHostilesNearby, findDuneApproach, STORM_ACTIVITY_GUIDE } from "./leviathan-storm.js";
 import { dunePhase, duneRitualWindow } from "./dune-leviathan.js";
@@ -1786,6 +1788,20 @@ function tickCrops(dt) {
       const soil = w.get(x, y - 1, z), wet = idOf(soil) === B.FARMLAND && (metaOf(soil) & WET);
       if (Math.random() < (wet ? 1 / 12 : 1 / 30)) w.set(x, y, z, make(id, stage + 1));
     } else if (id === B.SAPLING) { if (Math.random() < 1 / 90) growTree(x, y, z, metaOf(v) & 1); }
+    else if (BLOCKS[id]?.tree) { if (Math.random() < 1 / 90) growWood(x, y, z, BLOCKS[id].tree); }   // Milestone 20
+    else if (id === B.CACTUS || id === B.BAMBOO) {   // Milestone 20: cactus up to 3 tall, bamboo up to 12
+      const max = id === B.CACTUS ? 3 : 12; let h = 1; while (h < max && w.id(x, y - h, z) === id) h++;
+      if (h >= max || w.id(x, y + 1, z) !== B.AIR) w.crops.delete(key);
+      else if (Math.random() < (id === B.CACTUS ? 1 / 40 : 1 / 12)) { w.set(x, y + 1, z, id); w.crops.delete(key); w.crops.add(x + "," + (y + 1) + "," + z); }
+    }
+    else if (id === B.CAVE_VINES) {   // Milestone 20: vines grow glow berries, and now and then grow one longer
+      if (!(metaOf(v) & 1) && Math.random() < 1 / 60) w.set(x, y, z, make(B.CAVE_VINES, 1));
+      else if (Math.random() < 1 / 200 && w.id(x, y - 1, z) === B.AIR && w.id(x, y + 4, z) !== B.CAVE_VINES) { w.set(x, y - 1, z, make(B.CAVE_VINES, 0)); w.crops.add(x + "," + (y - 1) + "," + z); }
+    }
+    else if (id === B.COCOA) {   // three sizes; the facing stays
+      const m = metaOf(v), age = (m >> 2) & 3;
+      if (age >= 2) w.crops.delete(key); else if (Math.random() < 1 / 30) w.set(x, y, z, make(B.COCOA, (m & 3) | ((age + 1) << 2)));
+    }
     else if (id === B.EMBER_WART) {   // grows anywhere, slowly, while it sits on Wailing Sand
       const stage = metaOf(v) & 7;
       if (stage >= 7 || w.id(x, y - 1, z) !== B.SOUL_SAND) w.crops.delete(key);
@@ -1827,6 +1843,27 @@ function growTree(x, y, z, birch) {
   w.crops.delete(x + "," + y + "," + z);
   return true;
 }
+
+// Milestone 20, Part B: the six new trees grow from their saplings (shapes in js/trees.js). Dark oak needs 4 saplings in a square.
+function growWood(x, y, z, kind) {
+  const w = G.world, sap = w.id(x, y, z);
+  let bx = x, bz = z;
+  if (NEEDS_SQUARE.has(kind)) {
+    const corner = [[0, 0], [-1, 0], [0, -1], [-1, -1]].find(([ox, oz]) => [[0, 0], [1, 0], [0, 1], [1, 1]].every(([a, b]) => w.id(x + ox + a, y, z + oz + b) === sap));
+    if (!corner) return false;
+    bx = x + corner[0]; bz = z + corner[1];
+  }
+  const shape = treeShape(kind, Math.random);
+  const soft = v => !v || v === sap || BLOCKS[v]?.replaceable || BLOCKS[v]?.drops === "leaves" || v === B.WATER;
+  for (const [dx, dy, dz, , isWood] of shape) if (isWood && !soft(w.id(bx + dx, y + dy, bz + dz))) return false;   // not enough room
+  for (const [dx, dy, dz, v, isWood] of shape) {
+    const id = w.id(bx + dx, y + dy, bz + dz);
+    if (isWood ? soft(id) : (!id || BLOCKS[id]?.replaceable)) w.set(bx + dx, y + dy, bz + dz, v);
+    w.crops.delete((bx + dx) + "," + (y + dy) + "," + (bz + dz));
+  }
+  return true;
+}
+G.growWood = growWood;
 
 const keys = new Set();
 let locked = false, wantLock = false, mouseL = false, mouseR = false;
@@ -2017,6 +2054,7 @@ function makeWorld(dim, reopening = false) {
   for (const k of data.visited || []) w.visited.add(k);
   for (const k of data.crops || []) w.crops.add(k);
   for (const k of data.newGen || []) w.newGen.add(k);
+  for (const [k, v] of data.regions || []) w.regions.set(k, v);   // Milestone 20: which squares got the new biomes
   w.beacons = new Set(data.beacons || []);
   R.attach(w, data.rs);   // the signal engine's timers and comparator outputs
   w.onLoad = c => { if (!G.guest) ents.loadChunk(c); R.chunkLoaded(w, c); };   // a Play Together guest gets no creatures yet (Stage 3)
@@ -2033,7 +2071,7 @@ function dimSnapshot(w) {
   if (w === G.world) R.settle();   // finish any blocks a piston is still sliding
   const old = G.dimData[w.dim] || {};
   if (w.dim === "end") { const dr = ents.list.find(e => e.sp === "dragon" && !e.dead); if (dr) old.wyrmHp = dr.hp; }
-  return { ...old, mods: w.modsToJSON(), containers: [...w.containers].filter(([k]) => !String(k).startsWith("cart:")), entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w), drops: G.drops.map(({ mesh, ...drop }) => drop) };
+  return { ...old, mods: w.modsToJSON(), containers: [...w.containers].filter(([k]) => !String(k).startsWith("cart:")), entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], regions: [...w.regions], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w), drops: G.drops.map(({ mesh, ...drop }) => drop) };
 }
 // Build (and draw) the land around a spot, with a progress bar
 async function loadArea(x, z, label) {
@@ -2156,7 +2194,7 @@ function placeSafely(p, x, z) {
   for (let ring = 0; ring < 8; ring++) for (let dz = -ring; dz <= ring; dz++) for (let dx = -ring; dx <= ring; dx++) {
     if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
     const bx = Math.floor(x) + dx, bz = Math.floor(z) + dz, y = w.surfaceY(bx, bz), top = w.id(bx, y, bz);
-    if (top === B.WATER || top === B.LEAVES || top === B.BIRCH_LEAVES || top === B.LOG || top === B.BIRCH_LOG) continue;
+    if (top === B.WATER || top === B.LEAVES || top === B.BIRCH_LEAVES || top === B.LOG || top === B.BIRCH_LOG || BLOCKS[top]?.drops === "leaves" || BLOCKS[top]?.log) continue;
     if (SOLID[w.id(bx, y + 1, bz)] || SOLID[w.id(bx, y + 2, bz)]) continue;
     p.pos.x = bx + 0.5; p.pos.z = bz + 0.5; p.pos.y = y + 1; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null;
     return;
@@ -2382,7 +2420,7 @@ const MATERIAL = id => {
   const d = BLOCKS[id];
   if (!d) return "stone";
   if ([B.GLASS].includes(id)) return "glass";
-  if ([B.LEAVES, B.BIRCH_LEAVES, B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW].includes(id)) return "leaf";
+  if ([B.LEAVES, B.BIRCH_LEAVES, B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW].includes(id) || d.drops === "leaves" || d.tree) return "leaf";
   if ([B.SAND, B.GRAVEL, B.SNOW].includes(id)) return "sand";
   if (d.tool === "axe") return "wood";
   if (d.tool === "shovel" || id === B.CLAY) return "soft";
@@ -2403,7 +2441,7 @@ function mineInfo(v) {
   if (G.player.headInWater && !EN.lvl(G.inv.slots[36], "aqua_affinity")) time *= 5;   // digging underwater is slow, like Java (Aqua Affinity fixes it)
   return { time: Math.max(0.05, time), drops: tierOK };
 }
-const id_isLeaves = id => id === B.LEAVES || id === B.BIRCH_LEAVES;
+const id_isLeaves = id => BLOCKS[id]?.drops === "leaves";
 const TIER_NAME = ["", "wooden", "stone", "iron"];
 
 function updateMining(dt, hit) {
@@ -2484,14 +2522,15 @@ function breakBlock(x, y, z, drops, quiet) {
   } else {
     // simple water rule: a hole next to water fills with water
     const wet = water(x, y + 1, z) || water(x + 1, y, z) || water(x - 1, y, z) || water(x, y, z + 1) || water(x, y, z - 1);
-    w.set(x, y, z, wet || id === B.FROSTED_ICE ? B.WATER : B.AIR);   // Frosted Ice turns back into water
+    const silkIce = id === B.ICE && heldTool() && EN.lvl(heldTool().stack, "silk_touch");
+    w.set(x, y, z, wet || id === B.FROSTED_ICE || (id === B.ICE && !silkIce && !G.creative) ? B.WATER : B.AIR);   // broken ice melts into water   // Frosted Ice turns back into water
   }
   if (!quiet) { Sound.breakBlock(MATERIAL(id)); burst(x, y, z, v, 16); }
   if (!G.creative && drops) {
     let drop = d.drops;
     const r = Math.random();
-    if (drop === "leaves") drop = r < 0.06 ? B.SAPLING : r < 0.13 && id === B.LEAVES ? I.APPLE : 0;
-    if (heldTool() && heldTool().type === "shears" && (id === B.LEAVES || id === B.BIRCH_LEAVES)) drop = id;
+    if (drop === "leaves") drop = r < (id === B.JUNGLE_LEAVES ? 0.025 : 0.06) ? (d.saplingOf || B.SAPLING) : r < 0.13 && (id === B.LEAVES || id === B.DARK_OAK_LEAVES) ? I.APPLE : 0;
+    if (heldTool() && heldTool().type === "shears" && d.drops === "leaves") drop = id;
     if (id === B.TALL_GRASS) drop = r < 0.12 ? I.SEEDS : r < 0.14 ? I.CARROT : 0;
     if (id === B.GRAVEL && r < 0.1) drop = I.FLINT;
     if (drop === "shine") drop = [I.SHINE_DUST, 2 + Math.floor(Math.random() * 3)];
@@ -2501,6 +2540,10 @@ function breakBlock(x, y, z, drops, quiet) {
     if (drop === "goldnuggets") drop = [I.GOLD_NUGGET, 2 + Math.floor(Math.random() * 4)];
     if (drop === "wart") drop = [I.WART, (metaOf(v) & 7) >= 7 ? 2 + Math.floor(Math.random() * 3) : 1];
     if (drop === "chorus") drop = Math.random() < 0.6 ? I.CHORUS_FRUIT : 0;
+    if (drop === "vines") drop = metaOf(v) & 1 ? I.GLOW_BERRIES : 0;   // Milestone 20, Part D
+    if (drop === "cocoa") drop = [I.COCOA_BEANS, ((metaOf(v) >> 2) & 3) >= 2 ? 2 + Math.floor(Math.random() * 2) : 1];   // Milestone 20
+    if (drop === "deadbush") drop = [I.STICK, Math.floor(Math.random() * 3)];
+    if (drop === "bigmushroom") drop = Math.random() < 0.25 ? (id === B.RED_MUSHROOM_BLOCK ? B.RED_MUSHROOM : B.BROWN_MUSHROOM) : 0;
     if (drop === "melon") drop = [I.MELON_SLICE, 3 + Math.floor(Math.random() * 5)];   // Milestone 16
     if (drop === "berries") { const st = metaOf(v) & 3; drop = [I.BERRIES, st === 3 ? 2 + Math.floor(Math.random() * 2) : 1]; }
     if (drop === "crop") {
@@ -2524,13 +2567,15 @@ function breakBlock(x, y, z, drops, quiet) {
   if (G.guest) w.containers.delete(key);   // Play Together: the host's world spills the real contents
   else if (id === B.SHELL_BOX) { spawnDrop(B.SHELL_BOX, 1, x + 0.5, y + 0.5, z + 0.5, { id: B.SHELL_BOX, n: 1, contents: box ? box.slots.map(s => s && { ...s }) : null }); w.containers.delete(key); }
   else if (box) { for (const s of box.slots) if (s) spawnDrop(s.id, s.n, x + 0.5, y + 0.5, z + 0.5, s); w.containers.delete(key); }
+  // things hanging underneath fall too (Milestone 20: cave vines, spore blossoms, stalactites)
+  { const hb = w.get(x, y - 1, z), hid = idOf(hb); if (hid === B.CAVE_VINES || hid === B.SPORE_BLOSSOM || (hid === B.POINTED_DRIPSTONE && (metaOf(hb) & 1))) breakBlock(x, y - 1, z, true, quiet); }
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
   if ((id === B.BEE_NEST || id === B.BEEHIVE) && !G.creative && !torchNear(x, y, z)) { ents.angerBees(x, y, z); UI.toast("You broke the bees' home, and now they're angry!", "bad"); }
-  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH, B.SUGAR_CANE, B.MELON_STEM].includes(aid) || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH, B.SUGAR_CANE, B.MELON_STEM, B.SNOW_LAYER, B.PINK_PETALS, B.DEAD_BUSH, B.CACTUS, B.BAMBOO, B.MOSS_CARPET].includes(aid) || (aid === B.POINTED_DRIPSTONE && !(metaOf(above) & 1)) || BLOCKS[aid]?.tree || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
   if (aid === B.FIRE) w.set(x, y + 1, z, B.AIR);
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
-  if (id === B.LOG || id === B.BIRCH_LOG) tipDone("chop");
+  if (id === B.LOG || id === B.BIRCH_LOG || d.log) tipDone("chop");
   G.hudDirty = true;
 }
 
@@ -2652,6 +2697,21 @@ function potionOnCreature(e, st, mul, by, arrow) {
     const dur = f.dur * (arrow ? mul : 1);
     e.fx ||= {}; e.fx[f.key] = Math.max(e.fx[f.key] || 0, dur);
     if (by === "player" && f.key === "poison") e.angry = Math.max(e.angry || 0, 20);
+  }
+}
+// Milestone 20, Part E: which biome you're in; the first visit to a new one gets a message (and counts for achievements)
+let biomeT = 0;
+function trackBiome(dt) {
+  if ((biomeT -= dt) > 0 || G.dim !== "overworld" || !G.world || !G.world.biomeAt || G.spectator) return;
+  biomeT = 1;
+  const p = G.player, x = Math.floor(p.pos.x), z = Math.floor(p.pos.z), b = G.world.biomeAt(x, z), seen = G.story.biomes ||= [];
+  G.currentBiome = b;
+  if (!b) return;
+  if (!seen.includes(b)) { seen.push(b); if (SPECIAL_BIOMES.has(b) || b === "deep_ocean") { UI.toast(`You found: ${BIOME_NAMES[b] || b}!`, "good"); Sound.levelUp(); } }
+  G.adv("biome", b);
+  if (p.pos.y < G.world.surfaceY(x, z) - 8) {
+    const cb = G.world.caveBiomeAt(x, z);
+    if (cb) { G.adv("cavebiome", cb); if (!seen.includes(cb)) { seen.push(cb); UI.toast(`You found: ${cb === "lush_caves" ? "Lush Caves" : "Dripstone Caves"}!`, "good"); Sound.levelUp(); } }
   }
 }
 function updatePotionClouds(dt) {
@@ -2864,6 +2924,22 @@ function useWith(offhand) {
   if (slot.id === I.CINDER_EYE && !(hit && idOf(hit.v) === B.CINDER_ALTAR)) { throwCinderEye(); return true; }
   if (slot.id === I.EGG) { throwItem("egg"); return true; }
   if (slot.id === I.SPLASH_POTION || slot.id === I.LINGERING_POTION) { throwPotion(slot); return true; }   // Milestone 16
+  if (slot.id === B.LILY_PAD) {   // Milestone 20: lily pads sit on still water
+    const p = G.player, wh = raycast(G.world, { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z }, lookDir(), REACH, false);
+    if (wh && idOf(wh.v) === B.WATER && !w.id(wh.x, wh.y + 1, wh.z)) { w.set(wh.x, wh.y + 1, wh.z, B.LILY_PAD); take(); Sound.place("leaf"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; }
+    if (!offhand) UI.toast("Lily Pads go on top of water.", "bad"); return false;
+  }
+  if (slot.id === I.GLOW_BERRIES && hit && hit.ny === -1 && (OPAQUE[idOf(hit.v)] || idOf(hit.v) === B.CAVE_VINES) && !w.id(hit.x, hit.y - 1, hit.z)) {   // Milestone 20: plant cave vines under a block
+    w.set(hit.x, hit.y - 1, hit.z, make(B.CAVE_VINES, 0)); w.crops.add(hit.x + "," + (hit.y - 1) + "," + hit.z); take(); Sound.place("leaf"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return true;
+  }
+  if (slot.id === I.COCOA_BEANS && hit && w.id(hit.x, hit.y, hit.z) === B.JUNGLE_LOG && hit.ny === 0) {   // plant cocoa on the side of a jungle log
+    const x = hit.x + hit.nx, z = hit.z + hit.nz, f = DIR.findIndex(([dx, dz]) => dx === -hit.nx && dz === -hit.nz);
+    if (!w.id(x, hit.y, z) && f >= 0) { w.set(x, hit.y, z, make(B.COCOA, f)); w.crops.add(x + "," + hit.y + "," + z); take(); Sound.place("wood"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; }
+  }
+  if (slot.id === I.COCOA_BEANS) { if (!offhand) UI.toast("Plant Cocoa Beans on the side of a Jungle Log.", "bad"); return false; }
+  if (slot.id === I.POTION && slot.pot === "water" && hit && (idOf(hit.v) === B.DIRT || idOf(hit.v) === B.GRASS)) {   // a water bottle turns dirt into mud
+    w.set(hit.x, hit.y, hit.z, B.MUD); if (!G.creative) swapHeld(I.BOTTLE); Sound.splash(); G.swing = 0.01; return true;
+  }
   if (slot.id === I.BOTTLE && clouds.some(c => Math.hypot(G.player.pos.x - c.x, G.player.pos.z - c.z) < 3.5 && Math.abs(G.player.pos.y - c.y) < 3)) {   // Milestone 16: bottle the Wyrm's breath
     swapHeld(I.DRAGON_BREATH); Sound.potionBreak(0); G.swing = 0.01; G.adv("breath"); UI.toast("You bottled the Wyrm's breath!", "good"); return true;
   }
@@ -2943,6 +3019,7 @@ function useWith(offhand) {
   if (here && here !== B.WATER && !BLOCKS[here].replaceable) return false;
   const id = slot.id === I.SPARKDUST ? B.SPARK_DUST : slot.id === I.STRING ? B.TRIPWIRE : slot.id, d = BLOCKS[id];
   let v = make(id);
+  if (id === B.POINTED_DRIPSTONE && hit.ny === -1 && !hitDef.replaceable) v = make(id, 1);   // Milestone 20: placed on a ceiling, it hangs down
   if (d.front || d.faces) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces, chests, and signs face you
   // Sparkworks parts: which way they face or what they hang on depends on where you clicked
   { const e = G.player, dir = lookDir(), fy = e.pos.y + e.eye + dir.y * hit.dist - hit.y;
@@ -2954,8 +3031,22 @@ function useWith(offhand) {
     if (below !== B.SUGAR_CANE && !([B.GRASS, B.DIRT, B.SAND].includes(below) && wet)) { UI.toast("Sugar Cane grows on sand, dirt, or grass right next to water.", "bad"); Sound.error(); return true; }
     w.crops.add(x + "," + y + "," + z);
   }
-  if (d.shape === "cross" && id !== B.SUGAR_CANE && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return true; }
-  if (id === B.SAPLING) w.crops.add(x + "," + y + "," + z);
+  { // Milestone 20, Part C: where the new plants can go
+    const below = w.id(x, y - 1, z), sandy = [B.SAND, B.RED_SAND, B.TERRACOTTA, B.ORANGE_TERRACOTTA, B.YELLOW_TERRACOTTA, B.WHITE_TERRACOTTA, B.RED_TERRACOTTA, B.BROWN_TERRACOTTA, B.LIGHT_GRAY_TERRACOTTA];
+    const sideSolid = () => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => SOLID[w.id(x + dx, y, z + dz)]);
+    const rule = id === B.CACTUS ? (below === B.CACTUS || below === B.SAND || below === B.RED_SAND) && !sideSolid() ? null : "Cactus grows on sand, with nothing right beside it."
+      : id === B.BAMBOO ? [B.GRASS, B.DIRT, B.SAND, B.RED_SAND, B.MUD, B.BAMBOO, B.MYCELIUM].includes(below) ? null : "Bamboo grows on grass, dirt, sand, or mud."
+      : id === B.DEAD_BUSH ? [...sandy, B.DIRT, B.GRASS].includes(below) ? null : "A Dead Bush needs sand, terracotta, or dirt underneath."
+      : (id === B.BROWN_MUSHROOM || id === B.RED_MUSHROOM) ? OPAQUE[below] ? null : "Mushrooms need a solid block underneath."
+      : id === B.MANGROVE_SAPLING ? [B.GRASS, B.DIRT, B.FARMLAND, B.MUD, B.CLAY].includes(below) ? null : "A Mangrove Propagule needs grass, dirt, or mud underneath."
+      : id === B.SPORE_BLOSSOM ? OPAQUE[w.id(x, y + 1, z)] ? null : "A Spore Blossom hangs from the underside of a block."
+      : (id === B.SNOW_LAYER || id === B.PINK_PETALS) ? SOLID[below] && OPAQUE[below] ? null : "That needs a solid block underneath."
+      : undefined;
+    if (typeof rule === "string") { UI.toast(rule, "bad"); Sound.error(); return true; }
+    if (id === B.CACTUS || id === B.BAMBOO) w.crops.add(x + "," + y + "," + z);
+  }
+  if (d.shape === "cross" && id !== B.SUGAR_CANE && ![B.DEAD_BUSH, B.BROWN_MUSHROOM, B.RED_MUSHROOM, B.MANGROVE_SAPLING, B.SPORE_BLOSSOM].includes(id) && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return true; }
+  if (id === B.SAPLING || (d.tree && !d.tree.endsWith("mushroom"))) w.crops.add(x + "," + y + "," + z);   // (mushrooms only grow big with Bone Meal)
   if (id === B.WATER && G.world.gen.isNether()) { puff(x + 0.5, y + 0.5, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); return true; }
   if (id === B.LAVA || id === B.WATER) { placeLiquid(id, x, y, z); take(); G.hudDirty = true; return true; }
   if ((id === B.TORCH || id === B.WARD_CANDLE) && !OPAQUE[idOf(hit.v)]) { Sound.error(); return true; }
@@ -3000,7 +3091,8 @@ function finishEat() {
   if (sd.sideEffect === "golden") { addEffect("regen", 5, 2); addEffect("absorb", 120, 1); UI.toast("A Golden Apple! You feel strong.", "good"); }
   slot.n--; if (!slot.n) G.inv.slots[e.slot] = null;
   if (sd.sideEffect === "cure") { G.useHand = e.slot; swapHeld(I.BUCKET); G.useHand = null; }
-  if ((sd.sideEffect === "honey" || sd.sideEffect === "potion") && G.inv.add(I.BOTTLE, 1)) G.dropItem(I.BOTTLE, 1);   // you keep the empty bottle
+  if ((sd.sideEffect === "honey" || sd.sideEffect === "potion") && G.inv.add(I.BOTTLE, 1)) G.dropItem(I.BOTTLE, 1);
+  if (sd.sideEffect === "bowl" && G.inv.add(I.BOWL, 1)) G.dropItem(I.BOWL, 1);   // Milestone 20: you keep the bowl   // you keep the empty bottle
   Sound.eat(); G.swing = 0.01; G.hudDirty = true; heldId = -1;
   if (sd.sideEffect === "potion") { G.adv("drink", slot && slot.pot); if (slot && slot.mod === "strong") G.adv("drinkStrong"); } else G.adv("eat", e.id);
 }
@@ -3055,7 +3147,19 @@ function useBoneMeal(hit, slot) {
   let used = false;
   if (id === B.WHEAT || id === B.CARROTS) { const st = metaOf(hit.v) & 7; if (st < 7) { w.set(hit.x, hit.y, hit.z, make(id, Math.min(7, st + 2 + Math.floor(Math.random() * 3)))); used = true; } }
   else if (id === B.SAPLING) { used = true; if (Math.random() < 0.45) growTree(hit.x, hit.y, hit.z, metaOf(hit.v) & 1); }
+  else if (BLOCKS[id]?.tree) { used = true; if (Math.random() < 0.45) growWood(hit.x, hit.y, hit.z, BLOCKS[id].tree); }
   else if (id === B.BERRY_BUSH && (metaOf(hit.v) & 3) < 3) { w.set(hit.x, hit.y, hit.z, make(B.BERRY_BUSH, (metaOf(hit.v) & 3) + 1)); used = true; }
+  else if (id === B.MOSS_BLOCK && hit.ny === 1) {   // Milestone 20: moss spreads over nearby stone and dirt, with carpets and azaleas on top
+    used = true;
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = -1; dy <= 1; dy++) {
+      if (Math.hypot(dx, dz) > 3.2 || Math.random() < 0.3) continue;
+      const x = hit.x + dx, y = hit.y + dy, z = hit.z + dz, g = w.id(x, y, z);
+      if ([B.STONE, B.DIRT, B.GRASS, B.COBBLE, B.MOSS_BLOCK].includes(g) && !w.id(x, y + 1, z)) {
+        if (g !== B.MOSS_BLOCK) w.set(x, y, z, B.MOSS_BLOCK);
+        const q = Math.random(); if (q < 0.3) w.set(x, y + 1, z, B.MOSS_CARPET); else if (q < 0.36) w.set(x, y + 1, z, B.AZALEA); else if (q < 0.38) w.set(x, y + 1, z, B.FLOWERING_AZALEA);
+      }
+    }
+  }
   else if (id === B.GRASS && hit.ny === 1) {
     used = true;
     for (let i = 0; i < 12; i++) { const x = hit.x + Math.floor(Math.random() * 7) - 3, z = hit.z + Math.floor(Math.random() * 7) - 3; if (w.id(x, hit.y, z) === B.GRASS && !w.id(x, hit.y + 1, z)) w.set(x, hit.y + 1, z, Math.random() < 0.8 ? B.TALL_GRASS : Math.random() < 0.5 ? B.FLOWER_RED : B.FLOWER_YELLOW); }
@@ -3236,7 +3340,11 @@ function interact(hit, kind) {
   if (kind === "clever") { CD.useLever(hit); return; }
   if (kind === "secretshelf") { CD.useShelf(hit); return; }
   if (kind === "watchfire") { CD.useWatchfire(hit); return; }
-  if (kind === "cauldron") { useCauldron(hit); return; }   // Milestone 16
+  if (kind === "cauldron") { useCauldron(hit); return; }
+  if (kind === "berries_vine") {   // Milestone 20: pick glow berries from a ripe cave vine
+    if (!(metaOf(hit.v) & 1)) return;
+    w.set(hit.x, hit.y, hit.z, make(B.CAVE_VINES, 0)); w.crops.add(key); if (G.inv.add(I.GLOW_BERRIES, 1)) spawnDrop(I.GLOW_BERRIES, 1, hit.x + 0.5, hit.y + 0.5, hit.z + 0.5); Sound.pickup(); G.hudDirty = true; return;
+  }   // Milestone 16
   if (kind === "brew") { if (!w.containers.has(key)) w.containers.set(key, { type: "brew", slots: [null, null, null, null, null], fuel: 0, prog: 0 }); Sound.door(true); openPanel("brew", key); return; }
   if (kind === "anvil" || kind === "grindstone") { const t = kind === "anvil" ? "anvil" : "grind"; if (!w.containers.has(key)) w.containers.set(key, { type: t, slots: [null, null] }); Sound.door(true); openPanel(t, key); return; }   // Milestone 15, Part B
   if (kind === "enchant") { if (!w.containers.has(key)) w.containers.set(key, { type: "enchant", slots: [null, null] }); Sound.pageTurn(); openPanel("enchant", key); return; }   // Milestone 15
@@ -3823,7 +3931,7 @@ G.craft = (recipe, many) => {
   if (!made) { Sound.error(); UI.toast("You don't have enough materials for that.", "bad"); return; }
   Sound.craft(); G.adv("craft", recipe.out[0]);
   UI.toast(`Made ${itemDef(recipe.out[0]).name}${recipe.out[1] * made > 1 ? " ×" + recipe.out[1] * made : ""}!`, "good");
-  if (recipe.out[0] === B.PLANKS || recipe.out[0] === B.BIRCH_PLANKS) tipDone("craft");
+  if (TAGS.planks.includes(recipe.out[0])) tipDone("craft");
   G.hudDirty = true; UI.refreshPanel();
 };
 G.inventoryChanged = () => { G.hudDirty = true; heldId = -1; };
@@ -4400,6 +4508,10 @@ function survival(dt) {
   if (p.inLava && !G.effects.fireRes) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true, "fire"); } }
   const w = G.world, fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y), fz = Math.floor(p.pos.z);
   if (w.id(fx, fy, fz) === B.FIRE || w.id(fx, fy + 1, fz) === B.FIRE) addEffect("fire", 4);
+  if ((G.cactusT = (G.cactusT || 0) - dt) <= 0) {   // Milestone 20: touching a cactus hurts
+    const touch = [[-0.42, 0], [0.42, 0], [0, -0.42], [0, 0.42]].some(([ox, oz]) => [0.2, 1.2].some(oy => w.id(Math.floor(p.pos.x + ox), Math.floor(p.pos.y + oy), Math.floor(p.pos.z + oz)) === B.CACTUS)) || w.id(Math.floor(p.pos.x), Math.floor(p.pos.y - 0.05), Math.floor(p.pos.z)) === B.CACTUS;
+    if (touch) { G.cactusT = 0.5; hurt(1, "Ouch! Cactus spines are sharp.", null, false, "cactus"); }
+  }
   if (p.onGround && w.id(fx, Math.floor(p.pos.y - 0.1), fz) === B.MAGMA && !p.crouch && !EN.lvl(G.inv.slots[39], "frost_walker") && (G.magmaT = (G.magmaT || 0) + dt) > 1) { G.magmaT = 0; hurt(1, "Magma blocks are hot! Crouch (C) to walk on them safely.", null, true, "fire"); }
   const diff = G.wset.difficulty;
   if (diff === "peaceful" && (G.peaceT = (G.peaceT || 0) + dt) > 2) { G.peaceT = 0; if (p.health < 20) p.health++; if (p.hunger < 20) p.hunger++; G.hudDirty = true; }
@@ -6271,7 +6383,9 @@ function loop(now) {
       const wasWater = p.inWater;
       const res = p.step(G.world, p.flying ? { ...input, crouch: false } : input, 1 / 60, G.creative);
       const fall = (G.riding ? res.fall - 3 : res.fall) - (G.effects.jump ? G.elv.jump || 1 : 0);   // Jump Boost softens landings   // a Trotter's legs soak up some of a fall
-      if (fall > 3.5) hurt(Math.floor(fall - 3), "That was a long fall! Build stairs or use water to land safely.", null, false, "fall");
+      const spike = fall > 2 && idOf(G.world.get(Math.floor(p.pos.x), Math.floor(p.pos.y - 0.05), Math.floor(p.pos.z))) === B.POINTED_DRIPSTONE;   // Milestone 20: landing on a stalagmite hurts double
+      if (spike) hurt(Math.max(1, Math.floor(fall - 2) * 2), "You landed on pointed dripstone. Ouch!", null, false, "fall");
+      else if (fall > 3.5) hurt(Math.floor(fall - 3), "That was a long fall! Build stairs or use water to land safely.", null, false, "fall");
       if (res.crash > 10) hurt(Math.round((res.crash - 10) * 0.7), "You glided into a wall! Slow down by looking up before you land.", null, true);
       if (!wasWater && p.inWater && p.vel.y < -4) Sound.splash();
       if (G.dim === "end" && p.pos.y < -4) {   // the void below the Hollow
@@ -6308,7 +6422,7 @@ function loop(now) {
       R.tick(dt);
       updateFires(dt);
     }
-    updateClouds(dt); updatePotionClouds(dt);
+    updateClouds(dt); updatePotionClouds(dt); trackBiome(dt);
     if (G.dim === "end" && !G.guest) { ensureBoss(); tickWyrmSummon(dt); }
     if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // Play Together: the host leads the way through portals
     if (!G.guest) { tickCinder(dt); F.tick(dt); MU.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }

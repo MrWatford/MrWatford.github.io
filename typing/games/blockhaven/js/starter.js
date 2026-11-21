@@ -8,7 +8,7 @@ import { B, I, CHUNK, HEIGHT, SEA, make, idOf, itemDef, OPEN, TOP, HEAD, WET } f
 import { newStack, OFF } from "./inventory.js";
 import { hash3 } from "./noise.js";
 import { stonehavenDestination } from "./stonehaven.js";
-import { Generator } from "./worldgen.js";
+import { Generator, BIOME_GEN } from "./worldgen.js";
 import { LEVIATHAN_MAP_TYPES, leviathanDestinations } from "./leviathan-navigation.js";
 import { isLostWorldDimension } from "./lost-world-regions.js";
 import { lostWorldWaypoint } from "./lost-world-map.js";
@@ -470,7 +470,8 @@ export function initStarter(api) {
     const visibleKinds = new Set(destinations().map(d => d.kind));
     const legend = ORDER.filter(k => (!LEVIATHAN_MAP_TYPES[k] && k !== "stonehaven") || visibleKinds.has(k)).map(k => `<span><canvas class="xm-ico" data-ico="${k}" width="22" height="22"></canvas>${TYPES[k].label}</span>`).join("") +
       `<span><canvas class="xm-ico" data-ico="you" width="22" height="22"></canvas>You (arrow = facing)</span><span><canvas class="xm-ico" data-ico="shore" width="22" height="22"></canvas>Boat launch (shore)</span><span><i class="xm-dash"></i>Direction only, not a path</span>` +
-      `<span><i class="xm-sw" style="background:#7cbd56"></i>Grass</span><span><i class="xm-sw" style="background:#3f8a2c"></i>Forest</span><span><i class="xm-sw" style="background:#e2d39b"></i>Sand</span><span><i class="xm-sw" style="background:#2f62b8"></i>Water</span><span><i class="xm-sw" style="background:#96988c"></i>Mountain</span><span><i class="xm-sw" style="background:#f2f2f2"></i>Snow</span>`;
+      `<span><i class="xm-sw" style="background:#7cbd56"></i>Grass</span><span><i class="xm-sw" style="background:#3f8a2c"></i>Forest</span><span><i class="xm-sw" style="background:#e2d39b"></i>Sand</span><span><i class="xm-sw" style="background:#2f62b8"></i>Water</span><span><i class="xm-sw" style="background:#96988c"></i>Mountain</span><span><i class="xm-sw" style="background:#f2f2f2"></i>Snow</span>` +
+      (surf().version >= BIOME_GEN || G.world?.regions?.size ? [["#3e6e4a", "Taiga"], ["#2e9628", "Jungle"], ["#b0ac58", "Savanna"], ["#285a1e", "Dark Forest"], ["#506e46", "Swamp"], ["#c46630", "Badlands"], ["#eca0c4", "Cherry Grove"], ["#826e82", "Mushroom Fields"]].map(([c, n]) => `<span><i class="xm-sw" style="background:${c}"></i>${n}</span>`).join("") : "");   // Milestone 20
     return `<div class="inv-card xmap"><h3>Explorer's Map <span class="note" style="color:#444">M or Esc to close</span></h3>
       <div class="xm-body">
         <div class="xm-left"><div class="xm-wrap"><canvas id="xmCanvas" width="480" height="480"></canvas>
@@ -575,9 +576,16 @@ export function initStarter(api) {
   }
   // ----- drawing -----
   const colCache = new Map();
+  // Milestone 20: the map shows the new biomes in their own colors (where the land really has them)
+  function newBiomesHere(g, x, z) {
+    if (!g.landBiome) return false;
+    if (g.version >= BIOME_GEN) return true;
+    const regs = G.dim === "overworld" && G.world ? G.world.regions : new Map(G.dimData?.overworld?.regions || []);
+    return regs.get((Math.floor(x / 16) >> 4) + "," + (Math.floor(z / 16) >> 4)) === 1;
+  }
   function columnAt(x, z) {
     const k = x + "," + z; let c = colCache.get(k);
-    if (!c) { const q = surf().column(x, z); c = { h: q.h, b: q.biome }; if (colCache.size > 60000) colCache.clear(); colCache.set(k, c); }
+    if (!c) { const g = surf(), q = g.column(x, z); c = { h: q.h, b: newBiomesHere(g, x, z) ? g.landBiome(q, x, z) : q.biome }; if (colCache.size > 60000) colCache.clear(); colCache.set(k, c); }
     return c;
   }
   let toPx = () => ({ x: 0, y: 0 });
@@ -672,6 +680,15 @@ export function initStarter(api) {
     else if (c.b === "sandy" || c.h <= SEA + 1) base = [226, 211, 155];
     else if (c.b === "forest") base = [63, 138, 44];
     else if (c.b === "birch") base = [106, 168, 74];
+    else if (c.b === "snowy_plains" || c.b === "frozen_ocean") base = [232, 238, 242];   // Milestone 20, Part E
+    else if (c.b === "taiga") base = [62, 110, 74];
+    else if (c.b === "jungle") base = [46, 150, 40];
+    else if (c.b === "savanna") base = [176, 172, 88];
+    else if (c.b === "dark_forest") base = [40, 90, 30];
+    else if (c.b === "swamp") base = [80, 110, 70];
+    else if (c.b === "badlands") base = [196, 102, 48];
+    else if (c.b === "cherry_grove") base = [236, 160, 196];
+    else if (c.b === "mushroom_fields") base = [130, 110, 130];
     else base = [124, 189, 86];
     const k = Math.max(0.72, Math.min(1.12, 1 + Math.max(-0.2, Math.min(0.2, slope * 0.06)) - (c.h - SEA - 8) * 0.004));   // higher ground a little darker, slopes shaded
     return `rgb(${base.map(v => Math.max(0, Math.min(255, Math.round(v * k)))).join(",")})`;

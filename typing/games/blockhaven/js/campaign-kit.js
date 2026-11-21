@@ -16,7 +16,7 @@ export function makeKit(size, g, rot = 0) {
   const inside = (X, y, Z) => X >= -C && Z >= -C && X < C && Z < C && y >= 1 && y < HEIGHT;
   // a quarter turn maps (X, Z) to (-Z - 1, X) on the cell grid (so the square stays in place) and facing f to (f + 3) % 4
   const rp = (X, Z) => { for (let k = 0; k < rot; k++) [X, Z] = [-Z - 1, X]; return [X, Z]; };
-  const rf = v => { if (!rot || v === KEEP || !FACED.has(v & 255)) return v; const f = (v >> 8) & 3; return (v & ~(3 << 8)) | (((f + 3 * rot) % 4) << 8); };
+  const rf = v => { if (!rot || v === KEEP || !FACED.has(v & 0xFFFF00FF)) return v; const f = (v >> 8) & 3; return (v & ~(3 << 8)) | (((f + 3 * rot) % 4) << 8); };
   const K = { S, C, g, cells, info, inside, rp };
   K.set = (X, y, Z, v) => { [X, Z] = rp(X, Z); if (inside(X, y, Z)) cells[(C + X) + (C + Z) * S + y * S * S] = rf(v); };
   K.get = (X, y, Z) => { [X, Z] = rp(X, Z); return inside(X, y, Z) ? cells[(C + X) + (C + Z) * S + y * S * S] : KEEP; };

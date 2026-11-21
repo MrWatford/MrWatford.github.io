@@ -293,12 +293,12 @@ export function monumentApron(built, cx, cz) {
       const i = gx + gz * N, d = F.dist[i]; if (d > REACH) continue;
       if (d === 0) {   // the temple itself; only the buried stair ends under the sand get touched (grass on them turns to sand)
         if (F.top[i] >= M.ground) continue;
-        for (let y = HEIGHT - 2; y > F.top[i]; y--) { const id = data[idx(lx, y, lz)] & 255; if (GROUND.has(id)) { if (id === B.GRASS || id === B.DIRT) data[idx(lx, y, lz)] = B.SAND; const a = data[idx(lx, y + 1, lz)] & 255; if (a === B.FLOWER_RED || a === B.FLOWER_YELLOW || a === B.SAPLING) data[idx(lx, y + 1, lz)] = B.AIR; break; } }
+        for (let y = HEIGHT - 2; y > F.top[i]; y--) { const id = data[idx(lx, y, lz)] & 0xFFFF00FF; if (GROUND.has(id)) { if (id === B.GRASS || id === B.DIRT) data[idx(lx, y, lz)] = B.SAND; const a = data[idx(lx, y + 1, lz)] & 0xFFFF00FF; if (a === B.FLOWER_RED || a === B.FLOWER_YELLOW || a === B.SAPLING) data[idx(lx, y + 1, lz)] = B.AIR; break; } }
         continue;
       }
       // the ground here right now (trees and water don't count)
       let yT = 0, water = false;
-      for (let y = HEIGHT - 2; y > 0; y--) { const id = data[idx(lx, y, lz)] & 255; if (id === B.WATER) water = true; if (GROUND.has(id)) { yT = y; break; } }
+      for (let y = HEIGHT - 2; y > 0; y--) { const id = data[idx(lx, y, lz)] & 0xFFFF00FF; if (id === B.WATER) water = true; if (GROUND.has(id)) { yT = y; break; } }
       if (!yT) continue;
       const n = F.near[i], nTop = F.top[n], r = hash(x, z, 3);
       let g0 = nTop;
@@ -318,24 +318,24 @@ export function monumentApron(built, cx, cz) {
         continue;
       }
       // past the slope: trees close to it are cleared, and the ground turns from sand to grass in a patchy edge
-      if (d <= A.slope + A.treeClear) for (let y = yT + 1; y <= Math.min(HEIGHT - 2, yT + 14); y++) { const id = data[idx(lx, y, lz)] & 255; if (PLANT.has(id)) data[idx(lx, y, lz)] = B.AIR; }
+      if (d <= A.slope + A.treeClear) for (let y = yT + 1; y <= Math.min(HEIGHT - 2, yT + 14); y++) { const id = data[idx(lx, y, lz)] & 0xFFFF00FF; if (PLANT.has(id)) data[idx(lx, y, lz)] = B.AIR; }
       else if (d <= A.slope + A.treeClear + 4) {   // leaves left hanging by a tree that was cleared (no trunk nearby in this chunk) go too
         for (let y = yT + 1; y <= Math.min(HEIGHT - 2, yT + 14); y++) {
-          const id = data[idx(lx, y, lz)] & 255; if (id !== B.LEAVES && id !== B.BIRCH_LEAVES) continue;
+          const id = data[idx(lx, y, lz)] & 0xFFFF00FF; if (id !== B.LEAVES && id !== B.BIRCH_LEAVES) continue;
           let trunk = false, edge = false;
           for (let ax = -3; ax <= 3 && !trunk; ax++) for (let az = -3; az <= 3 && !trunk; az++) {
             const qx = lx + ax, qz = lz + az; if (qx < 0 || qz < 0 || qx > 15 || qz > 15) { edge = true; continue; }
-            for (let ay = -5; ay <= 1; ay++) { const q = data[idx(qx, Math.max(1, y + ay), qz)] & 255; if (q === B.LOG || q === B.BIRCH_LOG) { trunk = true; break; } }
+            for (let ay = -5; ay <= 1; ay++) { const q = data[idx(qx, Math.max(1, y + ay), qz)] & 0xFFFF00FF; if (q === B.LOG || q === B.BIRCH_LOG) { trunk = true; break; } }
           }
           if (!trunk && !edge) data[idx(lx, y, lz)] = B.AIR;
         }
       }
       const f = (d - A.slope) / A.fade;   // 0 at the slope's edge, 1 at the outside
       const sandy = f + smooth(x, z, 4) * 0.35 + (r - 0.5) * 0.3 < 0.62;
-      const top = data[idx(lx, yT, lz)] & 255;
+      const top = data[idx(lx, yT, lz)] & 0xFFFF00FF;
       if (sandy && (top === B.GRASS || top === B.DIRT)) {
-        for (let y = yT; y >= yT - 2 && y > 0; y--) { const id = data[idx(lx, y, lz)] & 255; if (id === B.GRASS || id === B.DIRT) data[idx(lx, y, lz)] = B.SAND; }
-        const above = data[idx(lx, yT + 1, lz)] & 255;
+        for (let y = yT; y >= yT - 2 && y > 0; y--) { const id = data[idx(lx, y, lz)] & 0xFFFF00FF; if (id === B.GRASS || id === B.DIRT) data[idx(lx, y, lz)] = B.SAND; }
+        const above = data[idx(lx, yT + 1, lz)] & 0xFFFF00FF;
         if (above === B.FLOWER_RED || above === B.FLOWER_YELLOW || above === B.SAPLING || above === B.BERRY_BUSH) data[idx(lx, yT + 1, lz)] = B.AIR;
         if (above === 0 && yT >= SEA && r < 0.05) data[idx(lx, yT + 1, lz)] = B.TALL_GRASS;   // dry grass tufts
       }

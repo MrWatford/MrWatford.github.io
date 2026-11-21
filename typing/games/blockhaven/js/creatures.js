@@ -455,7 +455,10 @@ export function spawnCreatures(manager,dt,daylight,species) {
   }
   const peaceful=manager.ctx.settings().difficulty==='peaceful';
   const creative=manager.ctx.creative();
-  const pool=CREATURES.filter(([id,,,,habitat])=>habitats.has(habitat)&&
+  const nb=w.biomeAt?.(x,z);   // Milestone 20, Part E: no monsters in mushroom fields; axolotls and frogs by their homes
+  if(nb==='mushroom_fields')for(const h of [...habitats])if(/Night$|^night$/.test(h))habitats.delete(h);
+  if(water&&(nb==='swamp'||w.caveBiomeAt?.(x,z)==='lush_caves'))habitats.add('lushwater');
+  const pool=CREATURES.filter(([id,,,,habitat])=>(habitats.has(habitat)||(habitats.has('lushwater')&&['axolotl','tadpole','frog'].includes(id)))&&
     (!(peaceful||creative)||!hostile.has(id))&&living.filter(e=>e.sp===id).length<(id==='elder_guardian'?1:3));
   if(!pool.length)return;
   const [id]=pool[Math.floor(Math.random()*pool.length)];
