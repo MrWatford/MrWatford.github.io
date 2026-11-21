@@ -1,11 +1,12 @@
 import { createAncientScore } from "./ancient-score.js";
 import { createCalmScore } from "./calm-score.js";
+import { createMenuTheme, createBossScore } from "./epic-score.js";
 // Small sound effects made on the fly with the Web Audio API (no sound files needed).
 let ctx = null, master = null, noiseBuf = null, volume = 0.6, muted = false;
 let wind = null;
 let ancientScore = null;
 let ancientMusicState = null;
-let calmScore = null, musicLevel = 0.5;
+let calmScore = null, musicLevel = 0.5, menuTheme = null, bossScore = null;
 
 export const Sound = {
   start() {   // must be called after a click or key press (browser rule)
@@ -20,11 +21,31 @@ export const Sound = {
     if (ctx.state === "suspended") ctx.resume();
   },
   pause() { this.ancientMusic(null); if (ctx && ctx.state === "running") ctx.suspend(); },
-  stop() { this.ancientMusic(null); calmScore?.dispose(); calmScore = null; if (ctx) { this.wind(0); ctx.close(); ctx = null; master = null; } },
+  stop() { this.ancientMusic(null); calmScore?.dispose(); calmScore = null; menuTheme?.dispose(); menuTheme = null; bossScore?.dispose(); bossScore = null; if (ctx) { this.wind(0); ctx.close(); ctx = null; master = null; } },
   setVolume(v) { volume = v; if (master) master.gain.value = muted ? 0 : v * 0.5;
     if (muted || volume <= 0) this.ancientMusic(null); },
   // Background music (calm-score.js). on = the game says music fits right now.
-  setMusicVolume(v) { musicLevel = v; calmScore?.setLevel(v); },
+  setMusicVolume(v) { musicLevel = v; calmScore?.setLevel(v); menuTheme?.setLevel(v); bossScore?.setLevel(v); },
+  // true while a boss bar is up: monsters nearby growl louder and more often (entities.js)
+  bossFight: false,
+  // the title-screen theme (epic-score.js); on = we're on the menus with no world open
+  menuMusic(on) {
+    if (!ctx || ctx.state !== "running") return;
+    const allowed = on && !muted && volume > 0 && musicLevel > 0;
+    if (!menuTheme) { if (!allowed) return; menuTheme = createMenuTheme(ctx, master); menuTheme.setLevel(musicLevel); }
+    menuTheme.update(allowed);
+  },
+  menuMusicReview() { return menuTheme ? menuTheme.review() : { on: false, context: ctx?.state || "closed" }; },
+  // boss battle music; frac = the boss's health left (0-1). The Buried King keeps its own score.
+  bossMusic(on, frac = 1) {
+    this.bossFight = !!on;
+    if (!ctx || ctx.state !== "running") return;
+    const allowed = on && !muted && volume > 0 && musicLevel > 0 && !ancientScore;
+    if (!bossScore) { if (!allowed) return; bossScore = createBossScore(ctx, master); bossScore.setLevel(musicLevel); }
+    bossScore.update(allowed, { frac });
+  },
+  bossMusicEnd() { this.bossFight = false; bossScore?.dispose(); bossScore = null; },
+  bossMusicReview() { return bossScore ? bossScore.review() : { on: false, context: ctx?.state || "closed" }; },
   calmMusic(on) {
     if (!ctx || ctx.state !== "running") return;
     const allowed = on && !muted && volume > 0 && musicLevel > 0 && !ancientScore;

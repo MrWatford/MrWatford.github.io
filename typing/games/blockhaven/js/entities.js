@@ -2648,6 +2648,8 @@ export class Entities {
     if (def.triceratops) return thinkTriceratops(this, e, d);
     if (def.lostWorldRaptor) return thinkLostWorldRaptor(this, e, d, dmgMul);
     if (def.hostile && !def.boss && ctx.settings().difficulty === "peaceful") { e.gone = true; return; }
+    // monsters growl, hiss and rattle now and then; during a boss fight, louder and much more often
+    if (def.hostile && def.sound && def.ai !== "creeper" && !e.tame && !e.dead && d < 28 && Math.random() < (Sound.bossFight ? (def.boss ? 0.03 : 0.07) : 0.012)) Sound.mob(def.sound, Sound.bossFight ? d * 0.5 : d);
     if (thinkDesertMob(this, e, d, dmgMul)) return;
     if (def.wildlife) return thinkWildlife(this, e, d, dmgMul, target =>
       lineOfSight(w, { x: e.pos.x, y: e.eyeY, z: e.pos.z }, target), daylight);

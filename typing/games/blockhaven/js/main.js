@@ -1775,6 +1775,7 @@ function clearWorldMeshes() {
   Sound.wind(0);
   Sound.ancientMusic(null);
   Sound.calmMusicEnd();
+  Sound.bossMusicEnd();
   stormStage = 0; stormSampleT = 0; stormDustT = 0;
   badlandsAsh = 0; badlandsAshT = 0;
   stormVortex = null; stormVortexT = 10;
@@ -5846,6 +5847,7 @@ function loop(now) {
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = Math.max(last, now);   // capped so a background tab doesn't cause a huge jump (and never runs backwards)
   G.clock = (G.clock || 0) + dt;
   fpsT += dt; fpsN++; if (fpsT > 0.5) { fps = Math.round(fpsN / fpsT); fpsT = 0; fpsN = 0; }
+  Sound.menuMusic(!G.world && G.state !== "loading");   // the title theme plays on the menus
   if (!G.world || G.state === "loading" || G.state === "title") { if (G.state === "title") renderer.clear(); return; }
   const p = G.player, running = G.state === "play" || G.state === "panel" || (G.state === "pause" && MP.keepRunning());   // a host's friends keep playing while the host is in the menu
 
@@ -5990,6 +5992,8 @@ function loop(now) {
   updateAncientPresentation(running);
   // calm background music: only in the Overworld, and never while a boss bar is up
   Sound.calmMusic(running && G.state !== "dead" && G.dim === "overworld" && bossBar.hidden);
+  // epic music while any boss bar is up (also makes monsters nearby growl louder and more often)
+  Sound.bossMusic(running && G.state !== "dead" && !bossBar.hidden, Math.max(0, bossBarPercent) / 100);
   updateDuneSweep(dt, running);
   updateDuneDevour(dt, running);
   updateDuneVortex(dt, running);
@@ -6136,6 +6140,10 @@ G._test.ancientFuryReview = ancientFuryReview;
 G._test.ancientMusicReview = () => Sound.ancientMusicReview();
 G._test.calmMusicReview = () => Sound.calmMusicReview();
 G._test.calmMusicNow = () => Sound.calmMusicNow();
+G._test.menuMusicReview = () => Sound.menuMusicReview();
+G._test.bossMusicReview = () => Sound.bossMusicReview();
+// browsers only allow sound after a click or key press, so the title theme starts on the first one
+for (const type of ["pointerdown", "keydown"]) window.addEventListener(type, () => { if (!G.world) Sound.start(); });
 G._test.ancientTremorReview = () => ({ roll: ancientTremorRoll, cameraRoll: camera.rotation.z });
 G._test.ancientBuriedReview = () => ancientBuriedView.review();
 G._test.ancientOpeningReview = () => ancientOpeningView.review();
