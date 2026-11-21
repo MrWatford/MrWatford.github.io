@@ -339,7 +339,46 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
-## Milestone 20, Part E: biome creatures, map colors, achievements, Journal (built and browser-tested 2026-11-21, not published). Milestone 20 is now complete.
+## Milestone 17, Part B: sunken treasure and the Conduit (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21)
+Code: `js/worldgen.js` (`seaStructures`, `shipwreck`, `oceanRuin`, `treasureSpot`, `treasureNear`, `SEA_LOOT`), `js/main.js` (`seaLoot`, `giveTreasureMap`, `conduitTick`, Conduit Power), `js/blocks.js` (Conduit block 354, items 688–690, recipe, pictures), `js/shapes.js`, `js/starter.js` (treasure arrow), `js/ui.js`, `js/entities.js` (Wanderer sells shells), `index.html` (tags `?v=ocean-b-1`). Backups: `tools/backups/pre-m17-partB-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Shipwrecks | Done | About 1 in 45 sea chunks: a rotted wooden hull (oak, spruce, or dark oak) with a deck, a broken mast, a little cabin, and 3 chests: supplies (in the bow), treasure (in the hold), and a map chest (in the cabin) |
+| Ocean ruins | Done | Broken stone-brick walls (sandstone in warm seas) on the sea floor, often with a chest: coal, gold nuggets, Nautilus Shells, sometimes a Treasure Map or an enchanted book |
+| Buried treasure | Done | One spot at most in each 160 × 160 square, under a beach at the edge of a real sea, 1 block down. Always holds the **Heart of the Sea**, plus iron, gold, Jade, Skyshard, Blast Blocks, cooked fish |
+| Treasure Maps | Done | From shipwreck map chests (and sometimes ruins). Hold one and the arrow at the top of the screen points to its X ("X marks the spot: dig down!" when you're on it). Maps never lead to treasure already dug up, and in worlds made with Milestone 20 only to land nobody had visited |
+| Nautilus Shells | Done | Fishing treasure, ruin and shipwreck chests, and the Wanderer (5 Jade) |
+| Conduit | Done | 8 Nautilus Shells + Heart of the Sea. Place it in water (it floats). Frame it with prismarine, prismarine bricks, dark prismarine or Sea Lanterns in three rings around it (up to 42 blocks). With 16+ frame blocks and water all around it, swimmers within 16 blocks per 7 frame blocks get **Conduit Power**: breathe underwater, see clearly, and dig at full speed. With all 42, it also zaps monsters swimming within 8 blocks |
+| Which worlds get it | Done | New worlds everywhere; worlds made with Milestone 20 only in chunks nobody has visited (same rule as Part A). Checked again: version-17 and older land unchanged |
+| Not yet checked | Partial | Not played by hand; the Conduit only shows a small spark, not Java's spinning eye |
+
+## Milestone 17, Part A: the ocean floor (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21)
+Code: `js/blocks.js` (blocks 313–353: kelp, seagrass, sea pickle, sponges, dried kelp block, prismarine ×3, sea lantern, blue ice, and 30 coral blocks from `CORALS`; items 685–687; `WATERY` table; 34 textures; recipes, smelting, fuel), `js/mesher.js` (water drawn around water plants), `js/player.js` (swimming through plants, Blue Ice), `js/entities.js` (creatures treat water plants as water), `js/shapes.js` (sea pickles), `js/worldgen.js` (`OCEAN_GEN = 18`, `seaFloor`, `warm_ocean`), `js/world.js` (version-17 worlds: untouched chunks only), `js/main.js` (placing, breaking, kelp growth, coral dying, `soakUp`), `js/starter.js`, `js/biomes-guide.js`, `js/advancements.js`, `index.html` (tags `?v=ocean-a-1`). Backups: `tools/backups/pre-m17-partA-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Water plants | Done | Kelp, seagrass, sea pickles, coral plants and coral fans are "water with a plant in it": you swim through them, they're drawn underwater, and breaking one leaves water. They can only be placed in water, on a solid block (kelp also on kelp) |
+| Kelp | Done | Kelp forests in seas 5+ blocks deep. Placed kelp grows up toward the surface (up to 16 tall). Breaking kelp breaks everything above it. Cook it into Dried Kelp (food); 9 make a Dried Kelp Block (fuel, burns 2.5× as long as coal) |
+| Seagrass | Done | Covers sandy sea floors. Drops only with Shears, like Java |
+| Coral reefs | Done | New **Warm Ocean** biome (sunny, shallow seas). Tube, Brain, Bubble, Fire and Horn coral: blocks, plants and fans, plus dead versions. A coral block with nothing watery touching it turns dead within a few seconds; coral blocks drop their dead block (Silk Touch keeps them alive). Coral plants and fans drop only with Silk Touch |
+| Sea pickles | Done | On reefs. Stack up to 4 in one spot; they glow brighter the more there are (light 6, 9, 12, 15) |
+| Sponges | Done | A Sponge soaks up water up to 7 blocks away (at most 65 blocks) and becomes a Wet Sponge. Dry it in a furnace; in the Ember Depths it dries instantly. Sponges have no natural home until Ocean Monuments (Part C) |
+| Prismarine and Sea Lanterns | Done | Prismarine (4 shards), Prismarine Bricks (9 shards), Dark Prismarine (8 shards + ink sac), Sea Lantern (4 shards + 5 crystals, light 15, drops 2–3 crystals). Shards and crystals come from Guardians in Part C; for now they're in Creative |
+| Icebergs | Done | Now and then in frozen oceans: packed ice with a blue-ice heart and snow on top. Blue Ice (9 packed ice) is the slipperiest block |
+| Which worlds get it | Done | New worlds (land version 18) everywhere. Worlds made with Milestone 20 (version 17) only in chunks nobody has visited or changed (remembered). Checked: 27 million version-17 cells and 19.8 million older cells come out exactly as before |
+| Biomes | Done | Warm Ocean is on the Explorer's Map (teal), in the Biomes Journal page, and gives a "You found…" message. Seen It All now needs all 19 biomes |
+| Not yet checked | Partial | Not played by hand; Chromebook speed in big reefs not checked |
+
+## Grand Desert Temple: room to rise in new worlds (fixed and tested 2026-11-21, PUBLISHED 2026-11-21)
+Code: `js/lost.js` (`monumentRoom`, a new step in `chooseSite`, clearer message), `index.html` (tag `?v=temple-room-1`). Backup: `tools/backups/pre-temple-room-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Temple spot | Done | When no mostly-desert spot is found, the pyramid's spot is now chosen with room for the whole temple (about 160 blocks across) instead of only 96 blocks from other landmarks. Before: about 1 in 16 new worlds lost the temple to a nearby landmark (5 of 80 test worlds). Now: 80 of 80. Worlds where the old spot already worked get exactly the same spot. Spots already chosen in saved worlds never move |
+| Message | Done | If the temple still can't rise, the message only blames your own building or exploring when that's really why; otherwise it says another landmark stands too close |
+
+## Milestone 20, Part E: biome creatures, map colors, achievements, Journal (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #30). Milestone 20 is now complete.
 Code: `js/biomes-guide.js` (new), `js/world.js` (`biomeAt`, `caveBiomeAt`, `hasNewBiomes`), `js/entities.js` (biome animals, biome monsters), `js/creatures.js` (biome rules for the bestiary creatures), `js/starter.js` (map colors and key), `js/main.js` (`trackBiome`), `js/advancements.js`, `js/ui.js`, `index.html` (tags `?v=biomes-e-1`, new biomes-guide entry). Backups: `tools/backups/pre-m20-partE-2026-11-21/`.
 
 | Feature | Status | Notes |
@@ -352,7 +391,7 @@ Code: `js/biomes-guide.js` (new), `js/world.js` (`biomeAt`, `caveBiomeAt`, `hasN
 | Journal: “Biomes” | Done | All 20 biomes and cave biomes, each with its map color, a block, what you'll find there, and a ✔ when you've found it, plus where you are now |
 | Not yet checked | Partial | Not played by hand; Chromebook speed not checked |
 
-## Milestone 20, Part D: lush caves and dripstone caves (built and browser-tested 2026-11-21, not published)
+## Milestone 20, Part D: lush caves and dripstone caves (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #30)
 Code: `js/worldgen.js` (`caveBiome`, `caves`), `js/blocks.js` (blocks 305–312, Glow Berries item 684, 10 textures, light from ripe vines), `js/shapes.js`, `js/trees.js` (azalea tree), `js/main.js`, `index.html` (tags `?v=biomes-d-1`). Backups: `tools/backups/pre-m20-partD-2026-11-21/`.
 
 | Feature | Status | Notes |
@@ -365,7 +404,7 @@ Code: `js/worldgen.js` (`caveBiome`, `caves`), `js/blocks.js` (blocks 305–312,
 | Moss and azaleas | Done | Bone Meal on moss spreads it over nearby stone and dirt, with carpets and azaleas on top (tested: 30 blocks). An azalea grows into a small tree with azalea leaves (Bone Meal or time). 2 moss blocks = 3 carpets |
 | Not yet built | Missing | Axolotls and glow squid living in lush cave pools, dripping water: Part E |
 
-## Milestone 20, Part C: nine new land biomes (built and browser-tested 2026-11-21, not published)
+## Milestone 20, Part C: nine new land biomes (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #30)
 Code: `js/worldgen.js` (`landBiome`, `decorate`, `SPECIAL_BIOMES`, `BIOME_NAMES`), `js/world.js` (`biomeRegion`, `regions`), `js/trees.js` (giant mushrooms), `js/blocks.js` (blocks 281–304, items 680–683, 28 textures), `js/shapes.js`, `js/main.js`, `js/player.js` (slippery ice), `index.html` (tags `?v=biomes-c-1`). Backups: `tools/backups/pre-m20-partC-2026-11-21/`.
 
 | Feature | Status | Notes |
@@ -379,7 +418,7 @@ Code: `js/worldgen.js` (`landBiome`, `decorate`, `SPECIAL_BIOMES`, `BIOME_NAMES`
 | Not yet built | Missing | Biome creatures (pandas in jungles, polar bears in snow, mooshrooms…), achievements, Journal chapter, Explorer's Map biome colors: Part E. Lush and dripstone caves: done in Part D |
 | Not yet checked | Partial | Not played by hand; Chromebook speed in dense jungles not checked |
 
-## Milestone 20, Part B: six new woods (built and browser-tested 2026-11-21, not published)
+## Milestone 20, Part B: six new woods (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #30)
 Code: `js/trees.js` (new: the six tree shapes, reused by Part C's biomes), `js/blocks.js` (blocks numbered 256–280: the first ones past the old limit; 31 textures), `js/main.js` (growWood, leaf drops, sounds), `js/entities.js` (Wanderer trades), `index.html` (tags `?v=biomes-b-1` on blocks, main + script tag, entities, and the new trees entry). Backups: `tools/backups/pre-m20-partB-2026-11-21/`.
 
 | Feature | Status | Notes |
@@ -393,7 +432,7 @@ Code: `js/trees.js` (new: the six tree shapes, reused by Part C's biomes), `js/b
 | Saving | Done | Grown trees (high-numbered blocks) survive save and reload |
 | Not yet built | Missing | Doors, fences, slabs, stairs, and other building blocks for the new woods come with Milestone 21 (the building palette) |
 
-## Milestone 20, Part A: real oceans and deep oceans (built and browser-tested 2026-11-21, not published)
+## Milestone 20, Part A: real oceans and deep oceans (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #30)
 Code: `js/worldgen.js` (`BIOME_GEN = 17` = land version 17, `Generator.oceanness`, ocean shaping in `column`, biomes `ocean` / `deep_ocean`, gravel deep-sea floors) and `index.html` (worldgen tag `?v=biomes-a-1`). Backups: `tools/backups/pre-m20-partA-2026-11-21/`.
 
 | Feature | Status | Notes |
@@ -404,7 +443,7 @@ Code: `js/worldgen.js` (`BIOME_GEN = 17` = land version 17, `Generator.oceanness
 | Structure placement | Done | The sea temple, Starter Home, villages, and adventure sites already check the ground height, so they stay on land (the sea temple can now use a real sea) |
 | Not yet checked | Partial | Not played by hand; Chromebook frame rate over big seas not checked |
 
-## The block-limit step: room for 1,024 kinds of blocks (built and browser-tested 2026-11-21, not published)
+## The block-limit step: room for 1,024 kinds of blocks (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21 via pull request #30)
 Code: `js/blocks.js` (`ID_MASK`, `ID_SPACE`, `NB()`, `idOf`, `metaOf`, bigger lookup tables, `isBlockItem`), `js/world.js` (chunk data becomes 32-bit as it loads), `js/mesher.js`, `js/worldgen.js`, and every other place that read a block number with `& 255` (`campaign-kit`, `citadel`, `echohold-atmosphere`, `desert-monument`, `forsaken`, `entities`, `multiplayer`, `redstone`, `maps`). Version tags `?v=blocks-1024-1`. Backups: `tools/backups/pre-block-limit-2026-11-21/`.
 
 | Feature | Status | Notes |

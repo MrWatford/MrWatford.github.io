@@ -34,12 +34,12 @@ This is about 8 milestones of work. As always, each one is built and tested in t
 |---|---|---|---|
 | 1 ✔ published 2026-11-12 | **12 Part E: Redstone finish** | Finishes the Sparkworks: 11 advancements, "Mechanisms" Creative tab, "Sparkworks" guide chapter with 12 example builds, sounds pass | Medium |
 | 2 ✔ published 2026-11-12 | **14: Smaller gaps** | Leads, name tags, horse armor, donkeys and mules (with chests), more horse colors, pet breeding, summoning the Hollow Wyrm again, ships at the Hollow towers, creatures going through portals, Hogbeasts turning "rotten" in the Surface world | Medium |
-| 3 ✔ built 2026-11-21 (all 3 parts, not published) | **15: Enchanting and repair** | Enchanting Table, bookshelf power, XP finally gets spent, ~27 enchantments that really work (curses included), enchanted books, Anvil, Grindstone, shiny "glint" on enchanted items | Large |
+| 3 ✔ built 2026-11-21 (all 3 parts, PUBLISHED 2026-11-21, PR #29) | **15: Enchanting and repair** | Enchanting Table, bookshelf power, XP finally gets spent, ~27 enchantments that really work (curses included), enchanted books, Anvil, Grindstone, shiny "glint" on enchanted items | Large |
 | 4 ✔ built 2026-11-21 (all 3 parts) | **16: Brewing and potions** | Brewing Stand, Cauldron, sugar cane and melons as real plants, ~15 potions + longer/stronger versions, splash and lingering potions, ~10 new status effects, recipe guide | Large |
 | 5 | **17: Ocean extras** | Prismarine blocks, Sea Lanterns, Ocean Monuments with Guardians, shipwrecks, ocean ruins, treasure maps and buried treasure, coral reefs, sponges, Conduits, fish in buckets, Splashers leading you to treasure | Large |
 | 6 | **18: The world, part 1** | Flowing water and lava, water + lava makes cobblestone/stone/obsidian, falling sand and gravel, fire spreading (with a setting), leaf decay, plants that need support, crops needing water, waterlogging | Large |
 | 7 | **19: The world, part 2** | Rain, snow, thunderstorms, lightning and its creature changes, snow building up, freezing and melting, sleeping through storms | Medium |
-| 8 ✔ built 2026-11-21 (all 5 parts, not published) | **20: The world, part 3** | New biomes (swamps, savannas, badlands, cherry groves, dark forests, snowy plains, mushroom islands, deep oceans, lush caves, dripstone caves) in **unexplored land only** | Large |
+| 8 ✔ built 2026-11-21 (all 5 parts, PUBLISHED 2026-11-21, PR #30) | **20: The world, part 3** | New biomes (swamps, savannas, badlands, cherry groves, dark forests, snowy plains, mushroom islands, deep oceans, lush caves, dripstone caves) in **unexplored land only** | Large |
 
 ## 3. Things to know before we start
 
@@ -137,7 +137,7 @@ Milestones 15–20 are the ones in section 2 above. The four after them are new.
 | 6 | **18: The world, part 1** | Flowing water and lava, falling sand and gravel, waterlogging, leaf decay, fire spreading, plants that need support | Large |
 | 7 | **19: The world, part 2** | Rain, snow, thunderstorms, lightning (today the Surface world has no weather; only the desert sandstorm exists) | Medium |
 | — | **Block-limit step** (needed before 20 and 21) | Raise the 256-block limit (see 6.3) | Medium, risky |
-| 8 ✔ built 2026-11-21 (all 5 parts, not published) | **20: The world, part 3** | New biomes. Today the Surface world has only 6 kinds of land: plains, forest, birch forest, mountains, snowy peaks, sandy. Add jungle, taiga, swamp, savanna, dark forest, badlands, cherry grove, mushroom islands, deep ocean, lush caves, dripstone caves, plus their woods: spruce, jungle, acacia, dark oak, cherry, mangrove. Unexplored land only | Large |
+| 8 ✔ built 2026-11-21 (all 5 parts, PUBLISHED 2026-11-21, PR #30) | **20: The world, part 3** | New biomes. Today the Surface world has only 6 kinds of land: plains, forest, birch forest, mountains, snowy peaks, sandy. Add jungle, taiga, swamp, savanna, dark forest, badlands, cherry grove, mushroom islands, deep ocean, lush caves, dripstone caves, plus their woods: spruce, jungle, acacia, dark oak, cherry, mangrove. Unexplored land only | Large |
 | 9 | **21: Building blocks** (new) | Slabs, stairs, walls, all 16 colors of wool, glass, concrete, and terracotta, carpets, ladders, scaffolding, lanterns, candles, paintings, item frames, armor stands, banners (today: one Stained Glass and one Black Wool) | Large |
 | 10 | **22: Farming, food, and gadgets** (new) | Pumpkins, potatoes, beetroot, cocoa, cactus, bamboo, mushrooms, dyes from flowers; cake, pie, stews, cookies; crossbow, spyglass, clock, fireworks, jukebox and music discs | Large |
 | 11 | **23: Villages, part 2** (new) | Working job blocks (smoker, blast furnace, barrel, stonecutter, lectern, cartography table…), villager levels and breeding, zombie villagers and curing, pillager raids, outposts, witch huts, mansions | Large |
@@ -180,7 +180,7 @@ Built in 3 parts, like Milestone 15. Minecraft Java 1.20.1 is the guide for reci
 
 While starting Milestone 17 (Ocean extras), the land turned out to have almost no oceans: about 1% of the land is below sea level, at most 8 blocks deep, mostly lakes and rivers. Ocean Monuments, shipwrecks, and reefs need real seas, so **you chose to do Milestone 20 (new biomes, including deep oceans) first**, then come back to Milestone 17.
 
-### 8.1 The block-limit step: done 2026-11-21 (not published yet)
+### 8.1 The block-limit step: done 2026-11-21 (PUBLISHED 2026-11-21, PR #30)
 - The game can now have **1,024 kinds of blocks** instead of 256 (you said yes on 2026-11-21).
 - **Every existing block keeps its number**, so old worlds and saves don't need converting. Blocks 256 and up keep their extra number bits above the block's settings.
 - Checked: 2.9 million generated block cells read exactly the same as before; an old saved world (land version 9) loads, draws, and keeps its changes; a test block numbered 300 places, draws, breaks, and survives save and reload.
@@ -198,23 +198,58 @@ Like before, new things appear only in land nobody has visited or changed. The w
 
 Then Milestone 17 (Ocean extras) goes into the new oceans.
 
-### 8.3 Part A done (2026-11-21, not published)
+### 8.3 Part A done (2026-11-21, PUBLISHED 2026-11-21, PR #30)
 - **Oceans only in brand-new worlds** (land version 17). Lowering land in older worlds could flood structures that are already planned there (strongholds, villages, campaign towns, temple entrances), so older worlds keep their land exactly as it is.
 - About 23% of a new world is sea, up to about 20 blocks deep. The starting area and the three strongholds always stay dry.
 
-### 8.4 Part B done (2026-11-21, not published)
+### 8.4 Part B done (2026-11-21, PUBLISHED 2026-11-21, PR #30)
 - Six woods (spruce, jungle, acacia, dark oak, cherry, mangrove): logs, leaves, planks, saplings, mangrove roots. These are the first blocks numbered above 256.
 - For now, the Wanderer sells the saplings. Wild forests of them come with Part C.
 
-### 8.5 Part C done (2026-11-21, not published)
+### 8.5 Part C done (2026-11-21, PUBLISHED 2026-11-21, PR #30)
 - Nine new land biomes: taiga, snowy plains, jungle, savanna, dark forest, swamp, badlands, cherry grove, mushroom fields (plus frozen oceans).
 - New worlds get them everywhere. Older worlds get them in 256 × 256 squares nobody has visited or changed (decided once and remembered).
 - They never change the land's height, so structures are placed exactly as before.
 
-### 8.6 Part D done (2026-11-21, not published)
+### 8.6 Part D done (2026-11-21, PUBLISHED 2026-11-21, PR #30)
 - Lush caves and dripstone caves, each about 1 in 5 stretches of cave, under new worlds and under the unexplored squares of older worlds.
 
-### 8.7 Part E done: Milestone 20 complete (2026-11-21, not published)
+### 8.7 Part E done: Milestone 20 complete (2026-11-21, PUBLISHED 2026-11-21, PR #30)
 - Biome animals and monsters, map colors, “You found…” messages, 6 achievements, a Journal chapter.
 - **Next in your order:** back to Milestone 17 (Ocean extras), now that new worlds have real oceans.
-- Still to publish: the block-limit step and all of Milestone 20.
+- Published 2026-11-21 with the block-limit step (pull request #30).
+
+---
+
+## 9. Milestone 17: Ocean extras (started 2026-11-21)
+
+New worlds now have real seas, so the ocean finally gets filled in. Like Milestone 20, new things appear only in water nobody has visited or changed: brand-new worlds get everything, and worlds made since Milestone 20 get the ocean floor in chunks nobody has been to yet (decided once and remembered).
+
+### 9.1 Parts
+
+| Part | What it adds |
+|---|---|
+| **A** | **The ocean floor**: kelp (and dried kelp), seagrass, sea pickles, coral reefs in a new **Warm Ocean** (5 corals: blocks, plants, fans, and their dead versions), icebergs in frozen oceans, sponges that soak up water, prismarine blocks and Sea Lanterns. Plants that live underwater keep their water around them. |
+| **B** | **Sunken treasure**: shipwrecks, ocean ruins, buried treasure chests, treasure maps, the Heart of the Sea, Nautilus Shells, and the **Conduit** |
+| **C** | **Ocean Monuments**: the big prismarine fortress, Guardians and three Elder Guardians (lasers, Mining Fatigue), sponge rooms, the gold vault |
+| **D** | **Ocean creatures**: cod, salmon, tropical fish, catching fish (and Axolotls) in buckets, sea turtles (beach eggs, scutes, Turtle Shell helmet), Drowned that can carry **Tridents** (Loyalty, Riptide, Channeling, Impaling), Splashers that lead you to treasure, bubble columns |
+| **E** | Achievements, an "Oceans" Journal chapter, Creative tab, sounds, final checks |
+
+Not in this milestone: stairs and slabs (prismarine ones come with the building-blocks milestone, 21).
+
+### 9.2 Part A decisions
+- **Water plants** (kelp, seagrass, sea pickles, coral plants and fans) count as water with a plant in it: you swim through them, they look underwater, and breaking one leaves water behind. They can only be placed in water.
+- **Coral dies** (turns gray) a few seconds after it's out of water, like Minecraft. Dead coral can't come back to life.
+- **Sponges** soak up water up to 7 blocks away (up to 65 blocks of water) and turn into Wet Sponges. Dry a Wet Sponge in a furnace.
+- **Warm Ocean** is a new biome name for the sunny, shallow seas with coral reefs. It shows in the Biomes Journal page and on the Explorer's Map.
+- Prismarine has no natural home until Ocean Monuments (Part C). Until then you can make it from shards found in Creative, and Part A adds the recipes.
+
+### 9.3 Part A done (2026-11-21, PUBLISHED 2026-11-21)
+- Kelp forests, seagrass, coral reefs in the new **Warm Ocean** (5 corals, living and dead), sea pickles, icebergs, sponges, prismarine blocks and Sea Lanterns.
+- New worlds get the ocean floor everywhere. Worlds made since Milestone 20 get it in chunks nobody has visited yet; everything already explored stays exactly the same.
+- Also fixed: the Grand Desert Temple was skipped in about 1 of every 16 new worlds because another landmark was too close. New worlds now always save room for it.
+- **Next:** Part B (shipwrecks, ocean ruins, buried treasure, treasure maps, the Heart of the Sea and the Conduit).
+
+### 9.4 Part B done (2026-11-21, PUBLISHED 2026-11-21)
+- Shipwrecks (3 chests each), ocean ruins, buried treasure on beaches with the Heart of the Sea, Treasure Maps that point the way, Nautilus Shells, and the Conduit with Conduit Power.
+- **Next:** Part C (Ocean Monuments with Guardians and Elder Guardians, sponge rooms, the gold vault). That's also where prismarine shards and wild sponges come from.
