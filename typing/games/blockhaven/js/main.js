@@ -1,7 +1,7 @@
 // Blockhaven: the game loop, 3D drawing, controls, mining and building, survival rules, and saving.
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
-  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor, isRail } from "./blocks.js";
+  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor, isRail, WATERY } from "./blocks.js";
 import { initRedstone } from "./redstone.js";
 import { selectBox } from "./shapes.js";
 import { Entities, SPECIES, TRADES, lineOfSight } from "./entities.js";
@@ -51,7 +51,7 @@ import { rng, hashSeed } from "./noise.js";
 import * as EN from "./enchanting.js";
 import * as PO from "./potions.js";
 import { treeShape, NEEDS_SQUARE } from "./trees.js";
-import { SPECIAL_BIOMES, BIOME_NAMES } from "./worldgen.js";
+import { SPECIAL_BIOMES, BIOME_NAMES, BIOME_GEN, OCEAN_GEN, SEA_LOOT, seaLootOf } from "./worldgen.js";
 import { nextLeviathanStorm, sandstormStage } from "./sandstorm.js";
 import { StormActivity, stormCallStatus, stormDaytime, severalHostilesNearby, findDuneApproach, STORM_ACTIVITY_GUIDE } from "./leviathan-storm.js";
 import { dunePhase, duneRitualWindow } from "./dune-leviathan.js";
@@ -1794,6 +1794,16 @@ function tickCrops(dt) {
       if (h >= max || w.id(x, y + 1, z) !== B.AIR) w.crops.delete(key);
       else if (Math.random() < (id === B.CACTUS ? 1 / 40 : 1 / 12)) { w.set(x, y + 1, z, id); w.crops.delete(key); w.crops.add(x + "," + (y + 1) + "," + z); }
     }
+    else if (id === B.KELP) {   // Milestone 17: kelp grows up toward the surface, up to about 16 tall
+      let h = 1; while (h < 16 && w.id(x, y - h, z) === B.KELP) h++;
+      if (h >= 16 || w.id(x, y + 1, z) !== B.WATER || w.id(x, y + 2, z) === B.AIR) w.crops.delete(key);
+      else if (Math.random() < 1 / 30) { w.set(x, y + 1, z, B.KELP); w.crops.delete(key); w.crops.add(x + "," + (y + 1) + "," + z); }
+    }
+    else if (id === B.CONDUIT) conduitTick(x, y, z, key);   // Milestone 17, Part B
+    else if (BLOCKS[id]?.deadAs) {   // Milestone 17: a coral block with nothing watery touching it dies after a few seconds
+      if (touchesWater(x, y, z)) w.crops.delete(key);
+      else if (Math.random() < 0.3) { w.set(x, y, z, BLOCKS[id].deadAs); w.crops.delete(key); }
+    }
     else if (id === B.CAVE_VINES) {   // Milestone 20: vines grow glow berries, and now and then grow one longer
       if (!(metaOf(v) & 1) && Math.random() < 1 / 60) w.set(x, y, z, make(B.CAVE_VINES, 1));
       else if (Math.random() < 1 / 200 && w.id(x, y - 1, z) === B.AIR && w.id(x, y + 4, z) !== B.CAVE_VINES) { w.set(x, y - 1, z, make(B.CAVE_VINES, 0)); w.crops.add(x + "," + (y - 1) + "," + z); }
@@ -1822,6 +1832,32 @@ function tickCrops(dt) {
     }
     else w.crops.delete(key);
   }
+}
+// Milestone 17, Part A
+function touchesWater(x, y, z) { const w = G.world; return [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(([a, b, c]) => WATERY[w.id(x + a, y + b, z + c)]); }
+// A Sponge soaks up the water around it (up to 7 blocks away, at most 65 blocks of water) and becomes a Wet Sponge.
+// Water plants in that water are soaked up too; coral blocks left high and dry start to die.
+function soakUp(x, y, z) {
+  const w = G.world, seen = new Set([x + "," + y + "," + z]), queue = [[x, y, z, 0]], dry = [];
+  let n = 0;
+  while (queue.length && n < 65) {
+    const [qx, qy, qz, d] = queue.shift();
+    for (const [a, b, c] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
+      const nx = qx + a, ny = qy + b, nz = qz + c, k = nx + "," + ny + "," + nz;
+      if (seen.has(k) || n >= 65) continue;
+      seen.add(k);
+      const nid = w.id(nx, ny, nz);
+      if (BLOCKS[nid]?.deadAs) dry.push(k);
+      if (!WATERY[nid] || d >= 7) continue;
+      w.set(nx, ny, nz, B.AIR); n++;
+      queue.push([nx, ny, nz, d + 1]);
+    }
+  }
+  if (!n) return;
+  w.set(x, y, z, B.WET_SPONGE);
+  for (const k of dry) w.crops.add(k);
+  Sound.splash(); G.adv("sponge", n);
+  UI.toast(`The Sponge soaked up ${n} block${n === 1 ? "" : "s"} of water.`);
 }
 function hydrate(x, y, z) {   // farmland near water stays wet
   const w = G.world;
@@ -2438,7 +2474,7 @@ function mineInfo(v) {
   if (!tierOK) time = d.hardness * 5;
   if (G.effects.haste) time /= 1 + 0.2 * (G.elv.haste || 1);   // a Beacon's Haste
   if (d.render === "cutout" && id_isLeaves(d.id) && tool && tool.type === "sword") time *= 0.3;
-  if (G.player.headInWater && !EN.lvl(G.inv.slots[36], "aqua_affinity")) time *= 5;   // digging underwater is slow, like Java (Aqua Affinity fixes it)
+  if (G.player.headInWater && !EN.lvl(G.inv.slots[36], "aqua_affinity") && !G.effects.conduit) time *= 5;   // digging underwater is slow, like Java (Aqua Affinity fixes it)
   return { time: Math.max(0.05, time), drops: tierOK };
 }
 const id_isLeaves = id => BLOCKS[id]?.drops === "leaves";
@@ -2486,7 +2522,7 @@ function wearTool(stack, n) {
   }
   G.hudDirty = true;
 }
-const water = (x, y, z) => G.world.id(x, y, z) === B.WATER;
+const water = (x, y, z) => !!WATERY[G.world.id(x, y, z)];   // Milestone 17: water plants count as water
 function breakBlock(x, y, z, drops, quiet) {
   if (!quiet) R.beforeBreak(x, y, z, (heldTool() || {}).type);   // shears cut a tripwire without setting it off
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
@@ -2523,7 +2559,7 @@ function breakBlock(x, y, z, drops, quiet) {
     // simple water rule: a hole next to water fills with water
     const wet = water(x, y + 1, z) || water(x + 1, y, z) || water(x - 1, y, z) || water(x, y, z + 1) || water(x, y, z - 1);
     const silkIce = id === B.ICE && heldTool() && EN.lvl(heldTool().stack, "silk_touch");
-    w.set(x, y, z, wet || id === B.FROSTED_ICE || (id === B.ICE && !silkIce && !G.creative) ? B.WATER : B.AIR);   // broken ice melts into water   // Frosted Ice turns back into water
+    w.set(x, y, z, wet || d.aquatic || id === B.FROSTED_ICE || (id === B.ICE && !silkIce && !G.creative) ? B.WATER : B.AIR);   // Milestone 17: a broken water plant leaves its water   // broken ice melts into water   // Frosted Ice turns back into water
   }
   if (!quiet) { Sound.breakBlock(MATERIAL(id)); burst(x, y, z, v, 16); }
   if (!G.creative && drops) {
@@ -2543,6 +2579,9 @@ function breakBlock(x, y, z, drops, quiet) {
     if (drop === "vines") drop = metaOf(v) & 1 ? I.GLOW_BERRIES : 0;   // Milestone 20, Part D
     if (drop === "cocoa") drop = [I.COCOA_BEANS, ((metaOf(v) >> 2) & 3) >= 2 ? 2 + Math.floor(Math.random() * 2) : 1];   // Milestone 20
     if (drop === "deadbush") drop = [I.STICK, Math.floor(Math.random() * 3)];
+    if (drop === "pickles") drop = [B.SEA_PICKLE, (metaOf(v) & 3) + 1];   // Milestone 17, Part A
+    if (drop === "crystals") drop = [I.PRISMARINE_CRYSTALS, 2 + Math.floor(Math.random() * 2)];
+    if (id === B.SEAGRASS && heldTool() && heldTool().type === "shears") drop = id;
     if (drop === "bigmushroom") drop = Math.random() < 0.25 ? (id === B.RED_MUSHROOM_BLOCK ? B.RED_MUSHROOM : B.BROWN_MUSHROOM) : 0;
     if (drop === "melon") drop = [I.MELON_SLICE, 3 + Math.floor(Math.random() * 5)];   // Milestone 16
     if (drop === "berries") { const st = metaOf(v) & 3; drop = [I.BERRIES, st === 3 ? 2 + Math.floor(Math.random() * 2) : 1]; }
@@ -2572,7 +2611,7 @@ function breakBlock(x, y, z, drops, quiet) {
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
   if ((id === B.BEE_NEST || id === B.BEEHIVE) && !G.creative && !torchNear(x, y, z)) { ents.angerBees(x, y, z); UI.toast("You broke the bees' home, and now they're angry!", "bad"); }
-  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH, B.SUGAR_CANE, B.MELON_STEM, B.SNOW_LAYER, B.PINK_PETALS, B.DEAD_BUSH, B.CACTUS, B.BAMBOO, B.MOSS_CARPET].includes(aid) || (aid === B.POINTED_DRIPSTONE && !(metaOf(above) & 1)) || BLOCKS[aid]?.tree || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH, B.SUGAR_CANE, B.MELON_STEM, B.SNOW_LAYER, B.PINK_PETALS, B.DEAD_BUSH, B.CACTUS, B.BAMBOO, B.MOSS_CARPET].includes(aid) || (aid === B.POINTED_DRIPSTONE && !(metaOf(above) & 1)) || BLOCKS[aid]?.tree || (BLOCKS[aid]?.aquatic && !BLOCKS[aid].floats) || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
   if (aid === B.FIRE) w.set(x, y + 1, z, B.AIR);
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
   if (id === B.LOG || id === B.BIRCH_LOG || d.log) tipDone("chop");
@@ -2707,7 +2746,7 @@ function trackBiome(dt) {
   const p = G.player, x = Math.floor(p.pos.x), z = Math.floor(p.pos.z), b = G.world.biomeAt(x, z), seen = G.story.biomes ||= [];
   G.currentBiome = b;
   if (!b) return;
-  if (!seen.includes(b)) { seen.push(b); if (SPECIAL_BIOMES.has(b) || b === "deep_ocean") { UI.toast(`You found: ${BIOME_NAMES[b] || b}!`, "good"); Sound.levelUp(); } }
+  if (!seen.includes(b)) { seen.push(b); if (SPECIAL_BIOMES.has(b) || b === "deep_ocean" || b === "warm_ocean") { UI.toast(`You found: ${BIOME_NAMES[b] || b}!`, "good"); Sound.levelUp(); } }
   G.adv("biome", b);
   if (p.pos.y < G.world.surfaceY(x, z) - 8) {
     const cb = G.world.caveBiomeAt(x, z);
@@ -2747,7 +2786,7 @@ function useRod(slot) {
     if (b.biteT > 0) {
       const r = Math.random();
       const luck = EN.lvl(slot, "luck_of_the_sea"), tr = 0.05 + 0.021 * luck, junk = tr + Math.max(0.02, 0.1 - 0.025 * luck);   // Luck of the Sea
-      const catchId = r < tr ? [I.SADDLE, I.BOW, I.VOID_PEARL, I.JADE, I.GOLD_INGOT, I.FISHING_ROD, I.NAME_TAG, I.ENCH_BOOK][Math.floor(Math.random() * 8)]   // treasure!
+      const catchId = r < tr ? [I.SADDLE, I.BOW, I.VOID_PEARL, I.JADE, I.GOLD_INGOT, I.FISHING_ROD, I.NAME_TAG, I.ENCH_BOOK, I.NAUTILUS_SHELL][Math.floor(Math.random() * 9)]   // treasure!
         : r < junk ? [I.BONE, I.STRING, I.LEATHER, I.STICK, I.INK_SAC][Math.floor(Math.random() * 5)]                                  // junk
         : r < 0.62 ? I.RAW_MINNOW : r < 0.82 ? I.SUNFIN : r < 0.92 ? I.RAW_MINNOW : I.PUFFER;
       const caught = catchId === I.ENCH_BOOK ? { id: I.ENCH_BOOK, n: 1, ench: EN.randomBookEnch(Math.random, true) } : null;   // Milestone 15
@@ -3011,6 +3050,9 @@ function useWith(offhand) {
     return true;
   }
   if (!isBlockItem(slot.id) && slot.id !== I.SPARKDUST && slot.id !== I.STRING) return false;
+  if (slot.id === B.SEA_PICKLE && idOf(hit.v) === B.SEA_PICKLE && (metaOf(hit.v) & 3) < 3) {   // Milestone 17: up to 4 pickles in one spot
+    w.set(hit.x, hit.y, hit.z, make(B.SEA_PICKLE, (metaOf(hit.v) & 3) + 1)); take(); Sound.place("leaf"); G.swing = 0.01; G.hudDirty = true; return true;
+  }
   let x = hit.x, y = hit.y, z = hit.z;
   const hitDef = blockDef(hit.v);
   if (!hitDef.replaceable) { x += hit.nx; y += hit.ny; z += hit.nz; }
@@ -3045,7 +3087,15 @@ function useWith(offhand) {
     if (typeof rule === "string") { UI.toast(rule, "bad"); Sound.error(); return true; }
     if (id === B.CACTUS || id === B.BAMBOO) w.crops.add(x + "," + y + "," + z);
   }
-  if (d.shape === "cross" && id !== B.SUGAR_CANE && ![B.DEAD_BUSH, B.BROWN_MUSHROOM, B.RED_MUSHROOM, B.MANGROVE_SAPLING, B.SPORE_BLOSSOM].includes(id) && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return true; }
+  if (d.aquatic) {   // Milestone 17, Part A: kelp, seagrass, sea pickles, coral plants and fans live underwater
+    const below = w.id(x, y - 1, z);
+    const why = w.id(x, y, z) !== B.WATER ? `${d.name} can only be placed in water.` : !(d.floats || OPAQUE[below] || (id === B.KELP && below === B.KELP)) ? `${d.name} needs a solid block underneath.` : null;
+    if (why) { UI.toast(why, "bad"); Sound.error(); return true; }
+    if (id === B.KELP || id === B.CONDUIT) w.crops.add(x + "," + y + "," + z);   // kelp grows taller; a Conduit checks its frame
+  }
+  if (BLOCKS[id]?.deadAs) w.crops.add(x + "," + y + "," + z);   // a coral block checks it is still touching water
+  if (id === B.WET_SPONGE && G.world.gen.isNether()) { v = B.SPONGE; puff(x + 0.5, y + 1, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("The Wet Sponge dries out instantly in the heat!"); }
+  if (d.shape === "cross" && !d.aquatic && id !== B.SUGAR_CANE && ![B.DEAD_BUSH, B.BROWN_MUSHROOM, B.RED_MUSHROOM, B.MANGROVE_SAPLING, B.SPORE_BLOSSOM].includes(id) && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return true; }
   if (id === B.SAPLING || (d.tree && !d.tree.endsWith("mushroom"))) w.crops.add(x + "," + y + "," + z);   // (mushrooms only grow big with Bone Meal)
   if (id === B.WATER && G.world.gen.isNether()) { puff(x + 0.5, y + 0.5, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); return true; }
   if (id === B.LAVA || id === B.WATER) { placeLiquid(id, x, y, z); take(); G.hudDirty = true; return true; }
@@ -3059,6 +3109,7 @@ function useWith(offhand) {
   } else {
     if (blocksPlayer(v, x, y, z)) return false;
     w.set(x, y, z, v);
+    if (id === B.SPONGE) soakUp(x, y, z);   // Milestone 17
     if (id === B.SHELL_BOX) w.containers.set(x + "," + y + "," + z, { type: "chest", slots: slot.contents ? slot.contents.map(s => s && { ...s }) : new Array(27).fill(null) });
     if (id === B.BEACON) { w.beacons.add(x + "," + y + "," + z); w.containers.set(x + "," + y + "," + z, { type: "beacon", slots: [null], primary: null, secondary: null }); UI.toast("Build a pyramid of mineral blocks under the Beacon, then right-click it to pick a power.", "good"); G.adv("beacon"); }
   }
@@ -3758,6 +3809,72 @@ function harvestHoney(hit) {
   Sound.place("soft"); G.swing = 0.01; G.hudDirty = true;
   if (!torchNear(hit.x, hit.y, hit.z) && !G.creative) { ents.angerBees(hit.x, hit.y, hit.z); UI.toast("The bees are angry! Next time, put a Torch within 3 blocks of the nest first. The smoke calms them.", "bad"); }
 }
+// Milestone 17, Part B: what sunken chests hold (like Java's shipwreck, ocean ruin, and buried treasure chests)
+function seaLoot(box, hit, kind, r, put, putS, book) {
+  const n = (a, b) => a + Math.floor(r() * (b - a + 1)), story = G.story;
+  if (kind === SEA_LOOT.supply) {
+    put(I.PAPER, n(1, 8)); put(I.CARROT, n(2, 6)); put(I.WHEAT, n(4, 12)); put(I.COAL, n(2, 6));
+    if (r() < 0.6) put(I.ROTTEN_FLESH, n(3, 8)); if (r() < 0.4) put(B.BAMBOO, n(1, 3)); if (r() < 0.4) put(I.DRIED_KELP, n(2, 8));
+    if (r() < 0.3) put(B.TNT, n(1, 2)); if (r() < 0.3) put(I.NAUTILUS_SHELL, 1); if (r() < 0.35) put(r() < 0.5 ? I.LEATHER_HELMET : I.LEATHER_CHEST, 1);
+    UI.toast("You found the ship's supplies.", "good");
+  } else if (kind === SEA_LOOT.map) {
+    if (!giveTreasureMap(putS, hit)) put(I.GOLD_INGOT, 2);
+    put(I.PAPER, n(1, 6)); if (r() < 0.4) put(I.FEATHER, n(1, 4)); if (r() < 0.3) put(I.COMPASS, 1); if (r() < 0.25) put(I.BOOK, n(1, 3));
+  } else if (kind === SEA_LOOT.treasure) {
+    put(I.IRON_INGOT, n(1, 5)); put(I.GOLD_INGOT, n(1, 5)); if (r() < 0.6) put(I.JADE, n(1, 5)); if (r() < 0.5) put(I.LAPIS, n(1, 10));
+    if (r() < 0.5) put(I.GOLD_NUGGET, n(1, 10)); if (r() < 0.12) put(I.SKYSHARD, 1); if (r() < 0.15) book();
+    UI.toast("You found the ship's treasure!", "good");
+  } else if (kind === SEA_LOOT.ruin) {
+    if (r() < 0.6) put(I.COAL, n(1, 4)); if (r() < 0.5) put(I.WHEAT, n(2, 3)); if (r() < 0.5) put(I.GOLD_NUGGET, n(1, 3)); if (r() < 0.4) put(I.ROTTEN_FLESH, n(1, 3));
+    if (r() < 0.45) put(I.NAUTILUS_SHELL, n(1, 2)); if (r() < 0.3) put(I.JADE, 1); if (r() < 0.15) put(I.FISHING_ROD, 1); if (r() < 0.2) put(I.STONE_AXE, 1); if (r() < 0.1) book();
+    if (r() < 0.2) giveTreasureMap(putS, hit);
+    if (box.slots.every(q => !q)) put(I.COAL, 2);
+  } else if (kind === SEA_LOOT.buried) {
+    put(I.HEART_OF_THE_SEA, 1); put(I.IRON_INGOT, n(1, 4)); put(I.GOLD_INGOT, n(1, 4)); put(I.COOKED_MINNOW, n(2, 4));
+    if (r() < 0.5) put(I.JADE, n(4, 8)); if (r() < 0.5) put(B.TNT, n(1, 2)); if (r() < 0.5) put(I.SKYSHARD, 1); if (r() < 0.25) put(I.PRISMARINE_CRYSTALS, n(1, 5)); if (r() < 0.2) put(I.IRON_SWORD, 1);
+    story.treasures ||= []; const k = hit.x + "," + hit.z; if (!story.treasures.includes(k)) story.treasures.push(k);
+    UI.toast("Buried treasure! You found the Heart of the Sea.", "good"); G.adv("buried");
+  }
+  for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
+}
+// A treasure map marks the nearest buried treasure nobody has dug up (in worlds made before the ocean floor update, only
+// in land nobody had visited, since only that land has treasure in it). Returns false if there's none near.
+function giveTreasureMap(putS, hit) {
+  const w = G.world, v = w.gen.version, dug = new Set(G.story.treasures || []);
+  if (!w.gen.treasureNear || v < BIOME_GEN) return false;
+  const fresh = s => { if (dug.has(s.x + "," + s.z)) return false; if (v >= OCEAN_GEN) return true; const k = Math.floor(s.x / CHUNK) + "," + Math.floor(s.z / CHUNK); return w.newGen.has(k) || (!w.visited.has(k) && !w.mods.has(k)); };
+  const t = w.gen.treasureNear(hit.x, hit.z, fresh);
+  if (!t) return false;
+  putS({ id: I.TREASURE_MAP, n: 1, tx: t.x, tz: t.z });
+  UI.toast("A Treasure Map! Hold it and follow the arrow to the X, then dig.", "good");
+  return true;
+}
+// Milestone 17, Part B: a Conduit in water, framed by prismarine blocks in three rings around it (up to 42), gives
+// Conduit Power to swimmers nearby (16 blocks per 7 frame blocks); with the full frame it also zaps monsters within 8.
+const CONDUIT_FRAME = new Set([B.PRISMARINE, B.PRISMARINE_BRICKS, B.DARK_PRISMARINE, B.SEA_LANTERN]);
+function conduitFrame(x, y, z) {
+  const w = G.world; let frame = 0;
+  for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) for (let c = -2; c <= 2; c++)
+    if ((a === 0 || b === 0 || c === 0) && Math.max(Math.abs(a), Math.abs(b), Math.abs(c)) === 2 && CONDUIT_FRAME.has(w.id(x + a, y + b, z + c))) frame++;
+  return frame;
+}
+function conduitTick(x, y, z, key) {
+  const w = G.world;
+  let wet = true;
+  for (let a = -1; a <= 1 && wet; a++) for (let b = -1; b <= 1 && wet; b++) for (let c = -1; c <= 1; c++) if ((a || b || c) && !WATERY[w.id(x + a, y + b, z + c)]) { wet = false; break; }
+  const frame = wet ? conduitFrame(x, y, z) : 0, on = frame >= 16;
+  G.conduits ||= new Map();
+  const was = G.conduits.get(key); G.conduits.set(key, on ? frame : 0);
+  if (on && (!was || (frame >= 42 && was < 42))) { UI.toast(frame >= 42 ? "The Conduit is fully powered! It will fight monsters that swim near it, too." : `The Conduit wakes up! (${frame} of 42 frame blocks)`, "good"); Sound.levelUp?.(); G.adv("conduit", frame); }
+  if (!on) return;
+  const p = G.player, range = Math.floor(frame / 7) * 16;
+  if (Math.random() < 0.6) puff(x + 0.5, y + 0.3, z + 0.5, "spark");
+  if (Math.hypot(p.pos.x - x - 0.5, p.pos.y - y, p.pos.z - z - 0.5) <= range && p.inWater) addEffect("conduit", 13);
+  if (frame >= 42 && Math.random() < 0.5) for (const e of ents.list) {   // about every 2 seconds
+    if (e.gone || e.dead || !e.def.hostile || Math.hypot(e.pos.x - x - 0.5, e.pos.y - y, e.pos.z - z - 0.5) > 8 || !WATERY[w.id(Math.floor(e.pos.x), Math.floor(e.pos.y + 0.3), Math.floor(e.pos.z))]) continue;
+    if (ents.damage(e, 4)) { puff(e.pos.x, e.pos.y + 0.5, e.pos.z, "spark"); break; }
+  }
+}
 function fillLoot(box, hit) {
   const r = rng(hashSeed(G.meta.seed) ^ (hit.x * 73856093) ^ (hit.z * 19349663));
   const put = (id, n) => { const i = box.slots.findIndex(s => !s); if (i >= 0 && n > 0) box.slots[i] = newStack(id, n); };
@@ -3766,6 +3883,8 @@ function fillLoot(box, hit) {
   const book = () => putS({ id: I.ENCH_BOOK, n: 1, ench: EN.randomBookEnch(r) });
   const potion = (keys = PO.POTION_KEYS.filter(k => PO.POTIONS[k].eff || PO.POTIONS[k].instant)) => { const k = keys[Math.floor(r() * keys.length)], m = r(); putS({ id: r() < 0.3 ? I.SPLASH_POTION : I.POTION, n: 1, pot: k, ...(m < 0.2 && PO.canLong(k) ? { mod: "long" } : m > 0.85 && PO.canStrong(k) ? { mod: "strong" } : {}) }); };   // Milestone 16
   const gear = (ids, lo, hi) => { const id = ids[Math.floor(r() * ids.length)], s = newStack(id, 1), e = EN.enchantForLoot(r, id, lo + Math.floor(r() * (hi - lo + 1))); if (e) s.ench = e; putS(s); };
+  const seaKind = G.dim === "overworld" ? seaLootOf(metaOf(hit.v)) : 0;   // Milestone 17, Part B: shipwrecks, ruins, buried treasure
+  if (seaKind) { seaLoot(box, hit, seaKind, r, put, putS, book); return; }
   const city = G.dim === "overworld" && G.story.leviathan?.sites?.city;
   if (city && atSolkara(hit, cityCache(city))) {
     put(I.GOLD_INGOT, 4); put(I.BONE, 6); put(I.LEATHER, 2); put(I.ARROW, 12);
@@ -4529,7 +4648,7 @@ function survival(dt) {
     if (starveT >= 4) { starveT = 0; const floor = diff === "easy" ? 10 : diff === "normal" ? 1 : 0; if (p.health > floor) hurt(1, "You were too hungry. Eat something to keep your food bar up!", null, true, "starve"); }
   } else starveT = 0;
   // breath underwater
-  if (p.headInWater && !CP.breathes() && !G.effects.waterBreath && !G.riding?.def.waterMount) { p.air -= dt / (1 + EN.lvl(G.inv.slots[36], "respiration")); if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
+  if (p.headInWater && !CP.breathes() && !G.effects.waterBreath && !G.effects.conduit && !G.riding?.def.waterMount) { p.air -= dt / (1 + EN.lvl(G.inv.slots[36], "respiration")); if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
   else if (p.air < 10) { p.air = Math.min(10, p.air + dt * 4); G.hudDirty = true; }
 }
 
@@ -6447,6 +6566,7 @@ function loop(now) {
   if (running) raids.update(dt);
   if (running) updateSandsDiscovery(dt);
   const daylight = updateSky();
+  if (G.effects.conduit && G.player.headInWater) uniforms.ambient.value = Math.max(uniforms.ambient.value, 0.75);   // Conduit Power lights up the water
   if (G.effects.nightVision) uniforms.ambient.value = Math.max(uniforms.ambient.value, G.effects.nightVision < 10 && Math.floor(G.effects.nightVision * 4) % 2 ? 0.35 : 0.85);   // Night Vision (flickers in its last 10 s)
   (echoholdAtmosphere ||= (G._echoAtmo = createEchoholdAtmosphere({ THREE, scene, camera, G, emitParticle, fog: uniforms }))).update(running ? dt : 0);
   updateSolkaraCore();

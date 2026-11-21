@@ -49,6 +49,11 @@ export class World {
       const fresh = (!m && !this.visited.has(key)) || this.newGen.has(key);
       if (fresh) this.newGen.add(key);
       opts = { cane: fresh };
+    } else if (this.gen.version === BIOME_GEN) {
+      // Milestone 17, Part A: worlds made at land version 17 get the ocean floor only in chunks nobody has visited or changed
+      const fresh = (!m && !this.visited.has(key)) || this.newGen.has(key);
+      if (fresh) this.newGen.add(key);
+      opts = { sea: fresh };
     }
     if (this.gen.lateFeatures && this.gen.version < BIOME_GEN) opts.biomes = this.biomeRegion(cx, cz);   // Milestone 20, Part C
     let data = this.gen.generate(cx, cz, opts);

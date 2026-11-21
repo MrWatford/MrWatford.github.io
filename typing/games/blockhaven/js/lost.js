@@ -172,6 +172,12 @@ export function initLost(api) {
     };
     const [near, far] = kind === "excavation" ? [ADVENTURE.near, Math.max(ADVENTURE.near, ADVENTURE.far - 160)] : [ADVENTURE.near + 80, ADVENTURE.far];
     let site = kind === "desert" ? ring(near, far, (x0, z0) => ok(x0, z0) && monumentFits(gen, data, x0, z0, others)) : null;
+    // No mostly-desert spot? Still pick one with room for the whole Grand Desert Temple (it is about 160 blocks across,
+    // much wider than the 96-block gap kept between landmarks), so it isn't skipped for crowding another landmark.
+    if (!site && kind === "desert") {
+      const roomy = fit => (x0, z0) => fit(x0, z0) && monumentRoom(gen, data, x0, z0, others);
+      site = ring(near, far, roomy(ok)) || ring(near, far, roomy((x0, z0) => ok2(x0, z0, loose))) || (any && ring(near, far, roomy((x0, z0) => ok2(x0, z0, any)))) || null;
+    }
     site = site || ring(near, far, ok) || ring(near, far, (x0, z0) => ok2(x0, z0, loose));
     if (!site && any) site = ring(near, far, (x0, z0) => ok2(x0, z0, any));
     if (!site && kind === "sea") { const b = ring(near, far, bay); if (b) site = { ...b, lake: LAKE }; }
@@ -223,11 +229,16 @@ export function initLost(api) {
     return why;
   }
   // new worlds: is there room for the whole temple at this 32 × 32 spot (no village, roughly desert-height land)?
-  function monumentFits(gen, data, x0, z0, others) {
+  // is the whole temple's footprint (with its sand slopes) free of other landmarks, changed or visited land, and known villages?
+  function monumentRoom(gen, data, x0, z0, others) {
     const cx = x0 + 16, cz = z0 + 16, visited = new Set(data.visited || []);
     if (monumentChunks(cx, cz, APRON_PAD).some(k => visited.has(k))) return false;
     const boxes = others.map(o => ({ what: "site", x0: o.x, x1: o.x + 32, z0: o.z, z1: o.z + 32 })).concat(plannedBoxes(true));
-    if (footprintTrouble(gen, data, cx, cz, boxes).length) return false;
+    return !footprintTrouble(gen, data, cx, cz, boxes).length;
+  }
+  function monumentFits(gen, data, x0, z0, others) {
+    const cx = x0 + 16, cz = z0 + 16;
+    if (!monumentRoom(gen, data, x0, z0, others)) return false;
     let low = 0, sand = 0, n = 0;
     for (let a = -60; a <= 60; a += 15) for (let b = -60; b <= 64; b += 15) { const c = gen.column(cx + a, cz + b); n++; if (c.h > 46 || c.biome === "peak" || c.biome === "mountain") return false; if (c.h < SEA) low++; if (c.biome === "sandy") sand++; }
     return low <= 6 && sand >= n * (L.monumentSandShare ?? 0.5);   // mostly real desert around it (if none is found, the normal search still places it)   // a little water at the edges is fine (the foundation fills down to the lake bed)
@@ -240,7 +251,11 @@ export function initLost(api) {
     const c = { x: site.x + 16, z: site.z + 16 }, trouble = footprintTrouble(gen, data, c.x, c.z, plannedBoxes(true));
     if (trouble.length) {
       s.monument = { v: MONUMENT.version, on: false, why: "conflict", conflicts: trouble, at: Date.now() };
-      setTimeout(() => UI.toast("The Grand Desert Temple did not rise around the Pyramid of Aurelis in this world, because you have already built, dug, or explored a village right there. The pyramid and everything you made stay exactly as they were."), 4000);
+      // only blame the player's own building or exploring when that is really the reason
+      const theirs = trouble.some(q => q.kind === "changed" || q.kind === "village");
+      setTimeout(() => UI.toast(theirs
+        ? "The Grand Desert Temple did not rise around the Pyramid of Aurelis in this world, because you have already built, dug, or explored a village right there. The pyramid and everything you made stay exactly as they were."
+        : "The Grand Desert Temple did not rise around the Pyramid of Aurelis in this world, because another landmark stands too close to it. The pyramid still waits for you, just without the temple around it."), 4000);
       console.warn("Grand Desert Temple: not built here, to protect what's already in this world:", JSON.stringify(trouble));
       return s.monument;
     }

@@ -1,7 +1,7 @@
 // Builds the natural world from a seed. The same seed always makes the same land.
 import { Noise, hashSeed, rng, hash3 } from "./noise.js";
 import { treeShape } from "./trees.js";
-import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD } from "./blocks.js";
+import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD, CORALS } from "./blocks.js";
 
 import { isLanternVale, buildLanternValePlot } from "./lantern-vale.js";
 
@@ -15,17 +15,26 @@ export const ENCHANT_GEN = 16;
 // 17 (Milestone 20, Part A): real oceans and deep oceans. Only brand-new worlds: oceans lower the land, and older worlds
 // already have structures planned on today's land. Strongholds and the area around the world's middle stay dry.
 export const BIOME_GEN = 17;
+// 18 (Milestone 17, Part A): the ocean floor (kelp, seagrass, coral reefs, sea pickles, icebergs). It never changes the
+// land's height. Worlds made at version 17 get it only in chunks nobody has visited or changed (world.js, remembered).
+export const OCEAN_GEN = 18;
+// Milestone 17, Part B: what a sunken chest holds (chest meta bits 3-5; filled when first opened, main.js fillLoot)
+export const SEA_LOOT = { supply: 1, map: 2, treasure: 3, ruin: 4, buried: 5 };
+export const seaLootOf = meta => (meta >> 3) & 7;
+const seaChest = (kind, f = 0) => make(B.CHEST, LOOT | (f & 3) | (kind << 3));
+export const TREASURE_CELL = 160;   // one buried treasure spot at most in each 160 × 160 square, on a beach
 // Milestone 20, Part C: the new land biomes. They only change what's on the ground (never its height), so they can also
 // reach older worlds, in big squares of land nobody has visited or changed (decided once in world.js, remembered).
 export const SPECIAL_BIOMES = new Set(["snowy_plains", "taiga", "jungle", "savanna", "dark_forest", "swamp", "badlands", "cherry_grove", "mushroom_fields", "frozen_ocean"]);
 export const BIOME_NAMES = { plains: "Plains", forest: "Forest", birch: "Birch Forest", sandy: "Desert", mountain: "Mountains", peak: "Snowy Peaks", ocean: "Ocean",
   deep_ocean: "Deep Ocean", frozen_ocean: "Frozen Ocean", snowy_plains: "Snowy Plains", taiga: "Taiga", jungle: "Jungle", savanna: "Savanna", dark_forest: "Dark Forest",
-  swamp: "Swamp", badlands: "Badlands", cherry_grove: "Cherry Grove", mushroom_fields: "Mushroom Fields" };
+  swamp: "Swamp", badlands: "Badlands", cherry_grove: "Cherry Grove", mushroom_fields: "Mushroom Fields", warm_ocean: "Warm Ocean" };
+const WARM_SEA = 0.3;   // Milestone 17: seas warmer than this are Warm Oceans (coral reefs)
 const SOFT_GEN = new Set([B.AIR, B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.SNOW_LAYER, B.PINK_PETALS, B.DEAD_BUSH]);
 const BANDS = [B.TERRACOTTA, B.ORANGE_TERRACOTTA, B.TERRACOTTA, B.YELLOW_TERRACOTTA, B.ORANGE_TERRACOTTA, B.WHITE_TERRACOTTA, B.RED_TERRACOTTA, B.TERRACOTTA,
   B.BROWN_TERRACOTTA, B.LIGHT_GRAY_TERRACOTTA, B.ORANGE_TERRACOTTA, B.RED_TERRACOTTA];
 const TREES = { taiga: ["spruce", 7], snowy_plains: ["spruce", 0.6], jungle: ["jungle", 6], savanna: ["acacia", 1.4], dark_forest: ["dark_oak", 2.5], cherry_grove: ["cherry", 2], swamp: ["mangrove", 1.6], mushroom_fields: ["mushroom", 0.8] };
-export const CURRENT_GEN = BIOME_GEN;
+export const CURRENT_GEN = OCEAN_GEN;
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE, scribe: B.BOOKSHELF, beekeeper: B.BEEHIVE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -67,7 +76,7 @@ export class Generator {
   // Milestone 20, Part C: the new biome for a column, from the same temperature and moisture the land already has
   landBiome(col, x, z) {
     const b = col.biome, t = col.temperature, m = col.moisture, w = this.n.n2(x / 480 + 1700, z / 480 - 900);
-    if (b === "ocean" || b === "deep_ocean") return t < -0.52 ? "frozen_ocean" : b;
+    if (b === "ocean" || b === "deep_ocean") return t < -0.52 ? "frozen_ocean" : b === "ocean" && t > WARM_SEA ? "warm_ocean" : b;   // Milestone 17: sunny shallow seas
     if (b === "peak" || b === "mountain") return b;
     if (b === "sandy") return w > 0.25 ? "badlands" : "sandy";
     if (t < -0.44) return b === "plains" ? "snowy_plains" : "taiga";
@@ -148,6 +157,136 @@ export class Generator {
         if (at(lx - dx, cy, lz - dz) === B.AIR && at(lx, cy, lz) === B.JUNGLE_LOG) put(lx - dx, cy, lz - dz, make(B.COCOA, f | (Math.floor(r() * 3) << 2)));
       }
     }
+  }
+  // Milestone 17, Part A: the ocean floor. Seagrass and kelp forests in the seas, coral reefs with sea pickles in warm
+  // seas, and now and then an iceberg in a frozen sea. Only fills water (and, for icebergs, the air just above it).
+  seaFloor(data, cols, x0, z0, cx, cz) {
+    const r = rng((this.seed ^ Math.imul(cx, 1597334677) ^ Math.imul(cz, 3812015801) ^ 0x17a0) >>> 0);
+    const at = (lx, y, lz) => data[idx(lx, y, lz)], put = (lx, y, lz, v) => { data[idx(lx, y, lz)] = v; };
+    const floorOk = v => v === B.SAND || v === B.GRAVEL || v === B.CLAY || v === B.DIRT || v === B.STONE || v === B.RED_SAND;
+    for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
+      const col = cols[lx + lz * CHUNK], nb = col.nb, h = col.h, depth = SEA - h, x = x0 + lx, z = z0 + lz, p = r();
+      if ((nb !== "ocean" && nb !== "deep_ocean" && nb !== "warm_ocean") || depth < 2 || at(lx, h + 1, lz) !== B.WATER || !floorOk(at(lx, h, lz))) continue;
+      if (nb === "warm_ocean") {
+        const reef = this.n.n2(x / 26 + 1300, z / 26 - 2100) > -0.05, kind = Math.floor(hash3(this.seed, x >> 2, 1717, z >> 2) * CORALS.length), K = CORALS[kind][0];
+        if (reef && p < 0.3) {   // a little mound of coral blocks with something growing on top
+          const tall = depth > 4 && r() < 0.4 ? 2 : 1;
+          for (let k = 1; k <= tall; k++) put(lx, h + k, lz, B[K + "_CORAL_BLOCK"]);
+          const q = r(), y = h + tall + 1;
+          if (y < SEA && at(lx, y, lz) === B.WATER) {
+            if (q < 0.35) put(lx, y, lz, B[CORALS[Math.floor(r() * CORALS.length)][0] + "_CORAL"]);
+            else if (q < 0.6) put(lx, y, lz, B[CORALS[Math.floor(r() * CORALS.length)][0] + "_CORAL_FAN"]);
+            else if (q < 0.68) put(lx, y, lz, make(B.SEA_PICKLE, Math.floor(r() * 4)));
+          }
+        } else if (reef && p < 0.62) put(lx, h + 1, lz, B[(r() < 0.5 ? K : CORALS[Math.floor(r() * CORALS.length)][0]) + (r() < 0.55 ? "_CORAL" : "_CORAL_FAN")]);
+        else if (p < 0.8) put(lx, h + 1, lz, B.SEAGRASS);
+        continue;
+      }
+      const forest = depth >= 5 && this.n.n2(x / 44 - 2600, z / 44 + 1900) > (nb === "deep_ocean" ? 0.35 : 0.12);
+      if (forest && p < 0.45) {   // kelp reaching up toward the surface
+        const len = 1 + Math.floor(r() * Math.max(1, depth - 2));
+        for (let k = 1; k <= len && h + k < SEA; k++) if (at(lx, h + k, lz) === B.WATER) put(lx, h + k, lz, B.KELP); else break;
+      } else if (p < (nb === "deep_ocean" ? 0.12 : 0.32)) put(lx, h + 1, lz, B.SEAGRASS);
+    }
+    // a frozen sea sometimes has an iceberg of packed ice with a blue ice heart, kept inside this chunk
+    if (cols[8 + 8 * CHUNK].nb === "frozen_ocean" && r() < 0.09) {
+      const R = 3 + Math.floor(r() * 3), up = 3 + Math.floor(r() * 7), down = 3 + Math.floor(r() * 4);
+      for (let lz = 8 - R; lz <= 8 + R; lz++) for (let lx = 8 - R; lx <= 8 + R; lx++) {
+        const d = Math.hypot(lx - 8, lz - 8) + r() * 0.6;
+        if (d > R) continue;
+        const top = SEA + Math.round(up * (1 - d / (R + 0.5)) ** 1.4), bottom = Math.max(cols[lx + lz * CHUNK].h + 1, SEA - Math.round(down * (1 - d / (R + 1))));
+        for (let y = bottom; y <= top; y++) {
+          const v = at(lx, y, lz);
+          if (v === B.WATER || v === B.AIR || v === B.ICE || v === B.SNOW_LAYER) put(lx, y, lz, d < R * 0.35 && y < top - 1 && r() < 0.6 ? B.BLUE_ICE : B.PACKED_ICE);
+        }
+        if (top + 1 < HEIGHT && at(lx, top + 1, lz) === B.AIR && r() < 0.7) put(lx, top + 1, lz, B.SNOW_LAYER);
+      }
+    }
+  }
+  // Milestone 17, Part B: a shipwreck or a sunken ruin in some sea chunks (each kept inside its own chunk), and buried
+  // treasure under a beach (one spot at most per 160 × 160 square; treasure maps lead to it).
+  seaStructures(data, cols, x0, z0, cx, cz) {
+    const spot = this.treasureSpot(Math.floor(x0 / TREASURE_CELL), Math.floor(z0 / TREASURE_CELL));
+    if (spot && spot.x >= x0 && spot.x < x0 + CHUNK && spot.z >= z0 && spot.z < z0 + CHUNK) data[idx(spot.x - x0, spot.y, spot.z - z0)] = seaChest(SEA_LOOT.buried);
+    const c = cols[8 + 8 * CHUNK], nb = c.nb, depth = SEA - c.h, roll = hash3(this.seed, cx, 1741, cz);
+    if (!["ocean", "deep_ocean", "warm_ocean", "frozen_ocean"].includes(nb) || depth < 3) return;
+    const r = rng((this.seed ^ Math.imul(cx, 2246822519) ^ Math.imul(cz, 3266489917) ^ 0x5417) >>> 0);
+    if (roll < 0.022 && depth >= 4) this.shipwreck(data, c.h + 1, r);
+    else if (roll >= 0.022 && roll < 0.075) this.oceanRuin(data, cols, nb === "warm_ocean", r);
+  }
+  // the treasure spot of one big square: a beach (land just above sea level at the edge of a real sea), or null
+  treasureSpot(gx, gz) {
+    const key = gx + "," + gz;
+    this.treasureCache ||= new Map();
+    if (this.treasureCache.has(key)) return this.treasureCache.get(key);
+    let found = null;
+    const bx = gx * TREASURE_CELL + 16 + Math.floor(hash3(this.seed, gx, 1901, gz) * (TREASURE_CELL - 32)), bz = gz * TREASURE_CELL + 16 + Math.floor(hash3(this.seed, gx, 1902, gz) * (TREASURE_CELL - 32));
+    for (let k = 0; k < 24 && !found; k++) {
+      const x = k ? gx * TREASURE_CELL + 4 + Math.floor(hash3(this.seed, gx * 31 + k, 1903, gz) * (TREASURE_CELL - 8)) : bx;
+      const z = k ? gz * TREASURE_CELL + 4 + Math.floor(hash3(this.seed, gx, 1904, gz * 31 + k) * (TREASURE_CELL - 8)) : bz;
+      const col = this.column(x, z);
+      if (col.h >= SEA && col.h <= SEA + 2 && col.sea > 0.02 && col.biome !== "peak" && col.biome !== "mountain") found = { x, z, y: col.h - 1 };
+    }
+    if (this.treasureCache.size > 4000) this.treasureCache.clear();
+    this.treasureCache.set(key, found);
+    return found;
+  }
+  // the nearest treasure spot to (x, z), looking a few squares around; ok(spot) can rule spots out
+  treasureNear(x, z, ok = () => true, reach = 3) {
+    const gx = Math.floor(x / TREASURE_CELL), gz = Math.floor(z / TREASURE_CELL);
+    let best = null, bd = Infinity;
+    for (let i = -reach; i <= reach; i++) for (let j = -reach; j <= reach; j++) {
+      const s = this.treasureSpot(gx + i, gz + j);
+      if (!s || !ok(s)) continue;
+      const d = Math.hypot(s.x - x, s.z - z);
+      if (d < bd) { bd = d; best = s; }
+    }
+    return best;
+  }
+  // a wrecked wooden ship lying on the sea floor: a hull with holes, a deck, a broken mast, a little cabin, and 3 chests
+  shipwreck(data, Y, r) {
+    if (Y + 8 >= HEIGHT - 1) return;
+    const [P, L] = [[B.PLANKS, B.LOG], [B.SPRUCE_PLANKS, B.SPRUCE_LOG], [B.DARK_OAK_PLANKS, B.DARK_OAK_LOG]][Math.floor(r() * 3)];
+    const alongX = r() < 0.5, at = (u, v) => alongX ? [2 + u, 8 + v] : [8 + v, 2 + u];
+    const put = (u, y, v, b, rot = 0.13) => { if (rot && r() < rot) return; const [lx, lz] = at(u, v); data[idx(lx, y, lz)] = b; };
+    const open = y => y <= SEA ? B.WATER : B.AIR;
+    for (let u = 0; u <= 12; u++) {
+      const half = u === 0 || u === 12 ? 0 : u === 1 || u === 11 ? 1 : 2;
+      for (let v = -half; v <= half; v++) {
+        if (Math.abs(v) < 2 && u >= 1 && u <= 11) put(u, Y, v, P, 0);   // the keel and the bottom of the hull
+        for (let y = Y + 1; y <= Y + 3; y++) {
+          if (Math.abs(v) === half) put(u, y, v, P);   // the sides
+          else { const [lx, lz] = at(u, v); data[idx(lx, y, lz)] = open(y); }   // the hold
+        }
+        if (u >= 1 && u <= 11) put(u, Y + 4, v, P, 0.2);   // the deck, rotted through in places
+      }
+    }
+    for (let u = 9; u <= 11; u++) for (let v = -2; v <= 2; v++) for (let y = Y + 5; y <= Y + 7; y++) {   // the cabin at the back
+      const wall = u === 9 || u === 11 || Math.abs(v) === 2;
+      if (y === Y + 7) put(u, y, v, P, 0.25);
+      else if (wall && !(u === 9 && v === 0)) put(u, y, v, P, 0.15);
+      else { const [lx, lz] = at(u, v); data[idx(lx, y, lz)] = open(y); }
+    }
+    const mast = 3 + Math.floor(r() * 6);
+    for (let y = Y + 1; y <= Math.min(HEIGHT - 2, Y + mast + 1); y++) put(6, y, 0, L, 0);   // the broken mast
+    const f = alongX ? 1 : 0;
+    put(2, Y + 1, 0, seaChest(SEA_LOOT.supply, f), 0);
+    put(7, Y + 1, -1, seaChest(SEA_LOOT.treasure, f), 0);
+    put(10, Y + 5, 0, seaChest(SEA_LOOT.map, f), 0);
+  }
+  // the broken stone walls of a small sunken building (sandstone in warm seas), sometimes with a chest
+  oceanRuin(data, cols, warm, r) {
+    const mats = warm ? [B.SANDSTONE, B.SANDSTONE, B.SANDSTONE] : [B.STONE_BRICKS, B.MOSSY, B.CRACKED_BRICKS];
+    const S = r() < 0.5 ? 5 : 7, ox = 2 + Math.floor(r() * (13 - S)), oz = 2 + Math.floor(r() * (13 - S)), H = 1 + Math.floor(r() * 3);
+    for (let a = 0; a < S; a++) for (let b = 0; b < S; b++) {
+      const lx = ox + a, lz = oz + b, h = cols[lx + lz * CHUNK].h;
+      if (h >= SEA - 1) continue;
+      data[idx(lx, h, lz)] = mats[Math.floor(r() * 3)];   // the floor
+      const edge = a === 0 || b === 0 || a === S - 1 || b === S - 1;
+      if (edge) { const tall = Math.min(H + (r() < 0.3 ? 1 : 0), SEA - h - 1); for (let y = h + 1; y <= h + tall; y++) if (r() > 0.22) data[idx(lx, y, lz)] = mats[Math.floor(r() * 3)]; }
+      else if (data[idx(lx, h + 1, lz)] !== B.WATER) data[idx(lx, h + 1, lz)] = B.WATER;
+    }
+    if (r() < 0.6) { const lx = ox + 1 + Math.floor(r() * (S - 2)), lz = oz + 1 + Math.floor(r() * (S - 2)), h = cols[lx + lz * CHUNK].h; if (h + 1 < SEA) data[idx(lx, h + 1, lz)] = seaChest(SEA_LOOT.ruin, Math.floor(r() * 4)); }
   }
   // Milestone 20, Part D: which kind of cave lies under this chunk (big, slow patches), and decorating it
   caveBiome(x0, z0) { const c = this.n.n2(x0 / 170 + 5000, z0 / 170 - 5000); return c > 0.45 ? "lush_caves" : c < -0.45 ? "dripstone_caves" : null; }
@@ -347,6 +486,10 @@ if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like M
 }
 
     if (deco) this.decorate(data, cols, x0, z0, cx, cz);   // Milestone 20, Part C
+    if (deco && (ver >= OCEAN_GEN || opts.sea)) {
+      this.seaFloor(data, cols, x0, z0, cx, cz);   // Milestone 17, Part A
+      this.seaStructures(data, cols, x0, z0, cx, cz);   // Milestone 17, Part B
+    }
 
 // a rare landmark: a crumbling watchtower with a treasure chest
     if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
