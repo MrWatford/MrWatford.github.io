@@ -273,7 +273,7 @@ export const SPECIES = {
       { name: "legR", size: [1, 5, 1], pivot: [-1.5, 5, 0], off: [0, -2.5, 0], paint: { all: solid(["#f0b020"]) } },
       { name: "legL", size: [1, 5, 1], pivot: [1.5, 5, 0], off: [0, -2.5, 0], paint: { all: solid(["#f0b020"]) } }] } },
   rabbit: { name: "Rabbit", animal: true, hp: 3, speed: 2.6, w: 0.4, h: 0.5, ai: "animal", food: [I.CARROT], xp: 1, sound: "squeak", hops: true, skittish: true,
-    drops: e => e.baby ? [] : [[e.burning ? I.COOKED_RABBIT : I.RAW_RABBIT, randi(0, 1)], Math.random() < 0.15 ? [I.LEATHER, 1] : null],
+    drops: e => e.baby ? [] : [[e.burning ? I.COOKED_RABBIT : I.RAW_RABBIT, randi(0, 1)], Math.random() < 0.15 ? [I.LEATHER, 1] : null, Math.random() < 0.1 ? [I.RABBIT_FOOT, 1] : null],   // Milestone 16: Rabbit's Foot (10%, like Java)
     model: { type: "rabbit", parts: [
       { name: "body", size: [6, 5, 8], pivot: [0, 4.5, 0], off: [0, 0, 0], paint: { all: solid(["#9a7a5a", "#8a6a4a", "#a8886a"]), back: face(["#9a7a5a"], () => {}) } },
       { name: "head", size: [5, 4, 5], pivot: [0, 7, 3.5], off: [0, 0, 2], paint: { all: solid(["#9a7a5a"]), front: face(["#9a7a5a"], P => { P.rect(2, 5, 3, 3, "#111"); P.rect(11, 5, 3, 3, "#111"); P.rect(6, 10, 4, 3, "#e8a8a0"); }) } },
@@ -367,14 +367,18 @@ Object.assign(SPECIES, {
 // ----- villages -----
 // Trades: [what you give, what you get, how many times before restocking]
 export const TRADES = {
-  farmer: [[[[I.WHEAT, 20]], [I.JADE, 1], 12], [[[I.CARROT, 15]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.BREAD, 6], 12], [[[I.JADE, 1]], [I.APPLE, 4], 12], [[[I.JADE, 2]], [I.STEAK, 5], 8]],
+  farmer: [[[[I.WHEAT, 20]], [I.JADE, 1], 12], [[[I.CARROT, 15]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.BREAD, 6], 12], [[[I.JADE, 1]], [I.APPLE, 4], 12], [[[I.JADE, 2]], [I.STEAK, 5], 8], [[[I.JADE, 1]], [I.MELON_SEEDS, 4], 8], [[[I.MELON_SLICE, 4]], [I.JADE, 1], 12]],
   fletcher: [[[[I.STICK, 24]], [I.JADE, 1], 12], [[[I.FLINT, 10]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.ARROW, 16], 12], [[[I.JADE, 2]], [I.BOW, 1], 6], [[[I.JADE, 1], [I.FEATHER, 4]], [I.ARROW, 24], 8]],
   shepherd: [[[[B.WOOL, 18]], [I.JADE, 1], 12], [[[I.JADE, 2]], [I.SHEARS, 1], 6], [[[I.JADE, 3]], [B.BED, 1], 6], [[[I.JADE, 1]], [B.WOOL, 4], 12]],
-  cleric: [[[[I.ROTTEN_FLESH, 32]], [I.JADE, 1], 12], [[[I.WART, 22]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.SHINE_DUST, 2], 12], [[[I.JADE, 5]], [I.VOID_PEARL, 1], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 2], 8], [[[I.JADE, 1]], [I.SPARKDUST, 2], 12]],
+  cleric: [[[[I.ROTTEN_FLESH, 32]], [I.JADE, 1], 12], [[[I.WART, 22]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.SHINE_DUST, 2], 12], [[[I.JADE, 5]], [I.VOID_PEARL, 1], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 2], 8], [[[I.JADE, 1]], [I.SPARKDUST, 2], 12],
+    // Milestone 16: bottles and a Potion of Healing
+    [[[I.JADE, 1]], [I.BOTTLE, 3], 12], [[[I.JADE, 3]], [I.POTION, 1], 6, { id: I.POTION, n: 1, pot: "healing" }]],
   smith: [[[[I.COAL, 15]], [I.JADE, 1], 12], [[[I.IRON_INGOT, 4]], [I.JADE, 1], 12], [[[I.JADE, 6]], [I.IRON_PICK, 1], 4], [[[I.JADE, 7]], [I.IRON_SWORD, 1], 4], [[[I.JADE, 9]], [I.IRON_CHEST, 1], 3], [[[I.JADE, 4]], [I.IRON_HELMET, 1], 4], [[[I.JADE, 16]], [B.BELL, 1], 2]],
-  scribe: [[[[I.LEATHER, 10]], [I.JADE, 1], 8], [[[I.JADE, 2]], [B.BOOKSHELF, 2], 8], [[[I.JADE, 3]], [I.COMPASS, 1], 4], [[[I.JADE, 4]], [B.MAP_TABLE, 1], 3]],
+  scribe: [[[[I.LEATHER, 10]], [I.JADE, 1], 8], [[[I.JADE, 2]], [B.BOOKSHELF, 2], 8], [[[I.JADE, 3]], [I.COMPASS, 1], 4], [[[I.JADE, 4]], [B.MAP_TABLE, 1], 3],
+    // Milestone 15: paper for Jade, plain books, and an enchanted book (which one depends on the Scribe; price set in main.js G.tradeOffer)
+    [[[I.PAPER, 24]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.BOOK, 2], 8], [[[I.JADE, 0], [I.BOOK, 1]], [I.ENCH_BOOK, 1], 4], [[[I.JADE, 1]], [I.LAPIS, 4], 8]],
   beekeeper: [[[[B.FLOWER_RED, 8]], [I.JADE, 1], 8], [[[I.JADE, 1]], [I.HONEY_BOTTLE, 2], 8], [[[I.JADE, 2]], [I.HONEYCOMB, 4], 8], [[[I.JADE, 3]], [B.BEEHIVE, 1], 4]],
-  wanderer: [[[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1], [[[I.JADE, 3]], [I.NAME_TAG, 1], 2], [[[I.JADE, 2]], [I.LEAD, 2], 2]]
+  wanderer: [[[[I.JADE, 0]], [I.ENCH_BOOK, 1], 1], [[[I.JADE, 1]], [B.SUGAR_CANE, 4], 4], [[[I.JADE, 1]], [I.MELON_SEEDS, 2], 4], [[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1], [[[I.JADE, 3]], [I.NAME_TAG, 1], 2], [[[I.JADE, 2]], [I.LEAD, 2], 2]]
 };
 const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], scribe: ["#346462", "#254d4a"], beekeeper: ["#b58536", "#906926"], wanderer: ["#2a5aa0", "#245094"] };
 const VSKIN = ["#e8b890", "#deae86"];
@@ -2385,7 +2389,7 @@ export class Entities {
     let speed = 0, mx = 0, mz = 0;
     if (e.goal && !e.frozen) {
       const gx = e.goal.x - e.pos.x, gz = e.goal.z - e.pos.z, gl = Math.hypot(gx, gz);
-      if (gl > (def.arboreal ? 0.09 : 0.25)) { mx = gx / gl; mz = gz / gl; speed = e.goal.speed || def.speed; e.yaw = turn(e.yaw, Math.atan2(-mx, -mz), dt * 8); }
+      if (gl > (def.arboreal ? 0.09 : 0.25)) { mx = gx / gl; mz = gz / gl; speed = (e.goal.speed || def.speed) * (e.fx?.slow ? 0.5 : 1); e.yaw = turn(e.yaw, Math.atan2(-mx, -mz), dt * 8); }
       else if (treeSteering || (def.flies || def.amphibious && e.inWater) && e.goal.y !== undefined && Math.abs(e.goal.y - e.pos.y) > (def.preciseFlight ? 0.08 : 0.4)) { /* right above or below it: keep rising or sinking */ }
       else if (e.path && e.path.length) { e.path.shift(); if (e.path.length) e.goal = { ...e.path[0], speed: e.goal.speed }; else e.goal = null; }
       else e.goal = null;
@@ -2459,6 +2463,7 @@ export class Entities {
     if (def.fireproof) e.burning = 0;
     else {
       if (e.inLava) { e.burning = 5; if ((e.lavaT = (e.lavaT || 0) - dt) <= 0) { e.lavaT = 0.5; this.damage(e, 4, null); } }
+      if (e.fx) this.tickFx(e, dt);
       if (e.burning > 0) { e.burning -= dt; if (e.inWater) e.burning = 0; if ((e.burnT -= dt) <= 0) { e.burnT = 1; this.damage(e, 1, null); } }
     }
     if (e.barterT > 0 && (e.barterT -= dt) <= 0) this.barter(e);
@@ -2695,10 +2700,11 @@ export class Entities {
     }
     if (e.angry > 0) e.angry -= 0.15;
     const can = this.targetable();
-    const sees = can && d < 24 && this.canSeePlayer(e);
+    const hidden = ctx.invisible ? ctx.invisible() : -1, sight = hidden < 0 ? 24 : 2 + hidden * 4;   // Milestone 16: Invisibility (armor still gives you away)
+    const sees = can && d < sight && this.canSeePlayer(e);
     // skitters are calm in bright light unless provoked
     const calm = def.ai === "spider" && !e.angry && (() => { const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.pos.y), Math.floor(e.pos.z)); return L && L[0] * daylight > 11; })();
-    const chasing = can && !calm && (sees || (d < 10 && Math.abs(p.pos.y - e.pos.y) < 6) || (e.target && d < 32));   // monsters also sense you up close
+    const chasing = can && !calm && (sees || (d < (hidden < 0 ? 10 : Math.min(10, sight)) && Math.abs(p.pos.y - e.pos.y) < 6) || (e.target && d < (hidden < 0 ? 32 : sight + 2)));   // monsters also sense you up close
     e.target = chasing ? p : null;
     if (!chasing && e.settlementRaid) { this.moveTo(e, e.settlementRaid.rally, def.speed, 2); return; }
     if (!chasing) { this.wander(e); if (e.fuse > 0) e.fuse = Math.max(0, e.fuse - 0.3); return; }
@@ -3414,7 +3420,8 @@ export class Entities {
     if (e.sp === "pylon") { e.gone = true; ctx.pylonGone(e.cid); for (let k = 0; k < 3; k++) ctx.particles(e.pos.x, e.pos.y + 1 + k * 0.4, e.pos.z, "fire"); Sound.mob("crystal", 0); return; }
     if (e.def.boss) { Sound.mob("roar", 0); return; }
     if (attacker === "player" || e.burning || attacker === "explosion" || (attacker && (attacker.tame || attacker.sp === "fox"))) {
-      for (const d of e.def.drops(e)) if (d && d[1] > 0) ctx.drop(d[0], d[1], e.pos.x, e.pos.y + 0.4, e.pos.z);
+      const loot = attacker === "player" ? this.looting || 0 : 0;   // Milestone 15: Looting (set by main.js during your hit)
+      for (const d of e.def.drops(e)) if (d && d[1] > 0) ctx.drop(d[0], d[1] + (loot ? Math.floor(Math.random() * (loot + 1)) : 0), e.pos.x, e.pos.y + 0.4, e.pos.z);
       if (!e.baby && e.def.xp) ctx.xp(e.def.xp * (e.def.ai === "slime" ? e.size : 1), e.pos.x, e.pos.y + 0.4, e.pos.z);
     } else if (e.held && e.sp !== "allay") ctx.drop(e.held, 1, e.pos.x, e.pos.y + 0.4, e.pos.z);
     if (e.sp === "allay" && e.held) ctx.drop(e.held, 1 + (e.bestiary.carry || 0), e.pos.x, e.pos.y + 0.4, e.pos.z);
@@ -3550,8 +3557,8 @@ export class Entities {
       const fl = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.01, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff })); fl.position.z = 0.22;
       mesh.add(shaft, tip, fl);
     } else {
-      const color = { sandbolt: 0xc8b5ec, pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, witchbrew: 0x93bd65, windburst: 0xbacafb, fireball: 0xff7a1a, bigfire: 0xffb030, breath: 0xb050ff, bullet: 0xf0e8b0, eye: 0x3ad0a0, skull: 0x2a2a2a, bobber: 0xd8302a }[kind] || 0xffffff;
-      const s = kind === "bigfire" || kind === "breath" ? 0.6 : kind === "fireball" || kind === "bullet" || kind === "skull" ? 0.35 : kind === "bobber" ? 0.14 : 0.2;
+      const color = kind === "potion" && opts.color !== undefined ? opts.color : { sandbolt: 0xc8b5ec, pearl: 0x1a8a7a, egg: 0xf0e8d0, snowball: 0xffffff, witchbrew: 0x93bd65, windburst: 0xbacafb, fireball: 0xff7a1a, bigfire: 0xffb030, breath: 0xb050ff, bullet: 0xf0e8b0, eye: 0x3ad0a0, skull: 0x2a2a2a, bobber: 0xd8302a }[kind] || 0xffffff;
+      const s = kind === "bigfire" || kind === "breath" ? 0.6 : kind === "fireball" || kind === "bullet" || kind === "skull" ? 0.35 : kind === "bobber" ? 0.14 : kind === "potion" ? 0.24 : 0.2;
       mesh = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), new THREE.MeshBasicMaterial({ color, fog: false }));
     }
     mesh.position.set(x, y, z); this.scene.add(mesh);
@@ -3566,7 +3573,7 @@ export class Entities {
       pr.age += dt;
       if (["sandbolt", "obsidianshard"].includes(pr.kind) && pr.age > 5) { pr.gone = true; continue; }
       if (pr.kind === "bobber") { this.updateBobber(pr, dt); continue; }
-      if (pr.stuck) { if (pr.age > 30) pr.gone = true; if (pr.fromPlayer && !ctx.creative() && Math.hypot(pr.x - p.pos.x, pr.y - p.pos.y - 0.8, pr.z - p.pos.z) < 1.4 && pr.age > 0.5) { if (ctx.give(I.ARROW, 1)) pr.gone = true; } continue; }
+      if (pr.stuck) { if (pr.age > 30) pr.gone = true; if (pr.fromPlayer && !ctx.creative() && Math.hypot(pr.x - p.pos.x, pr.y - p.pos.y - 0.8, pr.z - p.pos.z) < 1.4 && pr.age > 0.5) { if (pr.infinite || ctx.give(pr.itemId || I.ARROW, 1)) pr.gone = true; } continue; }
       if (pr.kind === "eye") { this.flyEye(pr, dt); continue; }
       if (pr.homing) {   // Sheller bullets slowly steer toward you
         const t = pr.homing, dx = t.pos.x - pr.x, dy = t.pos.y + 1 - pr.y, dz = t.pos.z - pr.z, l = Math.hypot(dx, dy, dz) || 1;
@@ -3606,13 +3613,15 @@ export class Entities {
           else if (pr.kind === "breath") { ctx.cloud(pr.x, pr.y + 0.5, pr.z); pr.gone = true; }
           else if (["bullet", "windburst", "witchbrew", "sandbolt", "obsidianshard"].includes(pr.kind)) { ctx.particles(pr.x, pr.y, pr.z, "poof"); pr.gone = true; }
           else if (pr.kind === "skull") { ctx.explode(pr.x, pr.y, pr.z, 1, pr.owner); pr.gone = true; }
+          else if (pr.kind === "potion") { ctx.potionBurst?.(pr.x, pr.y + 0.2, pr.z, pr.stack, pr.fromPlayer ? "player" : pr.owner); pr.gone = true; }   // Milestone 16
           else this.landThrown(pr);
           break;
         }
         if (hitE && hitE.armored && pr.kind === "arrow") { pr.gone = true; ctx.particles(nx, ny, nz, "poof"); Sound.mob("clank", this.dist(hitE)); break; }   // arrows bounce off the Blightking's armor
+        if (hitE && pr.kind === "potion") { ctx.potionBurst?.(nx, ny, nz, pr.stack, pr.fromPlayer ? "player" : pr.owner, hitE); pr.gone = true; break; }   // Milestone 16: a thrown potion breaks on a creature
         if (hitE && pr.kind === "skull" && hitE !== pr.owner) { this.damage(hitE, pr.dmg || 6, null); ctx.explode(nx, ny, nz, 1, pr.owner); pr.gone = true; break; }
         if (hitE && pr.kind !== "pearl" && pr.kind !== "skull" && (pr.fromPlayer || pr.kind !== "arrow" || !pr.owner || !pr.owner.def.hostile || !hitE.def.hostile)) {
-          if (pr.kind === "arrow") { const l = Math.hypot(pr.vx, pr.vz) || 1; this.damage(hitE, pr.dmg, pr.fromPlayer ? "player" : { projectile: true }, { x: pr.vx / l * 0.5, z: pr.vz / l * 0.5 }); if (pr.fromPlayer && hitE.sp !== "voidwalker") { hitE.angry = 40; } }
+          if (pr.kind === "arrow") { const l = Math.hypot(pr.vx, pr.vz) || 1, k = 0.5 * (1 + 1.2 * (pr.punch || 0)); this.damage(hitE, pr.dmg, pr.fromPlayer ? "player" : { projectile: true }, { x: pr.vx / l * k, z: pr.vz / l * k }); if (pr.fromPlayer && hitE.sp !== "voidwalker") { hitE.angry = 40; } if (pr.flame && !hitE.def.fireproof) { hitE.burning = Math.max(hitE.burning || 0, 5); if (!(hitE.burnT > 0)) hitE.burnT = 1; } if (pr.tip && !hitE.dead) ctx.tipHit?.(hitE, pr.tip); }   // Punch and Flame (Milestone 15), tipped arrows (16)
           if (pr.kind === "bigfire") { if (pr.fromPlayer && hitE.sp === "wailer") this.damage(hitE, 1000, "player"); ctx.explode(nx, ny, nz, pr.power || 1.3, pr.owner); }
           if (pr.kind === "fireball" && !hitE.def.fireproof) { this.damage(hitE, 5, pr.fromPlayer ? "player" : null); hitE.burning = 4; }
           pr.gone = true; Sound.mob("arrowhit", this.dist(hitE)); break;
@@ -3621,12 +3630,13 @@ export class Entities {
         if (playerTime !== null) {
           if (pr.kind === "arrow") {
             const source = pr.owner?.def.name || "Rattler";
-            ctx.hurtPlayer(pr.dmg, `A ${source}'s arrow hit you!`, { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } });
+            ctx.hurtPlayer(pr.dmg, `A ${source}'s arrow hit you!`, { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } }, "projectile");
             if (pr.owner?.sp === "bogged") ctx.effect("poison", 5);
             if (pr.owner?.sp === "stray" || pr.owner?.sp === "parched") ctx.effect("queasy", 6);
           }
           if (pr.kind === "sandbolt") ctx.hurtPlayer(pr.dmg, "A Sand Wraith's rune bolt hit you.", pr.owner, "sand");
           if (pr.kind === "obsidianshard") ctx.hurtPlayer(pr.dmg, "The Obsidian Leviathan's shrapnel struck you.", pr.owner);
+          if (pr.kind === "potion") ctx.potionBurst?.(p.pos.x, p.pos.y + 1, p.pos.z, pr.stack, pr.owner, "player");   // Milestone 16: a Witch's splash potion
           if (pr.kind === "witchbrew") { ctx.hurtPlayer(pr.dmg, "A Witch's brew hit you!", pr.owner); ctx.effect("poison", 6); }
           if (pr.kind === "windburst") {
             ctx.hurtPlayer(pr.dmg, "A Breeze's wind burst hit you!", pr.owner);
@@ -3650,6 +3660,19 @@ export class Entities {
     this.focus = null;
     this.projectiles = this.projectiles.filter(pr => { if (pr.gone) { this.scene.remove(pr.mesh); pr.mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); return false; } return true; });
   }
+  // Milestone 16: potion effects on a creature (e.fx = { poison, regen, slow, weakness: seconds left })
+  tickFx(e, dt) {
+    let any = false;
+    for (const k of Object.keys(e.fx)) { e.fx[k] -= dt; if (e.fx[k] <= 0) delete e.fx[k]; else any = true; }
+    if (!any) { e.fx = null; return; }
+    e.fxT = (e.fxT || 0) + dt;
+    if (e.fxT >= 1.25) {
+      e.fxT = 0;
+      if (e.fx.poison && e.hp > 1) { e.hp -= 1; e.hurtT = 0.2; }
+      if (e.fx.regen && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + 1);
+      this.ctx.particles(e.pos.x, e.pos.y + e.h * 0.8, e.pos.z, e.fx.poison ? "poison" : e.fx.regen ? "heart" : "poof");
+    }
+  }
   landThrown(pr) {
     const ctx = this.ctx;
     if (pr.kind === "pearl") ctx.pearlLand(pr.x - pr.vx * 0.02, pr.y - pr.vy * 0.02 + 0.1, pr.z - pr.vz * 0.02);
@@ -3663,7 +3686,7 @@ export class Entities {
     if (Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z) > 32 || !ctx.holds(I.FISHING_ROD)) { pr.gone = true; return; }   // the line snaps
     if (!pr.surf && !pr.stuck && w.id(Math.floor(pr.x), Math.floor(pr.y), Math.floor(pr.z)) === B.WATER) {
       let t = Math.floor(pr.y); while (w.id(Math.floor(pr.x), t + 1, Math.floor(pr.z)) === B.WATER) t++;
-      pr.surf = t + 0.92; pr.waitT = rand(4, 13); pr.vx *= 0.3; pr.vz *= 0.3;
+      pr.surf = t + 0.92; pr.waitT = Math.max(1.5, rand(4, 13) - 2.5 * (pr.lure || 0)); pr.vx *= 0.3; pr.vz *= 0.3;
       ctx.particles(pr.x, pr.surf, pr.z, "splash"); Sound.splash();
     }
     if (pr.surf) {
@@ -3672,7 +3695,7 @@ export class Entities {
       if (w.id(Math.floor(nx), Math.floor(pr.surf - 0.5), Math.floor(nz)) === B.WATER) { pr.x = nx; pr.z = nz; }
       if (pr.biteT > 0) {   // a fish is on the hook!
         pr.biteT -= dt; pr.y = pr.surf - 0.28;
-        if (pr.biteT <= 0) pr.waitT = rand(4, 13);   // too slow: it got away
+        if (pr.biteT <= 0) pr.waitT = Math.max(1.5, rand(4, 13) - 2.5 * (pr.lure || 0));   // too slow: it got away
       } else {
         pr.waitT -= dt; pr.y = pr.surf + Math.sin(pr.age * 3) * 0.03;
         if (pr.waitT < 2 && Math.random() < 0.25) { const a = Math.random() * Math.PI * 2, r = pr.waitT * 1.5; ctx.particles(pr.x + Math.cos(a) * r, pr.surf - 0.2, pr.z + Math.sin(a) * r, "splash"); }   // something is swimming closer

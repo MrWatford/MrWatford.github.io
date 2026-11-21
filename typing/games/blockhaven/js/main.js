@@ -48,6 +48,8 @@ import { initCampaign, CAMPAIGN_SEED, CAMPAIGN_STONEHAVEN_LAYOUT, CAMPAIGN_SANDS
 import { SKINS, skinById, makeModel, dressModel, poseModel, holdItems, disposeModel, firstPersonArm, thumbnail } from "./skins.js";
 import { UI } from "./ui.js";
 import { rng, hashSeed } from "./noise.js";
+import * as EN from "./enchanting.js";
+import * as PO from "./potions.js";
 import { nextLeviathanStorm, sandstormStage } from "./sandstorm.js";
 import { StormActivity, stormCallStatus, stormDaytime, severalHostilesNearby, findDuneApproach, STORM_ACTIVITY_GUIDE } from "./leviathan-storm.js";
 import { dunePhase, duneRitualWindow } from "./dune-leviathan.js";
@@ -375,6 +377,10 @@ const G = {
 G.adv = (type, arg) => { Adv.event(type, arg); if (G.campaign) G.campaign.event(type, arg); };
 const festivals = G.festivals = initSettlementFestivals({ THREE, scene, G, UI, Sound });
 G.villageGrowth = initVillageGrowth({ G, UI, Sound });
+// Milestone 16: Phantoms drop Phantom Membrane (for Slow Falling potions), like Java
+// Witches drop brewing things (Java: bottles, sugar, Skitter eyes, Shinestone dust, Sparkdust, Boom Powder, sticks)
+if (SPECIES.witch) SPECIES.witch.drops = () => [[[I.BOTTLE, I.SUGAR, I.SPIDER_EYE, I.SHINE_DUST, I.SPARKDUST, I.BOOM_POWDER, I.STICK][Math.floor(Math.random() * 7)], 1 + Math.floor(Math.random() * 3)]];
+if (SPECIES.phantom) SPECIES.phantom.drops = () => [[I.PHANTOM_MEMBRANE, Math.floor(Math.random() * 2)]];
 const raids = G.settlementRaids = initSettlementRaids({ G, UI, Sound, SPECIES, hud: document.getElementById("settlementRaidHud"), closePanel });
 G.villageRenovation = initVillageRenovation({ G, UI });
 window.__bh = G;   // handy for testing in the browser console
@@ -450,10 +456,14 @@ const ents = new Entities(scene, {
   wear: () => { const s = G.inv.slots[G.useSlot]; if (s) wearTool(s, 1); },
   adv: (type, arg) => { if (!guestFocus()) G.adv(type, arg); }, talk: e => !!(G.campaign && G.campaign.talk(e)),
   swapHeld: id => swapHeld(id), give: (id, n) => guestFocus() ? MP.giveGuest(guestFocus(), id, n) : G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
+  invisible: () => G.effects.invis ? [36, 37, 38, 39].filter(i => G.inv.slots[i]).length : -1,   // Milestone 16: -1 = seen; else how many armor pieces give you away
   wearingGold: () => [36, 37, 38, 39].some(i => G.inv.slots[i] && [I.GOLD_HELMET, I.GOLD_CHEST, I.GOLD_LEGS, I.GOLD_BOOTS].includes(G.inv.slots[i].id)),
   ignite: (x, y, z) => ignite(x, y, z),
   endTop: () => (G.gen.land ? (G.gen.land(0, 0) || { top: END_TOP }).top : END_TOP),
   cloud: (x, y, z) => addCloud(x, y, z),
+  potionBurst: (x, y, z, st, owner, direct) => potionBurst(x, y, z, st, owner, direct),   // Milestone 16
+  tipHit: (e, key) => potionOnCreature(e, { id: I.POTION, n: 1, pot: key }, 0.125, "player", true),
+  playerEffect: k => !!G.effects[k],
   crystalGone: i => { if (typeof i === "string") return placedCrystalGone(i); const d = G.dimData.end || (G.dimData.end = {}); (d.crystalsGone = d.crystalsGone || []).push(i); },
   bossLeft: e => { (G.dimData.end || (G.dimData.end = {})).wyrmHp = e.hp; },
   godzillaDamage: (e, n) => GC.incomingDamage(e, n),
@@ -478,7 +488,7 @@ const ents = new Entities(scene, {
   pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
 });
 G.ents = ents;
-const PUFF_COLORS = { hush: [0.35, 0.95, 0.9], spark: [1, 0.32, 0.1], poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], pale: [0.88, 0.94, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
+const PUFF_COLORS = { poison: [0.35, 0.65, 0.2], hush: [0.35, 0.95, 0.9], spark: [1, 0.32, 0.1], poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], pale: [0.88, 0.94, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
 // a musical note floating up from a note block, colored by its pitch (green → red → blue → green, like a color wheel)
 function noteFx(x, y, z, pitch) {
   const h = pitch / 24, c = [Math.max(0, Math.sin((h + 0.0) * Math.PI * 2) * 0.5 + 0.5), Math.max(0, Math.sin((h + 0.33) * Math.PI * 2) * 0.5 + 0.5), Math.max(0, Math.sin((h + 0.66) * Math.PI * 2) * 0.5 + 0.5)];
@@ -573,6 +583,13 @@ function puff(x, y, z, kind) {
     z + (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 2, kind === "heart" ? 1.5 : Math.random() * 2,
     (Math.random() - 0.5) * 2, 0.6 + Math.random() * 0.4, c, true);
 }
+// Like swapHeld, but for a whole stack (a potion keeps what's in it)
+function swapHeldStack(st) {
+  const s = G.inv.slots[G.useSlot];
+  if (s && s.n > 1) { s.n--; if (G.inv.add(st.id, 1, st)) G.dropItem(st.id, 1, st); }
+  else G.inv.slots[G.useSlot] = st;
+  G.hudDirty = true; heldId = -1;
+}
 function swapHeld(id) {
   const s = G.inv.slots[G.useSlot];
   if (s && s.n > 1) { s.n--; if (G.inv.add(id, 1)) G.dropItem(id, 1); }
@@ -590,6 +607,22 @@ function addEffect(k, t, lv = 1) {
   G.hudDirty = true;
 }
 let effT = 0, regenAcc = 0;
+// ---------- Milestone 16: potions (recipes and strengths in js/potions.js) ----------
+function applyPotion(s, mul = 1) {
+  const p = G.player;
+  for (const e of PO.effectsOf(s, mul)) {
+    if (e.instant === "heal") { p.health = Math.min(20, p.health + Math.round(4 * 2 ** (e.lv - 1) * mul)); puff(p.pos.x, p.pos.y + 1.6, p.pos.z, "heart"); }
+    else if (e.instant === "harm") hurt(Math.round(6 * 2 ** (e.lv - 1) * mul), "A Potion of Harming hurt you.", null, true, "magic");
+    else addEffect(e.key, e.dur, e.lv);
+  }
+  G.hudDirty = true;
+}
+function drinkPotion(s) {
+  if (!PO.hasEffect(s)) { if (s.pot === "water" && G.effects.fire) { delete G.effects.fire; G.hudDirty = true; } return; }
+  applyPotion(s);
+  UI.toast(PO.potionName(s) + "!", s.pot === "harming" || s.pot === "poison" || s.pot === "weakness" || s.pot === "slowness" ? "bad" : "good");
+}
+G.applyPotion = applyPotion;
 function tickEffects(dt) {
   const p = G.player;
   effT += dt;
@@ -857,17 +890,25 @@ G.setBeaconPower = (key, primary, secondary) => {
 };
 G.BEACON_POWERS = BEACON_POWERS;
 // Trading with villagers
+// A trade with its real price and item. Enchanted-book trades are decided by who the villager is (Milestone 15).
+G.tradeOffer = (e, i) => {
+  const t = TRADES[e.def.prof]?.[i];
+  if (!t || t[1][0] !== I.ENCH_BOOK) return t;
+  const b = EN.villagerBook(e.uid + ":" + i, e.def.prof === "wanderer");
+  return [t[0].map(([id, n]) => (id === I.JADE && !n ? [id, b.price] : [id, n])), [I.ENCH_BOOK, 1], t[2], { id: I.ENCH_BOOK, n: 1, ench: b.ench }];
+};
 G.trade = (uid, i, many) => {
   const e = ents.list.find(o => o.uid === uid);
   if (!e) return;
-  const t = TRADES[e.def.prof][i];
+  const t = G.tradeOffer(e, i);
+  if (!t) return;
   let done = 0;
   for (let k = 0; k < (many ? 16 : 1); k++) {
     if (e.uses[i] >= t[2]) break;
     if (!t[0].every(([id, n]) => G.inv.count(id) >= n)) break;
     for (const [id, n] of t[0]) G.inv.remove(id, n);
-    const left = G.inv.add(t[1][0], t[1][1]);
-    if (left) G.dropItem(t[1][0], left);
+    const left = G.inv.add(t[1][0], t[1][1], t[3]);
+    if (left) G.dropItem(t[1][0], left, t[3]);
     e.uses[i]++; done++;
     spawnOrbs(2, e.pos.x, e.pos.y + 1, e.pos.z);
   }
@@ -1542,6 +1583,95 @@ function updateCompassHud(dt) {
 const XP_FOR = lvl => 2 * lvl + 7;   // points to go from this level to the next
 function levelInfo(total) { let lvl = 0, left = total; while (left >= XP_FOR(lvl)) { left -= XP_FOR(lvl); lvl++; } return { level: lvl, frac: left / XP_FOR(lvl) }; }
 G.levelInfo = () => levelInfo(G.xp);
+// Take whole levels away, keeping how far you were into the level (like Java)
+function spendLevels(k) {
+  const { level, frac } = levelInfo(G.xp), to = Math.max(0, level - k);
+  let t = 0; for (let l = 0; l < to; l++) t += XP_FOR(l);
+  G.xp = Math.floor(t + frac * XP_FOR(to)); G.hudDirty = true;
+}
+// ---------- Milestone 15: the Enchanting Table (offers come from js/enchanting.js) ----------
+G.enchantState = key => {
+  const c = G.world.containers.get(key);
+  if (!c) return null;
+  const [x, y, z] = key.split(",").map(Number), shelves = EN.bookshelfPower(G.world, x, y, z);
+  if (!Number.isFinite(G.story.enchSeed)) G.story.enchSeed = Math.floor(Math.random() * 2 ** 31);   // offers stay the same until you enchant something
+  return { c, x, y, z, shelves, offers: EN.tableOffers(G.story.enchSeed, c.slots[0], shelves), level: levelInfo(G.xp).level };
+};
+G.enchantChoose = (key, i) => {
+  const st = G.enchantState(key);
+  if (!st) return;
+  const o = st.offers[i], item = st.c.slots[0], lap = st.c.slots[1];
+  if (!o || !item) return;
+  if (!G.creative) {
+    if (st.level < o.cost) { UI.toast(`You need to be level ${o.cost} for that one.`, "bad"); Sound.error(); return; }
+    if (!lap || lap.id !== I.LAPIS || lap.n < i + 1) { UI.toast(`That one needs ${i + 1} Lapis.`, "bad"); Sound.error(); return; }
+    spendLevels(i + 1); lap.n -= i + 1; if (!lap.n) st.c.slots[1] = null;
+  }
+  const out = item.id === I.BOOK ? { id: I.ENCH_BOOK, n: 1 } : { ...item };
+  out.ench = Object.fromEntries(o.ench);
+  st.c.slots[0] = out;
+  G.story.enchSeed = Math.floor(Math.random() * 2 ** 31);
+  for (let k = 0; k < 6; k++) puff(st.x + 0.5 + (Math.random() - 0.5), st.y + 1.2 + Math.random() * 0.6, st.z + 0.5 + (Math.random() - 0.5), "void");
+  Sound.enchant(); G.adv("enchant", o.cost);
+  UI.toast(`Enchanted: ${o.ench.map(([k, l]) => EN.enchName(k, l)).join(", ")}`, "good");
+  UI.refreshPanel(); G.hudDirty = true;
+};
+// ---------- Milestone 15, Part B: the Anvil and the Grindstone (rules in js/enchanting.js) ----------
+const anvilNames = new WeakMap();   // container → { item, name } (the name box resets when a different item goes in)
+G.anvilState = key => {
+  const c = G.world.containers.get(key);
+  if (!c) return null;
+  let nm = anvilNames.get(c);
+  if (!nm || nm.item !== c.slots[0]) { nm = { item: c.slots[0], name: c.slots[0]?.name || "" }; anvilNames.set(c, nm); }
+  const [x, y, z] = key.split(",").map(Number);
+  return { c, x, y, z, name: nm.name, res: EN.anvilResult(c.slots[0], c.slots[1], nm.name, G.creative), level: levelInfo(G.xp).level };
+};
+G.anvilRename = (key, name) => { const c = G.world.containers.get(key), nm = c && anvilNames.get(c); if (nm) nm.name = String(name).slice(0, 30); };
+G.anvilMake = key => {
+  const st = G.anvilState(key), res = st && st.res;
+  if (!res || !res.out) return;
+  if (res.too) { UI.toast("Too expensive! Grind it clean or use a fresh item.", "bad"); Sound.error(); return; }
+  if (!G.creative && st.level < res.cost) { UI.toast(`You need ${res.cost} levels for that.`, "bad"); Sound.error(); return; }
+  if (!G.creative) spendLevels(res.cost);
+  const { c } = st, renamed = (res.out.name || "") !== (c.slots[0].name || "");
+  c.slots[0] = null;
+  if (c.slots[1] && res.used) { c.slots[1].n -= res.used; if (c.slots[1].n <= 0) c.slots[1] = null; }
+  const left = G.inv.add(res.out.id, 1, res.out);
+  if (left) spawnDrop(res.out.id, 1, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z, res.out);
+  Sound.anvil(); if (res.used) G.adv("anvil", "work"); if (renamed) G.adv("anvil", "rename");
+  puff(st.x + 0.5, st.y + 1.1, st.z + 0.5, "poof");
+  // the Anvil wears out: 12% of uses, chipped → damaged → broken (never in Creative)
+  if (!G.creative && Math.random() < 0.12) {
+    const v = G.world.get(st.x, st.y, st.z), m = metaOf(v), dmg = (m >> 2) & 3;
+    if (dmg >= 2) { G.closePanel(); G.world.set(st.x, st.y, st.z, B.AIR); Sound.breakBlock("stone"); burst(st.x, st.y, st.z, v, 16); Sound.anvil(true); UI.toast("The Anvil broke!", "bad"); G.hudDirty = true; return; }
+    G.world.set(st.x, st.y, st.z, make(B.ANVIL, (m & 3) | ((dmg + 1) << 2)));
+    UI.toast(dmg ? "The Anvil is badly damaged." : "The Anvil got chipped.", "bad");
+  }
+  G.hudDirty = true; UI.refreshPanel();
+};
+G.grindState = key => {
+  const c = G.world.containers.get(key);
+  if (!c) return null;
+  const [x, y, z] = key.split(",").map(Number);
+  return { c, x, y, z, res: EN.grindResult(c.slots[0], c.slots[1]) };
+};
+G.grindMake = key => {
+  const st = G.grindState(key), res = st && st.res;
+  if (!res || !res.out) return;
+  st.c.slots[0] = st.c.slots[1] = null;
+  const left = G.inv.add(res.out.id, 1, res.out);
+  if (left) spawnDrop(res.out.id, 1, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z, res.out);
+  if (res.xp) spawnOrbs(res.xp, st.x + 0.5, st.y + 1.2, st.z + 0.5);
+  Sound.grind(); G.adv("grind");
+  G.hudDirty = true; UI.refreshPanel();
+};
+// Closing the table hands back what was in it (a full pack drops the rest at your feet)
+G.enchantClose = key => {
+  const c = G.world && G.world.containers.get(key);
+  if (!c || !["enchant", "anvil", "grind"].includes(c.type)) return;
+  for (const s of c.slots) if (s) { const left = G.inv.add(s.id, s.n, s); if (left) spawnDrop(s.id, left, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z, s); }
+  G.world.containers.delete(key); G.hudDirty = true;
+};
 const orbGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
 function spawnOrbs(n, x, y, z) {
   while (n > 0 && G.orbs.length < 60) {
@@ -1550,6 +1680,15 @@ function spawnOrbs(n, x, y, z) {
     mesh.position.set(x, y, z); scene.add(mesh);
     G.orbs.push({ v, x, y, z, vx: (Math.random() - 0.5) * 2, vy: 3, vz: (Math.random() - 0.5) * 2, age: 0, mesh });
   }
+}
+// Mending: experience you pick up repairs a worn Mending item you're holding or wearing (2 uses per point) before it counts toward levels
+const maxDur = s => { const d = itemDef(s.id); return d.tool ? d.tool.dur : d.armor ? d.armor.dur : 0; };
+function mend(v) {
+  const worn = [G.selected, OFF, 36, 37, 38, 39].map(i => G.inv.slots[i]).filter(s => s && EN.lvl(s, "mending") && s.dur !== undefined && s.dur < maxDur(s));
+  if (!worn.length) return v;
+  const s = worn[Math.floor(Math.random() * worn.length)], fix = Math.min(v * 2, maxDur(s) - s.dur);
+  s.dur += fix;
+  return Math.max(0, v - Math.ceil(fix / 2));
 }
 function updateOrbs(dt) {
   const p = G.player;
@@ -1563,7 +1702,7 @@ function updateOrbs(dt) {
     o.mesh.material.color.setHSL(0.25 + Math.sin(o.age * 6) * 0.05, 1, 0.6);
     if (d < 0.9 && o.age > 0.4) {
       const before = levelInfo(G.xp).level;
-      G.xp += o.v; o.gone = true; Sound.xp(); G.hudDirty = true;
+      G.xp += mend(o.v); o.gone = true; Sound.xp(); G.hudDirty = true;
       if (levelInfo(G.xp).level > before) { Sound.levelUp(); UI.toast(`Level ${levelInfo(G.xp).level}!`, "good"); }
     }
     if (o.age > 300) o.gone = true;
@@ -1601,7 +1740,7 @@ function explode(x, y, z, power, src) {
     const k = 1 - dist / reach, mul = { peaceful: 0.4, easy: 0.6, normal: 1, hard: 1.4 }[G.wset.difficulty] || 1;
     const l = Math.hypot(p.pos.x - x, p.pos.z - z) || 1;
     p.vel.x += (p.pos.x - x) / l * k * 12; p.vel.z += (p.pos.z - z) / l * k * 12; p.vel.y += k * 8;
-    hurt(Math.round(k * power * 4.5 * mul), src && src.def ? `A ${src.def.name} exploded next to you!` : "You were caught in an explosion!", null);
+    hurt(Math.round(k * power * 4.5 * mul), src && src.def ? `A ${src.def.name} exploded next to you!` : "You were caught in an explosion!", null, false, "blast");
   }
 }
 const primed = [];
@@ -1632,12 +1771,34 @@ function tickCrops(dt) {
     const [x, y, z] = key.split(",").map(Number);
     if (!w.isLoaded(x, z)) continue;
     const v = w.get(x, y, z), id = idOf(v);
+    if (id === B.MELON_STEM) {   // Milestone 16: grows like wheat, then keeps making melons on the ground beside it
+      const stage = metaOf(v) & 7, soil = w.get(x, y - 1, z), wet = idOf(soil) === B.FARMLAND && (metaOf(soil) & WET);
+      if (stage < 7) { if (Math.random() < (wet ? 1 / 12 : 1 / 30)) w.set(x, y, z, make(B.MELON_STEM, stage + 1)); continue; }
+      const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      if (sides.some(([dx, dz]) => w.id(x + dx, y, z + dz) === B.MELON) || Math.random() >= 1 / 25) continue;
+      const [dx, dz] = sides[Math.floor(Math.random() * 4)];
+      if (w.id(x + dx, y, z + dz) === B.AIR && [B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x + dx, y - 1, z + dz))) w.set(x + dx, y, z + dz, B.MELON);
+      continue;
+    }
     if (id === B.WHEAT || id === B.CARROTS) {
       const stage = metaOf(v) & 7;
       if (stage >= 7) { w.crops.delete(key); continue; }
       const soil = w.get(x, y - 1, z), wet = idOf(soil) === B.FARMLAND && (metaOf(soil) & WET);
       if (Math.random() < (wet ? 1 / 12 : 1 / 30)) w.set(x, y, z, make(id, stage + 1));
     } else if (id === B.SAPLING) { if (Math.random() < 1 / 90) growTree(x, y, z, metaOf(v) & 1); }
+    else if (id === B.EMBER_WART) {   // grows anywhere, slowly, while it sits on Wailing Sand
+      const stage = metaOf(v) & 7;
+      if (stage >= 7 || w.id(x, y - 1, z) !== B.SOUL_SAND) w.crops.delete(key);
+      else if (Math.random() < 1 / 25) w.set(x, y, z, make(B.EMBER_WART, stage + 1));
+    }
+    else if (id === B.FROSTED_ICE) {   // Frost Walker ice melts in 4 steps
+      if (Math.random() < 0.2) { const age = metaOf(v) & 3; if (age >= 3) { w.set(x, y, z, B.WATER); w.crops.delete(key); } else w.set(x, y, z, make(B.FROSTED_ICE, age + 1)); }
+    }
+    else if (id === B.SUGAR_CANE) {   // grows up to 3 tall
+      let h = 1; while (h < 3 && w.id(x, y - h, z) === B.SUGAR_CANE) h++;
+      if (h >= 3 || w.id(x, y + 1, z) !== B.AIR) w.crops.delete(key);
+      else if (Math.random() < 1 / 45) { w.set(x, y + 1, z, B.SUGAR_CANE); w.crops.delete(key); w.crops.add(x + "," + (y + 1) + "," + z); }
+    }
     else if (id === B.BERRY_BUSH) {
       const stage = metaOf(v) & 3;
       if (stage >= 3) w.crops.delete(key);
@@ -2235,10 +2396,11 @@ function mineInfo(v) {
   if (d.hardness === 0) return { time: 0.05, drops: true };
   const right = tool && tool.type === d.tool, tierOK = !d.tier || (right && tool.tier >= d.tier);
   let time = d.hardness * 1.5;
-  if (right) time /= tool.speed;
+  if (right) time /= tool.speed + (EN.lvl(tool.stack, "efficiency") ? EN.lvl(tool.stack, "efficiency") ** 2 + 1 : 0);   // Efficiency
   if (!tierOK) time = d.hardness * 5;
   if (G.effects.haste) time /= 1 + 0.2 * (G.elv.haste || 1);   // a Beacon's Haste
   if (d.render === "cutout" && id_isLeaves(d.id) && tool && tool.type === "sword") time *= 0.3;
+  if (G.player.headInWater && !EN.lvl(G.inv.slots[36], "aqua_affinity")) time *= 5;   // digging underwater is slow, like Java (Aqua Affinity fixes it)
   return { time: Math.max(0.05, time), drops: tierOK };
 }
 const id_isLeaves = id => id === B.LEAVES || id === B.BIRCH_LEAVES;
@@ -2278,6 +2440,7 @@ function creativeBreak() {
 }
 function wearTool(stack, n) {
   if (G.creative || stack.dur === undefined) return;
+  if (!EN.wears(stack)) { G.hudDirty = true; return; }   // Unbreaking
   stack.dur -= n;
   if (stack.dur <= 0) {
     const i = G.inv.slots.indexOf(stack); if (i >= 0) G.inv.slots[i] = null;
@@ -2321,7 +2484,7 @@ function breakBlock(x, y, z, drops, quiet) {
   } else {
     // simple water rule: a hole next to water fills with water
     const wet = water(x, y + 1, z) || water(x + 1, y, z) || water(x - 1, y, z) || water(x, y, z + 1) || water(x, y, z - 1);
-    w.set(x, y, z, wet ? B.WATER : B.AIR);
+    w.set(x, y, z, wet || id === B.FROSTED_ICE ? B.WATER : B.AIR);   // Frosted Ice turns back into water
   }
   if (!quiet) { Sound.breakBlock(MATERIAL(id)); burst(x, y, z, v, 16); }
   if (!G.creative && drops) {
@@ -2334,14 +2497,24 @@ function breakBlock(x, y, z, drops, quiet) {
     if (drop === "shine") drop = [I.SHINE_DUST, 2 + Math.floor(Math.random() * 3)];
     if (drop === "spark") drop = [I.SPARKDUST, 4 + Math.floor(Math.random() * 2)];
     if (drop === "lumen") drop = [I.LUMEN_SHARD, 1 + Math.floor(Math.random() * 2)];
+    if (drop === "lapis") drop = [I.LAPIS, 4 + Math.floor(Math.random() * 6)];
     if (drop === "goldnuggets") drop = [I.GOLD_NUGGET, 2 + Math.floor(Math.random() * 4)];
     if (drop === "wart") drop = [I.WART, (metaOf(v) & 7) >= 7 ? 2 + Math.floor(Math.random() * 3) : 1];
     if (drop === "chorus") drop = Math.random() < 0.6 ? I.CHORUS_FRUIT : 0;
+    if (drop === "melon") drop = [I.MELON_SLICE, 3 + Math.floor(Math.random() * 5)];   // Milestone 16
     if (drop === "berries") { const st = metaOf(v) & 3; drop = [I.BERRIES, st === 3 ? 2 + Math.floor(Math.random() * 2) : 1]; }
     if (drop === "crop") {
       const ripe = (metaOf(v) & 7) >= 7;
-      if (id === B.WHEAT) { if (ripe) spawnDrop(I.WHEAT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
+      if (id === B.MELON_STEM) drop = [I.MELON_SEEDS, 1];
+      else if (id === B.WHEAT) { if (ripe) spawnDrop(I.WHEAT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
       else drop = [I.CARROT, ripe ? 2 + Math.floor(Math.random() * 3) : 1];
+    }
+    // Milestone 15: Silk Touch drops the block itself; Fortune multiplies ore drops; ores give experience
+    const ht = heldTool(), fort = ht ? EN.lvl(ht.stack, "fortune") : 0;
+    if (ht && EN.lvl(ht.stack, "silk_touch") && silkable(id, d)) drop = id;
+    else {
+      if (fort && drop && ORE_DROPS.has(id)) drop = Array.isArray(drop) ? [drop[0], drop[1] * EN.fortuneMultiplier(fort)] : [drop, EN.fortuneMultiplier(fort)];
+      const ox = ORE_XP[id]; if (ox) spawnOrbs(ox[0] + Math.floor(Math.random() * (ox[1] - ox[0] + 1)), x + 0.5, y + 0.5, z + 0.5);
     }
     if (Array.isArray(drop)) spawnDrop(drop[0], drop[1], x + 0.5, y + 0.5, z + 0.5);
     else if (drop) spawnDrop(drop, 1, x + 0.5, y + 0.5, z + 0.5);
@@ -2354,12 +2527,18 @@ function breakBlock(x, y, z, drops, quiet) {
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
   if ((id === B.BEE_NEST || id === B.BEEHIVE) && !G.creative && !torchNear(x, y, z)) { ents.angerBees(x, y, z); UI.toast("You broke the bees' home, and now they're angry!", "bad"); }
-  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH].includes(aid) || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH, B.SUGAR_CANE, B.MELON_STEM].includes(aid) || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
   if (aid === B.FIRE) w.set(x, y + 1, z, B.AIR);
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
   if (id === B.LOG || id === B.BIRCH_LOG) tipDone("chop");
   G.hudDirty = true;
 }
+
+// Milestone 15: which blocks Silk Touch can pick up whole, which ores Fortune helps, and the experience ores give (Java 1.20.1)
+const ORE_DROPS = new Set([B.COAL_ORE, B.SKY_ORE, B.JADE_ORE, B.QUARTZ_ORE, B.LAPIS_ORE, B.SPARK_ORE, B.DARK_SPARK_ORE, B.NETHER_GOLD_ORE]);
+const ORE_XP = { [B.COAL_ORE]: [0, 2], [B.SKY_ORE]: [3, 7], [B.JADE_ORE]: [3, 7], [B.QUARTZ_ORE]: [2, 5], [B.LAPIS_ORE]: [2, 5], [B.SPARK_ORE]: [1, 5], [B.DARK_SPARK_ORE]: [1, 5], [B.NETHER_GOLD_ORE]: [0, 1] };
+const silkable = (id, d) => d.drops !== id && !!itemDef(id) && !d.noItem && ![B.FIRE, B.PORTAL, B.FARMLAND, B.TALL_GRASS].includes(id) &&
+  !["crop", "berries", "wart", "chorus"].includes(d.drops);
 
 // ---------- fighting ----------
 function entityTarget() {
@@ -2384,11 +2563,28 @@ function attack() {
   if (OBSIDIAN_MELEE_TARGETS.has(e.sp) && leviathanSetPieces("obsidian") === 4) dmg += 2;
   if (d?.echoBlade && e.def?.echohold) dmg *= 1.5;   // Echo Blade: +50% against Echohold's creatures
   if (G.effects.strength) dmg += 3 * (G.elv.strength || 1);
+  if (G.effects.weakness) dmg = Math.max(0, dmg - 4);   // Weakness
+  dmg += EN.meleeBonus(s, e);   // Sharpness, Smite, Bane of Arthropods
   const p = G.player, crit = !p.onGround && p.vel.y < 0 && !p.inWater;
   if (crit) dmg *= 1.5;
   const dir = lookDir(), l = Math.hypot(dir.x, dir.z) || 1, sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
   const knock = { x: dir.x / l * (sprint ? 1.4 : 1), z: dir.z / l * (sprint ? 1.4 : 1) };
-  if (G.guest ? MP.hitCreature(e, dmg, knock) : ents.damage(e, dmg, "player", knock)) {   // a Play Together guest's hit is decided by the host
+  const kb = EN.lvl(s, "knockback"); if (kb) { knock.x *= 1 + 0.7 * kb; knock.z *= 1 + 0.7 * kb; }   // Knockback
+  ents.looting = G.guest ? 0 : EN.lvl(s, "looting");   // Looting (read by Entities.kill)
+  const landed = G.guest ? MP.hitCreature(e, dmg, knock) : ents.damage(e, dmg, "player", knock);   // a Play Together guest's hit is decided by the host
+  ents.looting = 0;
+  if (landed && !G.guest) {
+    const fa = EN.lvl(s, "fire_aspect");
+    if (fa && !e.def.fireproof && !e.dead) { e.burning = Math.max(e.burning || 0, 4 * fa); if (!(e.burnT > 0)) e.burnT = 1; }   // Fire Aspect
+    const sw = EN.lvl(s, "sweeping");
+    if (sw && d?.tool?.type === "sword" && p.onGround && !sprint) {   // Sweeping Edge: a wide swing also hits creatures right next to the target
+      ents.looting = EN.lvl(s, "looting");
+      for (const o of ents.near(e.pos.x, e.pos.y, e.pos.z, 1.6, o => o !== e && !o.dead && !o.tame && !o.npc && !o.def.object && !o.def.villager && !o.def.boss)) ents.damage(o, 1 + dmg * sw / (sw + 1), "player", knock);
+      ents.looting = 0;
+      puff(e.pos.x, e.pos.y + 0.8, e.pos.z, "poof");
+    }
+  }
+  if (landed) {
     if (crit) puff(e.pos.x, e.pos.y + e.h, e.pos.z, "poof");
     if (s && d.tool) wearTool(s, d.tool.type === "sword" ? 1 : 2);
   }
@@ -2402,11 +2598,75 @@ function releaseBow() {
   const charge = Math.min(1, G.bowT), s = G.inv.slots[G.bowHand ?? G.selected];
   G.bowT = -1;
   if (charge < 0.15 || !s || s.id !== I.BOW) return;
-  if (!G.creative) { if (!G.inv.remove(I.ARROW, 1)) return; wearTool(s, 1); }
+  const inf = EN.lvl(s, "infinity");
+  const ai = [OFF, ...Array.from({ length: 36 }, (_, i) => i)].find(i => G.inv.slots[i] && itemDef(G.inv.slots[i].id).arrow);
+  const arrowId = ai === undefined ? I.ARROW : G.inv.slots[ai].id, tip = itemDef(arrowId).tip;
+  if (!G.creative) {
+    if (ai === undefined) return;
+    if (!(inf && arrowId === I.ARROW)) { const a = G.inv.slots[ai]; a.n--; if (!a.n) G.inv.slots[ai] = null; }   // Infinity only saves plain arrows, like Java
+    wearTool(s, 1);
+  }
+  const pw = EN.lvl(s, "power"), arrowDmg = (1 + 7 * charge) * (pw ? 1 + 0.25 * (pw + 1) : 1);   // Power
   const p = G.player, dir = lookDir(), speed = 8 + 26 * charge;
-  if (G.guest) MP.shoot(p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, 1 + 7 * charge);   // the host's world flies it
-  else ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, { fromPlayer: true, dmg: 1 + 7 * charge });
+  if (G.guest) MP.shoot(p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, arrowDmg);   // the host's world flies it
+  else ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, { fromPlayer: true, dmg: arrowDmg, punch: EN.lvl(s, "punch"), flame: EN.lvl(s, "flame"), infinite: !!inf && !tip, tip, itemId: arrowId });
   Sound.mob("bow", 0); G.hudDirty = true; G.swing = 0.01;
+}
+// Milestone 16: splash and lingering potions fly in an arc and break where they land
+function throwPotion(slot) {
+  if (G.guest) { UI.toast("Throwing potions is only for the host while playing together, for now."); return; }
+  const p = G.player, dir = lookDir(), st = { ...slot, n: 1 }, color = parseInt((PO.POTIONS[st.pot] || PO.POTIONS.water).color.slice(1), 16);
+  ents.addProjectile("potion", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * 12, dir.y * 12 + 2, dir.z * 12, { fromPlayer: true, stack: st, color });
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
+  Sound.mob("cast", 0); G.swing = 0.01; G.hudDirty = true; heldId = -1; G.adv("throwPotion");
+}
+// Where a thrown potion breaks: splash potions touch everyone within 4 blocks (less the farther away);
+// lingering potions leave a cloud for 30 seconds. Healing hurts undead creatures and Harming heals them, like Java.
+const potionClouds = [];
+const hexRGB = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+function potionBurst(x, y, z, st, owner, direct) {
+  if (!st) return;
+  const col = hexRGB((PO.POTIONS[st.pot] || PO.POTIONS.water).color);
+  for (let i = 0; i < 24 && parts.length < PMAX - 30; i++) { const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 3; emitParticle(x, y, z, Math.cos(a) * sp, 1 + Math.random() * 2, Math.sin(a) * sp, 0.8, col, false, true); }
+  Sound.potionBreak(Math.hypot(G.player.pos.x - x, G.player.pos.z - z));
+  if (st.id === I.LINGERING_POTION) { if (potionClouds.length < 12) potionClouds.push({ x, y: y - 0.2, z, st, t: 30, tick: 0, col, owner }); return; }
+  const p = G.player, dp = direct === "player" ? 0 : Math.hypot(p.pos.x - x, p.pos.y + 0.9 - y, p.pos.z - z);
+  if (dp < 4) { applyPotion(st, 1 - dp / 4); if (st.pot === "water" && G.effects.fire) { delete G.effects.fire; G.hudDirty = true; } }
+  for (const e of ents.near(x, y, z, 4.5, o => !o.dead && !o.gone && o !== owner)) {
+    const d = e === direct ? 0 : Math.hypot(e.pos.x - x, e.pos.y + e.h / 2 - y, e.pos.z - z);
+    if (d < 4) potionOnCreature(e, st, 1 - d / 4, owner === "player" ? "player" : null);
+  }
+}
+function potionOnCreature(e, st, mul, by, arrow) {
+  if (e.dead || e.gone || e.npc || e.def.object || e.def.boss) return;
+  const undead = EN.isUndead(e);
+  for (const f of PO.effectsOf(st, arrow ? 1 : mul)) {
+    if (f.instant) {
+      const heal = (f.instant === "heal") !== undead, n = Math.max(1, Math.round((heal ? 4 : 6) * 2 ** (f.lv - 1) * mul * (arrow ? 8 : 1)));
+      if (heal) { e.hp = Math.min(e.maxHp, e.hp + n); puff(e.pos.x, e.pos.y + e.h, e.pos.z, "heart"); }
+      else { e.iframes = 0; ents.damage(e, n, by); }
+      continue;
+    }
+    if ((f.key === "poison" || f.key === "regen") && undead) continue;   // undead creatures ignore poison and regeneration
+    if (!["poison", "regen", "slow", "weakness"].includes(f.key)) continue;
+    const dur = f.dur * (arrow ? mul : 1);
+    e.fx ||= {}; e.fx[f.key] = Math.max(e.fx[f.key] || 0, dur);
+    if (by === "player" && f.key === "poison") e.angry = Math.max(e.angry || 0, 20);
+  }
+}
+function updatePotionClouds(dt) {
+  const p = G.player;
+  for (let i = potionClouds.length - 1; i >= 0; i--) {
+    const c = potionClouds[i], r = 0.5 + 2.5 * (c.t / 30);
+    c.t -= dt; c.tick -= dt;
+    if (parts.length < PMAX - 40) for (let k = 0; k < 2; k++) { const a = Math.random() * Math.PI * 2, d = Math.random() * r; emitParticle(c.x + Math.cos(a) * d, c.y + 0.1, c.z + Math.sin(a) * d, 0, 0.4, 0, 1, c.col, true); }
+    if (c.tick <= 0) {
+      c.tick = 1;
+      if (Math.hypot(p.pos.x - c.x, p.pos.z - c.z) < r && Math.abs(p.pos.y - c.y) < 1.6) applyPotion(c.st, 0.25);
+      for (const e of ents.near(c.x, c.y, c.z, r + 0.5, o => !o.dead && !o.gone)) if (Math.hypot(e.pos.x - c.x, e.pos.z - c.z) < r) potionOnCreature(e, c.st, 0.25, c.owner === "player" ? "player" : null);
+    }
+    if (c.t <= 0) potionClouds.splice(i, 1);
+  }
 }
 function throwItem(kind) {
   if (G.guest) { UI.toast("Throwing things is only for the host while playing together (bows work)."); return; }
@@ -2426,10 +2686,12 @@ function useRod(slot) {
     b.gone = true; G.bobber = null;
     if (b.biteT > 0) {
       const r = Math.random();
-      const catchId = r < 0.05 ? [I.SADDLE, I.BOW, I.VOID_PEARL, I.JADE, I.GOLD_INGOT, I.FISHING_ROD, I.NAME_TAG][Math.floor(Math.random() * 7)]   // treasure!
-        : r < 0.15 ? [I.BONE, I.STRING, I.LEATHER, I.STICK, I.INK_SAC][Math.floor(Math.random() * 5)]                                  // junk
+      const luck = EN.lvl(slot, "luck_of_the_sea"), tr = 0.05 + 0.021 * luck, junk = tr + Math.max(0.02, 0.1 - 0.025 * luck);   // Luck of the Sea
+      const catchId = r < tr ? [I.SADDLE, I.BOW, I.VOID_PEARL, I.JADE, I.GOLD_INGOT, I.FISHING_ROD, I.NAME_TAG, I.ENCH_BOOK][Math.floor(Math.random() * 8)]   // treasure!
+        : r < junk ? [I.BONE, I.STRING, I.LEATHER, I.STICK, I.INK_SAC][Math.floor(Math.random() * 5)]                                  // junk
         : r < 0.62 ? I.RAW_MINNOW : r < 0.82 ? I.SUNFIN : r < 0.92 ? I.RAW_MINNOW : I.PUFFER;
-      if (G.inv.add(catchId, 1)) spawnDrop(catchId, 1, p.pos.x, p.pos.y + 1, p.pos.z);
+      const caught = catchId === I.ENCH_BOOK ? { id: I.ENCH_BOOK, n: 1, ench: EN.randomBookEnch(Math.random, true) } : null;   // Milestone 15
+      if (G.inv.add(catchId, 1, caught)) spawnDrop(catchId, 1, p.pos.x, p.pos.y + 1, p.pos.z, caught);
       puff(b.x, b.y, b.z, "splash"); Sound.splash(); Sound.pickup();
       spawnOrbs(1 + Math.floor(Math.random() * 4), p.pos.x, p.pos.y + 0.5, p.pos.z);
       UI.toast(`You caught: ${itemDef(catchId).name}!`, "good"); G.adv("fish", catchId);
@@ -2441,6 +2703,7 @@ function useRod(slot) {
   const dir = lookDir();
   ents.addProjectile("bobber", p.pos.x + dir.x * 0.6, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.6, dir.x * 13, dir.y * 13 + 3, dir.z * 13, { fromPlayer: true });
   G.bobber = ents.projectiles[ents.projectiles.length - 1];
+  if (G.bobber) G.bobber.lure = EN.lvl(slot, "lure");   // Lure: fish bite sooner
   Sound.mob("cast", 0);
 }
 const fishLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xe8e8e8 }));
@@ -2600,6 +2863,14 @@ function useWith(offhand) {
   if (slot.id === I.ECHO_SHARD) { if (L.throwShard()) take(); G.hudDirty = true; return true; }
   if (slot.id === I.CINDER_EYE && !(hit && idOf(hit.v) === B.CINDER_ALTAR)) { throwCinderEye(); return true; }
   if (slot.id === I.EGG) { throwItem("egg"); return true; }
+  if (slot.id === I.SPLASH_POTION || slot.id === I.LINGERING_POTION) { throwPotion(slot); return true; }   // Milestone 16
+  if (slot.id === I.BOTTLE && clouds.some(c => Math.hypot(G.player.pos.x - c.x, G.player.pos.z - c.z) < 3.5 && Math.abs(G.player.pos.y - c.y) < 3)) {   // Milestone 16: bottle the Wyrm's breath
+    swapHeld(I.DRAGON_BREATH); Sound.potionBreak(0); G.swing = 0.01; G.adv("breath"); UI.toast("You bottled the Wyrm's breath!", "good"); return true;
+  }
+  if (slot.id === I.BOTTLE) {   // Milestone 16: fill a bottle from water
+    const p = G.player, wh = raycast(G.world, { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z }, lookDir(), REACH, false);
+    if (wh && idOf(wh.v) === B.WATER) { swapHeldStack({ id: I.POTION, n: 1, pot: "water" }); Sound.splash(); G.swing = 0.01; return true; }
+  }
   // food you can plant (carrots on farmland, berries on grass, even through tall grass) gets planted when you point at the right ground
   let soil = hit;
   if (hit && BLOCKS[idOf(hit.v)].replaceable && BLOCKS[idOf(hit.v)].shape === "cross") soil = { x: hit.x, y: hit.y - 1, z: hit.z, ny: 1, v: w.get(hit.x, hit.y - 1, hit.z) };
@@ -2628,6 +2899,14 @@ function useWith(offhand) {
     return false;
   }
   // seeds and carrots: plant on farmland
+  if (sd.plants === B.EMBER_WART) {   // Milestone 16: Ember Wart grows on Wailing Sand, like Java (it used to need farmland and never grew)
+    if (hitId === B.SOUL_SAND && hit.ny === 1 && !w.id(hit.x, hit.y + 1, hit.z)) {
+      w.set(hit.x, hit.y + 1, hit.z, make(B.EMBER_WART, 0)); w.crops.add(hit.x + "," + (hit.y + 1) + "," + hit.z);
+      take(); Sound.place("leaf"); G.hudDirty = true; heldId = -1; return true;
+    }
+    if (!offhand) UI.toast("Plant Ember Wart on Wailing Sand.", "bad");
+    return false;
+  }
   if (sd.plants) {
     if (hitId === B.FARMLAND && hit.ny === 1 && !w.id(hit.x, hit.y + 1, hit.z)) {
       w.set(hit.x, hit.y + 1, hit.z, make(sd.plants, 0)); w.crops.add(hit.x + "," + (hit.y + 1) + "," + hit.z);
@@ -2670,7 +2949,12 @@ function useWith(offhand) {
     const rv = R.placeValue(id, hit, x, y, z, Math.min(1, Math.max(0, fy)), !!hitDef.replaceable);
     if (typeof rv === "string") { UI.toast(rv, "bad"); Sound.error(); return true; }
     if (rv !== null) v = rv; }
-  if (d.shape === "cross" && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return true; }
+  if (id === B.SUGAR_CANE) {   // Milestone 15: on sand, dirt or grass right beside water, or on top of more sugar cane
+    const below = w.id(x, y - 1, z), wet = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => w.id(x + dx, y - 1, z + dz) === B.WATER);
+    if (below !== B.SUGAR_CANE && !([B.GRASS, B.DIRT, B.SAND].includes(below) && wet)) { UI.toast("Sugar Cane grows on sand, dirt, or grass right next to water.", "bad"); Sound.error(); return true; }
+    w.crops.add(x + "," + y + "," + z);
+  }
+  if (d.shape === "cross" && id !== B.SUGAR_CANE && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return true; }
   if (id === B.SAPLING) w.crops.add(x + "," + y + "," + z);
   if (id === B.WATER && G.world.gen.isNether()) { puff(x + 0.5, y + 0.5, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); return true; }
   if (id === B.LAVA || id === B.WATER) { placeLiquid(id, x, y, z); take(); G.hudDirty = true; return true; }
@@ -2712,12 +2996,13 @@ function finishEat() {
   if (sd.sideEffect === "blink") chorusBlink();
   if (sd.sideEffect === "puffer") { addEffect("poison", 10); addEffect("queasy", 15); UI.toast("Ouch! Puffers are poisonous. Don't eat those!", "bad"); }
   if (sd.sideEffect === "honey" && G.effects.poison) { delete G.effects.poison; UI.toast("The honey soothed the poison.", "good"); }
+  if (sd.sideEffect === "potion") drinkPotion(slot);   // Milestone 16
   if (sd.sideEffect === "golden") { addEffect("regen", 5, 2); addEffect("absorb", 120, 1); UI.toast("A Golden Apple! You feel strong.", "good"); }
   slot.n--; if (!slot.n) G.inv.slots[e.slot] = null;
   if (sd.sideEffect === "cure") { G.useHand = e.slot; swapHeld(I.BUCKET); G.useHand = null; }
-  if (sd.sideEffect === "honey" && G.inv.add(I.BOTTLE, 1)) G.dropItem(I.BOTTLE, 1);   // you keep the empty bottle
+  if ((sd.sideEffect === "honey" || sd.sideEffect === "potion") && G.inv.add(I.BOTTLE, 1)) G.dropItem(I.BOTTLE, 1);   // you keep the empty bottle
   Sound.eat(); G.swing = 0.01; G.hudDirty = true; heldId = -1;
-  G.adv("eat", e.id);
+  if (sd.sideEffect === "potion") { G.adv("drink", slot && slot.pot); if (slot && slot.mod === "strong") G.adv("drinkStrong"); } else G.adv("eat", e.id);
 }
 function tickEating(dt) {
   const e = G.eat;
@@ -2726,9 +3011,10 @@ function tickEating(dt) {
   if (!mouseR || !s || s.id !== e.id || G.state !== "play") { G.eat = null; return; }   // let go to stop eating
   e.t += dt; e.crunch -= dt;
   if (e.crunch <= 0) {
-    e.crunch = 0.22; Sound.eat();
+    const drinking = itemDef(e.id).potion;   // Milestone 16: potions gulp instead of crunch
+    e.crunch = drinking ? 0.4 : 0.22; if (drinking) Sound.gulp(); else Sound.eat();
     const p = G.player, d = lookDir();
-    puff(p.pos.x + d.x * 0.4, p.pos.y + p.eye - 0.4, p.pos.z + d.z * 0.4, "crumb");
+    if (!drinking) puff(p.pos.x + d.x * 0.4, p.pos.y + p.eye - 0.4, p.pos.z + d.z * 0.4, "crumb");
   }
   if (e.t >= 1.6) finishEat();
 }
@@ -2950,6 +3236,10 @@ function interact(hit, kind) {
   if (kind === "clever") { CD.useLever(hit); return; }
   if (kind === "secretshelf") { CD.useShelf(hit); return; }
   if (kind === "watchfire") { CD.useWatchfire(hit); return; }
+  if (kind === "cauldron") { useCauldron(hit); return; }   // Milestone 16
+  if (kind === "brew") { if (!w.containers.has(key)) w.containers.set(key, { type: "brew", slots: [null, null, null, null, null], fuel: 0, prog: 0 }); Sound.door(true); openPanel("brew", key); return; }
+  if (kind === "anvil" || kind === "grindstone") { const t = kind === "anvil" ? "anvil" : "grind"; if (!w.containers.has(key)) w.containers.set(key, { type: t, slots: [null, null] }); Sound.door(true); openPanel(t, key); return; }   // Milestone 15, Part B
+  if (kind === "enchant") { if (!w.containers.has(key)) w.containers.set(key, { type: "enchant", slots: [null, null] }); Sound.pageTurn(); openPanel("enchant", key); return; }   // Milestone 15
   if (kind === "beacon") { if (!w.containers.has(key)) w.containers.set(key, { type: "beacon", slots: [null], primary: null, secondary: null, legacy: true }); w.beacons.add(key); openPanel("beacon", key); return; }
   if (kind === "shellbox") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "chest", slots: new Array(27).fill(null) });
@@ -3363,6 +3653,11 @@ function harvestHoney(hit) {
 function fillLoot(box, hit) {
   const r = rng(hashSeed(G.meta.seed) ^ (hit.x * 73856093) ^ (hit.z * 19349663));
   const put = (id, n) => { const i = box.slots.findIndex(s => !s); if (i >= 0 && n > 0) box.slots[i] = newStack(id, n); };
+  // Milestone 15: enchanted books (any enchantment, curses too) and enchanted gear, like Java's treasure
+  const putS = s => { const i = box.slots.findIndex(q => !q); if (i >= 0) box.slots[i] = s; };
+  const book = () => putS({ id: I.ENCH_BOOK, n: 1, ench: EN.randomBookEnch(r) });
+  const potion = (keys = PO.POTION_KEYS.filter(k => PO.POTIONS[k].eff || PO.POTIONS[k].instant)) => { const k = keys[Math.floor(r() * keys.length)], m = r(); putS({ id: r() < 0.3 ? I.SPLASH_POTION : I.POTION, n: 1, pot: k, ...(m < 0.2 && PO.canLong(k) ? { mod: "long" } : m > 0.85 && PO.canStrong(k) ? { mod: "strong" } : {}) }); };   // Milestone 16
+  const gear = (ids, lo, hi) => { const id = ids[Math.floor(r() * ids.length)], s = newStack(id, 1), e = EN.enchantForLoot(r, id, lo + Math.floor(r() * (hi - lo + 1))); if (e) s.ench = e; putS(s); };
   const city = G.dim === "overworld" && G.story.leviathan?.sites?.city;
   if (city && atSolkara(hit, cityCache(city))) {
     put(I.GOLD_INGOT, 4); put(I.BONE, 6); put(I.LEATHER, 2); put(I.ARROW, 12);
@@ -3397,6 +3692,9 @@ function fillLoot(box, hit) {
     if (r() < 0.3) put(I.DUSK_SCRAP, 1);
     if (r() < 0.25) put(I.TOTEM, 1);
     if (r() < 0.3) put(I.WYRM_SCALE, 1);
+    if (r() < 0.35) book();
+    if (r() < 0.2) potion();
+    if (r() < 0.5) gear([I.SKY_SWORD, I.SKY_PICK, I.SKY_SHOVEL, I.SKY_HELMET, I.SKY_CHEST, I.SKY_LEGS, I.SKY_BOOTS, I.IRON_SWORD, I.IRON_PICK], 20, 39);
     for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
     UI.toast("You found a Hollow treasure chest!", "good"); return;
   }
@@ -3416,6 +3714,9 @@ function fillLoot(box, hit) {
     if (r() < 0.12) put(I.DUSK_SCRAP, 1);
     if (r() < 0.4) put(I.PALE_SHARD, 1 + Math.floor(r() * 2));   // shards for the Pale Lantern (the way into the Forsaken World)
     if (r() < 0.15) put(I.TOTEM, 1);
+    if (r() < 0.15) book();
+    if (r() < 0.2) potion(["fire_resistance"]);
+    if (r() < 0.18) gear([I.GOLD_HELMET, I.GOLD_CHEST, I.GOLD_LEGS, I.GOLD_BOOTS, I.IRON_SWORD], 10, 30);
     for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
     UI.toast("You found a treasure chest!", "good"); return;
   }
@@ -3435,6 +3736,10 @@ function fillLoot(box, hit) {
   if (r() < 0.2) put(I.NAME_TAG, 1);
   if (r() < 0.15) put(I.LEAD, 1);
   { const a = r(); if (a < 0.12) put(I.IRON_HORSE_ARMOR, 1); else if (a < 0.2) put(I.GOLD_HORSE_ARMOR, 1); else if (a < 0.24) put(I.SKY_HORSE_ARMOR, 1); }
+  if (r() < 0.25) book();
+  if (r() < 0.18) potion();
+  if (r() < 0.25) put(I.MELON_SEEDS, 2 + Math.floor(r() * 3));
+  if (r() < 0.12) gear([I.IRON_SWORD, I.IRON_PICK, I.IRON_HELMET, I.IRON_BOOTS, I.BOW, I.FISHING_ROD], 5, 20);
   // shuffle so it looks like a real stash
   for (let i = box.slots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [box.slots[i], box.slots[j]] = [box.slots[j], box.slots[i]]; }
   UI.toast("You found a treasure chest!", "good");
@@ -3495,14 +3800,22 @@ function updateDrops(dt, bright) {
 }
 
 // ---------- crafting & furnaces ----------
+// Milestone 16: how many of an ingredient count for a recipe (a tipped-arrow recipe needs a lingering potion of its own kind)
+const tipMatch = (recipe, s) => !recipe.tip || s.id !== I.LINGERING_POTION || s.pot === recipe.tip;
+G.countFor = (recipe, id) => { if (!recipe.tip || id !== I.LINGERING_POTION) return G.inv.count(id); let n = 0; for (let i = 0; i < 36; i++) { const s = G.inv.slots[i]; if (s && s.id === id && tipMatch(recipe, s)) n += s.n; } return n; };
+function removeFor(recipe, id, n) {
+  if (!recipe.tip || id !== I.LINGERING_POTION) return G.inv.remove(id, n);
+  for (let i = 35; i >= 0 && n > 0; i--) { const s = G.inv.slots[i]; if (s && s.id === id && tipMatch(recipe, s)) { const k = Math.min(n, s.n); s.n -= k; n -= k; if (!s.n) G.inv.slots[i] = null; } }
+  return true;
+}
 G.craft = (recipe, many) => {
   if (recipe.table && G.panelKind !== "table") { UI.toast("Stand at a Workbench to make that.", "bad"); Sound.error(); return; }
   let made = 0;
   const times = many ? 64 : 1;
   for (let t = 0; t < times; t++) {
-    if (!recipe.ins.every(([id, n]) => G.inv.count(id) >= n)) break;
+    if (!recipe.ins.every(([id, n]) => G.countFor(recipe, id) >= n)) break;
     if (made && G.inv.count(recipe.out[0]) + recipe.out[1] > 640) break;
-    for (const [id, n] of recipe.ins) G.inv.remove(id, n);
+    for (const [id, n] of recipe.ins) removeFor(recipe, id, n);
     const left = G.inv.add(recipe.out[0], recipe.out[1]);
     if (left) G.dropItem(recipe.out[0], left);
     made++;
@@ -3515,6 +3828,31 @@ G.craft = (recipe, many) => {
 };
 G.inventoryChanged = () => { G.hudDirty = true; heldId = -1; };
 G.onTakeSmelted = () => {};
+// Milestone 16: Brewing Stands. Slots 0-2 bottles, 3 the ingredient, 4 Flare Powder (one powder = 20 brews). A brew takes 20 s.
+function updateBrewing(dt) {
+  for (const [key, c] of G.world.containers) {
+    if (c.type !== "brew") continue;
+    const ing = c.slots[3], can = !!ing && [0, 1, 2].some(i => PO.brew(c.slots[i], ing.id));
+    if (!can) { c.prog = 0; continue; }
+    if (c.fuel <= 0) {
+      const f = c.slots[4];
+      if (!f || f.id !== I.FLARE_POWDER) { c.prog = 0; continue; }
+      c.fuel = PO.FUEL_BREWS; f.n--; if (!f.n) c.slots[4] = null;
+    }
+    const before = c.prog;
+    c.prog += dt;
+    if (c.prog >= PO.BREW_TIME) {
+      c.prog = 0; c.fuel--;
+      for (let i = 0; i < 3; i++) { const out = PO.brew(c.slots[i], ing.id); if (out) c.slots[i] = out; }
+      ing.n--; if (!ing.n) c.slots[3] = null;
+      const [x, y, z] = key.split(",").map(Number);
+      if (Math.hypot(x - G.player.pos.x, z - G.player.pos.z) < 16) { Sound.brewDone(); puff(x + 0.5, y + 1, z + 0.5, "poof"); }
+      G.adv("brew");
+      if (G.panelKind === "brew" && G.panelCtx === key) UI.refreshPanel();
+    }
+    if (G.panelKind === "brew" && G.panelCtx === key && Math.floor(before * 2) !== Math.floor(c.prog * 2)) { const bar = document.getElementById("brewProg"); if (bar) bar.style.width = Math.round(c.prog / PO.BREW_TIME * 100) + "%"; }
+  }
+}
 function updateFurnaces(dt) {
   for (const [key, f] of G.world.containers) {
     if (f.type !== "furnace") continue;
@@ -3783,6 +4121,39 @@ function shieldFaces(src, contact) {
   return (dx / l) * (d.x / dl) + (dz / l) * (d.z / dl) > 0.1;
 }
 // Damage kinds: undefined (hits, falls, explosions…), "fire", "poison", "void", "starve", "sand", "ancientEnergy"
+// Frost Walker: water around your feet freezes into Frosted Ice (radius 2 + level), which melts again in about 20 seconds
+function frostWalk(level) {
+  const w = G.world, p = G.player, cx = Math.floor(p.pos.x), cz = Math.floor(p.pos.z), y = Math.floor(p.pos.y + 0.01) - 1, r = 2 + level;
+  let froze = false;
+  for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+    if (dx * dx + dz * dz > r * r) continue;
+    const x = cx + dx, z = cz + dz, id = w.id(x, y, z);
+    if (id === B.WATER && !w.id(x, y + 1, z)) { w.set(x, y, z, B.FROSTED_ICE); w.crops.add(x + "," + y + "," + z); froze = true; }
+    else if (id === B.FROSTED_ICE && metaOf(w.get(x, y, z))) w.set(x, y, z, B.FROSTED_ICE);   // ice you're standing near stays fresh
+  }
+  if (froze) { Sound.frost(); if (w.id(cx, y, cz) === B.FROSTED_ICE) G.adv("frost"); }
+}
+// Milestone 16: the Cauldron holds 3 bottles of water (meta 0-3). A water bucket fills it; a bucket empties a full one.
+function useCauldron(hit) {
+  const w = G.world, s = G.inv.slots[G.useSlot], lv = metaOf(hit.v) & 3, set = n => w.set(hit.x, hit.y, hit.z, make(B.CAULDRON, n));
+  if (!s) return;
+  if (s.id === I.WATER_BUCKET && lv < 3) { set(3); if (!G.creative) swapHeld(I.BUCKET); Sound.splash(); }
+  else if (s.id === I.BUCKET && lv === 3) { set(0); swapHeld(I.WATER_BUCKET); Sound.splash(); }
+  else if (s.id === I.BOTTLE && lv > 0) { set(lv - 1); swapHeldStack({ id: I.POTION, n: 1, pot: "water" }); Sound.splash(); }
+  else if (s.id === I.POTION && s.pot === "water" && lv < 3) { set(lv + 1); if (!G.creative) swapHeld(I.BOTTLE); Sound.splash(); }
+  else return;
+  G.swing = 0.01; G.hudDirty = true; heldId = -1;
+}
+// Thorns: each piece of armor with it may hurt the creature that hit you (and wears a little more)
+function thornsHit(src) {
+  for (let i = 36; i < 40; i++) {
+    const s = G.inv.slots[i], t = EN.lvl(s, "thorns");
+    if (!t || Math.random() >= 0.15 * t) continue;
+    ents.damage(src, 1 + Math.floor(Math.random() * 4), "player");
+    s.dur = (s.dur ?? itemDef(s.id).armor.dur) - 2;
+    if (s.dur <= 0) { G.inv.slots[i] = null; UI.toast(`Your ${itemDef(s.id).name} broke!`, "bad"); }
+  }
+}
 function hurt(n, why, src, bypassArmor, kind, noKnockback, contact) {
   const p = G.player;
   if (G.creative || G.spectator || G.state === "dead" || n <= 0) return;
@@ -3813,9 +4184,11 @@ function hurt(n, why, src, bypassArmor, kind, noKnockback, contact) {
   if (!bypassArmor) {
     const a = armorPoints();
     n = n * (1 - Math.min(20, a) * 0.04);
-    for (let i = 36; i < 40; i++) { const s = G.inv.slots[i]; if (s && itemDef(s.id).armor) { s.dur = (s.dur ?? itemDef(s.id).armor.dur) - 1; if (s.dur <= 0) { G.inv.slots[i] = null; UI.toast(`Your ${itemDef(s.id).name} broke!`, "bad"); } } }
+    for (let i = 36; i < 40; i++) { const s = G.inv.slots[i]; if (s && itemDef(s.id).armor && EN.wears(s, true)) { s.dur = (s.dur ?? itemDef(s.id).armor.dur) - 1; if (s.dur <= 0) { G.inv.slots[i] = null; UI.toast(`Your ${itemDef(s.id).name} broke!`, "bad"); } } }
     iframes = 0.5;
   }
+  { const epf = EN.protectionPoints(G.inv.slots.slice(36, 40), kind); if (epf) n *= 1 - epf / 25; }   // Protection enchantments (each point takes 4% off)
+  if (src && src.def && !src.dead && kind !== "projectile" && !G.guest) thornsHit(src);
   n = Math.max(0.5, Math.round(n * 2) / 2);
   if (G.effects.resist && kind !== "void" && kind !== "starve") n = Math.max(0.5, n * (1 - 0.2 * (G.elv.resist || 1)));   // Resistance
   if (G.absorb > 0) { const k = Math.min(G.absorb, n); G.absorb -= k; n -= k; }   // golden hearts go first
@@ -3910,7 +4283,7 @@ function die(why) {
   F.onFaint(); L.onFaint(); CP.onFaint();
   if ((!G.wset.keepInv || G.meta.hardcore) && !G.creative) {   // drop everything where you fell (story items always stay with you)
     const dropped = [];
-    for (let i = 0; i < G.inv.slots.length; i++) { const s = G.inv.slots[i]; if (s && !isQuestItem(s.id)) { dropped.push(s); G.inv.slots[i] = null; } }
+    for (let i = 0; i < G.inv.slots.length; i++) { const s = G.inv.slots[i]; if (s && !isQuestItem(s.id)) { if (!EN.lvl(s, "vanishing_curse")) dropped.push(s); G.inv.slots[i] = null; } }   // Curse of Vanishing: gone for good
     if (G.meta.hardcore || !F.satchel(dropped, p.pos)) for (const s of dropped) spawnDrop(s.id, s.n, p.pos.x, p.pos.y + 1, p.pos.z, s);
     if (G.xp) { spawnOrbs(Math.min(100, Math.floor(G.xp / 2)), p.pos.x, p.pos.y + 1, p.pos.z); G.xp = 0; }
   }
@@ -4012,20 +4385,22 @@ function survival(dt) {
   if (iframes > 0) iframes -= dt;
   tickEffects(dt);
   p.levitate = !!G.effects.levitation;
-  p.speedMul = G.effects.swift ? 1 + 0.2 * (G.elv.swift || 1) : 1;
+  p.slowFall = !!G.effects.slowFall;   // Milestone 16: Slow Falling
+  p.speedMul = (G.effects.swift ? 1 + 0.2 * (G.elv.swift || 1) : 1) * (G.effects.slow ? Math.max(0.1, 1 - 0.15 * (G.elv.slow || 1)) : 1);   // Speed and Slowness
   if (leviathanSetPieces("sand") === 4 && G.world.id(Math.floor(p.pos.x), Math.floor(p.pos.y - 0.1), Math.floor(p.pos.z)) === B.SAND) p.speedMul *= 1.12;
   p.jumpMul = G.effects.jump ? 1 + 0.16 * (G.elv.jump || 1) : 1;
   if (G.blocking) p.speedMul *= 0.3;   // you walk slowly behind a raised shield
   if (G.eat) p.speedMul *= 0.35;       // and while eating
   if (G.mutants && G.dim === "forsaken") p.speedMul *= G.mutants.slow();   // stuck in a Forsaken Skitter's web
-  p.swimMul = G.effects.dolphin ? 1.9 : 1;
+  { const fw = EN.lvl(G.inv.slots[39], "frost_walker"); if (fw && p.onGround && !G.guest && !G.spectator && (G.frostT = (G.frostT || 0) - dt) <= 0) { G.frostT = 0.1; frostWalk(fw); } }   // Frost Walker
+  p.swimMul = (G.effects.dolphin ? 1.9 : 1) * (1 + 0.35 * EN.lvl(G.inv.slots[39], "depth_strider"));   // Depth Strider
   tickBeacons(dt);
   if (G.inv.slots[36] && G.inv.slots[36].id === I.CINDER_CROWN) { G.effects.fireRes = Math.max(G.effects.fireRes || 0, 1.5); }   // the Cinder Crown keeps fire away
   if (p.gliding && (G.glideT = (G.glideT || 0) + dt) >= 1) { G.glideT = 0; const wings = G.inv.slots[37]; if (wings && wings.id === I.GLIDER) { wings.dur = (wings.dur ?? 432) - 1; if (wings.dur <= 0) { G.inv.slots[37] = null; p.gliding = false; UI.toast("Your Glider Wings wore out!", "bad"); } G.hudDirty = true; } }
   if (p.inLava && !G.effects.fireRes) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true, "fire"); } }
   const w = G.world, fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y), fz = Math.floor(p.pos.z);
   if (w.id(fx, fy, fz) === B.FIRE || w.id(fx, fy + 1, fz) === B.FIRE) addEffect("fire", 4);
-  if (p.onGround && w.id(fx, Math.floor(p.pos.y - 0.1), fz) === B.MAGMA && !p.crouch && (G.magmaT = (G.magmaT || 0) + dt) > 1) { G.magmaT = 0; hurt(1, "Magma blocks are hot! Crouch (C) to walk on them safely.", null, true, "fire"); }
+  if (p.onGround && w.id(fx, Math.floor(p.pos.y - 0.1), fz) === B.MAGMA && !p.crouch && !EN.lvl(G.inv.slots[39], "frost_walker") && (G.magmaT = (G.magmaT || 0) + dt) > 1) { G.magmaT = 0; hurt(1, "Magma blocks are hot! Crouch (C) to walk on them safely.", null, true, "fire"); }
   const diff = G.wset.difficulty;
   if (diff === "peaceful" && (G.peaceT = (G.peaceT || 0) + dt) > 2) { G.peaceT = 0; if (p.health < 20) p.health++; if (p.hunger < 20) p.hunger++; G.hudDirty = true; }
   // exhaustion → fullness → food
@@ -4042,7 +4417,7 @@ function survival(dt) {
     if (starveT >= 4) { starveT = 0; const floor = diff === "easy" ? 10 : diff === "normal" ? 1 : 0; if (p.health > floor) hurt(1, "You were too hungry. Eat something to keep your food bar up!", null, true, "starve"); }
   } else starveT = 0;
   // breath underwater
-  if (p.headInWater && !CP.breathes() && !G.riding?.def.waterMount) { p.air -= dt; if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
+  if (p.headInWater && !CP.breathes() && !G.effects.waterBreath && !G.riding?.def.waterMount) { p.air -= dt / (1 + EN.lvl(G.inv.slots[36], "respiration")); if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
   else if (p.air < 10) { p.air = Math.min(10, p.air + dt * 4); G.hudDirty = true; }
 }
 
@@ -5896,7 +6271,7 @@ function loop(now) {
       const wasWater = p.inWater;
       const res = p.step(G.world, p.flying ? { ...input, crouch: false } : input, 1 / 60, G.creative);
       const fall = (G.riding ? res.fall - 3 : res.fall) - (G.effects.jump ? G.elv.jump || 1 : 0);   // Jump Boost softens landings   // a Trotter's legs soak up some of a fall
-      if (fall > 3.5) hurt(Math.floor(fall - 3), "That was a long fall! Build stairs or use water to land safely.");
+      if (fall > 3.5) hurt(Math.floor(fall - 3), "That was a long fall! Build stairs or use water to land safely.", null, false, "fall");
       if (res.crash > 10) hurt(Math.round((res.crash - 10) * 0.7), "You glided into a wall! Slow down by looking up before you land.", null, true);
       if (!wasWater && p.inWater && p.vel.y < -4) Sound.splash();
       if (G.dim === "end" && p.pos.y < -4) {   // the void below the Hollow
@@ -5926,14 +6301,14 @@ function loop(now) {
     survival(dt);
     if (!G.guest) {   // a Play Together guest: the host's game runs machines, crops, fire and the story
       Adv.poll(dt);
-      updateFurnaces(dt);
+      updateFurnaces(dt); updateBrewing(dt);
       tickCrops(dt);
       updateTNT(dt);
       updateMovers();
       R.tick(dt);
       updateFires(dt);
     }
-    updateClouds(dt);
+    updateClouds(dt); updatePotionClouds(dt);
     if (G.dim === "end" && !G.guest) { ensureBoss(); tickWyrmSummon(dt); }
     if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // Play Together: the host leads the way through portals
     if (!G.guest) { tickCinder(dt); F.tick(dt); MU.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }
@@ -5958,6 +6333,7 @@ function loop(now) {
   if (running) raids.update(dt);
   if (running) updateSandsDiscovery(dt);
   const daylight = updateSky();
+  if (G.effects.nightVision) uniforms.ambient.value = Math.max(uniforms.ambient.value, G.effects.nightVision < 10 && Math.floor(G.effects.nightVision * 4) % 2 ? 0.35 : 0.85);   // Night Vision (flickers in its last 10 s)
   (echoholdAtmosphere ||= (G._echoAtmo = createEchoholdAtmosphere({ THREE, scene, camera, G, emitParticle, fog: uniforms }))).update(running ? dt : 0);
   updateSolkaraCore();
   updateSolkaraGateView();

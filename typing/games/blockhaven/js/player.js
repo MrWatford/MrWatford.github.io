@@ -117,6 +117,7 @@ export class Player {
     }
     }
     if (this.levitate && !this.flying) { v.y += (1.8 - v.y) * 0.25; this.airTop = null; }   // a Sheller's bullet makes you float up
+    if (this.slowFall && !this.flying && !this.inWater && v.y < -1.6) { v.y = -1.6; this.airTop = null; }   // Milestone 16: Slow Falling (no fall damage)
 
     // Spectators drift through blocks
     if (this.noclip) { p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt; this.onGround = false; this.airTop = null; return { fall: 0, crash: 0 }; }

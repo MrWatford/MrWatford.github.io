@@ -11,7 +11,7 @@ const NOTE_INSTRUMENTS = ["harp", "bass", "snare", "hat", "basedrum", "bell", "f
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
-export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
+export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
 export const ADVANCEMENTS = [
   // building and getting started
   { id: "start", cat: "Getting Started", icon: B.LOG, title: "Blockhaven", desc: "Chop a log.", check: G => has(G, B.LOG, B.BIRCH_LOG, B.CRIMSON_STEM, B.WARPED_STEM) },
@@ -68,6 +68,29 @@ export const ADVANCEMENTS = [
   { id: "hearme", cat: "Machinery", icon: B.TUNED_SENSOR, title: "Hear Me Now", desc: "Set off a Tuned Hush Sensor.", parent: "wired", ev: "hush", match: id => id === B.TUNED_SENSOR, reward: { xp: 20 } },
   { id: "flying", cat: "Machinery", icon: B.GLOOP_BLOCK, title: "Flying Machine", desc: "Move Gloop Blocks 20 times with pistons. A flying machine does it fast!", parent: "pushit", ev: "gloopmove", count: 20, sum: true, reward: { xp: 60 } },
   // combat and bosses
+  // Milestone 15: enchanting (events come from main.js: "enchant" with the level, "anvil" with what it did, "grind", "frost")
+  { id: "lapis", cat: "Enchanting", icon: I.LAPIS, title: "Into the Blue", desc: "Mine Lapis Ore deep underground.", check: G => has(G, I.LAPIS) },
+  { id: "bookworm", cat: "Enchanting", icon: I.BOOK, title: "Bookworm", desc: "Make a Book from paper and leather.", check: G => has(G, I.BOOK) },
+  { id: "enchanter", cat: "Enchanting", icon: B.ENCH_TABLE, title: "Enchanter", desc: "Enchant something at an Enchanting Table.", parent: "lapis", ev: "enchant", reward: { xp: 20 } },
+  { id: "spellbook", cat: "Enchanting", icon: I.ENCH_BOOK, title: "Spellbook", desc: "Hold an Enchanted Book.", parent: "bookworm", check: G => has(G, I.ENCH_BOOK) },
+  { id: "maxpower", cat: "Enchanting", icon: B.BOOKSHELF, title: "Max Power", desc: "Take a level 30 offer (you'll need 15 bookshelves).", parent: "enchanter", ev: "enchant", match: lv => lv >= 30, reward: { xp: 60 } },
+  { id: "repairshop", cat: "Enchanting", icon: B.ANVIL, title: "Repair Shop", desc: "Repair or combine something on an Anvil.", parent: "enchanter", ev: "anvil", match: k => k !== "rename", reward: { xp: 15 } },
+  { id: "namebrand", cat: "Enchanting", icon: I.NAME_TAG, title: "Name Brand", desc: "Give an item its own name on an Anvil.", parent: "repairshop", ev: "anvil", match: k => k === "rename" },
+  { id: "cleanslate", cat: "Enchanting", icon: B.GRINDSTONE, title: "Clean Slate", desc: "Grind the enchantments off something at a Grindstone.", parent: "enchanter", ev: "grind", reward: { xp: 10 } },
+  { id: "decked", cat: "Enchanting", icon: I.SKY_CHEST, title: "Decked Out", desc: "Wear 4 enchanted armor pieces at once.", parent: "enchanter", check: G => [36, 37, 38, 39].every(i => G.inv.slots[i] && G.inv.slots[i].ench && Object.keys(G.inv.slots[i].ench).length), reward: { xp: 50 } },
+  { id: "iceskater", cat: "Enchanting", icon: I.IRON_BOOTS, title: "Ice Skater", desc: "Walk across water with Frost Walker boots.", parent: "enchanter", ev: "frost", reward: { xp: 20 } },
+  // Milestone 16: brewing (events from main.js: "brew", "drink" with the potion, "drinkStrong", "throwPotion", "breath")
+  { id: "melons", cat: "Brewing", icon: I.MELON_SLICE, title: "One in a Melon", desc: "Grow or find a melon slice.", check: G => has(G, I.MELON_SLICE) },
+  { id: "bottled", cat: "Brewing", icon: I.BOTTLE, title: "Bottled Up", desc: "Fill a Glass Bottle with water.", check: G => G.inv.slots.some(s => s && s.id === I.POTION && s.pot === "water") },
+  { id: "brewery", cat: "Brewing", icon: B.BREWING_STAND, title: "Local Brewery", desc: "Brew something at a Brewing Stand.", parent: "bottled", ev: "brew", reward: { xp: 15 } },
+  { id: "firstsip", cat: "Brewing", icon: I.POTION, title: "First Sip", desc: "Drink a potion that does something.", parent: "brewery", ev: "drink", match: k => !!k && !["water", "awkward", "mundane", "thick"].includes(k) },
+  { id: "strongstuff", cat: "Brewing", icon: I.SHINE_DUST, title: "Strong Stuff", desc: "Drink a level II potion.", parent: "firstsip", ev: "drinkStrong", reward: { xp: 20 } },
+  { id: "bombsaway", cat: "Brewing", icon: I.SPLASH_POTION, title: "Bombs Away", desc: "Throw a splash potion.", parent: "brewery", ev: "throwPotion" },
+  { id: "mint", cat: "Brewing", icon: I.DRAGON_BREATH, title: "You Need a Mint", desc: "Bottle the Hollow Wyrm's breath.", parent: "brewery", ev: "breath", reward: { xp: 40 } },
+  { id: "lingering", cat: "Brewing", icon: I.LINGERING_POTION, title: "It Lingers", desc: "Make a lingering potion.", parent: "mint", check: G => has(G, I.LINGERING_POTION) },
+  { id: "sharpshooter", cat: "Brewing", icon: I.TIPPED_ARROW + 5, title: "Sharp Shooter", desc: "Make tipped arrows.", parent: "lingering", check: G => G.inv.slots.some(s => s && itemDef(s.id)?.tip) },
+  { id: "cocktail", cat: "Brewing", icon: I.WART, title: "Mixed Bag", desc: "Have 6 different effects on you at the same time.", parent: "firstsip", check: G => Object.keys(G.effects || {}).length >= 6, reward: { xp: 50 } },
+  { id: "brewmaster", cat: "Brewing", icon: B.CAULDRON, title: "Brewmaster", desc: "Drink 12 different kinds of potions.", parent: "firstsip", ev: "drink", match: k => !!k && !["water", "awkward", "mundane", "thick"].includes(k), count: 12, reward: { xp: 100 } },
   { id: "kill", cat: "Combat & Bosses", icon: I.WOOD_SWORD, title: "Monster Hunter", desc: "Defeat a monster.", ev: "kill", match: (sp, SPECIES) => SPECIES[sp] && SPECIES[sp].hostile },
   { id: "kill8", cat: "Combat & Bosses", icon: I.IRON_SWORD, title: "Monsters Hunted", desc: "Defeat 8 different kinds of monsters.", parent: "kill", ev: "kill", match: (sp, SPECIES) => SPECIES[sp] && SPECIES[sp].hostile, count: 8, reward: { xp: 50 } },
   { id: "block", cat: "Combat & Bosses", icon: I.SHIELD, title: "Shields Up", desc: "Block an attack with a Shield.", parent: "kill", ev: "block" },

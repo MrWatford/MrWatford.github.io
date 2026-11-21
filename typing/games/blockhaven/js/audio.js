@@ -387,5 +387,18 @@ export const Sound = {
     this.tone(90 + s * 40, 0.05, "triangle", 0.04 * k);
   },
   levelUp() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, "triangle", 0.1), i * 80)); },
-  xp() { this.tone(1200 + Math.random() * 600, 0.06, "sine", 0.05); }
+  xp() { this.tone(1200 + Math.random() * 600, 0.06, "sine", 0.05); },
+  // Milestone 15: enchanting sounds (all made from tones and noise, like the rest)
+  enchant() { [784, 988, 1175, 1568, 1976].forEach((f, i) => setTimeout(() => { this.tone(f, 0.5, "sine", 0.06); this.tone(f * 1.5, 0.35, "sine", 0.025); }, i * 70)); this.noise(5000, 0.9, 0.12, 0.7, "highpass"); },
+  pageTurn() { this.noise(2400, 0.12, 0.18, 0.8); setTimeout(() => this.noise(3200, 0.08, 0.12, 0.8), 90); },
+  anvil(broke) {
+    if (broke) { this.noise(300, 0.6, 0.6, 0.7, "lowpass"); this.tone(220, 0.5, "square", 0.08, -120); return; }
+    this.tone(1250, 0.35, "square", 0.05, -30); this.tone(1870, 0.5, "sine", 0.06); this.tone(2650, 0.3, "sine", 0.03); this.noise(2500, 0.06, 0.35, 2);
+  },
+  grind() { for (let i = 0; i < 4; i++) setTimeout(() => this.noise(600 + i * 150, 0.18, 0.25, 0.9), i * 120); this.tone(110, 0.6, "sawtooth", 0.03); },
+  frost() { const now = performance.now(); if (now - (this.frostAt || 0) < 300) return; this.frostAt = now; this.noise(4500, 0.07, 0.06, 2, "highpass"); },
+  // Milestone 16: a brew finishing (bubbles and a soft chime), and drinking
+  potionBreak(dist = 0) { const k = Math.max(0, 1 - dist / 24); if (k <= 0.02) return; this.noise(3800, 0.18, 0.35 * k, 1.2, "highpass"); this.tone(1600, 0.12, "triangle", 0.05 * k, -400); setTimeout(() => this.noise(2400, 0.25, 0.15 * k, 0.8), 60); },
+  gulp() { this.tone(220 + Math.random() * 60, 0.12, "sine", 0.08, -90); this.noise(500, 0.08, 0.12, 2, "lowpass"); },
+  brewDone() { for (let i = 0; i < 5; i++) setTimeout(() => this.tone(300 + Math.random() * 400, 0.08, "sine", 0.05, 200), i * 70); setTimeout(() => this.tone(1320, 0.3, "sine", 0.04), 380); }
 };

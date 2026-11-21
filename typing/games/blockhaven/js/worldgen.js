@@ -9,7 +9,9 @@ import { VILLAGE_OVERHAUL_GEN, VILLAGE_TERRAIN_GEN, detailedVillagePiece, buildD
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
 // Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade, 6 = bee nests + berry bushes. Raise this when generation changes.
 export const LEGACY_CHUNK_GEN = 9;   // 7: Spark Ore; 8: village bells; 9: Hollow ships
-export const CURRENT_GEN = VILLAGE_TERRAIN_GEN;
+// 16 (Milestone 15): sugar cane by the water. Lapis Ore is in every world (it only replaces buried stone).
+export const ENCHANT_GEN = 16;
+export const CURRENT_GEN = ENCHANT_GEN;
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE, scribe: B.BOOKSHELF, beekeeper: B.BEEHIVE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -35,6 +37,7 @@ export class Generator {
     this.c = new Noise(this.seed ^ 0x5bd1e995);   // caves
     this.strongholds = strongholdSpots(this.seed);
     this.villageTerrain = new Map();
+    this.lateFeatures = true;   // world.js: older worlds get sugar cane only in land nobody has visited
   }
 
   // Ground height and land type for one column of the world
@@ -125,7 +128,19 @@ export class Generator {
     vein(B.GRAVEL, 4, 6, 50, 10);
     if (ver >= 5 && ["mountain", "peak"].includes(cols[8 + 8 * CHUNK].biome)) vein(B.JADE_ORE, 5, 4, 50, 2);
     vein(B.DIRT, 4, 6, 50, 10);
-    if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like Minecraft's redstone
+if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like Minecraft's redstone
+// Milestone 15: Lapis Ore, deep down, in every world. It has its own random numbers so nothing else in older land moves.
+{
+  const lr = rng((this.seed ^ Math.imul(cx, 83492791) ^ Math.imul(cz, 2971215073) ^ 0x1a915) >>> 0);
+  for (let t = 0; t < 3; t++) {
+    let x = Math.floor(lr() * 16), y = 3 + Math.floor(lr() * 27), z = Math.floor(lr() * 16);
+    const n = 2 + Math.floor(lr() * 6);
+    for (let k = 0; k < n; k++) {
+      if (x >= 0 && x < 16 && z >= 0 && z < 16 && y > 0 && y < HEIGHT && data[idx(x, y, z)] === B.STONE) data[idx(x, y, z)] = B.LAPIS_ORE;
+      const d = Math.floor(lr() * 6); x += [1, -1, 0, 0, 0, 0][d]; y += [0, 0, 1, -1, 0, 0][d]; z += [0, 0, 0, 0, 1, -1][d];
+    }
+  }
+}
 
     // trees and plants
     const center = cols[8 + 8 * CHUNK];
@@ -153,7 +168,18 @@ export class Generator {
       else if (p < 0.024 + grassChance) data[idx(lx, y, lz)] = B.TALL_GRASS;
     }
 
-    // a rare landmark: a crumbling watchtower with a treasure chest
+// Milestone 15: sugar cane on sand, grass or dirt right beside water at sea level
+// (new worlds; older worlds only in land the player has never been to, see world.js)
+    if (ver >= ENCHANT_GEN || opts.cane) for (let lz = 1; lz < CHUNK - 1; lz++) for (let lx = 1; lx < CHUNK - 1; lx++) {
+  const col = cols[lx + lz * CHUNK], h = col.h, soil = data[idx(lx, h, lz)];
+  if (h !== SEA || (soil !== B.SAND && soil !== B.GRASS && soil !== B.DIRT) || data[idx(lx, h + 1, lz)] !== B.AIR) continue;
+  if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => data[idx(lx + dx, h, lz + dz)] === B.WATER)) continue;
+  if (hash3(this.seed, x0 + lx, 161, z0 + lz) > 0.16) continue;
+  const tall = 1 + Math.floor(hash3(this.seed, x0 + lx, 162, z0 + lz) * 3);
+  for (let k = 1; k <= tall; k++) data[idx(lx, h + k, lz)] = B.SUGAR_CANE;
+}
+
+// a rare landmark: a crumbling watchtower with a treasure chest
     if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
     else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
     if (ver >= 4) for (const s of this.strongholds) if (!s.citadel && Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);

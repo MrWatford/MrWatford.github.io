@@ -67,7 +67,12 @@ export const B = {
   TEMPLE_STONE: 216, TEMPLE_TRIM: 217, TEMPLE_PILLAR: 218, TEMPLE_STEP: 219, BRAZIER: 220,
   // the Endwatch Citadel (js/citadel.js)
   ROOF_TILES: 221, CRACKED_BRICKS: 222, STONE_STEP: 223, CASTLE_BANNER: 224, WARD_BRICKS: 225, CASTELLAN_SEAL: 226,
-  PORTCULLIS: 227, GATE_WINCH: 228, CASTLE_TOME: 229, WATCHFIRE: 230, WORN_BOOKSHELF: 231, CASTLE_LEVER: 232, STAINED_GLASS: 233
+  PORTCULLIS: 227, GATE_WINCH: 228, CASTLE_TOME: 229, WATCHFIRE: 230, WORN_BOOKSHELF: 231, CASTLE_LEVER: 232, STAINED_GLASS: 233,
+  // Milestone 15: enchanting (js/enchanting.js)
+  LAPIS_ORE: 234, SUGAR_CANE: 235, ENCH_TABLE: 236,
+  ANVIL: 237, GRINDSTONE: 238, FROSTED_ICE: 239,   // Milestone 15, Part B
+  // Milestone 16: brewing (js/potions.js)
+  MELON: 240, MELON_STEM: 241, BREWING_STAND: 242, CAULDRON: 243
 };
 export const I = {
   STICK: 256, COAL: 257, IRON_INGOT: 258, SKYSHARD: 259, APPLE: 260, CLAY_BALL: 261, BRICK: 262,
@@ -122,7 +127,13 @@ export const I = {
   VOLATILE_MUTAGEN: 633, BLAST_CORE: 634, HISSER_TROPHY: 635, FORSAKEN_PEARL: 636, VOID_ESSENCE: 637, VOIDWALKER_TROPHY: 638,
   OSTRICH_EGG: 640,
   // the Endwatch Citadel
-  CASTELLAN_GREATBLADE: 641
+  CASTELLAN_GREATBLADE: 641,
+  // Milestone 15: enchanting
+  LAPIS: 650, PAPER: 651, BOOK: 652, ENCH_BOOK: 653,
+  // Milestone 16: brewing
+  MELON_SLICE: 654, MELON_SEEDS: 655, GLISTERING_MELON: 656, SUGAR: 657, FERMENTED_EYE: 658, RABBIT_FOOT: 659, PHANTOM_MEMBRANE: 660,
+  POTION: 661, SPLASH_POTION: 662, LINGERING_POTION: 663, DRAGON_BREATH: 664,
+  TIPPED_ARROW: 665   // 665-679: one tipped arrow per potion (TIPPED_KEYS order)
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the high 8 bits.
@@ -384,6 +395,19 @@ block(B.CASTLE_LEVER, "Old Iron Lever", { hardness: Infinity, drops: 0, interact
 block(B.STAINED_GLASS, "Stained Glass", { hardness: 0.3, render: "cutout", drops: 0, tex: "stained_glass" });
 block(B.CASTELLAN_SEAL, "Castellan's Seal", { hardness: Infinity, drops: 0, light: 7, tex: ["seal_top", "seal_side", "ward_bricks"], noItem: true });
 block(B.BRAZIER, "Temple Brazier", { hardness: 2, tool: "pick", tier: 1, light: 13, tex: ["brazier_top", "brazier_side", "brazier_side"], category: "Useful" });
+
+// Milestone 15: enchanting
+block(B.LAPIS_ORE, "Lapis Ore", { hardness: 3, tool: "pick", tier: 2, drops: "lapis", tex: "lapis_ore", category: "Nature" });
+block(B.SUGAR_CANE, "Sugar Cane", { shape: "cross", render: "cutout", solid: false, hardness: 0, tex: "sugar_cane", category: "Nature" });
+block(B.ANVIL, "Anvil", { shape: "model", render: "cutout", hardness: 5, tool: "pick", tier: 1, interact: "anvil", faces: true, icon: "anvil", tex: ["anvil_top", "anvil_side", "anvil_side"], category: "Useful" });
+block(B.GRINDSTONE, "Grindstone", { shape: "model", render: "cutout", hardness: 2, tool: "pick", tier: 1, interact: "grindstone", faces: true, icon: "grindstone", tex: ["grind_side", "grind_wheel", "grind_side"], category: "Useful" });
+block(B.FROSTED_ICE, "Frosted Ice", { hardness: 0.5, drops: 0, tex: "frosted_ice", noItem: true, category: "Nature" });   // made by Frost Walker boots; melts back into water
+// Milestone 16: brewing
+block(B.MELON, "Melon", { hardness: 1, tool: "axe", drops: "melon", tex: ["melon_top", "melon_side", "melon_top"], category: "Nature" });
+block(B.MELON_STEM, "Melon Stem", { shape: "crop", render: "cutout", solid: false, hardness: 0, drops: "crop", tex: "melon_stem0", category: "Nature", noItem: true });
+block(B.BREWING_STAND, "Brewing Stand", { shape: "model", render: "cutout", hardness: 0.5, tool: "pick", tier: 1, light: 1, interact: "brew", icon: "brewing_stand", tex: ["brew_base", "brew_rod", "brew_base"], category: "Useful" });
+block(B.CAULDRON, "Cauldron", { shape: "model", render: "cutout", hardness: 2, tool: "pick", tier: 1, interact: "cauldron", icon: "cauldron", tex: ["cauldron_top", "cauldron_side", "cauldron_side"], category: "Useful" });
+block(B.ENCH_TABLE, "Enchanting Table", { shape: "model", render: "cutout", hardness: 5, tool: "pick", tier: 1, light: 7, interact: "enchant", tex: ["ench_top", "ench_side", "obsidian"], iconBox: 12 / 16, category: "Useful" });
 
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
@@ -693,6 +717,31 @@ SPAWN_EGGS.push(
 );
 // Glider Wings go in the chest armor slot: jump while falling to glide
 item(I.GLIDER, "Glider Wings", { icon: "glider", kind: "armor", stack: 1, category: "Tools", armor: { slot: 1, points: 0, dur: 432 }, glider: true });
+// Milestone 15: enchanting (js/enchanting.js)
+item(I.LAPIS, "Lapis", { icon: "lapis", category: "Items", desc: "A blue gem from deep underground. The Enchanting Table uses 1 to 3 for each enchantment" });
+item(I.PAPER, "Paper", { icon: "paper", category: "Items" });
+item(I.BOOK, "Book", { icon: "book", category: "Items", desc: "Put one in an Enchanting Table to make an Enchanted Book" });
+item(I.ENCH_BOOK, "Enchanted Book", { icon: "ench_book", stack: 1, category: "Items" });
+// Milestone 16: brewing (js/potions.js). Potions drink like food (1.6 s) and give the bottle back.
+item(I.MELON_SLICE, "Melon Slice", { icon: "melon_slice", kind: "food", food: 2, category: "Food" });
+item(I.MELON_SEEDS, "Melon Seeds", { icon: "seeds", colors: ["#2a2a1a", "#4a4a2a"], plants: B.MELON_STEM, category: "Food", desc: "Plant on farmland. The grown stem makes melons on the ground next to it" });
+item(I.GLISTERING_MELON, "Glistering Melon Slice", { icon: "melon_slice", colors: ["gold"], category: "Items", desc: "A brewing ingredient (Healing)" });
+item(I.SUGAR, "Sugar", { icon: "dust", colors: ["#f4f4f4", "#d8d8dc", "#ffffff"], category: "Items", desc: "A brewing ingredient (Swiftness)" });
+item(I.FERMENTED_EYE, "Fermented Skitter Eye", { icon: "eye", colors: ["ferment"], category: "Items", desc: "A brewing ingredient: turns a potion into its opposite" });
+item(I.RABBIT_FOOT, "Rabbit's Foot", { icon: "rabbit_foot", category: "Items", desc: "A brewing ingredient (Leaping)" });
+item(I.PHANTOM_MEMBRANE, "Phantom Membrane", { icon: "membrane", category: "Items", desc: "A brewing ingredient (Slow Falling)" });
+item(I.POTION, "Potion", { icon: "potion", stack: 1, kind: "food", food: 0, alwaysEat: true, sideEffect: "potion", potion: true, category: "Food" });
+item(I.SPLASH_POTION, "Splash Potion", { icon: "potion", stack: 1, potion: true, category: "Food" });
+item(I.LINGERING_POTION, "Lingering Potion", { icon: "potion", stack: 1, potion: true, category: "Food" });
+// Milestone 16, Part B: tipped arrows. Each kind is its own item so different ones never stack together.
+export const TIPPED_KEYS = ["night_vision", "invisibility", "leaping", "fire_resistance", "swiftness", "slowness", "turtle_master", "water_breathing",
+  "healing", "harming", "poison", "regeneration", "strength", "weakness", "slow_falling"];
+const TIP_COLORS = ["#1f1fa1", "#7f8392", "#22ff4c", "#e49a3a", "#7cafc6", "#5a6c81", "#8a6a8a", "#2e5299", "#f82423", "#430a09", "#4e9331", "#cd5cab", "#932423", "#484d48", "#f7f8e0"];
+const TIP_NAMES = ["Night Vision", "Invisibility", "Leaping", "Fire Resistance", "Swiftness", "Slowness", "the Turtle Master", "Water Breathing", "Healing", "Harming", "Poison", "Regeneration", "Strength", "Weakness", "Slow Falling"];
+TIPPED_KEYS.forEach((k, i) => item(I.TIPPED_ARROW + i, "Arrow of " + TIP_NAMES[i], { icon: "tipped_arrow", colors: [TIP_COLORS[i]], tip: k, arrow: true, category: "Tools",
+  desc: "Shoot it from a bow: whatever it hits gets a short dose of the potion. Made from 8 arrows around a lingering potion" }));
+items[I.ARROW].arrow = true;
+item(I.DRAGON_BREATH, "Wyrm's Breath", { icon: "bottle", colors: ["#c060ff"], category: "Items", desc: "Bottled from the Hollow Wyrm's breath. Turns splash potions into lingering ones" });
 SPAWN_EGGS.push(...WILDLIFE_EGGS);
 export const spawnEggId = index => index < I.FISHING_ROD - I.SPAWN ? I.SPAWN + index : I.SPAWN_OVERFLOW + index - (I.FISHING_ROD - I.SPAWN);
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(spawnEggId(i), name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
@@ -727,7 +776,22 @@ export const RECIPES = [
   { out: [I.WOOD_SWORD, 1], ins: [["planks", 2], [I.STICK, 1]], table: true },
   { out: [B.CHEST, 1], ins: [["planks", 8]], table: true },
   { out: [B.SIGN, 3], ins: [["planks", 6], [I.STICK, 1]], table: true },
-  { out: [B.BOOKSHELF, 1], ins: [["planks", 6], [I.LEATHER, 3]], table: true },
+  { out: [B.BOOKSHELF, 1], ins: [["planks", 6], [I.BOOK, 3]], table: true },
+  { out: [I.PAPER, 3], ins: [[B.SUGAR_CANE, 3]], table: true },
+  { out: [I.BOOK, 1], ins: [[I.PAPER, 3], [I.LEATHER, 1]] },
+  { out: [B.ENCH_TABLE, 1], ins: [[B.OBSIDIAN, 4], [I.SKYSHARD, 2], [I.BOOK, 1]], table: true },
+  { out: [B.ANVIL, 1], ins: [[B.IRON_BLOCK, 3], [I.IRON_INGOT, 4]], table: true },
+  // Milestone 16: brewing
+  { out: [B.BREWING_STAND, 1], ins: [[I.FLARE_ROD, 1], [B.COBBLE, 3]], table: true },
+  { out: [B.CAULDRON, 1], ins: [[I.IRON_INGOT, 7]], table: true },
+  // Part B: 8 arrows + a lingering potion = 8 tipped arrows of that potion (main.js G.craft checks the potion kind)
+  ...TIPPED_KEYS.map((k, i) => ({ out: [I.TIPPED_ARROW + i, 8], ins: [[I.ARROW, 8], [I.LINGERING_POTION, 1]], table: true, tip: k })),
+  { out: [B.MELON, 1], ins: [[I.MELON_SLICE, 9]], table: true },
+  { out: [I.MELON_SEEDS, 1], ins: [[I.MELON_SLICE, 1]] },
+  { out: [I.GLISTERING_MELON, 1], ins: [[I.MELON_SLICE, 1], [I.GOLD_NUGGET, 8]], table: true },
+  { out: [I.SUGAR, 1], ins: [[B.SUGAR_CANE, 1]] },
+  { out: [I.FERMENTED_EYE, 1], ins: [[I.SPIDER_EYE, 1], [I.SUGAR, 1], [I.WART, 1]] },
+  { out: [B.GRINDSTONE, 1], ins: [[I.STICK, 2], [B.STONE, 1], ["planks", 2]], table: true },
   { out: [B.MAP_TABLE, 1], ins: [["planks", 4], [I.COMPASS, 1]], table: true },
   { out: [B.DOOR, 1], ins: [["planks", 6]], table: true },
   { out: [B.FURNACE, 1], ins: [[B.COBBLE, 8]], table: true },
@@ -937,7 +1001,12 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   // the Grand Desert Temple
   "temple_stone", "temple_stone_top", "temple_trim", "temple_pillar", "temple_pillar_top", "brazier_top", "brazier_side",
   // the Endwatch Citadel
-  "roof_tiles", "roof_tiles_top", "cracked_bricks", "castle_banner", "ward_bricks", "seal_top", "seal_side", "portcullis", "winch_top", "winch_side", "tome_top", "tome_side", "watchfire_top", "watchfire_side", "worn_bookshelf", "castle_lever", "stained_glass"];
+  "roof_tiles", "roof_tiles_top", "cracked_bricks", "castle_banner", "ward_bricks", "seal_top", "seal_side", "portcullis", "winch_top", "winch_side", "tome_top", "tome_side", "watchfire_top", "watchfire_side", "worn_bookshelf", "castle_lever", "stained_glass",
+  // Milestone 15: enchanting
+  "lapis_ore", "sugar_cane", "ench_top", "ench_side",
+  "anvil_top", "anvil_top_chipped", "anvil_top_damaged", "anvil_side", "grind_side", "grind_wheel", "frosted_ice",
+  // Milestone 16: brewing
+  "melon_top", "melon_side", "melon_stem0", "melon_stem1", "melon_stem2", "melon_stem3", "brew_base", "brew_rod", "cauldron_top", "cauldron_side", "cauldron_inner"];
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -966,6 +1035,7 @@ export function faceTile(v, dir, front) {
   if (idOf(v) === B.DAYLIGHT && dir === 0) return TILE[metaOf(v) & INVERT ? "daylight_inv_top" : "daylight_top"];
   if (idOf(v) >= B.POWERED_RAIL && idOf(v) <= B.ACTIVATOR_RAIL && (metaOf(v) & RAIL_ON)) return TILE[t + "_on"];
   if (idOf(v) === B.HUSH_SENSOR && dir === 0) return TILE[(metaOf(v) & 3) === 1 ? "hush_sensor_top_on" : "hush_sensor_top"];
+  if (idOf(v) === B.MELON_STEM) return TILE["melon_stem" + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.WHEAT || idOf(v) === B.CARROTS) return TILE[(idOf(v) === B.WHEAT ? "wheat" : "carrots") + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.FARMLAND && dir === 0) return TILE[metaOf(v) & WET ? "farmland_wet" : "farmland_dry"];
   if (idOf(v) === B.BED) return TILE[dir === 0 ? (metaOf(v) & HEAD ? "bed_head" : "bed_foot") : "bed_side"];
@@ -1198,6 +1268,30 @@ Object.assign(PAINT, {
   watchfire_side(P) { PAINT.stone_bricks(P); P.rect(0, 0, 16, 3, "#3a3a42"); P.rect(0, 13, 16, 3, "#3a3a42"); P.rect(6, 5, 4, 6, "#4a90c8"); P.rect(7, 6, 2, 4, "#bfe8ff"); },
   worn_bookshelf(P) { PAINT.bookshelf(P); P.rect(9, 2, 2, 6, "#b03a2a"); P.rect(9, 1, 2, 1, "#d86a4a"); },
   castle_lever(P) { PAINT.stone_bricks(P); P.rect(5, 9, 6, 4, "#3a3a42"); P.rect(7, 3, 2, 8, "#6e4b26"); P.rect(6, 2, 4, 2, "#8a8a94"); },
+  // Milestone 15: enchanting
+  lapis_ore(P) { PAINT.stone(P); for (const [x, y, w, h] of [[2, 2, 3, 2], [9, 1, 2, 3], [5, 6, 3, 3], [12, 7, 3, 2], [2, 11, 2, 3], [8, 11, 3, 2], [13, 12, 2, 2]]) { P.rect(x, y, w, h, "#1f4fb4"); P.px(x, y, "#5a8cf0"); P.px(x + w - 1, y + h - 1, "#163a86"); } },
+  sugar_cane(P) { for (const [x, c, d] of [[3, "#8fd060", "#6aa840"], [8, "#a2dc70", "#78b84a"], [12, "#86c858", "#62a03c"]]) { P.rect(x, 0, 2, 16, c); P.rect(x + 1, 0, 1, 16, d); for (const y of [3, 9, 14]) P.rect(x, y + (x % 3) - 1, 2, 1, "#c8e8a0"); } P.rect(5, 4, 3, 1, "#78b84a"); P.rect(10, 11, 2, 1, "#78b84a"); },
+  ench_top(P) { P.fill(["#7a1a24", "#701820", "#842030"]); P.rect(0, 0, 16, 1, "#2a1e3a"); P.rect(0, 15, 16, 1, "#2a1e3a"); P.rect(0, 0, 1, 16, "#2a1e3a"); P.rect(15, 0, 1, 16, "#2a1e3a"); P.rect(2, 2, 12, 1, "#d8a830"); P.rect(2, 13, 12, 1, "#d8a830"); P.rect(2, 2, 1, 12, "#d8a830"); P.rect(13, 2, 1, 12, "#d8a830"); for (const [x, y] of [[1, 1], [13, 1], [1, 13], [13, 13]]) { P.rect(x, y, 2, 2, "#62e6ee"); P.px(x, y, "#c8fcff"); } P.rect(6, 6, 4, 4, "#5a1018"); P.rect(7, 7, 2, 2, "#d8a830"); },
+  ench_side(P) { PAINT.obsidian(P); P.rect(0, 0, 16, 4, "#7a1a24"); P.rect(0, 3, 16, 1, "#d8a830"); for (let x = 1; x < 16; x += 3) P.px(x, 1, "#a03040"); P.rect(2, 7, 1, 1, "#9a6ae0"); P.rect(12, 10, 1, 1, "#9a6ae0"); },
+  anvil_top(P) { P.fill(["#4a4a4e", "#444448", "#505054"]); P.rect(0, 0, 16, 1, "#68686e"); P.rect(0, 15, 16, 1, "#2e2e32"); P.rect(2, 3, 12, 10, "#3c3c40"); P.rect(3, 4, 10, 8, "#56565a"); P.px(4, 5, "#78787e"); P.px(11, 10, "#2a2a2e"); },
+  anvil_top_chipped(P) { PAINT.anvil_top(P); for (const [x, y] of [[5, 6], [6, 7], [7, 7], [10, 4], [11, 5]]) P.px(x, y, "#1e1e22"); },
+  anvil_top_damaged(P) { PAINT.anvil_top_chipped(P); for (const [x, y] of [[4, 9], [5, 10], [6, 10], [7, 11], [9, 8], [10, 9], [12, 10], [3, 4], [8, 5]]) P.px(x, y, "#1e1e22"); P.rect(13, 6, 2, 2, "#2a2a2e"); },
+  anvil_side(P) { P.fill(["#48484c", "#424246", "#4e4e52"]); P.rect(0, 0, 16, 1, "#66666c"); P.rect(0, 15, 16, 1, "#2a2a2e"); for (let x = 1; x < 16; x += 4) P.px(x, 7, "#5c5c62"); },
+  grind_side(P) { patches(P, ["#8e8e8c", "#868684", "#969694", "#7e7e7c"], 40, 3, 2); P.rect(0, 0, 16, 1, "#a8a8a6"); P.rect(0, 15, 16, 1, "#6a6a68"); },
+  grind_wheel(P) { PAINT.grind_side(P); for (let y = 2; y < 14; y++) for (let x = 2; x < 14; x++) { const d = (x - 7.5) ** 2 + (y - 7.5) ** 2; if (d < 36 && d > 30) P.px(x, y, "#6a6a68"); } P.rect(6, 6, 4, 4, "#8a6235"); P.rect(7, 7, 2, 2, "#5a3d20"); },
+  frosted_ice(P) { P.fill(["#a8d4f4", "#9ccaee", "#b4dcf8"]); for (const [x, y, w] of [[2, 3, 5], [9, 6, 4], [4, 11, 6], [12, 12, 3]]) P.rect(x, y, w, 1, "#e4f4ff"); for (const [x, y] of [[6, 8], [7, 9], [8, 9], [11, 2], [3, 6]]) P.px(x, y, "#78a8d0"); },
+  // Milestone 16: brewing
+  melon_top(P) { P.fill(["#7aa23a", "#86ae42", "#6e9632"]); for (let i = 0; i < 16; i += 4) P.rect(i, 0, 1, 16, "#5a7e2a"); P.rect(6, 6, 4, 4, "#8eb84a"); P.rect(7, 7, 2, 2, "#4e6e24"); },
+  melon_side(P) { P.fill(["#6e9a32", "#7aa83a", "#64902e"]); for (let x = 1; x < 16; x += 4) { P.rect(x, 0, 2, 16, "#9cc450"); P.rect(x + 2, 0, 1, 16, "#56802a"); } },
+  melon_stem0(P) { P.rect(7, 12, 2, 4, "#6aa83a"); P.px(6, 12, "#7ab84a"); },
+  melon_stem1(P) { P.rect(7, 8, 2, 8, "#78a83a"); P.rect(5, 9, 2, 1, "#78a83a"); P.rect(9, 11, 2, 1, "#78a83a"); },
+  melon_stem2(P) { P.rect(7, 4, 2, 12, "#90a838"); P.rect(4, 6, 3, 1, "#90a838"); P.rect(9, 9, 3, 1, "#90a838"); P.rect(4, 12, 3, 1, "#90a838"); },
+  melon_stem3(P) { P.rect(7, 2, 2, 14, "#b89a30"); P.rect(3, 4, 4, 1, "#a88a2a"); P.rect(9, 7, 4, 1, "#a88a2a"); P.rect(3, 11, 4, 1, "#a88a2a"); P.rect(2, 3, 2, 2, "#6e9a32"); },
+  brew_base(P) { patches(P, ["#7a7a78", "#727270", "#848482"], 30, 3, 2); P.rect(0, 0, 16, 1, "#9a9a98"); },
+  brew_rod(P) { P.fill(["#e8b830", "#f0c840", "#d8a820"]); P.rect(0, 0, 16, 2, "#fff0a0"); for (let y = 3; y < 16; y += 4) P.rect(0, y, 16, 1, "#b88a18"); },
+  cauldron_side(P) { P.fill(["#3c3c40", "#36363a", "#424246"]); P.rect(0, 0, 16, 2, "#56565c"); P.rect(0, 14, 16, 2, "#2a2a2e"); P.rect(0, 12, 3, 4, "#1e1e22"); P.rect(13, 12, 3, 4, "#1e1e22"); for (let x = 2; x < 16; x += 5) P.px(x, 6, "#4e4e54"); },
+  cauldron_top(P) { P.fill(["#46464a", "#404044"]); P.rect(2, 2, 12, 12, "#232327"); P.rect(0, 0, 16, 1, "#5a5a60"); },
+  cauldron_inner(P) { P.fill(["#2e2e32", "#2a2a2e", "#323236"]); },
   stained_glass(P) { const C = ["#b8323a", "#2f5fb8", "#e0b030", "#3a8a4a", "#7a3ab0"]; for (let y = 0; y < 16; y += 4) for (let x = 0; x < 16; x += 4) P.rect(x, y, 4, 4, C[((x >> 2) * 3 + (y >> 2) * 2) % C.length]); for (let i = 0; i < 16; i += 4) { P.rect(i, 0, 1, 16, "#1a1a20"); P.rect(0, i, 16, 1, "#1a1a20"); } P.rect(15, 0, 1, 16, "#1a1a20"); P.rect(0, 15, 16, 1, "#1a1a20"); },
   tome_top(P) { P.rect(1, 2, 14, 12, "#5a2a1a"); P.rect(2, 3, 5, 10, "#efe4c8"); P.rect(9, 3, 5, 10, "#efe4c8"); for (let y = 4; y < 12; y += 2) { P.rect(3, y, 3, 1, "#8a7a60"); P.rect(10, y, 3, 1, "#8a7a60"); } P.rect(7, 2, 2, 12, "#3a1a0e"); },
   tome_side(P) { PAINT.planks(P); P.rect(0, 0, 16, 2, "#5a2a1a"); P.rect(5, 2, 6, 14, "#6e4b26"); },
@@ -1566,12 +1660,12 @@ const ICON_PAINT = {
   tool_sword(P, c) { for (let i = 0; i < 9; i++) { P.px(5 + i, 10 - i, c[0]); P.px(6 + i, 10 - i, c[1]); } P.px(14, 1, c[0]); P.rect(3, 10, 4, 1, "#5a3d20"); P.rect(5, 8, 1, 4, "#5a3d20"); P.px(3, 12, "#8a6235"); P.px(2, 13, "#8a6235"); }
 };
 Object.assign(ICON_PAINT, {
-  seeds(P) { for (const [x, y] of [[4, 6], [8, 4], [11, 8], [6, 10], [9, 12], [3, 12]]) { P.px(x, y, "#5a9a2a"); P.px(x + 1, y, "#3a7a1a"); } },
+  seeds(P, c) { c = c && c.length === 2 ? c : ["#5a9a2a", "#3a7a1a"]; for (const [x, y] of [[4, 6], [8, 4], [11, 8], [6, 10], [9, 12], [3, 12]]) { P.px(x, y, c[0]); P.px(x + 1, y, c[1]); } },
   wheat(P) { for (let i = 0; i < 4; i++) { const x = 4 + i * 2; P.rect(x, 7, 1, 8, "#8a7a2a"); P.rect(x - 1, 2, 3, 6, i % 2 ? "#e0c060" : "#c9a640"); } },
   bread(P) { for (let y = 6; y < 12; y++) for (let x = 2; x < 14; x++) if ((x - 8) ** 2 / 36 + (y - 9) ** 2 / 9 < 1) P.px(x, y, y < 8 ? "#d8a050" : "#b07830"); P.rect(5, 7, 1, 2, "#8a5a20"); P.rect(8, 7, 1, 2, "#8a5a20"); P.rect(11, 7, 1, 2, "#8a5a20"); },
   carrot(P, c) { const g = c && c[0] === "gold"; for (let i = 0; i < 9; i++) { P.px(4 + i, 12 - i, g ? "#ffd84a" : "#f08a1a"); P.px(5 + i, 12 - i, g ? "#c89a14" : "#d86a10"); } P.rect(12, 1, 2, 3, "#4f9a33"); P.rect(13, 3, 2, 1, "#6bb544"); },
   meat(P, c) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 8) ** 2 / 25 + (y - 8.5) ** 2 / 18 < 1) P.px(x, y, c[0]); P.rect(10, 9, 3, 2, c[1]); P.rect(12, 10, 2, 3, c[1]); },
-  eye(P) { for (let y = 5; y < 12; y++) for (let x = 4; x < 12; x++) if ((x - 8) ** 2 + (y - 8.5) ** 2 < 12) P.px(x, y, "#b02030"); P.rect(7, 7, 2, 2, "#1a1a1a"); },
+  eye(P, c) { const f = c && c[0] === "ferment"; for (let y = 5; y < 12; y++) for (let x = 4; x < 12; x++) if ((x - 8) ** 2 + (y - 8.5) ** 2 < 12) P.px(x, y, f ? ((x + y) % 3 ? "#7a3a4a" : "#a0604a") : "#b02030"); P.rect(7, 7, 2, 2, f ? "#3a1a2a" : "#1a1a1a"); },
   ostrich_egg(P) {
     for (let y = 1; y < 15; y++) for (let x = 2; x < 14; x++) {
       const shell = (x - 7.5) ** 2 / (y < 8 ? 25 : 32) + (y - 7.7) ** 2 / 48;
@@ -1615,6 +1709,21 @@ Object.assign(ICON_PAINT, {
   scale(P) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 8) ** 2 + (y - 8.5) ** 2 < 20) P.px(x, y, (x + y) % 3 ? "#2a1a3a" : "#5a2a7a"); },
   glider(P) { for (let x = 1; x < 15; x++) { const h = Math.round(6 - Math.abs(x - 7.5) * 0.6); for (let y = 4; y < 4 + h + 4; y++) if (Math.abs(x - 7.5) > 1) P.px(x, y + Math.abs(x - 7.5) * 0.3, y === 4 ? "#9a8aa8" : "#6a5a7a"); } P.rect(7, 4, 2, 8, "#4a3a5a"); },
   lead(P) { const pts = [[2, 13], [3, 11], [5, 10], [7, 10], [9, 9], [10, 7], [10, 5], [9, 3], [7, 2], [5, 3], [4, 5], [5, 7], [7, 8], [9, 8], [11, 9], [13, 11], [14, 13]]; for (const [x, y] of pts) { P.rect(x, y, 2, 2, "#8a6a3a"); P.px(x, y, "#b89060"); } P.rect(12, 12, 3, 3, "#5aa830"); },
+  // Milestone 15: enchanting
+  lapis(P) { for (let y = 3; y < 13; y++) { const w = y < 8 ? y - 2 : 13 - y; for (let x = 8 - w; x <= 7 + w; x++) P.px(x, y, x < 7 ? "#2a5ccc" : x > 9 ? "#163a86" : "#1f4fb4"); } P.rect(6, 5, 2, 2, "#8ab4ff"); P.px(10, 9, "#5a8cf0"); },
+  paper(P) { P.rect(3, 2, 10, 12, "#f4f0e4"); P.rect(3, 2, 10, 1, "#ffffff"); P.rect(12, 2, 1, 12, "#d8d2c0"); P.rect(3, 13, 10, 1, "#c8c2b0"); for (const y of [5, 7, 9, 11]) P.rect(5, y, 6, 1, "#c4c8d8"); },
+  book(P, c) { c = c && c.length === 3 ? c : ["#8a4a2a", "#5e3018", "#e8e0c8"]; P.rect(3, 2, 10, 12, c[0]); P.rect(3, 2, 2, 12, c[1]); P.rect(12, 3, 1, 10, c[2]); P.rect(5, 13, 8, 1, c[2]); P.rect(7, 5, 4, 1, "#d8a830"); P.rect(7, 7, 4, 1, "#d8a830"); },
+  ench_book(P) { ICON_PAINT.book(P, ["#6a2aa8", "#3e1470", "#f0e8d0"]); P.rect(7, 5, 4, 3, "#e8c040"); P.px(8, 6, "#fff4b0"); P.px(4, 4, "#d8b0ff"); P.px(11, 10, "#d8b0ff"); },
+  anvil(P) { P.rect(1, 3, 14, 4, "#56565a"); P.rect(1, 3, 14, 1, "#76767c"); P.rect(0, 4, 2, 2, "#48484c"); P.rect(5, 7, 6, 4, "#444448"); P.rect(3, 11, 10, 3, "#4a4a4e"); P.rect(3, 13, 10, 1, "#2e2e32"); },
+  grindstone(P) { P.rect(2, 9, 2, 6, "#7a5530"); P.rect(12, 9, 2, 6, "#7a5530"); for (let y = 1; y < 14; y++) for (let x = 3; x < 13; x++) { const d = (x - 7.5) ** 2 + (y - 7.5) ** 2; if (d < 26) P.px(x, y, d > 18 ? "#6a6a68" : "#9a9a98"); } P.rect(7, 7, 2, 2, "#5a3d20"); P.rect(2, 6, 12, 2, "#a07a48"); },
+  // Milestone 16: brewing
+  melon_slice(P, c) { const gold = c && c[0] === "gold"; for (let y = 4; y < 14; y++) for (let x = 2; x < 14; x++) { const d = (x - 8) ** 2 + (y - 14) ** 2; if (d < 64 && y < 13) P.px(x, y, d > 50 ? (gold ? "#f0c020" : "#5a9a2a") : d > 42 ? (gold ? "#fff2a0" : "#e8f0c0") : (gold ? "#ffd84a" : "#e8403a")); } for (const [x, y] of [[6, 9], [9, 8], [11, 10], [5, 11]]) P.px(x, y, "#2a1a10"); },
+  tipped_arrow(P, c) { ICON_PAINT.arrow(P); P.rect(11, 2, 3, 3, c && c[0] || "#8a8a8a"); P.rect(6, 7, 3, 3, c && c[0] || "#8a6235"); P.px(12, 3, "#ffffff"); },
+  rabbit_foot(P) { P.rect(6, 3, 4, 7, "#c8a878"); P.rect(5, 9, 6, 4, "#d8bc90"); P.rect(4, 12, 3, 2, "#e8d4b0"); P.rect(9, 12, 3, 2, "#e8d4b0"); P.rect(6, 2, 4, 2, "#8a6a4a"); },
+  membrane(P) { for (let y = 3; y < 13; y++) for (let x = 2; x < 14; x++) if (Math.abs(x - 8) + Math.abs(y - 8) * 0.8 < 7) P.px(x, y, (x + y) % 3 ? "#d8d8c8" : "#b8c8a8"); P.rect(3, 7, 10, 1, "#9aa88a"); },
+  potion(P) { P.rect(6, 1, 4, 2, "#8a6235"); P.rect(6, 3, 4, 3, "#c8dce8"); for (let y = 6; y < 15; y++) for (let x = 2; x < 14; x++) { const d = (x - 7.5) ** 2 + (y - 10.5) ** 2; if (d < 24) P.px(x, y, d > 17 ? "#8aa4b8" : y > 8 ? "#385dc6" : "#c8dce8"); } },
+  brewing_stand(P) { P.rect(7, 1, 2, 12, "#e8b830"); P.rect(1, 13, 14, 2, "#7a7a78"); for (const x of [2, 11]) { P.rect(x, 8, 3, 5, "#c8dce8"); P.rect(x, 10, 3, 3, "#385dc6"); } },
+  cauldron(P) { P.rect(2, 3, 12, 10, "#3c3c40"); P.rect(2, 3, 12, 2, "#56565c"); P.rect(4, 4, 8, 1, "#232327"); P.rect(2, 13, 3, 2, "#2a2a2e"); P.rect(11, 13, 3, 2, "#2a2a2e"); },
   nametag(P) { P.rect(4, 3, 9, 11, "#e8dcc0"); P.rect(4, 3, 9, 1, "#c8b890"); P.rect(4, 13, 9, 1, "#b8a880"); P.rect(5, 1, 7, 2, "#e8dcc0"); P.rect(7, 2, 3, 2, "#6a5a3a"); for (const y of [6, 8, 10]) P.rect(6, y, 5, 1, "#8a7a5a"); P.rect(2, 1, 4, 1, "#9a9a9a"); P.rect(2, 1, 1, 4, "#9a9a9a"); },
   horse_armor(P, c) { const a = (c && c[0]) || "#dcdcdc", b = (c && c[1]) || "#a8a8a8"; P.rect(2, 6, 12, 6, a); P.rect(2, 11, 12, 1, b); P.rect(10, 2, 4, 6, a); P.rect(13, 3, 1, 4, b); P.rect(3, 12, 2, 3, b); P.rect(11, 12, 2, 3, b); P.rect(4, 7, 5, 1, "#ffffff"); },
   void_crystal(P) { for (let y = 1; y < 15; y++) { const w = 7 - Math.abs(y - 8); for (let x = 8 - w; x < 8 + w; x++) P.px(x, y, (x + y) % 3 ? "#d8b8f8" : "#f4e8ff"); } P.rect(6, 6, 4, 4, "#8a3ad0"); P.rect(7, 7, 2, 2, "#f070ff"); for (const [x, y] of [[8, 1], [8, 14], [1, 8], [14, 8]]) P.px(x, y, "#ffffff"); },
