@@ -274,7 +274,7 @@ function drawModel(mo, x, y, z, ls, lb, lc = 0) {
         if (sh) { px += sh[0] * (ly - b[1]); pz += sh[1] * (ly - b[1]); }
         const w = mo.T([px, ly, pz]);
         pts.push([x + w[0], y + w[1], z + w[2]]);
-        uvs.push(uvFor(f, lx, ly, lz));
+        uvs.push(uvFor(f, lx, ly - (part.uvY || 0), lz));   // (Milestone 21: a piece taller than a block reads its own block's worth of texture)
       }
       // shade by which way the face ends up pointing
       const ax = pts[1][0] - pts[0][0], ay = pts[1][1] - pts[0][1], az = pts[1][2] - pts[0][2], bx = pts[3][0] - pts[0][0], by = pts[3][1] - pts[0][1], bz = pts[3][2] - pts[0][2];

@@ -1,7 +1,7 @@
 // Shapes of the Sparkworks blocks: the little boxes they're drawn with, the boxes you bump into,
 // and how Sparkdust wire connects to its neighbors. Used by the drawing code, the player, and the signal engine.
 import { B, OPAQUE, idOf, metaOf, faceTile, TILE, isTrapdoor, isFence, isGate, isButton, isPlate,
-  DOT, UNLIT, AXIS_X, ON, LOCKED, SUBTRACT, CMP_ON, OPEN, TOP, EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED, isPiston, isHush } from "./blocks.js";
+  DOT, UNLIT, AXIS_X, ON, LOCKED, SUBTRACT, CMP_ON, OPEN, TOP, EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED, isPiston, isHush, isSlab, isStairs, isWall, blockDef, SOLID } from "./blocks.js";
 
 export const DIR = [[0, 1], [1, 0], [0, -1], [-1, 0]];   // facing 0..3 → (dx, dz)
 // 6-way facing for pistons and observers: 0 up, 1 down, 2-5 = DIR[0-3]
@@ -70,6 +70,21 @@ function fenceLinks(n, d) {
   return OPAQUE[id] === 1;
 }
 
+// Milestone 21, Part C: glass panes and iron bars join each other, walls, and full blocks (glass too)
+function paneLinks(n) {
+  const id = idOf(n), d = blockDef(n);
+  return !!d && (d.pane || isWall(id) || OPAQUE[id] === 1 || (d.shape === "cube" && SOLID[id] === 1));
+}
+// Milestone 21, Part D: a box taller than one block, cut into block-high pieces so each shows the whole texture
+const tall = (b, tiles) => { const out = []; for (let y0 = b[1]; y0 < b[4]; ) { const k = Math.floor(y0 / 16), y1 = Math.min(b[4], (k + 1) * 16); out.push({ ...p([b[0], y0, b[2], b[3], y1, b[5]], tiles), uvY: k }); y0 = y1; } return out; };
+const CANDLE_SPOTS = [[[7, 7]], [[5, 7], [9, 8]], [[5, 6], [9, 6], [7, 10]], [[5, 5], [9, 5], [5, 9], [9, 9]]];
+// Milestone 21: walls join other walls, solid blocks, and gates
+function wallLinks(n, d) {
+  const id = idOf(n);
+  if (isWall(id)) return true;
+  if (isGate(id)) return ((metaOf(n) & 3) % 2) !== (d % 2);
+  return OPAQUE[id] === 1;
+}
 // ----- the drawn model: { T, parts: [{ b: [x0,y0,z0,x1,y1,z1] in 1/16ths, tiles: [top, side, bottom], shear: [sx, sz] }] } -----
 const p = (b, tiles, shear) => ({ b: b.map(k => k * S), tiles: Array.isArray(tiles) ? tiles : [tiles, tiles, tiles], shear });
 export function model(v, get) {
@@ -101,6 +116,41 @@ export function model(v, get) {
       parts.push(p([3, 2, 2, 5, 7, 4], nub(on)), p([11, 2, 2, 13, 7, 4], nub(on)), p([7, 2, 11, 9, 5, 13], nub(!!(m & SUBTRACT))));
     }
     return { T: floorT(f), parts };
+  }
+  if (id === B.LADDER) return { T: floorT(m & 3), parts: [p([0, 0, 15, 16, 16, 16], tex)] };
+  // Milestone 21, Part D (what frames, stands and paintings hold is drawn separately, in main.js)
+  if (id === B.ITEM_FRAME) return { T: floorT(m & 3), parts: [p([2, 2, 15, 14, 14, 16], tex)] };
+  if (id === B.PAINTING) return { T: floorT(m & 3), parts: [p([0, 0, 15.5, 16, 16, 16], tex)] };
+  if (id === B.ARMOR_STAND) return { T: floorT(m & 3), parts: [p([2, 0, 2, 14, 1, 14], TILE.stone), ...tall([7, 1, 7, 9, 23, 9], tex), { ...p([2, 21, 7, 14, 23, 9], tex), uvY: 1 }, p([4, 11, 7, 12, 12.5, 9], tex)] };
+  if (blockDef(v)?.banner) {
+    const pole = TILE.planks;
+    if (m & 4) return { T: floorT(m & 3), parts: [p([0, 14, 13.5, 16, 15.5, 16], pole), ...tall([1, -10, 14.5, 15, 14, 15.5], tex)] };   // on a wall, hanging down from the top
+    return { T: floorT(m & 3), parts: [...tall([7, 0, 7, 9, 30, 9], pole), { ...p([0, 28, 7, 16, 30, 9], pole), uvY: 1 }, ...tall([1, 4, 6.5, 15, 28, 7], tex)] };
+  }   // Milestone 21, Part C: flat against its wall
+  if (id === B.LANTERN) {
+    const h = m & 1 ? 1 : 0, parts = [p([5, h, 5, 11, h + 7, 11], tex), p([6, h + 7, 6, 10, h + 9, 10], TILE.iron_bars)];
+    if (h) parts.push(p([7.5, 10, 7.5, 8.5, 16, 8.5], TILE.iron_bars));   // the chain it hangs from
+    return { T: floorT(0), parts };
+  }
+  if (blockDef(v)?.candle) {
+    const parts = [];
+    for (const [x, z] of CANDLE_SPOTS[m & 3]) { parts.push(p([x, 0, z, x + 2, 6, z + 2], tex)); if (m & 4) parts.push(p([x + 0.5, 6, z + 0.5, x + 1.5, 8, z + 1.5], TILE.candle_flame)); }
+    return { T: floorT(0), parts };
+  }
+  if (blockDef(v)?.pane) {
+    const arms = [];
+    for (let d = 0; d < 4; d++) if (get && paneLinks(get(DIR[d][0], 0, DIR[d][1]))) arms.push(d);
+    return { T: floorT(0), parts: [p([7, 0, 7, 9, 16, 9], tex)], arms: arms.map(d => ({ T: floorT(d), parts: [p([7.5, 0, 9, 8.5, 16, 16], tex)] })) };
+  }
+  if (blockDef(v)?.carpet) return { T: floorT(0), parts: [p([0, 0, 0, 16, 1, 16], tex)] };   // Milestone 21, Part B: carpets
+  // Milestone 21, Part A: slabs, stairs, walls (drawn with their material's textures)
+  if (isSlab(id) || isStairs(id) || isWall(id)) {
+    const T3 = [faceTile(v, 0), faceTile(v, 1), faceTile(v, 2)];
+    if (isSlab(id)) { const k = m & 3; return { T: floorT(0), parts: [p(k === 2 ? [0, 0, 0, 16, 16, 16] : k === 1 ? [0, 8, 0, 16, 16, 16] : [0, 0, 0, 16, 8, 16], T3)] }; }
+    if (isStairs(id)) return { T: floorT(m & 3), parts: m & 4 ? [p([0, 8, 0, 16, 16, 16], T3), p([0, 0, 8, 16, 8, 16], T3)] : [p([0, 0, 0, 16, 8, 16], T3), p([0, 8, 8, 16, 16, 16], T3)] };
+    const arms = [];
+    for (let d = 0; d < 4; d++) if (get && wallLinks(get(DIR[d][0], 0, DIR[d][1]), d)) arms.push(d);
+    return { T: floorT(0), parts: [p([4, 0, 4, 12, 16, 12], T3)], arms: arms.map(d => ({ T: floorT(d), parts: [p([5, 0, 8, 11, 14, 16], T3)] })) };
   }
   if (id === B.STONE_STEP) return { T: floorT(0), parts: [p([0, 0, 0, 16, 8, 16], tex)] };
   // Milestone 20, Part C: thin and odd-shaped blocks of the new biomes
@@ -203,6 +253,21 @@ export function shapeBoxes(v, get) {
   if (id === B.REPEATER || id === B.COMPARATOR) return [[0, 0, 0, 1, 2 * S, 1]];
   if (id === B.DAYLIGHT) return [[0, 0, 0, 1, 6 * S, 1]];
   if (id === B.TEMPLE_STEP || id === B.STONE_STEP) return [[0, 0, 0, 1, 0.5, 1]];
+  if (isSlab(id) || isStairs(id)) { const mo = model(v); return mo.parts.map(q => box(mo.T, q.b)); }   // Milestone 21
+  if (id === B.LADDER) return [box(floorT(m & 3), [0, 0, 13 * S, 1, 1, 1])];
+  if (id === B.ARMOR_STAND) return [[6 * S, 0, 6 * S, 10 * S, 1.4, 10 * S]];   // Milestone 21, Part D
+  if (id === B.SCAFFOLDING) return [[0, 15 * S, 0, 1, 1, 1]];   // you stand on top (the player skips it while climbing inside or crouching)
+  if (id === B.LANTERN) return [m & 1 ? [5 * S, S, 5 * S, 11 * S, 1, 11 * S] : [5 * S, 0, 5 * S, 11 * S, 9 * S, 11 * S]];
+  if (blockDef(v)?.pane) {
+    const out = [[7 * S, 0, 7 * S, 9 * S, 1, 9 * S]];
+    for (let d = 0; d < 4; d++) if (get && paneLinks(get(DIR[d][0], 0, DIR[d][1]))) out.push(box(floorT(d), [7 * S, 0, 9 * S, 9 * S, 1, 1]));
+    return out;
+  }
+  if (isWall(id)) {   // 1.5 tall, like fences
+    const out = [[4 * S, 0, 4 * S, 12 * S, 1.5, 12 * S]];
+    for (let d = 0; d < 4; d++) if (get && wallLinks(get(DIR[d][0], 0, DIR[d][1]), d)) out.push(box(floorT(d), [5 * S, 0, 8 * S, 11 * S, 1.5, 1]));
+    return out;
+  }
   if (id === B.ENCH_TABLE) return [[0, 0, 0, 1, 0.75, 1]];
   if (id === B.CACTUS) return [[S, 0, S, 15 * S, 1, 15 * S]];
   if (id === B.BAMBOO) return [[6 * S, 0, 6 * S, 10 * S, 1, 10 * S]];

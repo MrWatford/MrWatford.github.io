@@ -4,6 +4,7 @@ import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, 
   buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor, isRail, WATERY, flammable, LEAF_PERSIST, WATERLOGGED, LOGGABLE, isWet } from "./blocks.js";
 import { initRedstone } from "./redstone.js";
 import { selectBox } from "./shapes.js";
+import { PAINTINGS, createDecor } from "./decor.js";   // Milestone 21, Part D
 import { Entities, SPECIES, TRADES, lineOfSight } from "./entities.js";
 import { KINGDOMS_GEN, LANTERN_VALE_SEED } from "./lantern-vale.js";
 import { prepareStonehaven, stonehavenPlacementData } from "./stonehaven.js";
@@ -2649,6 +2650,8 @@ function breakBlock(x, y, z, drops, quiet) {
   if (!quiet) R.beforeBreak(x, y, z, (heldTool() || {}).type);   // shears cut a tripwire without setting it off
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
+  if (id === B.PAINTING) { removePainting(x, y, z, drops); if (!quiet) Sound.breakBlock("wood"); return; }   // Milestone 21, Part D
+  if (id === B.ITEM_FRAME && !quiet) { const fc = w.containers.get(x + "," + y + "," + z); if (fc?.slots?.[0]) { if (!G.creative) spawnDrop(fc.slots[0].id, 1, x + 0.5, y + 0.5, z + 0.5, fc.slots[0]); fc.slots[0] = null; fc.rot = 0; Sound.pickup(); return; } }   // hitting a frame takes its item out first
   if (id === B.SOLKARA_GATE || (G.dim === AMBER_CAVERNS && id === B.GATE_FRAME && isAmberSeal(x,y,z))) return;
   if (id === B.LORE_TABLET && (G.dim === GODZILLA_CALDERA && isGodzillaConsole({ x, y, z }) ||
       G.story.lostWorld && isCampaignLandmark(G.dim, { x, y, z }))) {
@@ -2686,6 +2689,8 @@ function breakBlock(x, y, z, drops, quiet) {
   if (!quiet) { Sound.breakBlock(MATERIAL(id)); burst(x, y, z, v, 16); }
   if (!G.creative && drops) {
     let drop = d.drops;
+    if (d.slab && (metaOf(v) & 3) === 2) drop = [id, 2];   // Milestone 21: a double slab is two slabs
+    if (d.candle) drop = [id, (metaOf(v) & 3) + 1];   // and every candle in a spot
     const r = Math.random();
     if (drop === "leaves") drop = r < (id === B.JUNGLE_LEAVES ? 0.025 : 0.06) ? (d.saplingOf || B.SAPLING) : r < 0.13 && (id === B.LEAVES || id === B.DARK_OAK_LEAVES) ? I.APPLE : 0;
     if (heldTool() && heldTool().type === "shears" && d.drops === "leaves") drop = id;
@@ -2737,6 +2742,14 @@ function breakBlock(x, y, z, drops, quiet) {
   if (aid === B.FIRE) w.set(x, y + 1, z, B.AIR);
   [[0, 1], [1, 0], [0, -1], [-1, 0]].forEach(([dx, dz], f) => { const c = w.get(x - dx, y, z - dz); if (idOf(c) === B.COCOA && (metaOf(c) & 3) === f) breakBlock(x - dx, y, z - dz, true, quiet); });   // Milestone 18: cocoa pods fall off their log
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
+  { // Milestone 21, Part C: carpets, candles and standing lanterns on top; hanging lanterns below; ladders on the sides; scaffolding above
+    const ad = BLOCKS[aid];
+    if (ad && (ad.carpet || ad.candle || (aid === B.LANTERN && !(metaOf(above) & 1)) || (id === B.SCAFFOLDING && aid === B.SCAFFOLDING))) breakBlock(x, y + 1, z, true, quiet);
+    const bv = w.get(x, y - 1, z);
+    if (idOf(bv) === B.LANTERN && (metaOf(bv) & 1)) breakBlock(x, y - 1, z, true, quiet);
+    DIR.forEach(([dx, dz], f) => { const c = w.get(x - dx, y, z - dz), cid = idOf(c), cd = BLOCKS[cid]; if ((cid === B.LADDER || cid === B.ITEM_FRAME || cid === B.PAINTING || (cd?.banner && (metaOf(c) & 4))) && (metaOf(c) & 3) === f) breakBlock(x - dx, y, z - dz, true, true); });
+    if ((ad?.banner && !(metaOf(above) & 4)) || aid === B.ARMOR_STAND) breakBlock(x, y + 1, z, true, quiet);   // Milestone 21, Part D
+  }
   if (id === B.LOG || id === B.BIRCH_LOG || d.log) { tipDone("chop"); if (!G.guest) queueLeafDecay(x, y, z); }   // Milestone 18: leaves drop away
   FL.wake(x, y, z);   // Milestone 18: water or lava next to the hole flows in
   G.hudDirty = true;
@@ -3041,6 +3054,11 @@ function useWith(offhand) {
   if (ent) { if (ents.interact(ent, slot)) { G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; } if (!offhand && !slot) return false; }
   if (hit && !crouch && !offhand) {
     const id = idOf(hit.v), d = BLOCKS[id];
+    if (d.candle) {   // Milestone 21: up to 4 candles of the same color in one spot; an empty hand blows a lit one out
+      const m = metaOf(hit.v);
+      if (slot && slot.id === id && (m & 3) < 3) { w.set(hit.x, hit.y, hit.z, make(id, m + 1)); if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; } Sound.place("soft"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return true; }
+      if ((m & 4) && (!slot || slot.id !== I.FLINT_STEEL)) { w.set(hit.x, hit.y, hit.z, make(id, m & 3)); Sound.fizz(0); G.swing = 0.01; return true; }
+    }
     if (d.interact && MP.useBlock(hit, d.interact)) { G.swing = 0.01; return true; }   // Play Together: chests through the host, host-only pieces
     if (d.interact && R.kinds.has(d.interact)) { if (R.interact(hit, d.interact)) { G.swing = 0.01; return true; } }
     else if (d.interact && d.interact !== "tnt") { G.swing = 0.01; interact(hit, d.interact); return true; }
@@ -3175,6 +3193,7 @@ function useWith(offhand) {
   if (slot.id === I.BONE_MEAL) { useBoneMeal(hit, slot); return true; }
   if (slot.id === I.FLINT_STEEL) {
     if (hitId === B.TNT) { w.set(hit.x, hit.y, hit.z, B.AIR); primeTNT(hit.x, hit.y, hit.z); wearTool(slot, 1); G.adv("tnt"); return true; }
+    if (BLOCKS[hitId]?.candle && !(metaOf(hit.v) & 4)) { w.set(hit.x, hit.y, hit.z, make(hitId, metaOf(hit.v) | 4)); wearTool(slot, 1); Sound.mob("fireshoot", 0); G.adv("candle"); return true; }   // Milestone 21: light a candle
     const ax = hit.x + hit.nx, ay = hit.y + hit.ny, az = hit.z + hit.nz;
     if (hitId === B.OBSIDIAN && G.dim === "forsaken") { UI.toast("Portals won't light in the Forsaken World. Use the Return Gate at the refuge.", "bad"); return true; }
     if (hitId === B.OBSIDIAN && !w.id(ax, ay, az) && lightPortal(ax, ay, az)) { wearTool(slot, 1); G.adv("portal"); return true; }
@@ -3196,6 +3215,18 @@ function useWith(offhand) {
   if (slot.id === B.SEA_PICKLE && idOf(hit.v) === B.SEA_PICKLE && (metaOf(hit.v) & 3) < 3) {   // Milestone 17: up to 4 pickles in one spot
     w.set(hit.x, hit.y, hit.z, make(B.SEA_PICKLE, (metaOf(hit.v) & 3) + 1)); take(); Sound.place("leaf"); G.swing = 0.01; G.hudDirty = true; return true;
   }
+  if (BLOCKS[slot.id]?.slab) {   // Milestone 21: a second slab on the empty half of one makes a double slab
+    const merge = (sx, sy, sz, half) => {
+      const sv = w.get(sx, sy, sz);
+      if (idOf(sv) !== slot.id || (metaOf(sv) & 3) !== half) return false;
+      w.set(sx, sy, sz, make(slot.id, 2)); take(); Sound.place(MATERIAL(slot.id)); G.swing = 0.01; G.hudDirty = true; heldId = -1; G.adv("doubleslab");
+      return true;
+    };
+    if (hit.ny === 1 && merge(hit.x, hit.y, hit.z, 0)) return true;
+    if (hit.ny === -1 && merge(hit.x, hit.y, hit.z, 1)) return true;
+    const tv = w.get(hit.x + hit.nx, hit.y + hit.ny, hit.z + hit.nz);
+    if (idOf(tv) === slot.id && (metaOf(tv) & 3) < 2 && merge(hit.x + hit.nx, hit.y + hit.ny, hit.z + hit.nz, metaOf(tv) & 3)) return true;
+  }
   let x = hit.x, y = hit.y, z = hit.z;
   const hitDef = blockDef(hit.v);
   if (!hitDef.replaceable) { x += hit.nx; y += hit.ny; z += hit.nz; }
@@ -3207,6 +3238,30 @@ function useWith(offhand) {
   if (id === B.POINTED_DRIPSTONE && hit.ny === -1 && !hitDef.replaceable) v = make(id, 1);
   if (d.drops === "leaves") v = make(id, LEAF_PERSIST);   // Milestone 18: placed leaves never drop away   // Milestone 20: placed on a ceiling, it hangs down
   if (d.front || d.faces) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces, chests, and signs face you
+  if (d.slab || d.stairs) {   // Milestone 21: the top half if you clicked the underside of a block or the upper half of its side
+    const e = G.player, fy = e.pos.y + e.eye + lookDir().y * hit.dist - hit.y, upper = hit.ny === -1 || (hit.ny === 0 && fy > 0.5);
+    v = d.slab ? make(id, upper ? 1 : 0) : make(id, facingFromYaw() | (upper ? 4 : 0));   // stairs climb away from you
+  }
+  if (id === B.LADDER) {   // Milestone 21, Part C: on the side of a solid block
+    if (hit.ny !== 0 || hitDef.replaceable || !OPAQUE[idOf(hit.v)]) { UI.toast("Ladders go on the side of a solid block.", "bad"); Sound.error(); return true; }
+    v = make(id, DIR.findIndex(([dx, dz]) => dx === -hit.nx && dz === -hit.nz));
+  }
+  if (id === B.LANTERN) {   // standing on a block, or hanging from the underside of one
+    const hang = hit.ny === -1 && !hitDef.replaceable;
+    if (hang ? !SOLID[w.id(x, y + 1, z)] : !SOLID[w.id(x, y - 1, z)]) { UI.toast("A lantern stands on a block or hangs underneath one.", "bad"); Sound.error(); return true; }
+    v = make(id, hang ? 1 : 0);
+  }
+  // Milestone 21, Part D: frames and wall banners on the side of a block, stands and banners on top of one, paintings fill a wall
+  const onWall = hit.ny === 0 && !hitDef.replaceable && OPAQUE[idOf(hit.v)], wallF = DIR.findIndex(([dx, dz]) => dx === -hit.nx && dz === -hit.nz);
+  if (id === B.PAINTING) { placePainting(hit, x, y, z, onWall, wallF); return true; }
+  if (id === B.ITEM_FRAME) { if (!onWall) { UI.toast("Item frames go on the side of a solid block.", "bad"); Sound.error(); return true; } v = make(id, wallF); }
+  if (d.banner) {
+    if (onWall) v = make(id, wallF | 4);
+    else if (SOLID[w.id(x, y - 1, z)]) v = make(id, (facingFromYaw() + 2) % 4);
+    else { UI.toast("A banner stands on a block or hangs on a wall.", "bad"); Sound.error(); return true; }
+  }
+  if (id === B.ARMOR_STAND) { if (!SOLID[w.id(x, y - 1, z)] || w.id(x, y + 1, z)) { UI.toast("An armor stand needs solid ground and room above.", "bad"); Sound.error(); return true; } v = make(id, (facingFromYaw() + 2) % 4); }
+  if (d.candle && !SOLID[w.id(x, y - 1, z)]) { UI.toast("Candles need a block underneath.", "bad"); Sound.error(); return true; }
   // Sparkworks parts: which way they face or what they hang on depends on where you clicked
   { const e = G.player, dir = lookDir(), fy = e.pos.y + e.eye + dir.y * hit.dist - hit.y;
     const rv = R.placeValue(id, hit, x, y, z, Math.min(1, Math.max(0, fy)), !!hitDef.replaceable);
@@ -3257,6 +3312,8 @@ function useWith(offhand) {
     if (id === B.SPONGE) soakUp(x, y, z);   // Milestone 17
     FL.wake(x, y, z);   // Milestone 18
     if ((BLOCKS[id]?.light || 0) >= 12) queueMeltCheck(x, y, z);   // Milestone 19: bright lights melt ice and snow nearby
+    if (id === B.ITEM_FRAME) w.containers.set(x + "," + y + "," + z, { type: "frame", slots: [null], rot: 0 });   // Milestone 21, Part D
+    if (id === B.ARMOR_STAND) w.containers.set(x + "," + y + "," + z, { type: "stand", slots: [null, null, null, null] });
     if (id === B.SHELL_BOX) w.containers.set(x + "," + y + "," + z, { type: "chest", slots: slot.contents ? slot.contents.map(s => s && { ...s }) : new Array(27).fill(null) });
     if (id === B.BEACON) { w.beacons.add(x + "," + y + "," + z); w.containers.set(x + "," + y + "," + z, { type: "beacon", slots: [null], primary: null, secondary: null }); UI.toast("Build a pyramid of mineral blocks under the Beacon, then right-click it to pick a power.", "good"); G.adv("beacon"); }
   }
@@ -3411,8 +3468,65 @@ function blocksPlayer(v, x, y, z) {
   const a = G.player.aabb();
   return boxes.some(b => a[0] < b[3] && a[3] > b[0] && a[1] < b[4] && a[4] > b[1] && a[2] < b[5] && a[5] > b[2]);
 }
+// ---------- Milestone 21, Part D: paintings, item frames, armor stands (pictures and held things are drawn by js/decor.js) ----------
+function placePainting(hit, x, y, z, onWall, f) {
+  const w = G.world, slot = G.inv.slots[G.useSlot];
+  if (!onWall) { UI.toast("Paintings go on the side of a solid block.", "bad"); Sound.error(); return; }
+  const [dx, dz] = DIR[f], rx = -dz, rz = dx;   // along the wall
+  const free = (cx, cy, cz) => { const id = w.id(cx, cy, cz); return (!id || BLOCKS[id].replaceable) && OPAQUE[w.id(cx + dx, cy, cz + dz)]; };
+  const fits = [];
+  for (const art of PAINTINGS) {
+    const [key, , pw, ph] = art;
+    for (let ox = 0; ox < pw; ox++) for (let oy = 0; oy < ph; oy++) {
+      const ax = x - rx * ox, ay = y - oy, az = z - rz * ox;
+      let ok = true;
+      for (let i = 0; i < pw && ok; i++) for (let j = 0; j < ph && ok; j++) ok = free(ax + rx * i, ay + j, az + rz * i);
+      if (ok) { fits.push({ key, pw, ph, ax, ay, az }); ox = pw; break; }
+    }
+  }
+  if (!fits.length) { UI.toast("There's no room for a painting there.", "bad"); Sound.error(); return; }
+  const big = Math.max(...fits.map(c => c.pw * c.ph)), pick = fits.filter(c => c.pw * c.ph === big), c = pick[Math.floor(Math.random() * pick.length)];
+  const anchor = c.ax + "," + c.ay + "," + c.az;
+  for (let i = 0; i < c.pw; i++) for (let j = 0; j < c.ph; j++) {
+    const px = c.ax + rx * i, py = c.ay + j, pz = c.az + rz * i;
+    w.set(px, py, pz, make(B.PAINTING, f));
+    w.containers.set(px + "," + py + "," + pz, i || j ? { type: "paintpart", at: anchor } : { type: "painting", art: c.key, rx, rz });
+  }
+  if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
+  Sound.place("wood"); G.swing = 0.01; G.hudDirty = true; heldId = -1;
+  UI.toast(`"${PAINTINGS.find(r => r[0] === c.key)[1]}"`); G.adv("painting");
+}
+// take a whole painting down (from any of its blocks)
+function removePainting(x, y, z, drop) {
+  const w = G.world, k = x + "," + y + "," + z, c = w.containers.get(k);
+  const anchor = c?.type === "paintpart" ? c.at : k, a = w.containers.get(anchor);
+  if (!a || a.type !== "painting") { w.set(x, y, z, B.AIR); w.containers.delete(k); return; }
+  const r = PAINTINGS.find(p => p[0] === a.art) || PAINTINGS[0], [ax, ay, az] = anchor.split(",").map(Number);
+  for (let i = 0; i < r[2]; i++) for (let j = 0; j < r[3]; j++) {
+    const px = ax + a.rx * i, py = ay + j, pz = az + a.rz * i;
+    if (w.id(px, py, pz) === B.PAINTING) w.set(px, py, pz, B.AIR);
+    w.containers.delete(px + "," + py + "," + pz);
+  }
+  if (drop && !G.creative) spawnDrop(B.PAINTING, 1, x + 0.5, y + 0.5, z + 0.5);
+}
+function useDecor(hit, kind, key) {
+  const w = G.world, slot = G.inv.slots[G.useSlot], c = w.containers.get(key);
+  if (!c) return;
+  const take = () => { if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; } };
+  if (kind === "itemframe") {   // put something in; click again to turn it; hit the frame to take it out
+    if (!c.slots[0] && slot) { c.slots[0] = { ...slot, n: 1 }; take(); Sound.place("wood"); G.adv("itemframe"); }
+    else if (c.slots[0]) { c.rot = ((c.rot || 0) + 1) % 8; Sound.click(); }
+  } else {   // armor stand: armor goes on in its place; an empty hand takes the top piece back
+    const a = slot && itemDef(slot.id)?.armor;
+    if (a && a.slot >= 0 && a.slot < 4) { const old = c.slots[a.slot]; c.slots[a.slot] = { ...slot, n: 1 }; G.inv.slots[G.useSlot] = old || null; if (G.creative && !old) G.inv.slots[G.useSlot] = slot; Sound.place("soft"); G.adv("armorstand"); }
+    else if (!slot) { const i = c.slots.findIndex(s => s); if (i >= 0) { G.inv.slots[G.useSlot] = c.slots[i]; c.slots[i] = null; Sound.pickup(); } }
+    else UI.toast("Hold a piece of armor to put it on the stand.");
+  }
+  G.swing = 0.01; G.hudDirty = true; heldId = -1;
+}
 function interact(hit, kind) {
   const w = G.world, key = hit.x + "," + hit.y + "," + hit.z;
+  if (kind === "itemframe" || kind === "armorstand") { useDecor(hit, kind, key); return; }   // Milestone 21, Part D
   if (kind === "lore" && G.dim === GODZILLA_CALDERA && !G.guest && GC.interact(hit)) return;
   if (kind === "lore" && isLostWorldDimension(G.dim) && G.story.lostWorld && !G.guest) {
     const record = { ...G.story.lostWorld };
@@ -4881,6 +4995,7 @@ function updateWeather(dt, running) {
 // During a thunderstorm the host's game picks a spot every few seconds. Lightning only strikes where rain falls, and a
 // Lightning Rod within 32 blocks takes the hit instead. It lights a fire, hurts, and changes a few creatures.
 const bolts = [];
+let decor = null;   // Milestone 21, Part D
 const boltMat = new THREE.MeshBasicMaterial({ color: 0xeef3ff, transparent: true, opacity: 0.95, depthWrite: false, fog: false });
 const boltBox = new THREE.BoxGeometry(1, 1, 1);
 let boltT = 5, flashT = 0;
@@ -7003,6 +7118,7 @@ function loop(now) {
   if (running) { updateLightning(dt); updateSnowAndIce(dt); } else updateBolts(0);
   const daylight = updateSky();
   applyFlash(dt);
+  (decor ||= createDecor({ THREE, scene, G, itemMesh, disposeItemMesh })).update(dt, daylight);   // Milestone 21, Part D: paintings, framed items, armor on stands
   if (G.effects.conduit && G.player.headInWater) uniforms.ambient.value = Math.max(uniforms.ambient.value, 0.75);   // Conduit Power lights up the water
   if (G.effects.nightVision) uniforms.ambient.value = Math.max(uniforms.ambient.value, G.effects.nightVision < 10 && Math.floor(G.effects.nightVision * 4) % 2 ? 0.35 : 0.85);   // Night Vision (flickers in its last 10 s)
   (echoholdAtmosphere ||= (G._echoAtmo = createEchoholdAtmosphere({ THREE, scene, camera, G, emitParticle, fog: uniforms }))).update(running ? dt : 0);
@@ -7138,7 +7254,7 @@ const MU = G.mutants = initMutants({ G, ents, UI, Sound, puff, F, THREE, scene }
 G.starter = ST;
 // The Sparkworks signal engine (js/redstone.js)
 // Milestone 18, Part A: flowing water and lava (woken by players, buckets, and explosions; see js/fluids.js)
-const FL = initFluids({ G, washAway: (x, y, z) => { if (G.world.id(x, y, z) === B.FIRE && Math.hypot(G.player.pos.x - x, G.player.pos.z - z) < 24) G.adv("extinguish"); breakBlock(x, y, z, true, true); },
+const FL = initFluids({ G, hardened: () => G.adv("concrete"), washAway: (x, y, z) => { if (G.world.id(x, y, z) === B.FIRE && Math.hypot(G.player.pos.x - x, G.player.pos.z - z) < 24) G.adv("extinguish"); breakBlock(x, y, z, true, true); },
   newSource: (x, y, z) => { if (Math.hypot(G.player.pos.x - x, G.player.pos.z - z) < 24) G.adv("watersource"); },
   mixed: (x, y, z, made) => { Sound.mob("hiss", Math.hypot(G.player.pos.x - x, G.player.pos.z - z)); puff(x + 0.5, y + 1, z + 0.5, "poof"); if (made === B.OBSIDIAN) G.adv("obsidianmade"); else if (made === B.COBBLE) G.adv("cobblemade"); },
   off: () => G.wset.liquidFlow === false || !!G.settings.noFlow,   // Part D: the world option "Water and lava flow"
@@ -7187,7 +7303,7 @@ UI.show("title");
 requestAnimationFrame(loop);
 const GC = initGodzillaFight({ G, ents, scene, Sound, UI, saveNow, hurt });
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { updateSnowAndIce, meltBlock, queueMeltCheck, strike, rodNear, lightningHit, weatherAt, nextWeather, skyCols, wxView: () => wxView, updateWeather, R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { decor: () => decor, placePainting, useDecor, updateSnowAndIce, meltBlock, queueMeltCheck, strike, rodNear, lightningHit, weatherAt, nextWeather, skyCols, wxView: () => wxView, updateWeather, R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
 G._test.obsidianWarningReview = obsidianWarningReview;
 G._test.ancientWarningReview = ancientWarningReview;
 G._test.ancientArrivalReview = ancientArrivalReview;
