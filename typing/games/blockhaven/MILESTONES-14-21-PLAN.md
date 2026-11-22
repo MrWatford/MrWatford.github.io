@@ -37,7 +37,7 @@ This is about 8 milestones of work. As always, each one is built and tested in t
 | 3 ✔ built 2026-11-21 (all 3 parts, PUBLISHED 2026-11-21, PR #29) | **15: Enchanting and repair** | Enchanting Table, bookshelf power, XP finally gets spent, ~27 enchantments that really work (curses included), enchanted books, Anvil, Grindstone, shiny "glint" on enchanted items | Large |
 | 4 ✔ built 2026-11-21 (all 3 parts) | **16: Brewing and potions** | Brewing Stand, Cauldron, sugar cane and melons as real plants, ~15 potions + longer/stronger versions, splash and lingering potions, ~10 new status effects, recipe guide | Large |
 | 5 ✔ built 2026-11-21 (all 5 parts, PUBLISHED 2026-11-21) | **17: Ocean extras** | Prismarine blocks, Sea Lanterns, Ocean Monuments with Guardians, shipwrecks, ocean ruins, treasure maps and buried treasure, coral reefs, sponges, Conduits, fish in buckets, Splashers leading you to treasure | Large |
-| 6 | **18: The world, part 1** | Flowing water and lava, water + lava makes cobblestone/stone/obsidian, falling sand and gravel, fire spreading (with a setting), leaf decay, plants that need support, crops needing water, waterlogging | Large |
+| 6 ✔ built 2026-11-21 (all 4 parts, PUBLISHED 2026-11-21) | **18: The world, part 1** | Flowing water and lava, water + lava makes cobblestone/stone/obsidian, falling sand and gravel, fire spreading (with a setting), leaf decay, plants that need support, crops needing water, waterlogging | Large |
 | 7 | **19: The world, part 2** | Rain, snow, thunderstorms, lightning and its creature changes, snow building up, freezing and melting, sleeping through storms | Medium |
 | 8 ✔ built 2026-11-21 (all 5 parts, PUBLISHED 2026-11-21, PR #30) | **20: The world, part 3** | New biomes (swamps, savannas, badlands, cherry groves, dark forests, snowy plains, mushroom islands, deep oceans, lush caves, dripstone caves) in **unexplored land only** | Large |
 
@@ -268,3 +268,41 @@ Not in this milestone: stairs and slabs (prismarine ones come with the building-
 - 16 Ocean achievements, an "Oceans" Journal chapter, a Creative "Oceans" tab, and new sounds.
 - Parts C, D and E published 2026-11-21.
 - **Next in the plan:** Milestones 18, 19, 21–24 (see section 6), in whatever order you choose.
+
+---
+
+## 10. Milestone 18: The world, part 1 (started 2026-11-21)
+
+Today water and lava never move: a hole next to water instantly fills with a full block of water, water meeting lava only makes obsidian, fire never spreads, sand and gravel float, and leaves stay forever. This milestone makes the world behave.
+
+### 10.1 Parts
+
+| Part | What it adds |
+|---|---|
+| **A** | **Flowing water and lava**: they spread out and pour down (water 7 blocks across, lava 3, or 7 in the Ember Depths), shallower as they spread. Water and lava meeting make cobblestone, stone, or obsidian, like Java. Two water blocks side by side make a new full water block. Flowing water pushes you along. Buckets only scoop up full blocks |
+| **B** | **Falling sand and gravel** (red sand too), **leaves that drop away** after their tree is cut, and **fire that spreads** to wood, leaves, and wool (with a setting to turn it off) |
+| **C** | **Support and farming rules**: plants, torches, and other hanging or standing things pop off when what holds them is gone; farmland dries out and crops grow slower without water nearby; trampled farmland; water inside fences, gates, signs, chests and similar blocks (waterlogging) |
+| **D** | A Journal page, achievements, settings, and a speed check on a Chromebook |
+
+### 10.2 Part A decisions
+- **Your saved worlds stay as they are until you touch them.** Water and lava only start moving when you break or place a block, use a bucket, or something explodes next to them. Puzzles, fountains, and machines that change blocks on their own (castle gates, temple doors, pistons) don't wake them, so built-in waterfalls and fountains in landmarks keep their shape.
+- Water or lava a player placed in mid-air before this update will start flowing the first time you change a block right next to it, like in Minecraft.
+- When you break a block underwater, water flows in a moment later (instead of a full water block appearing instantly).
+- Flowing water and lava aren't saved as "still moving": if you leave while they're spreading, they pick up again the next time you change a block beside them.
+
+### 10.3 Part A done (2026-11-21, PUBLISHED 2026-11-21)
+- Water and lava flow, pour down, dry up, mix into cobblestone/stone/obsidian, make new water sources, and push you along. Buckets only take full blocks.
+- **Next:** Part B (falling sand and gravel, leaves that drop away, fire that spreads).
+
+### 10.4 Part B done (2026-11-21, PUBLISHED 2026-11-21)
+- Sand and gravel fall, leaves drop away after a tree is cut (not ones you placed), and fire spreads, with a "Fire spreads" world option (on by default, like Minecraft).
+- **Next:** Part C (things pop off when their support is gone, farmland needs water, trampling, waterlogging).
+
+### 10.5 Part C done (2026-11-21, PUBLISHED 2026-11-21)
+- Signs, turtle eggs, cocoa pods and lily pads pop off when their support goes; farmland dries out without water and turns back to dirt; jumping on farmland tramples it; fences, gates, trapdoors and signs can hold water.
+- **Next:** Part D (Journal page, achievements, a "Water and lava flow" setting, Chromebook speed check).
+
+### 10.6 Part D done: Milestone 18 complete (2026-11-21, PUBLISHED 2026-11-21)
+- 7 achievements in a new "The World" tab, a "The World" Journal chapter, and a "Water and lava flow" world option next to "Fire spreads".
+- Speed: a 2,605-block flood ran smoothly on a Mac; still to try on a school Chromebook.
+- **Next in the plan:** Milestones 19 (weather), 21–24.

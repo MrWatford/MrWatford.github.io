@@ -339,6 +339,52 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
+## Milestone 18, Part D: Journal, achievements, settings, speed check (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21). Milestone 18 is now complete.
+Code: `js/world-guide.js` (new: Journal tab "The World", 4 pages), `js/advancements.js` (new "The World" category, 7 achievements), `js/main.js` + `js/fluids.js` (achievement events, `liquidFlow` option), `js/ui.js` + `index.html` ("Water and lava flow" option, Journal tab), `js/save.js`, tags `?v=flow-d-1`. Backups: `tools/backups/pre-m18-partD-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| 7 achievements | Done | "The World" tab: Gravity Check, Timber!, Cobble Maker, Hot and Cold, Endless Water, Water Feature, Firefighter |
+| Journal: "The World" | Done | 4 pages: water and lava, sand/gravel/leaves (and what needs support), fire, farmland and water |
+| "Water and lava flow" option | Done | New world options and the pause menu's World options, next to "Fire spreads". On by default; off keeps water and lava still, like before |
+| Speed check | Partial | 25 buckets poured at once flooded 2,605 blocks with no frame over 13 ms on a Mac. Not yet tried on a school Chromebook (expect brief stutters during very big floods there) |
+
+## Milestone 18, Part C: support, farmland, trampling, waterlogging (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21)
+Code: `js/blocks.js` (`WATERLOGGED`, `LOGGABLE`, `isWet`), `js/main.js` (signs, turtle eggs and cocoa pop off; `soilWater`; farmland tracking; trampling; bucket and placing rules for waterlogging), `js/fluids.js` (lily pads; waterlogged blocks count as water), `js/mesher.js` (water drawn in waterlogged blocks), `js/player.js` (swimming in them), `index.html` (tags `?v=flow-c-1`). Backups: `tools/backups/pre-m18-partC-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Things pop off | Done | Already: torches, plants, crops, snow, cactus, bamboo, doors, hanging vines and stalactites, and every redstone part. New: signs and turtle eggs (when the block under them goes), cocoa pods (when their log goes), and lily pads (when the water under them goes) |
+| Farmland needs water | Done | Farmland is wet with water within 4 blocks (same level or one up) and dries out without it. Crops grow slower on dry farmland. Bare farmland with no water turns back into dirt after a while. Old farms change only once something is planted or tilled again |
+| Trampling | Done | Jumping or falling onto farmland can trample it back into dirt (the crop pops off). Walking on it is fine |
+| Waterlogging | Done | Fences, gates, trapdoors and signs can hold water: place one in a full water block, or pour a Water Bucket onto it (an empty bucket scoops it back out). The water is drawn around it, you can swim in it, and breaking the block leaves the water behind. Not in the Ember Depths |
+| Not yet checked | Partial | Not played by hand. Creatures don't trample farmland (only players). Chests can't be waterlogged here, since they're full blocks |
+
+## Milestone 18, Part B: falling sand and gravel, leaves that drop away, fire that spreads (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21)
+Code: `js/fluids.js` (falling blocks share the same wake-ups; lava heat), `js/blocks.js` (`falls` on sand, red sand, gravel; `flammable`; `LEAF_PERSIST`), `js/main.js` (`startFall`/`updateFallers`, `queueLeafDecay`/`updateLeafDecay`, fire spreading in `updateFires`, placed leaves stay), `js/ui.js` + `index.html` ("Fire spreads" world option), `js/save.js`, tags `?v=flow-b-1` (main `flow-b-2`). Backups: `tools/backups/pre-m18-partB-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Falling sand and gravel | Done | Sand, red sand and gravel fall when nothing holds them up (you see them drop), landing in order. A torch or small plant they land on breaks off as an item. Like water, they only start falling when a block next to them is broken or placed |
+| Leaves drop away | Done | After you cut a tree's logs, its leaves with no log within 5 blocks drop away over a few seconds (with the usual saplings and apples). Leaves you place yourself never drop away |
+| Fire spreads | Done | Fire catches wood, leaves, wool, hay, bookshelves, and dry plants beside it, jumps to nearby spots, and burns blocks away (no drops). Blast Blocks catch and go off. Chests, workbenches and other things you use never burn. Lava can set things beside it on fire. Tested: a small plank hut burns down in about a minute |
+| "Fire spreads" option | Done | New world options and the pause menu's World options. On by default (like Minecraft); turn it off to keep fire from spreading at all |
+| Not yet checked | Partial | Not played by hand. Fire spreading can burn wooden buildings in villages and landmarks, like Minecraft (turn the option off to prevent it). Rain doesn't put fires out yet (weather is Milestone 19) |
+
+## Milestone 18, Part A: flowing water and lava (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21)
+Code: `js/fluids.js` (new: `initFluids`, `fluidOf`, `fluidHeight`, `flowPush`, `FALLING`), `js/main.js` (`FL`: wakes on breaking, placing, buckets, explosions; bucket rule; hole-filling rule), `js/mesher.js` (shallower flowing water and lava), `js/player.js` (currents), `index.html` (tags `?v=flow-a-1`, new import-map entry). Backups: `tools/backups/pre-m18-partA-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Water flows | Done | Spreads 7 blocks across a floor (shallower each step, in a diamond), pours straight down off edges, and dries up again gradually when its source is gone. Tested: 113 blocks from one bucket, a 10-block waterfall |
+| Lava flows | Done | Spreads 3 blocks (7 in the Ember Depths), more slowly than water |
+| Water meets lava | Done | Like Java: full lava → obsidian, flowing lava → cobblestone, lava pouring onto water → stone. A hiss and a puff of smoke |
+| New water sources | Done | A flowing block between two full water blocks (with something solid or more water under it) becomes a full block, so a 3-block trench with water at both ends never runs dry |
+| Currents | Done | Flowing water carries you toward where it's flowing (about 0.7 blocks a second) |
+| Buckets | Done | Only full blocks can be scooped up; flowing water or lava says so |
+| Old worlds stay put | Done | Water and lava only start moving when a player breaks or places a block beside them, uses a bucket, or something explodes. Gates, temple doors, and pistons don't wake them. Only on the Surface, in the Ember Depths, and in the Hollow (not in the Lost Civilization or other special places) |
+| Not yet checked | Partial | Not played by hand; Chromebook speed with big floods not checked. Water and lava that are still spreading stop if you leave, and start again the next time you change a block beside them. Water doesn't yet prefer flowing toward the nearest drop (Java does) |
+
 ## Milestone 17, Part E: achievements, Journal, Creative, sounds (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21). Milestone 17 is now complete.
 Code: `js/oceans-guide.js` (new: Journal tab "Oceans", 5 pages), `js/advancements.js` (new "Oceans" category, 16 achievements), `js/ui.js` (Journal tab, Creative "Oceans" tab `OCEAN_KIT`), `js/audio.js` (laser, trident, conduit sounds), `js/creatures.js`, `js/main.js`, `index.html` (tags `?v=ocean-e-1`, new import-map entry). Backups: `tools/backups/pre-m17-partE-2026-11-21/`.
 
