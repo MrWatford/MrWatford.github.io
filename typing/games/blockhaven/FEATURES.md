@@ -339,7 +339,64 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
-## Milestone 19, Part D: Journal, achievements, settings (built and browser-tested 2026-11-22, not published yet). Milestone 19 is now complete.
+## Milestone 21, Part E: Journal, achievements, Creative tab (built and browser-tested 2026-11-22, not published yet). Milestone 21 is now complete.
+Code: `js/building-guide.js` (new: Journal tab "Building", 4 pages), `js/advancements.js` (new "Building" category, 11 achievements), `js/ui.js` (Journal tab, Creative tab "Decor"), `js/main.js` (double slab and concrete events), `index.html` (tags `?v=build-e-1`, import map). Backups: `tools/backups/pre-m21e-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| 11 achievements | Done | "Building" tab: Step Up, Double Up, A Splash of Color, Rainbow Builder (wool in all 16 colors), Set in Stone, Up We Go, Candlelight, Art Gallery, On Display, Dressed Up, Flag Bearer |
+| Journal: "Building" | Done | 4 pages: slabs/stairs/walls, colors and dyes (every dye recipe), light and climbing, decorations |
+| Creative tab "Decor" | Done | All 193 new blocks and the 16 dyes in one place |
+
+## Milestone 21, Part D: banners, item frames, armor stands, paintings (built and browser-tested 2026-11-22, not published yet)
+Code: `js/decor.js` (new: 12 original paintings, and drawing what frames, stands and paintings hold), `js/blocks.js` (block numbers 531-549, textures, item pictures, recipes), `js/shapes.js` (models; `tall` pieces), `js/mesher.js` (pieces taller than a block show their texture correctly), `js/main.js` (placing, using, breaking, support), `index.html` (tags `?v=build-d-*`, import map). Backups: `tools/backups/pre-m21d-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Banners (16) | Done | 6 Wool of a color + 1 Stick. Stand on the ground (two blocks tall) or hang on a wall. Plain colors only: no patterns or loom designs yet |
+| Item frame | Done | 8 Sticks + 1 Leather. Goes on a wall. Right-click with anything to put it in, right-click again to turn it; hit the frame to take the item out (hit again to take the frame down) |
+| Armor stand | Done | 6 Sticks + 1 Stone Slab. Right-click with a helmet, chestplate, leggings or boots to put it on (swaps with what's there); right-click with an empty hand to take a piece back. Breaking it drops its armor. The armor is shown as the items floating on the stand, not as a dressed figure |
+| Paintings (12) | Done | 8 Sticks + 1 White Wool. Click a wall: it picks one of the biggest pictures that fits there. 12 original Blockhaven pictures in 4 sizes (1×1, 2×1, 1×2, 2×2): Red Apple, Little Cottage, Crescent Moon, Flower Pot, Sunset Hills, Sailboat, Desert Dunes, Waterfall, Tall Pine, Mountain Lake, Castle on a Hill, Night Village. Breaking any part takes the whole painting down |
+| Support | Done | Frames, paintings and wall banners fall off when their wall is broken; standing banners and armor stands when the block under them is broken |
+| Play Together | Not done | Friends see the frames, stands and paintings themselves, but not what's in or on them (only the host's game keeps that) |
+
+## Milestone 21, Part C: ladders, scaffolding, lanterns, candles, panes, bars (built and browser-tested 2026-11-22, not published yet)
+Code: `js/blocks.js` (block numbers 493-530, `CANDLE` light table, 24 new textures, recipes), `js/shapes.js` (models, boxes, `paneLinks`), `js/player.js` (`climbing`, scaffolding you can stand on top of), `js/main.js` (placing rules, candles stacking/lighting/blowing out, things popping off when their support goes, a whole scaffolding column coming down), `index.html` (tags `?v=build-c-*`). Backups: `tools/backups/pre-m21c-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Ladder | Done | 7 Sticks make 3. Goes on the side of a solid block. Walk into it (or jump) to climb, crouch to hold on, let go to slide down slowly. No fall damage on ladders. Pops off if its wall is broken |
+| Scaffolding | Done | 6 Bamboo + 1 String make 6. Jump inside to climb, stand on top, crouch to climb down through it. Breaking one brings down the whole column above it. (Minecraft's "how far it can stick out" rule isn't included) |
+| Lantern | Done | 1 Iron Ingot + 1 Torch (Blockhaven has no iron nuggets). Full brightness. Stands on a block or hangs on a chain under one |
+| Candles (17) | Done | String + Honeycomb make a Candle; Candle + a dye makes a colored one. Up to 4 of the same color in one spot. Light them with Flint and Steel (3 light each); right-click with an empty hand to blow them out |
+| Glass panes (17) | Done | 6 Glass make 16 panes; 6 Stained Glass make 16 stained panes. Thin, and they join each other, walls, and full blocks |
+| Iron Bars | Done | 6 Iron Ingots make 16. Join like panes |
+
+## Milestone 21, Part B: 16 colors (built and browser-tested 2026-11-22, not published yet)
+Code: `js/blocks.js` (`COLORS`, `woolOf`, dyes = items 1000-1015, block numbers 405-492, 72 new textures, the texture sheet doubled to 256 × 1024, recipes, dye pictures), `js/shapes.js` (carpets), `js/fluids.js` (concrete powder hardens), `index.html` (tags `?v=build-b-1`). Backups: `tools/backups/pre-m21b-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| 16 dyes | Done | White (Bone Meal), Red (Red Poppy), Yellow (Sunbell), Pink (Pink Petals), Blue (Lapis), Brown (Cocoa Beans), Black (Ink Sac), Green (cook Cactus), Lime (cook a Sea Pickle). Mix two for the rest: Orange, Light Blue, Cyan, Purple, Magenta, Gray, Light Gray, Lime, Pink |
+| Wool (16) | Done | White Wool + a dye. "Wool" is now called "White Wool" (same block) |
+| Carpet (16) | Done | 2 wool make 3 thin carpets |
+| Stained glass (16) | Done | 8 Glass + a dye make 8. Drawn as a tinted frame with tinted streaks, since Blockhaven's blocks can't be half see-through. The old landmark "Stained Glass" stays as it was |
+| Concrete and powder (16 each) | Done | 4 Sand + 4 Gravel + a dye make 8 Concrete Powder. It falls like sand, and turns into smooth Concrete when it touches water |
+| Terracotta (16) | Done | 8 Terracotta + a dye make 8. The 10 colors that were missing were added (the 6 from the badlands were already there) |
+| Not included | — | Dyeing sheep, glazed terracotta |
+
+## Milestone 21, Part A: slabs, stairs, and walls (built and browser-tested 2026-11-22, not published yet)
+Code: `js/blocks.js` (`SHAPED`, `WALLED`, block numbers 357-404, `isSlab`/`isStairs`/`isWall`, recipes, fuel, item pictures), `js/shapes.js` (how they look, what you bump into, walls joining), `js/main.js` (placing top/bottom halves, double slabs, stairs facing, a double slab drops 2), `index.html` (tags `?v=build-a-1`). Backups: `tools/backups/pre-m21a-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Slabs (20) | Done | Oak, Birch, Spruce, Jungle, Acacia, Dark Oak, Mangrove, Cherry, Crimson, Warped, Stone, Cobblestone, Mossy Cobblestone, Stone Brick, Brick, Sandstone, Quartz, Prismarine, Blackstone Brick, Ember Brick. 3 blocks make 6. Click the top of a block for a bottom slab, the underside (or the upper half of a side) for a top slab; a second slab on the empty half makes a double slab, which drops 2 |
+| Stairs (20) | Done | Same 20 materials. 6 blocks make 4. They climb away from you; upside-down if placed on the underside or upper half of a side. Straight only (no corner shapes yet) |
+| Walls (8) | Done | Cobblestone, Mossy Cobblestone, Stone Brick, Brick, Sandstone, Blackstone Brick, Ember Brick, Prismarine. 6 make 6. They join each other, solid blocks, and gates, and are 1.5 blocks tall to jump over, like fences |
+| Walking | Done | You step right up slabs and stairs without jumping |
+| Wooden ones | Done | Burn as furnace fuel and catch fire like planks |
+
+## Milestone 19, Part D: Journal, achievements, settings (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #34). Milestone 19 is now complete.
 Code: `js/advancements.js` (8 weather achievements in "The World"), `js/world-guide.js` (3 new Journal pages: Weather, Lightning, Snow and ice), `js/main.js` (achievement events, `G.setWeather` for the Creative buttons, `weather` world setting), `js/ui.js` + `index.html` ("Weather changes" option, Creative weather buttons), `js/save.js`, `js/multiplayer.js` (Storm Sleeper in Play Together), tags `?v=wx-d-1`. Backups: `tools/backups/pre-m19d-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -350,7 +407,7 @@ Code: `js/advancements.js` (8 weather achievements in "The World"), `js/world-gu
 | Creative weather buttons | Done | Pause menu → World options, Creative only: ☀️ clear, 🌧️ rain, ⛈️ thunderstorm, for one in-game day. Not shown to Play Together guests |
 | Speed check | Partial | Weather, lightning, and snow together cost well under 1 ms a frame on a Mac. Not yet tried on a school Chromebook |
 
-## Milestone 19, Part C: snow and ice (built and browser-tested 2026-11-22, not published yet)
+## Milestone 19, Part C: snow and ice (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #34)
 Code: `js/main.js` (`updateSnowAndIce`: random spots near you get a look 4 times a second; melting checks after placing a bright light; rain fills cauldrons; `hydrate` counts rain), `index.html` (tag `?v=wx-c-2`). Backups: `tools/backups/pre-m19c-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -362,7 +419,7 @@ Code: `js/main.js` (`updateSnowAndIce`: random spots near you get a look 4 times
 | Rain waters farmland | Done | Farmland under the open sky stays wet while it rains, even far from water; it dries out again afterward |
 | Speed | Done | About 0.03 ms for each check on a Mac |
 
-## Milestone 19, Part B: lightning (built and browser-tested 2026-11-22, not published yet)
+## Milestone 19, Part B: lightning (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #34)
 Code: `js/main.js` (bolts, sky flash, where lightning strikes, fire, damage, creature changes, Lightning Rods, Channeling), `js/blocks.js` + `js/shapes.js` (Lightning Rod block, block number 356, recipe), `js/entities.js` (charged Hissers: saved, blue glow, twice the blast; Channeling hook), `js/multiplayer.js` (friends see the host's lightning and can be struck), `js/oceans-guide.js` + `js/enchanting.js` (Channeling text), `index.html` (tags `?v=wx-b-*`). Backups: `tools/backups/pre-m19b-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -375,7 +432,7 @@ Code: `js/main.js` (bolts, sky flash, where lightning strikes, fire, damage, cre
 | Channeling | Done | A thrown trident with Channeling calls lightning onto the creature it hits, in a thunderstorm, under the open sky |
 | Not included | — | Mooshrooms changing color, skeleton horse traps, and lightning burning dropped items (Blockhaven has no skeleton horses) |
 
-## Milestone 19, Part A: rain, snow, and thunderstorms (built and browser-tested 2026-11-22, not published yet)
+## Milestone 19, Part A: rain, snow, and thunderstorms (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #34)
 Code: `js/weather.js` (new: the weather schedule, which biomes get rain or snow, the falling rain and snow), `js/main.js` (gray sky, dimmer daylight, rain sounds, rain puts out fires and burning players, sleeping through storms), `js/entities.js` (undead don't burn in the rain; rain puts out burning creatures), `js/multiplayer.js` (friends see the host's weather; sleeping clears it for everyone), `js/audio.js` (rain and thunder sounds), `index.html` (tags `?v=wx-a-2`, import map). Backups: `tools/backups/pre-m19a-2026-11-22/`.
 
 | Feature | Status | Notes |
