@@ -339,6 +339,56 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
+## Milestone 19, Part D: Journal, achievements, settings (built and browser-tested 2026-11-22, not published yet). Milestone 19 is now complete.
+Code: `js/advancements.js` (8 weather achievements in "The World"), `js/world-guide.js` (3 new Journal pages: Weather, Lightning, Snow and ice), `js/main.js` (achievement events, `G.setWeather` for the Creative buttons, `weather` world setting), `js/ui.js` + `index.html` ("Weather changes" option, Creative weather buttons), `js/save.js`, `js/multiplayer.js` (Storm Sleeper in Play Together), tags `?v=wx-d-1`. Backups: `tools/backups/pre-m19d-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| 8 achievements | Done | "The World" tab: Rainy Day, Snowfall, Storm Sleeper, Lightning Catcher, Changed by the Storm, Supercharged, Thunder Thrower, Spring Thaw |
+| Journal | Done | 3 new pages in "The World": Weather, Lightning, Snow and ice |
+| "Weather changes" option | Done | New world options and the pause menu's World options. On by default; off keeps the sky clear |
+| Creative weather buttons | Done | Pause menu → World options, Creative only: ☀️ clear, 🌧️ rain, ⛈️ thunderstorm, for one in-game day. Not shown to Play Together guests |
+| Speed check | Partial | Weather, lightning, and snow together cost well under 1 ms a frame on a Mac. Not yet tried on a school Chromebook |
+
+## Milestone 19, Part C: snow and ice (built and browser-tested 2026-11-22, not published yet)
+Code: `js/main.js` (`updateSnowAndIce`: random spots near you get a look 4 times a second; melting checks after placing a bright light; rain fills cauldrons; `hydrate` counts rain), `index.html` (tag `?v=wx-c-2`). Backups: `tools/backups/pre-m19c-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Snow piles up | Done | While it snows (cold biomes and above height 60), a thin snow layer appears on open ground, leaves, and roofs, a few spots at a time within about 48 blocks of you. One layer deep, like Java's default. Not on ice or farmland |
+| Water freezes | Done | Open water in cold places freezes into ice from the edges, any time it's dark enough (no bright torch nearby), like Minecraft |
+| Melting | Done | Ice and snow layers next to a bright light (torch, lantern, glowstone, and similar) melt within a few seconds; ice melts into water that flows. Packed Ice, Blue Ice, and Snow blocks never melt |
+| Cauldrons fill in the rain | Done | A cauldron out in the rain fills one level about every 15 seconds |
+| Rain waters farmland | Done | Farmland under the open sky stays wet while it rains, even far from water; it dries out again afterward |
+| Speed | Done | About 0.03 ms for each check on a Mac |
+
+## Milestone 19, Part B: lightning (built and browser-tested 2026-11-22, not published yet)
+Code: `js/main.js` (bolts, sky flash, where lightning strikes, fire, damage, creature changes, Lightning Rods, Channeling), `js/blocks.js` + `js/shapes.js` (Lightning Rod block, block number 356, recipe), `js/entities.js` (charged Hissers: saved, blue glow, twice the blast; Channeling hook), `js/multiplayer.js` (friends see the host's lightning and can be struck), `js/oceans-guide.js` + `js/enchanting.js` (Channeling text), `index.html` (tags `?v=wx-b-*`). Backups: `tools/backups/pre-m19b-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Lightning bolts | Done | During thunderstorms, a bolt every few seconds somewhere within about 60 blocks: a zigzag flash from the clouds, the sky lights up, then thunder (louder and sharper when close). Only where rain falls, so never in deserts or snowy lands |
+| Fire | Done | A strike starts a fire on Normal and Hard (and a few more on Hard), like Java. Not on Easy or Peaceful. The rain usually puts it out soon |
+| Damage | Done | 5 damage and sets things on fire (rain puts the fire out). Sometimes it finds a creature, or you, standing in the open. Players in Play Together can be struck too |
+| Creatures changed by lightning | Done | Pig becomes a Rotboar (Minecraft's zombified piglin), a Villager becomes a Witch (not story villagers or the Wanderer), and a Hisser becomes a **charged Hisser**: it glows blue and its blast reaches twice as far. Charged Hissers stay charged when you reload |
+| Lightning Rod | Done | New block (Mechanisms): 3 Iron Ingots at a Workbench (Blockhaven has no copper, so it's iron). Any strike within 32 blocks hits the rod instead, with no fire. Doesn't send a redstone signal yet |
+| Channeling | Done | A thrown trident with Channeling calls lightning onto the creature it hits, in a thunderstorm, under the open sky |
+| Not included | — | Mooshrooms changing color, skeleton horse traps, and lightning burning dropped items (Blockhaven has no skeleton horses) |
+
+## Milestone 19, Part A: rain, snow, and thunderstorms (built and browser-tested 2026-11-22, not published yet)
+Code: `js/weather.js` (new: the weather schedule, which biomes get rain or snow, the falling rain and snow), `js/main.js` (gray sky, dimmer daylight, rain sounds, rain puts out fires and burning players, sleeping through storms), `js/entities.js` (undead don't burn in the rain; rain puts out burning creatures), `js/multiplayer.js` (friends see the host's weather; sleeping clears it for everyone), `js/audio.js` (rain and thunder sounds), `index.html` (tags `?v=wx-a-2`, import map). Backups: `tools/backups/pre-m19a-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Weather on the Surface | Done | Clear, rain, or a thunderstorm. The sky can change about every 5 minutes; it rains about 1/5 of the time, and about 1 in 3 rains is a thunderstorm. The first day is always clear. Comes from the world's seed and clock, like the sandstorm, so it never changes when you reload |
+| Rain and snow by biome | Done | Rain in most places; snow in Snowy Plains, Snowy Peaks, Frozen Oceans, and anywhere above height 60; nothing falls in Deserts, Badlands, or Savannas (the sky still darkens). Stops at roofs, leaves, and water |
+| Gray sky | Done | Gray, foggier sky, gray clouds, sun and moon hidden; thunderstorms are darker still, dark enough for monsters to spawn in the day |
+| Sounds | Done | Rain all around you outside, muffled under a roof; distant thunder rumbles during storms |
+| Rain puts things out | Done | Fires under the open sky, burning players, and burning creatures. Zombies and other undead don't burn in sunlight while it's raining on them |
+| Sleeping through storms | Done | You can sleep during a thunderstorm, even in the daytime. Sleeping clears the weather for half a day or more, like Minecraft. Works in Play Together too |
+| Play Together | Done | Friends see the host's weather (they share the host's clock) |
+| Old worlds | Done | Every world gets weather; nothing about the land changes, so saves are unaffected |
+
 ## Milestone 18, Part D: Journal, achievements, settings, speed check (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21). Milestone 18 is now complete.
 Code: `js/world-guide.js` (new: Journal tab "The World", 4 pages), `js/advancements.js` (new "The World" category, 7 achievements), `js/main.js` + `js/fluids.js` (achievement events, `liquidFlow` option), `js/ui.js` + `index.html` ("Water and lava flow" option, Journal tab), `js/save.js`, tags `?v=flow-d-1`. Backups: `tools/backups/pre-m18-partD-2026-11-21/`.
 
