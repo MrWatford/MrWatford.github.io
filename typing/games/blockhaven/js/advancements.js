@@ -11,7 +11,7 @@ const NOTE_INSTRUMENTS = ["harp", "bass", "snare", "hat", "basedrum", "bell", "f
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
-export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
+export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "The World", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
 export const ADVANCEMENTS = [
   // building and getting started
   { id: "start", cat: "Getting Started", icon: B.LOG, title: "Blockhaven", desc: "Chop a log.", check: G => has(G, B.LOG, B.BIRCH_LOG, B.CRIMSON_STEM, B.WARPED_STEM) },
@@ -115,6 +115,14 @@ export const ADVANCEMENTS = [
   { id: "trident", cat: "Oceans", icon: I.TRIDENT, title: "Sea Fork", desc: "Throw a Trident.", parent: "monument", ev: "throwTrident", reward: { xp: 20 } },
   { id: "riptide", cat: "Oceans", icon: I.TRIDENT, title: "Riding the Riptide", desc: "Launch yourself with a Riptide trident.", parent: "trident", ev: "riptide", reward: { xp: 30 } },
   { id: "splasher", cat: "Oceans", icon: I.RAW_MINNOW, title: "Follow the Splasher", desc: "Feed a Splasher and follow it all the way to treasure.", parent: "fishbucket", ev: "dolphinlead", reward: { xp: 30 } },
+  // Milestone 18, Part D: the world behaves
+  { id: "gravity", cat: "The World", icon: B.SAND, title: "Gravity Check", desc: "Make sand or gravel fall.", ev: "sandfall" },
+  { id: "timber", cat: "The World", icon: B.LEAVES, title: "Timber!", desc: "Chop down a tree and watch its leaves drop away.", ev: "leafdecay" },
+  { id: "cobblemaker", cat: "The World", icon: B.COBBLE, title: "Cobble Maker", desc: "Make cobblestone where flowing water meets flowing lava.", ev: "cobblemade", reward: { xp: 15 } },
+  { id: "hotcold", cat: "The World", icon: B.OBSIDIAN, title: "Hot and Cold", desc: "Turn a full block of lava into obsidian with water.", parent: "cobblemaker", ev: "obsidianmade", reward: { xp: 20 } },
+  { id: "endless", cat: "The World", icon: I.WATER_BUCKET, title: "Endless Water", desc: "Make a new full block of water between two others.", ev: "watersource", reward: { xp: 20 } },
+  { id: "waterlog", cat: "The World", icon: B.OAK_FENCE, title: "Water Feature", desc: "Fill a fence, gate, trapdoor or sign with water.", ev: "waterlog" },
+  { id: "firefighter", cat: "The World", icon: B.FIRE, title: "Firefighter", desc: "Put out a fire with flowing water.", ev: "extinguish", reward: { xp: 15 } },
   { id: "kill", cat: "Combat & Bosses", icon: I.WOOD_SWORD, title: "Monster Hunter", desc: "Defeat a monster.", ev: "kill", match: (sp, SPECIES) => SPECIES[sp] && SPECIES[sp].hostile },
   { id: "kill8", cat: "Combat & Bosses", icon: I.IRON_SWORD, title: "Monsters Hunted", desc: "Defeat 8 different kinds of monsters.", parent: "kill", ev: "kill", match: (sp, SPECIES) => SPECIES[sp] && SPECIES[sp].hostile, count: 8, reward: { xp: 50 } },
   { id: "block", cat: "Combat & Bosses", icon: I.SHIELD, title: "Shields Up", desc: "Block an attack with a Shield.", parent: "kill", ev: "block" },

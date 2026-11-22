@@ -247,7 +247,7 @@ function upgrade(w) {
   // version 3 → 4: Sparkworks (signal timers and comparator outputs live in each dimension as dims[dim].rs; nothing old needs changing)
   w.version = SAVE_VERSION;
   w.mode = w.mode === "creative" ? "creative" : w.mode === "spectator" && w.hardcore ? "spectator" : "survival";
-  w.settings = { difficulty: "easy", griefing: true, keepInv: true, ...(w.settings || {}) };
+  w.settings = { difficulty: "easy", griefing: true, keepInv: true, fireSpread: true, liquidFlow: true, ...(w.settings || {}) };
   if (w.hardcore) { w.settings.difficulty = "hard"; w.settings.keepInv = false; }
   return w;
 }

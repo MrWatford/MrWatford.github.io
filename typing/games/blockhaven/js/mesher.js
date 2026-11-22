@@ -1,8 +1,9 @@
 // Turns a chunk's blocks into triangles the graphics card can draw.
 // Only faces that touch air (or see-through blocks) are drawn, and each corner gets
 // sunlight, torchlight, and soft corner shadows.
-import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL, COOL, FACEGLOW, WATERY } from "./blocks.js";
+import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL, COOL, FACEGLOW, WATERY, isWet, WATERLOGGED, LOGGABLE } from "./blocks.js";
 import { model, dustConn, dustPoints } from "./shapes.js";
+import { fluidHeight } from "./fluids.js";
 import { chunkKey } from "./world.js";
 import { hash3 } from "./noise.js";
 
@@ -37,7 +38,7 @@ for (const f of FACES) {
   f.front = f.d[0] + f.d[2] * RW + f.d[1] * AREA;
 }
 const AO = [0.42, 0.62, 0.8, 1];
-const isWater = v => WATERY[v & 0xFFFF00FF] === 1;   // Milestone 17: water plants count as water
+const isWater = v => isWet(v);   // Milestone 17: water plants count as water; Milestone 18: so do waterlogged fences
 
 function quad(buf, pts, tile, uvs, lights) {
   if (buf.n >= buf.max) return;
@@ -126,13 +127,15 @@ export function buildChunk(world, chunk, fancy) {
   // the see-through water surface of one watery cell (plain water, or water with a plant in it)
   const WATER_V = B.WATER;
   const waterFaces = (x, y, z, i, v, id) => {
-    const topY = isWater(vals[i + AREA]) ? 1 : 0.88;
+    const topY = fluidHeight(v, vals[i + AREA]);   // Milestone 18: flowing water is shallower
     for (let f = 0; f < 6; f++) {
       const F = FACES[f], ni = i + F.front, nv = vals[ni];
       if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
-      if (isWater(nv) || OPAQUE[nv & 0xFFFF00FF]) continue;
+      if (OPAQUE[nv & 0xFFFF00FF]) continue;
+      let low = 0;
+      if (isWater(nv)) { if (f === 2 || f === 3) continue; low = fluidHeight(nv, vals[ni + AREA]); if (low >= topY - 0.01) continue; }   // only the part above a shallower neighbor shows
       const l = [sky[ni] / 15, blk[ni] / 15, F.shade, Math.max(cool[ni], COOL[id] ? cool[i] : 0) / 15];
-      const pts = F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]);
+      const pts = F.c.map(p => [x + p[0], y + (p[1] ? topY : low), z + p[2]]);
       quad(waterBuf, pts, faceTile(v, F.tex), UV, [l, l, l, l]);
     }
   };
@@ -140,7 +143,7 @@ export function buildChunk(world, chunk, fancy) {
     const i = ri(x, y, z), v = vals[i], id = v & 0xFFFF00FF;
     if (!id) continue;
     const def = blockDef(v);
-    if (def.aquatic) waterFaces(x, y, z, i, WATER_V, B.WATER);   // Milestone 17: kelp, seagrass, coral... sit in water
+    if (def.aquatic || (LOGGABLE[id] && metaOf(v) & WATERLOGGED)) waterFaces(x, y, z, i, WATER_V, B.WATER);   // Milestone 17: kelp, seagrass, coral... sit in water
     if (def.shape === "cube") {
       const frontDir = def.front6 ? PF_FACE[metaOf(v) & 7] : def.front ? FACING_DIR[metaOf(v) & 3] : -1;
       const glow = FACEGLOW[id];
@@ -183,13 +186,15 @@ export function buildChunk(world, chunk, fancy) {
       const q = alongX ? [[x, y, z + 0.5], [x + 1, y, z + 0.5], [x + 1, y + 1, z + 0.5], [x, y + 1, z + 0.5]] : [[x + 0.5, y, z + 1], [x + 0.5, y, z], [x + 0.5, y + 1, z], [x + 0.5, y + 1, z + 1]];
       quad(waterBuf, q, tile, UV, L); quad(waterBuf, [q[1], q[0], q[3], q[2]], tile, [UV[1], UV[0], UV[3], UV[2]], L);
     } else if (def.shape === "liquid") {   // lava: like water but glowing and solid-looking
-      const topY = (vals[i + AREA] & 0xFFFF00FF) === id ? 1 : 0.88;
+      const topY = fluidHeight(v, vals[i + AREA]);   // Milestone 18: flowing lava is shallower
       for (let f = 0; f < 6; f++) {
         const F = FACES[f], ni = i + F.front, nv = vals[ni];
         if ((y === 0 && f === 3) || (y === HEIGHT - 1 && f === 2)) continue;
-        if ((nv & 0xFFFF00FF) === id || OPAQUE[nv & 0xFFFF00FF]) continue;
+        if (OPAQUE[nv & 0xFFFF00FF]) continue;
+        let low = 0;
+        if ((nv & 0xFFFF00FF) === id) { if (f === 2 || f === 3) continue; low = fluidHeight(nv, vals[ni + AREA]); if (low >= topY - 0.01) continue; }
         const l = [1, 1, F.shade];
-        quad(solidBuf, F.c.map(p => [x + p[0], y + (p[1] ? topY : 0), z + p[2]]), faceTile(v, F.tex), UV, [l, l, l, l]);
+        quad(solidBuf, F.c.map(p => [x + p[0], y + (p[1] ? topY : low), z + p[2]]), faceTile(v, F.tex), UV, [l, l, l, l]);
       }
     } else if (def.shape === "farmland" || def.shape === "bed") {
       const top = def.shape === "bed" ? 9 / 16 : 15 / 16;
