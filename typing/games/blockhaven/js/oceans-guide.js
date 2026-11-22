@@ -48,7 +48,7 @@ const PAGES = {
       <li><b>Loyalty</b> makes it fly back to you.</li>
       <li><b>Riptide</b> launches <i>you</i> through the water instead of throwing it (only while you're in water).</li>
       <li><b>Impaling</b> adds damage against sea creatures.</li>
-      <li><b>Channeling</b> calls lightning during thunderstorms, once storms come to Blockhaven.</li>
+      <li><b>Channeling</b>: a thrown trident calls lightning down onto the creature it hits, during a thunderstorm, out under the open sky.</li>
     </ul>
     <p class="help">Loyalty and Riptide can't go on the same trident.</p>` }
 };

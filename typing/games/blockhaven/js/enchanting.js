@@ -43,7 +43,7 @@ export const ENCH = {
   loyalty: { name: "Loyalty", max: 3, w: 5, on: "trident", group: "tide", cost: l => [5 + 7 * l, 50], desc: "A thrown trident flies back to you" },
   riptide: { name: "Riptide", max: 3, w: 2, on: "trident", group: "tide", cost: l => [10 + 7 * l, 50], desc: "Throwing it while you're in water launches YOU instead" },
   impaling: { name: "Impaling", max: 5, w: 2, on: "trident", cost: range(1, 8, 20), desc: "Much more damage to sea creatures" },
-  channeling: { name: "Channeling", max: 1, w: 1, on: "trident", cost: () => [25, 50], desc: "Calls lightning onto what it hits during a thunderstorm (when storms come to Blockhaven)" }
+  channeling: { name: "Channeling", max: 1, w: 1, on: "trident", cost: () => [25, 50], desc: "A thrown trident calls lightning onto what it hits during a thunderstorm" }
 };
 export const ENCH_KEYS = Object.keys(ENCH);
 
