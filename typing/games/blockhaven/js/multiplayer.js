@@ -156,7 +156,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (m.t === "unride") { release(from); return; }
     if (m.t === "steer") { const e = ridden(from); if (e && e.def.cart) { e.mpPush = Array.isArray(m.v) && m.v.length === 2 && m.v.every(Number.isFinite) ? [Math.max(-1, Math.min(1, m.v[0])), Math.max(-1, Math.min(1, m.v[1]))] : null; e.mpPushAt = performance.now(); } return; }
     if (m.t === "place") { guestPlaces(from, m); return; }
-    if (m.t === "sleep") { if (G.time > 0.53 && G.time < 0.97 && !from.body?.mpDead) { sleepers.set(from.id, performance.now()); UI.toast(from.name + " got in bed."); checkSleep(); } return; }
+    if (m.t === "sleep") { if ((G.time > 0.53 && G.time < 0.97 || G.wx?.thunder > 0.5) && !from.body?.mpDead) { sleepers.set(from.id, performance.now()); UI.toast(from.name + " got in bed."); checkSleep(); } return; }
   }
   async function allow(id) {
     const a = asks.get(id); if (!a) return;
@@ -297,6 +297,15 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       hurtGuest(b, Math.round(k * power * 4.5 * mul), src && src.def ? `A ${src.def.name} exploded next to you!` : "You were caught in an explosion!", null);
     }
   }
+  // Milestone 19: lightning (the host's game picks where it strikes)
+  function bolt(x, y, z) {
+    if (role !== "host" || phase !== "hosting" || !players.size) return;
+    send({ t: "bolt", x, y, z });
+    for (const b of bodies()) {
+      if (b.mpDead || Math.hypot(b.pos.x - x - 0.5, b.pos.z - z - 0.5) > 2 || Math.abs(b.pos.y - y) > 3) continue;
+      hurtGuest(b, 5, "You were struck by lightning!", null, "lightning"); effectGuest(b, "fire", 8);
+    }
+  }
   const near = (from, x, y, z, r) => from.body && Math.hypot(from.body.pos.x - x, from.body.pos.y + 1 - y, from.body.pos.z - z) <= r;
   // a friend swung at a creature
   function guestHits(from, m) {
@@ -337,9 +346,12 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     const inBed = ids.filter(id => now - (sleepers.get(id) ?? -1e9) < 10000).length;
     if (inBed < ids.length) { UI.toast(`${inBed} of ${ids.length} players are in bed.`); return; }
     sleepers.clear();
+    const storm = G.wx?.thunder > 0.5;
     G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; envT = ENV_EVERY;
-    send({ t: "morning" });
-    UI.toast("Good morning! Everyone slept.", "good"); G.adv("sleep");
+    const wet = G.sleepClearsWeather?.();
+    if (storm) G.adv("stormsleep");   // Milestone 19: sleeping clears the weather
+    send({ t: "morning", wet });
+    UI.toast(wet ? "Good morning! Everyone slept, and the storm has passed." : "Good morning! Everyone slept.", "good"); G.adv("sleep");
   }
   function sleep() {
     if (role === "host" && phase === "hosting" && players.size) { sleepers.set("h", performance.now()); checkSleep(); return true; }
@@ -611,7 +623,7 @@ function rideTick(dt) {
     if (m.t === "b") { if (m.dim && G.world && m.dim !== G.dim) return; if (G.guest && G.world && !going) applyBlocks(m.l); else if (!G.world) early.push(m.l); return; }
     if (m.t === "box") { hostBox(m); return; }
     if (m.t === "env") {
-      if (G.guest && typeof m.time === "number") { G.time = m.time; if (G.meta) G.meta.day = m.day || G.meta.day; }
+      if (G.guest && typeof m.time === "number") { G.time = m.time; if (G.meta) { G.meta.day = m.day || G.meta.day; G.meta.wxClear = +m.wxc || 0; G.meta.wxSet = m.wxs && typeof m.wxs === "object" ? m.wxs : null; } }   // Milestone 19: the host's weather
       if (G.guest && (m.mode === "creative" || m.mode === "survival") && m.mode !== G.mode && G.state !== "dead") G.setMode(m.mode);   // the host switched the world's mode
       return;
     }
@@ -623,7 +635,8 @@ function rideTick(dt) {
     if (m.t === "push") { if (Array.isArray(m.v) && m.v.every(Number.isFinite) && !G.creative && !G.spectator) { p.vel.x += m.v[0]; p.vel.y = Math.max(p.vel.y, m.v[1]); p.vel.z += m.v[2]; } return; }
     if (m.t === "xp") { if (Number.isInteger(m.n) && m.n > 0) spawnOrbs(Math.min(200, m.n), p.pos.x, p.pos.y + 1, p.pos.z); return; }
     if (m.t === "give") { gotItem(m); return; }
-    if (m.t === "morning") { UI.toast("Good morning! Everyone slept.", "good"); return; }
+    if (m.t === "bolt") { if (G.guest && [m.x, m.y, m.z].every(Number.isFinite)) G.drawBolt?.(m.x, m.y, m.z); return; }   // Milestone 19
+    if (m.t === "morning") { UI.toast(m.wet ? "Good morning! Everyone slept, and the storm has passed." : "Good morning! Everyone slept.", "good"); return; }
     if (m.t === "rideok") { const pp = puppets.get(m.uid); if (pp && !G.riding) { mount(pp.e); rideUid = m.uid; } else send({ t: "unride" }); return; }
     if (m.t === "rideno") { UI.toast(String(m.text || "You can't ride that right now.")); return; }
     if (m.t === "eject") { if (G.riding) dismount(); rideUid = null; return; }
@@ -789,7 +802,7 @@ function rideTick(dt) {
     if (role === "host") {
       const problem = hostProblem();
       if (problem) { stopHosting(); UI.toast("Play Together stopped. " + problem, "bad"); return; }
-      if (players.size && (envT += dt) >= ENV_EVERY) { envT = 0; send({ t: "env", time: r2(G.time * 1e4) / 1e4, day: G.meta.day || 1, mode: G.mode }); }
+      if (players.size && (envT += dt) >= ENV_EVERY) { envT = 0; send({ t: "env", time: r2(G.time * 1e4) / 1e4, day: G.meta.day || 1, mode: G.mode, wxc: G.meta.wxClear || 0, wxs: G.meta.wxSet || null }); }
       ents.pick = players.size ? pick : null;   // creatures notice every player
       hostMoved();
       const now = performance.now();
@@ -923,7 +936,7 @@ function rideTick(dt) {
     open() { message = ""; UI.show("together"); },
     tick,
     useBlock,
-    hurtGuest, effectGuest, pushGuest, xpGuest, giveGuest, blast, sleep, hitCreature, shoot, guestDrop,
+    hurtGuest, effectGuest, pushGuest, xpGuest, giveGuest, blast, bolt, sleep, hitCreature, shoot, guestDrop,
     askRide, placeEntity, ejectGuest, hostSpot,
     keepRunning: () => role === "host" && phase === "hosting" && players.size > 0,   // the host's pause menu doesn't freeze friends' world
     noPortals: () => role === "guest",   // guests follow the host through portals instead of using them

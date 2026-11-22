@@ -113,6 +113,7 @@ export function model(v, get) {
   }
   if (id === B.SNOW_LAYER) return { T: floorT(0), parts: [p([0, 0, 0, 16, 2, 16], TILE.snow)] };
   if (id === B.TURTLE_EGG) { const spots = [[6, 6], [2, 9], [10, 2], [9, 10]]; return { T: floorT(0), parts: spots.slice(0, (m & 3) + 1).map(([x, z]) => p([x, 0, z, x + 4, 5 - ((m >> 2) & 3) * 0, z + 4], TILE.turtle_egg)) }; }   // Milestone 17, Part D
+  if (id === B.LIGHTNING_ROD) return { T: floorT(0), parts: [p([7, 0, 7, 9, 13, 9], TILE.lightning_rod), p([6, 13, 6, 10, 16, 10], TILE.lightning_rod)] };   // Milestone 19, Part B
   if (id === B.CONDUIT) return { T: floorT(0), parts: [p([5, 5, 5, 11, 11, 11], TILE.conduit)] };   // Milestone 17, Part B
   if (id === B.SEA_PICKLE) {   // Milestone 17, Part A: 1 to 4 pickles (meta bits 0-1 = how many more than one)
     const spots = [[6, 6, 6], [2, 9, 5], [10, 2, 4], [9, 10, 5]];

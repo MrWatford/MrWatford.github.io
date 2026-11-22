@@ -93,7 +93,8 @@ export const B = {
   KELP: nb(313), SEAGRASS: nb(314), SEA_PICKLE: nb(315), SPONGE: nb(316), WET_SPONGE: nb(317), DRIED_KELP_BLOCK: nb(318),
   PRISMARINE: nb(319), PRISMARINE_BRICKS: nb(320), DARK_PRISMARINE: nb(321), SEA_LANTERN: nb(322), BLUE_ICE: nb(323),
   CONDUIT: nb(354),   // Milestone 17, Part B (324-353 are the corals)
-  TURTLE_EGG: nb(355)   // Milestone 17, Part D
+  TURTLE_EGG: nb(355),   // Milestone 17, Part D
+  LIGHTNING_ROD: nb(356)   // Milestone 19, Part B
 };
 // Milestone 17, Part A: five corals, each with six blocks (living and dead block, plant, and fan)
 export const CORALS = [["TUBE", "Tube", "#3050d8"], ["BRAIN", "Brain", "#e070b0"], ["BUBBLE", "Bubble", "#a040c0"], ["FIRE", "Fire", "#d03030"], ["HORN", "Horn", "#e8d040"]];
@@ -493,6 +494,7 @@ block(B.BLUE_ICE, "Blue Ice", { hardness: 2.8, tool: "pick", drops: 0, tex: "blu
 // Milestone 17, Part B: the Conduit lives in water too. Framed with prismarine it gives Conduit Power (main.js).
 block(B.CONDUIT, "Conduit", { shape: "model", render: "cutout", solid: false, aquatic: true, floats: true, hardness: 3, tool: "pick", light: 15, tex: "conduit", icon: "tile:conduit", category: "Useful" });
 // Milestone 17, Part D: sea turtle eggs on the beach (meta bits 0-1 = how many more than one, bits 2-3 = how close to hatching)
+block(B.LIGHTNING_ROD, "Lightning Rod", { shape: "model", render: "cutout", solid: false, hardness: 3, tool: "pick", tier: 1, tex: "lightning_rod", icon: "tile:lightning_rod", category: MECH });   // Milestone 19, Part B: lightning nearby strikes it instead
 block(B.TURTLE_EGG, "Turtle Egg", { shape: "model", render: "cutout", solid: false, hardness: 0.5, drops: 0, tex: "turtle_egg", icon: "tile:turtle_egg", category: "Nature" });
 for (const [K, name] of CORALS) {
   const k = K.toLowerCase(), plant = { shape: "cross", render: "cutout", solid: false, aquatic: true, hardness: 0, drops: 0, category: "Nature" };
@@ -920,7 +922,8 @@ export const RECIPES = [
   { out: [B.DRIED_KELP_BLOCK, 1], ins: [[I.DRIED_KELP, 9]], table: true },
   { out: [I.DRIED_KELP, 9], ins: [[B.DRIED_KELP_BLOCK, 1]] },
   { out: [B.BLUE_ICE, 1], ins: [[B.PACKED_ICE, 9]], table: true },
-  { out: [B.CONDUIT, 1], ins: [[I.NAUTILUS_SHELL, 8], [I.HEART_OF_THE_SEA, 1]], table: true },   // Milestone 17, Part B
+  { out: [B.CONDUIT, 1], ins: [[I.NAUTILUS_SHELL, 8], [I.HEART_OF_THE_SEA, 1]], table: true },
+  { out: [B.LIGHTNING_ROD, 1], ins: [[I.IRON_INGOT, 3]], table: true },   // Milestone 19, Part B (iron, since Blockhaven has no copper)   // Milestone 17, Part B
   { out: [I.TURTLE_HELMET, 1], ins: [[I.SCUTE, 5]], table: true },   // Milestone 17, Part D
   { out: [I.STICK, 4], ins: [["planks", 2]] },
   { out: [B.TABLE, 1], ins: [["planks", 4]] },
@@ -1177,7 +1180,8 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "kelp", "seagrass", "sea_pickle", "sponge", "wet_sponge", "dried_kelp_top", "dried_kelp_side", "prismarine", "prismarine_bricks", "dark_prismarine", "sea_lantern", "blue_ice",
   ...CORALS.flatMap(([K]) => { const k = K.toLowerCase(); return [k + "_coral_block", "dead_" + k + "_coral_block", k + "_coral", k + "_coral_fan"]; }), "dead_coral", "dead_coral_fan",
   "conduit",   // Milestone 17, Part B
-  "turtle_egg"];   // Milestone 17, Part D
+  "turtle_egg",   // Milestone 17, Part D
+  "lightning_rod"];   // Milestone 19, Part B
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1884,6 +1888,7 @@ Object.assign(PAINT, {
   },
   _coralFan(P, c) { const lo = tone(c, 0.72), hi = tone(c, 1.25); for (let y = 2; y < 16; y++) for (let x = 0; x < 16; x++) { const dx = x - 7.5, dy = 15 - y, a = Math.atan2(dx, dy); if (Math.hypot(dx, dy) < 12.5 && Math.abs(a) < 1.05) P.px(x, y, (Math.round(a * 9) % 2) ? c : (y < 6 ? hi : lo)); } P.rect(7, 12, 2, 4, lo); }
 });
+PAINT.lightning_rod = P => { P.fill(["#c9ccd1", "#b7bbc2", "#d8dbe0"]); P.rect(0, 0, 16, 2, "#eef0f3"); P.rect(0, 14, 16, 2, "#8c9098"); };   // Milestone 19, Part B: a polished iron rod
 PAINT.turtle_egg = P => { P.fill(["#f2ecd2", "#ece4c6", "#f6f0dc"]); P.specks(14, ["#8fb878", "#7aa864"], 2); };   // Milestone 17, Part D
 PAINT.conduit = P => {   // a shell-like cage around a glowing heart
   P.fill(["#7a6a50", "#86765a", "#6e5e46"]); for (let i = 0; i < 16; i += 4) { P.rect(i, 0, 1, 16, "#a89270"); P.rect(0, i, 16, 1, "#a89270"); }

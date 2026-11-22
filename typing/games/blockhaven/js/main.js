@@ -54,6 +54,7 @@ import * as PO from "./potions.js";
 import { treeShape, NEEDS_SQUARE } from "./trees.js";
 import { SPECIAL_BIOMES, BIOME_NAMES, BIOME_GEN, OCEAN_GEN, SEA_LOOT, seaLootOf } from "./worldgen.js";
 import { nextLeviathanStorm, sandstormStage } from "./sandstorm.js";
+import { weatherAt, makeSkyColumns, createWeatherView, nextWeather } from "./weather.js";
 import { StormActivity, stormCallStatus, stormDaytime, severalHostilesNearby, findDuneApproach, STORM_ACTIVITY_GUIDE } from "./leviathan-storm.js";
 import { dunePhase, duneRitualWindow } from "./dune-leviathan.js";
 import { DESERT_SITES, RELIC_SITES, SHRINE_INSCRIPTION, buildRelicStamp, citadelArena, citadelCache, citadelTablet, cityCache, cityTablet, observatoryTablet, planRelicSites, relicCache, relicSiteAt, shrineSign } from "./desert-relic-sites.js";
@@ -369,7 +370,7 @@ const G = {
   time: 0.02, selected: 0, swing: 0, walkPhase: 0, stepDist: 0, drops: [], tips: {}, hudDirty: true,
   mining: null, useCooldown: 0, lastSpace: 0, playedSince: 0, autosaveT: 0, debug: false,
   xp: 0, effects: {}, bowT: -1, attackCd: 0, orbs: [], worlds: {}, dim: "overworld", dimData: {},
-  wset: { difficulty: "easy", griefing: true, keepInv: true, fireSpread: true, liquidFlow: true },
+  wset: { difficulty: "easy", griefing: true, keepInv: true, fireSpread: true, liquidFlow: true, weather: true },
   voidInv: new Array(27).fill(null),   // personal Void Chest storage (the same in every Void Chest and every dimension)
   elv: {}, absorb: 0, totemGuard: 0, eat: null, blocking: false, useHand: null, stats: {},
   armColor: [0.85, 0.65, 0.49],   // the bare first-person arm color (follows the chosen skin)
@@ -397,6 +398,8 @@ const ents = new Entities(scene, {
     if (guestFocus() || !wildlifeJournalActive()) return;
     reportWildlifeDiscovery(markWildlifeDefeated(G.story, e, G.meta.day));
   },
+  channeling: e => channelOnto(e),
+  inRain: (x, y, z) => G.wx.rain > 0.4 && skyCols.rainedOn(x, y, z),   // Milestone 19: rain puts out burning creatures
   desertContext: () => ({ dim: G.dim, storm: G.creative && creativeStormUntil > G.clock ? 0 : stormStage, sites: G.story.leviathan?.sites }),
   reducedMotion: () => G.settings.reducedMotion,
   scarabVaultDefeated: e => {
@@ -1978,6 +1981,7 @@ function soilWater(x, y, z) {
 }
 function hydrate(x, y, z) {   // farmland near water stays wet
   const w = G.world;
+  if (G.wx?.rain > 0.4 && G.dim === "overworld" && skyCols.rainedOn(x + 0.5, y + 1, z + 0.5)) return true;   // Milestone 19: rain waters it too
   for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if (isWet(w.get(x + dx, y, z + dz)) || isWet(w.get(x + dx, y + 1, z + dz))) return true;
   return false;
 }
@@ -2124,7 +2128,7 @@ function clearWorldMeshes() {
   G.sandsWaypoint = null;
   G.sandsWaypointHidden = false;
   sandsHaze.setHex(SANDS_REGIONS[0].haze);
-  Sound.wind(0);
+  Sound.wind(0); Sound.rain(0); wxView?.hide(); for (const b of bolts) scene.remove(b.g); bolts.length = 0; flashT = 0;
   Sound.ancientMusic(null);
   Sound.calmMusicEnd();
   Sound.bossMusicEnd();
@@ -2252,7 +2256,7 @@ async function startWorld(save) {
   G.dimData = save.dims || { overworld: { mods: save.mods || {}, containers: save.containers || [] } };
   G.journalTab = save.lostWorldGen ? "expedition" : G.journalTab;
   G.dim = (save.player && save.player.dim) || worldHome(save);
-  G.wset = { difficulty: "easy", griefing: true, keepInv: true, fireSpread: true, liquidFlow: true, ...(save.settings || {}) };
+  G.wset = { difficulty: "easy", griefing: true, keepInv: true, fireSpread: true, liquidFlow: true, weather: true, ...(save.settings || {}) };
   G.xp = save.xp || 0; G.effects = {}; G.elv = {}; G.absorb = 0; G.eat = null; G.blocking = false; G.bowT = -1; G.totemGuard = 0;
   G.voidInv = Array.from({ length: 27 }, (_, i) => (save.voidInv && save.voidInv[i] && itemDef(save.voidInv[i].id) ? { ...save.voidInv[i] } : null));
   Adv.load(save.adv); G.story = save.story || {}; G.stats = save.stats || {};
@@ -2830,7 +2834,7 @@ function throwTrident(s, slotIndex) {
   const stack = { ...s }, speed = 26;
   if (!G.creative) { wearTool(stack, 1); G.inv.slots[slotIndex] = null; heldId = -1; }
   ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed,
-    { fromPlayer: true, dmg: 8, trident: G.creative ? null : stack, tridentLook: true, impaling: EN.lvl(s, "impaling"), loyalty: EN.lvl(s, "loyalty"), noGrav: false });
+    { fromPlayer: true, dmg: 8, trident: G.creative ? null : stack, tridentLook: true, impaling: EN.lvl(s, "impaling"), loyalty: EN.lvl(s, "loyalty"), channeling: EN.lvl(s, "channeling"), noGrav: false });
   Sound.mob("trident", 0); G.swing = 0.01; G.hudDirty = true; G.adv("throwTrident");
 }
 // Milestone 16: splash and lingering potions fly in an arc and break where they land
@@ -3252,6 +3256,7 @@ function useWith(offhand) {
     w.set(x, y, z, v);
     if (id === B.SPONGE) soakUp(x, y, z);   // Milestone 17
     FL.wake(x, y, z);   // Milestone 18
+    if ((BLOCKS[id]?.light || 0) >= 12) queueMeltCheck(x, y, z);   // Milestone 19: bright lights melt ice and snow nearby
     if (id === B.SHELL_BOX) w.containers.set(x + "," + y + "," + z, { type: "chest", slots: slot.contents ? slot.contents.map(s => s && { ...s }) : new Array(27).fill(null) });
     if (id === B.BEACON) { w.beacons.add(x + "," + y + "," + z); w.containers.set(x + "," + y + "," + z, { type: "beacon", slots: [null], primary: null, secondary: null }); UI.toast("Build a pyramid of mineral blocks under the Beacon, then right-click it to pick a power.", "good"); G.adv("beacon"); }
   }
@@ -3393,13 +3398,13 @@ function useBed(hit) {
   G.player.spawn = { x: head.x + 0.5, y: hit.y + 1, z: head.z + 0.5, bed: [hit.x, hit.y, hit.z] };
   if (isLostWorldRegion(G.dim)) G.player.spawn.dim = G.dim;
   G.player.anchor = null;
-  const night = G.time > 0.53 && G.time < 0.97;
-  if (!night) { UI.toast("Respawn point set. You can only sleep at night."); return; }
+  const night = G.time > 0.53 && G.time < 0.97, storm = G.dim === "overworld" && G.wx.thunder > 0.5;   // Milestone 19: you can sleep through a thunderstorm
+  if (!night && !storm) { UI.toast("Respawn point set. You can only sleep at night or during a thunderstorm."); return; }
   if (G.creative === false && ents.near(G.player.pos.x, G.player.pos.y, G.player.pos.z, 10, e => e.def.hostile).length) { UI.toast("You can't rest now. There are monsters nearby!", "bad"); return; }
   if (MP.sleep()) return;   // Play Together: the night is skipped once everyone is in bed
   const shade = document.getElementById("flash");
   shade.style.background = "#000"; shade.classList.add("on");
-  setTimeout(() => { G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; shade.classList.remove("on"); setTimeout(() => shade.style.background = "", 400); UI.toast("Good morning! Respawn point set.", "good"); G.adv("sleep"); }, 1200);
+  setTimeout(() => { G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; const wet = sleepClearsWeather(); if (storm) G.adv("stormsleep"); shade.classList.remove("on"); setTimeout(() => shade.style.background = "", 400); UI.toast(wet ? "Good morning! The storm has passed. Respawn point set." : "Good morning! Respawn point set.", "good"); G.adv("sleep"); }, 1200);
 }
 function blocksPlayer(v, x, y, z) {
   const boxes = []; blockBoxes(v, x, y, z, boxes);
@@ -4827,6 +4832,261 @@ function updateTips() {
 }
 function tipDone(k) { if (!G.tips[k]) { G.tips[k] = true; updateTips(); } }
 
+// ---------- Milestone 19: weather (rain, snow, thunderstorms) on the Surface; the sky itself is in js/weather.js ----------
+const skyCols = makeSkyColumns(G);
+const RAIN_SKY = new THREE.Color().setHex(0x7f8996, THREE.LinearSRGBColorSpace), wxTint = new THREE.Color();
+let wxView = null, wxSoundT = 0, wxFireT = 0, thunderT = 12;
+G.wx = { rain: 0, thunder: 0, kind: 0 };
+function weatherHere() { return G.dim === "overworld" && !!G.meta && !!G.world && G.wset.weather !== false; }
+function updateWeather(dt, running) {
+  const p = G.player;
+  const w = weatherHere() ? weatherAt(G.gen.seed, worldSeconds(), DAY_LENGTH, G.meta.wxClear || 0, G.meta.wxSet || null) : { rain: 0, thunder: 0, kind: 0 };
+  G.wx = w;
+  if (w.rain < 0.01) { if (wxView) wxView.hide(); Sound.rain(0); return; }
+  wxView ||= createWeatherView(THREE, scene);
+  const max = G.settings.quality === "fast" ? 400 : G.settings.reducedMotion ? 450 : 900;
+  const cam = camera.position;
+  wxView.update(running ? dt : 0, cam, w.rain, skyCols, max, (x, y, z) => {
+    if (parts.length < PMAX - 40 && !G.settings.reducedMotion) emitParticle(x, y + 0.05, z, (Math.random() - 0.5) * 0.8, 1.4, (Math.random() - 0.5) * 0.8, 0.22, PUFF_COLORS.splash);
+  });
+  if ((wxSoundT -= dt) <= 0) {   // how much rain you can hear: open sky around you, or the roof over your head
+    wxSoundT = 0.4;
+    let loud = 0, roofed = 0;
+    const cx = Math.floor(cam.x), cz = Math.floor(cam.z);
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2, r = i % 3 * 2.5;
+      const c = skyCols.at(cx + Math.round(Math.cos(a) * r), cz + Math.round(Math.sin(a) * r));
+      if (c.kind !== 1) continue;
+      if (c.top + 1 <= cam.y + 2) loud++;
+      else if (c.top + 1 - cam.y < 10) roofed++;
+    }
+    const here = skyCols.at(cx, cz), inside = here.kind === 1 && here.top + 1 > cam.y + 1;
+    Sound.rain(w.rain * Math.min(1, (loud + roofed * 0.6) / 7), inside || loud < roofed);
+    if (running && w.rain > 0.5 && here.kind && here.top + 1 <= p.pos.y + 0.1) G.adv(here.kind === 1 ? "inrain" : "insnow");   // Part D achievements
+  }
+  if (!running) return;
+  if (w.thunder > 0.5 && (thunderT -= dt) <= 0) { thunderT = 12 + Math.random() * 20; Sound.thunder(150 + Math.random() * 100); }   // far-off rumbles between bolts
+  if (w.rain > 0.4) {
+    if (G.effects.fire && skyCols.rainedOn(p.pos.x, p.pos.y + 1, p.pos.z)) { delete G.effects.fire; G.hudDirty = true; }
+    if (!G.guest && (wxFireT -= dt) <= 0) {   // rain puts out fires under the open sky (a few at a time)
+      wxFireT = 0.5;
+      for (const f of fires) if (skyCols.rainedOn(f.x + 0.5, f.y, f.z + 0.5) && Math.random() < 0.3 && G.world.id(f.x, f.y, f.z) === B.FIRE) {
+        G.world.set(f.x, f.y, f.z, B.AIR); f.t = 0;
+        if (Math.hypot(f.x - p.pos.x, f.z - p.pos.z) < 16) Sound.fizz(Math.hypot(f.x - p.pos.x, f.y - p.pos.y, f.z - p.pos.z));
+      }
+    }
+  }
+}
+// ---------- Milestone 19, Part B: lightning ----------
+// During a thunderstorm the host's game picks a spot every few seconds. Lightning only strikes where rain falls, and a
+// Lightning Rod within 32 blocks takes the hit instead. It lights a fire, hurts, and changes a few creatures.
+const bolts = [];
+const boltMat = new THREE.MeshBasicMaterial({ color: 0xeef3ff, transparent: true, opacity: 0.95, depthWrite: false, fog: false });
+const boltBox = new THREE.BoxGeometry(1, 1, 1);
+let boltT = 5, flashT = 0;
+const ROD_REACH = 32;
+function boltPath(g, x, y, z, top, spread, thick) {   // a zigzag from the clouds down to (x, y, z)
+  const sx = x + (Math.random() - 0.5) * spread, sz = z + (Math.random() - 0.5) * spread;
+  let px = sx, py = top, pz = sz, wx = 0, wz = 0;
+  while (py > y) {
+    const ny = Math.max(y, py - 1.5 - Math.random() * 2.5), k = (ny - y) / (top - y), taper = Math.min(1, k * 5);
+    wx = Math.max(-2.5, Math.min(2.5, wx + (Math.random() - 0.5) * 2.4)); wz = Math.max(-2.5, Math.min(2.5, wz + (Math.random() - 0.5) * 2.4));
+    const nx = x + (sx - x) * k + wx * taper, nz = z + (sz - z) * k + wz * taper;
+    const len = Math.hypot(nx - px, ny - py, nz - pz), m = new THREE.Mesh(boltBox, boltMat);
+    m.scale.set(thick, thick, len + thick); m.position.set((px + nx) / 2, (py + ny) / 2, (pz + nz) / 2); m.lookAt(nx, ny, nz);
+    g.add(m);
+    if (thick > 0.12 && Math.random() < 0.18 && ny > y + 8) boltPath(g, nx + (Math.random() - 0.5) * 7, ny - 4 - Math.random() * 6, nz + (Math.random() - 0.5) * 7, ny, 0, 0.09);   // a side branch that fizzles out
+    px = nx; py = ny; pz = nz;
+  }
+}
+function drawBolt(x, y, z) {
+  const g = new THREE.Group();
+  boltPath(g, x + 0.5, y, z + 0.5, Math.max(y + 45, 110), 8, 0.22);
+  g.renderOrder = 4; scene.add(g);
+  bolts.push({ g, age: 0 }); G.boltCount = (G.boltCount || 0) + 1; G.lastBolt = [x, y, z];
+  flashT = G.settings.reducedMotion ? 0.12 : 0.32;
+  const p = G.player;
+  Sound.thunder(Math.hypot(p.pos.x - x - 0.5, p.pos.y - y, p.pos.z - z - 0.5));
+}
+G.drawBolt = drawBolt;   // Play Together friends draw the host's lightning
+function updateBolts(dt) {
+  for (let i = bolts.length - 1; i >= 0; i--) {
+    const b = bolts[i]; b.age += dt;
+    b.g.visible = b.age < 0.12 || (b.age > 0.2 && b.age < 0.34);   // a double flicker
+    if (b.age > 0.45) { scene.remove(b.g); bolts.splice(i, 1); }
+  }
+}
+function applyFlash(dt) {   // the whole sky lights up for a moment
+  if (flashT <= 0) return;
+  flashT -= dt;
+  const k = Math.max(0, flashT) / 0.32 * (G.settings.reducedMotion ? 0.35 : 1);
+  uniforms.daylight.value += (1 - uniforms.daylight.value) * 0.8 * k;
+  if (scene.background?.isColor) scene.background.lerp(wxTint.setRGB(0.85, 0.88, 0.95), 0.5 * k);
+}
+// the nearest Lightning Rod open to the sky within ROD_REACH blocks (rods are always placed by players, so they're in the change list)
+function rodNear(x, z) {
+  const w = G.world, cx0 = Math.floor(x / CHUNK), cz0 = Math.floor(z / CHUNK), R = Math.ceil(ROD_REACH / CHUNK);
+  let best = null, bd = ROD_REACH;
+  for (let cx = cx0 - R; cx <= cx0 + R; cx++) for (let cz = cz0 - R; cz <= cz0 + R; cz++) {
+    const m = w.mods.get(cx + "," + cz);
+    if (!m) continue;
+    for (const [i, v] of m) {
+      if (idOf(v) !== B.LIGHTNING_ROD) continue;
+      const bx = cx * CHUNK + (i % CHUNK), by = Math.floor(i / (CHUNK * CHUNK)), bz = cz * CHUNK + Math.floor(i / CHUNK) % CHUNK;
+      const d = Math.hypot(bx - x, bz - z);
+      if (d < bd && w.id(bx, by, bz) === B.LIGHTNING_ROD && skyCols.at(bx, bz).top === by) { bd = d; best = { x: bx, y: by, z: bz }; }
+    }
+  }
+  return best;
+}
+// What lightning does to a creature it hits
+function lightningHit(e) {
+  if (e.def.boss || e.def.object || e.def.boat || e.def.cart || e.gone || e.dead) return;
+  const swap = sp => {   // it turns into something else
+    const n = ents.add(sp, e.pos.x, e.pos.y, e.pos.z, { yaw: e.yaw });
+    if (n) { n.yaw = e.yaw; if (e.name) n.name = e.name; n.burning = 0; }
+    e.gone = true; puff(e.pos.x, e.pos.y + 1, e.pos.z, "poof");
+    if (Math.hypot(e.pos.x - G.player.pos.x, e.pos.z - G.player.pos.z) < 24) UI.toast(`Lightning turned a ${e.def.name} into a ${SPECIES[sp].name}!`);
+    G.adv?.("lightningChange", sp);
+  };
+  if (e.sp === "pig" && SPECIES.rotboar) return swap("rotboar");                               // Minecraft: pig → zombified piglin
+  if (e.def.villager && e.sp !== "wanderer" && !e.npc && SPECIES.witch) return swap("witch");   // villager → witch
+  if (e.sp === "creeper" && !e.charged) { e.charged = true; G.adv?.("lightningChange", "charged"); }   // a charged Hisser
+  ents.damage(e, 5, null);
+  if (!e.def.fireproof) { e.burning = Math.max(e.burning || 0, 8); if (!(e.burnT > 0)) e.burnT = 1; }
+}
+// Lightning strikes the air block at (x, y, z), right above what it hits
+function strike(x, y, z, why) {
+  drawBolt(x, y, z);
+  if (G.guest) return;
+  MP.bolt(x, y, z);
+  const w = G.world, p = G.player, rod = w.id(x, y - 1, z) === B.LIGHTNING_ROD;
+  if (rod) { puff(x + 0.5, y, z + 0.5, "spark"); G.adv?.("rod"); }
+  else if (G.wset.difficulty !== "peaceful" && G.wset.difficulty !== "easy") {   // Java: fire on Normal and Hard
+    const spots = [[0, 0]];
+    if (G.wset.difficulty === "hard") for (let i = 0; i < 2; i++) spots.push([Math.floor(Math.random() * 3) - 1, Math.floor(Math.random() * 3) - 1]);
+    for (const [dx, dz] of spots) { const fx = x + dx, fz = z + dz; if (!w.id(fx, y, fz) && SOLID[w.id(fx, y - 1, fz)]) lightFire(fx, y, fz); }
+  }
+  for (const e of ents.near(x + 0.5, y + 0.5, z + 0.5, 3.2)) lightningHit(e);
+  if (!G.creative && !G.spectator && G.state !== "dead" && Math.hypot(p.pos.x - x - 0.5, p.pos.z - z - 0.5) < 2 && Math.abs(p.pos.y - y) < 3) {
+    hurt(5, why === "channel" ? "Your own lightning hit you! Throw from farther away." : "You were struck by lightning! Get under a roof during thunderstorms.", null, false, "lightning");
+    addEffect("fire", 8);
+  }
+}
+G._strike = strike;
+// pick where the next bolt lands
+function updateLightning(dt) {
+  updateBolts(dt);
+  if (G.guest || G.wx.thunder < 0.5 || !weatherHere()) return;
+  if ((boltT -= dt) > 0) return;
+  boltT = 3 + Math.random() * 9;
+  const p = G.player, a = Math.random() * Math.PI * 2, r = 6 + Math.random() * 58;
+  let x = Math.floor(p.pos.x + Math.cos(a) * r), z = Math.floor(p.pos.z + Math.sin(a) * r);
+  const rod = rodNear(x, z);
+  if (rod) { strike(rod.x, rod.y + 1, rod.z, "rod"); return; }
+  if (Math.random() < 0.3) {   // sometimes it finds a creature (or you) standing out in the open nearby
+    const open = ents.near(x, p.pos.y, z, 10, e => !e.def.object && !e.def.boss && skyCols.rainedOn(e.pos.x, e.pos.y + e.h, e.pos.z));
+    if (Math.random() < 0.15 && Math.hypot(p.pos.x - x, p.pos.z - z) < 10 && skyCols.rainedOn(p.pos.x, p.pos.y + 1.8, p.pos.z)) open.push(p);
+    if (open.length) { const t = open[Math.floor(Math.random() * open.length)]; x = Math.floor(t.pos.x); z = Math.floor(t.pos.z); }
+  }
+  const c = skyCols.at(x, z);
+  if (c.kind !== 1 || c.off) { Sound.thunder(80 + Math.random() * 120); return; }   // no rain there (desert, snow): only a far-off rumble
+  strike(x, c.top + 1, z, "storm");
+}
+// Channeling: a trident that hits a creature out in a thunderstorm calls lightning down onto it
+function channelOnto(e) {
+  if (G.wx.thunder < 0.5 || !skyCols.rainedOn(e.pos.x, e.pos.y + e.h, e.pos.z)) return;
+  strike(Math.floor(e.pos.x), Math.floor(e.pos.y), Math.floor(e.pos.z), "channel");
+  G.adv?.("channel");
+}
+
+// ---------- Milestone 19, Part C: snow and ice ----------
+// A few random spots near you get a look every quarter second (like Minecraft's random ticks): in cold places snow
+// piles up while it snows and open water freezes over; ice and snow next to a bright light (torch, lantern, glowstone)
+// melt; rain fills cauldrons. Placing a bright light also checks for ice and snow around it.
+const MELTS = new Set([B.ICE, B.SNOW_LAYER]);
+const NO_SNOW_ON = new Set([B.ICE, B.PACKED_ICE, B.BLUE_ICE, B.FROSTED_ICE, B.FARMLAND, B.SNOW_LAYER]);
+let snowTickT = 0, cauldronT = 0;
+const meltChecks = [], meltLater = [];
+function blockLightNear(x, y, z) {   // the brightest torchlight touching a block
+  let m = 0;
+  for (const [a, b, c] of SIX) { const L = G.world.lightAt(x + a, y + b, z + c); if (L && L[1] > m) m = L[1]; }
+  return m;
+}
+function meltBlock(x, y, z) {
+  const w = G.world, id = w.id(x, y, z);
+  if (id === B.ICE) { w.set(x, y, z, G.world.gen.isNether() ? B.AIR : B.WATER); FL.wake(x, y, z); G.adv?.("melt"); }
+  else if (id === B.SNOW_LAYER) w.set(x, y, z, B.AIR);
+}
+function queueMeltCheck(x, y, z) { meltChecks.push({ x, y, z, t: 1.5 }); if (meltChecks.length > 30) meltChecks.shift(); }   // after the light has spread
+G._meltCheck = queueMeltCheck;
+function forPlaced(id, x, z, reach, fn) {   // blocks a player placed (they're all in the change list) near (x, z)
+  const w = G.world, cx0 = Math.floor(x / CHUNK), cz0 = Math.floor(z / CHUNK), R = Math.ceil(reach / CHUNK);
+  for (let cx = cx0 - R; cx <= cx0 + R; cx++) for (let cz = cz0 - R; cz <= cz0 + R; cz++) {
+    const m = w.mods.get(cx + "," + cz);
+    if (m) for (const [i, v] of m) if (idOf(v) === id) fn(cx * CHUNK + (i % CHUNK), Math.floor(i / (CHUNK * CHUNK)), cz * CHUNK + Math.floor(i / CHUNK) % CHUNK, v);
+  }
+}
+function canSnowOn(id) { return !NO_SNOW_ON.has(id) && (OPAQUE[id] || isLeaf(id)); }
+function updateSnowAndIce(dt) {
+  if (G.guest || !G.world) return;
+  const w = G.world;
+  for (let i = meltChecks.length - 1; i >= 0; i--) {
+    const m = meltChecks[i];
+    if ((m.t -= dt) > 0) continue;
+    meltChecks.splice(i, 1);
+    for (let dx = -4; dx <= 4; dx++) for (let dy = -4; dy <= 4; dy++) for (let dz = -4; dz <= 4; dz++) {
+      const x = m.x + dx, y = m.y + dy, z = m.z + dz;
+      if (MELTS.has(w.id(x, y, z))) meltLater.push({ x, y, z, t: 1 + Math.random() * 8, tries: 3 });   // the light may still be spreading: look again a few times
+    }
+  }
+  for (let i = meltLater.length - 1; i >= 0; i--) {
+    const m = meltLater[i];
+    if ((m.t -= dt) > 0) continue;
+    if (blockLightNear(m.x, m.y, m.z) > 11) { meltLater.splice(i, 1); meltBlock(m.x, m.y, m.z); }
+    else if (--m.tries <= 0) meltLater.splice(i, 1); else m.t = 2;
+  }
+  if (meltLater.length > 400) meltLater.length = 400;
+  if (!weatherHere()) return;
+  const p = G.player, falling = G.wx.rain > 0.5;
+  if (falling && (cauldronT -= dt) <= 0) {   // rain slowly fills cauldrons out in the open
+    cauldronT = 2;
+    forPlaced(B.CAULDRON, p.pos.x, p.pos.z, 48, (x, y, z, v) => {
+      if ((metaOf(v) & 3) < 3 && Math.random() < 1 / 8 && w.get(x, y, z) === v && skyCols.rainedOn(x + 0.5, y + 1, z + 0.5)) w.set(x, y, z, make(B.CAULDRON, (metaOf(v) & 3) + 1));
+    });
+  }
+  if ((snowTickT -= dt) > 0) return;
+  snowTickT = 0.25;
+  for (let i = 0; i < 14; i++) {
+    const x = Math.floor(p.pos.x + (Math.random() * 2 - 1) * 48), z = Math.floor(p.pos.z + (Math.random() * 2 - 1) * 48);
+    const c = skyCols.at(x, z);
+    if (c.off || c.top < 1) continue;
+    const y = c.top, id = w.id(x, y, z);
+    if (MELTS.has(id) && blockLightNear(x, y, z) > 11) { meltBlock(x, y, z); continue; }
+    if (c.kind !== 2) continue;   // only cold places freeze and get snow
+    if (id === B.WATER && isSource(w.get(x, y, z)) && blockLightNear(x, y, z) < 10 &&
+        SIX.some(([a, , b]) => (a || b) && w.isLoaded(x + a, z + b) && w.id(x + a, y, z + b) !== B.WATER)) { w.set(x, y, z, B.ICE); continue; }   // water freezes over from the edges
+    if (falling && canSnowOn(id) && w.id(x, y + 1, z) === B.AIR && blockLightNear(x, y + 1, z) < 10) w.set(x, y + 1, z, B.SNOW_LAYER);
+  }
+}
+
+// what sleeping does to the sky: the weather clears for half a day or more
+function sleepClearsWeather() {
+  const wet = G.wx.rain > 0.05;
+  G.meta.wxClear = worldSeconds() + DAY_LENGTH * (0.5 + Math.random() * 0.75);
+  G.meta.wxSet = null;
+  return wet;
+}
+G.sleepClearsWeather = sleepClearsWeather;
+// Part D: the Creative weather buttons set the sky for one day
+G.setWeather = kind => {
+  if (!G.creative || G.guest || G.dim !== "overworld" || !["clear", "rain", "thunder"].includes(kind)) return;
+  const now = worldSeconds();
+  G.meta.wxSet = { kind, at: now, until: now + DAY_LENGTH }; G.meta.wxClear = 0;
+  if (G.wset.weather === false) { G.wset.weather = true; const c = document.getElementById("pWeather"); if (c) c.checked = true; }
+  UI.toast(kind === "clear" ? "The sky clears." : kind === "rain" ? "It starts to rain." : "A thunderstorm rolls in!");
+};   // Play Together uses it too
+
 // ---------- sky ----------
 // Surface sky swatches are in display space, like the terrain atlas used by the custom shader.
 const skySwatch = hex => new THREE.Color().setHex(hex, THREE.LinearSRGBColorSpace);
@@ -6251,7 +6511,9 @@ function updateSky() {
   uniforms.ambient.value = 0.11;
   const a = G.time * Math.PI * 2, h = Math.sin(a);       // h: height of the sun (−1..1)
   const day = Math.min(1, Math.max(0, h * 2.2 + 0.35));
-  const daylight = 0.22 + 0.78 * day;                      // nights stay dim, not pitch black
+  let daylight = 0.22 + 0.78 * day;                      // nights stay dim, not pitch black
+  const wet = G.dim === "overworld" ? G.wx.rain : 0, storm = G.dim === "overworld" ? G.wx.thunder : 0;   // Milestone 19: clouds over the sun
+  if (wet) daylight = Math.max(Math.min(daylight, 0.17), daylight * (1 - 0.2 * wet - 0.45 * storm));
   uniforms.daylight.value = daylight;
   skyCol.copy(SKY_NIGHT).lerp(SKY_DAY, day);
   const dusk = Math.max(0, 1 - Math.abs(h) * 4) * (day > 0.05 ? 1 : 0.4);
@@ -6284,6 +6546,10 @@ function updateSky() {
     const near = Math.min(24, range * 0.38), far = Math.min(67, range - 2);
     G.fwFog = [range * 0.67 * (1 - villageMist) + near * villageMist, (range - 2) * (1 - villageMist) + far * villageMist];
   }
+  if (wet && !p.headInWater) {   // Milestone 19: a gray, rainy sky that closes in a little
+    skyCol.lerp(wxTint.copy(RAIN_SKY).multiplyScalar(0.22 + 0.78 * day), wet * 0.72).multiplyScalar(1 - 0.38 * storm);
+    if (!G.fwFog) { const range = G.settings.renderDist * CHUNK; G.fwFog = [range * (0.67 - 0.32 * wet), (range - 2) * (1 - 0.18 * wet)]; }
+  }
   scene.background = skyCol; uniforms.fogColor.value.copy(skyCol);
   const cam = camera.position, R = 80;
   if (surfaceSky.visible) {
@@ -6294,12 +6560,14 @@ function updateSky() {
     if (stormStage) sky.zenith.value.lerp(skyCol, stormStage * 0.22);
     else if (badlandsAsh) sky.zenith.value.lerp(skyCol, badlandsAsh * 0.48);
     else if (villageMist > 0) sky.zenith.value.lerp(skyCol, villageMist * 0.62);
-    sky.cloudLight.value = day;
+    if (wet) sky.zenith.value.lerp(skyCol, wet * 0.75);
+    sky.cloudLight.value = day * (1 - 0.6 * wet);
     sky.cloudDrift.value = G.settings.reducedMotion ? 0 : G.clock * 0.52;
   }
   sun.position.set(cam.x + Math.cos(a) * R, cam.y + Math.sin(a) * R, cam.z + 18); sun.lookAt(cam);
   moon.position.set(cam.x - Math.cos(a) * R, cam.y - Math.sin(a) * R, cam.z - 18); moon.lookAt(cam);
-  stars.position.copy(cam); stars.material.opacity = Math.max(0, 1 - day * 1.6);
+  stars.position.copy(cam); stars.material.opacity = Math.max(0, 1 - day * 1.6) * (1 - wet);
+  if (wet > 0.6) sun.visible = moon.visible = false;   // hidden behind the rain clouds
   stars.visible = stars.material.opacity > 0.02;
   return daylight;
 }
@@ -6731,7 +6999,10 @@ function loop(now) {
   festivals.update(dt);
   if (running) raids.update(dt);
   if (running) updateSandsDiscovery(dt);
+  updateWeather(dt, running);   // Milestone 19
+  if (running) { updateLightning(dt); updateSnowAndIce(dt); } else updateBolts(0);
   const daylight = updateSky();
+  applyFlash(dt);
   if (G.effects.conduit && G.player.headInWater) uniforms.ambient.value = Math.max(uniforms.ambient.value, 0.75);   // Conduit Power lights up the water
   if (G.effects.nightVision) uniforms.ambient.value = Math.max(uniforms.ambient.value, G.effects.nightVision < 10 && Math.floor(G.effects.nightVision * 4) % 2 ? 0.35 : 0.85);   // Night Vision (flickers in its last 10 s)
   (echoholdAtmosphere ||= (G._echoAtmo = createEchoholdAtmosphere({ THREE, scene, camera, G, emitParticle, fog: uniforms }))).update(running ? dt : 0);
@@ -6916,7 +7187,7 @@ UI.show("title");
 requestAnimationFrame(loop);
 const GC = initGodzillaFight({ G, ents, scene, Sound, UI, saveNow, hurt });
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { updateSnowAndIce, meltBlock, queueMeltCheck, strike, rodNear, lightningHit, weatherAt, nextWeather, skyCols, wxView: () => wxView, updateWeather, R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
 G._test.obsidianWarningReview = obsidianWarningReview;
 G._test.ancientWarningReview = ancientWarningReview;
 G._test.ancientArrivalReview = ancientArrivalReview;

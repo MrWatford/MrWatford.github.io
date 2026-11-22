@@ -38,7 +38,7 @@ This is about 8 milestones of work. As always, each one is built and tested in t
 | 4 ✔ built 2026-11-21 (all 3 parts) | **16: Brewing and potions** | Brewing Stand, Cauldron, sugar cane and melons as real plants, ~15 potions + longer/stronger versions, splash and lingering potions, ~10 new status effects, recipe guide | Large |
 | 5 ✔ built 2026-11-21 (all 5 parts, PUBLISHED 2026-11-21) | **17: Ocean extras** | Prismarine blocks, Sea Lanterns, Ocean Monuments with Guardians, shipwrecks, ocean ruins, treasure maps and buried treasure, coral reefs, sponges, Conduits, fish in buckets, Splashers leading you to treasure | Large |
 | 6 ✔ built 2026-11-21 (all 4 parts, PUBLISHED 2026-11-21) | **18: The world, part 1** | Flowing water and lava, water + lava makes cobblestone/stone/obsidian, falling sand and gravel, fire spreading (with a setting), leaf decay, plants that need support, crops needing water, waterlogging | Large |
-| 7 | **19: The world, part 2** | Rain, snow, thunderstorms, lightning and its creature changes, snow building up, freezing and melting, sleeping through storms | Medium |
+| 7 ✔ built 2026-11-22 (all 4 parts, not published) | **19: The world, part 2** | Rain, snow, thunderstorms, lightning and its creature changes, snow building up, freezing and melting, sleeping through storms | Medium |
 | 8 ✔ built 2026-11-21 (all 5 parts, PUBLISHED 2026-11-21, PR #30) | **20: The world, part 3** | New biomes (swamps, savannas, badlands, cherry groves, dark forests, snowy plains, mushroom islands, deep oceans, lush caves, dripstone caves) in **unexplored land only** | Large |
 
 ## 3. Things to know before we start
@@ -306,3 +306,34 @@ Today water and lava never move: a hole next to water instantly fills with a ful
 - 7 achievements in a new "The World" tab, a "The World" Journal chapter, and a "Water and lava flow" world option next to "Fire spreads".
 - Speed: a 2,605-block flood ran smoothly on a Mac; still to try on a school Chromebook.
 - **Next in the plan:** Milestones 19 (weather), 21–24.
+
+---
+
+## 11. Milestone 19: The world, part 2 (started 2026-11-22)
+
+Today the Surface world has no weather (only the desert sandstorm). This milestone adds rain, snow, thunderstorms, and lightning.
+
+### 11.1 Parts
+
+| Part | What it adds |
+|---|---|
+| **A** | **Rain, snow, and thunderstorms**: a gray sky, rain or snow depending on the biome (none in deserts), rain sounds, thunder rumbles, rain putting out fires and burning creatures, undead not burning in the rain, sleeping through storms |
+| **B** | **Lightning**: bolts during thunderstorms that light fires and hurt; lightning changing creatures (Minecraft's charged creepers, pigs turning into zombified piglins, villagers into witches, and similar, using Blockhaven's own creatures); the Channeling trident; a Lightning Rod |
+| **C** | **Snow and ice**: snow building up in cold places, water freezing into ice, ice and snow melting near torches, cauldrons filling in the rain, rain watering farmland |
+| **D** | A Journal page, achievements, a "Weather changes" world option, Creative weather buttons, and a speed check |
+
+### 11.2 Part A done (2026-11-22, not published)
+- Rain, snow, and thunderstorms with a gray sky, sounds, rain putting out fires, and sleeping through storms.
+- **Next:** Part B (lightning).
+
+### 11.3 Part B done (2026-11-22, not published)
+- Lightning bolts with a sky flash and thunder, fires on Normal and Hard, 5 damage, Pig → Rotboar, Villager → Witch, charged Hissers, the Lightning Rod (3 Iron Ingots, since Blockhaven has no copper), and Channeling.
+- **Next:** Part C (snow building up, freezing and melting, cauldrons and farmland in the rain).
+
+### 11.4 Part C done (2026-11-22, not published)
+- Snow piling up in cold places, water freezing over, ice and snow melting near bright lights, cauldrons filling in the rain, and rain watering farmland.
+- **Next:** Part D (Journal page, achievements, a "Weather changes" world option, Creative weather buttons).
+
+### 11.5 Part D done: Milestone 19 complete (2026-11-22, not published)
+- 8 weather achievements, 3 Journal pages (Weather, Lightning, Snow and ice), a "Weather changes" world option, and Creative weather buttons.
+- **Next in the plan:** publish Milestone 19, then Milestones 21–24.

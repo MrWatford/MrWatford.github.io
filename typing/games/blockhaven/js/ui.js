@@ -66,7 +66,7 @@ export const UI = {
     $("newForm").onsubmit = e => {
       e.preventDefault(); Sound.start();
       const mode = document.querySelector("input[name=mode]:checked").value;
-      const settings = { difficulty: $("nwDiff").value, griefing: $("nwGrief").checked, keepInv: $("nwKeep").checked, fireSpread: $("nwFire") ? $("nwFire").checked : true, liquidFlow: $("nwFlow") ? $("nwFlow").checked : true };
+      const settings = { difficulty: $("nwDiff").value, griefing: $("nwGrief").checked, keepInv: $("nwKeep").checked, fireSpread: $("nwFire") ? $("nwFire").checked : true, liquidFlow: $("nwFlow") ? $("nwFlow").checked : true, weather: $("nwWeather") ? $("nwWeather").checked : true };
       const lostWorldCampaign = terrain?.value === "lost_world_campaign";
       const lostWorld = lostWorldCampaign || terrain?.value === "lost_world";
       const go = () => G.newWorld({ name: $("nwName").value.trim() || (lostWorld ? "The Lost World" : "My World"), seed: $("nwSeed").value.trim() || String(Math.floor(Math.random() * 1e9)), mode, settings, lostWorld, lostWorldCampaign });
@@ -104,6 +104,8 @@ export const UI = {
     $("pKeep").onchange = e => { G.wset.keepInv = e.target.checked; };
     if ($("pFire")) $("pFire").onchange = e => { G.wset.fireSpread = e.target.checked; };   // Milestone 18
     if ($("pFlow")) $("pFlow").onchange = e => { G.wset.liquidFlow = e.target.checked; };
+    if ($("pWeather")) $("pWeather").onchange = e => { G.wset.weather = e.target.checked; };   // Milestone 19
+    document.querySelectorAll("[data-wx]").forEach(b => b.onclick = () => { Sound.click(); G.setWeather?.(b.dataset.wx); });
     // inventory screen mouse handling
     const panel = $("panel");
     panel.addEventListener("mousedown", e => this.slotMouse(e));
@@ -119,7 +121,7 @@ export const UI = {
     $("hud").hidden = !(name === "none" || name === "panel" || name === "pause" || name === "death" || (name === "together" && !!G.world));
     if (name === "title") paintTitleScene();
     Cinema.setActive(name === "title");
-    if (name === "pause" && G.wset) { const hc = !!(G.meta && G.meta.hardcore); $("pDiff").value = G.wset.difficulty; $("pMode").value = G.mode === "creative" ? "creative" : "survival"; $("pMode").disabled = hc || G.spectator; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; if ($("pFire")) $("pFire").checked = G.wset.fireSpread !== false; if ($("pFlow")) $("pFlow").checked = G.wset.liquidFlow !== false; $("pDiff").disabled = $("pKeep").disabled = hc; $("hcNote").hidden = !hc; }
+    if (name === "pause" && G.wset) { const hc = !!(G.meta && G.meta.hardcore); $("pDiff").value = G.wset.difficulty; $("pMode").value = G.mode === "creative" ? "creative" : "survival"; $("pMode").disabled = hc || G.spectator; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; if ($("pFire")) $("pFire").checked = G.wset.fireSpread !== false; if ($("pFlow")) $("pFlow").checked = G.wset.liquidFlow !== false; if ($("pWeather")) $("pWeather").checked = G.wset.weather !== false; if ($("pWxRow")) $("pWxRow").hidden = !G.creative || !!G.guest || G.dim !== "overworld"; $("pDiff").disabled = $("pKeep").disabled = hc; $("hcNote").hidden = !hc; }
     if (G.onShow) G.onShow(name);   // Play Together updates its screen and the pause menu
   },
   get current() { return current; },

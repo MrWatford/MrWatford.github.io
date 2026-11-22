@@ -4,6 +4,7 @@ import { createMenuTheme, createBossScore } from "./epic-score.js";
 // Small sound effects made on the fly with the Web Audio API (no sound files needed).
 let ctx = null, master = null, noiseBuf = null, volume = 0.6, muted = false;
 let wind = null;
+let rainLoop = null;   // Milestone 19: steady rain
 let ancientScore = null;
 let ancientMusicState = null;
 let calmScore = null, musicLevel = 0.5, menuTheme = null, bossScore = null, lastError = "", musicBroken = false;   // after a music error, stop retrying every frame
@@ -106,6 +107,39 @@ export const Sound = {
     wind.stage = stage;
     wind.filter.frequency.setTargetAtTime(220 + stage * 130, ctx.currentTime, 0.18);
     wind.gain.gain.setTargetAtTime(0.025 + stage * 0.024, ctx.currentTime, 0.18);
+  },
+
+  // Milestone 19: rain on the ground around you (level 0-1). Indoors it sounds muffled.
+  rain(level, muffled = false) {
+    if (!ctx) return;
+    if (level < 0.02) {
+      if (!rainLoop) return;
+      rainLoop.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.3);
+      const old = rainLoop; rainLoop = null;
+      setTimeout(() => { try { old.source.stop(); old.source.disconnect(); old.filter.disconnect(); old.gain.disconnect(); } catch (e) { /* already stopped */ } }, 1500);
+      return;
+    }
+    if (ctx.state !== "running") return;
+    if (!rainLoop) {
+      const source = ctx.createBufferSource(), filter = ctx.createBiquadFilter(), gain = ctx.createGain();
+      source.buffer = noiseBuf; source.loop = true; source.playbackRate.value = 0.9;
+      filter.type = "lowpass"; filter.Q.value = 0.4; filter.frequency.value = 3000;
+      gain.gain.value = 0;
+      source.connect(filter); filter.connect(gain); gain.connect(master);
+      source.start();
+      rainLoop = { source, filter, gain };
+    }
+    rainLoop.filter.frequency.setTargetAtTime(muffled ? 700 : 3200, ctx.currentTime, 0.25);
+    rainLoop.gain.gain.setTargetAtTime(level * (muffled ? 0.05 : 0.085), ctx.currentTime, 0.25);
+  },
+  // a thunderclap: close ones crack first, far ones only rumble
+  thunder(dist = 60) {
+    const k = Math.max(0.25, 1 - dist / 220), delay = Math.min(2500, dist * 8);
+    setTimeout(() => {
+      if (dist < 40) this.noise(1800, 0.35, 0.5 * k, 0.5, "highpass");
+      this.noise(70, 3.2, 0.9 * k, 0.6, "lowpass");
+      setTimeout(() => this.noise(140, 2.4, 0.55 * k, 0.6, "lowpass"), 220);
+    }, delay);
   },
 
   noise(freq, dur, gain = 0.5, q = 1, type = "bandpass") {

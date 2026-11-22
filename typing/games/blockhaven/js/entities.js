@@ -1751,6 +1751,7 @@ export class Entity {
     if (this.def.invSize) { const sl = new Array(this.def.invSize).fill(null); (opts.inv || []).forEach((q, i) => { if (i < sl.length) sl[i] = q; }); this.inv = { type: "chest", slots: sl }; }
     this.leash = opts.leash || null; this.harmor = opts.harmor || 0; this.portalCd = opts.portalCd || 0;   // Milestone 14: lead, Trotter armor, portal rest
     this.fuel = opts.fuel || 0; this.pushX = opts.pushX || 0; this.pushZ = opts.pushZ || 0; this.riderUid = opts.riderUid || null; this.fuseT = opts.fuseT || 0; this.hopperOff = !!opts.hopperOff;
+    this.charged = !!opts.charged;   // Milestone 19: a Hisser struck by lightning
   }
   get maxHp() { if (this.sp === "grizzly_bear") return this.baby ? 50 : this.variant === 1 ? 365 : this.def.hp; if (this.baby && this.def.babyHp) return this.def.babyHp; if (this.mutHp) return this.mutHp; if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
   get wildlifeSize() { return this.sp === "grizzly_bear" && this.variant === 1 ? 1.08 : 1; }
@@ -1775,6 +1776,7 @@ export class Entity {
       ...(this.leash ? { leash: this.leash } : {}), ...(this.harmor ? { harmor: this.harmor } : {}), ...(this.portalCd > 0 ? { portalCd: Math.round(this.portalCd), persist: true } : {}),
       ...(this.def.expansion ? { bestiary: { ...this.bestiary, charge: 0, bounceUntil: 0 }, persist: this.persist } : {}),
       ...(this.den && this.sp === "grizzly_bear" ? { den: true } : {}),
+      ...(this.charged ? { charged: true } : {}),
       variant: this.variant, trust: this.trust, held: this.held, pollen: this.pollen, inHive: this.inHive, stung: this.stung,
       ...(this.def.cart || this.inv ? { inv: this.inv ? this.inv.slots.map(q => q && { ...q }) : undefined, fuel: Math.round(this.fuel), pushX: this.pushX, pushZ: this.pushZ, riderUid: this.riderE && !this.riderE.dead ? this.riderE.uid : null, fuseT: this.fuseT, hopperOff: this.hopperOff } : {}) };
   }
@@ -2484,7 +2486,7 @@ export class Entities {
     else {
       if (e.inLava) { e.burning = 5; if ((e.lavaT = (e.lavaT || 0) - dt) <= 0) { e.lavaT = 0.5; this.damage(e, 4, null); } }
       if (e.fx) this.tickFx(e, dt);
-      if (e.burning > 0) { e.burning -= dt; if (e.inWater) e.burning = 0; if ((e.burnT -= dt) <= 0) { e.burnT = 1; this.damage(e, 1, null); } }
+      if (e.burning > 0) { e.burning -= dt; if (e.inWater || this.ctx.inRain?.(e.pos.x, e.pos.y + e.h, e.pos.z)) e.burning = 0; if ((e.burnT -= dt) <= 0) { e.burnT = 1; this.damage(e, 1, null); } }
     }
     if (e.barterT > 0 && (e.barterT -= dt) <= 0) this.barter(e);
     if (e.pos.y < -10) e.gone = true;
@@ -2662,7 +2664,7 @@ export class Entities {
       return;
     }
     // undead burn in sunlight
-    if (def.burns && daylight > 0.75 && !e.inWater && !e.cpRaid && !e.noBurn) {   // (castle defenders wear helmets too)   // (campaign raiders wear hoods)
+    if (def.burns && daylight > 0.75 && !e.inWater && !e.cpRaid && !e.noBurn && !this.ctx.inRain?.(e.pos.x, e.eyeY, e.pos.z)) {   // (Milestone 19: not in the rain)   // (castle defenders wear helmets too)   // (campaign raiders wear hoods)
       const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.eyeY), Math.floor(e.pos.z));
       if (L && L[0] >= 15) e.burning = Math.max(e.burning || 0, 3);
     }
@@ -2749,7 +2751,7 @@ export class Entities {
       if (d < 2.8 && sees) { if (e.fuse === 0) Sound.mob("fuse", d); e.fuse += 0.15; e.goal = null; }
       else { e.fuse = Math.max(0, e.fuse - 0.15); this.chase(e, tp); }
       if (d > 6) e.fuse = 0;
-      if (e.fuse >= 1.5) { e.gone = true; ctx.explode(e.pos.x, e.pos.y + 0.8, e.pos.z, 3, e); }
+      if (e.fuse >= 1.5) { e.gone = true; ctx.explode(e.pos.x, e.pos.y + 0.8, e.pos.z, e.charged ? 6 : 3, e); }   // Milestone 19: a charged Hisser blasts twice as far
       return;
     }
     if (def.ai === "slime") {
@@ -3703,6 +3705,7 @@ export class Entities {
           if (pr.kind === "arrow") { const l = Math.hypot(pr.vx, pr.vz) || 1, k = 0.5 * (1 + 1.2 * (pr.punch || 0)); this.damage(hitE, pr.dmg, pr.fromPlayer ? "player" : { projectile: true }, { x: pr.vx / l * k, z: pr.vz / l * k }); if (pr.fromPlayer && hitE.sp !== "voidwalker") { hitE.angry = 40; } if (pr.flame && !hitE.def.fireproof) { hitE.burning = Math.max(hitE.burning || 0, 5); if (!(hitE.burnT > 0)) hitE.burnT = 1; } if (pr.tip && !hitE.dead) ctx.tipHit?.(hitE, pr.tip); }   // Punch and Flame (Milestone 15), tipped arrows (16)
           if (pr.kind === "bigfire") { if (pr.fromPlayer && hitE.sp === "wailer") this.damage(hitE, 1000, "player"); ctx.explode(nx, ny, nz, pr.power || 1.3, pr.owner); }
           if (pr.kind === "fireball" && !hitE.def.fireproof) { this.damage(hitE, 5, pr.fromPlayer ? "player" : null); hitE.burning = 4; }
+          if (pr.channeling && pr.fromPlayer) ctx.channeling?.(hitE);   // Milestone 19: Channeling calls lightning in a thunderstorm
           if (pr.tridentLook) { this.tridentLanded(pr); Sound.mob("arrowhit", this.dist(hitE)); break; }   // Milestone 17: a trident drops (or flies home) after a hit
           pr.gone = true; Sound.mob("arrowhit", this.dist(hitE)); break;
         }
@@ -4158,6 +4161,7 @@ export class Entities {
     if (e.fuse > 0 && Math.sin(e.age * 25) > 0) e.mat.color.setRGB(1, 1, 1);
     else if (e.hurtT > 0) e.mat.color.setRGB(1, 0.35 * b, 0.35 * b);
     else if (e.burning > 0) e.mat.color.setRGB(Math.min(1, b * 1.4), b * 0.7, b * 0.4);
+    else if (e.charged) { const g = 0.25 + 0.15 * Math.sin(e.age * 9); e.mat.color.setRGB(b * 0.7 + g * 0.3, b * 0.85 + g * 0.5, Math.min(1.4, b + g)); }   // crackling blue
     else e.mat.color.setScalar(def.godzilla ? Math.max(b, 0.7) : b);
     if (e.heldMesh) e.heldMesh.material.color.setScalar(b);
     if (e.def.mutant) animateMutant(e, dt);
