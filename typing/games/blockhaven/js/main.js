@@ -1,7 +1,7 @@
 // Blockhaven: the game loop, 3D drawing, controls, mining and building, survival rules, and saving.
 import * as THREE from "../lib/three.module.min.js";
 import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
-  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor, isRail, WATERY } from "./blocks.js";
+  buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor, isRail, WATERY, flammable, LEAF_PERSIST, WATERLOGGED, LOGGABLE, isWet } from "./blocks.js";
 import { initRedstone } from "./redstone.js";
 import { selectBox } from "./shapes.js";
 import { Entities, SPECIES, TRADES, lineOfSight } from "./entities.js";
@@ -15,6 +15,7 @@ import { idx, Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRE
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
 import { Player, raycast, blockBoxes, REACH, bubbleColumn } from "./player.js";
+import { initFluids, isSource } from "./fluids.js";
 import { Inventory, newStack, maxStack, OFF } from "./inventory.js";
 import { Sound } from "./audio.js";
 import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.js";
@@ -368,7 +369,7 @@ const G = {
   time: 0.02, selected: 0, swing: 0, walkPhase: 0, stepDist: 0, drops: [], tips: {}, hudDirty: true,
   mining: null, useCooldown: 0, lastSpace: 0, playedSince: 0, autosaveT: 0, debug: false,
   xp: 0, effects: {}, bowT: -1, attackCd: 0, orbs: [], worlds: {}, dim: "overworld", dimData: {},
-  wset: { difficulty: "easy", griefing: true, keepInv: true },
+  wset: { difficulty: "easy", griefing: true, keepInv: true, fireSpread: true, liquidFlow: true },
   voidInv: new Array(27).fill(null),   // personal Void Chest storage (the same in every Void Chest and every dimension)
   elv: {}, absorb: 0, totemGuard: 0, eat: null, blocking: false, useHand: null, stats: {},
   armColor: [0.85, 0.65, 0.49],   // the bare first-person arm color (follows the chosen skin)
@@ -653,10 +654,99 @@ function ignite(x, y, z) {
   if (![B.EMBERRACK, B.MAGMA, B.SOUL_SAND].includes(w.id(x, y - 1, z))) fires.push({ x, y, z, t: 6 + Math.random() * 4 });
   return true;
 }
+// Milestone 18, Part B: fire spreads to things that burn (wood, leaves, wool, hay, dry plants) unless the world's
+// "Fire spreads" option is off. Burning blocks are destroyed (no drops); Blast Blocks catch and go off.
+const SIX = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+const nearFuel = (x, y, z) => SIX.some(([a, b, c]) => flammable(G.world.id(x + a, y + b, z + c)));
+function lightFire(x, y, z) { G.world.set(x, y, z, B.FIRE); fires.push({ x, y, z, t: 4 + Math.random() * 5, spreadT: 0.5 + Math.random() }); }
+function burnBlock(x, y, z) {
+  const w = G.world, id = w.id(x, y, z);
+  if (id === B.TNT) { w.set(x, y, z, B.AIR); primeTNT(x, y, z, 0.5 + Math.random()); return; }
+  if (!flammable(id) || fires.length > 260) return;
+  lightFire(x, y, z); FL.wake(x, y, z);
+}
 function updateFires(dt) {
+  const w = G.world, spread = G.wset.fireSpread !== false && !G.guest && fires.length < 260;
   for (let i = fires.length - 1; i >= 0; i--) {
     const f = fires[i]; f.t -= dt;
-    if (f.t <= 0) { if (G.world.id(f.x, f.y, f.z) === B.FIRE) G.world.set(f.x, f.y, f.z, B.AIR); fires.splice(i, 1); }
+    if (w.id(f.x, f.y, f.z) !== B.FIRE) { fires.splice(i, 1); continue; }   // put out (water, a player)
+    if (spread && (f.spreadT = (f.spreadT ?? 1) - dt) <= 0) {
+      f.spreadT = 0.8 + Math.random() * 0.6;
+      for (const [a, b, c] of SIX) if (Math.random() < (b === 1 ? 0.15 : 0.08)) burnBlock(f.x + a, f.y + b, f.z + c);   // the block beside it catches
+      for (let k = 0; k < 2; k++) {   // flames jump to an empty spot next to something that burns
+        const x = f.x + Math.floor(Math.random() * 3) - 1, y = f.y + Math.floor(Math.random() * 4) - 1, z = f.z + Math.floor(Math.random() * 3) - 1;
+        if (!w.id(x, y, z) && w.isLoaded(x, z) && nearFuel(x, y, z) && Math.random() < 0.25) lightFire(x, y, z);
+      }
+    }
+    if (f.t <= 0) {
+      if (w.id(f.x, f.y, f.z) === B.FIRE) w.set(f.x, f.y, f.z, B.AIR);
+      fires.splice(i, 1);
+      if (spread && flammable(w.id(f.x, f.y - 1, f.z)) && Math.random() < 0.5) burnBlock(f.x, f.y - 1, f.z);   // the block it was burning on finally goes
+    }
+  }
+}
+// Milestone 18, Part B: sand and gravel falling (a moving block that lands where it can)
+const fallers = [];
+function startFall(x, y, z, v) {
+  const mesh = new THREE.Mesh(blockGeometry(idOf(v), 1), new THREE.MeshBasicMaterial({ map: atlasTex }));
+  mesh.position.set(x + 0.5, y + 0.5, z + 0.5); scene.add(mesh);
+  fallers.push({ x, y: y + 0.0, z, v, vy: 0, mesh });
+  if (Math.hypot(G.player.pos.x - x, G.player.pos.z - z) < 24) G.adv("sandfall");
+}
+function updateFallers(dt) {
+  const w = G.world;
+  for (let i = fallers.length - 1; i >= 0; i--) {
+    const f = fallers[i];
+    f.vy = Math.max(-30, f.vy - 26 * dt); const ny = f.y + f.vy * dt, cell = Math.floor(ny), d = blockDef(w.get(f.x, cell, f.z));
+    const blocked = cell <= 0 || (d.solid && !WATERY[idOf(w.get(f.x, cell, f.z))]);
+    if (!blocked) { f.y = ny; f.mesh.position.y = f.y + 0.5; continue; }
+    // land in the block above whatever stopped it
+    const ty = cell + 1, here = w.get(f.x, ty, f.z), hd = blockDef(here);
+    scene.remove(f.mesh); f.mesh.material.dispose(); fallers.splice(i, 1);
+    if (idOf(here) === B.AIR || WATERY[idOf(here)] || idOf(here) === B.LAVA || hd.replaceable || (!hd.solid && ["cross", "torch", "crop"].includes(hd.shape))) {
+      if (idOf(here) && !WATERY[idOf(here)] && idOf(here) !== B.LAVA && !hd.replaceable) breakBlock(f.x, ty, f.z, true, true);
+      w.set(f.x, ty, f.z, f.v); FL.wake(f.x, ty, f.z);
+      Sound.place(MATERIAL(idOf(f.v)));
+    } else spawnDrop(idOf(f.v), 1, f.x + 0.5, ty + 0.5, f.z + 0.5);   // landed on a torch or a slab: it breaks into an item
+  }
+}
+// Milestone 18, Part B: leaves with no log within reach drop away a few at a time after the tree is cut
+// (only leaves that grew naturally; leaves a player placed stay forever)
+const leafChecks = new Map();
+const isLeaf = id => BLOCKS[id]?.drops === "leaves";
+const isLog = id => id === B.LOG || id === B.BIRCH_LOG || !!BLOCKS[id]?.log;
+function queueLeafDecay(x, y, z) {
+  const w = G.world;
+  for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) for (let c = -6; c <= 6; c++) {
+    const v = w.get(x + a, y + b, z + c);
+    if (isLeaf(idOf(v)) && !(metaOf(v) & LEAF_PERSIST)) { const k = (x + a) + "," + (y + b) + "," + (z + c); if (!leafChecks.has(k)) leafChecks.set(k, 1 + Math.random() * 8); }
+  }
+}
+function leafHeld(x, y, z) {   // is there a log within 5 steps, going through leaves?
+  const w = G.world, seen = new Set([x + "," + y + "," + z]);
+  let edge = [[x, y, z]];
+  for (let d = 0; d < 5 && edge.length; d++) {
+    const next = [];
+    for (const [px, py, pz] of edge) for (const [a, b, c] of SIX) {
+      const nx = px + a, ny = py + b, nz = pz + c, k = nx + "," + ny + "," + nz;
+      if (seen.has(k)) continue; seen.add(k);
+      const id = w.id(nx, ny, nz);
+      if (isLog(id)) return true;
+      if (isLeaf(id)) next.push([nx, ny, nz]);
+    }
+    edge = next;
+  }
+  return false;
+}
+function updateLeafDecay(dt) {
+  if (!leafChecks.size || G.guest) return;
+  let n = 0;
+  for (const [k, t] of leafChecks) {
+    if (t - dt > 0) { leafChecks.set(k, t - dt); continue; }
+    leafChecks.delete(k);
+    const [x, y, z] = k.split(",").map(Number), v = G.world.get(x, y, z);
+    if (isLeaf(idOf(v)) && !(metaOf(v) & LEAF_PERSIST) && !leafHeld(x, y, z)) { breakBlock(x, y, z, true, true); G.adv("leafdecay"); }
+    if (++n > 30) break;
   }
 }
 
@@ -1774,7 +1864,16 @@ function tickCrops(dt) {
     const [x, y, z] = key.split(",").map(Number);
     if (!w.isLoaded(x, z)) continue;
     const v = w.get(x, y, z), id = idOf(v);
+    if (id === B.FARMLAND) {   // Milestone 18: bare farmland dries out, then turns back into dirt without water nearby
+      const above = w.id(x, y + 1, z);
+      if (above && above !== B.AIR && BLOCKS[above]?.shape === "crop") { soilWater(x, y, z); continue; }
+      if (hydrate(x, y, z)) { soilWater(x, y, z); continue; }
+      if (metaOf(v) & WET) { if (Math.random() < 1 / 20) w.set(x, y, z, make(B.FARMLAND, 0)); }
+      else if (Math.random() < 1 / 40) { w.set(x, y, z, B.DIRT); w.crops.delete(key); }
+      continue;
+    }
     if (id === B.MELON_STEM) {   // Milestone 16: grows like wheat, then keeps making melons on the ground beside it
+      soilWater(x, y - 1, z);
       const stage = metaOf(v) & 7, soil = w.get(x, y - 1, z), wet = idOf(soil) === B.FARMLAND && (metaOf(soil) & WET);
       if (stage < 7) { if (Math.random() < (wet ? 1 / 12 : 1 / 30)) w.set(x, y, z, make(B.MELON_STEM, stage + 1)); continue; }
       const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -1786,6 +1885,7 @@ function tickCrops(dt) {
     if (id === B.WHEAT || id === B.CARROTS) {
       const stage = metaOf(v) & 7;
       if (stage >= 7) { w.crops.delete(key); continue; }
+      soilWater(x, y - 1, z);   // Milestone 18: the farmland under it dries out or gets wet again
       const soil = w.get(x, y - 1, z), wet = idOf(soil) === B.FARMLAND && (metaOf(soil) & WET);
       if (Math.random() < (wet ? 1 / 12 : 1 / 30)) w.set(x, y, z, make(id, stage + 1));
     } else if (id === B.SAPLING) { if (Math.random() < 1 / 90) growTree(x, y, z, metaOf(v) & 1); }
@@ -1868,9 +1968,17 @@ function soakUp(x, y, z) {
   Sound.splash(); G.adv("sponge", n);
   UI.toast(`The Sponge soaked up ${n} block${n === 1 ? "" : "s"} of water.`);
 }
+// Milestone 18: set a farmland block wet or dry depending on water within 4 blocks
+function soilWater(x, y, z) {
+  const w = G.world, v = w.get(x, y, z);
+  if (idOf(v) !== B.FARMLAND) return;
+  const wet = hydrate(x, y, z), has = !!(metaOf(v) & WET);
+  if (wet && !has) w.set(x, y, z, make(B.FARMLAND, WET), true);
+  else if (!wet && has && Math.random() < 1 / 20) w.set(x, y, z, make(B.FARMLAND, 0), true);
+}
 function hydrate(x, y, z) {   // farmland near water stays wet
   const w = G.world;
-  for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if (w.id(x + dx, y, z + dz) === B.WATER || w.id(x + dx, y + 1, z + dz) === B.WATER) return true;
+  for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if (isWet(w.get(x + dx, y, z + dz)) || isWet(w.get(x + dx, y + 1, z + dz))) return true;
   return false;
 }
 function growTree(x, y, z, birch) {
@@ -2144,7 +2252,7 @@ async function startWorld(save) {
   G.dimData = save.dims || { overworld: { mods: save.mods || {}, containers: save.containers || [] } };
   G.journalTab = save.lostWorldGen ? "expedition" : G.journalTab;
   G.dim = (save.player && save.player.dim) || worldHome(save);
-  G.wset = { difficulty: "easy", griefing: true, keepInv: true, ...(save.settings || {}) };
+  G.wset = { difficulty: "easy", griefing: true, keepInv: true, fireSpread: true, liquidFlow: true, ...(save.settings || {}) };
   G.xp = save.xp || 0; G.effects = {}; G.elv = {}; G.absorb = 0; G.eat = null; G.blocking = false; G.bowT = -1; G.totemGuard = 0;
   G.voidInv = Array.from({ length: 27 }, (_, i) => (save.voidInv && save.voidInv[i] && itemDef(save.voidInv[i].id) ? { ...save.voidInv[i] } : null));
   Adv.load(save.adv); G.story = save.story || {}; G.stats = save.stats || {};
@@ -2532,7 +2640,7 @@ function wearTool(stack, n) {
   }
   G.hudDirty = true;
 }
-const water = (x, y, z) => !!WATERY[G.world.id(x, y, z)];   // Milestone 17: water plants count as water
+const water = (x, y, z) => isWet(G.world.get(x, y, z));   // Milestone 17: water plants count as water (18: and waterlogged fences)
 function breakBlock(x, y, z, drops, quiet) {
   if (!quiet) R.beforeBreak(x, y, z, (heldTool() || {}).type);   // shears cut a tripwire without setting it off
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
@@ -2569,7 +2677,7 @@ function breakBlock(x, y, z, drops, quiet) {
     // simple water rule: a hole next to water fills with water
     const wet = water(x, y + 1, z) || water(x + 1, y, z) || water(x - 1, y, z) || water(x, y, z + 1) || water(x, y, z - 1);
     const silkIce = id === B.ICE && heldTool() && EN.lvl(heldTool().stack, "silk_touch");
-    w.set(x, y, z, wet || d.aquatic || id === B.FROSTED_ICE || (id === B.ICE && !silkIce && !G.creative) ? B.WATER : B.AIR);   // Milestone 17: a broken water plant leaves its water   // broken ice melts into water   // Frosted Ice turns back into water
+    w.set(x, y, z, (wet && !FL.active()) || d.aquatic || (LOGGABLE[id] && metaOf(v) & WATERLOGGED) || id === B.FROSTED_ICE || (id === B.ICE && !silkIce && !G.creative) ? B.WATER : B.AIR);   // Milestone 17: a broken water plant leaves its water   // broken ice melts into water   // Frosted Ice turns back into water
   }
   if (!quiet) { Sound.breakBlock(MATERIAL(id)); burst(x, y, z, v, 16); }
   if (!G.creative && drops) {
@@ -2621,10 +2729,12 @@ function breakBlock(x, y, z, drops, quiet) {
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
   if ((id === B.BEE_NEST || id === B.BEEHIVE) && !G.creative && !torchNear(x, y, z)) { ents.angerBees(x, y, z); UI.toast("You broke the bees' home, and now they're angry!", "bad"); }
-  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH, B.SUGAR_CANE, B.MELON_STEM, B.SNOW_LAYER, B.PINK_PETALS, B.DEAD_BUSH, B.CACTUS, B.BAMBOO, B.MOSS_CARPET].includes(aid) || (aid === B.POINTED_DRIPSTONE && !(metaOf(above) & 1)) || BLOCKS[aid]?.tree || (BLOCKS[aid]?.aquatic && !BLOCKS[aid].floats) || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH, B.SUGAR_CANE, B.MELON_STEM, B.SNOW_LAYER, B.PINK_PETALS, B.DEAD_BUSH, B.CACTUS, B.BAMBOO, B.MOSS_CARPET, B.SIGN, B.TURTLE_EGG].includes(aid) || (aid === B.POINTED_DRIPSTONE && !(metaOf(above) & 1)) || BLOCKS[aid]?.tree || (BLOCKS[aid]?.aquatic && !BLOCKS[aid].floats) || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
   if (aid === B.FIRE) w.set(x, y + 1, z, B.AIR);
+  [[0, 1], [1, 0], [0, -1], [-1, 0]].forEach(([dx, dz], f) => { const c = w.get(x - dx, y, z - dz); if (idOf(c) === B.COCOA && (metaOf(c) & 3) === f) breakBlock(x - dx, y, z - dz, true, quiet); });   // Milestone 18: cocoa pods fall off their log
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
-  if (id === B.LOG || id === B.BIRCH_LOG || d.log) tipDone("chop");
+  if (id === B.LOG || id === B.BIRCH_LOG || d.log) { tipDone("chop"); if (!G.guest) queueLeafDecay(x, y, z); }   // Milestone 18: leaves drop away
+  FL.wake(x, y, z);   // Milestone 18: water or lava next to the hole flows in
   G.hudDirty = true;
 }
 
@@ -3036,7 +3146,7 @@ function useWith(offhand) {
   if (sd.tool && sd.tool.type === "hoe") {
     if ((hitId === B.GRASS || hitId === B.DIRT) && hit.ny === 1 && !SOLID[w.id(hit.x, hit.y + 1, hit.z)]) {
       if (w.id(hit.x, hit.y + 1, hit.z)) breakBlock(hit.x, hit.y + 1, hit.z, true);
-      w.set(hit.x, hit.y, hit.z, make(B.FARMLAND, hydrate(hit.x, hit.y, hit.z) ? WET : 0)); Sound.place("soft"); wearTool(slot, 1); G.swing = 0.01;
+      w.set(hit.x, hit.y, hit.z, make(B.FARMLAND, hydrate(hit.x, hit.y, hit.z) ? WET : 0)); w.crops.add(hit.x + "," + hit.y + "," + hit.z); Sound.place("soft"); wearTool(slot, 1); G.swing = 0.01;   // (Milestone 18: tracked so it can dry out)
       G.adv("till"); return true;
     }
     return false;
@@ -3090,7 +3200,8 @@ function useWith(offhand) {
   if (here && here !== B.WATER && !BLOCKS[here].replaceable) return false;
   const id = slot.id === I.SPARKDUST ? B.SPARK_DUST : slot.id === I.STRING ? B.TRIPWIRE : slot.id, d = BLOCKS[id];
   let v = make(id);
-  if (id === B.POINTED_DRIPSTONE && hit.ny === -1 && !hitDef.replaceable) v = make(id, 1);   // Milestone 20: placed on a ceiling, it hangs down
+  if (id === B.POINTED_DRIPSTONE && hit.ny === -1 && !hitDef.replaceable) v = make(id, 1);
+  if (d.drops === "leaves") v = make(id, LEAF_PERSIST);   // Milestone 18: placed leaves never drop away   // Milestone 20: placed on a ceiling, it hangs down
   if (d.front || d.faces) v = make(id, (facingFromYaw() + 2) % 4);   // furnaces, chests, and signs face you
   // Sparkworks parts: which way they face or what they hang on depends on where you clicked
   { const e = G.player, dir = lookDir(), fy = e.pos.y + e.eye + dir.y * hit.dist - hit.y;
@@ -3137,8 +3248,10 @@ function useWith(offhand) {
     w.set(x, y, z, v); w.set(x, y + 1, z, make(id, f | TOP));
   } else {
     if (blocksPlayer(v, x, y, z)) return false;
+    if (LOGGABLE[id] && idOf(w.get(x, y, z)) === B.WATER && isSource(w.get(x, y, z))) v = make(idOf(v), metaOf(v) | WATERLOGGED);   // Milestone 18: placed in water, it keeps the water
     w.set(x, y, z, v);
     if (id === B.SPONGE) soakUp(x, y, z);   // Milestone 17
+    FL.wake(x, y, z);   // Milestone 18
     if (id === B.SHELL_BOX) w.containers.set(x + "," + y + "," + z, { type: "chest", slots: slot.contents ? slot.contents.map(s => s && { ...s }) : new Array(27).fill(null) });
     if (id === B.BEACON) { w.beacons.add(x + "," + y + "," + z); w.containers.set(x + "," + y + "," + z, { type: "beacon", slots: [null], primary: null, secondary: null }); UI.toast("Build a pyramid of mineral blocks under the Beacon, then right-click it to pick a power.", "good"); G.adv("beacon"); }
   }
@@ -3194,6 +3307,7 @@ function tickEating(dt) {
 function placeLiquid(id, x, y, z) {
   const w = G.world;
   w.set(x, y, z, id);
+  if (FL.active()) { FL.wake(x, y, z); return; }   // Milestone 18: it flows, and meeting the other liquid is handled as it spreads
   const other = id === B.WATER ? B.LAVA : B.WATER;
   let made = false;
   for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]]) {
@@ -3207,9 +3321,17 @@ function useBucket(slot) {
   const p = G.player, eye = { x: p.pos.x, y: p.pos.y + p.eye, z: p.pos.z };
   const hit = raycast(G.world, eye, lookDir(), REACH, false), w = G.world;
   if (!hit) return;
+  if (LOGGABLE[idOf(hit.v)] && (slot.id === I.WATER_BUCKET || (slot.id === I.BUCKET && metaOf(hit.v) & WATERLOGGED)) && !G.world.gen.isNether()) {   // Milestone 18: fill a fence, gate, trapdoor or sign with water (or scoop it back out)
+    const full = slot.id === I.WATER_BUCKET;
+    if (full !== !(metaOf(hit.v) & WATERLOGGED)) return;
+    w.set(hit.x, hit.y, hit.z, make(idOf(hit.v), full ? metaOf(hit.v) | WATERLOGGED : metaOf(hit.v) & ~WATERLOGGED));
+    if (!G.creative) { G.inv.slots[G.useSlot] = newStack(full ? I.BUCKET : I.WATER_BUCKET, 1); heldId = -1; }
+    Sound.splash(); FL.wake(hit.x, hit.y, hit.z); G.hudDirty = true; if (full) G.adv("waterlog"); return;
+  }
   if (slot.id === I.BUCKET) {
     const id = idOf(hit.v);
-    if (id === B.WATER || id === B.LAVA) { w.set(hit.x, hit.y, hit.z, B.AIR); swapHeld(id === B.WATER ? I.WATER_BUCKET : I.LAVA_BUCKET); Sound.splash(); }
+    if ((id === B.WATER || id === B.LAVA) && (isSource(hit.v) || !FL.active())) { w.set(hit.x, hit.y, hit.z, B.AIR); swapHeld(id === B.WATER ? I.WATER_BUCKET : I.LAVA_BUCKET); Sound.splash(); FL.wake(hit.x, hit.y, hit.z); }
+    else if (id === B.WATER || id === B.LAVA) UI.toast("A bucket can only scoop up a full block, not flowing " + (id === B.WATER ? "water." : "lava."));   // Milestone 18
     return;
   }
   const holds = itemDef(slot.id).holds;   // Milestone 17, Part D: a bucket of fish pours out water and the fish
@@ -6539,6 +6661,14 @@ function loop(now) {
       const spike = fall > 2 && idOf(G.world.get(Math.floor(p.pos.x), Math.floor(p.pos.y - 0.05), Math.floor(p.pos.z))) === B.POINTED_DRIPSTONE;   // Milestone 20: landing on a stalagmite hurts double
       if (spike) hurt(Math.max(1, Math.floor(fall - 2) * 2), "You landed on pointed dripstone. Ouch!", null, false, "fall");
       else if (fall > 3.5) hurt(Math.floor(fall - 3), "That was a long fall! Build stairs or use water to land safely.", null, false, "fall");
+      if (fall > 0.75 && !G.guest) {   // Milestone 18: jumping onto farmland can trample it back into dirt
+        const fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y - 0.05), fz = Math.floor(p.pos.z);
+        if (G.world.id(fx, fy, fz) === B.FARMLAND && Math.random() < Math.min(1, fall - 0.5)) {
+          if (BLOCKS[G.world.id(fx, fy + 1, fz)]?.shape === "crop") breakBlock(fx, fy + 1, fz, true, true);
+          G.world.set(fx, fy, fz, B.DIRT); Sound.place("soft");
+          if (!G.tips.trample) { G.tips.trample = 1; UI.toast("You trampled the farmland! Walk on your farm instead of jumping on it."); }
+        }
+      }
       if (res.crash > 10) hurt(Math.round((res.crash - 10) * 0.7), "You glided into a wall! Slow down by looking up before you land.", null, true);
       if (!wasWater && p.inWater && p.vel.y < -4) Sound.splash();
       if (G.dim === "end" && p.pos.y < -4) {   // the void below the Hollow
@@ -6574,6 +6704,8 @@ function loop(now) {
       updateMovers();
       R.tick(dt);
       updateFires(dt);
+      FL.tick(dt);   // Milestone 18
+      updateFallers(dt); updateLeafDecay(dt);   // Milestone 18, Part B
     }
     updateClouds(dt); updatePotionClouds(dt); trackBiome(dt);
     if (G.dim === "end" && !G.guest) { ensureBoss(); tickWyrmSummon(dt); }
@@ -6734,6 +6866,13 @@ const CP = G.campaign = initCampaign({ G, UI, Sound, L, ents, openPanel, closePa
 const MU = G.mutants = initMutants({ G, ents, UI, Sound, puff, F, THREE, scene });   // the Forsaken Mutants (after L and CP, which also fill ents.bossAI)
 G.starter = ST;
 // The Sparkworks signal engine (js/redstone.js)
+// Milestone 18, Part A: flowing water and lava (woken by players, buckets, and explosions; see js/fluids.js)
+const FL = initFluids({ G, washAway: (x, y, z) => { if (G.world.id(x, y, z) === B.FIRE && Math.hypot(G.player.pos.x - x, G.player.pos.z - z) < 24) G.adv("extinguish"); breakBlock(x, y, z, true, true); },
+  newSource: (x, y, z) => { if (Math.hypot(G.player.pos.x - x, G.player.pos.z - z) < 24) G.adv("watersource"); },
+  mixed: (x, y, z, made) => { Sound.mob("hiss", Math.hypot(G.player.pos.x - x, G.player.pos.z - z)); puff(x + 0.5, y + 1, z + 0.5, "poof"); if (made === B.OBSIDIAN) G.adv("obsidianmade"); else if (made === B.COBBLE) G.adv("cobblemade"); },
+  off: () => G.wset.liquidFlow === false || !!G.settings.noFlow,   // Part D: the world option "Water and lava flow"
+  fall: (x, y, z, v) => startFall(x, y, z, v),   // Part B
+  lavaHeat: (x, y, z) => { if (G.wset.fireSpread === false || Math.random() > 0.3) return; for (let k = 0; k < 3; k++) { const fx = x + Math.floor(Math.random() * 3) - 1, fy = y + Math.floor(Math.random() * 2), fz = z + Math.floor(Math.random() * 3) - 1; if (!G.world.id(fx, fy, fz) && nearFuel(fx, fy, fz)) { lightFire(fx, fy, fz); break; } } } });
 const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFacing, lookFacing3, noteFx, moveFx, pushEntities,
   spawnDrop, dropGone: d => { removeDrop(d); const i = G.drops.indexOf(d); if (i >= 0) G.drops.splice(i, 1); }, placeLiquid, ignite, checkBlightSummon,
   boneMeal: (x, y, z) => useBoneMeal({ x, y, z, v: G.world.get(x, y, z), ny: 1 }, null), openMachine: k => { Sound.door(true); openPanel("machine", k); } });

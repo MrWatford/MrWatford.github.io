@@ -513,6 +513,10 @@ block(B.ENCH_TABLE, "Enchanting Table", { shape: "model", render: "cutout", hard
 
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
+for (const id of [B.SAND, B.RED_SAND, B.GRAVEL]) defs[id].falls = true;   // Milestone 18, Part B: they fall when nothing holds them up
+// Milestone 18, Part B: what fire can burn (things made of wood, leaves, wool, hay, dry plants), but never containers or anything you use
+export const flammable = id => { const d = defs[id]; return !!d && !d.interact && id !== B.AIR && (d.tool === "axe" || d.drops === "leaves" || d.tool === "shears" || id === B.HAY || id === B.TALL_GRASS || id === B.DEAD_BUSH || id === B.TNT || id === B.BOOKSHELF || id === B.BAMBOO); };
+export const LEAF_PERSIST = 1;   // leaves a player placed never drop away
 export const BLOCKS = defs;
 export const blockDef = v => defs[v & ID_MASK] || defs[0];
 
@@ -528,6 +532,12 @@ for (const d of Object.values(defs)) {
 // Milestone 17, Part A: water, and water with a plant in it (kelp, seagrass, sea pickles, coral plants and fans)
 export const WATERY = new Uint8Array(ID_SPACE);
 for (const d of Object.values(defs)) if (d.id === B.WATER || d.aquatic) WATERY[d.id] = 1;
+// Milestone 18, Part C: fences, gates, trapdoors and signs can hold water (meta bit WATERLOGGED); isWet(v) is true for any watery spot
+export const WATERLOGGED = 128;
+export const LOGGABLE = new Uint8Array(ID_SPACE);
+for (let id = B.OAK_TRAPDOOR; id <= B.WARPED_GATE; id++) LOGGABLE[id] = 1;
+LOGGABLE[B.SIGN] = 1;
+export const isWet = v => WATERY[v & ID_MASK] === 1 || (!!(v & (WATERLOGGED << 8)) && LOGGABLE[v & ID_MASK] === 1);
 // Echohold Reborn: blocks whose light is cool teal instead of warm torchlight, and blocks whose own faces glow faintly
 // (that glow pulses slowly in the shader). Their light still counts as light for creatures and spawning.
 export const COOL = new Uint8Array(ID_SPACE);

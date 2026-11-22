@@ -19,6 +19,7 @@ import * as PO from "./potions.js";
 import { brewingGuideHTML, bindBrewingGuide } from "./brewing-guide.js";
 import { biomesGuideHTML } from "./biomes-guide.js";
 import { oceansGuideHTML, bindOceansGuide } from "./oceans-guide.js";
+import { worldGuideHTML, bindWorldGuide } from "./world-guide.js";
 import { isEnchanted, tooltipLines, enchantability, enchName, enchList, ENCH, ENCH_KEYS, repairMaterialName } from "./enchanting.js";
 
 const $ = id => document.getElementById(id);
@@ -65,7 +66,7 @@ export const UI = {
     $("newForm").onsubmit = e => {
       e.preventDefault(); Sound.start();
       const mode = document.querySelector("input[name=mode]:checked").value;
-      const settings = { difficulty: $("nwDiff").value, griefing: $("nwGrief").checked, keepInv: $("nwKeep").checked };
+      const settings = { difficulty: $("nwDiff").value, griefing: $("nwGrief").checked, keepInv: $("nwKeep").checked, fireSpread: $("nwFire") ? $("nwFire").checked : true, liquidFlow: $("nwFlow") ? $("nwFlow").checked : true };
       const lostWorldCampaign = terrain?.value === "lost_world_campaign";
       const lostWorld = lostWorldCampaign || terrain?.value === "lost_world";
       const go = () => G.newWorld({ name: $("nwName").value.trim() || (lostWorld ? "The Lost World" : "My World"), seed: $("nwSeed").value.trim() || String(Math.floor(Math.random() * 1e9)), mode, settings, lostWorld, lostWorldCampaign });
@@ -101,6 +102,8 @@ export const UI = {
     $("pMode").onchange = e => { if (!G.setMode(e.target.value)) e.target.value = G.mode; };
     $("pGrief").onchange = e => { G.wset.griefing = e.target.checked; };
     $("pKeep").onchange = e => { G.wset.keepInv = e.target.checked; };
+    if ($("pFire")) $("pFire").onchange = e => { G.wset.fireSpread = e.target.checked; };   // Milestone 18
+    if ($("pFlow")) $("pFlow").onchange = e => { G.wset.liquidFlow = e.target.checked; };
     // inventory screen mouse handling
     const panel = $("panel");
     panel.addEventListener("mousedown", e => this.slotMouse(e));
@@ -116,7 +119,7 @@ export const UI = {
     $("hud").hidden = !(name === "none" || name === "panel" || name === "pause" || name === "death" || (name === "together" && !!G.world));
     if (name === "title") paintTitleScene();
     Cinema.setActive(name === "title");
-    if (name === "pause" && G.wset) { const hc = !!(G.meta && G.meta.hardcore); $("pDiff").value = G.wset.difficulty; $("pMode").value = G.mode === "creative" ? "creative" : "survival"; $("pMode").disabled = hc || G.spectator; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; $("pDiff").disabled = $("pKeep").disabled = hc; $("hcNote").hidden = !hc; }
+    if (name === "pause" && G.wset) { const hc = !!(G.meta && G.meta.hardcore); $("pDiff").value = G.wset.difficulty; $("pMode").value = G.mode === "creative" ? "creative" : "survival"; $("pMode").disabled = hc || G.spectator; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; if ($("pFire")) $("pFire").checked = G.wset.fireSpread !== false; if ($("pFlow")) $("pFlow").checked = G.wset.liquidFlow !== false; $("pDiff").disabled = $("pKeep").disabled = hc; $("hcNote").hidden = !hc; }
     if (G.onShow) G.onShow(name);   // Play Together updates its screen and the pause menu
   },
   get current() { return current; },
@@ -375,9 +378,9 @@ export const UI = {
       if (!G.journalTab || (G.journalTab === "cp" && !cpOn) || (G.journalTab === "expedition" && !lostWorld)) G.journalTab = lostWorld ? "expedition" : cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
       const tab = G.journalTab;
       const journalTabs = [...(lostWorld ? [["expedition", expedition ? "Lost World Expedition" : "The Lost World"]] : []), ...(cpOn ? [["cp", "Campaign"]] : []), ["fw", "Forsaken World"],
-        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"], ["ench", "Enchanting"], ["brew", "Brewing"], ["biomes", "Biomes"], ["ocean", "Oceans"]];
+        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"], ["ench", "Enchanting"], ["brew", "Brewing"], ["biomes", "Biomes"], ["ocean", "Oceans"], ["world", "The World"]];
       const tabs = journalTabs.map(([key, name]) => `<button class="chip-btn ${tab === key ? "on" : ""}" data-jtab="${key}" aria-current="${tab === key ? "true" : "false"}">${name}</button>`).join("");
-      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) : tab === "ench" ? enchantingGuideHTML(G) : tab === "brew" ? brewingGuideHTML(G) : tab === "biomes" ? biomesGuideHTML(G) : tab === "ocean" ? oceansGuideHTML(G) :
+      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) : tab === "ench" ? enchantingGuideHTML(G) : tab === "brew" ? brewingGuideHTML(G) : tab === "biomes" ? biomesGuideHTML(G) : tab === "ocean" ? oceansGuideHTML(G) : tab === "world" ? worldGuideHTML(G) :
         tab === "leviathan" ? leviathanJournalHTML(G) : tab === "cp" ? G.campaign.journalHTML() :
         tab === "lost" ? G.lost.journalHTML() : G.forsaken.journalHTML();
       p.innerHTML = `<div class="inv-card fw-card"><h3>Journal <button type="button" class="chip-btn" data-journal-close title="J or Esc">Close</button></h3><nav class="jtabs journal-tabs" aria-label="Journal sections">${tabs}</nav>${page}</div>`;
@@ -399,6 +402,7 @@ export const UI = {
       bindEnchantingGuide(p, G, () => this.renderPanel(), () => Sound.click());
       bindBrewingGuide(p, G, () => this.renderPanel(), () => Sound.click());
       bindOceansGuide(p, G, () => this.renderPanel(), () => Sound.click());
+      bindWorldGuide(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
       if (tab === "fw") G.forsaken.drawMap($("fwMap"));
       p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
