@@ -43,6 +43,9 @@ export const ENCH = {
   loyalty: { name: "Loyalty", max: 3, w: 5, on: "trident", group: "tide", cost: l => [5 + 7 * l, 50], desc: "A thrown trident flies back to you" },
   riptide: { name: "Riptide", max: 3, w: 2, on: "trident", group: "tide", cost: l => [10 + 7 * l, 50], desc: "Throwing it while you're in water launches YOU instead" },
   impaling: { name: "Impaling", max: 5, w: 2, on: "trident", cost: range(1, 8, 20), desc: "Much more damage to sea creatures" },
+  quick_charge: { name: "Quick Charge", max: 3, w: 5, on: "crossbow", cost: range(12, 20, 50), desc: "Loads the crossbow faster" },   // Milestone 22, Part C
+  multishot: { name: "Multishot", max: 1, w: 2, on: "crossbow", group: "xbow", cost: () => [20, 50], desc: "Fires 3 arrows at once (uses only 1)" },
+  piercing: { name: "Piercing", max: 4, w: 10, on: "crossbow", group: "xbow", cost: range(1, 10, 50), desc: "Arrows pass through creatures" },
   channeling: { name: "Channeling", max: 1, w: 1, on: "trident", cost: () => [25, 50], desc: "A thrown trident calls lightning onto what it hits during a thunderstorm" }
 };
 export const ENCH_KEYS = Object.keys(ENCH);
@@ -57,7 +60,7 @@ export function kindOf(id) {
   if (d.armor) return ["helmet", "chest", "legs", "boots"][d.armor.slot];
   if (d.tool) {
     const t = d.tool.type;
-    if (t === "sword" || t === "axe" || t === "bow" || t === "rod" || t === "shears" || t === "trident") return t;
+    if (t === "sword" || t === "axe" || t === "bow" || t === "rod" || t === "shears" || t === "trident" || t === "crossbow") return t;
     if (t === "pick" || t === "shovel" || t === "hoe") return "digger";
     return "durable";   // shields, flint and steel, staffs
   }
@@ -69,7 +72,7 @@ function targetFits(target, kind) {
   switch (target) {
     case "armor": return ARMOR_KINDS.includes(kind);
     case "wearable": return ARMOR_KINDS.includes(kind) || kind === "glider";
-    case "helmet": case "chest": case "boots": case "sword": case "bow": case "rod": case "shears": case "axe": case "trident": return kind === target;
+    case "helmet": case "chest": case "boots": case "sword": case "bow": case "rod": case "shears": case "axe": case "trident": case "crossbow": return kind === target;
     case "digger": return kind === "digger" || kind === "axe";
     case "durable": case "any": return true;
   }

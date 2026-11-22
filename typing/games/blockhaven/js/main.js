@@ -1,10 +1,11 @@
 // Blockhaven: the game loop, 3D drawing, controls, mining and building, survival rules, and saving.
 import * as THREE from "../lib/three.module.min.js";
-import { B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
+import { isCrop, DISC_ITEMS, B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, idOf, metaOf, make, blockDef, itemDef, isBlockItem,
   buildAtlas, faceTile, TILE, iconCanvas, OPEN, TOP, LIT, HEAD, WET, EYE_IN, HONEY_MAX, honeyOf, BEACON_BASE, ANCHOR_MAX, ATLAS_W, ATLAS_H, isDoor, isRail, WATERY, flammable, LEAF_PERSIST, WATERLOGGED, LOGGABLE, isWet } from "./blocks.js";
 import { initRedstone } from "./redstone.js";
 import { selectBox } from "./shapes.js";
 import { PAINTINGS, createDecor } from "./decor.js";   // Milestone 21, Part D
+import { DISCS, scoreOf } from "./music.js";   // Milestone 22, Part D
 import { Entities, SPECIES, TRADES, lineOfSight } from "./entities.js";
 import { KINGDOMS_GEN, LANTERN_VALE_SEED } from "./lantern-vale.js";
 import { prepareStonehaven, stonehavenPlacementData } from "./stonehaven.js";
@@ -1646,6 +1647,12 @@ function bindCompass(hit) {
 // Where a held compass points: { yaw, text } (yaw = null means it spins)
 function compassReading() {
   const s = [G.inv.slots[G.selected], G.inv.slots[OFF]].find(q => q && q.id === I.COMPASS);
+  if (!s && [G.inv.slots[G.selected]?.id, G.inv.slots[OFF]?.id].includes(I.CLOCK)) {   // Milestone 22, Part C: the clock shows the sun and moon
+    if (G.dim !== "overworld" && !G.world?.gen?.landBiome) return { yaw: null, text: "The clock spins. There's no sun here." };
+    const t = G.time, part = t < 0.04 || t > 0.97 ? "Sunrise" : t < 0.2 ? "Morning" : t < 0.3 ? "Noon" : t < 0.47 ? "Afternoon" : t < 0.53 ? "Sunset" : t < 0.75 ? "Night" : "Late night";
+    G.adv("clock");
+    return { yaw: -(t * Math.PI * 2 - Math.PI / 2), text: `${part} · day ${G.meta?.day || 1}` };
+  }
   if (!s) {   // the Lost Civilization's map and compass use the same dial
     const held = [G.inv.slots[G.selected], G.inv.slots[OFF]].map(q => q && q.id);
     if (held.includes(I.ECHO_COMPASS)) return L.echoReading();
@@ -1876,17 +1883,18 @@ function tickCrops(dt) {
       else if (Math.random() < 1 / 40) { w.set(x, y, z, B.DIRT); w.crops.delete(key); }
       continue;
     }
-    if (id === B.MELON_STEM) {   // Milestone 16: grows like wheat, then keeps making melons on the ground beside it
+    if (id === B.MELON_STEM || id === B.PUMPKIN_STEM) {   // Milestone 16: grows like wheat, then keeps making melons on the ground beside it (Milestone 22: pumpkins too)
+      const fruit = id === B.MELON_STEM ? B.MELON : B.PUMPKIN;
       soilWater(x, y - 1, z);
       const stage = metaOf(v) & 7, soil = w.get(x, y - 1, z), wet = idOf(soil) === B.FARMLAND && (metaOf(soil) & WET);
-      if (stage < 7) { if (Math.random() < (wet ? 1 / 12 : 1 / 30)) w.set(x, y, z, make(B.MELON_STEM, stage + 1)); continue; }
+      if (stage < 7) { if (Math.random() < (wet ? 1 / 12 : 1 / 30)) w.set(x, y, z, make(id, stage + 1)); continue; }
       const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-      if (sides.some(([dx, dz]) => w.id(x + dx, y, z + dz) === B.MELON) || Math.random() >= 1 / 25) continue;
+      if (sides.some(([dx, dz]) => w.id(x + dx, y, z + dz) === fruit) || Math.random() >= 1 / 25) continue;
       const [dx, dz] = sides[Math.floor(Math.random() * 4)];
-      if (w.id(x + dx, y, z + dz) === B.AIR && [B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x + dx, y - 1, z + dz))) w.set(x + dx, y, z + dz, B.MELON);
+      if (w.id(x + dx, y, z + dz) === B.AIR && [B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x + dx, y - 1, z + dz))) w.set(x + dx, y, z + dz, fruit);
       continue;
     }
-    if (id === B.WHEAT || id === B.CARROTS) {
+    if (isCrop(id)) {
       const stage = metaOf(v) & 7;
       if (stage >= 7) { w.crops.delete(key); continue; }
       soilWater(x, y - 1, z);   // Milestone 18: the farmland under it dries out or gets wet again
@@ -2528,7 +2536,7 @@ function pressR() {
   useItem(); G.useCooldown = 0.28;
 }
 function releaseL() { mouseL = false; G.mining = null; }
-function releaseR() { mouseR = false; if (G.bowT >= 0) releaseBow(); G.blocking = false; G.eat = null; }
+function releaseR() { mouseR = false; if (G.bowT >= 0) releaseBow(); G.blocking = false; G.eat = null; G.scoping = false; }
 // Swap the items in your main hand and offhand (X by default; change it in Settings)
 function swapHands() {
   if (G.spectator) return;
@@ -2694,7 +2702,7 @@ function breakBlock(x, y, z, drops, quiet) {
     const r = Math.random();
     if (drop === "leaves") drop = r < (id === B.JUNGLE_LEAVES ? 0.025 : 0.06) ? (d.saplingOf || B.SAPLING) : r < 0.13 && (id === B.LEAVES || id === B.DARK_OAK_LEAVES) ? I.APPLE : 0;
     if (heldTool() && heldTool().type === "shears" && d.drops === "leaves") drop = id;
-    if (id === B.TALL_GRASS) drop = r < 0.12 ? I.SEEDS : r < 0.14 ? I.CARROT : 0;
+    if (id === B.TALL_GRASS) drop = r < 0.12 ? I.SEEDS : r < 0.14 ? I.CARROT : r < 0.155 ? I.POTATO : r < 0.17 ? I.BEETROOT_SEEDS : r < 0.18 ? I.PUMPKIN_SEEDS : 0;   // (Milestone 22: potatoes, beetroot and pumpkin seeds)
     if (id === B.GRAVEL && r < 0.1) drop = I.FLINT;
     if (drop === "shine") drop = [I.SHINE_DUST, 2 + Math.floor(Math.random() * 3)];
     if (drop === "spark") drop = [I.SPARKDUST, 4 + Math.floor(Math.random() * 2)];
@@ -2715,6 +2723,9 @@ function breakBlock(x, y, z, drops, quiet) {
     if (drop === "crop") {
       const ripe = (metaOf(v) & 7) >= 7;
       if (id === B.MELON_STEM) drop = [I.MELON_SEEDS, 1];
+      else if (id === B.PUMPKIN_STEM) drop = [I.PUMPKIN_SEEDS, 1];   // Milestone 22
+      else if (id === B.POTATOES) { if (ripe && Math.random() < 0.02) spawnDrop(I.POISONOUS_POTATO, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.POTATO, ripe ? 1 + Math.floor(Math.random() * 4) : 1]; }
+      else if (id === B.BEETROOTS) { if (ripe) spawnDrop(I.BEETROOT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.BEETROOT_SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
       else if (id === B.WHEAT) { if (ripe) spawnDrop(I.WHEAT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
       else drop = [I.CARROT, ripe ? 2 + Math.floor(Math.random() * 3) : 1];
     }
@@ -2738,7 +2749,7 @@ function breakBlock(x, y, z, drops, quiet) {
   // things resting on top fall off
   const above = w.get(x, y + 1, z), aid = idOf(above);
   if ((id === B.BEE_NEST || id === B.BEEHIVE) && !G.creative && !torchNear(x, y, z)) { ents.angerBees(x, y, z); UI.toast("You broke the bees' home, and now they're angry!", "bad"); }
-  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH, B.SUGAR_CANE, B.MELON_STEM, B.SNOW_LAYER, B.PINK_PETALS, B.DEAD_BUSH, B.CACTUS, B.BAMBOO, B.MOSS_CARPET, B.SIGN, B.TURTLE_EGG].includes(aid) || (aid === B.POINTED_DRIPSTONE && !(metaOf(above) & 1)) || BLOCKS[aid]?.tree || (BLOCKS[aid]?.aquatic && !BLOCKS[aid].floats) || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
+  if ([B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.TORCH, B.WHEAT, B.CARROTS, B.POTATOES, B.BEETROOTS, B.PUMPKIN_STEM, B.SAPLING, B.EMBER_WART, B.BERRY_BUSH, B.SUGAR_CANE, B.MELON_STEM, B.SNOW_LAYER, B.PINK_PETALS, B.DEAD_BUSH, B.CACTUS, B.BAMBOO, B.MOSS_CARPET, B.SIGN, B.TURTLE_EGG].includes(aid) || (aid === B.POINTED_DRIPSTONE && !(metaOf(above) & 1)) || BLOCKS[aid]?.tree || (BLOCKS[aid]?.aquatic && !BLOCKS[aid].floats) || (isDoor(aid) && !(metaOf(above) & TOP))) breakBlock(x, y + 1, z, true, quiet);
   if (aid === B.FIRE) w.set(x, y + 1, z, B.AIR);
   [[0, 1], [1, 0], [0, -1], [-1, 0]].forEach(([dx, dz], f) => { const c = w.get(x - dx, y, z - dz); if (idOf(c) === B.COCOA && (metaOf(c) & 3) === f) breakBlock(x - dx, y, z - dz, true, quiet); });   // Milestone 18: cocoa pods fall off their log
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
@@ -2819,6 +2830,7 @@ function releaseBow() {
   const charge = Math.min(1, G.bowT), s = G.inv.slots[G.bowHand ?? G.selected];
   G.bowT = -1;
   if (s && s.id === I.TRIDENT) { if (charge >= 0.5) throwTrident(s, G.bowHand ?? G.selected); return; }   // Milestone 17, Part D
+  if (s && s.id === I.CROSSBOW) return;   // Milestone 22: letting go too early doesn't load it
   if (charge < 0.15 || !s || s.id !== I.BOW) return;
   const inf = EN.lvl(s, "infinity");
   const ai = [OFF, ...Array.from({ length: 36 }, (_, i) => i)].find(i => G.inv.slots[i] && itemDef(G.inv.slots[i].id).arrow);
@@ -2833,6 +2845,134 @@ function releaseBow() {
   if (G.guest) MP.shoot(p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, arrowDmg);   // the host's world flies it
   else ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, { fromPlayer: true, dmg: arrowDmg, punch: EN.lvl(s, "punch"), flame: EN.lvl(s, "flame"), infinite: !!inf && !tip, tip, itemId: arrowId });
   Sound.mob("bow", 0); G.hudDirty = true; G.swing = 0.01;
+}
+// ---------- Milestone 22, Part D: fireworks ----------
+const rockets = [], bursts = [];
+const FIREWORK_COLORS = [[1, 0.3, 0.3], [1, 0.8, 0.2], [0.3, 0.8, 1], [0.5, 1, 0.4], [1, 0.45, 0.9], [0.75, 0.5, 1], [1, 1, 1]];
+function launchRocket(x, y, z, vx, vy, vz, life, armed) {
+  rockets.push({ x, y, z, vx, vy, vz, t: 0, life, armed, colors: [FIREWORK_COLORS[Math.floor(Math.random() * 7)], FIREWORK_COLORS[Math.floor(Math.random() * 7)]] });
+  Sound.noise(900, 0.5, 0.25, 0.7, "highpass");
+}
+function burstRocket(r) {
+  const p = G.player, dist = Math.hypot(p.pos.x - r.x, p.pos.y - r.y, p.pos.z - r.z);
+  { // a ball of bright sparks (its own points, bigger than the usual specks, so you can see it from far away)
+    const N = G.settings.reducedMotion ? 24 : 70, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), vel = [];
+    for (let i = 0; i < N; i++) {
+      const u = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2, q = Math.sqrt(1 - u * u), sp = (G.settings.reducedMotion ? 3 : 7) + Math.random() * 2, c = r.colors[i % 2];
+      pos.set([r.x, r.y, r.z], i * 3); col.set(c, i * 3); vel.push([q * Math.cos(a) * sp, u * sp, q * Math.sin(a) * sp]);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.45, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    pts.frustumCulled = false; scene.add(pts); bursts.push({ pts, vel, t: 0 });
+  }
+  Sound.noise(260, 0.7, 0.6 * Math.max(0.2, 1 - dist / 80), 0.6, "lowpass");
+  setTimeout(() => { for (let i = 0; i < 5; i++) setTimeout(() => Sound.noise(3200, 0.05, 0.15 * Math.max(0.2, 1 - dist / 80), 1, "highpass"), i * 70); }, 250);
+  if (r.armed && !G.guest) {   // a crossbow firework hurts what's close to where it bursts
+    for (const e of ents.near(r.x, r.y, r.z, 2.5)) if (!e.def.object) ents.damage(e, 6, "player");
+    if (dist < 2.5 && !G.creative) hurt(4, "You were too close to your own firework!", null, false, "explosion");
+  }
+}
+function updateRockets(dt) {
+  const p = G.player, w = G.world;
+  if (G.rocketBoost > 0) {   // flying faster on a firework
+    G.rocketBoost -= dt;
+    if (p.gliding) { const d = lookDir(); p.vel.x += (d.x * 30 - p.vel.x) * 0.12; p.vel.y += (d.y * 30 - p.vel.y) * 0.12; p.vel.z += (d.z * 30 - p.vel.z) * 0.12; }
+    if (Math.random() < 0.6) emitParticle(p.pos.x, p.pos.y + 0.5, p.pos.z, (Math.random() - 0.5), -1, (Math.random() - 0.5), 0.5, PUFF_COLORS.spark);
+  }
+  for (let i = bursts.length - 1; i >= 0; i--) {   // sparks spread, slow, droop, and fade
+    const b = bursts[i], a = b.pts.geometry.attributes.position;
+    b.t += dt;
+    for (let k = 0; k < b.vel.length; k++) { const v = b.vel[k]; v[0] *= 0.96; v[1] = v[1] * 0.96 - 3 * dt; v[2] *= 0.96; a.array[k * 3] += v[0] * dt; a.array[k * 3 + 1] += v[1] * dt; a.array[k * 3 + 2] += v[2] * dt; }
+    a.needsUpdate = true; b.pts.material.opacity = Math.max(0, 1 - b.t / 1.6);
+    if (b.t > 1.6) { scene.remove(b.pts); b.pts.geometry.dispose(); b.pts.material.dispose(); bursts.splice(i, 1); }
+  }
+  for (let i = rockets.length - 1; i >= 0; i--) {
+    const r = rockets[i];
+    r.t += dt;
+    if (!r.armed) r.vy += 6 * dt;   // it speeds up as it climbs
+    const nx = r.x + r.vx * dt, ny = r.y + r.vy * dt, nz = r.z + r.vz * dt;
+    let hitSomething = SOLID[w.id(Math.floor(nx), Math.floor(ny), Math.floor(nz))];
+    if (r.armed && !hitSomething) hitSomething = ents.near(nx, ny, nz, 4).some(e => !e.def.object && Math.hypot(e.pos.x - nx, e.pos.z - nz) < e.w / 2 + 0.3 && ny > e.pos.y - 0.2 && ny < e.pos.y + e.h + 0.2);   // touching its body
+    r.x = nx; r.y = ny; r.z = nz;
+    if (parts.length < PMAX - 30) emitParticle(r.x, r.y, r.z, (Math.random() - 0.5) * 0.6, -1.5, (Math.random() - 0.5) * 0.6, 0.4, PUFF_COLORS.spark);
+    if (r.t >= r.life || hitSomething) { rockets.splice(i, 1); burstRocket(r); }
+  }
+}
+// ---------- Milestone 22, Part D: the jukebox ----------
+const playing = new Map();   // "x,y,z" → { score, start, next, title }
+function useJukebox(hit, key) {
+  const w = G.world, slot = G.inv.slots[G.useSlot];
+  let c = w.containers.get(key);
+  if (!c) { c = { type: "jukebox", slots: [null] }; w.containers.set(key, c); }
+  if (c.slots[0]) {   // take the disc out
+    const d = c.slots[0]; c.slots[0] = null; playing.delete(key);
+    spawnDrop(d.id, 1, hit.x + 0.5, hit.y + 1.1, hit.z + 0.5, d); Sound.click(); return;
+  }
+  if (!slot || !itemDef(slot.id)?.disc) { UI.toast("Put a Music Disc in the jukebox to play it."); return; }
+  c.slots[0] = { ...slot, n: 1 };
+  if (!G.creative) G.inv.slots[G.useSlot] = null;
+  startDisc(key, c.slots[0].id);
+  G.swing = 0.01; G.hudDirty = true; heldId = -1; G.adv("jukebox");
+}
+function startDisc(key, id) {
+  const disc = DISCS[DISC_ITEMS.indexOf(id)];
+  if (!disc) return;
+  playing.set(key, { score: scoreOf(disc), start: G.clock + 0.4, next: 0, title: disc.title });
+  UI.toast(`Now playing: "${disc.title}"`, "good");
+}
+function updateJukeboxes() {
+  if (!playing.size) return;
+  const w = G.world, p = G.player;
+  for (const [key, j] of playing) {
+    const c = w.containers.get(key), [x, y, z] = key.split(",").map(Number);
+    if (!c || !c.slots[0] || w.id(x, y, z) !== B.JUKEBOX) { playing.delete(key); continue; }
+    const t = G.clock - j.start, dist = Math.hypot(p.pos.x - x - 0.5, p.pos.y - y, p.pos.z - z - 0.5);
+    while (j.next < j.score.notes.length && j.score.notes[j.next][0] <= t) {
+      const [, inst, pitch] = j.score.notes[j.next++];
+      if (t - j.score.notes[j.next - 1][0] < 0.25) Sound.note(inst, pitch, dist * 0.75);   // (skip notes we're late for, e.g. after a pause)
+    }
+    if (j.next % 6 === 1 && !G.settings.reducedMotion && Math.random() < 0.3) puff(x + 0.5, y + 1.2, z + 0.5, "xp");
+    if (t > j.score.length + 1) playing.delete(key);   // the song is over; the disc stays in until you take it out
+  }
+}
+G.jukeboxReview = () => [...playing].map(([k, j]) => ({ key: k, title: j.title, played: j.next, total: j.score.notes.length }));
+// ---------- Milestone 22, Part C: crossbow ----------
+const crossbowLoadTime = s => Math.max(0.25, 1.25 - 0.25 * EN.lvl(s, "quick_charge"));
+function loadCrossbow() {   // called while you hold right-click; it loads once it's been held long enough
+  const s = G.inv.slots[G.bowHand ?? G.selected];
+  if (!s || s.id !== I.CROSSBOW || s.loaded || G.bowT < crossbowLoadTime(s)) return;
+  G.bowT = -1;
+  const fw = G.inv.slots[OFF]?.id === I.FIREWORK_ROCKET;   // Milestone 22, Part D: a firework in your other hand goes in first
+  if (fw) { if (!G.creative) { const o = G.inv.slots[OFF]; o.n--; if (!o.n) G.inv.slots[OFF] = null; } }
+  else if (!G.creative) { const i = Array.from({ length: 36 }, (_, k) => k).find(k => G.inv.slots[k]?.id === I.ARROW); if (i === undefined) return; const a = G.inv.slots[i]; a.n--; if (!a.n) G.inv.slots[i] = null; }
+  s.loaded = fw ? I.FIREWORK_ROCKET : I.ARROW; Sound.click(); Sound.mob("bow", 0); G.hudDirty = true; heldId = -1;
+}
+function fireCrossbow(s) {
+  const p = G.player, dir = lookDir(), speed = 36, multi = EN.lvl(s, "multishot"), pierce = EN.lvl(s, "piercing");
+  const yaws = multi ? [0, -0.17, 0.17] : [0];
+  if (s.loaded === I.FIREWORK_ROCKET) {   // Milestone 22, Part D: a firework flies straight and bursts on what it hits
+    for (const a of yaws) { const c = Math.cos(a), sn = Math.sin(a); launchRocket(p.pos.x + dir.x * 0.6, p.pos.y + p.eye - 0.15, p.pos.z + dir.z * 0.6, (dir.x * c - dir.z * sn) * 22, dir.y * 22, (dir.x * sn + dir.z * c) * 22, 1.6, true); }
+    delete s.loaded; if (!G.creative) wearTool(s, multi ? 3 : 1); G.swing = 0.01; G.hudDirty = true; heldId = -1; G.adv("crossbow"); return;
+  }
+  for (const a of yaws) {
+    const c = Math.cos(a), sn = Math.sin(a), dx = dir.x * c - dir.z * sn, dz = dir.x * sn + dir.z * c;
+    if (G.guest) MP.shoot(p.pos.x + dx * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dz * 0.5, dx * speed, dir.y * speed, dz * speed, 9);
+    else ents.addProjectile("arrow", p.pos.x + dx * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dz * 0.5, dx * speed, dir.y * speed, dz * speed, { fromPlayer: true, dmg: 9, pierce });
+  }
+  delete s.loaded;
+  if (!G.creative) wearTool(s, multi ? 3 : 1);
+  Sound.mob("bow", 0); Sound.noise(1800, 0.08, 0.3, 2); G.swing = 0.01; G.hudDirty = true; heldId = -1; G.adv("crossbow");
+}
+// ---------- Milestone 22, Part C: spyglass zoom ----------
+let scopeEl = null;
+function updateScope() {
+  const s = G.inv.slots[G.useSlot ?? G.selected] || G.inv.slots[G.selected];
+  if (G.scoping && (G.state !== "play" || !mouseR || ![G.inv.slots[G.selected]?.id, G.inv.slots[OFF]?.id].includes(I.SPYGLASS))) G.scoping = false;
+  const fov = G.scoping ? Math.max(6, G.settings.fov / 8) : G.settings.fov;
+  if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); if (G.scoping) G.adv("spyglass"); }
+  if (!scopeEl) { scopeEl = document.createElement("div"); scopeEl.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(circle at center, transparent 0 34vmin, #000 35vmin)"; scopeEl.hidden = true; document.body.appendChild(scopeEl); }
+  scopeEl.hidden = !G.scoping;
 }
 // Milestone 17, Part D: throw a Trident (Riptide in water launches you instead). It lands as an item, or flies back with Loyalty.
 function throwTrident(s, slotIndex) {
@@ -3068,6 +3208,21 @@ function useWith(offhand) {
   if (slot.id === I.VOID_CRYSTAL && hit && !G.guest) return placeVoidCrystal(hit);
   if (slot.id === I.SHIELD) { G.blocking = true; G.blockHand = G.useSlot; return true; }   // hold to keep the shield up
   if (slot.id === I.TRIDENT) { G.bowT = 0; G.bowHand = G.useSlot; return true; }   // Milestone 17, Part D: hold, then let go to throw
+  if (slot.id === I.FIREWORK_ROCKET) {   // Milestone 22, Part D: launch from a block, or boost while gliding
+    const p = G.player;
+    if (p.gliding) { G.rocketBoost = 1.6; launchRocket(p.pos.x, p.pos.y, p.pos.z, 0, -3, 0, 0.35, false); G.adv("boost"); }
+    else if (hit) launchRocket(hit.x + 0.5 + hit.nx * 0.6, hit.y + 0.5 + hit.ny * 0.6, hit.z + 0.5 + hit.nz * 0.6, (Math.random() - 0.5) * 1.2, 16, (Math.random() - 0.5) * 1.2, 1.1 + Math.random() * 0.4, false);
+    else return false;
+    if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
+    G.swing = 0.01; G.hudDirty = true; heldId = -1; G.adv("firework");
+    return true;
+  }
+  if (slot.id === I.CROSSBOW) {   // Milestone 22, Part C: loaded → fire; empty → hold to load
+    if (slot.loaded) { fireCrossbow(slot); return true; }
+    if (G.creative || G.inv.count(I.ARROW) > 0 || G.inv.slots[OFF]?.id === I.FIREWORK_ROCKET) { G.bowT = 0; G.bowHand = G.useSlot; return true; }
+    UI.toast("You need arrows (or a firework in your other hand) to load a crossbow.", "bad"); Sound.error(); return true;
+  }
+  if (slot.id === I.SPYGLASS) { G.scoping = true; return true; }   // hold to look through it
   if (slot.id === I.BOW) {
     if (G.creative || G.inv.count(I.ARROW) > 0) { G.bowT = 0; G.bowHand = G.useSlot; return true; }
     UI.toast("You need arrows to shoot. Make them from flint, a stick, and a feather.", "bad"); Sound.error(); return true;
@@ -3191,6 +3346,10 @@ function useWith(offhand) {
     if (sd.kind !== "food") { if (!offhand) UI.toast("Plant seeds on farmland. Use a hoe on grass or dirt first.", "bad"); return false; }
   }
   if (slot.id === I.BONE_MEAL) { useBoneMeal(hit, slot); return true; }
+  if (slot.id === I.SHEARS && hitId === B.PUMPKIN && hit) {   // Milestone 22: carve a face into a pumpkin (it faces you) and get its seeds
+    w.set(hit.x, hit.y, hit.z, make(B.CARVED_PUMPKIN, (facingFromYaw() + 2) % 4)); spawnDrop(I.PUMPKIN_SEEDS, 4, hit.x + 0.5 + hit.nx * 0.6, hit.y + 0.5, hit.z + 0.5 + hit.nz * 0.6);
+    wearTool(slot, 1); Sound.place("soft"); G.swing = 0.01; G.adv("carve"); return true;
+  }
   if (slot.id === I.FLINT_STEEL) {
     if (hitId === B.TNT) { w.set(hit.x, hit.y, hit.z, B.AIR); primeTNT(hit.x, hit.y, hit.z); wearTool(slot, 1); G.adv("tnt"); return true; }
     if (BLOCKS[hitId]?.candle && !(metaOf(hit.v) & 4)) { w.set(hit.x, hit.y, hit.z, make(hitId, metaOf(hit.v) | 4)); wearTool(slot, 1); Sound.mob("fireshoot", 0); G.adv("candle"); return true; }   // Milestone 21: light a candle
@@ -3261,6 +3420,7 @@ function useWith(offhand) {
     else { UI.toast("A banner stands on a block or hangs on a wall.", "bad"); Sound.error(); return true; }
   }
   if (id === B.ARMOR_STAND) { if (!SOLID[w.id(x, y - 1, z)] || w.id(x, y + 1, z)) { UI.toast("An armor stand needs solid ground and room above.", "bad"); Sound.error(); return true; } v = make(id, (facingFromYaw() + 2) % 4); }
+  if (id === B.CAKE && !SOLID[w.id(x, y - 1, z)]) { UI.toast("A cake needs a block underneath.", "bad"); Sound.error(); return true; }   // Milestone 22
   if (d.candle && !SOLID[w.id(x, y - 1, z)]) { UI.toast("Candles need a block underneath.", "bad"); Sound.error(); return true; }
   // Sparkworks parts: which way they face or what they hang on depends on where you clicked
   { const e = G.player, dir = lookDir(), fy = e.pos.y + e.eye + dir.y * hit.dist - hit.y;
@@ -3343,6 +3503,7 @@ function finishEat() {
   if (sd.sideEffect === "puffer") { addEffect("poison", 10); addEffect("queasy", 15); UI.toast("Ouch! Puffers are poisonous. Don't eat those!", "bad"); }
   if (sd.sideEffect === "honey" && G.effects.poison) { delete G.effects.poison; UI.toast("The honey soothed the poison.", "good"); }
   if (sd.sideEffect === "potion") drinkPotion(slot);   // Milestone 16
+  if (sd.sideEffect === "enchanted_golden") { addEffect("regen", 20, 2); addEffect("absorb", 120, 4); addEffect("resist", 300, 1); addEffect("fireRes", 300, 1); UI.toast("An Enchanted Golden Apple! You feel unstoppable.", "good"); G.adv("notch"); }   // Milestone 22, Part B
   if (sd.sideEffect === "golden") { addEffect("regen", 5, 2); addEffect("absorb", 120, 1); UI.toast("A Golden Apple! You feel strong.", "good"); }
   slot.n--; if (!slot.n) G.inv.slots[e.slot] = null;
   if (sd.sideEffect === "cure") { G.useHand = e.slot; swapHeld(I.BUCKET); G.useHand = null; }
@@ -3411,7 +3572,7 @@ function useBucket(slot) {
 function useBoneMeal(hit, slot) {
   const w = G.world, id = idOf(hit.v);
   let used = false;
-  if (id === B.WHEAT || id === B.CARROTS) { const st = metaOf(hit.v) & 7; if (st < 7) { w.set(hit.x, hit.y, hit.z, make(id, Math.min(7, st + 2 + Math.floor(Math.random() * 3)))); used = true; } }
+  if (isCrop(id)) { const st = metaOf(hit.v) & 7; if (st < 7) { w.set(hit.x, hit.y, hit.z, make(id, Math.min(7, st + 2 + Math.floor(Math.random() * 3)))); used = true; } }
   else if (id === B.SAPLING) { used = true; if (Math.random() < 0.45) growTree(hit.x, hit.y, hit.z, metaOf(hit.v) & 1); }
   else if (BLOCKS[id]?.tree) { used = true; if (Math.random() < 0.45) growWood(hit.x, hit.y, hit.z, BLOCKS[id].tree); }
   else if (id === B.BERRY_BUSH && (metaOf(hit.v) & 3) < 3) { w.set(hit.x, hit.y, hit.z, make(B.BERRY_BUSH, (metaOf(hit.v) & 3) + 1)); used = true; }
@@ -3509,6 +3670,18 @@ function removePainting(x, y, z, drop) {
   }
   if (drop && !G.creative) spawnDrop(B.PAINTING, 1, x + 0.5, y + 0.5, z + 0.5);
 }
+// Milestone 22, Part B: a cake. Right-click eats a slice (7 slices); a plain Candle goes on top of a whole cake, Flint and Steel lights it.
+function useCake(hit) {
+  const w = G.world, slot = G.inv.slots[G.useSlot], m = metaOf(hit.v), p = G.player;
+  if (slot && slot.id === B.CANDLE && !(m & 15)) { w.set(hit.x, hit.y, hit.z, make(B.CAKE, 8)); if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; } Sound.place("soft"); G.swing = 0.01; G.hudDirty = true; heldId = -1; return; }
+  if (slot && slot.id === I.FLINT_STEEL && (m & 8) && !(m & 16)) { w.set(hit.x, hit.y, hit.z, make(B.CAKE, m | 16)); wearTool(slot, 1); Sound.mob("fireshoot", 0); G.swing = 0.01; G.adv("candle"); return; }
+  if (!G.creative && p.hunger >= 20) { UI.toast("You're too full to eat cake right now."); return; }
+  if (m & 8) spawnDrop(B.CANDLE, 1, hit.x + 0.5, hit.y + 0.7, hit.z + 0.5);   // eating it knocks the candle off
+  const bites = (m & 7) + 1;
+  w.set(hit.x, hit.y, hit.z, bites >= 7 ? B.AIR : make(B.CAKE, bites));
+  if (!G.creative) { p.hunger = Math.min(20, p.hunger + 2); p.sat = Math.min(p.hunger, (p.sat || 0) + 0.4); }
+  Sound.eat(); G.swing = 0.01; G.hudDirty = true; G.adv("cake");
+}
 function useDecor(hit, kind, key) {
   const w = G.world, slot = G.inv.slots[G.useSlot], c = w.containers.get(key);
   if (!c) return;
@@ -3527,6 +3700,8 @@ function useDecor(hit, kind, key) {
 function interact(hit, kind) {
   const w = G.world, key = hit.x + "," + hit.y + "," + hit.z;
   if (kind === "itemframe" || kind === "armorstand") { useDecor(hit, kind, key); return; }   // Milestone 21, Part D
+  if (kind === "cake") { useCake(hit); return; }   // Milestone 22, Part B
+  if (kind === "jukebox") { useJukebox(hit, key); return; }   // Milestone 22, Part D
   if (kind === "lore" && G.dim === GODZILLA_CALDERA && !G.guest && GC.interact(hit)) return;
   if (kind === "lore" && isLostWorldDimension(G.dim) && G.story.lostWorld && !G.guest) {
     const record = { ...G.story.lostWorld };
@@ -4232,6 +4407,8 @@ function fillLoot(box, hit) {
   if (r() < 0.4) put(I.BRICK, 4 + Math.floor(r() * 8));
   if (r() < 0.08) put(I.TOTEM, 1);
   if (r() < 0.12) put(I.GOLDEN_APPLE, 1);
+  if (r() < 0.025) put(I.ENCHANTED_GOLDEN_APPLE, 1);   // Milestone 22: very rare
+  if (r() < 0.15) put(DISC_ITEMS[Math.floor(r() * DISC_ITEMS.length)], 1);   // Milestone 22, Part D: music discs
   // Milestone 14: name tags, leads, and Trotter armor turn up in treasure (like Java dungeon chests)
   if (r() < 0.2) put(I.NAME_TAG, 1);
   if (r() < 0.15) put(I.LEAD, 1);
@@ -4318,6 +4495,7 @@ G.craft = (recipe, many) => {
     for (const [id, n] of recipe.ins) removeFor(recipe, id, n);
     const left = G.inv.add(recipe.out[0], recipe.out[1]);
     if (left) G.dropItem(recipe.out[0], left);
+    for (const [rid, rn] of recipe.returns || []) { const l2 = G.inv.add(rid, rn); if (l2) G.dropItem(rid, l2); }   // Milestone 22: a cake gives the milk buckets back
     made++;
   }
   if (!made) { Sound.error(); UI.toast("You don't have enough materials for that.", "bad"); return; }
@@ -7095,7 +7273,7 @@ function loop(now) {
     if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // Play Together: the host leads the way through portals
     if (!G.guest) { tickCinder(dt); F.tick(dt); MU.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }
     if (G.attackCd > 0) G.attackCd -= dt;
-    if (G.bowT >= 0) G.bowT += dt;
+    if (G.bowT >= 0) { G.bowT += dt; loadCrossbow(); }   // (Milestone 22: a crossbow loads itself once held long enough)
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
     else if (G.world.rs && G.world.rs.uiDirty && (G.panelT = (G.panelT || 0) + dt) > 0.2) { G.panelT = 0; G.world.rs.uiDirty = false; UI.refreshPanel(); }
   }
@@ -7115,6 +7293,8 @@ function loop(now) {
   if (running) raids.update(dt);
   if (running) updateSandsDiscovery(dt);
   updateWeather(dt, running);   // Milestone 19
+  updateScope();   // Milestone 22, Part C
+  if (running) { updateRockets(dt); updateJukeboxes(); }   // Milestone 22, Part D
   if (running) { updateLightning(dt); updateSnowAndIce(dt); } else updateBolts(0);
   const daylight = updateSky();
   applyFlash(dt);
@@ -7303,7 +7483,7 @@ UI.show("title");
 requestAnimationFrame(loop);
 const GC = initGodzillaFight({ G, ents, scene, Sound, UI, saveNow, hurt });
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { decor: () => decor, placePainting, useDecor, updateSnowAndIce, meltBlock, queueMeltCheck, strike, rodNear, lightningHit, weatherAt, nextWeather, skyCols, wxView: () => wxView, updateWeather, R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { launchRocket, updateRockets, useJukebox, rockets: () => rockets, decor: () => decor, placePainting, useDecor, updateSnowAndIce, meltBlock, queueMeltCheck, strike, rodNear, lightningHit, weatherAt, nextWeather, skyCols, wxView: () => wxView, updateWeather, R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
 G._test.obsidianWarningReview = obsidianWarningReview;
 G._test.ancientWarningReview = ancientWarningReview;
 G._test.ancientArrivalReview = ancientArrivalReview;

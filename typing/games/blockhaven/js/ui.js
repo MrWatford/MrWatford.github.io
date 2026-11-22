@@ -21,6 +21,7 @@ import { biomesGuideHTML } from "./biomes-guide.js";
 import { oceansGuideHTML, bindOceansGuide } from "./oceans-guide.js";
 import { worldGuideHTML, bindWorldGuide } from "./world-guide.js";
 import { buildingGuideHTML, bindBuildingGuide } from "./building-guide.js";   // Milestone 21, Part E
+import { farmGuideHTML, bindFarmGuide } from "./farm-guide.js";   // Milestone 22, Part E
 import { isEnchanted, tooltipLines, enchantability, enchName, enchList, ENCH, ENCH_KEYS, repairMaterialName } from "./enchanting.js";
 
 const $ = id => document.getElementById(id);
@@ -381,9 +382,9 @@ export const UI = {
       if (!G.journalTab || (G.journalTab === "cp" && !cpOn) || (G.journalTab === "expedition" && !lostWorld)) G.journalTab = lostWorld ? "expedition" : cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
       const tab = G.journalTab;
       const journalTabs = [...(lostWorld ? [["expedition", expedition ? "Lost World Expedition" : "The Lost World"]] : []), ...(cpOn ? [["cp", "Campaign"]] : []), ["fw", "Forsaken World"],
-        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"], ["ench", "Enchanting"], ["brew", "Brewing"], ["biomes", "Biomes"], ["ocean", "Oceans"], ["world", "The World"], ["build", "Building"]];
+        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"], ["ench", "Enchanting"], ["brew", "Brewing"], ["biomes", "Biomes"], ["ocean", "Oceans"], ["world", "The World"], ["build", "Building"], ["farm", "Farm & Gadgets"]];
       const tabs = journalTabs.map(([key, name]) => `<button class="chip-btn ${tab === key ? "on" : ""}" data-jtab="${key}" aria-current="${tab === key ? "true" : "false"}">${name}</button>`).join("");
-      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) : tab === "ench" ? enchantingGuideHTML(G) : tab === "brew" ? brewingGuideHTML(G) : tab === "biomes" ? biomesGuideHTML(G) : tab === "ocean" ? oceansGuideHTML(G) : tab === "world" ? worldGuideHTML(G) : tab === "build" ? buildingGuideHTML(G) :
+      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) : tab === "ench" ? enchantingGuideHTML(G) : tab === "brew" ? brewingGuideHTML(G) : tab === "biomes" ? biomesGuideHTML(G) : tab === "ocean" ? oceansGuideHTML(G) : tab === "world" ? worldGuideHTML(G) : tab === "build" ? buildingGuideHTML(G) : tab === "farm" ? farmGuideHTML(G) :
         tab === "leviathan" ? leviathanJournalHTML(G) : tab === "cp" ? G.campaign.journalHTML() :
         tab === "lost" ? G.lost.journalHTML() : G.forsaken.journalHTML();
       p.innerHTML = `<div class="inv-card fw-card"><h3>Journal <button type="button" class="chip-btn" data-journal-close title="J or Esc">Close</button></h3><nav class="jtabs journal-tabs" aria-label="Journal sections">${tabs}</nav>${page}</div>`;
@@ -407,6 +408,7 @@ export const UI = {
       bindOceansGuide(p, G, () => this.renderPanel(), () => Sound.click());
       bindWorldGuide(p, G, () => this.renderPanel(), () => Sound.click());
       bindBuildingGuide(p, G, () => this.renderPanel(), () => Sound.click());
+      bindFarmGuide(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
       if (tab === "fw") G.forsaken.drawMap($("fwMap"));
       p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
@@ -573,8 +575,8 @@ export const UI = {
         <p class="help">Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore.</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (G.mode === "creative") {
-      const cats = ["All", "Building", "Nature", "Useful", "Mechanisms", "Village", "Tools", "Food", "Items", "Enchanting", "Brewing", "Oceans", "Decor", "Ember Depths", "The Hollow", "Creatures"];
-      const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || (creativeCat === "Enchanting" ? ENCH_KIT.includes(d.id) : creativeCat === "Brewing" ? BREW_KIT.includes(d.id) : creativeCat === "Oceans" ? OCEAN_KIT.includes(d.id) : creativeCat === "Decor" ? DECOR_KIT.has(d.id) : d.category === creativeCat)) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
+      const cats = ["All", "Building", "Nature", "Useful", "Mechanisms", "Village", "Tools", "Food", "Items", "Enchanting", "Brewing", "Oceans", "Decor", "Farm & Gadgets", "Ember Depths", "The Hollow", "Creatures"];
+      const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || (creativeCat === "Enchanting" ? ENCH_KIT.includes(d.id) : creativeCat === "Brewing" ? BREW_KIT.includes(d.id) : creativeCat === "Oceans" ? OCEAN_KIT.includes(d.id) : creativeCat === "Decor" ? DECOR_KIT.has(d.id) : creativeCat === "Farm & Gadgets" ? FARM_KIT.has(d.id) : d.category === creativeCat)) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
       const q = creativeSearch.toLowerCase(), books = creativeCat === "Enchanting" || (creativeCat === "All" && q) ? ENCH_KEYS.filter(k => bookName(k).toLowerCase().includes(q)) : [];   // Milestone 15
       const pots = creativeCat === "Brewing" || (creativeCat === "All" && q) ? READY_POTIONS.filter(st => PO.potionName(st).toLowerCase().includes(q)) : [];   // Milestone 16
       left = `<div class="inv-card"><h3>Every block <span class="note" style="color:#444">Click to grab a stack</span></h3>
@@ -688,6 +690,7 @@ export const UI = {
     if (s.id === I.EMBER_HEART) line("Cindermaw's burning heart. Combine with a Duskmetal Helmet at a workbench for the Cinder Crown");
     if (s.id === I.CINDER_CROWN) line("Helmet (4 armor). While you wear it, fire and lava can't burn you");
     if (s.id === B.CINDER_EGG) line("A trophy from your first victory over Cindermaw");
+    if (s.id === I.CROSSBOW) line(s.loaded === I.FIREWORK_ROCKET ? "Loaded with a firework" : s.loaded ? "Loaded with an arrow" : "Not loaded");   // Milestone 22
     if (s.id === I.COMPASS) line(s.lode ? (s.lodeLost ? "Its Lodestone is gone" : `Points to a Lodestone at ${s.lode.x}, ${s.lode.y}, ${s.lode.z} (${DIMS[s.lode.dim] || s.lode.dim})`) : "Points to the Surface's starting spot. Right-click a Lodestone with it to point there instead");
     if (s.id === B.RESPAWN_ANCHOR) line("Ember Depths only. Charge it with Shinestone (up to 4), then right-click to set your respawn point. Each wake-up uses 1 charge. Explodes if used elsewhere");
     if (s.id === B.LODESTONE) line("Right-click it with a Compass to make the compass point here, even from far away");
@@ -784,6 +787,8 @@ const OCEAN_KIT = [B.KELP, I.DRIED_KELP, B.DRIED_KELP_BLOCK, B.SEAGRASS, B.SEA_P
   I.MINNOW_BUCKET, I.SALMON_BUCKET, I.SUNFIN_BUCKET, I.PUFFER_BUCKET, I.AXOLOTL_BUCKET, I.TADPOLE_BUCKET, B.MAGMA, B.SOUL_SAND];
 // Milestone 21, Part E: every new building block (numbers 357-549) and the 16 dyes
 const DECOR_KIT = new Set([...Array.from({ length: 549 - 357 + 1 }, (_, i) => { const k = 357 + i; return (k & 255) | ((k >> 8) << 16); }), ...Array.from({ length: 16 }, (_, i) => 1000 + i)]);
+// Milestone 22, Part E: the new crops, foods, gadgets, fireworks and music (blocks 550-557, items 1016-1034)
+const FARM_KIT = new Set([...Array.from({ length: 8 }, (_, i) => { const k = 550 + i; return (k & 255) | ((k >> 8) << 16); }), ...Array.from({ length: 19 }, (_, i) => 1016 + i)]);
 const ENCH_KIT = [B.ENCH_TABLE, B.BOOKSHELF, B.ANVIL, B.GRINDSTONE, B.LAPIS_ORE, I.LAPIS, B.SUGAR_CANE, I.PAPER, I.BOOK];
 // Milestone 16: the Creative "Brewing" tab: every potion (plain, longer, stronger) as a drink, splash, and lingering potion
 const BREW_KIT = [B.BREWING_STAND, B.CAULDRON, I.BOTTLE, I.FLARE_POWDER, I.WART, I.SUGAR, I.RABBIT_FOOT, I.GLISTERING_MELON, I.FERMENTED_EYE, I.PHANTOM_MEMBRANE,
@@ -805,7 +810,7 @@ function stackInner(s) {
   const pic = PO.isPotion(s.id) ? PO.potionIconURL(s) : iconURL(s.id);   // Milestone 16: each potion has its own color
   let h = `<img src="${pic}" alt="">`;
   if (PO.isPotion(s.id) && PO.hasEffect(s)) h += `<span class="glint" style="--ic:url(${pic})"></span>`;
-  if (isEnchanted(s) || s.id === I.ENCH_BOOK) h += `<span class="glint" style="--ic:url(${iconURL(s.id)})"></span>`;   // Milestone 15: enchanted items shimmer
+  if (isEnchanted(s) || s.id === I.ENCH_BOOK || itemDef(s.id)?.glint) h += `<span class="glint" style="--ic:url(${iconURL(s.id)})"></span>`;   // Milestone 15: enchanted items shimmer
   if (s.n > 1) h += `<b>${escapeAttr(s.n)}</b>`;
   if (d && d.tool && s.dur < d.tool.dur) { const f = s.dur / d.tool.dur; h += `<span class="dur"><i style="width:${Math.round(f * 100)}%;background:${f > 0.5 ? "#5fd35f" : f > 0.2 ? "#f5c431" : "#e0453a"}"></i></span>`; }
   return h;

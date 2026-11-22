@@ -3219,7 +3219,7 @@ export class Entities {
     const w = this.world, x = Math.floor(e.pos.x), z = Math.floor(e.pos.z);
     for (let y = Math.floor(e.pos.y); y >= Math.floor(e.pos.y) - 3; y--) {
       const v = w.get(x, y, z), id = idOf(v);
-      if ((id === B.WHEAT || id === B.CARROTS) && (metaOf(v) & 7) < 7) { w.set(x, y, z, make(id, (metaOf(v) & 7) + 1)); this.ctx.particles(x + 0.5, y + 0.6, z + 0.5, "xp"); return; }
+      if ((id === B.WHEAT || id === B.CARROTS || id === B.POTATOES || id === B.BEETROOTS) && (metaOf(v) & 7) < 7) { w.set(x, y, z, make(id, (metaOf(v) & 7) + 1)); this.ctx.particles(x + 0.5, y + 0.6, z + 0.5, "xp"); return; }
       if (id === B.BERRY_BUSH && (metaOf(v) & 3) < 3) { w.set(x, y, z, make(id, (metaOf(v) & 3) + 1)); this.ctx.particles(x + 0.5, y + 0.6, z + 0.5, "xp"); return; }
       if (SOLID[id]) return;
     }
@@ -3669,7 +3669,7 @@ export class Entities {
         // a creature behind cover within the same quarter-block substep.
         let hitE = null, entityTime = Infinity;
         if (pr.kind !== "pearl" && (pr.fromPlayer || pr.kind === "bigfire" || pr.kind === "arrow")) for (const e of this.list) {
-          if (e.dead || e.gone || e === pr.owner || e.def.segmentedLeviathan && (!e.emerged || e.ridden)) continue;
+          if (e.dead || e.gone || e === pr.owner || e.def.segmentedLeviathan && (!e.emerged || e.ridden) || pr.pierced?.has(e)) continue;
           if (pr.kind === "arrow" && !pr.fromPlayer && pr.owner?.def.hostile && e.def.hostile && !e.armored) continue;
           const r = e.w / 2 + 0.1;
           const t = usesLeviathanHitVolumes(e) ? leviathanSegmentTime(e, pr.x, pr.y, pr.z, nx, ny, nz) :
@@ -3707,6 +3707,7 @@ export class Entities {
           if (pr.kind === "fireball" && !hitE.def.fireproof) { this.damage(hitE, 5, pr.fromPlayer ? "player" : null); hitE.burning = 4; }
           if (pr.channeling && pr.fromPlayer) ctx.channeling?.(hitE);   // Milestone 19: Channeling calls lightning in a thunderstorm
           if (pr.tridentLook) { this.tridentLanded(pr); Sound.mob("arrowhit", this.dist(hitE)); break; }   // Milestone 17: a trident drops (or flies home) after a hit
+          if (pr.pierce > 0) { pr.pierce--; (pr.pierced ||= new Set()).add(hitE); Sound.mob("arrowhit", this.dist(hitE)); break; }   // Milestone 22: Piercing goes on through
           pr.gone = true; Sound.mob("arrowhit", this.dist(hitE)); break;
         }
         // hit the player?

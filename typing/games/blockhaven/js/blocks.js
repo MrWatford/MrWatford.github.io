@@ -196,6 +196,18 @@ Object.assign(B, { GLASS_PANE: nb(513), IRON_BARS: nb(530) });
 // Milestone 21, Part D: 16 banners (531-546), item frame, armor stand, painting (547-549)
 COLORS.forEach(([C], i) => { B[C + "_BANNER"] = nb(531 + i); });
 Object.assign(B, { ITEM_FRAME: nb(547), ARMOR_STAND: nb(548), PAINTING: nb(549) });
+// Milestone 22, Part A: potatoes, beetroot, pumpkins (block numbers 550-555, items 1016-1023)
+Object.assign(B, { POTATOES: nb(550), BEETROOTS: nb(551), PUMPKIN_STEM: nb(552), PUMPKIN: nb(553), CARVED_PUMPKIN: nb(554), JACK_O_LANTERN: nb(555) });
+Object.assign(I, { POTATO: 1016, BAKED_POTATO: 1017, POISONOUS_POTATO: 1018, BEETROOT: 1019, BEETROOT_SEEDS: 1020, BEETROOT_SOUP: 1021, PUMPKIN_SEEDS: 1022, PUMPKIN_PIE: 1023 });
+// Milestone 22, Part B: cake (block 556; meta bits 0-2 = slices eaten, 8 = a candle on top, 16 = the candle is lit), rabbit stew, enchanted golden apple
+B.CAKE = nb(556);
+Object.assign(I, { RABBIT_STEW: 1024, ENCHANTED_GOLDEN_APPLE: 1025 });
+Object.assign(I, { CROSSBOW: 1026, SPYGLASS: 1027, CLOCK: 1028 });   // Milestone 22, Part C
+// Milestone 22, Part D: fireworks, a jukebox (block 557), and 5 music discs (items 1030-1034, in the order of DISCS in music.js)
+B.JUKEBOX = nb(557);
+Object.assign(I, { FIREWORK_ROCKET: 1029, DISC_SUNRISE: 1030, DISC_WALTZ: 1031, DISC_CAVES: 1032, DISC_BREEZE: 1033, DISC_STARLIGHT: 1034 });
+export const DISC_ITEMS = [I.DISC_SUNRISE, I.DISC_WALTZ, I.DISC_CAVES, I.DISC_BREEZE, I.DISC_STARLIGHT];
+export const isCrop = id => id === B.WHEAT || id === B.CARROTS || id === B.POTATOES || id === B.BEETROOTS;   // the 8-stage farm crops
 export const woolOf = C => C === "WHITE" ? B.WOOL : C === "BLACK" ? B.BLACK_WOOL : B[C + "_WOOL"];
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the next 8 bits.
@@ -542,6 +554,17 @@ for (const [C, n] of COLORS) {
 block(B.ITEM_FRAME, "Item Frame", { shape: "model", render: "cutout", solid: false, hardness: 0, tool: "axe", tex: "item_frame", icon: "tile:item_frame", interact: "itemframe", category: "Useful" });
 block(B.ARMOR_STAND, "Armor Stand", { shape: "model", render: "cutout", hardness: 0, tex: "planks", iconShape: "stand", interact: "armorstand", category: "Useful" });
 block(B.PAINTING, "Painting", { shape: "model", render: "cutout", solid: false, hardness: 0, drops: 0, tex: "painting_back", icon: "tile:painting_icon", category: "Useful" });
+// Milestone 22, Part D
+block(B.JUKEBOX, "Jukebox", { hardness: 2, tool: "axe", tex: ["jukebox_top", "jukebox_side", "jukebox_side"], interact: "jukebox", category: "Useful" });
+// Milestone 22, Part B
+block(B.CAKE, "Cake", { shape: "model", render: "cutout", hardness: 0.5, drops: 0, tex: ["cake_top", "cake_side", "cake_bottom"], iconBox: 8 / 16, interact: "cake", stack1: true, category: "Food" });
+// Milestone 22, Part A
+block(B.POTATOES, "Potato Crop", { shape: "crop", render: "cutout", solid: false, hardness: 0, drops: "crop", tex: "potatoes0", category: "Nature", noItem: true });
+block(B.BEETROOTS, "Beetroot Crop", { shape: "crop", render: "cutout", solid: false, hardness: 0, drops: "crop", tex: "beetroots0", category: "Nature", noItem: true });
+block(B.PUMPKIN_STEM, "Pumpkin Stem", { shape: "crop", render: "cutout", solid: false, hardness: 0, drops: "crop", tex: "melon_stem0", category: "Nature", noItem: true });
+block(B.PUMPKIN, "Pumpkin", { hardness: 1, tool: "axe", tex: ["pumpkin_top", "pumpkin_side", "pumpkin_top"], category: "Nature" });
+block(B.CARVED_PUMPKIN, "Carved Pumpkin", { hardness: 1, tool: "axe", tex: ["pumpkin_top", "pumpkin_side", "pumpkin_top"], front: "carved_pumpkin", category: "Nature" });
+block(B.JACK_O_LANTERN, "Jack o'Lantern", { hardness: 1, tool: "axe", light: 15, tex: ["pumpkin_top", "pumpkin_side", "pumpkin_top"], front: "jack_o_lantern", category: "Useful" });
 // Milestone 21, Part B: the 16 colors
 for (const [C, n] of COLORS) {
   const c = C.toLowerCase();
@@ -642,12 +665,12 @@ export const isSlab = id => !!defs[id]?.slab, isStairs = id => !!defs[id]?.stair
 export const isGate = id => id >= B.OAK_GATE && id <= B.WARPED_GATE;
 export const isButton = id => id >= B.STONE_BUTTON && id <= B.WARPED_BUTTON;
 export const isPlate = id => id >= B.OAK_PLATE && id <= B.IRON_PLATE;
-export const lightOf = v => CANDLE[v & ID_MASK] ? (metaOf(v) & 4 ? 3 * ((metaOf(v) & 3) + 1) : 0) : (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SEA_PICKLE ? 6 + 3 * (metaOf(v) & 3) : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
+export const lightOf = v => (v & ID_MASK) === B.CAKE ? ((metaOf(v) & 24) === 24 ? 3 : 0) : CANDLE[v & ID_MASK] ? (metaOf(v) & 4 ? 3 * ((metaOf(v) & 3) + 1) : 0) : (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SEA_PICKLE ? 6 + 3 * (metaOf(v) & 3) : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
   (idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) ? (metaOf(v) & 1 ? 9 : 0) : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & ID_MASK];
 
 // ---------- Items ----------
 const items = {};
-for (const d of Object.values(defs)) if (d.id && !d.noItem) items[d.id] = { id: d.id, name: d.name, kind: "block", stack: d.id === B.BED || d.id === B.SHELL_BOX ? 1 : 64, category: d.category };
+for (const d of Object.values(defs)) if (d.id && !d.noItem) items[d.id] = { id: d.id, name: d.name, kind: "block", stack: d.id === B.BED || d.id === B.SHELL_BOX || d.stack1 ? 1 : 64, category: d.category };
 function item(id, name, o) { items[id] = Object.assign({ id, name, kind: "item", stack: 64, category: "Items" }, o); }
 item(I.STICK, "Stick", { icon: "stick" });
 item(I.COAL, "Coal", { icon: "coal" });
@@ -673,6 +696,20 @@ item(I.MILK_BUCKET, "Milk Bucket", { icon: "bucket", colors: ["#ffffff"], kind: 
 // creature drops and materials
 item(I.BONE, "Bone", { icon: "bone" });
 item(I.BONE_MEAL, "Bone Meal", { icon: "bonemeal" });
+// Milestone 22, Part A
+item(I.POTATO, "Potato", { icon: "potato", colors: ["#c8a060", "#a07840"], kind: "food", food: 1, plants: B.POTATOES, category: "Food" });
+item(I.BAKED_POTATO, "Baked Potato", { icon: "potato", colors: ["#e0b050", "#b07a30"], kind: "food", food: 5, category: "Food" });
+item(I.POISONOUS_POTATO, "Poisonous Potato", { icon: "potato", colors: ["#a8b850", "#7a8a30"], kind: "food", food: 2, sideEffect: "poison", category: "Food" });
+item(I.BEETROOT, "Beetroot", { icon: "beet", kind: "food", food: 1, category: "Food" });
+item(I.BEETROOT_SEEDS, "Beetroot Seeds", { icon: "seeds", colors: ["#8a5a3a", "#6a3a2a"], plants: B.BEETROOTS, category: "Food" });
+item(I.BEETROOT_SOUP, "Beetroot Soup", { icon: "bowl", colors: ["#a0283a"], kind: "food", food: 6, stack: 1, sideEffect: "bowl", category: "Food" });
+item(I.PUMPKIN_SEEDS, "Pumpkin Seeds", { icon: "seeds", colors: ["#e8dcb0", "#c8b88a"], plants: B.PUMPKIN_STEM, category: "Food", desc: "Plant on farmland. The grown stem makes pumpkins on the ground next to it" });
+item(I.FIREWORK_ROCKET, "Firework Rocket", { icon: "rocket", category: "Items", desc: "Right-click a block to launch it. While gliding, right-click to zoom ahead. A crossbow can fire one from your other hand" });   // Milestone 22, Part D
+for (const [id, title, color] of [[I.DISC_SUNRISE, "Sunrise Over Blockhaven", "#f0a030"], [I.DISC_WALTZ, "Lantern Waltz", "#e04a3a"], [I.DISC_CAVES, "Deep Cave Echoes", "#4a6ad8"], [I.DISC_BREEZE, "Sea Breeze", "#2ab0a0"], [I.DISC_STARLIGHT, "Starlight", "#a050e0"]])
+  item(id, "Music Disc: " + title, { icon: "disc", colors: [color], stack: 1, category: "Items", disc: true, desc: "Play it in a Jukebox" });
+item(I.RABBIT_STEW, "Rabbit Stew", { icon: "bowl", colors: ["#a8642e"], kind: "food", food: 10, stack: 1, sideEffect: "bowl", category: "Food" });   // Milestone 22, Part B
+item(I.ENCHANTED_GOLDEN_APPLE, "Enchanted Golden Apple", { icon: "apple", colors: ["gold"], kind: "food", food: 4, category: "Food", sideEffect: "enchanted_golden", alwaysEat: true, glint: true, desc: "Very rare treasure. Strong healing, extra hearts, and protection from fire" });
+item(I.PUMPKIN_PIE, "Pumpkin Pie", { icon: "pie", kind: "food", food: 8, category: "Food" });
 for (const [C, n, hex] of COLORS) item(I[C + "_DYE"], n + " Dye", { icon: "dye", colors: [hex], category: "Items", dye: C });   // Milestone 21, Part B
 item(I.ARROW, "Arrow", { icon: "arrow", category: "Tools" });
 item(I.STRING, "String", { icon: "string" });
@@ -687,6 +724,9 @@ item(I.BUCKET, "Bucket", { icon: "bucket", colors: [null], stack: 16, category: 
 item(I.WATER_BUCKET, "Water Bucket", { icon: "bucket", colors: ["#3a6fd8"], stack: 1, category: "Tools" });
 item(I.LAVA_BUCKET, "Lava Bucket", { icon: "bucket", colors: ["#ff7a1a"], stack: 1, category: "Tools" });
 item(I.BOW, "Bow", { icon: "bow", kind: "tool", stack: 1, category: "Tools", tool: { type: "bow", tier: 0, speed: 1, dur: 384, damage: 1 } });
+item(I.CROSSBOW, "Crossbow", { icon: "crossbow", kind: "tool", stack: 1, category: "Tools", tool: { type: "crossbow", tier: 0, speed: 1, dur: 465, damage: 1 }, desc: "Hold right-click to load an arrow, then right-click to fire. Stronger than a bow" });   // Milestone 22, Part C
+item(I.SPYGLASS, "Spyglass", { icon: "spyglass", stack: 1, category: "Tools", desc: "Hold right-click to zoom in" });
+item(I.CLOCK, "Clock", { icon: "clock", stack: 64, category: "Tools", desc: "Hold it to see the time of day" });
 item(I.SHEARS, "Shears", { icon: "shears", kind: "tool", stack: 1, category: "Tools", tool: { type: "shears", tier: 2, speed: 5, dur: 238, damage: 1 } });
 item(I.FLINT_STEEL, "Flint and Steel", { icon: "flintsteel", kind: "tool", stack: 1, category: "Tools", tool: { type: "igniter", tier: 0, speed: 1, dur: 64, damage: 1 } });
 // Ember Depths materials
@@ -817,7 +857,8 @@ item(I.SPARKDUST, "Sparkdust", { icon: "dust", colors: ["#ff5a2a", "#c2361a", "#
 const SATURATION = { [I.APPLE]: 2.4, [I.BREAD]: 6, [I.CARROT]: 3.6, [I.RAW_BEEF]: 1.8, [I.STEAK]: 12.8, [I.RAW_PORK]: 1.8, [I.COOKED_PORK]: 12.8,
   [I.RAW_CHICKEN]: 1.2, [I.COOKED_CHICKEN]: 7.2, [I.RAW_MUTTON]: 1.2, [I.COOKED_MUTTON]: 9.6, [I.RAW_RABBIT]: 1.8, [I.COOKED_RABBIT]: 6,
   [I.ROTTEN_FLESH]: 0.8, [I.SPIDER_EYE]: 3.2, [I.CHORUS_FRUIT]: 2.4, [I.RAW_MINNOW]: 0.4, [I.COOKED_MINNOW]: 6, [I.SUNFIN]: 0.2, [I.PUFFER]: 0.2,
-  [I.BERRIES]: 0.4, [I.HONEY_BOTTLE]: 1.2, [I.GOLDEN_APPLE]: 9.6, [I.GOLDEN_CARROT]: 14.4, [I.MILK_BUCKET]: 0 };
+  [I.BERRIES]: 0.4, [I.HONEY_BOTTLE]: 1.2, [I.GOLDEN_APPLE]: 9.6, [I.GOLDEN_CARROT]: 14.4, [I.MILK_BUCKET]: 0,
+  [I.POTATO]: 0.6, [I.BAKED_POTATO]: 6, [I.POISONOUS_POTATO]: 1.2, [I.BEETROOT]: 1.2, [I.BEETROOT_SOUP]: 7.2, [I.PUMPKIN_PIE]: 4.8, [I.RABBIT_STEW]: 12, [I.ENCHANTED_GOLDEN_APPLE]: 9.6 };   // (Milestone 22)
 for (const [id, s] of Object.entries(SATURATION)) items[id].sat = s;
 items[I.CHORUS_FRUIT].alwaysEat = true; items[I.MILK_BUCKET].alwaysEat = true;
 items[I.BLIGHT_SKULL].places = B.SKULL;   // skulls can be set down as blocks (three on Wailing Sand summon the Blightking)
@@ -1014,6 +1055,18 @@ export const RECIPES = [
   { out: [B.LADDER, 3], ins: [[I.STICK, 7]], table: true }, { out: [B.SCAFFOLDING, 6], ins: [[B.BAMBOO, 6], [I.STRING, 1]], table: true },
   { out: [B.LANTERN, 1], ins: [[I.IRON_INGOT, 1], [B.TORCH, 1]], table: true }, { out: [B.CANDLE, 1], ins: [[I.STRING, 1], [I.HONEYCOMB, 1]] },
   { out: [B.GLASS_PANE, 16], ins: [[B.GLASS, 6]], table: true }, { out: [B.IRON_BARS, 16], ins: [[I.IRON_INGOT, 6]], table: true },
+  // Milestone 22, Part D
+  { out: [I.FIREWORK_ROCKET, 3], ins: [[I.PAPER, 1], [I.BOOM_POWDER, 1]] }, { out: [B.JUKEBOX, 1], ins: [["planks", 8], [I.SKYSHARD, 1]], table: true },
+  // Milestone 22, Part C
+  { out: [I.CROSSBOW, 1], ins: [[I.STICK, 3], [I.STRING, 2], [I.IRON_INGOT, 1], [B.TRIPWIRE_HOOK, 1]], table: true },
+  { out: [I.SPYGLASS, 1], ins: [[I.IRON_INGOT, 2], [B.GLASS, 1]], table: true }, { out: [I.CLOCK, 1], ins: [[I.GOLD_INGOT, 4], [I.SPARKDUST, 1]], table: true },
+  // Milestone 22, Part B (the cake gives the 3 buckets back)
+  { out: [B.CAKE, 1], ins: [[I.MILK_BUCKET, 3], [I.SUGAR, 2], [I.EGG, 1], [I.WHEAT, 3]], table: true, returns: [[I.BUCKET, 3]] },
+  { out: [I.RABBIT_STEW, 1], ins: [[I.COOKED_RABBIT, 1], [I.CARROT, 1], [I.BAKED_POTATO, 1], [B.BROWN_MUSHROOM, 1], [I.BOWL, 1]], table: true },
+  // Milestone 22, Part A
+  { out: [I.PUMPKIN_SEEDS, 4], ins: [[B.PUMPKIN, 1]] }, { out: [I.PUMPKIN_PIE, 1], ins: [[B.PUMPKIN, 1], [I.SUGAR, 1], [I.EGG, 1]] },
+  { out: [I.BEETROOT_SOUP, 1], ins: [[I.BEETROOT, 6], [I.BOWL, 1]], table: true }, { out: [I.RED_DYE, 1], ins: [[I.BEETROOT, 1]] },
+  { out: [B.JACK_O_LANTERN, 1], ins: [[B.CARVED_PUMPKIN, 1], [B.TORCH, 1]] },
   // Milestone 21, Part D
   ...COLORS.map(([C]) => ({ out: [B[C + "_BANNER"], 1], ins: [[woolOf(C), 6], [I.STICK, 1]], table: true })),
   { out: [B.ITEM_FRAME, 1], ins: [[I.STICK, 8], [I.LEATHER, 1]], table: true }, { out: [B.ARMOR_STAND, 1], ins: [[I.STICK, 6], [B.STONE_SLAB, 1]], table: true },
@@ -1214,6 +1267,7 @@ export const FUEL = { [I.COAL]: 40, [B.LOG]: 8, [B.BIRCH_LOG]: 8, [B.PLANKS]: 7,
   [B.OAK_BUTTON]: 2.5, [B.BIRCH_BUTTON]: 2.5, [B.OAK_PLATE]: 7, [B.BIRCH_PLATE]: 7, [B.LEVER]: 1.5 };
 export const SMELT_TIME = 5;
 SMELT[B.RED_SAND] = B.GLASS; SMELT[B.CLAY] = B.TERRACOTTA; FUEL[B.BAMBOO] = 1.5;   // Milestone 20, Part C
+SMELT[I.POTATO] = I.BAKED_POTATO;   // Milestone 22
 SMELT[B.CACTUS] = I.GREEN_DYE; SMELT[B.SEA_PICKLE] = I.LIME_DYE;   // Milestone 21, Part B: green and lime dye come from the furnace
 for (const [K] of SHAPED.slice(0, 8)) { FUEL[B[K + "_SLAB"]] = 3.5; FUEL[B[K + "_STAIRS"]] = 7; }   // Milestone 21: wooden slabs and stairs burn in a furnace
 SMELT[I.RAW_SALMON] = I.COOKED_SALMON; SMELT[B.KELP] = I.DRIED_KELP; SMELT[B.WET_SPONGE] = B.SPONGE; FUEL[B.DRIED_KELP_BLOCK] = 100;   // Milestone 17, Part A
@@ -1283,6 +1337,9 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "lightning_rod",   // Milestone 19, Part B
   ...COLORS.flatMap(([C]) => { const c = C.toLowerCase(); return [...(C === "WHITE" || C === "BLACK" ? [] : [c + "_wool"]), c + "_stained_glass", c + "_concrete", c + "_concrete_powder", c + "_candle", ...(["ORANGE", "YELLOW", "WHITE", "RED", "BROWN", "LIGHT_GRAY"].includes(C) ? [] : [c + "_terracotta"])]; }),   // Milestone 21, Part B
   "item_frame", "painting_back", "painting_icon",   // Milestone 21, Part D
+  "cake_top", "cake_side", "cake_bottom", "cake_inner",   // Milestone 22, Part B
+  "jukebox_top", "jukebox_side",   // Milestone 22, Part D
+  "potatoes0", "potatoes1", "potatoes2", "potatoes3", "beetroots0", "beetroots1", "beetroots2", "beetroots3", "pumpkin_top", "pumpkin_side", "carved_pumpkin", "jack_o_lantern",   // Milestone 22, Part A
   "ladder", "scaffolding_top", "scaffolding_side", "lantern", "candle", "candle_flame", "iron_bars"];   // Milestone 21, Part C
 export const ATLAS_W = 256, ATLAS_H = 1024;   // pixels: 16 tiles across, 64 down (doubled for Milestone 21's colors)
 export const TILE = {};
@@ -1314,8 +1371,8 @@ export function faceTile(v, dir, front) {
   if (idOf(v) === B.HUSH_SENSOR && dir === 0) return TILE[(metaOf(v) & 3) === 1 ? "hush_sensor_top_on" : "hush_sensor_top"];
   if (idOf(v) === B.CAVE_VINES) return TILE[metaOf(v) & 1 ? "cave_vines_berries" : "cave_vines"];
   if (idOf(v) === B.COCOA) return TILE["cocoa" + Math.min(2, (metaOf(v) >> 2) & 3)];
-  if (idOf(v) === B.MELON_STEM) return TILE["melon_stem" + Math.min(3, (metaOf(v) & 7) >> 1)];
-  if (idOf(v) === B.WHEAT || idOf(v) === B.CARROTS) return TILE[(idOf(v) === B.WHEAT ? "wheat" : "carrots") + Math.min(3, (metaOf(v) & 7) >> 1)];
+  if (idOf(v) === B.MELON_STEM || idOf(v) === B.PUMPKIN_STEM) return TILE["melon_stem" + Math.min(3, (metaOf(v) & 7) >> 1)];
+  if (isCrop(idOf(v))) return TILE[({ [B.WHEAT]: "wheat", [B.CARROTS]: "carrots", [B.POTATOES]: "potatoes", [B.BEETROOTS]: "beetroots" })[idOf(v)] + Math.min(3, (metaOf(v) & 7) >> 1)];
   if (idOf(v) === B.FARMLAND && dir === 0) return TILE[metaOf(v) & WET ? "farmland_wet" : "farmland_dry"];
   if (idOf(v) === B.BED) return TILE[dir === 0 ? (metaOf(v) & HEAD ? "bed_head" : "bed_foot") : "bed_side"];
   if (idOf(v) === B.SAPLING && (metaOf(v) & 1)) return TILE.sapling_birch;
@@ -2003,6 +2060,22 @@ PAINT.iron_bars = P => { for (let x = 1; x < 16; x += 5) { P.rect(x, 0, 2, 16, "
 PAINT.item_frame = P => { P.rect(0, 0, 16, 16, "#7a5230"); P.rect(1, 1, 14, 14, "#9a6c40"); P.rect(3, 3, 10, 10, "#6a4428"); P.rect(4, 4, 8, 8, "#5a3a22"); };
 PAINT.painting_back = P => { P.fill(["#8a6236", "#946a3c", "#7e5a30"]); P.rect(0, 0, 16, 1, "#a27a46"); P.rect(0, 15, 16, 1, "#6a4a28"); };
 PAINT.painting_icon = P => { P.rect(0, 0, 16, 16, "#7a5230"); P.rect(1, 1, 14, 14, "#8cc8f0"); P.rect(1, 9, 14, 6, "#5aa040"); P.rect(3, 6, 6, 4, "#7a8a96"); P.rect(10, 3, 3, 3, "#ffe070"); P.rect(1, 13, 14, 2, "#3e7a2e"); };
+// Milestone 22, Part A
+PAINT.jukebox_top = P => { P.fill(["#6a4428", "#704a2c"]); P.rect(0, 0, 16, 1, "#8a6038"); P.rect(2, 6, 12, 4, "#2a1a10"); P.rect(3, 7, 10, 2, "#140c08"); };   // Milestone 22, Part D
+PAINT.jukebox_side = P => { P.fill(["#7a5230", "#80563a"]); P.rect(0, 0, 16, 2, "#5a3a20"); P.rect(0, 14, 16, 2, "#5a3a20"); P.rect(0, 0, 2, 16, "#5a3a20"); P.rect(14, 0, 2, 16, "#5a3a20"); P.rect(6, 6, 4, 4, "#a07848"); };
+PAINT.cake_top = P => { P.fill(["#f8f4ee", "#f0ece4"]); for (const [x, y] of [[3, 3], [10, 5], [6, 9], [12, 12], [4, 13]]) P.rect(x, y, 2, 2, "#d8303a"); };   // Milestone 22, Part B
+PAINT.cake_side = P => { P.rect(0, 0, 16, 16, "#c88a4a"); P.rect(0, 8, 16, 2, "#f8f4ee"); for (let x = 0; x < 16; x += 3) P.rect(x, 10, 2, 1 + (x % 2), "#f8f4ee"); P.rect(0, 13, 16, 1, "#d83a4a"); };   // (the cake is half a block tall, so it shows the lower half)
+PAINT.cake_bottom = P => P.fill(["#b8783a", "#c0803e"]);
+PAINT.cake_inner = P => { P.rect(0, 0, 16, 16, "#e8c890"); P.rect(0, 0, 16, 4, "#f8f4ee"); P.rect(0, 9, 16, 2, "#d83a4a"); };
+PAINT.potatoes0 = P => crop(P, 3, ["#4f9a33"]); PAINT.potatoes1 = P => crop(P, 6, ["#4f9a33", "#5ea83b"]); PAINT.potatoes2 = P => crop(P, 8, ["#4f9a33", "#5ea83b"]);
+PAINT.potatoes3 = P => { crop(P, 9, ["#4f9a33", "#5ea83b"]); for (let x = 1; x < 16; x += 5) P.rect(x, 13, 3, 3, "#c8a060"); };
+PAINT.beetroots0 = P => crop(P, 3, ["#5a9a33"]); PAINT.beetroots1 = P => crop(P, 5, ["#5a9a33", "#7a3a3a"]); PAINT.beetroots2 = P => crop(P, 8, ["#5a9a33", "#8a3a3a"]);
+PAINT.beetroots3 = P => { crop(P, 9, ["#5a9a33", "#8a2a3a"]); for (let x = 2; x < 16; x += 5) P.rect(x, 12, 3, 4, "#a0283a"); };
+const pumpkinSide = P => { P.fill(["#d8801c", "#e08a22", "#cc7618"]); for (let x = 1; x < 16; x += 4) P.rect(x, 0, 1, 16, "#b8661a"); };
+PAINT.pumpkin_top = P => { P.fill(["#d8801c", "#e08a22"]); for (let i = 0; i < 16; i += 4) { P.rect(i, 7, 2, 2, "#b8661a"); P.rect(7, i, 2, 2, "#b8661a"); } P.rect(6, 6, 4, 4, "#6a8a2a"); };
+PAINT.pumpkin_side = pumpkinSide;
+PAINT.carved_pumpkin = P => { pumpkinSide(P); P.rect(3, 4, 3, 3, "#3a2010"); P.rect(10, 4, 3, 3, "#3a2010"); P.rect(3, 10, 10, 2, "#3a2010"); P.rect(5, 12, 2, 1, "#3a2010"); P.rect(9, 12, 2, 1, "#3a2010"); };
+PAINT.jack_o_lantern = P => { pumpkinSide(P); P.rect(3, 4, 3, 3, "#ffd84a"); P.rect(10, 4, 3, 3, "#ffd84a"); P.rect(3, 10, 10, 2, "#ffd84a"); P.rect(5, 12, 2, 1, "#ffc030"); P.rect(9, 12, 2, 1, "#ffc030"); };
 // Milestone 21, Part B: painted from each color
 const tint = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)))); return "#" + [n >> 16, (n >> 8) & 255, n & 255].map(v => f(v).toString(16).padStart(2, "0")).join(""); };
 const mixHex = (a, b, t) => { const x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16); return "#" + [16, 8, 0].map(s => Math.round(((x >> s) & 255) * (1 - t) + ((y >> s) & 255) * t).toString(16).padStart(2, "0")).join(""); };
@@ -2093,6 +2166,11 @@ Object.assign(ICON_PAINT, {
   gloop(P, c) { blob(P, c ? [c[0], "#ffb050", "#e06a1a"] : ["#6ac85a", "#7ad86a", "#5ab84a"]); P.rect(6, 6, 2, 2, c ? "#ffe0a0" : "#b8f0a8"); },
   pearl(P) { for (let y = 4; y < 13; y++) for (let x = 4; x < 13; x++) if ((x - 8.5) ** 2 + (y - 8.5) ** 2 < 16) P.px(x, y, x + y < 14 ? "#3ad0a0" : "#1a7a6a"); P.rect(7, 7, 3, 3, "#0a3a3a"); },
   leather(P) { for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x + y) % 7 !== 0) P.px(x, y, P.pick(["#9a5a32", "#8a4e2a"])); },
+  rocket(P) { for (let i = 0; i < 6; i++) P.rect(4 + i, 11 - i, 3, 3, i % 2 ? "#d83a3a" : "#e8e0d0"); P.rect(10, 3, 3, 3, "#f0f0e8"); P.px(12, 2, "#f0f0e8"); P.px(4, 14, "#8a6a3a"); P.px(3, 15, "#ffb020"); },   // Milestone 22, Part D
+  disc(P, c) { const col = (c && c[0]) || "#e04a3a"; for (let y = 1; y < 15; y++) for (let x = 1; x < 15; x++) { const d = (x - 7.5) ** 2 + (y - 7.5) ** 2; if (d < 44) P.px(x, y, d < 8 ? col : (x + y) % 5 ? "#1e1e24" : "#34343c"); } P.px(7, 7, "#000"); P.px(4, 4, "#5a5a66"); },
+  crossbow(P) { for (let i = 0; i < 11; i++) P.px(3 + i, 13 - i, i % 3 ? "#8a5a30" : "#6a4422"); P.rect(2, 4, 3, 2, "#7a7c82"); P.rect(11, 11, 3, 2, "#7a7c82"); for (let i = 0; i < 8; i++) P.px(3 + i, 5 + i, "#e8e8e0"); P.rect(6, 7, 3, 3, "#9a9ca2"); },   // Milestone 22, Part C
+  spyglass(P) { for (let i = 0; i < 9; i++) { P.rect(3 + i, 11 - i, 2, 2, i < 4 ? "#c88a3a" : "#b07a30"); } P.rect(11, 2, 3, 3, "#9ad8f0"); P.rect(2, 11, 3, 3, "#5a3a1a"); P.px(7, 7, "#e0b060"); },
+  clock(P) { for (let y = 2; y < 14; y++) for (let x = 2; x < 14; x++) { const d = (x - 7.5) ** 2 + (y - 7.5) ** 2; if (d < 36) P.px(x, y, d > 24 ? "#d8a820" : y < 8 ? "#7ec0f0" : "#1a2448"); } P.rect(5, 4, 2, 2, "#ffe070"); P.rect(9, 10, 2, 1, "#f0f0f0"); P.px(7, 7, "#5a3a1a"); P.px(7, 6, "#5a3a1a"); },
   bow(P) { for (let i = 0; i < 11; i++) { const t = i / 10, x = 2 + Math.round(t * 11), y = 13 - Math.round(t * 11) - Math.round(Math.sin(t * Math.PI) * 3); P.px(x, y, "#8a6235"); P.px(x, y - 1, "#6a4825"); } for (let i = 0; i < 11; i++) P.px(3 + i, 12 - i, "#e8e8e8"); },
   shears(P) { P.rect(5, 3, 2, 6, "#dcdcdc"); P.rect(9, 3, 2, 6, "#c0c0c0"); P.rect(4, 9, 3, 4, "#b03a2a"); P.rect(9, 9, 3, 4, "#b03a2a"); },
   flintsteel(P) { P.rect(3, 4, 6, 3, "#c8c8c8"); P.rect(3, 4, 2, 8, "#c8c8c8"); blob(P, ["#3a3a3a"]); },
@@ -2136,7 +2214,10 @@ Object.assign(ICON_PAINT, {
   glow_berries(P) { for (const [x, y] of [[4, 5], [9, 4], [6, 9], [10, 10]]) { P.rect(x, y, 3, 3, "#f0a020"); P.px(x, y, "#fff0a0"); } P.rect(7, 1, 2, 4, "#4a7a22"); },
   cocoa_beans(P) { for (const [x, y] of [[4, 6], [8, 5], [6, 9], [10, 9]]) { P.rect(x, y, 3, 2, "#6a3814"); P.px(x, y, "#8a4a1e"); } },
   cookie(P) { for (let y = 3; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 7.5) ** 2 + (y - 7.5) ** 2 < 24) P.px(x, y, "#d8a050"); for (const [x, y] of [[5, 5], [9, 6], [6, 9], [10, 10], [8, 8]]) P.px(x, y, "#5a3010"); },
-  bowl(P, c) { const stew = c && c[0] === "stew"; P.rect(2, 7, 12, 2, stew ? "#c09060" : "#7a5530"); for (let y = 9; y < 13; y++) P.rect(2 + (y - 9), y, 12 - 2 * (y - 9), 1, y === 12 ? "#5a3d20" : "#8a6235"); if (stew) { P.rect(3, 6, 10, 2, "#b08048"); P.px(5, 6, "#d8c0a0"); P.px(9, 6, "#7a5030"); } },
+  potato(P, c) { const [a, b] = c && c.length === 2 ? c : ["#c8a060", "#a07840"]; P.rect(4, 5, 8, 7, a); P.rect(5, 4, 6, 9, a); P.rect(4, 11, 8, 1, b); P.rect(11, 5, 1, 6, b); P.px(6, 6, b); P.px(9, 8, b); P.px(7, 10, b); },   // Milestone 22
+  beet(P) { P.rect(5, 6, 6, 6, "#a0283a"); P.rect(6, 5, 4, 8, "#a0283a"); P.rect(7, 12, 2, 2, "#7a1a2a"); P.rect(7, 1, 1, 5, "#4a9a3a"); P.rect(9, 2, 1, 4, "#4a9a3a"); P.px(6, 7, "#c84a5a"); },
+  pie(P) { P.rect(2, 8, 12, 5, "#c08848"); P.rect(3, 7, 10, 1, "#d89a50"); P.rect(3, 8, 10, 2, "#e08a2a"); P.rect(2, 12, 12, 1, "#8a5a2a"); P.px(5, 8, "#f0b060"); P.px(10, 9, "#f0b060"); },
+  bowl(P, c) { const stew = c && (c[0] === "stew" || (c[0] || "").startsWith("#")), soup = c && (c[0] || "").startsWith("#") ? c[0] : null; P.rect(2, 7, 12, 2, stew ? "#c09060" : "#7a5530"); for (let y = 9; y < 13; y++) P.rect(2 + (y - 9), y, 12 - 2 * (y - 9), 1, y === 12 ? "#5a3d20" : "#8a6235"); if (stew) { P.rect(3, 6, 10, 2, soup || "#b08048"); P.px(5, 6, "#d8c0a0"); P.px(9, 6, "#7a5030"); } },
   nametag(P) { P.rect(4, 3, 9, 11, "#e8dcc0"); P.rect(4, 3, 9, 1, "#c8b890"); P.rect(4, 13, 9, 1, "#b8a880"); P.rect(5, 1, 7, 2, "#e8dcc0"); P.rect(7, 2, 3, 2, "#6a5a3a"); for (const y of [6, 8, 10]) P.rect(6, y, 5, 1, "#8a7a5a"); P.rect(2, 1, 4, 1, "#9a9a9a"); P.rect(2, 1, 1, 4, "#9a9a9a"); },
   horse_armor(P, c) { const a = (c && c[0]) || "#dcdcdc", b = (c && c[1]) || "#a8a8a8"; P.rect(2, 6, 12, 6, a); P.rect(2, 11, 12, 1, b); P.rect(10, 2, 4, 6, a); P.rect(13, 3, 1, 4, b); P.rect(3, 12, 2, 3, b); P.rect(11, 12, 2, 3, b); P.rect(4, 7, 5, 1, "#ffffff"); },
   void_crystal(P) { for (let y = 1; y < 15; y++) { const w = 7 - Math.abs(y - 8); for (let x = 8 - w; x < 8 + w; x++) P.px(x, y, (x + y) % 3 ? "#d8b8f8" : "#f4e8ff"); } P.rect(6, 6, 4, 4, "#8a3ad0"); P.rect(7, 7, 2, 2, "#f070ff"); for (const [x, y] of [[8, 1], [8, 14], [1, 8], [14, 8]]) P.px(x, y, "#ffffff"); },
