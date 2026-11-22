@@ -2,7 +2,7 @@
 // Each species is described by data (size, health, behavior, drops, model) and shares the same body physics.
 import { stonehavenResidents } from "./stonehaven.js";
 import * as THREE from "../lib/three.module.min.js";
-import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate, WATERY } from "./blocks.js";
+import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate, WATERY, FISH_BUCKETS } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
 import { installGodzilla, animateGodzilla } from "./godzilla-model.js";
@@ -21,6 +21,7 @@ import { installTriceratops, populateTriceratops, thinkTriceratops, animateTrice
 import { LOST_WORLD } from "./lost-world.js";
 import { installLostWorldRaptor, populateLostWorld, thinkLostWorldRaptor, animateLostWorldRaptor } from "./lost-world-raptor.js";
 import { installCreatures, animateCreature, thinkCreature, interactCreature, spawnCreatures } from "./creatures.js";
+import { ELDER_SPOTS } from "./ocean-monument.js";
 import { OSTRICH, rhinoProvoked, stepOstrichEgg } from "./wildlife-savanna.js";
 import { installWildlife, spawnWildlife, thinkWildlife, animateWildlife, sharkWater, alertGrizzlyFamily } from "./wildlife.js";
 import { Sound } from "./audio.js";
@@ -1923,6 +1924,13 @@ export class Entities {
       const x = x0 + (i % CHUNK), z = z0 + (Math.floor(i / CHUNK) % CHUNK), y = Math.floor(i / (CHUNK * CHUNK));
       for (let k = 0; k < 3; k++) this.leaveHive(this.add("bee", x + 0.5, y, z + 0.5, { home: [x, y, z] }));   // they hover beside the nest
     }
+    { // Milestone 17, Part C: an Ocean Monument's Elder Guardians (they stay for good) and a few Guardians in its hall
+      const mon = w.dim === "overworld" || !w.dim ? w.monumentAt?.(c.cx, c.cz) : null;
+      if (mon) {
+        for (const [ex, ey, ez] of ELDER_SPOTS) { const x = mon.x0 + ex, z = mon.z0 + ez; if (Math.floor(x / CHUNK) === c.cx && Math.floor(z / CHUNK) === c.cz) this.add("elder_guardian", x, mon.y0 + ey, z, { persist: true }); }
+        if (Math.random() < 0.6) { const x = x0 + 2 + Math.floor(Math.random() * 12), z = z0 + 2 + Math.floor(Math.random() * 12), y = mon.y0 + 3; if (w.id(x, y, z) === B.WATER && w.id(x, y + 1, z) === B.WATER) this.add("aquatic_guardian", x + 0.5, y, z + 0.5); }
+      }
+    }
     const vp = w.gen.villagePiece && (w.gen.version >= 5 || w.newGen.has(c.key)) ? w.gen.villagePiece(c.cx, c.cz) : null;
     if (vp) {   // villagers move into the village (and an Ironwarden guards the plaza)
       const [hx, hy, hz] = vp.home;
@@ -2487,6 +2495,7 @@ export class Entities {
     if (e.baby && (e.growT -= dt) <= 0) {
       const cubHealth = e.sp === "grizzly_bear" || e.def.babyHp ? e.hp / e.maxHp : null;
       e.baby = false;
+      if (e.sp === "turtle") this.ctx.drop(I.SCUTE, 1, e.pos.x, e.pos.y + 0.3, e.pos.z);   // Milestone 17, Part D
       if (cubHealth !== null) e.hp = e.maxHp * cubHealth;
     }
     if (e.breedCd > 0) e.breedCd -= dt;
@@ -3109,8 +3118,27 @@ export class Entities {
     this.waterGoal(e, def.ai === "squid" ? 5 : 4, def.speed * (def.ai === "squid" ? 0.5 : 0.6));
   }
   // Splashers: playful, swim alongside swimmers and boats, leap out of the water, and share their speed
+  // Milestone 17, Part D: the nearest shipwreck, sunken ruin, or buried treasure a Splasher could lead you to (or null)
+  treasureFor(e) {
+    const w = this.world, g = w.gen;
+    if (!g.wreckNear || w.dim && w.dim !== "overworld") return null;
+    const v = g.version, ok = s => { if (v >= 18) return true; if (v !== 17) return false; const k = Math.floor(s.x / CHUNK) + "," + Math.floor(s.z / CHUNK); return w.newGen.has(k) || (!w.visited.has(k) && !w.mods.has(k)); };
+    const dug = new Set(this.ctx.story?.()?.treasures || []);
+    const a = g.wreckNear(e.pos.x, e.pos.z, ok), b = g.treasureNear(e.pos.x, e.pos.z, s => ok(s) && !dug.has(s.x + "," + s.z), 2);
+    const da = a ? Math.hypot(a.x - e.pos.x, a.z - e.pos.z) : Infinity, db = b ? Math.hypot(b.x - e.pos.x, b.z - e.pos.z) : Infinity;
+    return da === Infinity && db === Infinity ? null : da <= db ? a : { x: b.x, z: b.z, kind: "buried" };
+  }
   thinkDolphin(e, d, dmgMul) {
     const ctx = this.ctx, p = ctx.player(), def = e.def;
+    if (e.leadTo && !(e.angry > 0)) {   // Milestone 17, Part D: swim toward the treasure, waiting for you to keep up
+      const t = e.leadTo, dx = t.x + 0.5 - e.pos.x, dz = t.z + 0.5 - e.pos.z, td = Math.hypot(dx, dz);
+      e.leadT -= 0.15;
+      if (td < 7 || e.leadT <= 0) { if (td < 7 && d < 16) { ctx.toast(t.kind === "buried" ? "The Splasher stopped over a beach: the treasure is buried somewhere close by!" : "The Splasher found it! Look around down here.", "good"); if (ctx.adv) ctx.adv("dolphinlead"); } e.leadTo = null; }
+      else if (d > 14) e.goal = { x: e.pos.x + (p.pos.x - e.pos.x) * 0.3, y: Math.min(p.pos.y, e.pos.y), z: e.pos.z + (p.pos.z - e.pos.z) * 0.3, speed: def.speed };
+      else { const k = Math.min(8, td) / td; e.goal = { x: e.pos.x + dx * k, y: Math.min(e.pos.y + 0.5, Math.max(e.pos.y - 1, p.pos.y)), z: e.pos.z + dz * k, speed: def.speed * 0.8 }; }
+      if (d < 7 && p.inWater) ctx.effect("dolphin", 6);
+      return;
+    }
     if (e.angry > 0 && this.targetable()) {
       e.angry -= 0.15;
       e.goal = { x: p.pos.x, y: p.pos.y + 0.4, z: p.pos.z, speed: def.speed };
@@ -3279,6 +3307,16 @@ export class Entities {
         birth = water;
       }
       e.love = mate.love = 0; e.breedCd = mate.breedCd = 300;
+      if (e.sp === "turtle") {   // Milestone 17, Part D: sea turtles lay 1-4 eggs on nearby sand
+        const x = Math.floor(birth.x), y = Math.floor(birth.y), z = Math.floor(birth.z), w = this.world;
+        for (let k = 0; k < 40; k++) {
+          const ex = x + randi(-4, 4), ez = z + randi(-4, 4);
+          for (let ey = y + 2; ey >= y - 3; ey--) if ((w.id(ex, ey - 1, ez) === B.SAND || w.id(ex, ey - 1, ez) === B.RED_SAND) && w.id(ex, ey, ez) === B.AIR) { w.set(ex, ey, ez, make(B.TURTLE_EGG, randi(0, 3))); w.crops.add(ex + "," + ey + "," + ez); ctx.toast("A sea turtle laid eggs on the sand!", "good"); k = 99; break; }
+        }
+        if (this.ctx.adv) this.ctx.adv("breed", e.sp);
+        ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); ctx.xp(randi(1, 7), e.pos.x, e.pos.y + 0.5, e.pos.z);
+        return true;
+      }
       const kid = this.add(e.sp === "frog" ? "tadpole" : e.sp === mate.sp ? e.sp : "mule", birth.x, birth.y, birth.z, { baby: e.sp !== "frog", trust: e.sp === "fox", home: e.home, persist: !!def.expansion,
         tame: !!(def.pet && e.tame && mate.tame), variant: e.sp === "trotter" && mate.sp === "trotter" ? (Math.random() < 1 / 9 ? randi(1, TROTTER_VARIANTS.length - 1) : (Math.random() < 0.5 ? e : mate).variant) : undefined });
       if (kid && def.pet && e.tame && mate.tame) { ctx.toast(`Your ${def.name}s had a baby! It's already tame.`, "good"); if (ctx.adv) ctx.adv("petbreed"); }
@@ -3484,6 +3522,11 @@ export class Entities {
   // ----- interacting (right-click) -----
   interact(e, slot) {
     const ctx = this.ctx, def = e.def, id = slot ? slot.id : 0;
+    if (id === I.WATER_BUCKET && FISH_BUCKETS[e.sp] && !e.dead) {   // Milestone 17, Part D: scoop a fish (or an Axolotl or tadpole) into the bucket
+      ctx.swapHeld(FISH_BUCKETS[e.sp]); e.gone = true; Sound.splash(); ctx.particles(e.pos.x, e.pos.y + 0.3, e.pos.z, "splash");
+      if (ctx.adv) ctx.adv("bucketfish", e.sp);
+      return true;
+    }
     if (interactCreature(this, e, slot) || interactElephant(this, e, slot) || interactFalcon(this, e, slot)) return true;
     if (def.cart) return ctx.useCart(e, slot);
     if (e.inv && (def.boat || (def.mount && e.tame && !e.baby)) && ctx.crouching()) return ctx.openCart(e);   // crouch + right-click opens a chest boat
@@ -3492,7 +3535,9 @@ export class Entities {
       ctx.consume(); e.angry = 0;
       for (let k = 0; k < 3; k++) ctx.particles(e.pos.x + rand(-0.4, 0.4), e.pos.y + e.h + rand(0, 0.4), e.pos.z + rand(-0.4, 0.4), "heart");
       ctx.effect("dolphin", 30); Sound.mob("click", 2);
-      ctx.toast("The Splasher loved that fish! You can swim extra fast for a while.", "good");
+      const lead = this.treasureFor(e);   // Milestone 17, Part D: it shows you the way to the nearest sunken treasure
+      if (lead) { e.leadTo = lead; e.leadT = 120; }
+      ctx.toast(lead ? `The Splasher loved that fish! Follow it: it wants to show you ${lead.kind === "buried" ? "buried treasure" : lead.kind === "shipwreck" ? "a shipwreck" : "a sunken ruin"}.` : "The Splasher loved that fish! You can swim extra fast for a while.", "good");
       return true;
     }
     if (def.tameWith) {   // pets and Trotters
@@ -3562,6 +3607,12 @@ export class Entities {
       const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.11), new THREE.MeshBasicMaterial({ color: 0xffb764 }));
       core.position.x = 0.1;
       mesh.add(shell, core);
+    } else if (kind === "arrow" && (opts.tridentLook || opts.tridentMob)) {   // Milestone 17, Part D: a trident
+      mesh = new THREE.Group();
+      const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1.3), new THREE.MeshBasicMaterial({ color: 0x3aa0a0 }));
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.08), new THREE.MeshBasicMaterial({ color: 0x7ad8d0 })); head.position.z = -0.6;
+      mesh.add(shaft, head);
+      for (const x of [-0.14, 0, 0.14]) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.25), new THREE.MeshBasicMaterial({ color: 0xbff8f0 })); t.position.set(x, 0, -0.74); mesh.add(t); }
     } else if (kind === "arrow") {
       mesh = new THREE.Group();
       const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.5), new THREE.MeshBasicMaterial({ color: 0x8a6235 }));
@@ -3576,6 +3627,18 @@ export class Entities {
     mesh.position.set(x, y, z); this.scene.add(mesh);
     this.projectiles.push({ kind, x, y, z, vx, vy, vz, age: 0, stuck: false, mesh, ...opts });
   }
+  // Milestone 17, Part D: where a thrown trident ends up: back to you with Loyalty, otherwise on the ground as an item
+  tridentLanded(pr) {
+    if (!pr.trident) { pr.gone = true; return; }   // Creative: the trident never left your hand
+    if (pr.loyalty) { pr.returning = true; pr.vx = pr.vy = pr.vz = 0; return; }
+    this.ctx.drop(I.TRIDENT, 1, pr.x, pr.y + 0.2, pr.z, pr.trident); pr.gone = true;
+  }
+  tridentHome(pr, dt, p) {
+    const dx = p.pos.x - pr.x, dy = p.pos.y + 1 - pr.y, dz = p.pos.z - pr.z, l = Math.hypot(dx, dy, dz) || 1, sp = 10 + 6 * pr.loyalty;
+    if (l < 1.2 || pr.age > 20) { this.ctx.giveStack?.(pr.trident); pr.gone = true; return; }
+    pr.x += dx / l * Math.min(l, sp * dt); pr.y += dy / l * Math.min(l, sp * dt); pr.z += dz / l * Math.min(l, sp * dt);
+    pr.mesh.position.set(pr.x, pr.y, pr.z); pr.mesh.rotation.set(Math.atan2(-dy, Math.hypot(dx, dz)), Math.atan2(-dx, -dz) + Math.PI, 0, "YXZ");
+  }
   updateProjectiles(dt) {
     const w = this.world, ctx = this.ctx;
     let p = ctx.player();
@@ -3585,6 +3648,7 @@ export class Entities {
       pr.age += dt;
       if (["sandbolt", "obsidianshard"].includes(pr.kind) && pr.age > 5) { pr.gone = true; continue; }
       if (pr.kind === "bobber") { this.updateBobber(pr, dt); continue; }
+      if (pr.returning) { this.tridentHome(pr, dt, p); continue; }   // Milestone 17, Part D
       if (pr.stuck) { if (pr.age > 30) pr.gone = true; if (pr.fromPlayer && !ctx.creative() && Math.hypot(pr.x - p.pos.x, pr.y - p.pos.y - 0.8, pr.z - p.pos.z) < 1.4 && pr.age > 0.5) { if (pr.infinite || ctx.give(pr.itemId || I.ARROW, 1)) pr.gone = true; } continue; }
       if (pr.kind === "eye") { this.flyEye(pr, dt); continue; }
       if (pr.homing) {   // Sheller bullets slowly steer toward you
@@ -3619,7 +3683,9 @@ export class Entities {
         if (blockHit && blockHit.t <= Math.min(entityTime, playerTime ?? Infinity)) {
           pr.x = blockHit.hx; pr.y = blockHit.hy; pr.z = blockHit.hz;
           if (ctx.hitBlock) ctx.hitBlock(pr, blockHit.x, blockHit.y, blockHit.z, pr.x, pr.y, pr.z);
-          if (pr.kind === "arrow") { pr.stuck = true; pr.age = 0; Sound.mob("arrowhit", Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z)); }
+          if (pr.kind === "arrow" && pr.tridentLook) { this.tridentLanded(pr); Sound.mob("arrowhit", Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z)); }
+          else if (pr.kind === "arrow" && pr.tridentMob) { pr.gone = true; }
+          else if (pr.kind === "arrow") { pr.stuck = true; pr.age = 0; Sound.mob("arrowhit", Math.hypot(pr.x - p.pos.x, pr.z - p.pos.z)); }
           else if (pr.kind === "bigfire") { ctx.explode(pr.x, pr.y, pr.z, pr.power || 1.3, pr.owner); pr.gone = true; }
           else if (pr.kind === "fireball") { ctx.ignite(blockHit.x, blockHit.y, blockHit.z); pr.gone = true; }
           else if (pr.kind === "breath") { ctx.cloud(pr.x, pr.y + 0.5, pr.z); pr.gone = true; }
@@ -3633,16 +3699,18 @@ export class Entities {
         if (hitE && pr.kind === "potion") { ctx.potionBurst?.(nx, ny, nz, pr.stack, pr.fromPlayer ? "player" : pr.owner, hitE); pr.gone = true; break; }   // Milestone 16: a thrown potion breaks on a creature
         if (hitE && pr.kind === "skull" && hitE !== pr.owner) { this.damage(hitE, pr.dmg || 6, null); ctx.explode(nx, ny, nz, 1, pr.owner); pr.gone = true; break; }
         if (hitE && pr.kind !== "pearl" && pr.kind !== "skull" && (pr.fromPlayer || pr.kind !== "arrow" || !pr.owner || !pr.owner.def.hostile || !hitE.def.hostile)) {
+          if (pr.kind === "arrow" && pr.impaling && hitE.def.swims) pr.dmg += 2.5 * pr.impaling;   // Milestone 17: Impaling
           if (pr.kind === "arrow") { const l = Math.hypot(pr.vx, pr.vz) || 1, k = 0.5 * (1 + 1.2 * (pr.punch || 0)); this.damage(hitE, pr.dmg, pr.fromPlayer ? "player" : { projectile: true }, { x: pr.vx / l * k, z: pr.vz / l * k }); if (pr.fromPlayer && hitE.sp !== "voidwalker") { hitE.angry = 40; } if (pr.flame && !hitE.def.fireproof) { hitE.burning = Math.max(hitE.burning || 0, 5); if (!(hitE.burnT > 0)) hitE.burnT = 1; } if (pr.tip && !hitE.dead) ctx.tipHit?.(hitE, pr.tip); }   // Punch and Flame (Milestone 15), tipped arrows (16)
           if (pr.kind === "bigfire") { if (pr.fromPlayer && hitE.sp === "wailer") this.damage(hitE, 1000, "player"); ctx.explode(nx, ny, nz, pr.power || 1.3, pr.owner); }
           if (pr.kind === "fireball" && !hitE.def.fireproof) { this.damage(hitE, 5, pr.fromPlayer ? "player" : null); hitE.burning = 4; }
+          if (pr.tridentLook) { this.tridentLanded(pr); Sound.mob("arrowhit", this.dist(hitE)); break; }   // Milestone 17: a trident drops (or flies home) after a hit
           pr.gone = true; Sound.mob("arrowhit", this.dist(hitE)); break;
         }
         // hit the player?
         if (playerTime !== null) {
           if (pr.kind === "arrow") {
             const source = pr.owner?.def.name || "Rattler";
-            ctx.hurtPlayer(pr.dmg, `A ${source}'s arrow hit you!`, { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } }, "projectile");
+            ctx.hurtPlayer(pr.dmg, pr.tridentMob ? `A ${source}'s trident hit you!` : `A ${source}'s arrow hit you!`, { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } }, "projectile");
             if (pr.owner?.sp === "bogged") ctx.effect("poison", 5);
             if (pr.owner?.sp === "stray" || pr.owner?.sp === "parched") ctx.effect("queasy", 6);
           }
@@ -3903,6 +3971,7 @@ export class Entities {
           line.setXYZ(1, p.pos.x, p.pos.y + p.eye * 0.7, p.pos.z);
           line.needsUpdate = true;
           e.beam.material.opacity = 0.35 + Math.min(0.65, charge / 3);
+          e.beam.material.color.setHSL(0.78 - Math.min(1, charge / 3) * 0.6, 0.9, 0.55 + Math.min(1, charge / 3) * 0.3);   // Milestone 17: purple, then hot yellow just before it fires
         }
       }
     }

@@ -1,6 +1,7 @@
 // Holds the blocks of the world in 16×16 columns ("chunks") and remembers every change the player makes.
 import { B, CHUNK, HEIGHT, idOf, lightOf } from "./blocks.js";
-import { idx, LEGACY_CHUNK_GEN, ENCHANT_GEN, BIOME_GEN } from "./worldgen.js";
+import { idx, LEGACY_CHUNK_GEN, ENCHANT_GEN, BIOME_GEN, MONUMENT_GEN } from "./worldgen.js";
+import { MONUMENT_SIZE } from "./ocean-monument.js";
 
 export const chunkKey = (cx, cz) => cx + "," + cz;
 
@@ -56,6 +57,7 @@ export class World {
       opts = { sea: fresh };
     }
     if (this.gen.lateFeatures && this.gen.version < BIOME_GEN) opts.biomes = this.biomeRegion(cx, cz);   // Milestone 20, Part C
+    if (this.gen.version >= BIOME_GEN && this.gen.version < MONUMENT_GEN) opts.monumentOk = s => this.monumentOk(s);   // Milestone 17, Part C
     let data = this.gen.generate(cx, cz, opts);
     if (!(data instanceof Uint32Array)) data = Uint32Array.from(data);   // room for block ids 256 and up (the block limit step)
     if (m) for (const [i, v] of m) data[i] = v;
@@ -79,6 +81,28 @@ export class World {
       this.regions.set(rk, d);
     }
     return d === 1;
+  }
+  // Milestone 17, Part C: may this Ocean Monument stand in this world? New worlds: always. Worlds made at land version
+  // 17 or 18: only if nobody had been anywhere on its spot when it was first decided (remembered in `regions`).
+  monumentOk(s) {
+    if (this.gen.version >= MONUMENT_GEN) return true;
+    if (this.gen.version < BIOME_GEN) return false;
+    const rk = "m:" + s.key;
+    let d = this.regions.get(rk);
+    if (d === undefined) {
+      d = 1;
+      for (let i = Math.floor((s.x0 - 16) / CHUNK); i <= Math.floor((s.x0 + MONUMENT_SIZE + 16) / CHUNK) && d; i++)
+        for (let j = Math.floor((s.z0 - 16) / CHUNK); j <= Math.floor((s.z0 + MONUMENT_SIZE + 16) / CHUNK); j++) { const k = chunkKey(i, j); if (this.visited.has(k) || this.mods.has(k) || this.chunks.has(k)) { d = 0; break; } }
+      this.regions.set(rk, d);
+    }
+    return d === 1;
+  }
+  // the monument covering this chunk, if this world has one there
+  monumentAt(cx, cz) {
+    if (!this.gen.monumentsNear) return null;
+    for (const s of this.gen.monumentsNear(cx * CHUNK + 8, cz * CHUNK + 8))
+      if (s.x0 <= cx * CHUNK + CHUNK - 1 && s.x0 + MONUMENT_SIZE - 1 >= cx * CHUNK && s.z0 <= cz * CHUNK + CHUNK - 1 && s.z0 + MONUMENT_SIZE - 1 >= cz * CHUNK && this.monumentOk(s)) return s;
+    return null;
   }
   unload(c) { if (this.onUnload) this.onUnload(c); this.chunks.delete(c.key); this.dirtyQueue.delete(c); }
 

@@ -38,7 +38,12 @@ export const ENCH = {
   flame: { name: "Flame", max: 1, w: 2, on: "bow", cost: () => [20, 50], desc: "Arrows set creatures on fire" },
   infinity: { name: "Infinity", max: 1, w: 1, on: "bow", group: "mend", cost: () => [20, 50], desc: "Shooting doesn't use up arrows (you need 1)" },
   luck_of_the_sea: { name: "Luck of the Sea", max: 3, w: 2, on: "rod", cost: range(15, 9, 50), desc: "More treasure when fishing" },
-  lure: { name: "Lure", max: 3, w: 2, on: "rod", cost: range(15, 9, 50), desc: "Fish bite sooner" }
+  lure: { name: "Lure", max: 3, w: 2, on: "rod", cost: range(15, 9, 50), desc: "Fish bite sooner" },
+  // Milestone 17, Part D: tridents
+  loyalty: { name: "Loyalty", max: 3, w: 5, on: "trident", group: "tide", cost: l => [5 + 7 * l, 50], desc: "A thrown trident flies back to you" },
+  riptide: { name: "Riptide", max: 3, w: 2, on: "trident", group: "tide", cost: l => [10 + 7 * l, 50], desc: "Throwing it while you're in water launches YOU instead" },
+  impaling: { name: "Impaling", max: 5, w: 2, on: "trident", cost: range(1, 8, 20), desc: "Much more damage to sea creatures" },
+  channeling: { name: "Channeling", max: 1, w: 1, on: "trident", cost: () => [25, 50], desc: "Calls lightning onto what it hits during a thunderstorm (when storms come to Blockhaven)" }
 };
 export const ENCH_KEYS = Object.keys(ENCH);
 
@@ -52,7 +57,7 @@ export function kindOf(id) {
   if (d.armor) return ["helmet", "chest", "legs", "boots"][d.armor.slot];
   if (d.tool) {
     const t = d.tool.type;
-    if (t === "sword" || t === "axe" || t === "bow" || t === "rod" || t === "shears") return t;
+    if (t === "sword" || t === "axe" || t === "bow" || t === "rod" || t === "shears" || t === "trident") return t;
     if (t === "pick" || t === "shovel" || t === "hoe") return "digger";
     return "durable";   // shields, flint and steel, staffs
   }
@@ -64,7 +69,7 @@ function targetFits(target, kind) {
   switch (target) {
     case "armor": return ARMOR_KINDS.includes(kind);
     case "wearable": return ARMOR_KINDS.includes(kind) || kind === "glider";
-    case "helmet": case "chest": case "boots": case "sword": case "bow": case "rod": case "shears": case "axe": return kind === target;
+    case "helmet": case "chest": case "boots": case "sword": case "bow": case "rod": case "shears": case "axe": case "trident": return kind === target;
     case "digger": return kind === "digger" || kind === "axe";
     case "durable": case "any": return true;
   }
@@ -88,7 +93,7 @@ for (const [mat, val] of Object.entries(ARMOR_ENCH)) for (const p of ["HELMET", 
 export function enchantability(id) {
   const kind = kindOf(id), d = itemDef(id);
   if (!kind || kind === "glider" || kind === "shears" || kind === "durable") return 0;
-  if (kind === "book" || kind === "bow" || kind === "rod") return 1;
+  if (kind === "book" || kind === "bow" || kind === "rod" || kind === "trident") return 1;
   if (d.armor) return armorMaterial.get(id) || 10;
   return TOOL_ENCH[Math.max(1, Math.min(5, d.tool.tier || 1))];
 }

@@ -5,6 +5,16 @@ const LOW = { [B.BED]: 9 / 16, [B.FARMLAND]: 15 / 16 };   // blocks shorter than
 import { doorBox } from "./mesher.js";
 
 export const GRAVITY = 26, JUMP = 8.2, REACH = 5;
+// Milestone 17, Part D: a bubble column rises from Wailing Sand (1) or pulls down toward Magma (-1) under unbroken water
+export function bubbleColumn(world, x, y, z) {
+  const bx = Math.floor(x), bz = Math.floor(z);
+  for (let by = Math.floor(y + 0.5), n = 0; by > 0 && n < 30; by--, n++) {
+    const id = world.id(bx, by, bz);
+    if (WATERY[id]) continue;
+    return id === B.SOUL_SAND ? 1 : id === B.MAGMA ? -1 : 0;
+  }
+  return 0;
+}
 const EPS = 1e-4;
 
 // Collision boxes of the block at (x, y, z), in world coordinates
@@ -110,6 +120,8 @@ export class Player {
       v.y -= GRAVITY * 0.25 * dt; v.y *= 0.9;
       if (input.jump) v.y = Math.min(v.y + 30 * dt, 3.2);
       this.airTop = null;
+      const col = bubbleColumn(world, p.x, p.y, p.z);   // Milestone 17, Part D: Wailing Sand pushes you up, Magma pulls you down
+      if (col > 0) v.y = Math.min(v.y + 28 * dt, 6); else if (col < 0) v.y = Math.max(v.y - 22 * dt, -5);
     } else {
       v.y -= GRAVITY * dt;
       if (v.y < -40) v.y = -40;

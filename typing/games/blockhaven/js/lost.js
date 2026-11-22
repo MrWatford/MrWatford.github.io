@@ -128,6 +128,8 @@ export function initLost(api) {
     // the other sites, plus anything else that must stay clear (the Starter Home)
     const others = [...["excavation", ...TEMPLE_KEYS].filter(k => k !== kind).map(siteOf).filter(Boolean), ...(L.avoid || [])];
     const P5 = [[16, 16], [4, 4], [28, 4], [4, 28], [28, 28]];
+    // keep clear of Ocean Monuments (Milestone 17, Part C), so the two never overlap
+    const nearMonument = (x0, z0) => { if (!gen.monumentSite) return false; const g = Math.floor((x0 + 16) / 384), h = Math.floor((z0 + 16) / 384); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const m = gen.monumentSite(g + i, h + j); if (m && Math.abs(m.cx - x0 - 16) < 90 && Math.abs(m.cz - z0 - 16) < 90) return true; } return false; };
     const fits = {
       excavation: (x0, z0) => P5.every(([dx, dz]) => { const c = gen.column(x0 + dx, z0 + dz); return c.h >= 32 && c.h <= 46 && c.biome !== "peak"; }),
       sea: (x0, z0) => P5.every(([dx, dz]) => gen.column(x0 + dx, z0 + dz).h <= SEA - 3) && [0, 1, 2, 3, 4, 5, 6, 7].some(a => gen.column(x0 + 16 + Math.cos(a * 0.785) * 44, z0 + 16 + Math.sin(a * 0.785) * 44).h > SEA + 1),
@@ -138,6 +140,7 @@ export function initLost(api) {
       for (let cx = 0; cx < 2; cx++) for (let cz = 0; cz < 2; cz++) { const k = (x0 / CHUNK + cx) + "," + (z0 / CHUNK + cz); if (visited.has(k) || mods[k]) return false; }
       if (others.some(o => Math.hypot(o.x - x0, o.z - z0) < 96)) return false;
       if ((gen.strongholds || []).some(q => Math.hypot(q.x - x0 - 16, q.z - z0 - 16) < 185)) return false;   // room for the Endwatch Citadels
+      if (nearMonument(x0, z0)) return false;   // Milestone 17, Part C
       return fits(x0, z0);
     };
     // looser matches, used only when the natural spot would be farther than the adventure range
@@ -162,6 +165,7 @@ export function initLost(api) {
     const bay = (x0, z0) => {
       const cx = x0 + 16, cz = z0 + 16;
       if (others.some(o => Math.hypot(o.x - x0, o.z - z0) < 120)) return false;
+      if (nearMonument(x0, z0)) return false;
       if ((gen.strongholds || []).some(q => Math.hypot(q.x - cx, q.z - cz) < 185)) return false;   // room for the Endwatch Citadels
       for (let gx = Math.floor((cx - LAKE.r1) / CHUNK); gx <= Math.floor((cx + LAKE.r1) / CHUNK); gx++) for (let gz = Math.floor((cz - LAKE.r1) / CHUNK); gz <= Math.floor((cz + LAKE.r1) / CHUNK); gz++) if (visited.has(gx + "," + gz) || mods[gx + "," + gz]) return false;
       for (const rr of [0, 18, 34, 46]) for (let a = 0; a < (rr ? 8 : 1); a++) {
@@ -188,6 +192,7 @@ export function initLost(api) {
       for (let cx = 0; cx < 2; cx++) for (let cz = 0; cz < 2; cz++) { const k = (x0 / CHUNK + cx) + "," + (z0 / CHUNK + cz); if (visited.has(k) || mods[k]) return false; }
       if (others.some(o => Math.hypot(o.x - x0, o.z - z0) < 96)) return false;
       if ((gen.strongholds || []).some(q => Math.hypot(q.x - x0 - 16, q.z - z0 - 16) < 185)) return false;
+      if (nearMonument(x0, z0)) return false;
       return fit(x0, z0);
     }
   }

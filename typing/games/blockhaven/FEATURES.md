@@ -339,6 +339,43 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
+## Milestone 17, Part E: achievements, Journal, Creative, sounds (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21). Milestone 17 is now complete.
+Code: `js/oceans-guide.js` (new: Journal tab "Oceans", 5 pages), `js/advancements.js` (new "Oceans" category, 16 achievements), `js/ui.js` (Journal tab, Creative "Oceans" tab `OCEAN_KIT`), `js/audio.js` (laser, trident, conduit sounds), `js/creatures.js`, `js/main.js`, `index.html` (tags `?v=ocean-e-1`, new import-map entry). Backups: `tools/backups/pre-m17-partE-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| 16 achievements | Done | New "Oceans" tab: Under the Sea, Reef Explorer, Soaked Up, Shipwrecked, X Marks the Spot, Heart of the Ocean, Full Power, The Deep Fortress, Laser Tag, The Elder Three, Fish to Go, Beach Babies, Shell Shocked, Sea Fork, Riding the Riptide, Follow the Splasher |
+| Journal: "Oceans" | Done | 5 pages: the ocean floor, sunken treasure (with how to frame a Conduit), Ocean Monuments, sea creatures, tridents |
+| Creative "Oceans" tab | Done | All 63 ocean blocks and items in one place |
+| Sounds | Done | A Guardian's laser zap, a trident's whoosh, and a chime when a Conduit wakes up |
+| Not yet checked | Partial | Not played by hand; Chromebook speed not checked |
+
+## Milestone 17, Part D: ocean creatures, tridents, turtles, bubble columns (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21)
+Code: `js/blocks.js` (Turtle Egg block 355, items 691–699 and 730–731, `FISH_BUCKETS`, recipe, pictures), `js/enchanting.js` (Loyalty, Riptide, Impaling, Channeling), `js/entities.js` (fish buckets, turtle eggs, scutes, Splashers leading to treasure, `treasureFor`, trident flight `tridentLanded`/`tridentHome`), `js/creatures.js` (Drowned tridents, turtle food, salmon drops), `js/main.js` (`throwTrident`, buckets of fish, salmon fishing, egg hatching, Turtle Shell, bubbles), `js/player.js` (`bubbleColumn`), `js/worldgen.js` (`wreckNear`), `js/shapes.js`, `index.html` (tags `?v=ocean-d-1`, creatures `ocean-d-2`). Backups: `tools/backups/pre-m17-partD-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Fish | Done | Blockhaven's Minnows, Sunfins and Puffers are its cod, tropical fish and pufferfish. Salmon now drop Raw Salmon (cook it: 6 food). Fishing catches about 60% Minnow, 25% Salmon, a few Sunfins and Puffers |
+| Buckets of fish | Done | Right-click a Minnow, Salmon, Sunfin, Puffer, Axolotl or tadpole with a Water Bucket to scoop it up. Empty the bucket to let it out (with its water) |
+| Sea turtles | Done | Feed two turtles Seagrass and one lays 1–4 Turtle Eggs on nearby sand. Eggs on sand crack in 3 steps (faster at night) and hatch into baby turtles. A baby drops a **Scute** when it grows up. 5 Scutes make a **Turtle Shell** helmet: 10 seconds of Water Breathing every time your head goes under |
+| Tridents | Done | A strong weapon (9 damage). Hold right-click and let go to throw it (8 damage); it lands as an item you pick up. **Loyalty** brings it back to your hand. **Riptide** launches you through the water instead of throwing (only in water). **Impaling** adds damage against sea creatures. **Channeling** waits for thunderstorms (Blockhaven has no storms yet) |
+| Drowned | Done | About 1 in 7 carry a trident (you can see it), throw it from 3–14 blocks away (8 damage), and drop it 1 time in 4. Drowned sometimes drop a Nautilus Shell |
+| Splashers lead you to treasure | Done | Feed a Splasher a Minnow: it swims toward the nearest shipwreck, sunken ruin, or buried treasure, waiting for you to keep up, and says when you've arrived |
+| Bubble columns | Done | Water above Wailing Sand pushes you up; water above Magma pulls you down. Little bubbles show you're in one |
+| Not yet checked | Partial | Not played by hand. Bubble columns only push players (not creatures or boats). Turtles don't walk back to their home beach to lay eggs |
+
+## Milestone 17, Part C: Ocean Monuments and Guardians (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21)
+Code: `js/ocean-monument.js` (new: `monumentCell`, `ELDER_SPOTS`, `HALL`), `js/worldgen.js` (`MONUMENT_GEN = 19`, `monumentSite`, `monumentsNear`, `monuments`), `js/world.js` (`monumentOk`, `monumentAt`), `js/creatures.js` (Guardian and Elder Guardian behavior, drops, monument spawning), `js/creature-catalog.js` (Guardians only in monuments), `js/entities.js` (Elder Guardians and Guardians move in; laser color), `js/main.js` (Mining Fatigue), `js/ui.js`, `js/lost.js` (temple entrances keep clear of monuments), `index.html` (tags `?v=ocean-c-1`, new import-map entry). Backups: `tools/backups/pre-m17-partC-2026-11-21/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Ocean Monuments | Done | A 56 × 56 prismarine fortress on the floor of big deep seas (about 10 in a 6,000 × 6,000 area; usually 900+ blocks from spawn). Two front wings, a pillared porch, a big hall with pillars and sea lanterns, a top chamber, two sponge rooms (ceilings of Wet Sponges), and a sealed gold vault (8 gold blocks in dark prismarine). It stands on a prismarine foundation |
+| Guardians | Done | Spiky fish that guard monuments. They keep 6–12 blocks away and charge a laser for 3 seconds (the beam turns from purple to yellow), then hit for 6. They keep swimming back into the hall while you're inside (up to 6 near you). Drop 0–2 Prismarine Shards, and fish or Prismarine Crystals |
+| Elder Guardians | Done | Three per monument (one in each wing, one in the top chamber); they stay for good. Bigger, slower, laser hits for 8. Every minute within 50 blocks they curse you with **Mining Fatigue** for 5 minutes (digging 10× slower). Drop a Wet Sponge plus prismarine |
+| No more random Guardians | Done | Before, catalog Guardians (and even Elder Guardians) could appear in any deep water at night. Now they only live in monuments. Their spawn eggs still work |
+| Which worlds get it | Done | New worlds (land version 19) everywhere. Worlds made at version 17 or 18 get a monument only if nobody had been anywhere on its spot when it's first reached (decided once and remembered). Checked: 16 million version-17/18 cells unchanged |
+| Not yet checked | Partial | Not played by hand. Guardians' spike-thorns (hurting you back) aren't in yet. The laser is a thin line |
+
 ## Milestone 17, Part B: sunken treasure and the Conduit (built and browser-tested 2026-11-21, PUBLISHED 2026-11-21)
 Code: `js/worldgen.js` (`seaStructures`, `shipwreck`, `oceanRuin`, `treasureSpot`, `treasureNear`, `SEA_LOOT`), `js/main.js` (`seaLoot`, `giveTreasureMap`, `conduitTick`, Conduit Power), `js/blocks.js` (Conduit block 354, items 688–690, recipe, pictures), `js/shapes.js`, `js/starter.js` (treasure arrow), `js/ui.js`, `js/entities.js` (Wanderer sells shells), `index.html` (tags `?v=ocean-b-1`). Backups: `tools/backups/pre-m17-partB-2026-11-21/`.
 

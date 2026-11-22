@@ -1,5 +1,5 @@
 // Menus, the on-screen HUD, and the inventory / crafting / chest / furnace screens.
-import { B, I, ITEMS, BLOCKS, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, itemDef, iconURL, buildAtlas, TILE } from "./blocks.js";
+import { B, I, ITEMS, BLOCKS, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, itemDef, iconURL, buildAtlas, TILE, CORALS } from "./blocks.js";
 import { TRADES } from "./entities.js";
 import { maxStack, newStack, OFF } from "./inventory.js";
 import { Adv, CATEGORIES } from "./advancements.js";
@@ -18,6 +18,7 @@ import { enchantingGuideHTML, bindEnchantingGuide } from "./enchanting-guide.js"
 import * as PO from "./potions.js";
 import { brewingGuideHTML, bindBrewingGuide } from "./brewing-guide.js";
 import { biomesGuideHTML } from "./biomes-guide.js";
+import { oceansGuideHTML, bindOceansGuide } from "./oceans-guide.js";
 import { isEnchanted, tooltipLines, enchantability, enchName, enchList, ENCH, ENCH_KEYS, repairMaterialName } from "./enchanting.js";
 
 const $ = id => document.getElementById(id);
@@ -272,7 +273,7 @@ export const UI = {
     $("armor").innerHTML = survival && armor ? icons(armor, "shield") : "";
     const lv = G.levelInfo(); $("xpbar").style.visibility = survival ? "visible" : "hidden";
     $("xpbar").querySelector("i").style.width = Math.round(lv.frac * 100) + "%"; $("xpbar").querySelector("b").textContent = lv.level ? lv.level : "";
-    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer", conduit: "🌊 Conduit Power", absorb: "💛 Absorption", fireRes: "🧯 Fire Resistance", haste: "⛏️ Haste", resist: "🛡️ Resistance", jump: "🐇 Jump Boost", strength: "💪 Strength", slow: "🐌 Slowness", weakness: "🥀 Weakness", waterBreath: "🫧 Water Breathing", invis: "👻 Invisible", nightVision: "🌙 Night Vision", slowFall: "🪶 Slow Falling" };
+    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer", conduit: "🌊 Conduit Power", fatigue: "🪨 Mining Fatigue", absorb: "💛 Absorption", fireRes: "🧯 Fire Resistance", haste: "⛏️ Haste", resist: "🛡️ Resistance", jump: "🐇 Jump Boost", strength: "💪 Strength", slow: "🐌 Slowness", weakness: "🥀 Weakness", waterBreath: "🫧 Water Breathing", invis: "👻 Invisible", nightVision: "🌙 Night Vision", slowFall: "🪶 Slow Falling" };
     const roman = k => (G.elv[k] || 1) > 1 ? " " + ["", "I", "II", "III", "IV", "V", "VI"][G.elv[k]] : "";
     $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${escapeAttr(names[k] || k)}${roman(k)} <small>${Math.ceil(G.effects[k])}s</small></span>`).join("");
     $("modeTag").textContent = G.mode === "spectator" ? "SPECTATOR • HARDCORE OVER" : survival ? (G.meta && G.meta.hardcore ? "HARDCORE" : "") : "CREATIVE" + (p.flying ? " • FLYING" : "");
@@ -374,9 +375,9 @@ export const UI = {
       if (!G.journalTab || (G.journalTab === "cp" && !cpOn) || (G.journalTab === "expedition" && !lostWorld)) G.journalTab = lostWorld ? "expedition" : cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
       const tab = G.journalTab;
       const journalTabs = [...(lostWorld ? [["expedition", expedition ? "Lost World Expedition" : "The Lost World"]] : []), ...(cpOn ? [["cp", "Campaign"]] : []), ["fw", "Forsaken World"],
-        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"], ["ench", "Enchanting"], ["brew", "Brewing"], ["biomes", "Biomes"]];
+        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"], ["ench", "Enchanting"], ["brew", "Brewing"], ["biomes", "Biomes"], ["ocean", "Oceans"]];
       const tabs = journalTabs.map(([key, name]) => `<button class="chip-btn ${tab === key ? "on" : ""}" data-jtab="${key}" aria-current="${tab === key ? "true" : "false"}">${name}</button>`).join("");
-      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) : tab === "ench" ? enchantingGuideHTML(G) : tab === "brew" ? brewingGuideHTML(G) : tab === "biomes" ? biomesGuideHTML(G) :
+      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) : tab === "ench" ? enchantingGuideHTML(G) : tab === "brew" ? brewingGuideHTML(G) : tab === "biomes" ? biomesGuideHTML(G) : tab === "ocean" ? oceansGuideHTML(G) :
         tab === "leviathan" ? leviathanJournalHTML(G) : tab === "cp" ? G.campaign.journalHTML() :
         tab === "lost" ? G.lost.journalHTML() : G.forsaken.journalHTML();
       p.innerHTML = `<div class="inv-card fw-card"><h3>Journal <button type="button" class="chip-btn" data-journal-close title="J or Esc">Close</button></h3><nav class="jtabs journal-tabs" aria-label="Journal sections">${tabs}</nav>${page}</div>`;
@@ -397,6 +398,7 @@ export const UI = {
       bindSparkworksGuide(p, G, () => this.renderPanel(), () => Sound.click());
       bindEnchantingGuide(p, G, () => this.renderPanel(), () => Sound.click());
       bindBrewingGuide(p, G, () => this.renderPanel(), () => Sound.click());
+      bindOceansGuide(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
       if (tab === "fw") G.forsaken.drawMap($("fwMap"));
       p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
@@ -563,8 +565,8 @@ export const UI = {
         <p class="help">Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore.</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (G.mode === "creative") {
-      const cats = ["All", "Building", "Nature", "Useful", "Mechanisms", "Village", "Tools", "Food", "Items", "Enchanting", "Brewing", "Ember Depths", "The Hollow", "Creatures"];
-      const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || (creativeCat === "Enchanting" ? ENCH_KIT.includes(d.id) : creativeCat === "Brewing" ? BREW_KIT.includes(d.id) : d.category === creativeCat)) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
+      const cats = ["All", "Building", "Nature", "Useful", "Mechanisms", "Village", "Tools", "Food", "Items", "Enchanting", "Brewing", "Oceans", "Ember Depths", "The Hollow", "Creatures"];
+      const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || (creativeCat === "Enchanting" ? ENCH_KIT.includes(d.id) : creativeCat === "Brewing" ? BREW_KIT.includes(d.id) : creativeCat === "Oceans" ? OCEAN_KIT.includes(d.id) : d.category === creativeCat)) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
       const q = creativeSearch.toLowerCase(), books = creativeCat === "Enchanting" || (creativeCat === "All" && q) ? ENCH_KEYS.filter(k => bookName(k).toLowerCase().includes(q)) : [];   // Milestone 15
       const pots = creativeCat === "Brewing" || (creativeCat === "All" && q) ? READY_POTIONS.filter(st => PO.potionName(st).toLowerCase().includes(q)) : [];   // Milestone 16
       left = `<div class="inv-card"><h3>Every block <span class="note" style="color:#444">Click to grab a stack</span></h3>
@@ -767,6 +769,11 @@ function quickMove(ref) {
   if (ref === "fur:2") G.onTakeSmelted(s);
 }
 // Milestone 15: the Creative "Enchanting" tab
+// Milestone 17, Part E: everything from the oceans, in one Creative tab
+const OCEAN_KIT = [B.KELP, I.DRIED_KELP, B.DRIED_KELP_BLOCK, B.SEAGRASS, B.SEA_PICKLE, ...CORALS.flatMap(([K]) => [B[K + "_CORAL_BLOCK"], B[K + "_CORAL"], B[K + "_CORAL_FAN"], B["DEAD_" + K + "_CORAL_BLOCK"], B["DEAD_" + K + "_CORAL"], B["DEAD_" + K + "_CORAL_FAN"]]),
+  B.SPONGE, B.WET_SPONGE, B.PRISMARINE, B.PRISMARINE_BRICKS, B.DARK_PRISMARINE, B.SEA_LANTERN, I.PRISMARINE_SHARD, I.PRISMARINE_CRYSTALS, B.BLUE_ICE, B.PACKED_ICE,
+  I.HEART_OF_THE_SEA, I.NAUTILUS_SHELL, B.CONDUIT, I.TREASURE_MAP, I.TRIDENT, B.TURTLE_EGG, I.SCUTE, I.TURTLE_HELMET, I.RAW_SALMON, I.COOKED_SALMON,
+  I.MINNOW_BUCKET, I.SALMON_BUCKET, I.SUNFIN_BUCKET, I.PUFFER_BUCKET, I.AXOLOTL_BUCKET, I.TADPOLE_BUCKET, B.MAGMA, B.SOUL_SAND];
 const ENCH_KIT = [B.ENCH_TABLE, B.BOOKSHELF, B.ANVIL, B.GRINDSTONE, B.LAPIS_ORE, I.LAPIS, B.SUGAR_CANE, I.PAPER, I.BOOK];
 // Milestone 16: the Creative "Brewing" tab: every potion (plain, longer, stronger) as a drink, splash, and lingering potion
 const BREW_KIT = [B.BREWING_STAND, B.CAULDRON, I.BOTTLE, I.FLARE_POWDER, I.WART, I.SUGAR, I.RABBIT_FOOT, I.GLISTERING_MELON, I.FERMENTED_EYE, I.PHANTOM_MEMBRANE,

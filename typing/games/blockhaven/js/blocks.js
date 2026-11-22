@@ -92,7 +92,8 @@ export const B = {
   // Milestone 17, Part A: the ocean floor (coral ids are filled in just below: block, dead block, plant, dead plant, fan, dead fan)
   KELP: nb(313), SEAGRASS: nb(314), SEA_PICKLE: nb(315), SPONGE: nb(316), WET_SPONGE: nb(317), DRIED_KELP_BLOCK: nb(318),
   PRISMARINE: nb(319), PRISMARINE_BRICKS: nb(320), DARK_PRISMARINE: nb(321), SEA_LANTERN: nb(322), BLUE_ICE: nb(323),
-  CONDUIT: nb(354)   // Milestone 17, Part B (324-353 are the corals)
+  CONDUIT: nb(354),   // Milestone 17, Part B (324-353 are the corals)
+  TURTLE_EGG: nb(355)   // Milestone 17, Part D
 };
 // Milestone 17, Part A: five corals, each with six blocks (living and dead block, plant, and fan)
 export const CORALS = [["TUBE", "Tube", "#3050d8"], ["BRAIN", "Brain", "#e070b0"], ["BUBBLE", "Bubble", "#a040c0"], ["FIRE", "Fire", "#d03030"], ["HORN", "Horn", "#e8d040"]];
@@ -161,7 +162,9 @@ export const I = {
   COCOA_BEANS: 680, COOKIE: 681, BOWL: 682, MUSHROOM_STEW: 683,
   GLOW_BERRIES: 684,   // Milestone 20, Part D
   DRIED_KELP: 685, PRISMARINE_SHARD: 686, PRISMARINE_CRYSTALS: 687,   // Milestone 17, Part A
-  HEART_OF_THE_SEA: 688, NAUTILUS_SHELL: 689, TREASURE_MAP: 690   // Milestone 17, Part B
+  HEART_OF_THE_SEA: 688, NAUTILUS_SHELL: 689, TREASURE_MAP: 690,   // Milestone 17, Part B
+  RAW_SALMON: 691, COOKED_SALMON: 692, TRIDENT: 693, SCUTE: 694, TURTLE_HELMET: 695,   // Milestone 17, Part D
+  MINNOW_BUCKET: 696, SALMON_BUCKET: 697, SUNFIN_BUCKET: 698, PUFFER_BUCKET: 699, AXOLOTL_BUCKET: 730, TADPOLE_BUCKET: 731
 };
 
 // A block value stores the block id in the low 8 bits and extra state ("meta") in the next 8 bits.
@@ -489,6 +492,8 @@ block(B.SEA_LANTERN, "Sea Lantern", { hardness: 0.3, light: 15, drops: "crystals
 block(B.BLUE_ICE, "Blue Ice", { hardness: 2.8, tool: "pick", drops: 0, tex: "blue_ice", category: "Nature", slippery: 2 });
 // Milestone 17, Part B: the Conduit lives in water too. Framed with prismarine it gives Conduit Power (main.js).
 block(B.CONDUIT, "Conduit", { shape: "model", render: "cutout", solid: false, aquatic: true, floats: true, hardness: 3, tool: "pick", light: 15, tex: "conduit", icon: "tile:conduit", category: "Useful" });
+// Milestone 17, Part D: sea turtle eggs on the beach (meta bits 0-1 = how many more than one, bits 2-3 = how close to hatching)
+block(B.TURTLE_EGG, "Turtle Egg", { shape: "model", render: "cutout", solid: false, hardness: 0.5, drops: 0, tex: "turtle_egg", icon: "tile:turtle_egg", category: "Nature" });
 for (const [K, name] of CORALS) {
   const k = K.toLowerCase(), plant = { shape: "cross", render: "cutout", solid: false, aquatic: true, hardness: 0, drops: 0, category: "Nature" };
   // a living coral block turns into its dead block a few seconds after nothing watery touches it (main.js)
@@ -848,6 +853,16 @@ item(I.PRISMARINE_CRYSTALS, "Prismarine Crystals", { icon: "prismarine_crystals"
 item(I.HEART_OF_THE_SEA, "Heart of the Sea", { icon: "heart_sea", desc: "Found in buried treasure. With 8 Nautilus Shells it makes a Conduit." });   // Milestone 17, Part B
 item(I.NAUTILUS_SHELL, "Nautilus Shell", { icon: "nautilus", desc: "From fishing, sunken ruins, shipwrecks, and the Wanderer." });
 item(I.TREASURE_MAP, "Treasure Map", { icon: "treasure_map", stack: 1, category: "Tools", desc: "Hold it and follow the arrow at the top of the screen to the X on a beach, then dig down." });
+// Milestone 17, Part D
+item(I.RAW_SALMON, "Raw Salmon", { icon: "fish", colors: ["#c05a48", "#f0b8a0"], kind: "food", food: 2, category: "Food", raw: true });
+item(I.COOKED_SALMON, "Cooked Salmon", { icon: "fish", colors: ["#a8603a", "#e8c090"], kind: "food", food: 6, category: "Food" });
+item(I.TRIDENT, "Trident", { icon: "trident", kind: "tool", stack: 1, category: "Tools", tool: { type: "trident", tier: 3, speed: 1, dur: 250, damage: 9 }, desc: "A strong weapon. Hold right-click, then let go to throw it. Drowned sometimes drop one." });
+item(I.SCUTE, "Scute", { icon: "scute", desc: "A baby sea turtle drops one when it grows up. Five make a Turtle Shell." });
+item(I.TURTLE_HELMET, "Turtle Shell", { icon: "armor_helmet", colors: ["#4f9a4a"], kind: "armor", stack: 1, category: "Tools", armor: { slot: 0, points: 2, dur: 275 }, desc: "Lets you breathe for 10 more seconds after you go underwater." });
+export const FISH_BUCKETS = { minnow: I.MINNOW_BUCKET, salmon: I.SALMON_BUCKET, sunfin: I.SUNFIN_BUCKET, puffer: I.PUFFER_BUCKET, axolotl: I.AXOLOTL_BUCKET, tadpole: I.TADPOLE_BUCKET };
+for (const [sp, id, name, c] of [["minnow", I.MINNOW_BUCKET, "Bucket of Minnow", "#9aa8b0"], ["salmon", I.SALMON_BUCKET, "Bucket of Salmon", "#c05a48"], ["sunfin", I.SUNFIN_BUCKET, "Bucket of Sunfin", "#f08a1a"],
+  ["puffer", I.PUFFER_BUCKET, "Bucket of Puffer", "#e8c040"], ["axolotl", I.AXOLOTL_BUCKET, "Bucket of Axolotl", "#f2a0b5"], ["tadpole", I.TADPOLE_BUCKET, "Bucket of Tadpole", "#74553a"]])
+  item(id, name, { icon: "fish_bucket", colors: ["#3a6fd8", c], stack: 1, category: "Tools", holds: sp, desc: "Empty it into water (or onto the ground) to let the creature out." });
 item(I.GLOW_BERRIES, "Glow Berries", { icon: "glow_berries", kind: "food", food: 2, category: "Food", desc: "Right-click the underside of a block to plant cave vines. Ripe vines glow" });   // Milestone 20, Part D
 item(I.COCOA_BEANS, "Cocoa Beans", { icon: "cocoa_beans", category: "Food", desc: "Right-click the side of a Jungle Log to plant them" });
 item(I.COOKIE, "Cookie", { icon: "cookie", kind: "food", food: 2, category: "Food" });
@@ -896,6 +911,7 @@ export const RECIPES = [
   { out: [I.DRIED_KELP, 9], ins: [[B.DRIED_KELP_BLOCK, 1]] },
   { out: [B.BLUE_ICE, 1], ins: [[B.PACKED_ICE, 9]], table: true },
   { out: [B.CONDUIT, 1], ins: [[I.NAUTILUS_SHELL, 8], [I.HEART_OF_THE_SEA, 1]], table: true },   // Milestone 17, Part B
+  { out: [I.TURTLE_HELMET, 1], ins: [[I.SCUTE, 5]], table: true },   // Milestone 17, Part D
   { out: [I.STICK, 4], ins: [["planks", 2]] },
   { out: [B.TABLE, 1], ins: [["planks", 4]] },
   { out: [B.TORCH, 4], ins: [[I.STICK, 1], [I.COAL, 1]] },
@@ -1088,7 +1104,7 @@ export const FUEL = { [I.COAL]: 40, [B.LOG]: 8, [B.BIRCH_LOG]: 8, [B.PLANKS]: 7,
   [B.OAK_BUTTON]: 2.5, [B.BIRCH_BUTTON]: 2.5, [B.OAK_PLATE]: 7, [B.BIRCH_PLATE]: 7, [B.LEVER]: 1.5 };
 export const SMELT_TIME = 5;
 SMELT[B.RED_SAND] = B.GLASS; SMELT[B.CLAY] = B.TERRACOTTA; FUEL[B.BAMBOO] = 1.5;   // Milestone 20, Part C
-SMELT[B.KELP] = I.DRIED_KELP; SMELT[B.WET_SPONGE] = B.SPONGE; FUEL[B.DRIED_KELP_BLOCK] = 100;   // Milestone 17, Part A
+SMELT[I.RAW_SALMON] = I.COOKED_SALMON; SMELT[B.KELP] = I.DRIED_KELP; SMELT[B.WET_SPONGE] = B.SPONGE; FUEL[B.DRIED_KELP_BLOCK] = 100;   // Milestone 17, Part A
 for (const [K] of NEW_WOODS) { SMELT[B[K + "_LOG"]] = I.COAL; FUEL[B[K + "_LOG"]] = 8; FUEL[B[K + "_PLANKS"]] = 7; }   // Milestone 20: new woods cook into coal and burn
 
 // ---------- Textures ----------
@@ -1150,7 +1166,8 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   // Milestone 17, Part A
   "kelp", "seagrass", "sea_pickle", "sponge", "wet_sponge", "dried_kelp_top", "dried_kelp_side", "prismarine", "prismarine_bricks", "dark_prismarine", "sea_lantern", "blue_ice",
   ...CORALS.flatMap(([K]) => { const k = K.toLowerCase(); return [k + "_coral_block", "dead_" + k + "_coral_block", k + "_coral", k + "_coral_fan"]; }), "dead_coral", "dead_coral_fan",
-  "conduit"];   // Milestone 17, Part B
+  "conduit",   // Milestone 17, Part B
+  "turtle_egg"];   // Milestone 17, Part D
 export const ATLAS_W = 256, ATLAS_H = 512;   // pixels: 16 tiles across, 32 down
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1857,6 +1874,7 @@ Object.assign(PAINT, {
   },
   _coralFan(P, c) { const lo = tone(c, 0.72), hi = tone(c, 1.25); for (let y = 2; y < 16; y++) for (let x = 0; x < 16; x++) { const dx = x - 7.5, dy = 15 - y, a = Math.atan2(dx, dy); if (Math.hypot(dx, dy) < 12.5 && Math.abs(a) < 1.05) P.px(x, y, (Math.round(a * 9) % 2) ? c : (y < 6 ? hi : lo)); } P.rect(7, 12, 2, 4, lo); }
 });
+PAINT.turtle_egg = P => { P.fill(["#f2ecd2", "#ece4c6", "#f6f0dc"]); P.specks(14, ["#8fb878", "#7aa864"], 2); };   // Milestone 17, Part D
 PAINT.conduit = P => {   // a shell-like cage around a glowing heart
   P.fill(["#7a6a50", "#86765a", "#6e5e46"]); for (let i = 0; i < 16; i += 4) { P.rect(i, 0, 1, 16, "#a89270"); P.rect(0, i, 16, 1, "#a89270"); }
   P.rect(5, 5, 6, 6, "#2a8aa8"); P.rect(6, 6, 4, 4, "#6ae0f0"); P.rect(7, 7, 2, 2, "#ffffff");
@@ -2043,6 +2061,9 @@ function handle(P) { for (let i = 0; i < 10; i++) P.px(3 + i, 14 - i, i % 2 ? "#
 Object.assign(ICON_PAINT, {
   dried_kelp(P) { for (let y = 2; y < 15; y++) { const x = 6 + Math.round(Math.sin(y * 0.6) * 1.5); P.rect(x, y, 4, 1, y % 3 ? "#3e4a24" : "#4e5a2e"); } P.px(7, 3, "#68743c"); },
   prismarine_shard(P) { for (const [x, y, w] of [[7, 2, 2], [6, 4, 4], [5, 6, 5], [5, 8, 5], [6, 10, 4], [7, 12, 2]]) P.rect(x, y, w, 2, "#5ea898"); P.rect(6, 5, 1, 6, "#8ad4c4"); P.rect(9, 7, 1, 5, "#3e7e70"); },
+  trident(P) { for (let i = 0; i < 11; i++) P.rect(3 + i, 12 - i, 1, 1, "#3aa0a0"); P.rect(10, 2, 1, 5, "#7ad8d0"); P.rect(12, 4, 3, 1, "#7ad8d0"); P.rect(11, 1, 3, 3, "#5ac0b8"); P.px(14, 1, "#bff8f0"); P.px(10, 1, "#bff8f0"); P.px(14, 5, "#bff8f0"); P.rect(2, 12, 2, 2, "#2a7070"); },
+  scute(P) { for (let y = 4; y < 13; y++) { const w = 6 - Math.abs(y - 8); P.rect(8 - w, y, w * 2, 1, y < 7 ? "#6ab84a" : "#4a9a38"); } P.rect(7, 5, 2, 7, "#3a7a2a"); },
+  fish_bucket(P, c) { ICON_PAINT.bucket(P, [c[0]]); for (let y = 6; y < 10; y++) for (let x = 5; x < 11; x++) if ((x - 8) ** 2 / 6 + (y - 8) ** 2 / 2 < 1) P.px(x, y, c[1]); P.px(10, 7, c[1]); P.px(10, 9, c[1]); P.px(6, 7, "#1a1a1a"); },
   heart_sea(P) { for (let y = 2; y < 14; y++) for (let x = 2; x < 14; x++) { const d = Math.hypot(x - 7.5, y - 7.5); if (d < 5.8) P.px(x, y, d < 2 ? "#e8fbff" : d < 3.6 ? "#5ad0f0" : "#1e6ab0"); } P.px(5, 5, "#ffffff"); for (const [x, y] of [[1, 7], [14, 8], [7, 1], [8, 14]]) P.px(x, y, "#3aa0d8"); },
   nautilus(P) { for (let a = 0; a < 60; a++) { const t = a / 60 * 12, r = 1 + t * 0.55, x = 8 + Math.cos(t) * r, y = 8 + Math.sin(t) * r; P.rect(Math.round(x), Math.round(y), 2, 2, a % 6 < 3 ? "#e8d8c0" : "#c06a40"); } },
   treasure_map(P) { P.rect(2, 2, 12, 12, "#e6d2a0"); P.rect(2, 2, 12, 1, "#c0a870"); P.rect(2, 13, 12, 1, "#c0a870"); P.rect(3, 4, 5, 4, "#7cb8d8"); P.rect(8, 7, 4, 5, "#9cc070"); for (let i = 0; i < 4; i++) { P.px(9 + i, 8 + i, "#c02020"); P.px(12 - i, 8 + i, "#c02020"); } P.px(5, 10, "#8a6a40"); P.px(6, 11, "#8a6a40"); P.px(7, 10, "#8a6a40"); },
