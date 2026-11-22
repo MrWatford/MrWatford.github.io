@@ -354,22 +354,58 @@ Today Blockhaven has only one kind of colored glass, two wool colors, and no sla
 | **D** | **Decorations**: paintings, item frames, armor stands, banners |
 | **E** | A Journal page, achievements, and the Creative tab |
 
-### 12.2 Part A done (2026-11-22, not published)
+### 12.2 Part A done (2026-11-22, PUBLISHED 2026-11-22, PR #35)
 - 20 slabs, 20 stairs, 8 walls, with recipes, double slabs, upside-down stairs, and walls that join up.
 - **Next:** Part B (16 colors).
 
-### 12.3 Part B done (2026-11-22, not published)
+### 12.3 Part B done (2026-11-22, PUBLISHED 2026-11-22, PR #35)
 - 16 dyes, and wool, carpet, stained glass, concrete, concrete powder, and terracotta in all 16 colors. The texture sheet doubled in size to fit them.
 - **Next:** Part C (ladders, scaffolding, lanterns, candles, glass panes, iron bars).
 
-### 12.4 Part C done (2026-11-22, not published)
+### 12.4 Part C done (2026-11-22, PUBLISHED 2026-11-22, PR #35)
 - Ladders and scaffolding you can climb, lanterns, 17 candles, 17 glass panes, and iron bars.
 - **Next:** Part D (paintings, item frames, armor stands, banners).
 
-### 12.5 Part D done (2026-11-22, not published)
+### 12.5 Part D done (2026-11-22, PUBLISHED 2026-11-22, PR #35)
 - 16 banners, item frames, armor stands, and 12 original paintings.
 - **Next:** Part E (Journal page, achievements, Creative tab).
 
-### 12.6 Part E done: Milestone 21 complete (2026-11-22, not published)
+### 12.6 Part E done: Milestone 21 complete (2026-11-22, PUBLISHED 2026-11-22, PR #35)
 - 11 Building achievements, a "Building" Journal chapter, and a "Decor" Creative tab.
 - **Next in the plan:** publish Milestone 21, then Milestones 22–24.
+
+---
+
+## 13. Milestone 22: Farming, food, and gadgets (started 2026-11-22)
+
+Already in Blockhaven: wheat, carrots, melons, sugar cane, cocoa, cactus, bamboo, mushrooms, berries, bread, cookies, mushroom stew, golden carrots, the compass, and dyes from flowers (Milestone 21).
+
+### 13.1 Parts
+
+| Part | What it adds |
+|---|---|
+| **A** | **Potatoes, beetroot, pumpkins**: the crops, baked potatoes, beetroot soup, pumpkin pie, carved pumpkins, Jack o'Lanterns |
+| **B** | **More food**: cake (placed and eaten a slice at a time), rabbit stew, honey and other Minecraft foods still missing |
+| **C** | **Gadgets**: crossbow, spyglass, clock |
+| **D** | **Fireworks and music**: firework rockets (and gliding boosts), a jukebox with original Blockhaven music discs |
+| **E** | A Journal page, achievements, and a Creative tab |
+
+### 13.2 Part A done (2026-11-22, not published)
+- Potatoes, beetroot and pumpkins to grow, with their foods, carved pumpkins and Jack o'Lanterns.
+- **Next:** Part B (cake and more food).
+
+### 13.3 Part B done (2026-11-22, not published)
+- Cake (eaten slice by slice, with a candle if you like), Rabbit Stew, and the rare Enchanted Golden Apple.
+- **Next:** Part C (crossbow, spyglass, clock).
+
+### 13.4 Part C done (2026-11-22, not published)
+- Crossbow (with Quick Charge, Multishot and Piercing), spyglass, and clock.
+- **Next:** Part D (fireworks and a jukebox with original music).
+
+### 13.5 Part D done (2026-11-22, not published)
+- Firework rockets (launch, glide boost, crossbow), a jukebox, and 5 original music discs.
+- **Next:** Part E (Journal page, achievements, Creative tab).
+
+### 13.6 Part E done: Milestone 22 complete (2026-11-22, not published)
+- 13 Food & Gadgets achievements, a "Farm & Gadgets" Journal chapter, and a Creative tab.
+- **Next in the plan:** publish Milestone 22, then Milestones 23–24.

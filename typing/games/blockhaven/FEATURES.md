@@ -339,7 +339,62 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
-## Milestone 21, Part E: Journal, achievements, Creative tab (built and browser-tested 2026-11-22, not published yet). Milestone 21 is now complete.
+## Milestone 22, Part E: Journal, achievements, Creative tab (built and browser-tested 2026-11-22, not published yet). Milestone 22 is now complete.
+Code: `js/farm-guide.js` (new: Journal tab "Farm & Gadgets", 4 pages), `js/advancements.js` (new "Food & Gadgets" category, 13 achievements), `js/ui.js` (Journal tab, Creative tab "Farm & Gadgets"), `js/main.js` (glide-boost event), `js/blocks.js` (each disc is named after its song), `index.html` (tags `?v=farm-e-1`, import map). Backups: `tools/backups/pre-m22e-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| 13 achievements | Done | "Food & Gadgets" tab: Root Vegetables, Pumpkin Carver, Spooky Lights, Piece of Cake, Hearty Meal, Legendary Snack, Bolt Action, Far Sight, What Time Is It?, Sky Show, Rocket Rider, Spin a Tune, Record Collector (all 5 discs) |
+| Journal: "Farm & Gadgets" | Done | 4 pages: new crops, food, gadgets, fireworks and music |
+| Creative tab "Farm & Gadgets" | Done | All 24 new things from Milestone 22 in one place |
+| Disc names | Done | Each disc is called "Music Disc: " and its song's name |
+
+## Milestone 22, Part D: fireworks and music (built and browser-tested 2026-11-22, not published yet)
+Code: `js/music.js` (new: 5 original Blockhaven songs for the note-block instruments), `js/blocks.js` (Jukebox = block number 557, items 1029-1034, textures, pictures, recipes), `js/main.js` (rockets, bursts, gliding boost, crossbow fireworks, the jukebox player, discs in treasure), `js/ui.js` (crossbow "Loaded with a firework"), `index.html` (tags `?v=farm-d-*`, import map). Backups: `tools/backups/pre-m22d-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Firework Rocket | Done | 1 Paper + 1 Boom Powder make 3. Right-click a block to launch one: it climbs about 25 blocks and bursts into a ball of glowing colored sparks with a bang and a crackle |
+| Glider boost | Done | While gliding with Glider Wings, right-click a rocket to shoot forward fast for about 1½ seconds |
+| Crossbow fireworks | Done | Hold a firework in your other hand while loading a crossbow; it fires straight and bursts on what it hits (6 damage nearby). Multishot fires 3 |
+| Jukebox | Done | 8 Planks + 1 Skyshard. Right-click with a Music Disc to play it (you hear it within about 60 blocks); right-click again to take the disc out |
+| 5 Music Discs | Done | Original Blockhaven songs, about 40-55 seconds each: "Sunrise Over Blockhaven" (harp), "Lantern Waltz" (flute and guitar), "Deep Cave Echoes" (bells), "Sea Breeze" (chimes and banjo), "Starlight" (chiptune). Found in treasure chests (about 1 in 7) |
+| Not included | — | Firework stars, custom firework colors and shapes, longer-flight rockets |
+
+## Milestone 22, Part C: crossbow, spyglass, clock (built and browser-tested 2026-11-22, not published yet)
+Code: `js/blocks.js` (items 1026-1028, pictures, recipes), `js/enchanting.js` (Quick Charge, Multishot, Piercing), `js/entities.js` (arrows that pierce), `js/main.js` (loading and firing, spyglass zoom, the clock on the compass dial), `js/ui.js` ("Loaded" note on the crossbow), `index.html` (tags `?v=farm-c-1`). Backups: `tools/backups/pre-m22c-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Crossbow | Done | 3 Sticks + 2 String + 1 Iron Ingot + 1 Tripwire Hook at a Workbench. Hold right-click about 1¼ seconds to load an arrow (it stays loaded), then right-click to fire: a fast, straight shot for 9 damage |
+| Crossbow enchantments | Done | Quick Charge (I-III: loads faster), Multishot (3 arrows for the price of 1), Piercing (I-IV: the arrow goes through that many extra creatures). Multishot and Piercing can't go on the same crossbow, like Minecraft |
+| Spyglass | Done | 2 Iron Ingots + 1 Glass (Blockhaven has no copper or amethyst). Hold right-click to zoom in 8 times, with a round view |
+| Clock | Done | 4 Gold Ingots + 1 Sparkdust. Holding it shows the sun and moon on the dial and the time of day ("Morning", "Sunset"…) and day number. It spins in the Ember Depths and the Hollow |
+| Not included | — | Loading fireworks into a crossbow comes with Part D |
+
+## Milestone 22, Part B: cake and more food (built and browser-tested 2026-11-22, not published yet)
+Code: `js/blocks.js` (Cake = block number 556, items 1024-1025, textures, fullness for all the new foods, recipes), `js/shapes.js` (the cake shrinking slice by slice, a candle on top), `js/main.js` (eating cake, candle cakes, recipes that give buckets back, the enchanted apple), `js/ui.js` (the enchanted apple shimmers), `index.html` (tags `?v=farm-b-*`). Backups: `tools/backups/pre-m22b-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Cake | Done | 3 Milk Buckets + 2 Sugar + 1 Egg + 3 Wheat at a Workbench (you get the 3 empty buckets back). Place it on a block and right-click to eat a slice (2 food) when you're hungry; 7 slices in all |
+| Candle cake | Done | Put a plain Candle on a whole cake, then light it with Flint and Steel. Eating a slice knocks the candle off |
+| Rabbit Stew | Done | Cooked Rabbit + Carrot + Baked Potato + Brown Mushroom + Bowl. 10 food, the most filling food in the game |
+| Enchanted Golden Apple | Done | Very rare chest treasure (can't be made). Strong regeneration, 8 extra golden hearts, Resistance and Fire Resistance for 5 minutes. It shimmers |
+| Fullness | Done | Every Milestone 22 food has Minecraft's fullness ("saturation") value |
+
+## Milestone 22, Part A: potatoes, beetroot, pumpkins (built and browser-tested 2026-11-22, not published yet)
+Code: `js/blocks.js` (block numbers 550-555, items 1016-1023, `isCrop`, 12 textures, food pictures, recipes, baked potatoes in the furnace), `js/main.js` (growing, harvesting, pumpkin stems, carving with Shears, tall grass drops), `js/entities.js` (crops villagers help along), `index.html` (tags `?v=farm-a-1`). Backups: `tools/backups/pre-m22a-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Potatoes | Done | Found by breaking tall grass (now and then). Plant on farmland; a grown plant gives 1-4 potatoes, and sometimes a Poisonous Potato. Cook into a Baked Potato (5 food) |
+| Beetroot | Done | Beetroot Seeds from tall grass. Grown plants give a Beetroot and 1-3 seeds. 6 Beetroot + a Bowl = Beetroot Soup (6 food). Beetroot also makes Red Dye |
+| Pumpkins | Done | Pumpkin Seeds from tall grass (or 4 from a pumpkin). The grown stem makes pumpkins on the ground beside it, like melons. Pumpkin + Sugar + Egg = Pumpkin Pie (8 food) |
+| Carved pumpkin, Jack o'Lantern | Done | Use Shears on a pumpkin to carve a face toward you (and get 4 seeds). Carved Pumpkin + Torch = a glowing Jack o'Lantern |
+| Worlds | Done | No change to how land is made; the new seeds come from grass, so every world (old or new) can grow them |
+
+## Milestone 21, Part E: Journal, achievements, Creative tab (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #35). Milestone 21 is now complete.
 Code: `js/building-guide.js` (new: Journal tab "Building", 4 pages), `js/advancements.js` (new "Building" category, 11 achievements), `js/ui.js` (Journal tab, Creative tab "Decor"), `js/main.js` (double slab and concrete events), `index.html` (tags `?v=build-e-1`, import map). Backups: `tools/backups/pre-m21e-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -348,7 +403,7 @@ Code: `js/building-guide.js` (new: Journal tab "Building", 4 pages), `js/advance
 | Journal: "Building" | Done | 4 pages: slabs/stairs/walls, colors and dyes (every dye recipe), light and climbing, decorations |
 | Creative tab "Decor" | Done | All 193 new blocks and the 16 dyes in one place |
 
-## Milestone 21, Part D: banners, item frames, armor stands, paintings (built and browser-tested 2026-11-22, not published yet)
+## Milestone 21, Part D: banners, item frames, armor stands, paintings (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #35)
 Code: `js/decor.js` (new: 12 original paintings, and drawing what frames, stands and paintings hold), `js/blocks.js` (block numbers 531-549, textures, item pictures, recipes), `js/shapes.js` (models; `tall` pieces), `js/mesher.js` (pieces taller than a block show their texture correctly), `js/main.js` (placing, using, breaking, support), `index.html` (tags `?v=build-d-*`, import map). Backups: `tools/backups/pre-m21d-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -360,7 +415,7 @@ Code: `js/decor.js` (new: 12 original paintings, and drawing what frames, stands
 | Support | Done | Frames, paintings and wall banners fall off when their wall is broken; standing banners and armor stands when the block under them is broken |
 | Play Together | Not done | Friends see the frames, stands and paintings themselves, but not what's in or on them (only the host's game keeps that) |
 
-## Milestone 21, Part C: ladders, scaffolding, lanterns, candles, panes, bars (built and browser-tested 2026-11-22, not published yet)
+## Milestone 21, Part C: ladders, scaffolding, lanterns, candles, panes, bars (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #35)
 Code: `js/blocks.js` (block numbers 493-530, `CANDLE` light table, 24 new textures, recipes), `js/shapes.js` (models, boxes, `paneLinks`), `js/player.js` (`climbing`, scaffolding you can stand on top of), `js/main.js` (placing rules, candles stacking/lighting/blowing out, things popping off when their support goes, a whole scaffolding column coming down), `index.html` (tags `?v=build-c-*`). Backups: `tools/backups/pre-m21c-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -372,7 +427,7 @@ Code: `js/blocks.js` (block numbers 493-530, `CANDLE` light table, 24 new textur
 | Glass panes (17) | Done | 6 Glass make 16 panes; 6 Stained Glass make 16 stained panes. Thin, and they join each other, walls, and full blocks |
 | Iron Bars | Done | 6 Iron Ingots make 16. Join like panes |
 
-## Milestone 21, Part B: 16 colors (built and browser-tested 2026-11-22, not published yet)
+## Milestone 21, Part B: 16 colors (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #35)
 Code: `js/blocks.js` (`COLORS`, `woolOf`, dyes = items 1000-1015, block numbers 405-492, 72 new textures, the texture sheet doubled to 256 × 1024, recipes, dye pictures), `js/shapes.js` (carpets), `js/fluids.js` (concrete powder hardens), `index.html` (tags `?v=build-b-1`). Backups: `tools/backups/pre-m21b-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -385,7 +440,7 @@ Code: `js/blocks.js` (`COLORS`, `woolOf`, dyes = items 1000-1015, block numbers 
 | Terracotta (16) | Done | 8 Terracotta + a dye make 8. The 10 colors that were missing were added (the 6 from the badlands were already there) |
 | Not included | — | Dyeing sheep, glazed terracotta |
 
-## Milestone 21, Part A: slabs, stairs, and walls (built and browser-tested 2026-11-22, not published yet)
+## Milestone 21, Part A: slabs, stairs, and walls (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #35)
 Code: `js/blocks.js` (`SHAPED`, `WALLED`, block numbers 357-404, `isSlab`/`isStairs`/`isWall`, recipes, fuel, item pictures), `js/shapes.js` (how they look, what you bump into, walls joining), `js/main.js` (placing top/bottom halves, double slabs, stairs facing, a double slab drops 2), `index.html` (tags `?v=build-a-1`). Backups: `tools/backups/pre-m21a-2026-11-22/`.
 
 | Feature | Status | Notes |
