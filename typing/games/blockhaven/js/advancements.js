@@ -3,7 +3,7 @@
 //  - met by an event the game reports with G.adv(type, arg) (ev + optional match), or
 //  - met after an event happens for `count` different things (distinct) or `count` times (sum).
 // An advancement with a parent unlocks only after its parent; progress toward it is kept until then.
-import { B, I, itemDef, iconURL, BLOCKS, isSlab, isStairs, COLORS, woolOf } from "./blocks.js";
+import { B, I, itemDef, iconURL, BLOCKS, isSlab, isStairs, COLORS, woolOf, DISC_ITEMS } from "./blocks.js";
 const WOOLS = new Set(COLORS.map(([C]) => woolOf(C)));   // Milestone 21
 import { Sound } from "./audio.js";
 
@@ -12,7 +12,7 @@ const NOTE_INSTRUMENTS = ["harp", "bass", "snare", "hat", "basedrum", "bell", "f
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
-export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "The World", "Building", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
+export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "The World", "Building", "Food & Gadgets", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
 export const ADVANCEMENTS = [
   // building and getting started
   { id: "start", cat: "Getting Started", icon: B.LOG, title: "Blockhaven", desc: "Chop a log.", check: G => has(G, B.LOG, B.BIRCH_LOG, B.CRIMSON_STEM, B.WARPED_STEM) },
@@ -124,6 +124,20 @@ export const ADVANCEMENTS = [
   { id: "endless", cat: "The World", icon: I.WATER_BUCKET, title: "Endless Water", desc: "Make a new full block of water between two others.", ev: "watersource", reward: { xp: 20 } },
   { id: "waterlog", cat: "The World", icon: B.OAK_FENCE, title: "Water Feature", desc: "Fill a fence, gate, trapdoor or sign with water.", ev: "waterlog" },
   { id: "firefighter", cat: "The World", icon: B.FIRE, title: "Firefighter", desc: "Put out a fire with flowing water.", ev: "extinguish", reward: { xp: 15 } },
+  // Milestone 22, Part E: food and gadgets
+  { id: "roots", cat: "Food & Gadgets", icon: I.POTATO, title: "Root Vegetables", desc: "Have a Potato and a Beetroot.", check: G => has(G, I.POTATO) && has(G, I.BEETROOT) },
+  { id: "carver", cat: "Food & Gadgets", icon: B.CARVED_PUMPKIN, title: "Pumpkin Carver", desc: "Carve a face into a pumpkin with Shears.", ev: "carve" },
+  { id: "spooky", cat: "Food & Gadgets", icon: B.JACK_O_LANTERN, title: "Spooky Lights", desc: "Make a Jack o'Lantern.", parent: "carver", ev: "craft", match: id => id === B.JACK_O_LANTERN },
+  { id: "cakewalk", cat: "Food & Gadgets", icon: B.CAKE, title: "Piece of Cake", desc: "Eat a slice of cake.", ev: "cake", reward: { xp: 15 } },
+  { id: "stew", cat: "Food & Gadgets", icon: I.RABBIT_STEW, title: "Hearty Meal", desc: "Eat a Rabbit Stew.", parent: "roots", ev: "eat", match: id => id === I.RABBIT_STEW, reward: { xp: 20 } },
+  { id: "notch", cat: "Food & Gadgets", icon: I.ENCHANTED_GOLDEN_APPLE, title: "Legendary Snack", desc: "Eat an Enchanted Golden Apple.", ev: "notch", reward: { xp: 50 } },
+  { id: "crossbow", cat: "Food & Gadgets", icon: I.CROSSBOW, title: "Bolt Action", desc: "Fire a crossbow.", ev: "crossbow" },
+  { id: "spyglass", cat: "Food & Gadgets", icon: I.SPYGLASS, title: "Far Sight", desc: "Look through a spyglass.", ev: "spyglass" },
+  { id: "clock", cat: "Food & Gadgets", icon: I.CLOCK, title: "What Time Is It?", desc: "Hold a clock.", ev: "clock" },
+  { id: "skyshow", cat: "Food & Gadgets", icon: I.FIREWORK_ROCKET, title: "Sky Show", desc: "Launch a firework.", ev: "firework" },
+  { id: "rocketeer", cat: "Food & Gadgets", icon: I.GLIDER || I.FIREWORK_ROCKET, title: "Rocket Rider", desc: "Boost your glide with a firework.", parent: "skyshow", ev: "boost", reward: { xp: 20 } },
+  { id: "dj", cat: "Food & Gadgets", icon: B.JUKEBOX, title: "Spin a Tune", desc: "Play a Music Disc in a jukebox.", ev: "jukebox" },
+  { id: "collector", cat: "Food & Gadgets", icon: I.DISC_STARLIGHT, title: "Record Collector", desc: "Have all 5 Music Discs.", parent: "dj", check: G => DISC_ITEMS.every(id => has(G, id)), reward: { xp: 50 } },
   // Milestone 21, Part E: building
   { id: "stepup", cat: "Building", icon: B.OAK_STAIRS, title: "Step Up", desc: "Place a slab or a set of stairs.", ev: "place", match: id => isSlab(id) || isStairs(id) },
   { id: "doubleup", cat: "Building", icon: B.STONE_SLAB, title: "Double Up", desc: "Put two slabs together into a double slab.", parent: "stepup", ev: "doubleslab" },
