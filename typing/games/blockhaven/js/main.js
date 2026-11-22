@@ -14,7 +14,7 @@ import { initSettlementRaids } from "./settlement-raids.js";
 import { idx, Generator, NetherGen, EndGen, ForsakenGen, LOOT, LAVA_LEVEL, CURRENT_GEN, LEGACY_CHUNK_GEN, END_TOP, frameSpots, CITADEL, CITADEL_PYLONS, CITADEL_SPOTS } from "./worldgen.js";
 import { World, chunkKey } from "./world.js";
 import { buildChunk, doorBox } from "./mesher.js";
-import { Player, raycast, blockBoxes, REACH } from "./player.js";
+import { Player, raycast, blockBoxes, REACH, bubbleColumn } from "./player.js";
 import { Inventory, newStack, maxStack, OFF } from "./inventory.js";
 import { Sound } from "./audio.js";
 import { Saves, newId, loadSettings, saveSettings, SAVE_VERSION } from "./save.js";
@@ -457,6 +457,7 @@ const ents = new Entities(scene, {
   consume: () => { const s = G.inv.slots[G.useSlot]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.useSlot] = null; } G.hudDirty = true; heldId = -1; },
   wear: () => { const s = G.inv.slots[G.useSlot]; if (s) wearTool(s, 1); },
   adv: (type, arg) => { if (!guestFocus()) G.adv(type, arg); }, talk: e => !!(G.campaign && G.campaign.talk(e)),
+  giveStack: st => { if (G.inv.add(st.id, 1, st)) spawnDrop(st.id, 1, G.player.pos.x, G.player.pos.y + 0.5, G.player.pos.z, st); else { Sound.pickup(); G.hudDirty = true; } },   // Milestone 17
   swapHeld: id => swapHeld(id), give: (id, n) => guestFocus() ? MP.giveGuest(guestFocus(), id, n) : G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
   invisible: () => G.effects.invis ? [36, 37, 38, 39].filter(i => G.inv.slots[i]).length : -1,   // Milestone 16: -1 = seen; else how many armor pieces give you away
   wearingGold: () => [36, 37, 38, 39].some(i => G.inv.slots[i] && [I.GOLD_HELMET, I.GOLD_CHEST, I.GOLD_LEGS, I.GOLD_BOOTS].includes(G.inv.slots[i].id)),
@@ -476,7 +477,7 @@ const ents = new Entities(scene, {
   lantern: () => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === I.WARD_LANTERN),
   pylonGone: i => { const c = cinderData(); if (!c.pylonsGone.includes(i)) c.pylonsGone.push(i); const left = CITADEL_PYLONS.length - c.pylonsGone.length; UI.toast(left ? `Ember Pylon broken! ${left} left.` : "All the Ember Pylons are broken! Cindermaw's shield is gone.", "good"); },
   push: (vx, vy, vz) => { if (guestFocus()) { MP.pushGuest(guestFocus(), vx, vy, vz); return; } const p = G.player; if (G.creative || G.spectator) return; p.vel.x += vx; p.vel.y = Math.max(p.vel.y, vy); p.vel.z += vz; },
-  time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m),
+  time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m), story: () => G.story,
   openTrade: e => openPanel("trade", e.uid),
   settlementRaiderDefeated: e => raids.defeated(e),
   festivalGathering: e => festivals.gatheringPoint(e),
@@ -1800,6 +1801,14 @@ function tickCrops(dt) {
       else if (Math.random() < 1 / 30) { w.set(x, y + 1, z, B.KELP); w.crops.delete(key); w.crops.add(x + "," + (y + 1) + "," + z); }
     }
     else if (id === B.CONDUIT) conduitTick(x, y, z, key);   // Milestone 17, Part B
+    else if (id === B.TURTLE_EGG) {   // Milestone 17, Part D: eggs on sand crack in 3 steps (faster at night), then baby turtles come out
+      const m = metaOf(v), st = (m >> 2) & 3, night = G.time > 0.5;
+      if (w.id(x, y - 1, z) !== B.SAND && w.id(x, y - 1, z) !== B.RED_SAND) continue;
+      if (Math.random() < (night ? 1 / 40 : 1 / 160)) {
+        if (st < 2) w.set(x, y, z, make(B.TURTLE_EGG, (m & 3) | ((st + 1) << 2)));
+        else { w.set(x, y, z, B.AIR); w.crops.delete(key); for (let k = 0; k <= (m & 3); k++) ents.add("turtle", x + 0.3 + Math.random() * 0.4, y, z + 0.3 + Math.random() * 0.4, { baby: true, persist: true }); puff(x + 0.5, y + 0.3, z + 0.5, "poof"); }
+      }
+    }
     else if (BLOCKS[id]?.deadAs) {   // Milestone 17: a coral block with nothing watery touching it dies after a few seconds
       if (touchesWater(x, y, z)) w.crops.delete(key);
       else if (Math.random() < 0.3) { w.set(x, y, z, BLOCKS[id].deadAs); w.crops.delete(key); }
@@ -2474,7 +2483,8 @@ function mineInfo(v) {
   if (!tierOK) time = d.hardness * 5;
   if (G.effects.haste) time /= 1 + 0.2 * (G.elv.haste || 1);   // a Beacon's Haste
   if (d.render === "cutout" && id_isLeaves(d.id) && tool && tool.type === "sword") time *= 0.3;
-  if (G.player.headInWater && !EN.lvl(G.inv.slots[36], "aqua_affinity") && !G.effects.conduit) time *= 5;   // digging underwater is slow, like Java (Aqua Affinity fixes it)
+  if (G.player.headInWater && !EN.lvl(G.inv.slots[36], "aqua_affinity") && !G.effects.conduit) time *= 5;
+  if (G.effects.fatigue) time *= 10;   // Milestone 17: an Elder Guardian's Mining Fatigue   // digging underwater is slow, like Java (Aqua Affinity fixes it)
   return { time: Math.max(0.05, time), drops: tierOK };
 }
 const id_isLeaves = id => BLOCKS[id]?.drops === "leaves";
@@ -2681,6 +2691,7 @@ function releaseBow() {
   R.vibrate(G.player.pos.x, G.player.pos.y + 1.4, G.player.pos.z, 3);
   const charge = Math.min(1, G.bowT), s = G.inv.slots[G.bowHand ?? G.selected];
   G.bowT = -1;
+  if (s && s.id === I.TRIDENT) { if (charge >= 0.5) throwTrident(s, G.bowHand ?? G.selected); return; }   // Milestone 17, Part D
   if (charge < 0.15 || !s || s.id !== I.BOW) return;
   const inf = EN.lvl(s, "infinity");
   const ai = [OFF, ...Array.from({ length: 36 }, (_, i) => i)].find(i => G.inv.slots[i] && itemDef(G.inv.slots[i].id).arrow);
@@ -2695,6 +2706,22 @@ function releaseBow() {
   if (G.guest) MP.shoot(p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, arrowDmg);   // the host's world flies it
   else ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, { fromPlayer: true, dmg: arrowDmg, punch: EN.lvl(s, "punch"), flame: EN.lvl(s, "flame"), infinite: !!inf && !tip, tip, itemId: arrowId });
   Sound.mob("bow", 0); G.hudDirty = true; G.swing = 0.01;
+}
+// Milestone 17, Part D: throw a Trident (Riptide in water launches you instead). It lands as an item, or flies back with Loyalty.
+function throwTrident(s, slotIndex) {
+  const p = G.player, dir = lookDir(), rip = EN.lvl(s, "riptide");
+  if (rip) {
+    if (!p.inWater) { UI.toast("A Riptide trident only works while you're in water.", "bad"); Sound.error(); return; }
+    const sp = 9 + 5 * rip; p.vel.x = dir.x * sp; p.vel.y = dir.y * sp + 2; p.vel.z = dir.z * sp; p.airTop = null;
+    puff(p.pos.x, p.pos.y + 1, p.pos.z, "splash"); Sound.splash(); if (!G.creative) wearTool(s, 1); G.swing = 0.01; G.adv("riptide");
+    return;
+  }
+  if (G.guest) { UI.toast("Throwing tridents is only for the host while playing together, for now."); return; }
+  const stack = { ...s }, speed = 26;
+  if (!G.creative) { wearTool(stack, 1); G.inv.slots[slotIndex] = null; heldId = -1; }
+  ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed,
+    { fromPlayer: true, dmg: 8, trident: G.creative ? null : stack, tridentLook: true, impaling: EN.lvl(s, "impaling"), loyalty: EN.lvl(s, "loyalty"), noGrav: false });
+  Sound.mob("trident", 0); G.swing = 0.01; G.hudDirty = true; G.adv("throwTrident");
 }
 // Milestone 16: splash and lingering potions fly in an arc and break where they land
 function throwPotion(slot) {
@@ -2788,7 +2815,7 @@ function useRod(slot) {
       const luck = EN.lvl(slot, "luck_of_the_sea"), tr = 0.05 + 0.021 * luck, junk = tr + Math.max(0.02, 0.1 - 0.025 * luck);   // Luck of the Sea
       const catchId = r < tr ? [I.SADDLE, I.BOW, I.VOID_PEARL, I.JADE, I.GOLD_INGOT, I.FISHING_ROD, I.NAME_TAG, I.ENCH_BOOK, I.NAUTILUS_SHELL][Math.floor(Math.random() * 9)]   // treasure!
         : r < junk ? [I.BONE, I.STRING, I.LEATHER, I.STICK, I.INK_SAC][Math.floor(Math.random() * 5)]                                  // junk
-        : r < 0.62 ? I.RAW_MINNOW : r < 0.82 ? I.SUNFIN : r < 0.92 ? I.RAW_MINNOW : I.PUFFER;
+        : r < 0.6 ? I.RAW_MINNOW : r < 0.82 ? I.RAW_SALMON : r < 0.88 ? I.SUNFIN : r < 0.93 ? I.RAW_MINNOW : I.PUFFER;
       const caught = catchId === I.ENCH_BOOK ? { id: I.ENCH_BOOK, n: 1, ench: EN.randomBookEnch(Math.random, true) } : null;   // Milestone 15
       if (G.inv.add(catchId, 1, caught)) spawnDrop(catchId, 1, p.pos.x, p.pos.y + 1, p.pos.z, caught);
       puff(b.x, b.y, b.z, "splash"); Sound.splash(); Sound.pickup();
@@ -2908,6 +2935,7 @@ function useWith(offhand) {
   if (slot.id === I.EXPLORER_MAP) { openPanel("xmap"); return true; }
   if (slot.id === I.VOID_CRYSTAL && hit && !G.guest) return placeVoidCrystal(hit);
   if (slot.id === I.SHIELD) { G.blocking = true; G.blockHand = G.useSlot; return true; }   // hold to keep the shield up
+  if (slot.id === I.TRIDENT) { G.bowT = 0; G.bowHand = G.useSlot; return true; }   // Milestone 17, Part D: hold, then let go to throw
   if (slot.id === I.BOW) {
     if (G.creative || G.inv.count(I.ARROW) > 0) { G.bowT = 0; G.bowHand = G.useSlot; return true; }
     UI.toast("You need arrows to shoot. Make them from flint, a stick, and a feather.", "bad"); Sound.error(); return true;
@@ -3001,7 +3029,7 @@ function useWith(offhand) {
     G.eat = { slot: G.useSlot, id: slot.id, t: 0, crunch: 0 };   // eating takes 1.6 seconds of holding right-click
     return true;
   }
-  if ([I.BUCKET, I.WATER_BUCKET, I.LAVA_BUCKET].includes(slot.id)) { useBucket(slot); return true; }
+  if ([I.BUCKET, I.WATER_BUCKET, I.LAVA_BUCKET].includes(slot.id) || sd.holds) { useBucket(slot); return true; }   // (Milestone 17: buckets of fish)
   if (!hit) return false;
   const hitId = idOf(hit.v);
   // hoe: turn grass or dirt into farmland
@@ -3050,6 +3078,7 @@ function useWith(offhand) {
     return true;
   }
   if (!isBlockItem(slot.id) && slot.id !== I.SPARKDUST && slot.id !== I.STRING) return false;
+  if (slot.id === B.TURTLE_EGG && idOf(hit.v) === B.TURTLE_EGG && (metaOf(hit.v) & 3) < 3) { w.set(hit.x, hit.y, hit.z, make(B.TURTLE_EGG, metaOf(hit.v) + 1)); take(); G.swing = 0.01; G.hudDirty = true; return true; }   // Milestone 17
   if (slot.id === B.SEA_PICKLE && idOf(hit.v) === B.SEA_PICKLE && (metaOf(hit.v) & 3) < 3) {   // Milestone 17: up to 4 pickles in one spot
     w.set(hit.x, hit.y, hit.z, make(B.SEA_PICKLE, (metaOf(hit.v) & 3) + 1)); take(); Sound.place("leaf"); G.swing = 0.01; G.hudDirty = true; return true;
   }
@@ -3093,7 +3122,7 @@ function useWith(offhand) {
     if (why) { UI.toast(why, "bad"); Sound.error(); return true; }
     if (id === B.KELP || id === B.CONDUIT) w.crops.add(x + "," + y + "," + z);   // kelp grows taller; a Conduit checks its frame
   }
-  if (BLOCKS[id]?.deadAs) w.crops.add(x + "," + y + "," + z);   // a coral block checks it is still touching water
+  if (BLOCKS[id]?.deadAs || id === B.TURTLE_EGG) w.crops.add(x + "," + y + "," + z);   // a coral block checks it is still touching water; turtle eggs hatch
   if (id === B.WET_SPONGE && G.world.gen.isNether()) { v = B.SPONGE; puff(x + 0.5, y + 1, z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("The Wet Sponge dries out instantly in the heat!"); }
   if (d.shape === "cross" && !d.aquatic && id !== B.SUGAR_CANE && ![B.DEAD_BUSH, B.BROWN_MUSHROOM, B.RED_MUSHROOM, B.MANGROVE_SAPLING, B.SPORE_BLOSSOM].includes(id) && ![B.GRASS, B.DIRT, B.FARMLAND].includes(w.id(x, y - 1, z))) { UI.toast(`${d.name} needs grass or dirt underneath.`, "bad"); Sound.error(); return true; }
   if (id === B.SAPLING || (d.tree && !d.tree.endsWith("mushroom"))) w.crops.add(x + "," + y + "," + z);   // (mushrooms only grow big with Bone Meal)
@@ -3183,13 +3212,15 @@ function useBucket(slot) {
     if (id === B.WATER || id === B.LAVA) { w.set(hit.x, hit.y, hit.z, B.AIR); swapHeld(id === B.WATER ? I.WATER_BUCKET : I.LAVA_BUCKET); Sound.splash(); }
     return;
   }
-  const liquid = slot.id === I.WATER_BUCKET ? B.WATER : B.LAVA;
+  const holds = itemDef(slot.id).holds;   // Milestone 17, Part D: a bucket of fish pours out water and the fish
+  const liquid = slot.id === I.WATER_BUCKET || holds ? B.WATER : B.LAVA;
   if (liquid === B.WATER && G.world.gen.isNether()) { puff(hit.x + 0.5, hit.y + 1.5, hit.z + 0.5, "poof"); Sound.mob("hiss", 2); UI.toast("Water boils away instantly in the Ember Depths!", "bad"); if (!G.creative) { G.inv.slots[G.useSlot] = newStack(I.BUCKET, 1); heldId = -1; } G.hudDirty = true; return; }
   let x = hit.x, y = hit.y, z = hit.z;
   if (!blockDef(hit.v).replaceable && idOf(hit.v) !== B.WATER) { x += hit.nx; y += hit.ny; z += hit.nz; }
   const here = w.id(x, y, z);
   if (here && here !== B.WATER && !BLOCKS[here].replaceable) return;
   placeLiquid(liquid, x, y, z);
+  if (holds) { ents.add(holds, x + 0.5, y + 0.1, z + 0.5, { persist: true }); UI.toast(`You let the ${SPECIES[holds]?.name || holds} out.`); }
   if (!G.creative) { G.inv.slots[G.useSlot] = newStack(I.BUCKET, 1); heldId = -1; }
   Sound.splash(); G.hudDirty = true;
 }
@@ -3811,6 +3842,7 @@ function harvestHoney(hit) {
 }
 // Milestone 17, Part B: what sunken chests hold (like Java's shipwreck, ocean ruin, and buried treasure chests)
 function seaLoot(box, hit, kind, r, put, putS, book) {
+  G.adv("sealoot", kind);   // Milestone 17, Part E
   const n = (a, b) => a + Math.floor(r() * (b - a + 1)), story = G.story;
   if (kind === SEA_LOOT.supply) {
     put(I.PAPER, n(1, 8)); put(I.CARROT, n(2, 6)); put(I.WHEAT, n(4, 12)); put(I.COAL, n(2, 6));
@@ -3865,7 +3897,7 @@ function conduitTick(x, y, z, key) {
   const frame = wet ? conduitFrame(x, y, z) : 0, on = frame >= 16;
   G.conduits ||= new Map();
   const was = G.conduits.get(key); G.conduits.set(key, on ? frame : 0);
-  if (on && (!was || (frame >= 42 && was < 42))) { UI.toast(frame >= 42 ? "The Conduit is fully powered! It will fight monsters that swim near it, too." : `The Conduit wakes up! (${frame} of 42 frame blocks)`, "good"); Sound.levelUp?.(); G.adv("conduit", frame); }
+  if (on && (!was || (frame >= 42 && was < 42))) { UI.toast(frame >= 42 ? "The Conduit is fully powered! It will fight monsters that swim near it, too." : `The Conduit wakes up! (${frame} of 42 frame blocks)`, "good"); G.adv("conduit", frame); Sound.mob("conduit", 0); }
   if (!on) return;
   const p = G.player, range = Math.floor(frame / 7) * 16;
   if (Math.random() < 0.6) puff(x + 0.5, y + 0.3, z + 0.5, "spark");
@@ -4648,6 +4680,8 @@ function survival(dt) {
     if (starveT >= 4) { starveT = 0; const floor = diff === "easy" ? 10 : diff === "normal" ? 1 : 0; if (p.health > floor) hurt(1, "You were too hungry. Eat something to keep your food bar up!", null, true, "starve"); }
   } else starveT = 0;
   // breath underwater
+  if (p.inWater && Math.random() < 0.12 && bubbleColumn(G.world, p.pos.x, p.pos.y, p.pos.z)) puff(p.pos.x, p.pos.y + 0.2, p.pos.z, "spark");   // bubbles in a bubble column
+  if (G.inv.slots[36]?.id === I.TURTLE_HELMET && !p.headInWater && !G.creative && !G.spectator) G.effects.waterBreath = Math.max(G.effects.waterBreath || 0, 10);   // Milestone 17, Part D
   if (p.headInWater && !CP.breathes() && !G.effects.waterBreath && !G.effects.conduit && !G.riding?.def.waterMount) { p.air -= dt / (1 + EN.lvl(G.inv.slots[36], "respiration")); if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
   else if (p.air < 10) { p.air = Math.min(10, p.air + dt * 4); G.hudDirty = true; }
 }

@@ -167,6 +167,9 @@ export const Sound = {
       case "chitter": for (let i = 0; i < 3; i++) setTimeout(() => this.tone(900 * r(), 0.05, "square", g(0.05), 300), i * 50); break;
       case "squish": this.tone(160 * r(), 0.18, "sine", g(0.2), 120); this.noise(600, 0.12, g(0.2), 2); break;
       case "warble": this.tone(300, 0.5, "sine", g(0.06), -200); break;
+      case "laser": this.tone(320, 0.35, "sawtooth", g(0.06), 900); this.tone(640, 0.3, "sine", g(0.05), 1200); break;   // Milestone 17: a Guardian fires
+      case "trident": this.noise(2200, 0.28, g(0.22), 1.2, "highpass"); this.tone(500, 0.12, "triangle", g(0.05), -150); break;
+      case "conduit": [392, 523, 659, 784].forEach((f, i) => setTimeout(() => this.tone(f, 0.5, "sine", g(0.07)), i * 120)); break;
       case "scream": this.tone(700, 0.6, "sawtooth", g(0.08), -400); this.tone(740, 0.6, "square", g(0.04), -420); break;
       case "teleport": this.tone(500, 0.25, "sine", g(0.1), 900); break;
       case "moo": this.tone(130 * r(), 0.7, "sawtooth", g(0.07), 30); break;

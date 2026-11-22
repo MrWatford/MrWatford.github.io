@@ -1,6 +1,7 @@
 // Builds the natural world from a seed. The same seed always makes the same land.
 import { Noise, hashSeed, rng, hash3 } from "./noise.js";
 import { treeShape } from "./trees.js";
+import { monumentCell, MONUMENT_SIZE, MONUMENT_TOP, MONUMENT_CELL } from "./ocean-monument.js";
 import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD, CORALS } from "./blocks.js";
 
 import { isLanternVale, buildLanternValePlot } from "./lantern-vale.js";
@@ -29,12 +30,16 @@ export const SPECIAL_BIOMES = new Set(["snowy_plains", "taiga", "jungle", "savan
 export const BIOME_NAMES = { plains: "Plains", forest: "Forest", birch: "Birch Forest", sandy: "Desert", mountain: "Mountains", peak: "Snowy Peaks", ocean: "Ocean",
   deep_ocean: "Deep Ocean", frozen_ocean: "Frozen Ocean", snowy_plains: "Snowy Plains", taiga: "Taiga", jungle: "Jungle", savanna: "Savanna", dark_forest: "Dark Forest",
   swamp: "Swamp", badlands: "Badlands", cherry_grove: "Cherry Grove", mushroom_fields: "Mushroom Fields", warm_ocean: "Warm Ocean" };
+const SOFT_SEA = new Set([B.KELP, B.SEAGRASS, B.SEA_PICKLE]);   // Milestone 17, Part C: water plants a monument's foundation replaces
 const WARM_SEA = 0.3;   // Milestone 17: seas warmer than this are Warm Oceans (coral reefs)
 const SOFT_GEN = new Set([B.AIR, B.TALL_GRASS, B.FLOWER_RED, B.FLOWER_YELLOW, B.SNOW_LAYER, B.PINK_PETALS, B.DEAD_BUSH]);
 const BANDS = [B.TERRACOTTA, B.ORANGE_TERRACOTTA, B.TERRACOTTA, B.YELLOW_TERRACOTTA, B.ORANGE_TERRACOTTA, B.WHITE_TERRACOTTA, B.RED_TERRACOTTA, B.TERRACOTTA,
   B.BROWN_TERRACOTTA, B.LIGHT_GRAY_TERRACOTTA, B.ORANGE_TERRACOTTA, B.RED_TERRACOTTA];
 const TREES = { taiga: ["spruce", 7], snowy_plains: ["spruce", 0.6], jungle: ["jungle", 6], savanna: ["acacia", 1.4], dark_forest: ["dark_oak", 2.5], cherry_grove: ["cherry", 2], swamp: ["mangrove", 1.6], mushroom_fields: ["mushroom", 0.8] };
-export const CURRENT_GEN = OCEAN_GEN;
+// 19 (Milestone 17, Part C): Ocean Monuments in deep seas. Worlds made at 17 or 18 get one only if nobody has been
+// anywhere near its spot (decided once per monument in world.js and remembered).
+export const MONUMENT_GEN = 19;
+export const CURRENT_GEN = MONUMENT_GEN;
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE, scribe: B.BOOKSHELF, beekeeper: B.BEEHIVE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -213,6 +218,64 @@ export class Generator {
     const r = rng((this.seed ^ Math.imul(cx, 2246822519) ^ Math.imul(cz, 3266489917) ^ 0x5417) >>> 0);
     if (roll < 0.022 && depth >= 4) this.shipwreck(data, c.h + 1, r);
     else if (roll >= 0.022 && roll < 0.075) this.oceanRuin(data, cols, nb === "warm_ocean", r);
+  }
+  // Milestone 17, Part C: the Ocean Monument of one 384 × 384 square, if that square has a big enough deep sea (or null).
+  // Its spot keeps clear of the strongholds and of anything stamped into the land (temple entrances and so on).
+  monumentSite(gx, gz) {
+    const key = gx + "," + gz;
+    this.monumentCache ||= new Map();
+    if (this.monumentCache.has(key)) return this.monumentCache.get(key);
+    let site = null;
+    if (this.version >= BIOME_GEN) {
+      const x0 = gx * MONUMENT_CELL + 24 + Math.floor(hash3(this.seed, gx, 2201, gz) * (MONUMENT_CELL - 48 - MONUMENT_SIZE));
+      const z0 = gz * MONUMENT_CELL + 24 + Math.floor(hash3(this.seed, gx, 2202, gz) * (MONUMENT_CELL - 48 - MONUMENT_SIZE));
+      let ok = hash3(this.seed, gx, 2203, gz) < 0.75;
+      for (let a = -8; a <= MONUMENT_SIZE + 8 && ok; a += 16) for (let b = -8; b <= MONUMENT_SIZE + 8 && ok; b += 16) { const c = this.column(x0 + a, z0 + b); if (c.h > SEA - 12 || c.sea < 0.5) ok = false; }
+      if (ok) site = { key, x0, z0, y0: SEA - 1 - MONUMENT_TOP, cx: x0 + MONUMENT_SIZE / 2, cz: z0 + MONUMENT_SIZE / 2 };
+    }
+    this.monumentCache.set(key, site);
+    return site;
+  }
+  // monuments whose spot could reach near (x, z), leaving out any that would overlap something stamped into the land
+  monumentsNear(x, z) {
+    const gx = Math.floor(x / MONUMENT_CELL), gz = Math.floor(z / MONUMENT_CELL), out = [];
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      const s = this.monumentSite(gx + i, gz + j);
+      if (!s) continue;
+      if ((this.stamps || []).some(t => t.x < s.x0 + MONUMENT_SIZE + 16 && t.x + (t.size || 32) > s.x0 - 16 && t.z < s.z0 + MONUMENT_SIZE + 16 && t.z + (t.size || 32) > s.z0 - 16)) continue;
+      out.push(s);
+    }
+    return out;
+  }
+  // draw this chunk's part of any monument (ok decides it for worlds made before monuments; null = always)
+  monuments(data, x0, z0, ok) {
+    for (const s of this.monumentsNear(x0 + 8, z0 + 8)) {
+      if (s.x0 > x0 + CHUNK - 1 || s.x0 + MONUMENT_SIZE - 1 < x0 || s.z0 > z0 + CHUNK - 1 || s.z0 + MONUMENT_SIZE - 1 < z0) continue;
+      if (ok && !ok(s)) continue;
+      for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
+        const mx = x0 + lx - s.x0, mz = z0 + lz - s.z0;
+        if (mx < 0 || mz < 0 || mx >= MONUMENT_SIZE || mz >= MONUMENT_SIZE) continue;
+        for (let my = 0; my <= MONUMENT_TOP; my++) data[idx(lx, s.y0 + my, lz)] = monumentCell(mx, my, mz);
+        for (let y = s.y0 - 1; y > 0; y--) { const v = data[idx(lx, y, lz)]; if (v !== B.WATER && !SOFT_SEA.has(v & 0xFFFF00FF)) break; data[idx(lx, y, lz)] = B.PRISMARINE; }   // its foundation, down to the sea floor
+      }
+    }
+  }
+  // Milestone 17, Part D: the nearest shipwreck or sunken ruin (the same rule seaStructures uses), for Splashers to lead you to
+  wreckNear(x, z, ok = () => true, reach = 24) {
+    const cx0 = Math.floor(x / CHUNK), cz0 = Math.floor(z / CHUNK);
+    let best = null, bd = Infinity;
+    for (let i = -reach; i <= reach; i++) for (let j = -reach; j <= reach; j++) {
+      const cx = cx0 + i, cz = cz0 + j, roll = hash3(this.seed, cx, 1741, cz);
+      if (roll >= 0.075 || this.version < BIOME_GEN) continue;
+      const px = cx * CHUNK + 8, pz = cz * CHUNK + 8, d = Math.hypot(px - x, pz - z);
+      if (d >= bd) continue;
+      const c = this.column(px, pz), nb = this.landBiome(c, px, pz), depth = SEA - c.h;
+      if (!["ocean", "deep_ocean", "warm_ocean", "frozen_ocean"].includes(nb) || depth < 3 || (roll < 0.022 && depth < 4)) continue;
+      const s = { x: px, z: pz, kind: roll < 0.022 ? "shipwreck" : "ruin" };
+      if (!ok(s)) continue;
+      best = s; bd = d;
+    }
+    return best;
   }
   // the treasure spot of one big square: a beach (land just above sea level at the edge of a real sea), or null
   treasureSpot(gx, gz) {
@@ -490,6 +553,7 @@ if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like M
       this.seaFloor(data, cols, x0, z0, cx, cz);   // Milestone 17, Part A
       this.seaStructures(data, cols, x0, z0, cx, cz);   // Milestone 17, Part B
     }
+    if (deco && (ver >= MONUMENT_GEN || opts.monumentOk)) this.monuments(data, x0, z0, ver >= MONUMENT_GEN ? null : opts.monumentOk);   // Milestone 17, Part C
 
 // a rare landmark: a crumbling watchtower with a treasure chest
     if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);

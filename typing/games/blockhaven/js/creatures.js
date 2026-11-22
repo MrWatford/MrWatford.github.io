@@ -2,6 +2,8 @@
 import { CREATURES } from './creature-catalog.js';
 import { B, I, SOLID, itemDef } from './blocks.js';
 import { POTIONS } from './potions.js';
+import { HALL, MONUMENT_SIZE } from './ocean-monument.js';
+import { Sound } from './audio.js';
 
 function blend(color, other, amount) {
   const a = Number.parseInt(color.slice(1), 16), b = Number.parseInt(other.slice(1), 16);
@@ -236,10 +238,17 @@ export function installCreatures(species) {
       def.h=1;def.w=1;def.food=[];def.translucent=true;def.hops=true;}
     if(['bat','allay','vex'].includes(id)){def.h=.7;def.w=.5;def.scale=.75;def.hp=id==='bat'?6:14;}
     if(id==='tadpole'){def.h=.3;def.w=.3;def.speed=1.2;def.food=[];def.scale=.45;}
-    if(id==='salmon'){def.h=.4;def.w=.4;def.food=[];def.school=true;def.drops=()=>[[I.RAW_MINNOW,1]];}
+    if(id==='salmon'){def.h=.4;def.w=.4;def.food=[];def.school=true;def.drops=()=>[[I.RAW_SALMON,1]];}   // Milestone 17: its own fish
+    if(id==='turtle'){def.food=[B.SEAGRASS];}   // Milestone 17, Part D: sea turtles love seagrass, and lay eggs on sand
+    if(id==='drowned'){   // Milestone 17, Part D: some Drowned carry a trident (and sometimes drop it)
+      model.parts.push(box('trident',[1,17,1],[-1,-9,2],coat('#3aa0a0','#7ad8d0'),'armR'));
+      def.drops=e=>[[I.ROTTEN_FLESH,1+Math.floor(Math.random()*2)],...(e?.bestiary?.armed&&Math.random()<0.25?[[I.TRIDENT,1]]:[]),...(Math.random()<0.03?[[I.NAUTILUS_SHELL,1]]:[])];}
     if(['endermite','silverfish'].includes(id)){def.h=.4;def.w=.5;def.hp=8;def.speed=2.8;def.scale=.7;}
-    if(id==='elder_guardian'){def.scale=1.5;def.w=1.5;def.h=1.8;def.hp=80;def.dmg=6;def.persist=true;}
-    if(['aquatic_guardian','elder_guardian'].includes(id))def.drops=()=>[[I.QUARTZ,2],[I.RAW_MINNOW,1]];
+    if(id==='elder_guardian'){def.scale=1.5;def.w=1.5;def.h=1.8;def.hp=80;def.dmg=8;def.persist=true;def.speed=0.9;def.xp=10;}
+    if(id==='aquatic_guardian'){def.hp=30;def.dmg=6;def.xp=10;def.speed=2.6;}
+    // Milestone 17, Part C: Guardians drop prismarine (where shards and crystals come from); Elder Guardians also drop a Wet Sponge
+    if(['aquatic_guardian','elder_guardian'].includes(id))def.drops=()=>{const r=Math.random(),out=[[I.PRISMARINE_SHARD,Math.floor(Math.random()*3)]];
+      if(r<0.4)out.push([I.PRISMARINE_CRYSTALS,1]);else if(r<0.8)out.push([I.RAW_MINNOW,1]);if(id==='elder_guardian')out.push([B.WET_SPONGE,1]);return out.filter(q=>q[1]>0);};
   }
   // Existing animals gain dimensional ears, noses, horns, and consistent face shading.
   for(const id of ['cow','pig','sheep','rabbit','trotter']){
@@ -274,6 +283,7 @@ export function animateCreature(e) {
   if(e.sp==='armadillo'&&e.rolled){e.root.scale.set(e.scale,e.scale*.7,e.scale);P.head.visible=false;}
   else if(e.sp==='armadillo')P.head.visible=true;
   if(e.sp==='sulfur_cube'){const squash=1+Math.sin(t*5)*.06;e.root.scale.set(e.scale/squash,e.scale*squash,e.scale/squash);}
+  if(e.sp==='drowned'&&P.trident)P.trident.visible=!!e.bestiary?.armed;   // Milestone 17
   if(e.sp==='creaking'&&e.frozen)for(const limb of ['armR','armL','legR','legL'])P[limb].rotation.x=0;
 }
 
@@ -361,8 +371,30 @@ export function thinkCreature(manager,e,daylight) {
     return true;
   }
   const attackable=manager.targetable()&&d<24&&manager.canSeePlayer(e);
+  if(e.sp==='aquatic_guardian'||e.sp==='elder_guardian'){   // Milestone 17, Part C: Guardians keep their distance and charge a laser
+    const elder=e.sp==='elder_guardian';
+    if(elder&&ctx.settings().difficulty!=='peaceful'&&!ctx.creative()){   // an Elder Guardian's curse reaches 50 blocks, about once a minute
+      state.curseT=(state.curseT??3)-dt;
+      if(state.curseT<=0&&d<50){state.curseT=60;if(!ctx.playerEffect?.('fatigue')){ctx.effect('fatigue',300);ctx.toast?.('An Elder Guardian cursed you with Mining Fatigue! Digging is very slow until it wears off.');}}
+    }
+    if(!e.inWater){state.charge=0;return false;}
+    const sees=manager.targetable()&&d<(elder?20:16)&&!e.tame&&manager.canSeePlayer(e);
+    if(!sees){state.charge=0;if(elder){e.goal=null;e.vel.x*=.5;e.vel.z*=.5;return true;}return false;}
+    // swim to stay 6-12 blocks away (an Elder Guardian barely moves)
+    const away=d<6?-1:d>12?1:0,dx=p.pos.x-e.pos.x,dz=p.pos.z-e.pos.z,len=Math.hypot(dx,dz)||1;
+    if(elder)e.goal=null;
+    else e.goal={x:e.pos.x+dx/len*away*4+Math.sin(e.age)*1.5,y:p.pos.y+1,z:e.pos.z+dz/len*away*4+Math.cos(e.age)*1.5,speed:def.speed};
+    state.charge=(state.charge||0)+dt;
+    if(state.charge>=3){state.charge=0;Sound.mob('laser',d);ctx.hurtPlayer(def.dmg*difficulty,`A ${def.name}'s laser hit you!`,e);}
+    return true;
+  }
   if(['aquatic_guardian','elder_guardian','drowned','zombie_nautilus'].includes(e.sp)){
+    if(e.sp==='drowned'&&state.armed===undefined)state.armed=Math.random()<0.15;   // Milestone 17, Part D: about 1 in 7 carries a trident
     if(!attackable||e.tame||(e.sp==='zombie_nautilus'&&e.angry<=0)){state.charge=0;return false;}
+    if(e.sp==='drowned'&&state.armed&&d>3&&d<14&&e.attackCd<=0){   // it throws the trident (a copy: it keeps its own)
+      const dx=p.pos.x-e.pos.x,dy=p.pos.y+1-e.eyeY,dz=p.pos.z-e.pos.z,dist=Math.hypot(dx,dy,dz)||1,sp=18/dist;
+      manager.addProjectile('arrow',e.pos.x,e.eyeY,e.pos.z,dx*sp,dy*sp+10*dist/18,dz*sp,{owner:e,dmg:8*difficulty,tridentMob:true});e.attackCd=3;return true;
+    }
     if(!e.inWater){state.charge=0;return false;}
     e.goal={x:p.pos.x,y:p.pos.y,z:p.pos.z,speed:def.speed};
     if(e.sp.includes('guardian')){
@@ -418,11 +450,27 @@ export function interactCreature(manager,e,slot) {
   return false;
 }
 
+// Milestone 17, Part C: while you're in or right next to an Ocean Monument, Guardians swim in to guard its big hall (up to 6 near you)
+function spawnMonumentGuardian(manager,w,p,living,species){
+  const s=w.monumentAt?.(Math.floor(p.pos.x/16),Math.floor(p.pos.z/16));
+  if(!s||manager.ctx.settings().difficulty==='peaceful'||manager.ctx.creative())return false;
+  if(p.pos.x<s.x0-8||p.pos.x>s.x0+MONUMENT_SIZE+8||p.pos.z<s.z0-8||p.pos.z>s.z0+MONUMENT_SIZE+8)return false;
+  manager.ctx.adv?.('monument');   // Milestone 17, Part E
+  if(living.filter(e=>e.sp==='aquatic_guardian'&&Math.hypot(e.pos.x-p.pos.x,e.pos.z-p.pos.z)<40).length>=6)return true;
+  for(let t=0;t<6;t++){
+    const x=s.x0+HALL.x0+Math.floor(Math.random()*(HALL.x1-HALL.x0+1)),z=s.z0+HALL.z0+Math.floor(Math.random()*(HALL.z1-HALL.z0+1)),y=s.y0+HALL.y0+1+Math.floor(Math.random()*6);
+    if(Math.hypot(x-p.pos.x,z-p.pos.z)<8||!w.isLoaded(x,z))continue;
+    if(w.id(x,y,z)!==B.WATER||w.id(x,y+1,z)!==B.WATER)continue;
+    manager.add('aquatic_guardian',x+.5,y,z+.5);return true;
+  }
+  return true;
+}
 export function spawnCreatures(manager,dt,daylight,species) {
   manager.bestiarySpawnT=(manager.bestiarySpawnT||0)-dt;
   if(manager.bestiarySpawnT>0)return;
   manager.bestiarySpawnT=5;
   const w=manager.world,p=manager.ctx.player(),living=manager.list.filter(e=>!e.dead&&!e.gone);
+  if(spawnMonumentGuardian(manager,w,p,living,species))return;   // Milestone 17, Part C
   if(w.gen.isNether()||w.gen.isForsaken||w.gen.isMap?.()||living.length>=120||living.filter(e=>e.def.expansion).length>=24)return;
   const angle=Math.random()*Math.PI*2,radius=24+Math.random()*14;
   const x=Math.floor(p.pos.x+Math.cos(angle)*radius),z=Math.floor(p.pos.z+Math.sin(angle)*radius);

@@ -11,7 +11,7 @@ const NOTE_INSTRUMENTS = ["harp", "bass", "snare", "hat", "basedrum", "bell", "f
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
-export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
+export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
 export const ADVANCEMENTS = [
   // building and getting started
   { id: "start", cat: "Getting Started", icon: B.LOG, title: "Blockhaven", desc: "Chop a log.", check: G => has(G, B.LOG, B.BIRCH_LOG, B.CRIMSON_STEM, B.WARPED_STEM) },
@@ -98,6 +98,23 @@ export const ADVANCEMENTS = [
   { id: "sharpshooter", cat: "Brewing", icon: I.TIPPED_ARROW + 5, title: "Sharp Shooter", desc: "Make tipped arrows.", parent: "lingering", check: G => G.inv.slots.some(s => s && itemDef(s.id)?.tip) },
   { id: "cocktail", cat: "Brewing", icon: I.WART, title: "Mixed Bag", desc: "Have 6 different effects on you at the same time.", parent: "firstsip", check: G => Object.keys(G.effects || {}).length >= 6, reward: { xp: 50 } },
   { id: "brewmaster", cat: "Brewing", icon: B.CAULDRON, title: "Brewmaster", desc: "Drink 12 different kinds of potions.", parent: "firstsip", ev: "drink", match: k => !!k && !["water", "awkward", "mundane", "thick"].includes(k), count: 12, reward: { xp: 100 } },
+  // Milestone 17, Part E: the oceans
+  { id: "seafloor", cat: "Oceans", icon: B.KELP, title: "Under the Sea", desc: "Pick some kelp.", check: G => has(G, B.KELP) },
+  { id: "reef", cat: "Oceans", icon: B.BRAIN_CORAL, title: "Reef Explorer", desc: "Swim in a Warm Ocean with coral reefs.", parent: "seafloor", ev: "biome", match: b => b === "warm_ocean", reward: { xp: 15 } },
+  { id: "soaked", cat: "Oceans", icon: B.WET_SPONGE, title: "Soaked Up", desc: "Soak up water with a Sponge.", parent: "seafloor", ev: "sponge" },
+  { id: "wreck", cat: "Oceans", icon: B.SPRUCE_PLANKS, title: "Shipwrecked", desc: "Open a chest in a sunken shipwreck.", parent: "seafloor", ev: "sealoot", match: k => k >= 1 && k <= 3, reward: { xp: 15 } },
+  { id: "xmarks", cat: "Oceans", icon: I.TREASURE_MAP, title: "X Marks the Spot", desc: "Dig up buried treasure.", parent: "wreck", ev: "buried", reward: { xp: 30 } },
+  { id: "conduit", cat: "Oceans", icon: B.CONDUIT, title: "Heart of the Ocean", desc: "Wake up a Conduit.", parent: "xmarks", ev: "conduit", reward: { xp: 40 } },
+  { id: "conduitfull", cat: "Oceans", icon: B.SEA_LANTERN, title: "Full Power", desc: "Give a Conduit its whole frame of 42 prismarine blocks.", parent: "conduit", ev: "conduit", match: n => n >= 42, reward: { xp: 60 } },
+  { id: "monument", cat: "Oceans", icon: B.PRISMARINE_BRICKS, title: "The Deep Fortress", desc: "Find an Ocean Monument.", parent: "seafloor", ev: "monument", reward: { xp: 30 } },
+  { id: "guardian", cat: "Oceans", icon: I.PRISMARINE_SHARD, title: "Laser Tag", desc: "Defeat a Guardian.", parent: "monument", ev: "kill", match: sp => sp === "aquatic_guardian" },
+  { id: "elder", cat: "Oceans", icon: B.GOLD_BLOCK, title: "The Elder Three", desc: "Defeat an Elder Guardian.", parent: "guardian", ev: "kill", match: sp => sp === "elder_guardian", reward: { xp: 60 } },
+  { id: "fishbucket", cat: "Oceans", icon: I.SUNFIN_BUCKET, title: "Fish to Go", desc: "Catch a fish in a Water Bucket.", parent: "seafloor", ev: "bucketfish" },
+  { id: "turtles", cat: "Oceans", icon: B.TURTLE_EGG, title: "Beach Babies", desc: "Feed two sea turtles seagrass so they lay eggs.", parent: "fishbucket", ev: "breed", match: sp => sp === "turtle" },
+  { id: "turtleshell", cat: "Oceans", icon: I.TURTLE_HELMET, title: "Shell Shocked", desc: "Make a Turtle Shell from 5 scutes.", parent: "turtles", check: G => has(G, I.TURTLE_HELMET), reward: { xp: 30 } },
+  { id: "trident", cat: "Oceans", icon: I.TRIDENT, title: "Sea Fork", desc: "Throw a Trident.", parent: "monument", ev: "throwTrident", reward: { xp: 20 } },
+  { id: "riptide", cat: "Oceans", icon: I.TRIDENT, title: "Riding the Riptide", desc: "Launch yourself with a Riptide trident.", parent: "trident", ev: "riptide", reward: { xp: 30 } },
+  { id: "splasher", cat: "Oceans", icon: I.RAW_MINNOW, title: "Follow the Splasher", desc: "Feed a Splasher and follow it all the way to treasure.", parent: "fishbucket", ev: "dolphinlead", reward: { xp: 30 } },
   { id: "kill", cat: "Combat & Bosses", icon: I.WOOD_SWORD, title: "Monster Hunter", desc: "Defeat a monster.", ev: "kill", match: (sp, SPECIES) => SPECIES[sp] && SPECIES[sp].hostile },
   { id: "kill8", cat: "Combat & Bosses", icon: I.IRON_SWORD, title: "Monsters Hunted", desc: "Defeat 8 different kinds of monsters.", parent: "kill", ev: "kill", match: (sp, SPECIES) => SPECIES[sp] && SPECIES[sp].hostile, count: 8, reward: { xp: 50 } },
   { id: "block", cat: "Combat & Bosses", icon: I.SHIELD, title: "Shields Up", desc: "Block an attack with a Shield.", parent: "kill", ev: "block" },
