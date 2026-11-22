@@ -36,7 +36,7 @@ This is about 8 milestones of work. As always, each one is built and tested in t
 | 2 ✔ published 2026-11-12 | **14: Smaller gaps** | Leads, name tags, horse armor, donkeys and mules (with chests), more horse colors, pet breeding, summoning the Hollow Wyrm again, ships at the Hollow towers, creatures going through portals, Hogbeasts turning "rotten" in the Surface world | Medium |
 | 3 ✔ built 2026-11-21 (all 3 parts, PUBLISHED 2026-11-21, PR #29) | **15: Enchanting and repair** | Enchanting Table, bookshelf power, XP finally gets spent, ~27 enchantments that really work (curses included), enchanted books, Anvil, Grindstone, shiny "glint" on enchanted items | Large |
 | 4 ✔ built 2026-11-21 (all 3 parts) | **16: Brewing and potions** | Brewing Stand, Cauldron, sugar cane and melons as real plants, ~15 potions + longer/stronger versions, splash and lingering potions, ~10 new status effects, recipe guide | Large |
-| 5 | **17: Ocean extras** | Prismarine blocks, Sea Lanterns, Ocean Monuments with Guardians, shipwrecks, ocean ruins, treasure maps and buried treasure, coral reefs, sponges, Conduits, fish in buckets, Splashers leading you to treasure | Large |
+| 5 ✔ built 2026-11-21 (all 5 parts, PUBLISHED 2026-11-21) | **17: Ocean extras** | Prismarine blocks, Sea Lanterns, Ocean Monuments with Guardians, shipwrecks, ocean ruins, treasure maps and buried treasure, coral reefs, sponges, Conduits, fish in buckets, Splashers leading you to treasure | Large |
 | 6 | **18: The world, part 1** | Flowing water and lava, water + lava makes cobblestone/stone/obsidian, falling sand and gravel, fire spreading (with a setting), leaf decay, plants that need support, crops needing water, waterlogging | Large |
 | 7 | **19: The world, part 2** | Rain, snow, thunderstorms, lightning and its creature changes, snow building up, freezing and melting, sleeping through storms | Medium |
 | 8 ✔ built 2026-11-21 (all 5 parts, PUBLISHED 2026-11-21, PR #30) | **20: The world, part 3** | New biomes (swamps, savannas, badlands, cherry groves, dark forests, snowy plains, mushroom islands, deep oceans, lush caves, dripstone caves) in **unexplored land only** | Large |
@@ -253,3 +253,18 @@ Not in this milestone: stairs and slabs (prismarine ones come with the building-
 ### 9.4 Part B done (2026-11-21, PUBLISHED 2026-11-21)
 - Shipwrecks (3 chests each), ocean ruins, buried treasure on beaches with the Heart of the Sea, Treasure Maps that point the way, Nautilus Shells, and the Conduit with Conduit Power.
 - **Next:** Part C (Ocean Monuments with Guardians and Elder Guardians, sponge rooms, the gold vault). That's also where prismarine shards and wild sponges come from.
+
+### 9.5 Part C done (2026-11-21, PUBLISHED 2026-11-21)
+- Ocean Monuments in big deep seas, with Guardians (lasers), three Elder Guardians each (Mining Fatigue), sponge rooms, and a gold vault. Prismarine shards, crystals and wet sponges now come from Guardians.
+- Guardians no longer show up randomly in deep water; they live only in monuments.
+- **Next:** Part D (cod, salmon, tropical fish, fish buckets, sea turtles, Drowned with Tridents, Splashers leading to treasure, bubble columns).
+
+### 9.6 Part D done (2026-11-21, PUBLISHED 2026-11-21)
+- Salmon food, buckets of fish (and Axolotls), sea turtles with eggs, scutes and the Turtle Shell, Tridents with all 4 trident enchantments, Drowned that throw tridents, Splashers that lead you to treasure, and bubble columns.
+- Channeling is in the game but needs thunderstorms, which Blockhaven doesn't have yet.
+- **Next:** Part E (achievements, an "Oceans" Journal chapter, Creative tab, sounds, final checks).
+
+### 9.7 Part E done: Milestone 17 complete (2026-11-21, PUBLISHED 2026-11-21)
+- 16 Ocean achievements, an "Oceans" Journal chapter, a Creative "Oceans" tab, and new sounds.
+- Parts C, D and E published 2026-11-21.
+- **Next in the plan:** Milestones 18, 19, 21–24 (see section 6), in whatever order you choose.
