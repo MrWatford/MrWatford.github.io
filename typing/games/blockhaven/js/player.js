@@ -54,8 +54,18 @@ export class Player {
     const out = [];
     for (let y = Math.floor(a[1]) - 1; y <= Math.floor(a[4]); y++)
       for (let z = Math.floor(a[2]); z <= Math.floor(a[5]); z++)
-        for (let x = Math.floor(a[0]); x <= Math.floor(a[3]); x++) blockBoxes(world.get(x, y, z), x, y, z, out, world);
+        for (let x = Math.floor(a[0]); x <= Math.floor(a[3]); x++) {
+          const v = world.get(x, y, z);
+          if (idOf(v) === B.SCAFFOLDING && (this.crouch || y + 1 > (this.stepY ?? this.pos.y) + 0.01)) continue;   // Milestone 21: scaffolding only holds you up from above, and crouching drops you through
+          blockBoxes(v, x, y, z, out, world);
+        }
     return out;
+  }
+  // Milestone 21: 1 = on a ladder, 2 = inside scaffolding, 0 = neither
+  climbing(world) {
+    const p = this.pos;
+    for (const dy of [0.001, 0.9]) { const id = world.id(Math.floor(p.x), Math.floor(p.y + dy), Math.floor(p.z)); if (id === B.LADDER) return 1; if (id === B.SCAFFOLDING) return 2; }   // (feet still in the top block: keep climbing until you are over it)
+    return 0;
   }
   collides(world, a) {
     for (const b of this.boxesNear(world, a)) if (a[0] < b[3] - EPS && a[3] > b[0] + EPS && a[1] < b[4] - EPS && a[4] > b[1] + EPS && a[2] < b[5] - EPS && a[5] > b[2] + EPS) return b;
@@ -125,6 +135,12 @@ export class Player {
       if (col > 0) v.y = Math.min(v.y + 28 * dt, 6); else if (col < 0) v.y = Math.max(v.y - 22 * dt, -5);
       const push = flowPush(world, Math.floor(p.x), Math.floor(p.y + 0.1), Math.floor(p.z));   // Milestone 18: flowing water carries you along
       if (push) { v.x += push[0] * 14 * dt; v.z += push[1] * 14 * dt; }
+    } else if (this.climbing(world)) {   // Milestone 21: ladders and scaffolding
+      this.airTop = null;
+      const scaffold = this.climbing(world) === 2;
+      if (input.jump || ((input.f || input.r) && this.bumped)) v.y = 2.4;
+      else if (this.crouch) v.y = scaffold ? -2.4 : 0;   // hold on to a ladder; climb down through scaffolding
+      else v.y = Math.max(v.y - GRAVITY * dt, -2.4);
     } else {
       v.y -= GRAVITY * dt;
       if (v.y < -40) v.y = -40;
@@ -141,6 +157,7 @@ export class Player {
     this.onGround = false;
     let landed = 0, crash = 0;
     const vyBefore = v.y;
+    this.stepY = p.y;   // (where your feet were before this step: scaffolding you were above holds you up)
     p.y += v.y * dt;
     let hit = null;
     { const a = this.aabb();
@@ -154,6 +171,7 @@ export class Player {
       if (landId === B.GLOOP_BLOCK) { this.airTop = null; landed = 0; if (!this.crouch && vyBefore < -2) { v.y = -vyBefore * 0.82; this.onGround = false; } }
       if (landId === B.HONEY_BLOCK && this.airTop !== null) this.airTop = p.y + (this.airTop - p.y) * 0.2;   // honey softens a fall
     }
+    this.bumped = false;
     for (const axis of ["x", "z"]) {
       const d = v[axis] * dt;
       if (!d) continue;
@@ -164,7 +182,7 @@ export class Player {
         // step up onto something low (a repeater, a sensor, a bed) like Minecraft's 0.6-block step
         const rise = bump[4] - p.y;
         if ((wasGround || this.onGround) && !this.flying && rise > 0 && rise <= 0.6 && !this.collides(world, this.aabb(p.x, p.y + rise + EPS, p.z))) { p.y += rise + EPS; continue; }
-        if (this.gliding) crash = Math.max(crash, Math.abs(v[axis])); p[axis] = before; v[axis] = 0; continue;
+        if (this.gliding) crash = Math.max(crash, Math.abs(v[axis])); p[axis] = before; v[axis] = 0; this.bumped = true; continue;
       }
       // crouching keeps you from walking off edges
       if (this.crouch && wasGround && !this.flying) {

@@ -86,7 +86,11 @@ export function initFluids(api) {
     const w = G.world;
     if (!w.isLoaded(x, z)) return;
     let v = w.get(x, y, z);
-    if (BLOCKS[idOf(v)]?.falls) { fallStep(w, x, y, z, v); return; }
+    const fd = BLOCKS[idOf(v)];
+    if (fd?.falls) {   // Milestone 21: concrete powder touching water hardens into concrete
+      if (fd.hardens && AROUND.some(([a, b, c]) => (a || b || c) && fluidOf(w.get(x + a, y + b, z + c)) === B.WATER)) { w.set(x, y, z, fd.hardens); api.hardened?.(x, y, z); return; }
+      fallStep(w, x, y, z, v); return;
+    }
     const K = fluidOf(v);
     if (!K || api.off()) return;
     const plant = idOf(v) !== K;   // water with a plant in it acts like a full block of water and never changes

@@ -3,7 +3,8 @@
 //  - met by an event the game reports with G.adv(type, arg) (ev + optional match), or
 //  - met after an event happens for `count` different things (distinct) or `count` times (sum).
 // An advancement with a parent unlocks only after its parent; progress toward it is kept until then.
-import { B, I, itemDef, iconURL } from "./blocks.js";
+import { B, I, itemDef, iconURL, BLOCKS, isSlab, isStairs, COLORS, woolOf } from "./blocks.js";
+const WOOLS = new Set(COLORS.map(([C]) => woolOf(C)));   // Milestone 21
 import { Sound } from "./audio.js";
 
 // note block instrument names (same list as redstone.js); used to clean up old saves
@@ -11,7 +12,7 @@ const NOTE_INSTRUMENTS = ["harp", "bass", "snare", "hat", "basedrum", "bell", "f
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
-export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "The World", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
+export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "The World", "Building", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
 export const ADVANCEMENTS = [
   // building and getting started
   { id: "start", cat: "Getting Started", icon: B.LOG, title: "Blockhaven", desc: "Chop a log.", check: G => has(G, B.LOG, B.BIRCH_LOG, B.CRIMSON_STEM, B.WARPED_STEM) },
@@ -123,6 +124,18 @@ export const ADVANCEMENTS = [
   { id: "endless", cat: "The World", icon: I.WATER_BUCKET, title: "Endless Water", desc: "Make a new full block of water between two others.", ev: "watersource", reward: { xp: 20 } },
   { id: "waterlog", cat: "The World", icon: B.OAK_FENCE, title: "Water Feature", desc: "Fill a fence, gate, trapdoor or sign with water.", ev: "waterlog" },
   { id: "firefighter", cat: "The World", icon: B.FIRE, title: "Firefighter", desc: "Put out a fire with flowing water.", ev: "extinguish", reward: { xp: 15 } },
+  // Milestone 21, Part E: building
+  { id: "stepup", cat: "Building", icon: B.OAK_STAIRS, title: "Step Up", desc: "Place a slab or a set of stairs.", ev: "place", match: id => isSlab(id) || isStairs(id) },
+  { id: "doubleup", cat: "Building", icon: B.STONE_SLAB, title: "Double Up", desc: "Put two slabs together into a double slab.", parent: "stepup", ev: "doubleslab" },
+  { id: "dyed", cat: "Building", icon: I.RED_DYE, title: "A Splash of Color", desc: "Make a dye.", ev: "craft", match: id => !!itemDef(id)?.dye },
+  { id: "rainbow", cat: "Building", icon: B.LIME_WOOL, title: "Rainbow Builder", desc: "Place wool in all 16 colors.", parent: "dyed", ev: "place", match: id => WOOLS.has(id), count: 16, reward: { xp: 30 } },
+  { id: "setstone", cat: "Building", icon: B.LIGHT_BLUE_CONCRETE, title: "Set in Stone", desc: "Turn Concrete Powder into Concrete with water.", parent: "dyed", ev: "concrete", reward: { xp: 15 } },
+  { id: "climber", cat: "Building", icon: B.LADDER, title: "Up We Go", desc: "Place a ladder or scaffolding.", ev: "place", match: id => id === B.LADDER || id === B.SCAFFOLDING },
+  { id: "candlelit", cat: "Building", icon: B.CANDLE, title: "Candlelight", desc: "Light a candle with Flint and Steel.", ev: "candle" },
+  { id: "gallery", cat: "Building", icon: B.PAINTING, title: "Art Gallery", desc: "Hang a painting.", ev: "painting" },
+  { id: "showoff", cat: "Building", icon: B.ITEM_FRAME, title: "On Display", desc: "Put something in an item frame.", parent: "gallery", ev: "itemframe" },
+  { id: "dressup", cat: "Building", icon: B.ARMOR_STAND, title: "Dressed Up", desc: "Put armor on an armor stand.", parent: "gallery", ev: "armorstand", reward: { xp: 15 } },
+  { id: "flag", cat: "Building", icon: B.BLUE_BANNER, title: "Flag Bearer", desc: "Place a banner.", ev: "place", match: id => !!BLOCKS[id]?.banner },
   // Milestone 19, Part D: weather
   { id: "rainyday", cat: "The World", icon: I.WATER_BUCKET, title: "Rainy Day", desc: "Stand out in the rain.", ev: "inrain" },
   { id: "snowfall", cat: "The World", icon: B.SNOW_LAYER, title: "Snowfall", desc: "Stand out in falling snow.", ev: "insnow" },
