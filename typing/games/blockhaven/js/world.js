@@ -1,6 +1,6 @@
 // Holds the blocks of the world in 16×16 columns ("chunks") and remembers every change the player makes.
 import { B, CHUNK, HEIGHT, idOf, lightOf } from "./blocks.js";
-import { idx, LEGACY_CHUNK_GEN, ENCHANT_GEN, BIOME_GEN, MONUMENT_GEN } from "./worldgen.js";
+import { idx, LEGACY_CHUNK_GEN, ENCHANT_GEN, BIOME_GEN, MONUMENT_GEN, STRUCT_GEN } from "./worldgen.js";
 import { MONUMENT_SIZE } from "./ocean-monument.js";
 
 export const chunkKey = (cx, cz) => cx + "," + cz;
@@ -58,6 +58,7 @@ export class World {
     }
     if (this.gen.lateFeatures && this.gen.version < BIOME_GEN) opts.biomes = this.biomeRegion(cx, cz);   // Milestone 20, Part C
     if (this.gen.version >= BIOME_GEN && this.gen.version < MONUMENT_GEN) opts.monumentOk = s => this.monumentOk(s);   // Milestone 17, Part C
+    if (this.gen.lateFeatures && this.gen.version < STRUCT_GEN) opts.structureOk = s => this.structureOk(s);   // Milestone 23, Part D
     let data = this.gen.generate(cx, cz, opts);
     if (!(data instanceof Uint32Array)) data = Uint32Array.from(data);   // room for block ids 256 and up (the block limit step)
     if (m) for (const [i, v] of m) data[i] = v;
@@ -97,6 +98,27 @@ export class World {
     }
     return d === 1;
   }
+  // Milestone 23, Part D: may this outpost, witch hut or mansion stand in this world? New worlds: always. Older worlds:
+  // only if nobody had been on or near its spot when it was first decided (remembered in `regions`), and (huts,
+  // mansions) only where the new biomes are.
+  structureOk(s) {
+    if (!this.gen.lateFeatures) return false;
+    if (this.gen.version >= STRUCT_GEN) return true;
+    if (s.newLand && !this.hasNewBiomes(s.cx, s.cz)) return false;
+    const rk = "s:" + s.key;
+    let d = this.regions.get(rk);
+    if (d === undefined) {
+      d = 1;
+      for (let i = Math.floor((s.x0 - 16) / CHUNK); i <= Math.floor((s.x0 + s.w + 16) / CHUNK) && d; i++)
+        for (let j = Math.floor((s.z0 - 16) / CHUNK); j <= Math.floor((s.z0 + s.d + 16) / CHUNK); j++) {
+          const k = chunkKey(i, j), under = i * CHUNK <= s.x0 + s.w && i * CHUNK + CHUNK > s.x0 && j * CHUNK <= s.z0 + s.d && j * CHUNK + CHUNK > s.z0;
+          if (this.visited.has(k) || this.mods.has(k) || (under && this.chunks.has(k))) { d = 0; break; }
+        }
+      this.regions.set(rk, d);
+    }
+    return d === 1;
+  }
+  structuresHere(x, z) { return this.gen.structuresNear ? this.gen.structuresNear(x, z).filter(s => this.structureOk(s)) : []; }
   // the monument covering this chunk, if this world has one there
   monumentAt(cx, cz) {
     if (!this.gen.monumentsNear) return null;

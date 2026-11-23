@@ -142,6 +142,8 @@ export function model(v, get) {
     for (let d = 0; d < 4; d++) if (get && paneLinks(get(DIR[d][0], 0, DIR[d][1]))) arms.push(d);
     return { T: floorT(0), parts: [p([7, 0, 7, 9, 16, 9], tex)], arms: arms.map(d => ({ T: floorT(d), parts: [p([7.5, 0, 9, 8.5, 16, 16], tex)] })) };
   }
+  if (id === B.STONECUTTER) return { T: floorT(0), parts: [p([0, 0, 0, 16, 9, 16], [TILE.stonecutter_top, TILE.stonecutter_side, TILE.stonecutter_side]), p([7.5, 9, 1, 8.5, 14, 15], TILE.iron_bars)] };   // Milestone 23, Part A
+  if (id === B.LECTERN) return { T: floorT(m & 3), parts: [p([2, 0, 2, 14, 2, 14], TILE.planks), p([5, 2, 5, 11, 12, 11], [TILE.lectern_side, TILE.lectern_side, TILE.lectern_side]), p([1, 12, 1, 15, 15, 15], [TILE.lectern_top, TILE.lectern_side, TILE.planks], [0, -0.25])] };
   if (id === B.CAKE) {   // Milestone 22, Part B: each slice eaten takes 2 pixels off one side; a candle can sit on top
     const parts = [p([1 + (m & 7) * 2, 0, 1, 15, 8, 15], [TILE.cake_top, TILE.cake_side, TILE.cake_bottom])];
     if (m & 8) { parts.push(p([7, 8, 7, 9, 14, 9], TILE.candle)); if (m & 16) parts.push(p([7.5, 14, 7.5, 8.5, 16, 8.5], TILE.candle_flame)); }
@@ -260,6 +262,7 @@ export function shapeBoxes(v, get) {
   if (id === B.TEMPLE_STEP || id === B.STONE_STEP) return [[0, 0, 0, 1, 0.5, 1]];
   if (isSlab(id) || isStairs(id)) { const mo = model(v); return mo.parts.map(q => box(mo.T, q.b)); }   // Milestone 21
   if (id === B.LADDER) return [box(floorT(m & 3), [0, 0, 13 * S, 1, 1, 1])];
+  if (id === B.STONECUTTER) return [[0, 0, 0, 1, 9 * S, 1]];   // Milestone 23
   if (id === B.CAKE) return [[(1 + (m & 7) * 2) * S, 0, S, 15 * S, 0.5, 15 * S]];   // Milestone 22
   if (id === B.ARMOR_STAND) return [[6 * S, 0, 6 * S, 10 * S, 1.4, 10 * S]];   // Milestone 21, Part D
   if (id === B.SCAFFOLDING) return [[0, 15 * S, 0, 1, 1, 1]];   // you stand on top (the player skips it while climbing inside or crouching)

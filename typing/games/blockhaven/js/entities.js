@@ -2,7 +2,7 @@
 // Each species is described by data (size, health, behavior, drops, model) and shares the same body physics.
 import { stonehavenResidents } from "./stonehaven.js";
 import * as THREE from "../lib/three.module.min.js";
-import { B, I, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate, WATERY, FISH_BUCKETS } from "./blocks.js";
+import { B, I, BLOCKS, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate, WATERY, FISH_BUCKETS } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
 import { installGodzilla, animateGodzilla } from "./godzilla-model.js";
@@ -379,9 +379,39 @@ export const TRADES = {
     // Milestone 15: paper for Jade, plain books, and an enchanted book (which one depends on the Scribe; price set in main.js G.tradeOffer)
     [[[I.PAPER, 24]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.BOOK, 2], 8], [[[I.JADE, 0], [I.BOOK, 1]], [I.ENCH_BOOK, 1], 4], [[[I.JADE, 1]], [I.LAPIS, 4], 8]],
   beekeeper: [[[[B.FLOWER_RED, 8]], [I.JADE, 1], 8], [[[I.JADE, 1]], [I.HONEY_BOTTLE, 2], 8], [[[I.JADE, 2]], [I.HONEYCOMB, 4], 8], [[[I.JADE, 3]], [B.BEEHIVE, 1], 4]],
+  // Milestone 23, Part A: new jobs (their job blocks are in blocks.js)
+  butcher: [[[[I.RAW_CHICKEN, 14]], [I.JADE, 1], 12], [[[I.RAW_PORK, 7]], [I.JADE, 1], 12], [[[I.RAW_RABBIT, 4]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.COOKED_PORK, 5], 12], [[[I.JADE, 1]], [I.COOKED_CHICKEN, 8], 12], [[[I.JADE, 1]], [I.RABBIT_STEW, 1], 8], [[[I.DRIED_KELP_BLOCK || B.DRIED_KELP_BLOCK, 10]], [I.JADE, 1], 12]],
+  armorer: [[[[I.COAL, 15]], [I.JADE, 1], 12], [[[I.IRON_INGOT, 4]], [I.JADE, 1], 12], [[[I.JADE, 5]], [I.IRON_HELMET, 1], 4], [[[I.JADE, 9]], [I.IRON_CHEST, 1], 3], [[[I.JADE, 7]], [I.IRON_LEGS, 1], 4], [[[I.JADE, 4]], [I.IRON_BOOTS, 1], 4], [[[I.JADE, 5]], [I.SHIELD, 1], 4]],
+  fisherman: [[[[I.STRING, 20]], [I.JADE, 1], 12], [[[I.COAL, 10]], [I.JADE, 1], 12], [[[I.RAW_SALMON, 6]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.COOKED_MINNOW, 6], 12], [[[I.JADE, 3]], [I.FISHING_ROD, 1], 4], [[[I.JADE, 1]], [I.BOAT, 1], 4], [[[I.JADE, 2]], [B.BARREL, 1], 4]],
+  mason: [[[[I.CLAY_BALL, 10]], [I.JADE, 1], 12], [[[I.JADE, 1]], [I.BRICK, 10], 12], [[[B.STONE, 20]], [I.JADE, 1], 12], [[[I.JADE, 1]], [B.STONE_BRICKS, 4], 12], [[[I.JADE, 1]], [B.CYAN_TERRACOTTA, 1], 12], [[[I.JADE, 1]], [B.QUARTZ_BLOCK, 1], 12], [[[I.JADE, 1]], [B.MAGENTA_CONCRETE, 4], 8]],
+  leatherworker: [[[[I.LEATHER, 6]], [I.JADE, 1], 12], [[[I.RABBIT_FOOT, 9] ], [I.JADE, 1], 12], [[[I.JADE, 3]], [I.LEATHER_CHEST, 1], 6], [[[I.JADE, 2]], [I.LEATHER_HELMET, 1], 6], [[[I.JADE, 2]], [I.LEATHER_BOOTS, 1], 6], [[[I.JADE, 6]], [I.SADDLE, 1], 3]],
+  villager: [],   // no job yet
   wanderer: [[[[I.JADE, 0]], [I.ENCH_BOOK, 1], 1], [[[I.JADE, 1]], [B.SUGAR_CANE, 4], 4], [[[I.JADE, 1]], [I.MELON_SEEDS, 2], 4], [[[I.JADE, 1]], [B.SPRUCE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.JUNGLE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.ACACIA_SAPLING, 2], 4], [[[I.JADE, 2]], [B.DARK_OAK_SAPLING, 4], 4], [[[I.JADE, 1]], [B.CHERRY_SAPLING, 2], 4], [[[I.JADE, 1]], [B.MANGROVE_SAPLING, 2], 4], [[[I.JADE, 1]], [B.SAPLING, 3], 4], [[[I.JADE, 2]], [I.SHINE_DUST, 6], 4], [[[I.JADE, 3]], [I.GOLD_INGOT, 3], 4], [[[I.JADE, 4]], [I.SKYSHARD, 1], 2], [[[I.JADE, 2]], [I.WART, 6], 4], [[[I.JADE, 5]], [B.CHORUS_FLOWER, 2], 2], [[[I.JADE, 10]], [I.TOTEM, 1], 1], [[[I.JADE, 3]], [I.NAME_TAG, 1], 2], [[[I.JADE, 2]], [I.LEAD, 2], 2], [[[I.JADE, 5]], [I.NAUTILUS_SHELL, 1], 4]]
 };
-const ROBE = { villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], scribe: ["#346462", "#254d4a"], beekeeper: ["#b58536", "#906926"], wanderer: ["#2a5aa0", "#245094"] };
+// Milestone 23, Part B: villager levels. Trading gives a villager experience; each new level (Apprentice, Journeyman,
+// Expert, Master) adds one bonus trade from this list. Every regular trade stays open at every level.
+export const LEVEL_NAMES = ["Novice", "Apprentice", "Journeyman", "Expert", "Master"];
+export const LEVEL_XP = [0, 10, 70, 150, 250];
+export const BONUS = {
+  farmer: [[[[I.JADE, 3]], [I.GOLDEN_CARROT, 3], 8], [[[I.JADE, 1]], [I.PUMPKIN_PIE, 4], 12], [[[I.JADE, 2]], [B.CAKE, 1], 6], [[[I.JADE, 4]], [I.GLISTERING_MELON, 3], 6]],
+  fletcher: [[[[I.JADE, 1]], [B.TRIPWIRE_HOOK, 2], 12], [[[I.JADE, 2]], [I.ARROW, 32], 12], [[[I.JADE, 2]], [B.TARGET, 1], 8], [[[I.JADE, 3]], [I.CROSSBOW, 1], 4]],
+  shepherd: [[[[I.JADE, 1]], [B.LIGHT_BLUE_WOOL, 4], 12], [[[I.JADE, 1]], [B.PINK_CARPET, 8], 12], [[[I.JADE, 3]], [B.RED_BANNER, 1], 6], [[[I.JADE, 2]], [B.PAINTING, 3], 6]],
+  cleric: [[[[I.JADE, 1]], [I.LAPIS, 6], 12], [[[I.JADE, 2]], [I.SHINE_DUST, 8], 12], [[[I.JADE, 5]], [I.EYE, 1], 4], [[[I.JADE, 8]], [I.GOLDEN_APPLE, 1], 3]],
+  smith: [[[[I.JADE, 4]], [I.SHIELD, 1], 4], [[[I.JADE, 8]], [B.ANVIL, 1], 3], [[[I.JADE, 14]], [I.SKY_SWORD, 1], 2], [[[I.JADE, 15]], [I.SKY_PICK, 1], 2]],
+  scribe: [[[[I.JADE, 1]], [B.LANTERN, 2], 12], [[[I.JADE, 4]], [I.CLOCK, 1], 4], [[[I.JADE, 5]], [I.SPYGLASS, 1], 4], [[[I.JADE, 6]], [I.NAME_TAG, 1], 4]],
+  beekeeper: [[[[I.JADE, 1]], [B.CANDLE, 4], 12], [[[I.JADE, 1]], [B.YELLOW_CANDLE, 4], 12], [[[I.JADE, 2]], [I.HONEY_BOTTLE, 6], 8], [[[I.JADE, 3]], [B.HONEY_BLOCK, 1], 6]],
+  butcher: [[[[I.JADE, 1]], [I.COOKED_MUTTON, 6], 12], [[[I.JADE, 2]], [I.STEAK, 8], 12], [[[I.JADE, 3]], [B.CAKE, 1], 6], [[[I.JADE, 3]], [I.GOLDEN_CARROT, 2], 6]],
+  armorer: [[[[I.JADE, 13]], [I.SKY_HELMET, 1], 2], [[[I.JADE, 13]], [I.SKY_BOOTS, 1], 2], [[[I.JADE, 19]], [I.SKY_LEGS, 1], 2], [[[I.JADE, 21]], [I.SKY_CHEST, 1], 2]],
+  fisherman: [[[[I.JADE, 1]], [I.COOKED_SALMON, 6], 12], [[[I.JADE, 2]], [I.MINNOW_BUCKET, 1], 6], [[[I.JADE, 2]], [I.SUNFIN_BUCKET, 1], 6], [[[I.JADE, 6]], [I.NAUTILUS_SHELL, 1], 3]],
+  mason: [[[[I.JADE, 1]], [B.WHITE_CONCRETE, 8], 12], [[[I.JADE, 1]], [B.PURPLE_TERRACOTTA, 4], 12], [[[I.JADE, 2]], [B.PRISMARINE_BRICKS, 4], 8], [[[I.JADE, 3]], [B.STONECUTTER, 1], 4]],
+  leatherworker: [[[[I.JADE, 3]], [I.LEATHER_LEGS, 1], 6], [[[I.JADE, 2]], [B.ITEM_FRAME, 2], 8], [[[I.JADE, 3]], [I.LEAD, 2], 6], [[[I.JADE, 4]], [B.ARMOR_STAND, 1], 4]]
+};
+// Milestone 23, Part C: zombies that hunt villagers (on Normal and Hard) and turn them into zombie villagers
+const ZOMBIES = new Set(["zombie", "husk", "drowned", "zombie_villager"]);
+export const levelOf = e => { let l = 1; while (l < 5 && (e.vxp || 0) >= LEVEL_XP[l]) l++; return l; };
+export const tradesOf = e => [...(TRADES[e.def.prof] || []), ...(BONUS[e.def.prof] || []).slice(0, levelOf(e) - 1)];
+const ROBE = { butcher: ["#e8e0d0", "#c8c0b0"], armorer: ["#4a4a52", "#3e3e46"], fisherman: ["#3a6a8a", "#2e5e7e"], mason: ["#8a8a80", "#7e7e74"], leatherworker: ["#7a4a2a", "#6a3e22"],   // Milestone 23
+  villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], scribe: ["#346462", "#254d4a"], beekeeper: ["#b58536", "#906926"], wanderer: ["#2a5aa0", "#245094"] };
 const VSKIN = ["#e8b890", "#deae86"];
 const villagerModel = prof => ({ type: "villager", parts: [
   { name: "body", size: [8, 12, 6], pivot: [0, 12, 0], off: [0, 6, 0], paint: { all: P => { P.fill(ROBE[prof]); if (prof === "smith") P.rect(3, 4, 10, 12, "#5a3a20"); if (prof === "farmer") P.rect(3, 6, 10, 10, "#e8e0c8"); if (prof === "cleric") P.rect(6, 0, 4, 16, "#ffe27a"); } } },
@@ -390,8 +420,8 @@ const villagerModel = prof => ({ type: "villager", parts: [
   { name: "nose", parent: "head", size: [2, 4, 2], pivot: [0, -1.5, 5], off: [0, 0, 0], paint: { all: solid(["#d8a078"]) } },
   { name: "arms", size: [10, 4, 4], pivot: [0, 19, 3], off: [0, 0, 0], paint: { all: solid(ROBE[prof]), front: P => { P.fill(ROBE[prof]); P.rect(5, 4, 6, 8, VSKIN[0]); } } }] });
 Object.assign(SPECIES, {
-  ...Object.fromEntries(["farmer", "fletcher", "shepherd", "cleric", "smith", "scribe", "beekeeper", "wanderer"].map(prof => [prof, {
-    name: prof === "wanderer" ? "Wanderer" : "Villager (" + prof[0].toUpperCase() + prof.slice(1) + ")", villager: true, persist: prof !== "wanderer", prof,
+  ...Object.fromEntries(["farmer", "fletcher", "shepherd", "cleric", "smith", "scribe", "beekeeper", "wanderer", "butcher", "armorer", "fisherman", "mason", "leatherworker", "villager"].map(prof => [prof, {
+    name: prof === "villager" ? "Villager (no job)" : prof === "wanderer" ? "Wanderer" : "Villager (" + prof[0].toUpperCase() + prof.slice(1) + ")", villager: true, persist: prof !== "wanderer", prof,
     hp: 20, speed: 1.8, w: 0.6, h: 1.95, ai: "villager", xp: 0, sound: "hmm", drops: () => [], model: villagerModel(prof) }])),
   golem: { name: "Ironwarden", persist: true, hp: 100, speed: 1.8, w: 1.4, h: 2.7, ai: "golem", dmg: 9, xp: 0, sound: "clank", knockUp: true,
     drops: () => [[I.IRON_INGOT, randi(3, 5)]],
@@ -1737,7 +1767,7 @@ export class Entity {
     this.taskT = 0; this.task = "wander"; this.summonT = opts.summonT || 0;
     // pets and mounts
     this.tame = !!opts.tame; this.sitting = !!opts.sitting; this.saddled = !!opts.saddled; this.temper = opts.temper || 0; this.ridden = false;
-    if (this.def.villager) { this.uses = this.uses || []; while (this.uses.length < (TRADES[this.def.prof] || []).length) this.uses.push(0); }   // older saves may have fewer trades
+    if (this.def.villager) { this.uses = this.uses || []; while (this.uses.length < (TRADES[this.def.prof] || []).length + 4) this.uses.push(0); }   // (+4: Milestone 23 bonus trades)   // older saves may have fewer trades
     this.barterT = 0;
     // wildlife: color variant, a Pouncer's trust and the item in its mouth, a Buzzer's pollen and hive
     this.variant ??= opts.variant ?? this.def.defaultVariant ?? (this.def.variants ? randi(0, this.def.variants.length - 1) : 0);
@@ -1752,6 +1782,9 @@ export class Entity {
     this.leash = opts.leash || null; this.harmor = opts.harmor || 0; this.portalCd = opts.portalCd || 0;   // Milestone 14: lead, Trotter armor, portal rest
     this.fuel = opts.fuel || 0; this.pushX = opts.pushX || 0; this.pushZ = opts.pushZ || 0; this.riderUid = opts.riderUid || null; this.fuseT = opts.fuseT || 0; this.hopperOff = !!opts.hopperOff;
     this.charged = !!opts.charged;   // Milestone 19: a Hisser struck by lightning
+    this.jobSeen = !!opts.jobSeen; this.traded = !!opts.traded; this.vxp = opts.vxp || 0;
+    this.captain = !!opts.captain;   // Milestone 23, Part D: an outpost's Pillager Captain
+    this.former = opts.former || null; this.cureT = opts.cureT || 0; this.cured = !!opts.cured;   // Milestone 23, Part C   // (Milestone 23, Part B: trading experience)     // Milestone 23: a villager you've traded with keeps its job for good
   }
   get maxHp() { if (this.sp === "grizzly_bear") return this.baby ? 50 : this.variant === 1 ? 365 : this.def.hp; if (this.baby && this.def.babyHp) return this.def.babyHp; if (this.mutHp) return this.mutHp; if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
   get wildlifeSize() { return this.sp === "grizzly_bear" && this.variant === 1 ? 1.08 : 1; }
@@ -1776,7 +1809,7 @@ export class Entity {
       ...(this.leash ? { leash: this.leash } : {}), ...(this.harmor ? { harmor: this.harmor } : {}), ...(this.portalCd > 0 ? { portalCd: Math.round(this.portalCd), persist: true } : {}),
       ...(this.def.expansion ? { bestiary: { ...this.bestiary, charge: 0, bounceUntil: 0 }, persist: this.persist } : {}),
       ...(this.den && this.sp === "grizzly_bear" ? { den: true } : {}),
-      ...(this.charged ? { charged: true } : {}),
+      ...(this.charged ? { charged: true } : {}), ...(this.traded ? { traded: true } : {}), ...(this.jobSeen ? { jobSeen: true } : {}), ...(this.vxp ? { vxp: this.vxp } : {}), ...(this.former ? { former: this.former } : {}), ...(this.cureT > 0 ? { cureT: Math.round(this.cureT) } : {}), ...(this.cured ? { cured: true } : {}), ...(this.captain ? { captain: true, persist: true } : {}),
       variant: this.variant, trust: this.trust, held: this.held, pollen: this.pollen, inHive: this.inHive, stung: this.stung,
       ...(this.def.cart || this.inv ? { inv: this.inv ? this.inv.slots.map(q => q && { ...q }) : undefined, fuel: Math.round(this.fuel), pushX: this.pushX, pushZ: this.pushZ, riderUid: this.riderE && !this.riderE.dead ? this.riderE.uid : null, fuseT: this.fuseT, hopperOff: this.hopperOff } : {}) };
   }
@@ -2486,6 +2519,7 @@ export class Entities {
     else {
       if (e.inLava) { e.burning = 5; if ((e.lavaT = (e.lavaT || 0) - dt) <= 0) { e.lavaT = 0.5; this.damage(e, 4, null); } }
       if (e.fx) this.tickFx(e, dt);
+      if (e.cureT > 0) { e.cureT -= dt; if (Math.random() < dt * 4) this.ctx.particles(e.pos.x, e.pos.y + 1.8, e.pos.z, "heart"); if (e.cureT <= 0) this.cureZombie(e); }   // Milestone 23, Part C
       if (e.burning > 0) { e.burning -= dt; if (e.inWater || this.ctx.inRain?.(e.pos.x, e.pos.y + e.h, e.pos.z)) e.burning = 0; if ((e.burnT -= dt) <= 0) { e.burnT = 1; this.damage(e, 1, null); } }
     }
     if (e.barterT > 0 && (e.barterT -= dt) <= 0) this.barter(e);
@@ -2729,6 +2763,8 @@ export class Entities {
     const calm = def.ai === "spider" && !e.angry && (() => { const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.pos.y), Math.floor(e.pos.z)); return L && L[0] * daylight > 11; })();
     const chasing = can && !calm && (sees || (d < (hidden < 0 ? 10 : Math.min(10, sight)) && Math.abs(p.pos.y - e.pos.y) < 6) || (e.target && d < (hidden < 0 ? 32 : sight + 2)));   // monsters also sense you up close
     e.target = chasing ? p : null;
+    if (!chasing && ZOMBIES.has(e.sp) && this.huntVillager(e, def, dmgMul)) return;   // Milestone 23, Part C
+    if (!chasing && e.omenRally) { if (this.huntVillager(e, def, dmgMul, true)) return; this.moveTo(e, e.omenRally, def.speed, 3); return; }   // Milestone 23, Part D: raiders head into the village
     if (!chasing && e.settlementRaid) { this.moveTo(e, e.settlementRaid.rally, def.speed, 2); return; }
     if (!chasing) { this.wander(e); if (e.fuse > 0) e.fuse = Math.max(0, e.fuse - 0.3); return; }
     const tp = p.pos;
@@ -2907,6 +2943,93 @@ export class Entities {
     for (const yy of [y, y + 1]) { const v = w.get(x, yy, z); if (idOf(v) === B.DOOR && !(metaOf(v) & OPEN)) { w.set(x, yy, z, make(B.DOOR, metaOf(v) | OPEN)); Sound.door(true); } }
   }
   // Villagers: work at their job site during the day, go home at night, run from monsters
+  // Milestone 23, Part A: a villager nobody has traded with loses its job if its job block is gone, and a villager
+  // without a job takes an unclaimed job block (one you placed) within 16 blocks. Returns true if it changed.
+  checkJob(e) {
+    if (e.npc || e.sp === "wanderer" || e.cpRaid) return false;
+    const w = this.world;
+    if (e.sp !== "villager") {
+      if (e.traded || !e.job) return false;
+      const id = w.id(e.job[0], e.job[1], e.job[2]);
+      if (!w.isLoaded(e.job[0], e.job[2])) return false;
+      if (BLOCKS[id]?.job) { e.jobSeen = true; return false; }   // its job block is there
+      if (!e.jobSeen) return false;   // (village workers whose work spot was never a job block keep their jobs)
+      this.changeJob(e, "villager", null); return true;
+    }
+    if (e.baby) return false;   // children don't work
+    const claimed = new Set(this.list.filter(o => o.def.villager && o.job && !o.gone).map(o => o.job.join(",")));
+    const cx0 = Math.floor(e.pos.x / 16), cz0 = Math.floor(e.pos.z / 16);
+    let best = null, bd = 16;
+    for (let cx = cx0 - 1; cx <= cx0 + 1; cx++) for (let cz = cz0 - 1; cz <= cz0 + 1; cz++) {
+      const m = w.mods.get(cx + "," + cz);
+      if (m) for (const [i, v] of m) {
+        const prof = BLOCKS[idOf(v)]?.job;
+        if (!prof || !TRADES[prof]) continue;
+        const x = cx * 16 + (i % 16), y = Math.floor(i / 256), z = cz * 16 + Math.floor(i / 16) % 16, k = x + "," + y + "," + z, dd = Math.hypot(x - e.pos.x, y - e.pos.y, z - e.pos.z);
+        if (dd < bd && !claimed.has(k) && w.id(x, y, z) === idOf(v)) { bd = dd; best = { prof, job: [x, y, z] }; }
+      }
+    }
+    if (!best) return false;
+    this.changeJob(e, best.prof, best.job); return true;
+  }
+  // Milestone 23, Part C: at night, zombies go after villagers that are close and out in the open (not on Easy).
+  huntVillager(e, def, dmgMul, raider = false) {
+    const diff = this.ctx.settings().difficulty;
+    if (diff === "peaceful" || (diff === "easy" && !raider)) return false;
+    const v = this.list.find(o => o.def.villager && !o.gone && !o.dead && !o.npc && !o.cpRaid && o.sp !== "wanderer" && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 16 && Math.abs(o.pos.y - e.pos.y) < 4);
+    if (!v) return false;
+    const dv = Math.hypot(v.pos.x - e.pos.x, v.pos.z - e.pos.z);
+    if (dv < (def.reach || 1.6) + 0.3 && e.attackCd <= 0) { e.attackCd = 1; this.damage(v, (def.dmg || 3) * dmgMul, e); v.fleeT = 4; }
+    else this.chase(e, v.pos);
+    return true;
+  }
+  // a villager beaten by a zombie: on Hard it always turns, on Normal half the time (otherwise it's just gone, as in Minecraft)
+  zombify(v) {
+    const diff = this.ctx.settings().difficulty;
+    if (diff !== "hard" && !(diff === "normal" && Math.random() < 0.5)) return false;
+    const z = this.add("zombie_villager", v.pos.x, v.pos.y, v.pos.z, { former: { sp: v.sp === "villager" ? null : v.sp, vxp: v.vxp || 0, home: v.home, job: v.job, name: v.name, traded: v.traded } });
+    if (z) { z.yaw = v.yaw; z.persist = true; }
+    v.gone = true; this.ctx.particles(v.pos.x, v.pos.y + 1, v.pos.z, "poison"); Sound.mob("groan", this.dist(v));
+    this.ctx.villagerZombified?.(v);
+    return true;
+  }
+  cureZombie(z) {
+    const f = z.former || {}, sp = f.sp && TRADES[f.sp] ? f.sp : "villager";
+    const n = this.add(sp, z.pos.x, z.pos.y, z.pos.z, { home: f.home, job: f.job, name: f.name, vxp: f.vxp, traded: f.traded, jobSeen: !!f.job, cured: true });
+    if (n) n.yaw = z.yaw;
+    z.gone = true; this.ctx.particles(z.pos.x, z.pos.y + 1.5, z.pos.z, "xp"); Sound.levelUp();
+    this.ctx.villagerCured?.(n);
+  }
+  // Milestone 23, Part B: two grown villagers standing together in the daytime may have a child, if the village has
+  // more beds than villagers (beds that belong to villagers' homes, plus beds you placed nearby). The child has no job
+  // and grows up in about 20 minutes.
+  villagerFamily(e) {
+    if (e.baby || e.npc || e.cpRaid || e.sp === "wanderer" || (e.familyCd = (e.familyCd || 0) - 5) > 0) return;
+    const mate = this.list.find(o => o !== e && o.def.villager && !o.gone && !o.dead && !o.baby && !o.npc && o.sp !== "wanderer" && (o.familyCd || 0) <= 0 && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 4);
+    if (!mate || Math.random() > 0.3) return;
+    const w = this.world, near = this.list.filter(o => o.def.villager && !o.gone && o.sp !== "wanderer" && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 32);
+    const homes = new Set(near.filter(o => o.home).map(o => o.home.map(Math.floor).join(","))), free = [];
+    const cx0 = Math.floor(e.pos.x / 16), cz0 = Math.floor(e.pos.z / 16);
+    for (let cx = cx0 - 2; cx <= cx0 + 2; cx++) for (let cz = cz0 - 2; cz <= cz0 + 2; cz++) {
+      const m = w.mods.get(cx + "," + cz);
+      if (m) for (const [i, v] of m) if (idOf(v) === B.BED && (metaOf(v) & 8)) {
+        const x = cx * 16 + (i % 16), y = Math.floor(i / 256), z = cz * 16 + Math.floor(i / 16) % 16;
+        if (Math.hypot(x - e.pos.x, z - e.pos.z) < 32 && w.id(x, y, z) === B.BED && !homes.has([x, y, z].join(","))) free.push([x, y, z]);
+      }
+    }
+    if (homes.size + free.length <= near.length) { e.familyCd = 60; return; }
+    e.familyCd = mate.familyCd = 600;
+    const bed = free[0], kid = this.add("villager", (e.pos.x + mate.pos.x) / 2, e.pos.y, (e.pos.z + mate.pos.z) / 2, { baby: true, growT: 1200, home: bed ? [bed[0], bed[1], bed[2]] : e.home });
+    for (const o of [e, mate]) this.ctx.particles(o.pos.x, o.pos.y + 2, o.pos.z, "heart");
+    this.ctx.villagerBorn?.(kid);
+  }
+  changeJob(e, prof, job) {
+    const n = this.add(prof, e.pos.x, e.pos.y, e.pos.z, { home: e.home, job, name: e.name, yaw: e.yaw });
+    if (n) { n.yaw = e.yaw; n.name = e.name; }
+    e.gone = true;
+    this.ctx.particles(e.pos.x, e.pos.y + 2, e.pos.z, prof === "villager" ? "poof" : "xp");
+    if (prof !== "villager") this.ctx.adv?.("villagerJob", prof);
+  }
   thinkVillager(e, d) {
     if (e.bellT > 0) e.bellT -= 0.15;   // a ringing bell sends villagers home for a while
     const ctx = this.ctx, time = ctx.time(), night = (time > 0.52 && time < 0.97) || e.bellT > 0;
@@ -2924,6 +3047,7 @@ export class Entities {
     const celebration = ctx.festivalGathering?.(e);
     if (celebration) { this.moveTo(e, celebration, e.def.speed, .8); return; }
     e.taskT -= 0.15;
+    if ((e.jobT = (e.jobT ?? Math.random() * 5) - 0.15) <= 0) { e.jobT = 5; if (this.checkJob(e)) return; if (!night) this.villagerFamily(e); }   // Milestone 23: jobs and families   // Milestone 23: losing or finding a job
     if (e.taskT <= 0) { e.taskT = rand(8, 18); e.task = e.job && Math.random() < 0.55 ? "work" : "wander"; }
     if (e.task === "work" && e.job) {
       const j = { x: e.job[0] + 0.5, y: e.job[1], z: e.job[2] + 0.5 };
@@ -3400,6 +3524,7 @@ export class Entities {
 
   // ----- getting hurt and dying -----
   damage(e, n, attacker, knock = null) {
+    if (e.def.villager && attacker?.def && ZOMBIES.has(attacker.sp) && !e.gone && !e.dead && e.hp - n <= 0 && this.zombify(e)) return true;   // Milestone 23, Part C
     if (e.gone || e.dead || e.duneCycle?.preview || e.iframes > 0 || n <= 0) return false;
     if (e.def.godzilla) {
       n = this.ctx.godzillaDamage(e, n);
@@ -3466,6 +3591,7 @@ export class Entities {
     if (e.encounterOwner) return;
     if (e.settlementRaid) { ctx.settlementRaiderDefeated?.(e); return; }
     if (attacker === "player" && ctx.adv) ctx.adv("kill", e.sp);
+    if (e.captain && attacker === "player") ctx.captainDefeated?.(e);   // Milestone 23, Part D
     if (attacker === "player" && e.def.wildlife) ctx.wildlifeDefeated?.(e);
     if (e.def.mutant && this.mutantKilled) this.mutantKilled(this, e, attacker);   // a longer fall, and the record in the journal
     if (e.sp === "crystal") { e.gone = true; ctx.crystalGone(e.cid); ctx.explode(e.pos.x, e.pos.y + 1, e.pos.z, 3, null); return; }
@@ -3524,6 +3650,13 @@ export class Entities {
   // ----- interacting (right-click) -----
   interact(e, slot) {
     const ctx = this.ctx, def = e.def, id = slot ? slot.id : 0;
+    if (e.sp === "zombie_villager" && id === I.GOLDEN_APPLE && !e.dead) {   // Milestone 23, Part C: curing
+      if (e.cureT > 0) { ctx.toast("It's already being cured. Keep it safe for a little while!"); return true; }
+      if (!e.fx?.weakness) { ctx.toast("First weaken it with a Splash Potion of Weakness, then give it a Golden Apple."); return true; }
+      e.cureT = 60; ctx.consume(); Sound.mob("hiss", 2); ctx.particles(e.pos.x, e.pos.y + 1.8, e.pos.z, "heart");
+      ctx.toast("The zombie villager is shaking… It will be cured in about a minute. Keep it out of the sun!", "good"); ctx.adv?.("cureStart");
+      return true;
+    }
     if (id === I.WATER_BUCKET && FISH_BUCKETS[e.sp] && !e.dead) {   // Milestone 17, Part D: scoop a fish (or an Axolotl or tadpole) into the bucket
       ctx.swapHeld(FISH_BUCKETS[e.sp]); e.gone = true; Sound.splash(); ctx.particles(e.pos.x, e.pos.y + 0.3, e.pos.z, "splash");
       if (ctx.adv) ctx.adv("bucketfish", e.sp);

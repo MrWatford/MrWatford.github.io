@@ -5,8 +5,9 @@ import { isCrop, DISC_ITEMS, B, I, CHUNK, HEIGHT, SEA, BLOCKS, OPAQUE, SOLID, RE
 import { initRedstone } from "./redstone.js";
 import { selectBox } from "./shapes.js";
 import { PAINTINGS, createDecor } from "./decor.js";   // Milestone 21, Part D
+import { residentsOf, STRUCT_NAMES } from "./land-structures.js";   // Milestone 23, Part D
 import { DISCS, scoreOf } from "./music.js";   // Milestone 22, Part D
-import { Entities, SPECIES, TRADES, lineOfSight } from "./entities.js";
+import { Entities, SPECIES, TRADES, lineOfSight, tradesOf, levelOf, LEVEL_NAMES } from "./entities.js";
 import { KINGDOMS_GEN, LANTERN_VALE_SEED } from "./lantern-vale.js";
 import { prepareStonehaven, stonehavenPlacementData } from "./stonehaven.js";
 import { initSettlementFestivals } from "./settlement-festivals.js";
@@ -484,7 +485,11 @@ const ents = new Entities(scene, {
   pylonGone: i => { const c = cinderData(); if (!c.pylonsGone.includes(i)) c.pylonsGone.push(i); const left = CITADEL_PYLONS.length - c.pylonsGone.length; UI.toast(left ? `Ember Pylon broken! ${left} left.` : "All the Ember Pylons are broken! Cindermaw's shield is gone.", "good"); },
   push: (vx, vy, vz) => { if (guestFocus()) { MP.pushGuest(guestFocus(), vx, vy, vz); return; } const p = G.player; if (G.creative || G.spectator) return; p.vel.x += vx; p.vel.y = Math.max(p.vel.y, vy); p.vel.z += vz; },
   time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m), story: () => G.story,
-  openTrade: e => openPanel("trade", e.uid),
+  villagerZombified: v => { if (Math.hypot(v.pos.x - G.player.pos.x, v.pos.z - G.player.pos.z) < 32) UI.toast("A zombie turned a villager into a zombie villager! You can cure it: Splash Potion of Weakness, then a Golden Apple.", "bad"); },   // Milestone 23, Part C
+  villagerCured: n => { UI.toast("The villager is cured! It thanks you with half-price trades.", "good"); G.adv("cure"); },
+  captainDefeated: e => { if (G.creative) return; addEffect("badOmen", 6000); UI.toast("You defeated the Pillager Captain and got Bad Omen! If you walk into a village, raiders will come.", "bad"); G.adv("captain"); },   // Milestone 23, Part D
+  villagerBorn: kid => { if (kid && Math.hypot(kid.pos.x - G.player.pos.x, kid.pos.z - G.player.pos.z) < 24) UI.toast("A baby villager was born!", "good"); G.adv("villagerBaby"); },   // Milestone 23, Part B
+  openTrade: e => { if (e.sp === "villager") { UI.toast("This villager has no job yet. Place a job block near it: a Composter, Smoker, Blast Furnace, Barrel, Stonecutter, Lectern, Loom…"); return; } openPanel("trade", e.uid); },   // Milestone 23
   settlementRaiderDefeated: e => raids.defeated(e),
   festivalGathering: e => festivals.gatheringPoint(e),
   mount: e => mount(e), riding: () => !!G.riding, boating: () => !!(G.riding && G.riding.def.boat),
@@ -990,7 +995,9 @@ G.BEACON_POWERS = BEACON_POWERS;
 // Trading with villagers
 // A trade with its real price and item. Enchanted-book trades are decided by who the villager is (Milestone 15).
 G.tradeOffer = (e, i) => {
-  const t = TRADES[e.def.prof]?.[i];
+  let t = tradesOf(e)[i];   // (Milestone 23: plus bonus trades from the villager's level)
+  if (t && G.effects.hero) t = [t[0].map(([id, n]) => id === I.JADE && n > 1 ? [id, Math.ceil(n * 0.7)] : [id, n]), ...t.slice(1)];   // Milestone 23, Part D: Hero of the Village
+  if (t && e.cured) t = [t[0].map(([id, n]) => id === I.JADE && n > 1 ? [id, Math.ceil(n / 2)] : [id, n]), ...t.slice(1)];   // Milestone 23, Part C: a villager you cured sells for half the Jade
   if (!t || t[1][0] !== I.ENCH_BOOK) return t;
   const b = EN.villagerBook(e.uid + ":" + i, e.def.prof === "wanderer");
   return [t[0].map(([id, n]) => (id === I.JADE && !n ? [id, b.price] : [id, n])), [I.ENCH_BOOK, 1], t[2], { id: I.ENCH_BOOK, n: 1, ench: b.ench }];
@@ -1007,7 +1014,9 @@ G.trade = (uid, i, many) => {
     for (const [id, n] of t[0]) G.inv.remove(id, n);
     const left = G.inv.add(t[1][0], t[1][1], t[3]);
     if (left) G.dropItem(t[1][0], left, t[3]);
-    e.uses[i]++; done++;
+    e.uses[i]++; done++; e.traded = true;   // (Milestone 23: now it keeps this job)
+    { const before = levelOf(e); e.vxp = (e.vxp || 0) + (i < (TRADES[e.def.prof] || []).length ? 3 + Math.min(i, 6) : 15);   // Milestone 23, Part B: trading experience
+      const now = levelOf(e); if (now > before) { while (e.uses.length < tradesOf(e).length) e.uses.push(0); puff(e.pos.x, e.pos.y + 2, e.pos.z, "xp"); Sound.levelUp(); UI.toast(`This villager is now ${/^[AEIOU]/.test(LEVEL_NAMES[now - 1]) ? "an" : "a"} ${LEVEL_NAMES[now - 1]}! A new trade is open.`, "good"); G.adv("villagerLevel", now); } }
     spawnOrbs(2, e.pos.x, e.pos.y + 1, e.pos.z);
   }
   if (!done) { Sound.error(); UI.toast(e.uses[i] >= t[2] ? "Sold out for now. Villagers restock while they work." : "You don't have enough for that trade.", "bad"); return; }
@@ -2846,6 +2855,57 @@ function releaseBow() {
   else ents.addProjectile("arrow", p.pos.x + dir.x * 0.5, p.pos.y + p.eye - 0.1, p.pos.z + dir.z * 0.5, dir.x * speed, dir.y * speed, dir.z * speed, { fromPlayer: true, dmg: arrowDmg, punch: EN.lvl(s, "punch"), flame: EN.lvl(s, "flame"), infinite: !!inf && !tip, tip, itemId: arrowId });
   Sound.mob("bow", 0); G.hudDirty = true; G.swing = 0.01;
 }
+// ---------- Milestone 23, Part D: who lives in the outposts, huts and mansions; Bad Omen and village raids ----------
+let structT = 0, raidT = 0, omenRaid = null;
+function updateStructures() {
+  if (G.dim !== "overworld" || G.guest || !G.world.structuresHere) return;
+  const p = G.player, done = (G.story.structs ||= {});
+  for (const s of G.world.structuresHere(p.pos.x, p.pos.z)) {
+    if (done[s.key] || Math.hypot(s.cx - p.pos.x, s.cz - p.pos.z) > 40 || !G.world.isLoaded(s.cx, s.cz)) continue;
+    done[s.key] = 1;
+    if (G.wset.difficulty !== "peaceful") for (const [sp, at, captain] of residentsOf(s)) {
+      if (!SPECIES[sp]) continue;
+      const e = ents.add(sp, at.x, at.y, at.z, captain ? { captain: true } : {});
+      if (e) { e.persist = true; if (captain) { e.captain = true; e.name = "Pillager Captain"; } }
+    }
+    UI.toast(`You found a ${STRUCT_NAMES[s.kind]}!`); G.adv("structure", s.kind);
+  }
+}
+const RAID_WAVES = [["pillager", "pillager", "pillager"], ["pillager", "pillager", "vindicator", "vindicator"], ["pillager", "vindicator", "witch", "pillager", "vindicator"], ["ravager", "pillager", "pillager", "vindicator", "vindicator"], ["ravager", "evoker", "vindicator", "pillager", "witch", "pillager"]];
+function villagersNear(x, z, r) { return ents.list.filter(e => e.def.villager && !e.gone && !e.dead && !e.npc && e.sp !== "wanderer" && Math.hypot(e.pos.x - x, e.pos.z - z) < r); }
+function updateOmenRaid() {
+  if (G.dim !== "overworld" || G.guest) return;
+  const p = G.player;
+  if (!omenRaid) {
+    if (!G.effects.badOmen || G.creative || G.wset.difficulty === "peaceful" || villagersNear(p.pos.x, p.pos.z, 32).length < 3) return;
+    delete G.effects.badOmen; G.hudDirty = true;
+    omenRaid = { x: p.pos.x, y: p.pos.y, z: p.pos.z, wave: 0, waves: { easy: 3, normal: 4, hard: 5 }[G.wset.difficulty] || 3, mobs: [], pause: 4 };
+    UI.toast("Your Bad Omen drew a raid! Defend the village!", "bad"); Sound.mob("roar", 20); G.adv("raidStart");
+    return;
+  }
+  const r = omenRaid, alive = r.mobs.filter(e => !e.gone && !e.dead);
+  if (Math.hypot(p.pos.x - r.x, p.pos.z - r.z) > 128 || G.state === "dead") { for (const e of alive) e.omenRally = null; omenRaid = null; UI.toast("You left the village. The raid is over."); return; }
+  if (!villagersNear(r.x, r.z, 48).length) { omenRaid = null; UI.toast("The raiders took the village… there's nobody left.", "bad"); return; }
+  if (alive.length) return;
+  if (r.wave >= r.waves) {   // every wave beaten
+    omenRaid = null; addEffect("hero", 3600); Sound.levelUp();
+    for (const v of villagersNear(r.x, r.z, 48)) puff(v.pos.x, v.pos.y + 2, v.pos.z, "heart");
+    UI.toast("You saved the village! You're the Hero of the Village: villagers sell for less for the next hour.", "good"); G.adv("raidWon"); return;
+  }
+  if ((r.pause -= 1) > 0) return;
+  r.pause = 6; r.wave++;
+  const a = Math.random() * Math.PI * 2, sx = r.x + Math.cos(a) * 26, sz = r.z + Math.sin(a) * 26;
+  r.mobs = [];
+  for (const sp of RAID_WAVES[Math.min(RAID_WAVES.length - 1, r.wave - 1 + (r.waves >= 5 ? 0 : 0))]) {
+    if (!SPECIES[sp]) continue;
+    const x = Math.floor(sx + (Math.random() - 0.5) * 6), z = Math.floor(sz + (Math.random() - 0.5) * 6);
+    if (!G.world.isLoaded(x, z)) continue;
+    const e = ents.add(sp, x + 0.5, G.world.surfaceY(x, z) + 1, z + 0.5);
+    if (e) { e.omenRally = { x: r.x, y: r.y, z: r.z }; r.mobs.push(e); }
+  }
+  UI.toast(`Raid: wave ${r.wave} of ${r.waves}!`, "bad"); Sound.mob("rumble", 10);
+}
+G.omenRaidReview = () => omenRaid && { wave: omenRaid.wave, waves: omenRaid.waves, alive: omenRaid.mobs.filter(e => !e.gone && !e.dead).length };
 // ---------- Milestone 22, Part D: fireworks ----------
 const rockets = [], bursts = [];
 const FIREWORK_COLORS = [[1, 0.3, 0.3], [1, 0.8, 0.2], [0.3, 0.8, 1], [0.5, 1, 0.4], [1, 0.45, 0.9], [0.75, 0.5, 1], [1, 1, 1]];
@@ -3868,6 +3928,7 @@ function interact(hit, kind) {
   if (kind === "cinderaltar") { useCinderAltar(hit); return; }
   if (kind === "lodestone") { bindCompass(hit); return; }
   if (kind === "voidchest") { Sound.door(true); puff(hit.x + 0.5, hit.y + 1.1, hit.z + 0.5, "portal"); openPanel("voidchest"); G.adv("voidchest"); return; }
+  if (kind === "stonecutter") { openPanel("cutter"); return; }   // Milestone 23, Part A
   if (kind === "furnace") {
     if (!w.containers.has(key)) w.containers.set(key, { type: "furnace", slots: [null, null, null], burn: 0, burnMax: 0, prog: 0 });
     openPanel("furnace", key);
@@ -4257,6 +4318,17 @@ function harvestHoney(hit) {
   if (!torchNear(hit.x, hit.y, hit.z) && !G.creative) { ents.angerBees(hit.x, hit.y, hit.z); UI.toast("The bees are angry! Next time, put a Torch within 3 blocks of the nest first. The smoke calms them.", "bad"); }
 }
 // Milestone 17, Part B: what sunken chests hold (like Java's shipwreck, ocean ruin, and buried treasure chests)
+function structureLoot(kind, r, put, putS, book) {
+  const n = (a, b) => a + Math.floor(r() * (b - a + 1));
+  G.adv("structureLoot", kind);
+  if (kind === 6) {   // a Pillager Outpost's lookout
+    put(I.ARROW, n(8, 24)); put(I.WHEAT, n(3, 8)); put(I.POTATO, n(2, 5)); put(I.CARROT, n(2, 5)); put(I.STRING, n(1, 6));
+    if (r() < 0.5) put(I.CROSSBOW, 1); if (r() < 0.4) put(I.IRON_INGOT, n(1, 3)); if (r() < 0.3) put(B.GRAY_BANNER, 1); if (r() < 0.25) book();
+  } else {   // a Woodland Mansion's treasure
+    put(I.GOLD_INGOT, n(2, 6)); put(I.BREAD, n(2, 5)); put(I.JADE, n(2, 6)); put(I.NAME_TAG, 1);
+    if (r() < 0.6) book(); if (r() < 0.5) put(I.SKYSHARD, n(1, 2)); if (r() < 0.25) put(I.GOLDEN_APPLE, 1); if (r() < 0.12) put(I.TOTEM, 1); if (r() < 0.2) put(DISC_ITEMS[Math.floor(r() * DISC_ITEMS.length)], 1);
+  }
+}
 function seaLoot(box, hit, kind, r, put, putS, book) {
   G.adv("sealoot", kind);   // Milestone 17, Part E
   const n = (a, b) => a + Math.floor(r() * (b - a + 1)), story = G.story;
@@ -4332,6 +4404,7 @@ function fillLoot(box, hit) {
   const potion = (keys = PO.POTION_KEYS.filter(k => PO.POTIONS[k].eff || PO.POTIONS[k].instant)) => { const k = keys[Math.floor(r() * keys.length)], m = r(); putS({ id: r() < 0.3 ? I.SPLASH_POTION : I.POTION, n: 1, pot: k, ...(m < 0.2 && PO.canLong(k) ? { mod: "long" } : m > 0.85 && PO.canStrong(k) ? { mod: "strong" } : {}) }); };   // Milestone 16
   const gear = (ids, lo, hi) => { const id = ids[Math.floor(r() * ids.length)], s = newStack(id, 1), e = EN.enchantForLoot(r, id, lo + Math.floor(r() * (hi - lo + 1))); if (e) s.ench = e; putS(s); };
   const seaKind = G.dim === "overworld" ? seaLootOf(metaOf(hit.v)) : 0;   // Milestone 17, Part B: shipwrecks, ruins, buried treasure
+  if (seaKind === 6 || seaKind === 7) { structureLoot(seaKind, r, put, putS, book); return; }   // Milestone 23, Part D: outposts and mansions
   if (seaKind) { seaLoot(box, hit, seaKind, r, put, putS, book); return; }
   const city = G.dim === "overworld" && G.story.leviathan?.sites?.city;
   if (city && atSolkara(hit, cityCache(city))) {
@@ -4486,6 +4559,7 @@ function removeFor(recipe, id, n) {
   return true;
 }
 G.craft = (recipe, many) => {
+  if (recipe.cutter && G.panelKind !== "cutter") { UI.toast("Use a Stonecutter for that.", "bad"); Sound.error(); return; }   // Milestone 23
   if (recipe.table && G.panelKind !== "table") { UI.toast("Stand at a Workbench to make that.", "bad"); Sound.error(); return; }
   let made = 0;
   const times = many ? 64 : 1;
@@ -4531,10 +4605,15 @@ function updateBrewing(dt) {
     if (G.panelKind === "brew" && G.panelCtx === key && Math.floor(before * 2) !== Math.floor(c.prog * 2)) { const bar = document.getElementById("brewProg"); if (bar) bar.style.width = Math.round(c.prog / PO.BREW_TIME * 100) + "%"; }
   }
 }
+// Milestone 23: what a Smoker or Blast Furnace will cook
+function cookable(cook, id) { return cook === "food" ? itemDef(id)?.kind === "food" || id === I.POTATO || id === B.KELP : /ore|scrap/i.test(itemDef(id)?.name || "") || id === I.RAW_IRON || id === I.RAW_GOLD; }
+G.cookable = cookable;
 function updateFurnaces(dt) {
   for (const [key, f] of G.world.containers) {
     if (f.type !== "furnace") continue;
-    const [inp, fuel, out] = f.slots, result = inp ? SMELT[inp.id] : undefined;
+    const [inp, fuel, out] = f.slots;
+    const [fx, fy, fz] = key.split(",").map(Number), cook = BLOCKS[G.world.id(fx, fy, fz)]?.cook;   // Milestone 23: smoker (food only) and blast furnace (ores only), twice as fast
+    const result = inp && (!cook || cookable(cook, inp.id)) ? SMELT[inp.id] : undefined, smeltTime = cook ? SMELT_TIME / 2 : SMELT_TIME;
     const canCook = result !== undefined && (!out || (out.id === result && out.n < maxStack(result)));
     const wasLit = f.burn > 0;
     if (f.burn > 0) f.burn -= dt;
@@ -4543,7 +4622,7 @@ function updateFurnaces(dt) {
     }
     if (f.burn > 0 && canCook) {
       f.prog += dt;
-      if (f.prog >= SMELT_TIME) {
+      if (f.prog >= smeltTime) {
         f.prog = 0; inp.n--; if (!inp.n) f.slots[0] = null;
         if (out) out.n++; else f.slots[2] = newStack(result, 1);
       }
@@ -4552,7 +4631,7 @@ function updateFurnaces(dt) {
     const lit = f.burn > 0;
     if (lit !== wasLit) {   // show the glow on the block
       const [x, y, z] = key.split(",").map(Number), v = G.world.get(x, y, z);
-      if (idOf(v) === B.FURNACE && G.world.isLoaded(x, z)) G.world.set(x, y, z, make(B.FURNACE, lit ? metaOf(v) | LIT : metaOf(v) & ~LIT));
+      if ((idOf(v) === B.FURNACE || BLOCKS[idOf(v)]?.cook) && G.world.isLoaded(x, z)) G.world.set(x, y, z, make(idOf(v), lit ? metaOf(v) | LIT : metaOf(v) & ~LIT));
     }
   }
 }
@@ -7295,6 +7374,8 @@ function loop(now) {
   updateWeather(dt, running);   // Milestone 19
   updateScope();   // Milestone 22, Part C
   if (running) { updateRockets(dt); updateJukeboxes(); }   // Milestone 22, Part D
+  if (running && (structT -= dt) <= 0) { structT = 2; updateStructures(); }   // Milestone 23, Part D
+  if (running && (raidT -= dt) <= 0) { raidT = 1; updateOmenRaid(); }
   if (running) { updateLightning(dt); updateSnowAndIce(dt); } else updateBolts(0);
   const daylight = updateSky();
   applyFlash(dt);
@@ -7483,7 +7564,7 @@ UI.show("title");
 requestAnimationFrame(loop);
 const GC = initGodzillaFight({ G, ents, scene, Sound, UI, saveNow, hurt });
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { launchRocket, updateRockets, useJukebox, rockets: () => rockets, decor: () => decor, placePainting, useDecor, updateSnowAndIce, meltBlock, queueMeltCheck, strike, rodNear, lightningHit, weatherAt, nextWeather, skyCols, wxView: () => wxView, updateWeather, R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { updateStructures, updateOmenRaid, launchRocket, updateRockets, useJukebox, rockets: () => rockets, decor: () => decor, placePainting, useDecor, updateSnowAndIce, meltBlock, queueMeltCheck, strike, rodNear, lightningHit, weatherAt, nextWeather, skyCols, wxView: () => wxView, updateWeather, R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
 G._test.obsidianWarningReview = obsidianWarningReview;
 G._test.ancientWarningReview = ancientWarningReview;
 G._test.ancientArrivalReview = ancientArrivalReview;

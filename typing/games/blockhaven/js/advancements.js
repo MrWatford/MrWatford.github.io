@@ -12,7 +12,7 @@ const NOTE_INSTRUMENTS = ["harp", "bass", "snare", "hat", "basedrum", "bell", "f
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
-export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "The World", "Building", "Food & Gadgets", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
+export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "The World", "Building", "Food & Gadgets", "Villages", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
 export const ADVANCEMENTS = [
   // building and getting started
   { id: "start", cat: "Getting Started", icon: B.LOG, title: "Blockhaven", desc: "Chop a log.", check: G => has(G, B.LOG, B.BIRCH_LOG, B.CRIMSON_STEM, B.WARPED_STEM) },
@@ -124,6 +124,17 @@ export const ADVANCEMENTS = [
   { id: "endless", cat: "The World", icon: I.WATER_BUCKET, title: "Endless Water", desc: "Make a new full block of water between two others.", ev: "watersource", reward: { xp: 20 } },
   { id: "waterlog", cat: "The World", icon: B.OAK_FENCE, title: "Water Feature", desc: "Fill a fence, gate, trapdoor or sign with water.", ev: "waterlog" },
   { id: "firefighter", cat: "The World", icon: B.FIRE, title: "Firefighter", desc: "Put out a fire with flowing water.", ev: "extinguish", reward: { xp: 15 } },
+  // Milestone 23, Part E: villages
+  { id: "newjob", cat: "Villages", icon: B.SMOKER, title: "Career Change", desc: "See a villager take a job at a job block you placed.", ev: "villagerJob" },
+  { id: "apprentice", cat: "Villages", icon: I.JADE, title: "Learning the Trade", desc: "Trade until a villager becomes an Apprentice.", ev: "villagerLevel", match: n => n >= 2 },
+  { id: "mastertrader", cat: "Villages", icon: I.JADE, title: "Master Trader", desc: "Trade until a villager becomes a Master.", parent: "apprentice", ev: "villagerLevel", match: n => n >= 5, reward: { xp: 50 } },
+  { id: "family", cat: "Villages", icon: B.BED, title: "Growing Village", desc: "See a baby villager born.", ev: "villagerBaby" },
+  { id: "doctor", cat: "Villages", icon: I.GOLDEN_APPLE, title: "Zombie Doctor", desc: "Cure a zombie villager.", ev: "cure", reward: { xp: 30 } },
+  { id: "outpost", cat: "Villages", icon: B.DARK_OAK_LOG, title: "Watchtower", desc: "Find a Pillager Outpost.", ev: "structure", match: k => k === "outpost" },
+  { id: "witchhut", cat: "Villages", icon: B.CAULDRON, title: "Something Bubbling", desc: "Find a Witch Hut.", ev: "structure", match: k => k === "hut" },
+  { id: "mansion", cat: "Villages", icon: B.DARK_OAK_PLANKS, title: "Mansion in the Woods", desc: "Find a Woodland Mansion.", ev: "structure", match: k => k === "mansion", reward: { xp: 30 } },
+  { id: "badomen", cat: "Villages", icon: B.GRAY_BANNER, title: "Bad Omen", desc: "Defeat a Pillager Captain.", parent: "outpost", ev: "captain" },
+  { id: "hero", cat: "Villages", icon: B.BELL, title: "Hero of the Village", desc: "Beat every wave of a raid.", parent: "badomen", ev: "raidWon", reward: { xp: 50 } },
   // Milestone 22, Part E: food and gadgets
   { id: "roots", cat: "Food & Gadgets", icon: I.POTATO, title: "Root Vegetables", desc: "Have a Potato and a Beetroot.", check: G => has(G, I.POTATO) && has(G, I.BEETROOT) },
   { id: "carver", cat: "Food & Gadgets", icon: B.CARVED_PUMPKIN, title: "Pumpkin Carver", desc: "Carve a face into a pumpkin with Shears.", ev: "carve" },
