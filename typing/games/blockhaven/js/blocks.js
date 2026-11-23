@@ -206,6 +206,8 @@ Object.assign(I, { CROSSBOW: 1026, SPYGLASS: 1027, CLOCK: 1028 });   // Mileston
 // Milestone 22, Part D: fireworks, a jukebox (block 557), and 5 music discs (items 1030-1034, in the order of DISCS in music.js)
 B.JUKEBOX = nb(557);
 Object.assign(I, { FIREWORK_ROCKET: 1029, DISC_SUNRISE: 1030, DISC_WALTZ: 1031, DISC_CAVES: 1032, DISC_BREEZE: 1033, DISC_STARLIGHT: 1034 });
+// Milestone 23, Part A: village job blocks (block numbers 558-562)
+Object.assign(B, { SMOKER: nb(558), BLAST_FURNACE: nb(559), BARREL: nb(560), STONECUTTER: nb(561), LECTERN: nb(562) });
 export const DISC_ITEMS = [I.DISC_SUNRISE, I.DISC_WALTZ, I.DISC_CAVES, I.DISC_BREEZE, I.DISC_STARLIGHT];
 export const isCrop = id => id === B.WHEAT || id === B.CARROTS || id === B.POTATOES || id === B.BEETROOTS;   // the 8-stage farm crops
 export const woolOf = C => C === "WHITE" ? B.WOOL : C === "BLACK" ? B.BLACK_WOOL : B[C + "_WOOL"];
@@ -554,6 +556,12 @@ for (const [C, n] of COLORS) {
 block(B.ITEM_FRAME, "Item Frame", { shape: "model", render: "cutout", solid: false, hardness: 0, tool: "axe", tex: "item_frame", icon: "tile:item_frame", interact: "itemframe", category: "Useful" });
 block(B.ARMOR_STAND, "Armor Stand", { shape: "model", render: "cutout", hardness: 0, tex: "planks", iconShape: "stand", interact: "armorstand", category: "Useful" });
 block(B.PAINTING, "Painting", { shape: "model", render: "cutout", solid: false, hardness: 0, drops: 0, tex: "painting_back", icon: "tile:painting_icon", category: "Useful" });
+// Milestone 23, Part A: job blocks. The Smoker cooks only food and the Blast Furnace only ores, both twice as fast.
+block(B.SMOKER, "Smoker", { hardness: 3.5, tool: "pick", tier: 1, interact: "furnace", tex: ["smoker_top", "smoker_side", "smoker_top"], front: "smoker_front", cook: "food", category: "Village", job: "butcher" });
+block(B.BLAST_FURNACE, "Blast Furnace", { hardness: 3.5, tool: "pick", tier: 1, interact: "furnace", tex: ["blast_top", "blast_side", "blast_top"], front: "blast_front", cook: "ore", category: "Village", job: "armorer" });
+block(B.BARREL, "Barrel", { hardness: 2.5, tool: "axe", interact: "chest", tex: ["barrel_top", "barrel_side", "barrel_top"], category: "Village", job: "fisherman" });
+block(B.STONECUTTER, "Stonecutter", { shape: "model", render: "cutout", hardness: 3.5, tool: "pick", tier: 1, interact: "stonecutter", tex: ["stonecutter_top", "stonecutter_side", "stonecutter_side"], iconBox: 9 / 16, category: "Village", job: "mason" });
+block(B.LECTERN, "Lectern", { shape: "model", render: "cutout", hardness: 2.5, tool: "axe", tex: ["lectern_top", "lectern_side", "planks"], icon: "tile:lectern_side", faces: true, category: "Village", job: "scribe" });
 // Milestone 22, Part D
 block(B.JUKEBOX, "Jukebox", { hardness: 2, tool: "axe", tex: ["jukebox_top", "jukebox_side", "jukebox_side"], interact: "jukebox", category: "Useful" });
 // Milestone 22, Part B
@@ -603,6 +611,7 @@ block(B.MELON, "Melon", { hardness: 1, tool: "axe", drops: "melon", tex: ["melon
 block(B.MELON_STEM, "Melon Stem", { shape: "crop", render: "cutout", solid: false, hardness: 0, drops: "crop", tex: "melon_stem0", category: "Nature", noItem: true });
 block(B.BREWING_STAND, "Brewing Stand", { shape: "model", render: "cutout", hardness: 0.5, tool: "pick", tier: 1, light: 1, interact: "brew", icon: "brewing_stand", tex: ["brew_base", "brew_rod", "brew_base"], category: "Useful" });
 block(B.CAULDRON, "Cauldron", { shape: "model", render: "cutout", hardness: 2, tool: "pick", tier: 1, interact: "cauldron", icon: "cauldron", tex: ["cauldron_top", "cauldron_side", "cauldron_side"], category: "Useful" });
+defs[B.CAULDRON].job = "leatherworker"; defs[B.BEEHIVE].job = "beekeeper";   // Milestone 23: these existing blocks are job blocks too
 block(B.ENCH_TABLE, "Enchanting Table", { shape: "model", render: "cutout", hardness: 5, tool: "pick", tier: 1, light: 7, interact: "enchant", tex: ["ench_top", "ench_side", "obsidian"], iconBox: 12 / 16, category: "Useful" });
 
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
@@ -665,7 +674,7 @@ export const isSlab = id => !!defs[id]?.slab, isStairs = id => !!defs[id]?.stair
 export const isGate = id => id >= B.OAK_GATE && id <= B.WARPED_GATE;
 export const isButton = id => id >= B.STONE_BUTTON && id <= B.WARPED_BUTTON;
 export const isPlate = id => id >= B.OAK_PLATE && id <= B.IRON_PLATE;
-export const lightOf = v => (v & ID_MASK) === B.CAKE ? ((metaOf(v) & 24) === 24 ? 3 : 0) : CANDLE[v & ID_MASK] ? (metaOf(v) & 4 ? 3 * ((metaOf(v) & 3) + 1) : 0) : (idOf(v) === B.FURNACE && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SEA_PICKLE ? 6 + 3 * (metaOf(v) & 3) : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
+export const lightOf = v => (v & ID_MASK) === B.CAKE ? ((metaOf(v) & 24) === 24 ? 3 : 0) : CANDLE[v & ID_MASK] ? (metaOf(v) & 4 ? 3 * ((metaOf(v) & 3) + 1) : 0) : ((idOf(v) === B.FURNACE || idOf(v) === B.SMOKER || idOf(v) === B.BLAST_FURNACE) && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SEA_PICKLE ? 6 + 3 * (metaOf(v) & 3) : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
   (idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) ? (metaOf(v) & 1 ? 9 : 0) : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & ID_MASK];
 
 // ---------- Items ----------
@@ -1055,6 +1064,14 @@ export const RECIPES = [
   { out: [B.LADDER, 3], ins: [[I.STICK, 7]], table: true }, { out: [B.SCAFFOLDING, 6], ins: [[B.BAMBOO, 6], [I.STRING, 1]], table: true },
   { out: [B.LANTERN, 1], ins: [[I.IRON_INGOT, 1], [B.TORCH, 1]], table: true }, { out: [B.CANDLE, 1], ins: [[I.STRING, 1], [I.HONEYCOMB, 1]] },
   { out: [B.GLASS_PANE, 16], ins: [[B.GLASS, 6]], table: true }, { out: [B.IRON_BARS, 16], ins: [[I.IRON_INGOT, 6]], table: true },
+  // Milestone 23, Part A: job blocks
+  { out: [B.SMOKER, 1], ins: [[B.FURNACE, 1], ["logs", 4]], table: true }, { out: [B.BLAST_FURNACE, 1], ins: [[B.FURNACE, 1], [I.IRON_INGOT, 5], [B.STONE, 3]], table: true },
+  { out: [B.BARREL, 1], ins: [["planks", 6], [B.OAK_SLAB, 2]], table: true }, { out: [B.STONECUTTER, 1], ins: [[I.IRON_INGOT, 1], [B.STONE, 3]], table: true },
+  { out: [B.LECTERN, 1], ins: [[B.OAK_SLAB, 4], [B.BOOKSHELF, 1]], table: true },
+  // the Stonecutter turns one stone block into 2 slabs, 1 stair, or 1 wall (and stone into stone bricks)
+  ...SHAPED.slice(10).flatMap(([K, M]) => [{ out: [B[K + "_SLAB"], 2], ins: [[B[M], 1]], cutter: true }, { out: [B[K + "_STAIRS"], 1], ins: [[B[M], 1]], cutter: true }]),
+  ...WALLED.map(K => ({ out: [B[K + "_WALL"], 1], ins: [[B[SHAPED.find(r => r[0] === K)[1]], 1]], cutter: true })),
+  { out: [B.STONE_BRICKS, 1], ins: [[B.STONE, 1]], cutter: true },
   // Milestone 22, Part D
   { out: [I.FIREWORK_ROCKET, 3], ins: [[I.PAPER, 1], [I.BOOM_POWDER, 1]] }, { out: [B.JUKEBOX, 1], ins: [["planks", 8], [I.SKYSHARD, 1]], table: true },
   // Milestone 22, Part C
@@ -1339,6 +1356,7 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "item_frame", "painting_back", "painting_icon",   // Milestone 21, Part D
   "cake_top", "cake_side", "cake_bottom", "cake_inner",   // Milestone 22, Part B
   "jukebox_top", "jukebox_side",   // Milestone 22, Part D
+  "smoker_top", "smoker_side", "smoker_front", "smoker_front_lit", "blast_top", "blast_side", "blast_front", "blast_front_lit", "barrel_top", "barrel_side", "stonecutter_top", "stonecutter_side", "lectern_top", "lectern_side",   // Milestone 23, Part A
   "potatoes0", "potatoes1", "potatoes2", "potatoes3", "beetroots0", "beetroots1", "beetroots2", "beetroots3", "pumpkin_top", "pumpkin_side", "carved_pumpkin", "jack_o_lantern",   // Milestone 22, Part A
   "ladder", "scaffolding_top", "scaffolding_side", "lantern", "candle", "candle_flame", "iron_bars"];   // Milestone 21, Part C
 export const ATLAS_W = 256, ATLAS_H = 1024;   // pixels: 16 tiles across, 64 down (doubled for Milestone 21's colors)
@@ -1349,7 +1367,7 @@ TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
 export function faceTile(v, dir, front) {
   const d = blockDef(v), t = d.tex;
   if (front && idOf(v) === B.CRAFTER && (metaOf(v) & CRAFTING)) return TILE.crafter_front_on;
-  if (front && d.front) return TILE[idOf(v) === B.FURNACE && (metaOf(v) & LIT) ? "furnace_front_lit" : (idOf(v) === B.BEE_NEST || idOf(v) === B.BEEHIVE) && honeyOf(v) >= HONEY_MAX ? d.front + "_honey" : d.front];
+  if (front && d.front) return TILE[idOf(v) === B.FURNACE && (metaOf(v) & LIT) ? "furnace_front_lit" : d.cook && (metaOf(v) & LIT) ? d.front + "_lit" : (idOf(v) === B.BEE_NEST || idOf(v) === B.BEEHIVE) && honeyOf(v) >= HONEY_MAX ? d.front + "_honey" : d.front];
   if (idOf(v) === B.BERRY_BUSH) return TILE["berry" + (metaOf(v) & 3)];
   if (idOf(v) === B.RESPAWN_ANCHOR && dir === 0 && (metaOf(v) & 7)) return TILE.anchor_top_lit;
   if (idOf(v) === B.WARD_ALTAR && dir === 0 && (metaOf(v) & 1)) return TILE.ward_altar_lit;   // a restored shrine glows
@@ -2061,6 +2079,22 @@ PAINT.item_frame = P => { P.rect(0, 0, 16, 16, "#7a5230"); P.rect(1, 1, 14, 14, 
 PAINT.painting_back = P => { P.fill(["#8a6236", "#946a3c", "#7e5a30"]); P.rect(0, 0, 16, 1, "#a27a46"); P.rect(0, 15, 16, 1, "#6a4a28"); };
 PAINT.painting_icon = P => { P.rect(0, 0, 16, 16, "#7a5230"); P.rect(1, 1, 14, 14, "#8cc8f0"); P.rect(1, 9, 14, 6, "#5aa040"); P.rect(3, 6, 6, 4, "#7a8a96"); P.rect(10, 3, 3, 3, "#ffe070"); P.rect(1, 13, 14, 2, "#3e7a2e"); };
 // Milestone 22, Part A
+// Milestone 23, Part A
+const stoneBox = (P, pal) => { P.fill(pal); P.rect(0, 0, 16, 1, "#9a9a98"); P.rect(0, 15, 16, 1, "#4a4a48"); };
+PAINT.smoker_top = P => { P.fill(["#4a4440", "#524a44"]); P.rect(5, 5, 6, 6, "#2a2420"); P.rect(6, 6, 4, 4, "#181412"); };
+PAINT.smoker_side = P => { P.fill(["#6a4a2c", "#724f30"]); P.rect(0, 0, 16, 3, "#4a4440"); P.rect(0, 13, 16, 3, "#4a4440"); for (let x = 2; x < 16; x += 4) P.rect(x, 3, 1, 10, "#5a3e24"); };
+PAINT.smoker_front = P => { PAINT.smoker_side(P); P.rect(4, 7, 8, 6, "#2a2420"); P.rect(3, 6, 10, 1, "#4a4440"); };
+PAINT.smoker_front_lit = P => { PAINT.smoker_side(P); P.rect(4, 7, 8, 6, "#2a2420"); P.rect(5, 9, 6, 4, "#f08a2a"); P.rect(6, 10, 4, 2, "#ffd060"); P.rect(3, 6, 10, 1, "#4a4440"); };
+PAINT.blast_top = P => { stoneBox(P, ["#5a5a5e", "#626266"]); P.rect(4, 4, 8, 8, "#3a3a3e"); };
+PAINT.blast_side = P => { stoneBox(P, ["#6a6a6e", "#727276", "#5e5e62"]); P.rect(0, 5, 16, 2, "#8a8a8e"); };
+PAINT.blast_front = P => { PAINT.blast_side(P); P.rect(3, 8, 10, 6, "#1e1e22"); for (let x = 4; x < 13; x += 2) P.rect(x, 8, 1, 6, "#4a4a4e"); };
+PAINT.blast_front_lit = P => { PAINT.blast_side(P); P.rect(3, 8, 10, 6, "#f06a1a"); P.rect(5, 10, 6, 3, "#ffd060"); for (let x = 4; x < 13; x += 2) P.rect(x, 8, 1, 6, "#4a4a4e"); };
+PAINT.barrel_top = P => { P.fill(["#8a6236", "#946a3c"]); P.rect(0, 0, 16, 2, "#5a3e22"); P.rect(0, 14, 16, 2, "#5a3e22"); P.rect(0, 0, 2, 16, "#5a3e22"); P.rect(14, 0, 2, 16, "#5a3e22"); P.rect(6, 6, 4, 4, "#5a3e22"); };
+PAINT.barrel_side = P => { P.fill(["#8a6236", "#946a3c", "#7e5a30"]); for (let x = 0; x < 16; x += 4) P.rect(x, 0, 1, 16, "#6a4a28"); P.rect(0, 3, 16, 1, "#4a4a4e"); P.rect(0, 12, 16, 1, "#4a4a4e"); };
+PAINT.stonecutter_top = P => { stoneBox(P, ["#7a7a78", "#828280"]); P.rect(7, 1, 2, 14, "#b8bcc2"); };
+PAINT.stonecutter_side = P => { stoneBox(P, ["#7a7a78", "#828280", "#727270"]); P.rect(0, 4, 16, 1, "#6a4a28"); };
+PAINT.lectern_top = P => { P.fill(["#a07a48", "#9a7444"]); P.rect(2, 2, 12, 12, "#f0e8d0"); P.rect(7, 2, 2, 12, "#c8b890"); };
+PAINT.lectern_side = P => { P.fill(["#8a6236", "#946a3c"]); P.rect(5, 0, 6, 16, "#7a5430"); P.rect(0, 13, 16, 3, "#6a4a28"); };
 PAINT.jukebox_top = P => { P.fill(["#6a4428", "#704a2c"]); P.rect(0, 0, 16, 1, "#8a6038"); P.rect(2, 6, 12, 4, "#2a1a10"); P.rect(3, 7, 10, 2, "#140c08"); };   // Milestone 22, Part D
 PAINT.jukebox_side = P => { P.fill(["#7a5230", "#80563a"]); P.rect(0, 0, 16, 2, "#5a3a20"); P.rect(0, 14, 16, 2, "#5a3a20"); P.rect(0, 0, 2, 16, "#5a3a20"); P.rect(14, 0, 2, 16, "#5a3a20"); P.rect(6, 6, 4, 4, "#a07848"); };
 PAINT.cake_top = P => { P.fill(["#f8f4ee", "#f0ece4"]); for (const [x, y] of [[3, 3], [10, 5], [6, 9], [12, 12], [4, 13]]) P.rect(x, y, 2, 2, "#d8303a"); };   // Milestone 22, Part B

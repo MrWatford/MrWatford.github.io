@@ -1,6 +1,6 @@
 // Menus, the on-screen HUD, and the inventory / crafting / chest / furnace screens.
 import { B, I, ITEMS, BLOCKS, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, itemDef, iconURL, buildAtlas, TILE, CORALS } from "./blocks.js";
-import { TRADES } from "./entities.js";
+import { TRADES, tradesOf, levelOf, LEVEL_NAMES, LEVEL_XP } from "./entities.js";
 import { maxStack, newStack, OFF } from "./inventory.js";
 import { Adv, CATEGORIES } from "./advancements.js";
 import { Sound } from "./audio.js";
@@ -22,6 +22,7 @@ import { oceansGuideHTML, bindOceansGuide } from "./oceans-guide.js";
 import { worldGuideHTML, bindWorldGuide } from "./world-guide.js";
 import { buildingGuideHTML, bindBuildingGuide } from "./building-guide.js";   // Milestone 21, Part E
 import { farmGuideHTML, bindFarmGuide } from "./farm-guide.js";   // Milestone 22, Part E
+import { villagesGuideHTML, bindVillagesGuide } from "./villages-guide.js";   // Milestone 23, Part E
 import { isEnchanted, tooltipLines, enchantability, enchName, enchList, ENCH, ENCH_KEYS, repairMaterialName } from "./enchanting.js";
 
 const $ = id => document.getElementById(id);
@@ -280,7 +281,7 @@ export const UI = {
     $("armor").innerHTML = survival && armor ? icons(armor, "shield") : "";
     const lv = G.levelInfo(); $("xpbar").style.visibility = survival ? "visible" : "hidden";
     $("xpbar").querySelector("i").style.width = Math.round(lv.frac * 100) + "%"; $("xpbar").querySelector("b").textContent = lv.level ? lv.level : "";
-    const names = { poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer", conduit: "🌊 Conduit Power", fatigue: "🪨 Mining Fatigue", absorb: "💛 Absorption", fireRes: "🧯 Fire Resistance", haste: "⛏️ Haste", resist: "🛡️ Resistance", jump: "🐇 Jump Boost", strength: "💪 Strength", slow: "🐌 Slowness", weakness: "🥀 Weakness", waterBreath: "🫧 Water Breathing", invis: "👻 Invisible", nightVision: "🌙 Night Vision", slowFall: "🪶 Slow Falling" };
+    const names = { badOmen: "🏴 Bad Omen", hero: "🏅 Hero of the Village", poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer", conduit: "🌊 Conduit Power", fatigue: "🪨 Mining Fatigue", absorb: "💛 Absorption", fireRes: "🧯 Fire Resistance", haste: "⛏️ Haste", resist: "🛡️ Resistance", jump: "🐇 Jump Boost", strength: "💪 Strength", slow: "🐌 Slowness", weakness: "🥀 Weakness", waterBreath: "🫧 Water Breathing", invis: "👻 Invisible", nightVision: "🌙 Night Vision", slowFall: "🪶 Slow Falling" };
     const roman = k => (G.elv[k] || 1) > 1 ? " " + ["", "I", "II", "III", "IV", "V", "VI"][G.elv[k]] : "";
     $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${escapeAttr(names[k] || k)}${roman(k)} <small>${Math.ceil(G.effects[k])}s</small></span>`).join("");
     $("modeTag").textContent = G.mode === "spectator" ? "SPECTATOR • HARDCORE OVER" : survival ? (G.meta && G.meta.hardcore ? "HARDCORE" : "") : "CREATIVE" + (p.flying ? " • FLYING" : "");
@@ -357,7 +358,7 @@ export const UI = {
         <div><div class="name">Village renovation</div><div>${review.text}</div></div>
         ${review.eligible ? `<button class="btn small primary" id="btnVillageRenovate">Review</button>` : ""}</div>` : "";
       const JOBS = { farmer: "Composter", fletcher: "Fletching Table", shepherd: "Loom", cleric: "Healing Altar", smith: "Smithing Anvil", scribe: "Bookshelf", beekeeper: "Beehive" };
-      const rows = e ? TRADES[e.def.prof].map((_, i) => {
+      const rows = e ? tradesOf(e).map((_, i) => {
         const t = G.tradeOffer(e, i), bookName = t[3] && !t[3].pot ? ": " + enchList(t[3]).map(([k, l]) => enchName(k, l)).join(", ") : "";   // Milestone 15: enchanted books
         const can = t[0].every(([id, n]) => G.inv.count(id) >= n), sold = e.uses[i] >= t[2];
         const ins = t[0].map(([id, n]) => `<span class="${G.inv.count(id) >= n ? "" : "miss"}"><img src="${iconURL(id)}" alt="">${n} ${escapeAttr(itemDef(id).name)}</span>`).join(" + ");
@@ -365,7 +366,9 @@ export const UI = {
           <div><div class="name">${escapeAttr(t[3] && t[3].pot ? PO.potionName(t[3]) : itemDef(t[1][0]).name + bookName)}${t[1][1] > 1 ? " ×" + t[1][1] : ""}</div><div class="ins">${ins}</div>${sold ? `<div class="need">Sold out for now</div>` : `<div class="note" style="color:#555;font-size:11px">${t[2] - e.uses[i]} left</div>`}</div>
           <button class="btn small ${can && !sold ? "primary" : ""}" data-trade="${i}" ${can && !sold ? "" : "disabled"}>Trade</button></div>`;
       }).join("") : `<p class="note">They wandered off.</p>`;
-      left = `<div class="inv-card"><h3>${e ? escapeAttr(e.def.name) : "Trading"} <span class="note" style="color:#444">Pay with Jade</span></h3><div class="recipes">${renovation}${raid}${settlement}${festival}${rows}</div>
+      const lv = e && e.sp !== "wanderer" ? levelOf(e) : 0, nextXp = LEVEL_XP[lv] ?? null;   // Milestone 23, Part B: the villager's level
+      const level = lv ? `<div class="note" style="color:#444;margin:-4px 0 6px">Level: <b>${LEVEL_NAMES[lv - 1]}</b>${nextXp !== null ? ` · <span style="display:inline-block;width:90px;height:7px;border-radius:4px;background:#ddd;vertical-align:middle"><i style="display:block;height:100%;border-radius:4px;background:#5ab04a;width:${Math.min(100, Math.round(100 * ((e.vxp || 0) - LEVEL_XP[lv - 1]) / (nextXp - LEVEL_XP[lv - 1])))}%"></i></span> trade more to reach ${LEVEL_NAMES[lv]}` : " · every bonus trade is open"}</div>` : "";
+      left = `<div class="inv-card"><h3>${e ? escapeAttr(e.def.name) : "Trading"} <span class="note" style="color:#444">${e?.cured ? "Cured: half-price Jade!" : "Pay with Jade"}</span></h3>${level}<div class="recipes">${renovation}${raid}${settlement}${festival}${rows}</div>
         <p class="help">${e && JOBS[e.def.prof] ? `Sold-out trades come back while this villager works at their ${JOBS[e.def.prof]} (up to twice a day).` : "The Wanderer only stays for a few minutes!"} Shift-click Trade to trade as many times as you can.</p></div>`;
       p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
       p.querySelector("#btnVillageRenovate")?.addEventListener("click", () => G.villageRenovation.queue(e));
@@ -382,9 +385,9 @@ export const UI = {
       if (!G.journalTab || (G.journalTab === "cp" && !cpOn) || (G.journalTab === "expedition" && !lostWorld)) G.journalTab = lostWorld ? "expedition" : cpOn ? "cp" : ["deep", "expanse"].includes(G.dim) || (G.story.lost && G.story.lost.visits && G.dim !== "forsaken") ? "lost" : "fw";
       const tab = G.journalTab;
       const journalTabs = [...(lostWorld ? [["expedition", expedition ? "Lost World Expedition" : "The Lost World"]] : []), ...(cpOn ? [["cp", "Campaign"]] : []), ["fw", "Forsaken World"],
-        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"], ["ench", "Enchanting"], ["brew", "Brewing"], ["biomes", "Biomes"], ["ocean", "Oceans"], ["world", "The World"], ["build", "Building"], ["farm", "Farm & Gadgets"]];
+        ["lost", "Lost Civilization"], ["leviathan", "Leviathan"], ["wildlife", "Wildlife"], ["spark", "Sparkworks"], ["ench", "Enchanting"], ["brew", "Brewing"], ["biomes", "Biomes"], ["ocean", "Oceans"], ["world", "The World"], ["build", "Building"], ["farm", "Farm & Gadgets"], ["vill", "Villages"]];
       const tabs = journalTabs.map(([key, name]) => `<button class="chip-btn ${tab === key ? "on" : ""}" data-jtab="${key}" aria-current="${tab === key ? "true" : "false"}">${name}</button>`).join("");
-      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) : tab === "ench" ? enchantingGuideHTML(G) : tab === "brew" ? brewingGuideHTML(G) : tab === "biomes" ? biomesGuideHTML(G) : tab === "ocean" ? oceansGuideHTML(G) : tab === "world" ? worldGuideHTML(G) : tab === "build" ? buildingGuideHTML(G) : tab === "farm" ? farmGuideHTML(G) :
+      const page = tab === "expedition" ? expeditionJournal(expedition, G.expeditionDestinations(), G.dim) : tab === "wildlife" ? wildlifeJournalHTML(G.story) : tab === "spark" ? sparkworksGuideHTML(G) : tab === "ench" ? enchantingGuideHTML(G) : tab === "brew" ? brewingGuideHTML(G) : tab === "biomes" ? biomesGuideHTML(G) : tab === "ocean" ? oceansGuideHTML(G) : tab === "world" ? worldGuideHTML(G) : tab === "build" ? buildingGuideHTML(G) : tab === "farm" ? farmGuideHTML(G) : tab === "vill" ? villagesGuideHTML(G) :
         tab === "leviathan" ? leviathanJournalHTML(G) : tab === "cp" ? G.campaign.journalHTML() :
         tab === "lost" ? G.lost.journalHTML() : G.forsaken.journalHTML();
       p.innerHTML = `<div class="inv-card fw-card"><h3>Journal <button type="button" class="chip-btn" data-journal-close title="J or Esc">Close</button></h3><nav class="jtabs journal-tabs" aria-label="Journal sections">${tabs}</nav>${page}</div>`;
@@ -409,6 +412,7 @@ export const UI = {
       bindWorldGuide(p, G, () => this.renderPanel(), () => Sound.click());
       bindBuildingGuide(p, G, () => this.renderPanel(), () => Sound.click());
       bindFarmGuide(p, G, () => this.renderPanel(), () => Sound.click());
+      bindVillagesGuide(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
       if (tab === "fw") G.forsaken.drawMap($("fwMap"));
       p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
@@ -574,7 +578,7 @@ export const UI = {
         </div>
         <p class="help">Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore.</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
-    } else if (G.mode === "creative") {
+    } else if (G.mode === "creative" && panelKind !== "cutter") {   // (Milestone 23: the Stonecutter shows its own recipes even in Creative)
       const cats = ["All", "Building", "Nature", "Useful", "Mechanisms", "Village", "Tools", "Food", "Items", "Enchanting", "Brewing", "Oceans", "Decor", "Farm & Gadgets", "Ember Depths", "The Hollow", "Creatures"];
       const list = Object.values(ITEMS).filter(d => (creativeCat === "All" || (creativeCat === "Enchanting" ? ENCH_KIT.includes(d.id) : creativeCat === "Brewing" ? BREW_KIT.includes(d.id) : creativeCat === "Oceans" ? OCEAN_KIT.includes(d.id) : creativeCat === "Decor" ? DECOR_KIT.has(d.id) : creativeCat === "Farm & Gadgets" ? FARM_KIT.has(d.id) : d.category === creativeCat)) && d.name.toLowerCase().includes(creativeSearch.toLowerCase()));
       const q = creativeSearch.toLowerCase(), books = creativeCat === "Enchanting" || (creativeCat === "All" && q) ? ENCH_KEYS.filter(k => bookName(k).toLowerCase().includes(q)) : [];   // Milestone 15
@@ -588,11 +592,11 @@ export const UI = {
       cs.oninput = e => { creativeSearch = e.target.value; this.renderPanel(); };
       p.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { creativeCat = b.dataset.cat; this.renderPanel(); });
     } else {
-      const atTable = panelKind === "table";
-      left = `<div class="inv-card"><h3>${atTable ? "Workbench crafting" : "Crafting"} <span class="note" style="color:#444">${atTable ? "All recipes" : "Use a Workbench for more"}</span></h3>
+      const atTable = panelKind === "table", atCutter = panelKind === "cutter";   // (Milestone 23: the Stonecutter shows only its own recipes)
+      left = `<div class="inv-card"><h3>${atCutter ? "Stonecutter" : atTable ? "Workbench crafting" : "Crafting"} <span class="note" style="color:#444">${atCutter ? "One stone block at a time, no waste" : atTable ? "All recipes" : "Use a Workbench for more"}</span></h3>
         <div class="filters"><input id="rSearch" placeholder="Search recipes…" value="${escapeAttr(craftSearch)}">
           <button class="chip-btn" data-f="can" aria-pressed="${craftFilter === "can"}">Can make</button><button class="chip-btn" data-f="all" aria-pressed="${craftFilter === "all"}">All recipes</button></div>
-        <div class="recipes">${recipeRows(atTable)}</div>
+        <div class="recipes">${recipeRows(atTable, atCutter)}</div>
         <p class="help">Click <b>Make</b> to craft once. Shift-click <b>Make</b> to craft as many as you can.</p></div>`;
       p.innerHTML = `<div class="inv-wrap">${left}${inv}</div>`;
       $("rSearch").oninput = e => { craftSearch = e.target.value; this.renderPanel(); };
@@ -744,7 +748,7 @@ function accepts(ref, s) {
   if (panelKind === "enchant" && ref === "box:1") return s.id === I.LAPIS;
   if (panelKind === "enchant" && ref === "box:0") return s.id !== I.LAPIS && (enchantability(s.id) > 0 || s.id === I.ENCH_BOOK || isEnchanted(s));
   if (panelKind === "machine" && ref.startsWith("box:")) { const c = G.world.containers.get(panelCtx); if (c && c.locked && c.locked[+ref.slice(4)]) return false; }
-  if (ref === "fur:0") return SMELT[s.id] !== undefined;
+  if (ref === "fur:0") { const [x, y, z] = String(panelCtx).split(",").map(Number), cook = G.world && BLOCKS[G.world.id(x, y, z)]?.cook; return SMELT[s.id] !== undefined && (!cook || G.cookable(cook, s.id)); }   // Milestone 23
   if (ref === "fur:1") return FUEL[s.id] !== undefined;
   if (ref === "fur:2") return false;
   return true;
@@ -822,9 +826,10 @@ function drawCursor() {
 }
 const escapeAttr = s => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
-function recipeRows(atTable) {
+function recipeRows(atTable, atCutter = false) {
   const q = craftSearch.toLowerCase(), rows = [];
   RECIPES.forEach((r, i) => {
+    if (!!r.cutter !== atCutter) return;   // Milestone 23
     const out = itemDef(r.out[0]);
     if (q && !out.name.toLowerCase().includes(q)) return;
     const have = r.ins.map(([id, n]) => [id, n, G.countFor ? G.countFor(r, id) : G.inv.count(id)]);   // (tipped arrows need the right potion)

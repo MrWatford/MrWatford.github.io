@@ -390,22 +390,58 @@ Already in Blockhaven: wheat, carrots, melons, sugar cane, cocoa, cactus, bamboo
 | **D** | **Fireworks and music**: firework rockets (and gliding boosts), a jukebox with original Blockhaven music discs |
 | **E** | A Journal page, achievements, and a Creative tab |
 
-### 13.2 Part A done (2026-11-22, not published)
+### 13.2 Part A done (2026-11-22, PUBLISHED 2026-11-22, PR #36)
 - Potatoes, beetroot and pumpkins to grow, with their foods, carved pumpkins and Jack o'Lanterns.
 - **Next:** Part B (cake and more food).
 
-### 13.3 Part B done (2026-11-22, not published)
+### 13.3 Part B done (2026-11-22, PUBLISHED 2026-11-22, PR #36)
 - Cake (eaten slice by slice, with a candle if you like), Rabbit Stew, and the rare Enchanted Golden Apple.
 - **Next:** Part C (crossbow, spyglass, clock).
 
-### 13.4 Part C done (2026-11-22, not published)
+### 13.4 Part C done (2026-11-22, PUBLISHED 2026-11-22, PR #36)
 - Crossbow (with Quick Charge, Multishot and Piercing), spyglass, and clock.
 - **Next:** Part D (fireworks and a jukebox with original music).
 
-### 13.5 Part D done (2026-11-22, not published)
+### 13.5 Part D done (2026-11-22, PUBLISHED 2026-11-22, PR #36)
 - Firework rockets (launch, glide boost, crossbow), a jukebox, and 5 original music discs.
 - **Next:** Part E (Journal page, achievements, Creative tab).
 
-### 13.6 Part E done: Milestone 22 complete (2026-11-22, not published)
+### 13.6 Part E done: Milestone 22 complete (2026-11-22, PUBLISHED 2026-11-22, PR #36)
 - 13 Food & Gadgets achievements, a "Farm & Gadgets" Journal chapter, and a Creative tab.
 - **Next in the plan:** publish Milestone 22, then Milestones 23–24.
+
+---
+
+## 14. Milestone 23: Villages, part 2 (started 2026-11-22)
+
+Already in Blockhaven: villages that grow (Hamlet → Fortified town), festivals, settlement raids on the big towns, 8 kinds of villager (farmer, fletcher, shepherd, cleric, smith, scribe, beekeeper, wanderer) with trades that restock, the Ironwarden, witches, pillagers, vindicators and ravagers.
+
+### 14.1 Parts
+
+| Part | What it adds |
+|---|---|
+| **A** | **Job blocks and new jobs**: Smoker, Blast Furnace, Barrel, Stonecutter, Lectern; Butcher, Armorer, Fisherman, Mason, Leatherworker; villagers losing and finding jobs |
+| **B** | **Villager levels and families**: Novice → Master as you trade, with better trades unlocking; villagers having children when there are beds and food |
+| **C** | **Zombie villagers**: zombies can turn villagers into zombie villagers; cure them (Weakness + a Golden Apple) for cheaper trades |
+| **D** | **Raids and new places**: pillager outposts, witch huts and woodland mansions in new land; Bad Omen and village raids |
+| **E** | A Journal page, achievements, and a Creative tab |
+
+### 14.2 Part A done (2026-11-22, not published)
+- 5 job blocks, 5 new jobs with their own trades, and villagers who can change jobs.
+- **Next:** Part B (villager levels and families).
+
+### 14.3 Part B done (2026-11-22, not published)
+- Villager levels (each level adds a bonus trade; nothing is locked) and villager families (babies when there are spare beds).
+- **Next:** Part C (zombie villagers and curing).
+
+### 14.4 Part C done (2026-11-22, not published)
+- Zombies hunt villagers on Normal and Hard, villagers can turn into zombie villagers, and curing them gives half-price trades.
+- **Next:** Part D (outposts, witch huts, mansions, Bad Omen raids).
+
+### 14.5 Part D done (2026-11-22, not published)
+- Pillager Outposts, Witch Huts and Woodland Mansions (land version 20; older worlds only in unvisited land), Bad Omen, village raids, Hero of the Village.
+- **Next:** Part E (Journal page, achievements, Creative tab).
+
+### 14.6 Part E done: Milestone 23 complete (2026-11-22, not published)
+- 10 Villages achievements and a "Villages" Journal chapter.
+- **Next in the plan:** publish Milestone 23, then Milestone 24 (creature behaviors).

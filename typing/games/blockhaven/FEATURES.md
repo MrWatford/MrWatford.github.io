@@ -339,7 +339,60 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
-## Milestone 22, Part E: Journal, achievements, Creative tab (built and browser-tested 2026-11-22, not published yet). Milestone 22 is now complete.
+## Milestone 23, Part E: Journal and achievements (built and browser-tested 2026-11-22, not published yet). Milestone 23 is now complete.
+Code: `js/villages-guide.js` (new: Journal tab "Villages", 4 pages), `js/advancements.js` (new "Villages" category, 10 achievements), `js/ui.js` (Journal tab), `js/blocks.js` (the Cauldron and Beehive count as job blocks for jobless villagers), `index.html` (tags `?v=vill-e-1`, import map). Backups: `tools/backups/pre-m23e-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| 10 achievements | Done | "Villages" tab: Career Change, Learning the Trade, Master Trader, Growing Village, Zombie Doctor, Watchtower, Something Bubbling, Mansion in the Woods, Bad Omen, Hero of the Village |
+| Journal: "Villages" | Done | 4 pages: jobs (all 12 job blocks), levels and families, zombie villagers, outposts and raids |
+| Creative | Done | The new job blocks are in the existing "Village" tab (no new tab needed) |
+
+## Milestone 23, Part D: outposts, witch huts, mansions and raids (built and browser-tested 2026-11-22, not published yet)
+Code: `js/land-structures.js` (new: where the buildings go, what they look like, who lives there), `js/worldgen.js` (land version 20 = `STRUCT_GEN`), `js/world.js` (`structureOk`: older worlds get a building only where nobody has been), `js/entities.js` (the Pillager Captain, raiders heading into the village), `js/main.js` (residents, loot, Bad Omen, raids, Hero of the Village), `js/ui.js` (effect names), `index.html` (tags `?v=vill-d-1`, import map). Backups: `tools/backups/pre-m23d-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Pillager Outposts | Done | A dark oak watchtower (ladder inside, lookout deck, a loot chest with arrows, crossbows, banners) on plains, savannas, deserts, taiga and snowy plains, guarded by pillagers, a vindicator and a **Pillager Captain** |
+| Witch Huts | Done | A spruce hut on stilts in swamps, with a cauldron and a witch |
+| Woodland Mansions | Done | A big two-story dark oak manor in dark forests, with 6 rooms, 4 treasure chests (gold, Jade, enchanted books, sometimes a Totem or a music disc), vindicators, an evoker and a pillager. Rare, like Minecraft |
+| Where they appear | Done | Never near the world's start, strongholds, villages or temples. **New worlds** (land version 20) get them everywhere. **Older worlds** get one only where nobody had been on or near its spot (decided once and remembered, like the Ocean Monuments); huts and mansions also need the new biomes there. Checked: in an older test world, no building touches land that had been visited or changed |
+| Bad Omen | Done | Defeat a Pillager Captain to get Bad Omen (100 minutes). Walk into a village (3+ villagers) with it and a raid starts |
+| Village raids | Done | 3 waves on Easy, 4 on Normal, 5 on Hard: pillagers, vindicators, witches, ravagers, an evoker. Raiders head for the village and go after villagers. Leaving the village ends the raid |
+| Hero of the Village | Done | Beat every wave: villagers sell for less (about 30% off) for an hour |
+
+## Milestone 23, Part C: zombie villagers (built and browser-tested 2026-11-22, not published yet)
+Code: `js/entities.js` (`huntVillager`, `zombify`, `cureZombie`, curing with a Golden Apple; zombie villagers remember who they were), `js/main.js` (half-price trades for cured villagers, messages), `js/ui.js` ("Cured: half-price Jade!"), `index.html` (tags `?v=vill-c-1`). Backups: `tools/backups/pre-m23c-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Zombies hunt villagers | Done | On Normal and Hard only: at night, Groaners, husks, drowned and zombie villagers go after villagers within 16 blocks. Villagers run away (they're faster) and hide at home. On Easy and Peaceful zombies leave villagers alone, as before. Story villagers (the Legacy Campaign) are never hunted |
+| Turning | Done | A villager beaten by a zombie becomes a zombie villager: always on Hard, half the time on Normal (otherwise it's just gone, as in Minecraft). It remembers its job, level and home |
+| Curing | Done | Hit a zombie villager with a Splash Potion of Weakness, then right-click it with a Golden Apple. After about a minute (keep it out of the sun!) it turns back into the same villager, with the same job and level, and sells everything for half the Jade |
+
+## Milestone 23, Part B: villager levels and families (built and browser-tested 2026-11-22, not published yet)
+Code: `js/entities.js` (`LEVEL_NAMES`, `LEVEL_XP`, `BONUS` trades, `levelOf`, `tradesOf`, `villagerFamily`), `js/main.js` (trading experience, level-ups, "a baby villager was born"), `js/ui.js` (level and progress bar on the trading screen, bonus trades listed), `index.html` (tags `?v=vill-b-1`). Backups: `tools/backups/pre-m23b-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Villager levels | Done | Novice → Apprentice → Journeyman → Expert → Master, at 10, 70, 150 and 250 trading experience (Minecraft's numbers). Every trade gives the villager experience; the trading screen shows its level and a progress bar |
+| Bonus trades | Done | Each new level adds one bonus trade (4 per job, 52 in all), e.g. a Master Farmer sells Glistering Melon, a Master Armorer sells Skyshard armor, a Master Shepherd sells paintings. Unlike Minecraft, no regular trade is ever locked, so villagers in existing worlds keep every trade they had |
+| Villager families | Done | In the daytime, two grown villagers standing together may have a child if the village has more beds than villagers (their homes' beds plus beds you place within 32 blocks). The child gets a free bed as its home, has no job, and grows up in about 20 minutes, then takes a job block like any jobless villager |
+
+## Milestone 23, Part A: job blocks and new jobs (built and browser-tested 2026-11-22, not published yet)
+Code: `js/blocks.js` (block numbers 558-562, 14 textures, recipes including the Stonecutter's), `js/shapes.js` (stonecutter, lectern), `js/entities.js` (5 new jobs and their trades, jobless villagers, `checkJob`/`changeJob`), `js/main.js` (smoker and blast furnace cooking, the Stonecutter, traded villagers keep their job), `js/ui.js` (Stonecutter screen; smoker/blast furnace only take what they cook), `index.html` (tags `?v=vill-a-*`). Backups: `tools/backups/pre-m23a-2026-11-22/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Smoker | Done | Furnace + 4 Logs. Cooks only food, twice as fast as a Furnace. Job block of the new **Butcher** |
+| Blast Furnace | Done | Furnace + 5 Iron Ingots + 3 Stone. Smelts only ores, twice as fast. Job block of the new **Armorer** |
+| Barrel | Done | 6 Planks + 2 Oak Slabs. Holds 27 stacks like a chest. Job block of the new **Fisherman** |
+| Stonecutter | Done | 1 Iron Ingot + 3 Stone. Cuts one stone block into 2 slabs, 1 stair or 1 wall (no waste), or Stone into Stone Bricks. Job block of the new **Mason** |
+| Lectern | Done | 4 Oak Slabs + 1 Bookshelf. A second job block for the **Scribe** |
+| Leatherworker | Done | New job using the Cauldron |
+| Changing jobs | Done | A villager nobody has traded with loses its job if you break its job block (it becomes "Villager (no job)"), and a villager with no job takes an unclaimed job block you placed within 16 blocks. Trade with a villager once and it keeps that job for good. Village workers whose work spot was never a job block keep their jobs |
+
+## Milestone 22, Part E: Journal, achievements, Creative tab (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #36). Milestone 22 is now complete.
 Code: `js/farm-guide.js` (new: Journal tab "Farm & Gadgets", 4 pages), `js/advancements.js` (new "Food & Gadgets" category, 13 achievements), `js/ui.js` (Journal tab, Creative tab "Farm & Gadgets"), `js/main.js` (glide-boost event), `js/blocks.js` (each disc is named after its song), `index.html` (tags `?v=farm-e-1`, import map). Backups: `tools/backups/pre-m22e-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -349,7 +402,7 @@ Code: `js/farm-guide.js` (new: Journal tab "Farm & Gadgets", 4 pages), `js/advan
 | Creative tab "Farm & Gadgets" | Done | All 24 new things from Milestone 22 in one place |
 | Disc names | Done | Each disc is called "Music Disc: " and its song's name |
 
-## Milestone 22, Part D: fireworks and music (built and browser-tested 2026-11-22, not published yet)
+## Milestone 22, Part D: fireworks and music (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #36)
 Code: `js/music.js` (new: 5 original Blockhaven songs for the note-block instruments), `js/blocks.js` (Jukebox = block number 557, items 1029-1034, textures, pictures, recipes), `js/main.js` (rockets, bursts, gliding boost, crossbow fireworks, the jukebox player, discs in treasure), `js/ui.js` (crossbow "Loaded with a firework"), `index.html` (tags `?v=farm-d-*`, import map). Backups: `tools/backups/pre-m22d-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -361,7 +414,7 @@ Code: `js/music.js` (new: 5 original Blockhaven songs for the note-block instrum
 | 5 Music Discs | Done | Original Blockhaven songs, about 40-55 seconds each: "Sunrise Over Blockhaven" (harp), "Lantern Waltz" (flute and guitar), "Deep Cave Echoes" (bells), "Sea Breeze" (chimes and banjo), "Starlight" (chiptune). Found in treasure chests (about 1 in 7) |
 | Not included | — | Firework stars, custom firework colors and shapes, longer-flight rockets |
 
-## Milestone 22, Part C: crossbow, spyglass, clock (built and browser-tested 2026-11-22, not published yet)
+## Milestone 22, Part C: crossbow, spyglass, clock (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #36)
 Code: `js/blocks.js` (items 1026-1028, pictures, recipes), `js/enchanting.js` (Quick Charge, Multishot, Piercing), `js/entities.js` (arrows that pierce), `js/main.js` (loading and firing, spyglass zoom, the clock on the compass dial), `js/ui.js` ("Loaded" note on the crossbow), `index.html` (tags `?v=farm-c-1`). Backups: `tools/backups/pre-m22c-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -372,7 +425,7 @@ Code: `js/blocks.js` (items 1026-1028, pictures, recipes), `js/enchanting.js` (Q
 | Clock | Done | 4 Gold Ingots + 1 Sparkdust. Holding it shows the sun and moon on the dial and the time of day ("Morning", "Sunset"…) and day number. It spins in the Ember Depths and the Hollow |
 | Not included | — | Loading fireworks into a crossbow comes with Part D |
 
-## Milestone 22, Part B: cake and more food (built and browser-tested 2026-11-22, not published yet)
+## Milestone 22, Part B: cake and more food (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #36)
 Code: `js/blocks.js` (Cake = block number 556, items 1024-1025, textures, fullness for all the new foods, recipes), `js/shapes.js` (the cake shrinking slice by slice, a candle on top), `js/main.js` (eating cake, candle cakes, recipes that give buckets back, the enchanted apple), `js/ui.js` (the enchanted apple shimmers), `index.html` (tags `?v=farm-b-*`). Backups: `tools/backups/pre-m22b-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -383,7 +436,7 @@ Code: `js/blocks.js` (Cake = block number 556, items 1024-1025, textures, fullne
 | Enchanted Golden Apple | Done | Very rare chest treasure (can't be made). Strong regeneration, 8 extra golden hearts, Resistance and Fire Resistance for 5 minutes. It shimmers |
 | Fullness | Done | Every Milestone 22 food has Minecraft's fullness ("saturation") value |
 
-## Milestone 22, Part A: potatoes, beetroot, pumpkins (built and browser-tested 2026-11-22, not published yet)
+## Milestone 22, Part A: potatoes, beetroot, pumpkins (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #36)
 Code: `js/blocks.js` (block numbers 550-555, items 1016-1023, `isCrop`, 12 textures, food pictures, recipes, baked potatoes in the furnace), `js/main.js` (growing, harvesting, pumpkin stems, carving with Shears, tall grass drops), `js/entities.js` (crops villagers help along), `index.html` (tags `?v=farm-a-1`). Backups: `tools/backups/pre-m22a-2026-11-22/`.
 
 | Feature | Status | Notes |

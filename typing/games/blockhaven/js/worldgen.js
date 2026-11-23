@@ -2,6 +2,7 @@
 import { Noise, hashSeed, rng, hash3 } from "./noise.js";
 import { treeShape } from "./trees.js";
 import { monumentCell, MONUMENT_SIZE, MONUMENT_TOP, MONUMENT_CELL } from "./ocean-monument.js";
+import { stampStructures, structuresNear } from "./land-structures.js";   // Milestone 23, Part D
 import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD, CORALS } from "./blocks.js";
 
 import { isLanternVale, buildLanternValePlot } from "./lantern-vale.js";
@@ -39,7 +40,10 @@ const TREES = { taiga: ["spruce", 7], snowy_plains: ["spruce", 0.6], jungle: ["j
 // 19 (Milestone 17, Part C): Ocean Monuments in deep seas. Worlds made at 17 or 18 get one only if nobody has been
 // anywhere near its spot (decided once per monument in world.js and remembered).
 export const MONUMENT_GEN = 19;
-export const CURRENT_GEN = MONUMENT_GEN;
+// 20 (Milestone 23, Part D): Pillager Outposts, Witch Huts and Woodland Mansions. Worlds made earlier get one only if
+// nobody has been anywhere on its spot (decided once per building in world.js and remembered), like the monuments.
+export const STRUCT_GEN = 20;
+export const CURRENT_GEN = STRUCT_GEN;
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE, scribe: B.BOOKSHELF, beekeeper: B.BEEHIVE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -221,6 +225,7 @@ export class Generator {
   }
   // Milestone 17, Part C: the Ocean Monument of one 384 × 384 square, if that square has a big enough deep sea (or null).
   // Its spot keeps clear of the strongholds and of anything stamped into the land (temple entrances and so on).
+  structuresNear(x, z) { return structuresNear(this, x, z); }   // Milestone 23, Part D
   monumentSite(gx, gz) {
     const key = gx + "," + gz;
     this.monumentCache ||= new Map();
@@ -554,6 +559,7 @@ if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like M
       this.seaStructures(data, cols, x0, z0, cx, cz);   // Milestone 17, Part B
     }
     if (deco && (ver >= MONUMENT_GEN || opts.monumentOk)) this.monuments(data, x0, z0, ver >= MONUMENT_GEN ? null : opts.monumentOk);   // Milestone 17, Part C
+    if (deco && (ver >= STRUCT_GEN || opts.structureOk)) stampStructures(this, data, x0, z0, ver >= STRUCT_GEN ? () => true : opts.structureOk, idx);   // Milestone 23, Part D
 
 // a rare landmark: a crumbling watchtower with a treasure chest
     if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
