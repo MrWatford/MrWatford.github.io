@@ -2826,8 +2826,12 @@ export class Entities {
         e.ultraBreachAt = e.age + 1.25;
         const gx = goal.x - e.pos.x, gz = goal.z - e.pos.z;
         const n = Math.hypot(gx, gz) || 1;
-        ctx.ultraBreach?.(e, Math.floor(e.pos.x + gx / n * .88), Math.floor(e.pos.y + .55),
-          Math.floor(e.pos.z + gz / n * .88));
+        const strikeY = Math.floor(e.pos.y + .55);
+        // A mob can stand inside a door's block before it hits the door's thin collision box.
+        for (const reach of [0, .44, .88]) {
+          if (ctx.ultraBreach?.(Math.floor(e.pos.x + gx / n * reach), strikeY,
+            Math.floor(e.pos.z + gz / n * reach))) break;
+        }
       }
       if (!sees && trail?.until > e.age && Math.hypot(trail.x - e.pos.x, trail.y - e.pos.y, trail.z - e.pos.z) > 1.7) {
         this.chase(e, trail);

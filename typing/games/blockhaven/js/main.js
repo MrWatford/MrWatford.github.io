@@ -5295,7 +5295,7 @@ function challengeNoise(radius, site = G.player.pos) {
   if (G.challengeNoise?.until > run.elapsed + 6 && G.challengeNoise.radius >= radius) return;
   G.challengeNoise = { x: site.x, y: site.y, z: site.z, radius, until: run.elapsed + 10 };
 }
-function breachDefense(e, x, y, z) {
+function breachDefense(x, y, z) {
   const run = G.meta.ultra, w = G.world;
   const id = w.id(x, y, z), def = BLOCKS[id];
   if (run.elapsed < G.challengeBreachAt) return;
@@ -5309,17 +5309,18 @@ function breachDefense(e, x, y, z) {
   if (tally.size > 40) for (const [k, hit] of tally) if (run.elapsed - hit.at >= 8) tally.delete(k);
   if (tally.size > 48 && !tally.has(key)) return;
   const prior = tally.get(key);
-  if (prior && run.elapsed - prior.at < 1) return;
+  if (prior && run.elapsed - prior.at < 1) return true;
   const count = prior?.id === id && run.elapsed - prior.at < 8 ? prior.count + 1 : 1;
   if (count >= 5) {
     G.challengeBreachAt = run.elapsed + 10;
     tally.clear();
     breakBlock(x, y, z, true);
-    return;
+    return true;
   }
   tally.set(key, { id, count, at: run.elapsed });
   if (count === 1) UI.toast("A Groaner is battering a wooden defense.", "bad");
   Sound.mob("clank", 3);
+  return true;
 }
 function ultraSurvival(dt, p) {
   const run = G.meta.ultra, pos = p.pos;
