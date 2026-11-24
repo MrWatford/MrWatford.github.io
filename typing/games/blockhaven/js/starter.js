@@ -8,7 +8,10 @@ import { B, I, CHUNK, HEIGHT, SEA, make, idOf, itemDef, OPEN, TOP, HEAD, WET } f
 import { newStack, OFF } from "./inventory.js";
 import { hash3 } from "./noise.js";
 import { stonehavenDestination } from "./stonehaven.js";
+import { GRAND_CAPITAL_LAYOUT, grandCapitalPlaces } from "./stonehaven-grand.js";
 import { Generator, BIOME_GEN } from "./worldgen.js";
+import { VILLAGE_ARCHITECTURE_GEN } from "./village-architecture.js";
+import { SETTLEMENT_CLASSES, restoreVillageRecords } from "./grand-villages.js";
 import { LEVIATHAN_MAP_TYPES, leviathanDestinations } from "./leviathan-navigation.js";
 import { isLostWorldDimension } from "./lost-world-regions.js";
 import { lostWorldWaypoint } from "./lost-world-map.js";
@@ -93,7 +96,7 @@ export function initStarter(api) {
       for (let gx = Math.floor((cx - R1 - 1) / CHUNK); gx <= Math.floor((cx + R1) / CHUNK); gx++) for (let gz = Math.floor((cz - R1 - 1) / CHUNK); gz <= Math.floor((cz + R1) / CHUNK); gz++) {
         const k = gx + "," + gz;
         if (visited.has(k) || mods[k]) return null;
-        if (gen.villagePiece && gen.villagePiece(gx, gz)) return null;   // never inside a village
+        if (gen.villagePiece && gen.villagePiece(gx, gz, Math.min(gen.version, VILLAGE_ARCHITECTURE_GEN))) return null;
         if (hash3(gen.seed, gx, 99, gz) < 0.035 || hash3(gen.seed, gx, 77, gz) < 0.02) return null;   // or on a ruin
       }
       for (const s of gen.strongholds || []) if (Math.hypot(s.x - cx, s.z - cz) < 150) return null;   // (room for the Endwatch Citadels)
@@ -347,6 +350,17 @@ export function initStarter(api) {
     out.push(...leviathanDestinations(G.story));
     const capital = G.dim === "overworld" ? G.world?.gen.stonehaven : stonehavenDestination(G.meta, G.story);
     if (capital) out.push(capital);
+    const capitalSite = G.dim === "overworld" ? G.world?.gen.stonehavenSite : G.story.stonehaven;
+    if (capital && capitalSite?.v === GRAND_CAPITAL_LAYOUT) for (const m of grandCapitalPlaces(capitalSite)) {
+      TYPES[m.kind] ||= { label: m.title, color: "#cc9136", dark: "#5a4010", where: "Stonehaven" };
+      out.push(m);
+    }
+    const surveyed = G.dim === "overworld" ? G.world?.settlements : restoreVillageRecords(G.dimData?.overworld?.villages);
+    for (const v of surveyed?.values() || []) {
+      const title = SETTLEMENT_CLASSES[v.kind].title, kind = "v_" + v.id;
+      TYPES[kind] = { label: title, color: "#bd8642", dark: "#644124", where: "Village" };
+      out.push({ kind, title, name: "Market crossroads", x: v.x, y: v.y, z: v.z });
+    }
     if (G.citadel) for (const c of G.citadel.landmarks()) {   // the Endwatch Citadels (and any old, buried strongholds)
       TYPES[c.kind] = TYPES[c.kind] || { label: c.title, color: c.castle ? "#c8423a" : "#8a8a9a", dark: c.castle ? "#4a1414" : "#2a2a34", where: c.castle ? "Island castle" : "Underground" };
       out.push({ kind: c.kind, title: c.title, name: c.name, x: c.x + 0.5, y: c.y, z: c.z + 0.5, center: c.center, guide: c.castle ?
@@ -355,7 +369,8 @@ export function initStarter(api) {
     }
     const h = S.house();
     if (h) out.push({ kind: "home", title: G.campaign && G.campaign.on() ? "Legacy Village" : "Starter Home", name: G.campaign && G.campaign.on() ? "The fountain" : "Your house", x: h.x, y: h.y, z: h.z });
-    destCache = { t: ck, list: out.sort((a, b) => { const i = k => { const n = ORDER.indexOf(k); return n >= 0 ? n : String(k).startsWith("endwatch") ? 99 : -1; }; return i(a.kind) - i(b.kind); }) };
+    destCache = { t: ck, list: out.sort((a, b) => { const i = k => { const n = ORDER.indexOf(k); return n >= 0 ? n :
+      String(k).startsWith("endwatch") ? 99 : String(k).startsWith("v_") ? 90 : String(k).startsWith("stone_") ? 91 : -1; }; return i(a.kind) - i(b.kind); }) };
     return out;
   }
   const destOf = kind => destinations().find(d => d.kind === kind) || null;
@@ -736,7 +751,7 @@ export function initStarter(api) {
       ctx.fillStyle = "#9a9aa6"; ctx.fillRect(-r * 0.85, -r * 0.1, r * 1.7, r * 0.9); ctx.strokeRect(-r * 0.85, -r * 0.1, r * 1.7, r * 0.9);
       for (const sx of [-1, 1]) { ctx.fillStyle = "#b4b4c0"; ctx.fillRect(sx * r * 0.62 - r * 0.25, -r * 0.45, r * 0.5, r * 1.25); ctx.strokeRect(sx * r * 0.62 - r * 0.25, -r * 0.45, r * 0.5, r * 1.25); ctx.fillStyle = T ? T.color : "#c8423a"; ctx.beginPath(); ctx.moveTo(sx * r * 0.62 - r * 0.35, -r * 0.45); ctx.lineTo(sx * r * 0.62, -r); ctx.lineTo(sx * r * 0.62 + r * 0.35, -r * 0.45); ctx.closePath(); ctx.fill(); ctx.stroke(); }
       ctx.fillStyle = "#3a2a1a"; ctx.fillRect(-r * 0.18, r * 0.3, r * 0.36, r * 0.5);
-    } else if (String(kind).startsWith("t_")) {   // a campaign town: a gold banner on a pole
+    } else if (String(kind).startsWith("t_") || String(kind).startsWith("v_") || String(kind).startsWith("stone_")) {
       ctx.fillStyle = "#5a4010"; ctx.fillRect(-r * 0.12, -r, r * 0.24, r * 1.9);
       ctx.fillStyle = T ? T.color : "#c9a24a"; ctx.beginPath(); ctx.moveTo(r * 0.12, -r); ctx.lineTo(r, -r * 0.6); ctx.lineTo(r * 0.12, -r * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
     } else if (kind === "home") {   // a little house with a red roof

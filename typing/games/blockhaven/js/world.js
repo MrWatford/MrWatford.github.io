@@ -2,6 +2,8 @@
 import { B, CHUNK, HEIGHT, idOf, lightOf } from "./blocks.js";
 import { idx, LEGACY_CHUNK_GEN, ENCHANT_GEN, BIOME_GEN, MONUMENT_GEN, STRUCT_GEN } from "./worldgen.js";
 import { MONUMENT_SIZE } from "./ocean-monument.js";
+import { VILLAGE_ARCHITECTURE_GEN } from "./village-architecture.js";
+import { GRAND_VILLAGE_GEN, settlementRecord } from "./grand-villages.js";
 
 export const chunkKey = (cx, cz) => cx + "," + cz;
 
@@ -11,6 +13,7 @@ export class World {
     this.chunks = new Map();       // loaded chunks: key → { cx, cz, data, dirty, meshed, mesh }
     this.mods = new Map();         // player changes: key → Map(index → block value). Saved with the world.
     this.containers = new Map();   // chests and furnaces: "x,y,z" → contents
+    this.settlements = new Map();  // discovered Grand Villages, indexed by plaza chunk
     this.dirtyQueue = new Set();   // chunks that need their 3D shape rebuilt
     this.entityStore = new Map();  // creatures waiting in unloaded chunks: key → [saved creature]
     this.visited = new Set();      // chunks that already got their starting animals
@@ -59,9 +62,23 @@ export class World {
     if (this.gen.lateFeatures && this.gen.version < BIOME_GEN) opts.biomes = this.biomeRegion(cx, cz);   // Milestone 20, Part C
     if (this.gen.version >= BIOME_GEN && this.gen.version < MONUMENT_GEN) opts.monumentOk = s => this.monumentOk(s);   // Milestone 17, Part C
     if (this.gen.lateFeatures && this.gen.version < STRUCT_GEN) opts.structureOk = s => this.structureOk(s);   // Milestone 23, Part D
+    const furnishings = [];
+    if (this.gen.version >= VILLAGE_ARCHITECTURE_GEN) {
+      opts.addContents = (x, y, z, value, contents) => furnishings.push({ x, y, z, value, contents });
+    }
+    if (this.gen.version >= GRAND_VILLAGE_GEN) opts.addSettlement = p => {
+      const id = p.settlement.id;
+      if (!this.settlements.has(id)) this.settlements.set(id, settlementRecord(p));
+    };
     let data = this.gen.generate(cx, cz, opts);
     if (!(data instanceof Uint32Array)) data = Uint32Array.from(data);   // room for block ids 256 and up (the block limit step)
     if (m) for (const [i, v] of m) data[i] = v;
+    for (const { x, y, z, value, contents } of furnishings) {
+      const i = idx(x - cx * CHUNK, y, z - cz * CHUNK), position = x + "," + y + "," + z;
+      if (data[i] === value && !m?.has(i) && !this.containers.has(position)) {
+        this.containers.set(position, structuredClone(contents));
+      }
+    }
     c = { cx, cz, key, data, dirty: true, mesh: null };
     this.chunks.set(key, c);
     if (this.onLoad) this.onLoad(c);

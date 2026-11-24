@@ -1,7 +1,7 @@
 // Turns a chunk's blocks into triangles the graphics card can draw.
 // Only faces that touch air (or see-through blocks) are drawn, and each corner gets
 // sunlight, torchlight, and soft corner shadows.
-import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL, COOL, FACEGLOW, WATERY, isWet, WATERLOGGED, LOGGABLE } from "./blocks.js";
+import { B, CHUNK, HEIGHT, OPAQUE, idOf, metaOf, blockDef, faceTile, lightOf, OPEN, TOP, HEAD, TILE, ATLAS_W, ATLAS_H, DUST_LEVEL, COOL, FACEGLOW, WATERY, isWet, WATERLOGGED, LOGGABLE, LOG_ALONG_X, LOG_ALONG_Z } from "./blocks.js";
 import { model, dustConn, dustPoints } from "./shapes.js";
 import { fluidHeight } from "./fluids.js";
 import { chunkKey } from "./world.js";
@@ -146,6 +146,7 @@ export function buildChunk(world, chunk, fancy) {
     if (def.aquatic || (LOGGABLE[id] && metaOf(v) & WATERLOGGED)) waterFaces(x, y, z, i, WATER_V, B.WATER);   // Milestone 17: kelp, seagrass, coral... sit in water
     if (def.shape === "cube") {
       const frontDir = def.front6 ? PF_FACE[metaOf(v) & 7] : def.front ? FACING_DIR[metaOf(v) & 3] : -1;
+      const logAxis = id === B.LOG || id === B.BIRCH_LOG || def.log ? metaOf(v) & (LOG_ALONG_X | LOG_ALONG_Z) : 0;
       const glow = FACEGLOW[id];
       for (let f = 0; f < 6; f++) {
         const F = FACES[f];
@@ -153,9 +154,12 @@ export function buildChunk(world, chunk, fancy) {
         const ni = i + F.front, nv = vals[ni], nid = nv & 0xFFFF00FF;
         if (OPAQUE[nid]) continue;
         if (nid === id && def.render === "cutout" && (!fancy || id === B.GLASS)) continue;
-        const tile = faceTile(v, F.tex, f === frontDir);
+        const endgrain = logAxis === LOG_ALONG_X ? f < 2 : f >= 4;
+        const tile = faceTile(v, logAxis ? (endgrain ? 0 : 1) : F.tex, f === frontDir);
         // Rotate natural surfaces without moving the texture on doors, walls, or placed devices.
-        const rotation = f === 2 && RANDOM_TOP.has(tile) ? Math.floor(hash3(0, cx * CHUNK + x, y, cz * CHUNK + z) * 4) : 0;
+        const turnBark = logAxis === LOG_ALONG_X ? f >= 2 : logAxis === LOG_ALONG_Z && f < 2;
+        const rotation = turnBark ? 1 : f === 2 && RANDOM_TOP.has(tile) ?
+          Math.floor(hash3(0, cx * CHUNK + x, y, cz * CHUNK + z) * 4) : 0;
         const uv = TURNED_UV[rotation];
         for (let k = 0; k < 4; k++) {
           const [a, b, c] = F.ao[k];

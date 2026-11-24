@@ -1,5 +1,6 @@
 import { B, CHUNK, HEIGHT, SEA, HEAD, OPEN, TOP, WET, make } from "./blocks.js";
 import { hash3 } from "./noise.js";
+import { VILLAGE_ARCHITECTURE_GEN, buildVillageBuilding, villageBuildingAnchors, villageHousePlan } from "./village-architecture.js";
 
 export const VILLAGE_OVERHAUL_GEN = 12;
 export const VILLAGE_PROFESSIONS_GEN = 14;
@@ -74,7 +75,8 @@ export function detailedVillagePiece(gen, village, cx, cz, cache, legacy, layout
   const compact = level === null;
   if (compact && layoutVersion < VILLAGE_TERRAIN_GEN && !legacy) return null;
   const natural = compact ? gen.column(x0 + 8, z0 + 8).h : null;
-  const y = compact ? Math.max(SEA + 1, Math.min(HEIGHT - 12, natural)) : legacy?.y ?? level;
+  const architecture = !legacy && type === "house" && layoutVersion >= VILLAGE_ARCHITECTURE_GEN;
+  const y = compact ? Math.max(SEA + 1, Math.min(HEIGHT - (architecture ? 19 : 12), natural)) : legacy?.y ?? level;
   const p = { type, prof, dx, dz, y, biome: plan.biome, detailed: true, rough: !!legacy || !plan.gentle,
     center: [village.vx * CHUNK + 8, village.vz * CHUNK + 8] };
   if (compact) {
@@ -92,10 +94,34 @@ export function detailedVillagePiece(gen, village, cx, cz, cache, legacy, layout
   } else {
     p.home = [x0 + 6.5, y + 1, z0 + 12.5];
   }
+  if (architecture) {
+    p.building = villageHousePlan(prof, gen.seed, cx, cz, compact);
+    const a = villageBuildingAnchors(p.building), back = compact ? 4 : 3;
+    const at = ([x, dy, z], center = 0) => [x0 + 4 + x + center, y + dy, z0 + back + z + center];
+    p.home = at(a.home, .5);
+    p.job = at(a.job);
+    p.bed = at(a.bed);
+    p.entry = at(a.door, .5);
+  }
   return p;
 }
 
-export function buildDetailedVillage(data, p, cols, seed, x0, z0, jobBlock) {
+function finishVillageHouse(p, put, seed, x0, z0, jobBlock, addContents) {
+  const left = 4, back = p.compact ? 4 : 3, front = back + p.building.depth - 1;
+  const { door: [door] } = villageBuildingAnchors(p.building);
+  const stone = PALETTES[p.biome].stone;
+  const startingX = left + door;
+  for (let x = Math.min(7, startingX); x <= Math.max(8, startingX); x++) {
+    for (let z = front + 1; z <= 12; z++) put(x, p.y, z, stone);
+  }
+  buildVillageBuilding(p.building, {
+    put: (x, y, z, v) => put(left + x, p.y + y, back + z, v),
+    decorate: (x, y, z, v, contents) => addContents?.(x0 + left + x, p.y + y, z0 + back + z, v, contents),
+    biome: p.biome, seed, x: x0 + left, z: z0 + back, jobBlock, profession: p.prof
+  });
+}
+
+export function buildDetailedVillage(data, p, cols, seed, x0, z0, jobBlock, addContents) {
   const palette = PALETTES[p.biome];
   const { timber, wall, roof, ground, stone, worn } = palette;
   const desert = p.biome === "sandy";
@@ -123,7 +149,7 @@ export function buildDetailedVillage(data, p, cols, seed, x0, z0, jobBlock) {
     const soil = desert ? B.SANDSTONE : B.DIRT;
     fill(x, Math.min(natural, ramp) - 3, z, x, ramp - 1, z, retaining ? mixedStone(x, z) : soil);
     put(x, ramp, z, (road || retaining) ? mixedStone(x, z) : ground);
-    fill(x, ramp + 1, z, x, Math.max(natural, ramp) + 10, z, B.AIR);
+    fill(x, ramp + 1, z, x, Math.max(natural, ramp) + (p.building ? 16 : 10), z, B.AIR);
     if (retaining) {
       fill(x, 1, z, x, 1 + Number((x + z) % 3 === 0), z, mixedStone(x, z));
     }
@@ -191,6 +217,11 @@ export function buildDetailedVillage(data, p, cols, seed, x0, z0, jobBlock) {
     return;
   }
 
+  if (p.building) {
+    finishVillageHouse(p, (x, y, z, b) => put(x, y - p.y, z, b), seed, x0, z0, jobBlock, addContents);
+    lamp(14, 10);
+    return;
+  }
   const chapel = p.prof === "cleric", smithy = p.prof === "smith", loft = p.prof === "fletcher";
   const width = chapel || smithy ? 9 : 8, right = 3 + width;
   const back = p.prof === "shepherd" ? 4 : 3;
@@ -279,7 +310,7 @@ export function buildDetailedVillage(data, p, cols, seed, x0, z0, jobBlock) {
   lamp(13, 10);
 }
 
-export function buildCompactVillage(data, p, cols, seed, x0, z0, jobBlock) {
+export function buildCompactVillage(data, p, cols, seed, x0, z0, jobBlock, addContents) {
   const { stone, worn, timber, wall, roof, ground } = PALETTES[p.biome];
   const dry = p.biome === "sandy";
   const put = (x, y, z, block) => {
@@ -293,15 +324,16 @@ export function buildCompactVillage(data, p, cols, seed, x0, z0, jobBlock) {
   const y = p.y, heightAt = (x, z) => cols[x + z * CHUNK].h;
   const paving = (x, z) => hash3(seed, x0 + x, 86, z0 + z) < .25 ? worn : stone;
   // Support a small court or house on piers. Keep the shoreline and the sides of the hill around it.
-  for (let z = 3; z <= 12; z++) for (let x = 3; x <= 12; x++) {
+  const edgeX = p.building ? 13 : 12;
+  for (let z = 3; z <= 12; z++) for (let x = 3; x <= edgeX; x++) {
     const h = heightAt(x, z);
-    const perimeter = x === 3 || x === 12 || z === 3 || z === 12;
+    const perimeter = x === 3 || x === edgeX || z === 3 || z === 12;
     if (h < y) {
       const pier = (x === 3 || x === 8 || x === 12) && (z === 3 || z === 7 || z === 12);
       if (pier || h >= SEA) fill(x, h + 1, z, x, y - 1, z, perimeter || pier ? stone : B.DIRT);
     }
     put(x, y, z, perimeter ? paving(x, z) : p.waterside ? B.PLANKS : ground);
-    fill(x, y + 1, z, x, Math.max(y + 10, h + 8), z, B.AIR);
+    fill(x, y + 1, z, x, Math.max(y + (p.building ? 16 : 10), h + 8), z, B.AIR);
   }
   // One-block grades at the stairs where possible. The remaining apron keeps its natural contours.
   function approach(dx, dz) {
@@ -369,6 +401,10 @@ export function buildCompactVillage(data, p, cols, seed, x0, z0, jobBlock) {
     return;
   }
 
+  if (p.building) {
+    finishVillageHouse(p, put, seed, x0, z0, jobBlock, addContents);
+    return;
+  }
   const tiles = p.prof === "smith" ? B.DARKSLATE_BRICKS : roof;
   const eaves = p.prof === "cleric" ? 5 : 4;
   fill(4, y, 4, 11, y, 10, dry ? stone : B.PLANKS);

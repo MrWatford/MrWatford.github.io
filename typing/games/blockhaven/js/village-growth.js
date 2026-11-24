@@ -1,7 +1,10 @@
 import { B, CHUNK, OPEN, TOP, make } from "./blocks.js";
 import { VILLAGE_OVERHAUL_GEN } from "./village-overhaul.js";
+import { buildVillageBuilding, fitVillageBuilding } from "./village-architecture.js";
+import { grandCapitalWorkshop } from "./stonehaven-grand.js";
+import { stonehavenCovers } from "./stonehaven.js";
 
-const TIERS = ["Hamlet", "Market village", "Town", "Fortified town"];
+const TIERS = ["Hamlet", "Market village", "Town", "Fortified town", "Artisan town"];
 const PROJECTS = [
   { name: "Community Pavilion", site: "garden", cost: [[B.PLANKS, 24], [B.WOOL, 8]],
     bounds: [5, 0, 9, 11, 5, 11], place: pavilion },
@@ -17,6 +20,25 @@ const COMPACT_WATCH_GATE = {
     watchGate((xa, ya, za, xb, yb, zb, block) => {
       fill(3 + za, ya, 6 + xa, 3 + zb, yb, 6 + xb, block);
     }, stone, 1);
+  }
+};
+const COMMONS_WATCH_GATE = {
+  ...PROJECTS[2], site: "garden", bounds: [5, 0, 1, 8, 7, 3],
+  place(fill, stone) {
+    watchGate((xa, ya, za, xb, yb, zb, block) => fill(5 + xa, ya, 1 + za, 5 + xb, yb, 1 + zb, block), stone);
+  }
+};
+const ARTISAN_WORKSHOP = {
+  name:"Artisan Workshop", site:"annex", bounds:[4,0,2,13,16,12],
+  cost:[[B.PLANKS,36],[B.STONE_BRICKS,32],[B.GLASS_PANE,12]],
+  place(fill,stone,context) {
+    const {biome,x,z,seed,decorate}=context;
+    const plan=fitVillageBuilding("smithy",1,8,7);
+    fill(4,1,2,13,16,12,B.AIR);
+    fill(5,0,9,12,0,12,stone);
+    buildVillageBuilding(plan,{biome,x:x+5,z:z+3,seed,
+      put:(x,y,z,v)=>fill(x+5,y,z+3,x+5,y,z+3,v),
+      decorate:(x,y,z,v,c)=>decorate(x+5,y,z+3,v,c)});
   }
 };
 
@@ -69,18 +91,22 @@ export function initVillageGrowth({ G, UI, Sound }) {
     if (!w || !player || G.dim !== "overworld" || G.guest || G.spectator ||
         w.gen.version < VILLAGE_OVERHAUL_GEN || !e?.def.villager || e.dead || e.gone || !e.home ||
         Math.hypot(e.pos.x - player.pos.x, e.pos.y - player.pos.y, e.pos.z - player.pos.z) > 6) return null;
+    if(w.gen.grandCapital && stonehavenCovers(w.gen,e.home[0],e.home[2])){
+      const annex=grandCapitalWorkshop(w.gen.stonehavenSite);
+      return {id:"stonehaven",x:annex.cx,z:annex.cz,annex,capital:true};
+    }
     const p = w.gen.villagePiece(Math.floor(e.home[0] / CHUNK), Math.floor(e.home[2] / CHUNK));
     if (!p?.detailed) return null;
     const [x, z] = p.center.map(n => Math.floor(n / CHUNK));
     const plaza = w.gen.villagePiece(x, z);
     if (!plaza?.detailed) return null;
-    let garden;
-    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+    let garden = p.settlement?.construction;
+    if (!garden) for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
       const plot = w.gen.villagePiece(x + dx, z + dz);
       if (plot?.detailed && plot.type === "garden") garden = plot;
     }
     if (!garden) return null;
-    return { id: x + "," + z, x, z, plaza, garden };
+    return { id: x + "," + z, x, z, plaza, garden, annex:p.settlement?.workshop };
   }
 
   function status(e) {
@@ -88,8 +114,10 @@ export function initVillageGrowth({ G, UI, Sound }) {
     if (!site) return null;
     const record = G.story.villageGrowth?.[site.id];
     const tier = Number.isInteger(record?.tier) && record.tier >= 0 && record.tier < TIERS.length ? record.tier : 0;
-    const project = tier === 2 && site.plaza.compact ? COMPACT_WATCH_GATE : PROJECTS[tier];
-    if (!project) return { site, tier, title: TIERS[tier] };
+    const project = site.capital ? (tier===0?ARTISAN_WORKSHOP:null) : tier===3&&site.annex ? ARTISAN_WORKSHOP :
+      tier === 2 ? (site.plaza.settlement ? COMMONS_WATCH_GATE : site.plaza.compact ? COMPACT_WATCH_GATE : PROJECTS[2]) : PROJECTS[tier];
+    const title=site.capital?"Stonehaven":TIERS[tier];
+    if (!project) return { site, tier, title };
     const plot = site[project.site];
     const cx = site.x + plot.dx, cz = site.z + plot.dz;
     const paid = project.cost.map(([, need], i) => {
@@ -98,7 +126,7 @@ export function initVillageGrowth({ G, UI, Sound }) {
     });
     const funded = project.cost.every(([, need], i) => paid[i] === need);
     const [x, , z] = project.bounds;
-    return { site, tier, title: TIERS[tier], project, plot, cx, cz, paid, funded,
+    return { site, tier, title, project, plot, cx, cz, paid, funded,
       x: cx * CHUNK + x, z: cz * CHUNK + z };
   }
 
@@ -162,11 +190,16 @@ export function initVillageGrowth({ G, UI, Sound }) {
         }
       }
     };
-    s.project.place(fill, s.plot.biome === "sandy" ? B.SANDSTONE : B.STONE_BRICKS);
+    const fixtures=[];
+    s.project.place(fill, s.plot.biome === "sandy" ? B.SANDSTONE : B.STONE_BRICKS, {
+      biome:s.plot.biome,x:x0,z:z0,seed:w.gen.seed,
+      decorate:(x,y,z,v,c)=>fixtures.push({x:x0+x,y:y0+y,z:z0+z,v,c})
+    });
     for (const { x, y, z, block } of changes.values()) if (w.get(x, y, z) !== block) w.set(x, y, z, block);
+    for(const {x,y,z,v,c} of fixtures)if(w.get(x,y,z)===v)w.containers.set(x+","+y+","+z,c);
     saveProgress(s.site.id, { tier: s.tier + 1, paid: [] });
     Sound.craft();
-    UI.toast(s.project.name + " complete. Settlement tier: " + TIERS[s.tier + 1] + ".", "good");
+    UI.toast(s.project.name + " complete. " + (s.site.capital?"Stonehaven":TIERS[s.tier+1]) + ".", "good");
   }
   return { status, contribute, build };
 }

@@ -3,6 +3,7 @@ import { KINGDOMS_GEN, LANTERN_VALE_SEED } from "./lantern-vale.js";
 
 import { VILLAGE_OVERHAUL_GEN } from "./village-overhaul.js";
 import { stonehavenCovers } from "./stonehaven.js";
+import { grandCapitalFestival } from "./stonehaven-grand.js";
 
 const FESTIVALS = [
   { name: "Spring Blossom Fair", colors: [0xee8bab, 0xffebba, 0x79bc82], item: I.HONEY_BOTTLE, quantity: 2, price: 1 },
@@ -53,7 +54,8 @@ export function initSettlementFestivals({ THREE, scene, G, UI, Sound }) {
     const city = world.gen.stonehaven;
     if (city) sites.push({
       id: "stonehaven", name: "Stonehaven", x: Math.floor(city.x), y: city.y - 1,
-      z: Math.floor(city.z) - 12, radius: 43, span: 7, width: 6
+      z: Math.floor(city.z) - 12, radius: 43, span: 7, width: 6,
+      ...(world.gen.grandCapital ? {...grandCapitalFestival(world.gen.stonehavenSite),fair:true} : {})
     });
   }
   const nearby = (x, z) => sites.find(s => Math.abs(x - s.x) < s.radius && Math.abs(z - s.z) < s.radius);
@@ -64,6 +66,11 @@ export function initSettlementFestivals({ THREE, scene, G, UI, Sound }) {
     const [cx, cz] = piece.center;
     const plaza = world.gen.villagePiece(Math.floor(cx / CHUNK), Math.floor(cz / CHUNK));
     if (!plaza?.detailed || plaza.type !== "plaza") return null;
+    if (plaza.settlement) {
+      const g = plaza.settlement, court = g.construction;
+      return { id: "village:" + cx + "," + cz, name: "the village", x: court.cx * CHUNK + 9, y: court.y,
+        z: court.cz * CHUNK + 4, radius: g.spec.size * CHUNK, span: 3, width: 2, fair:world.gen.version>=23 };
+    }
     return { id: "village:" + cx + "," + cz, name: "the village", x: cx, y: plaza.y,
       z: cz + (plaza.compact ? 4 : 5), radius: 27, span: plaza.compact ? 4 : 6, width: 2 };
   }
@@ -159,6 +166,12 @@ export function initSettlementFestivals({ THREE, scene, G, UI, Sound }) {
     pennants.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
     pennants.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
     view.add(new THREE.Mesh(pennants, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, vertexColors: true })));
+    if (site.fair) for (const side of [-1,1]) {
+      const fx=x+side*(span-1)+.5, fz=z+3.5;
+      for(const k of [-1,1])box(.12,2.25,.12,0x614231,fx+k*.78,y+2.14,fz);
+      box(1.7,.15,1.1,event.colors[side===1?1:2],fx,y+3.23,fz);
+      box(1.4,.18,.6,0x785639,fx,y+1.73,fz);
+    }
     scene.add(view);
   }
   function update(dt) {

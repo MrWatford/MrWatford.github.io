@@ -1,8 +1,10 @@
 // Creatures and moving things: models, animation, movement, path finding, behavior, spawning, and saving.
 // Each species is described by data (size, health, behavior, drops, model) and shares the same body physics.
 import { stonehavenResidents } from "./stonehaven.js";
+import { villageCropCells } from "./grand-village-build.js";
+import { hasSettlementLife, nearestSettlementThreat, settlementRoutine, settlementThreatIndex, shelterFromThreat } from "./settlement-life.js";
 import * as THREE from "../lib/three.module.min.js";
-import { B, I, BLOCKS, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate, WATERY, FISH_BUCKETS } from "./blocks.js";
+import { B, I, BLOCKS, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate, isCrop, WATERY, FISH_BUCKETS } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
 import { installGodzilla, animateGodzilla } from "./godzilla-model.js";
@@ -1945,11 +1947,14 @@ export class Entities {
     if (w.gen.stonehaven) {
       const residents = stonehavenResidents(w.gen, c.cx, c.cz);
       if (residents) {
-        for (const { species, home, job } of residents) {
+        for (const { species, home, job, stock } of residents) {
           const [x, y, z] = home;
           if (!solidCell(w, Math.floor(x), y, Math.floor(z)) && !solidCell(w, Math.floor(x), y + 1, Math.floor(z))) {
-            this.add(species, x, y, z, { home, job });
+            this.add(species, x, y, z, { home, job, persist: stock || undefined });
           }
+        }
+        for (const [x,y,z] of w.gen.grandCapital?.cropChunks.get(c.key) || []) {
+          if (isCrop(w.id(x,y,z))) w.crops.add(x + "," + y + "," + z);
         }
         return;
       }
@@ -1967,10 +1972,35 @@ export class Entities {
       }
     }
     const vp = w.gen.villagePiece && (w.gen.version >= 5 || w.newGen.has(c.key)) ? w.gen.villagePiece(c.cx, c.cz) : null;
+    if (vp?.settlement) {
+      if (vp.home) {
+        const [x,y,z] = vp.home;
+        if (!solidCell(w, Math.floor(x), y, Math.floor(z)) && !solidCell(w, Math.floor(x), y + 1, Math.floor(z))) {
+          this.add(vp.prof, x, y, z, { home: vp.home, job: vp.job });
+        }
+        if (vp.type === "plaza") {
+          const gate = w.settlements.get(vp.settlement.id);
+          if (gate && !solidCell(w, Math.floor(gate.x), gate.y, Math.floor(gate.z))) {
+            this.add("golem", gate.x, gate.y, gate.z, { home: [gate.x,gate.y,gate.z] });
+          }
+        }
+      }
+      if (vp.stock) this.add(...vp.stock, { persist: true });
+      if (vp.type === "farm") for (const [x,z] of villageCropCells(vp)) {
+        const wx = x0 + x, wz = z0 + z;
+        if (isCrop(w.id(wx, vp.y + 1, wz))) {
+          w.crops.add(wx + "," + (vp.y + 1) + "," + wz);
+        }
+      }
+      return;
+    }
     if (vp) {   // villagers move into the village (and an Ironwarden guards the plaza)
       const [hx, hy, hz] = vp.home;
       if (vp.type === "plaza") { this.add("golem", hx, hy, hz, { home: vp.home }); this.add(vp.prof, hx + 2, hy, hz, { home: vp.home }); if (Math.random() < 0.6) this.add("whisker", hx - 2, hy, hz); }
-      else this.add(vp.prof, hx, hy, hz, { home: vp.type === "house" ? [vp.bed[0] + 0.5, vp.bed[1], vp.bed[2] + 2.5] : vp.home, job: vp.job });
+      else {
+        const home = vp.type === "house" && !vp.building ? [vp.bed[0] + 0.5, vp.bed[1], vp.bed[2] + 2.5] : vp.home;
+        this.add(vp.prof, hx, hy, hz, { home, job: vp.job });
+      }
       if (vp.type === "farm") for (let lx = 4; lx <= 11; lx++) for (let lz = 4; lz <= 11; lz++) if (lz !== 7) w.crops.add((x0 + lx) + "," + (vp.y + 1) + "," + (z0 + lz));
       return;
     }
@@ -2157,6 +2187,11 @@ export class Entities {
   // ----- every frame -----
   update(dt, daylight, camera) {
     const ctx = this.ctx, p = ctx.player(), w = this.world;
+    if (hasSettlementLife(w) && (this.threatWorld !== w || (this.threatScan -= dt) <= 0)) {
+      this.threatWorld = w;
+      this.threatScan = .35;
+      this.threatCells = settlementThreatIndex(this.list);
+    }
     if (this.pick) this.focus = this.pick(null);   // Play Together: creatures spawn around a different player each time
     if (!isLostWorldDimension(w.dim)) {
       this.spawnTick(dt, daylight, camera);
@@ -2931,6 +2966,14 @@ export class Entities {
     if (dd < stop && Math.abs(t.y - e.pos.y) < 2) { e.goal = null; e.path = null; return true; }
     if (dd < 6 && Math.abs(t.y - e.pos.y) < 1.2 && lineOfSight(this.world, { x: e.pos.x, y: e.pos.y + 1, z: e.pos.z }, { x: t.x, y: t.y + 1, z: t.z })) { e.goal = { x: t.x, z: t.z, speed }; e.path = null; return false; }
     e.pathT -= 0.15;
+    if (e.def.villager && hasSettlementLife(this.world)) {
+      const key = Math.floor(t.x)+","+Math.floor(t.y)+","+Math.floor(t.z);
+      if (e.settlementGoal !== key) { e.settlementGoal = key; e.pathT = 0; }
+      else if (e.path?.length === 0 && e.pathT > 0 && e.pathEdits === this.world.editCount) {
+        e.goal = null;
+        return false;
+      }
+    }
     if (!e.path || !e.path.length || e.pathT <= 0 || e.pathEdits !== this.world.editCount) {
       e.pathT = 2; e.pathEdits = this.world.editCount;
       e.path = findPath(this.world, Math.floor(e.pos.x), Math.floor(e.pos.y + 0.01), Math.floor(e.pos.z), Math.floor(t.x), Math.floor(t.y + 0.01), Math.floor(t.z), Math.ceil(e.h), 350, !!e.def.villager);
@@ -3035,11 +3078,14 @@ export class Entities {
     const ctx = this.ctx, time = ctx.time(), night = (time > 0.52 && time < 0.97) || e.bellT > 0;
     const home = e.home ? { x: e.home[0], y: e.home[1], z: e.home[2] } : null;
     if (e.trading > 0) { e.trading -= 0.15; e.goal = null; const p = ctx.player(); e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)); return; }
-    const danger = this.list.find(o => o.def.hostile && !o.dead && !o.def.boss && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 8);
+    const danger = this.threatWorld === this.world && this.threatCells ? nearestSettlementThreat(this.threatCells,e.pos,8) :
+      this.list.find(o => o.def.hostile && !o.dead && !o.def.boss && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 8);
     if (danger || e.fleeT > 0) {
       if (e.fleeT > 0) e.fleeT -= 0.15;
       const from = danger ? danger.pos : ctx.player().pos, ax = e.pos.x - from.x, az = e.pos.z - from.z, l = Math.hypot(ax, az) || 1;
-      if (night && home) this.moveTo(e, home, e.def.speed * 1.5); else e.goal = { x: e.pos.x + ax / l * 5, z: e.pos.z + az / l * 5, speed: e.def.speed * 1.5 };
+      const shelter = shelterFromThreat(this.world,e,from) || (night ? home : null);
+      if (shelter) this.moveTo(e, shelter, e.def.speed * 1.5);
+      else { e.path = null; e.goal = { x: e.pos.x + ax / l * 5, z: e.pos.z + az / l * 5, speed: e.def.speed * 1.5 }; }
       return;
     }
     if (Math.random() < 0.01) Sound.mob("hmm", d);
@@ -3048,8 +3094,10 @@ export class Entities {
     if (celebration) { this.moveTo(e, celebration, e.def.speed, .8); return; }
     e.taskT -= 0.15;
     if ((e.jobT = (e.jobT ?? Math.random() * 5) - 0.15) <= 0) { e.jobT = 5; if (this.checkJob(e)) return; if (!night) this.villagerFamily(e); }   // Milestone 23: jobs and families   // Milestone 23: losing or finding a job
+    const routine = settlementRoutine(this.world,e,time);
+    if (routine?.target) { this.moveTo(e,routine.target,e.def.speed,.9); return; }
     if (e.taskT <= 0) { e.taskT = rand(8, 18); e.task = e.job && Math.random() < 0.55 ? "work" : "wander"; }
-    if (e.task === "work" && e.job) {
+    if ((routine?.task === "work" || e.task === "work") && e.job) {
       const j = { x: e.job[0] + 0.5, y: e.job[1], z: e.job[2] + 0.5 };
       if (this.moveTo(e, j, e.def.speed, 1.9)) {
         // working at the job site restocks trades (up to twice a day)
@@ -3069,7 +3117,8 @@ export class Entities {
     let target = null;
     if (e.angry > 0 && this.targetable()) { e.angry -= 0.15; target = { pos: p.pos, isPlayer: true }; }
     else {
-      const foe = this.list.filter(o => o.def.hostile && !o.dead && !o.def.boss && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 16).sort((a, b) => Math.hypot(a.pos.x - e.pos.x, a.pos.z - e.pos.z) - Math.hypot(b.pos.x - e.pos.x, b.pos.z - e.pos.z))[0];
+      const foe = this.threatWorld === this.world && this.threatCells ? nearestSettlementThreat(this.threatCells,e.pos,16) :
+        this.list.filter(o => o.def.hostile && !o.dead && !o.def.boss && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 16).sort((a, b) => Math.hypot(a.pos.x - e.pos.x, a.pos.z - e.pos.z) - Math.hypot(b.pos.x - e.pos.x, b.pos.z - e.pos.z))[0];
       if (foe) target = { pos: foe.pos, ent: foe };
     }
     if (target) {
