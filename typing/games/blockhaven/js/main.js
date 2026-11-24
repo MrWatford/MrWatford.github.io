@@ -10,7 +10,9 @@ import { DISCS, scoreOf } from "./music.js";   // Milestone 22, Part D
 import { Entities, SPECIES, TRADES, lineOfSight, tradesOf, levelOf, LEVEL_NAMES } from "./entities.js";
 import { KINGDOMS_GEN, LANTERN_VALE_SEED } from "./lantern-vale.js";
 import { prepareStonehaven, stonehavenPlacementData } from "./stonehaven.js";
+import { GRAND_VILLAGE_GEN, reserveSurveyedVillages, restoreVillageRecords } from "./grand-villages.js";
 import { initSettlementFestivals } from "./settlement-festivals.js";
+import { settlementChimneys } from "./settlement-life.js";
 import { initVillageGrowth } from "./village-growth.js";
 import { initVillageRenovation, prepareVillageRenovations } from "./village-renovation.js";
 import { initSettlementRaids } from "./settlement-raids.js";
@@ -383,6 +385,7 @@ const G = {
 };
 G.adv = (type, arg) => { Adv.event(type, arg); if (G.campaign) G.campaign.event(type, arg); };
 const festivals = G.festivals = initSettlementFestivals({ THREE, scene, G, UI, Sound });
+let villageSmokeT = 0;
 G.villageGrowth = initVillageGrowth({ G, UI, Sound });
 // Milestone 16: Phantoms drop Phantom Membrane (for Slow Falling potions), like Java
 // Witches drop brewing things (Java: bottles, sugar, Skitter eyes, Shinestone dust, Sparkdust, Boom Powder, sticks)
@@ -2175,6 +2178,7 @@ function makeWorld(dim, reopening = false) {
   if (region) data.layout ??= region.layout;
   const gen = region ? new region.Generator(G.meta.seed, !!G.story.lostWorld) : dim === LOST_WORLD ? new LostWorldGenerator(G.meta.seed, G.meta.lostWorldGen, !!G.story.lostWorld) :
     dim === SOLKARA_SANCTUARY ? new SolkaraSanctuaryGen(data.solkaraScenery) : dim === HOLLOW_SANDS ? new HollowSandsGen(G.meta.seed, data.sandsLandmarks, data.solkaraScenery) : dim === "nether" ? new NetherGen(G.meta.seed) : dim === "end" ? new EndGen(G.meta.seed, G.meta.gen || 1) : dim === "forsaken" ? new ForsakenGen(G.forsakenTpl) : LOST_DIMS.includes(dim) ? L.gen(dim) : new Generator(G.meta.seed, G.meta.gen || 1);
+  const surveyed = dim === "overworld" && gen.version >= GRAND_VILLAGE_GEN ? restoreVillageRecords(data.villages) : null;
   if (LOST_DIMS.includes(dim)) CP.stampDim(dim, gen);   // campaign boss chambers behind the temple vaults
   if (dim === SOLKARA_SANCTUARY) { data.solkaraAnnex = 1; data.solkaraWing = 1; }
   if (dim === "desert") {
@@ -2194,8 +2198,9 @@ function makeWorld(dim, reopening = false) {
   if (dim === "forsaken") MU.prepareReaches(gen, data);   // the Outer Reaches in the generated ring (old changed chunks keep their shape)
   if (dim === "nether") { gen.citadel = chooseCitadel(); CP.stampNether(gen, data); }   // where Cindermaw's citadel stands in this world (+ the campaign's seal shrines)
   if (dim === "overworld") {
-    if (!CP.plan(gen, data)) ST.plan(gen, data);   // campaign worlds get Legacy Village instead of the Starter Home's spot (chosen once per world, before any land is made)
-    const placementData = stonehavenPlacementData(gen, data, G.story);
+    const villageSafeData = surveyed ? reserveSurveyedVillages(gen, data, surveyed) : data;
+    if (!CP.plan(gen, villageSafeData)) ST.plan(gen, villageSafeData);
+    const placementData = stonehavenPlacementData(gen, villageSafeData, G.story);
     L.prepareOverworld(gen, placementData);   // the Keeper excavation and temple entrances, stamped into land nobody has visited yet
     if (CP.on()) CP.stamp(gen, data); else ST.stamp(gen);   // the village (or the house) goes in last, so nothing else draws over it
     const expansion = G.story.leviathan ||= {};
@@ -2208,13 +2213,14 @@ function makeWorld(dim, reopening = false) {
       if (def.key === "citadel" && site.volcanicLayout === OBSIDIAN_BADLANDS_LAYOUT) gen.stamps.push(buildObsidianBadlands(gen, site));
       gen.stamps.push(buildRelicStamp(def, site));
     }
-    CG.reset(); CK.reset(); CD.reset(); CB.reset(); CIT.prepare(gen, data);   // the Endwatch Citadels: castles over the strongholds nobody has reached yet (js/citadel.js)
-    if (gen.version === KINGDOMS_GEN || L.loadedSurface() || Object.hasOwn(G.story, "stonehaven")) prepareStonehaven(gen, data, G.story);
+    CG.reset(); CK.reset(); CD.reset(); CB.reset(); CIT.prepare(gen, villageSafeData);
+    if (gen.version === KINGDOMS_GEN || L.loadedSurface() || Object.hasOwn(G.story, "stonehaven")) prepareStonehaven(gen, villageSafeData, G.story);
     if (reopening && !G.guest) CP.applySettlementRenovations(gen, data);
     prepareVillageRenovations(gen, data, G.meta, G.story, reopening && !G.guest);
   }
   const w = new World(gen);
   w.dim = dim;
+  if (surveyed) w.settlements = surveyed;
   w.modsFromJSON(data.mods);
   for (const [k, c] of data.containers || []) w.containers.set(k, c);
   if (dim === GODZILLA_CALDERA && !data.calderaCachePlaced) {
@@ -2246,7 +2252,8 @@ function dimSnapshot(w) {
   if (w === G.world) R.settle();   // finish any blocks a piston is still sliding
   const old = G.dimData[w.dim] || {};
   if (w.dim === "end") { const dr = ents.list.find(e => e.sp === "dragon" && !e.dead); if (dr) old.wyrmHp = dr.hp; }
-  return { ...old, mods: w.modsToJSON(), containers: [...w.containers].filter(([k]) => !String(k).startsWith("cart:")), entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], regions: [...w.regions], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w), drops: G.drops.map(({ mesh, ...drop }) => drop) };
+  const villages = w.settlements.size ? { villages: [...w.settlements.values()] } : {};
+  return { ...old, ...villages, mods: w.modsToJSON(), containers: [...w.containers].filter(([k]) => !String(k).startsWith("cart:")), entities: ents.toJSON(), visited: [...w.visited], crops: [...w.crops], newGen: [...w.newGen], regions: [...w.regions], beacons: [...(w.beacons || [])], portals: old.portals || [], links: old.links || {}, rs: R.toJSON(w), drops: G.drops.map(({ mesh, ...drop }) => drop) };
 }
 // Build (and draw) the land around a spot, with a progress bar
 async function loadArea(x, z, label) {
@@ -7368,6 +7375,13 @@ function loop(now) {
   if (p.hurtT > 0) p.hurtT -= dt;
 
   stream(G.state === "play" ? 7 : 4);
+  if (running && !G.settings.reducedMotion && (villageSmokeT -= dt) <= 0) {
+    villageSmokeT = .63;
+    const room = Math.min(G.settings.quality === "fancy" ? 6 : 3, Math.max(0,PMAX-parts.length-30));
+    if (room) for (const c of settlementChimneys(G.world,p.pos,room)) {
+      emitParticle(c.x,c.y,c.z,.14,.65,.09,1.8,PUFF_COLORS.ash,true);
+    }
+  }
   festivals.update(dt);
   if (running) raids.update(dt);
   if (running) updateSandsDiscovery(dt);

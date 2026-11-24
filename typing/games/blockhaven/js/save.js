@@ -199,7 +199,7 @@ function validateDimensions(dims) {
   const pairs = v => list(v) && (!v || v.every(pair => Array.isArray(pair) && pair.length === 2));
   if (!isRecord(dims) || Object.values(dims).some(d =>
     !isRecord(d) || !pairs(d.containers) || !list(d.visited) || !list(d.crops) ||
-    !list(d.newGen) || !list(d.beacons) || !list(d.drops) ||
+    !list(d.newGen) || !list(d.beacons) || !list(d.drops) || !list(d.villages) ||
     (d.mods != null && (!isRecord(d.mods) || !Object.values(d.mods).every(pairs)))
   )) throw new Error("This world file contains invalid dimension data.");
   const layout = dims.hollow_sands?.sandsLandmarks;

@@ -223,6 +223,9 @@ export const make = (id, meta = 0) => id | (meta << 8);
 export const NB = k => (k & 255) | ((k >> 8) << 16);
 // Meta bits: facing 0-3 (0 = +z, 1 = +x, 2 = -z, 3 = -x), OPEN for doors, TOP for door tops, LIT for furnaces
 export const OPEN = 4, TOP = 8, LIT = 4, HEAD = 8, WET = 1, EYE_IN = 4;
+// Authored stair corners use otherwise unused stair metadata. Facing and inversion keep their original bits.
+export const STAIR_INNER = 8, STAIR_OUTER = 16, STAIR_RIGHT = 32;
+export const LOG_ALONG_X = 32, LOG_ALONG_Z = 64;
 // Bee nests and hives keep their honey level (0-5) above the facing bits
 export const HONEY_MAX = 5, honeyOf = v => (metaOf(v) >> 2) & 7;
 

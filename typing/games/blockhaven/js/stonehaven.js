@@ -3,9 +3,13 @@ import { B, CHUNK, HEIGHT, SEA, HEAD, OPEN, TOP, make } from "./blocks.js";
 import { hash3, hashSeed } from "./noise.js";
 import { KINGDOMS_GEN, LANTERN_VALE_SEED } from "./lantern-vale.js";
 import { untouchedFootprint } from "./structure-placement.js";
+import { VILLAGE_ARCHITECTURE_GEN, buildVillageBuilding, fitVillageBuilding, villageBuildingAnchors } from "./village-architecture.js";
+import { GRAND_CAPITAL_GEN, GRAND_CAPITAL_LAYOUT, GRAND_CAPITAL_SIZE, INNER_CAPITAL_X, INNER_CAPITAL_Z,
+  buildGrandCapital, findGrandCapital, grandCapitalDestination } from "./stonehaven-grand.js";
 
 export const STONEHAVEN_GEN = 13;
 const PREVIEW_LAYOUT = 1, CAPITAL_LAYOUT = 2, CORE = 80, PAD = 16;
+const ARCHITECTURE_LAYOUT = 3;
 const PREVIEW = { v: PREVIEW_LAYOUT, x: -544, z: 192, y: 36 };
 const SIZE = CORE + PAD * 2;
 const KEEP = 65535;
@@ -22,20 +26,24 @@ const DISTRICTS = [
 const GUARDS = [[35, 62], [45, 62]];
 const PREVIEW_SEED = hashSeed(LANTERN_VALE_SEED);
 
-const sizeOf = plot => plot.v === CAPITAL_LAYOUT ? SIZE : CORE;
-const padOf = plot => plot.v === CAPITAL_LAYOUT ? PAD : 0;
-const validCapital = (plot, seed) => plot?.v === CAPITAL_LAYOUT && plot.seed === seed && Number.isSafeInteger(plot.x) &&
+const sizeOf = plot => plot.v === GRAND_CAPITAL_LAYOUT ? GRAND_CAPITAL_SIZE : plot.v === PREVIEW_LAYOUT ? CORE : SIZE;
+const padOf = plot => plot.v === PREVIEW_LAYOUT ? 0 : PAD;
+const validCapital = (plot, seed, version) => (plot?.v === CAPITAL_LAYOUT ||
+    plot?.v === ARCHITECTURE_LAYOUT && version >= VILLAGE_ARCHITECTURE_GEN ||
+    plot?.v === GRAND_CAPITAL_LAYOUT && version >= GRAND_CAPITAL_GEN && [null,53,67,117,151].includes(plot.shore)) &&
+  plot.seed === seed && Number.isSafeInteger(plot.x) &&
   Number.isSafeInteger(plot.z) && plot.x % CHUNK === 0 && plot.z % CHUNK === 0 &&
   Math.abs(plot.x) <= 4096 && Math.abs(plot.z) <= 4096 && Number.isInteger(plot.y) && plot.y >= 32 && plot.y <= 38;
 const intersects = (plot, stamp) => plot.x < stamp.x + stamp.size && stamp.x < plot.x + sizeOf(plot) &&
   plot.z < stamp.z + stamp.size && stamp.z < plot.z + sizeOf(plot);
 
 function destination(plot) {
+  if (plot.v === GRAND_CAPITAL_LAYOUT) return grandCapitalDestination(plot);
   const pad = padOf(plot);
   return {
     kind: "stonehaven", title: "Stonehaven", name: "South Gate",
     x: plot.x + pad + 40.5, y: plot.y + 1, z: plot.z + pad + 73.5,
-    guide: plot.v === CAPITAL_LAYOUT
+    guide: plot.v !== PREVIEW_LAYOUT
       ? "The South Gate leads to the market square. Take the keep stairs up to the galleries and Crown Tower, or follow the side gates to the Records Hall and Forge Court."
       : "The road through the South Gate leads into the market square. Continue north up the broad steps to the keep, or turn east or west into the garden lanes."
   };
@@ -45,7 +53,7 @@ export function stonehavenDestination(meta, story) {
   if (meta?.gen === KINGDOMS_GEN && meta.seed === LANTERN_VALE_SEED && story?.stonehaven === PREVIEW_LAYOUT) {
     return destination(PREVIEW);
   }
-  return meta?.gen >= STONEHAVEN_GEN && validCapital(story?.stonehaven, hashSeed(meta.seed)) ? destination(story.stonehaven) : null;
+  return meta?.gen >= STONEHAVEN_GEN && validCapital(story?.stonehaven, hashSeed(meta.seed), meta.gen) ? destination(story.stonehaven) : null;
 }
 
 function clearFootprint(gen, plot, untouched) {
@@ -53,7 +61,7 @@ function clearFootprint(gen, plot, untouched) {
   if (gen.stamps.some(s => intersects(plot, s)) ||
       !untouched(plot.x, plot.z, plot.x + size, plot.z + size)) return false;
   // Leave the underlying stronghold's corridors and its surface reserve alone.
-  if (plot.v === CAPITAL_LAYOUT && gen.strongholds.some(s =>
+  if (plot.v !== PREVIEW_LAYOUT && gen.strongholds.some(s =>
     s.x >= plot.x - 56 && s.x < plot.x + size + 56 && s.z >= plot.z - 56 && s.z < plot.z + size + 56)) return false;
   for (let z = plot.z / CHUNK; z < (plot.z + size) / CHUNK; z++) {
     for (let x = plot.x / CHUNK; x < (plot.x + size) / CHUNK; x++) {
@@ -74,7 +82,8 @@ function findCapital(gen, data) {
       const x = cx * CHUNK, z = cz * CHUNK;
       const center = gen.column(x + SIZE / 2, z + SIZE / 2).h;
       if (center < SEA || center > 43) continue;
-      const plot = { v: CAPITAL_LAYOUT, seed: gen.seed, x, z, y: Math.max(32, Math.min(38, center)) };
+      const v = gen.version >= VILLAGE_ARCHITECTURE_GEN ? ARCHITECTURE_LAYOUT : CAPITAL_LAYOUT;
+      const plot = { v, seed: gen.seed, x, z, y: Math.max(32, Math.min(38, center)) };
       if (!clearFootprint(gen, plot, untouched)) continue;
       let fit = true;
       for (let dz = 1; dz < SIZE && fit; dz += 7) for (let dx = 1; dx < SIZE; dx += 7) {
@@ -90,10 +99,11 @@ function findCapital(gen, data) {
 // Later landmark searches must honor the saved capital without marking its chunks visited.
 export function stonehavenPlacementData(gen, data, story) {
   const plot = story.stonehaven;
-  if (gen.version < STONEHAVEN_GEN || !validCapital(plot, gen.seed)) return data;
+  if (gen.version < STONEHAVEN_GEN || !validCapital(plot, gen.seed, gen.version)) return data;
   const visited = [...(data.visited || [])];
-  for (let z = plot.z / CHUNK; z < (plot.z + SIZE) / CHUNK; z++) {
-    for (let x = plot.x / CHUNK; x < (plot.x + SIZE) / CHUNK; x++) visited.push(x + "," + z);
+  const size = sizeOf(plot);
+  for (let z = plot.z / CHUNK; z < (plot.z + size) / CHUNK; z++) {
+    for (let x = plot.x / CHUNK; x < (plot.x + size) / CHUNK; x++) visited.push(x + "," + z);
   }
   return { ...data, visited };
 }
@@ -107,17 +117,24 @@ export function prepareStonehaven(gen, data, story) {
     plot = PREVIEW;
     if (story.stonehaven !== PREVIEW_LAYOUT && !clearFootprint(gen, plot, untouchedFootprint(data))) return;
   } else if (Object.hasOwn(story, "stonehaven")) {
-    if (!validCapital(story.stonehaven, gen.seed)) return;
+    if (!validCapital(story.stonehaven, gen.seed, gen.version)) return;
     plot = story.stonehaven;
   } else {
-    plot = findCapital(gen, data);
+    plot = gen.version >= GRAND_CAPITAL_GEN ? findGrandCapital(gen, data) : findCapital(gen, data);
     if (!plot) { story.stonehaven = null; return; }
   }
   if (stamps.some(s => intersects(plot, s))) return;
   story.stonehaven = preview ? PREVIEW_LAYOUT : plot;
   gen.stonehavenSite = plot;
   gen.stonehaven = destination(plot);
-  stamps.push({ x: plot.x, z: plot.z, size: sizeOf(plot), cells: buildStonehaven(gen, plot) });
+  if (plot.v === GRAND_CAPITAL_LAYOUT) {
+    gen.grandCapital = buildGrandCapital(gen, plot, buildStonehaven(gen, innerCapital(plot)));
+    stamps.push(gen.grandCapital);
+  } else stamps.push({ x: plot.x, z: plot.z, size: sizeOf(plot), ...buildStonehaven(gen, plot) });
+}
+
+function innerCapital(plot) {
+  return { ...plot, v: ARCHITECTURE_LAYOUT, x: plot.x + INNER_CAPITAL_X, z: plot.z + INNER_CAPITAL_Z };
 }
 
 export function stonehavenCovers(gen, x, z) {
@@ -125,19 +142,43 @@ export function stonehavenCovers(gen, x, z) {
   return !!plot && x >= plot.x && z >= plot.z && x < plot.x + sizeOf(plot) && z < plot.z + sizeOf(plot);
 }
 
+function capitalBuildings() {
+  const designs = [
+    [["cottage", 1], ["smithy", 0], ["manor", 0]],
+    [["farmhouse", 0], ["shop", 0], ["inn", 1]]
+  ];
+  const houses = LANES.flatMap((x, lane) => HOMES.map((home, row) =>
+    ({ ...home, x, plan: fitVillageBuilding(...designs[lane][row], 9, 8) })));
+  const districts = DISTRICTS.map(district => {
+    const smith = district.job === B.SMITH_TABLE;
+    const plan = fitVillageBuilding(smith ? "smithy" : "library", smith ? 4 : 2, district.w, district.d);
+    return { ...district, x: district.x + Math.floor((district.w - plan.width) / 2), plan };
+  });
+  return [...houses, ...districts];
+}
+
 // Null means the chunk is outside the city and gets normal natural spawns.
 export function stonehavenResidents(gen, cx, cz) {
   const x0 = cx * CHUNK, z0 = cz * CHUNK;
   if (!stonehavenCovers(gen, x0, z0)) return null;
-  const plot = gen.stonehavenSite, pad = padOf(plot), y = plot.y + 1;
+  const outer = gen.stonehavenSite, plot = outer.v === GRAND_CAPITAL_LAYOUT ? innerCapital(outer) : outer;
+  const pad = padOf(plot), y = plot.y + 1;
   const xCore = plot.x + pad, zCore = plot.z + pad;
-  const residents = [];
+  const residents = [...(gen.grandCapital?.residentChunks.get(cx + "," + cz) || [])];
   const add = (species, x, z, job) => {
     const wx = xCore + x, wz = zCore + z;
     if (wx >= x0 && wx < x0 + CHUNK && wz >= z0 && wz < z0 + CHUNK) {
       residents.push({ species, home: [wx + .5, y, wz + .5], job });
     }
   };
+  if (plot.v === ARCHITECTURE_LAYOUT) {
+    for (const { x, z, resident, plan } of capitalBuildings()) {
+      const { home, job } = villageBuildingAnchors(plan);
+      add(resident, x + home[0], z + home[2], [xCore + x + job[0], y, zCore + z + job[2]]);
+    }
+    for (const [x, z] of GUARDS) add("golem", x, z);
+    return residents;
+  }
   for (const x of LANES) for (const { z, resident } of HOMES) {
     add(resident, x + 4, z + 5, [xCore + x + 3, y, zCore + z + 1]);
   }
@@ -149,9 +190,12 @@ export function stonehavenResidents(gen, cx, cz) {
 }
 
 function buildStonehaven(gen, plot) {
-  const size = sizeOf(plot), pad = padOf(plot), expanded = plot.v === CAPITAL_LAYOUT;
+  const size = sizeOf(plot), pad = padOf(plot), expanded = plot.v !== PREVIEW_LAYOUT;
+  const modern = plot.v === ARCHITECTURE_LAYOUT;
   const { x: minX, z: minZ, y: ground } = plot;
-  const cells = new Uint16Array(size * size * HEIGHT).fill(KEEP);
+  const Cells = modern ? Uint32Array : Uint16Array;
+  const cells = new Cells(size * size * HEIGHT).fill(KEEP);
+  const contents = new Map();
   const put = (x, y, z, block) => { cells[x + pad + (z + pad + y * size) * size] = block; };
   const fill = (x1, y1, z1, x2, y2, z2, block) => {
     for (let y = y1; y <= y2; y++) for (let z = z1; z <= z2; z++) {
@@ -343,6 +387,33 @@ function buildStonehaven(gen, plot) {
     put(x + 1, ground + 1, z + 1, B.TABLE);
     put(x + 3, ground + 1, z + 1, B.CHEST);
   }
+  if (modern) {
+    for (const { x, z, job, plan } of capitalBuildings()) {
+      const { door: [door] } = villageBuildingAnchors(plan);
+      fill(x - 1, ground + 1, z - 1, x + plan.width, ground + 17, z + plan.depth + 1, B.AIR);
+      for (let zz = z + plan.depth - 1; zz <= z + 10; zz++) {
+        for (let xx = x + door - 1; xx <= x + door + 1; xx++) put(xx, ground, zz, stone(xx, zz));
+      }
+      buildVillageBuilding(plan, {
+        put: (dx, dy, dz, v) => put(x + dx, ground + dy, z + dz, v),
+        decorate: (dx, dy, dz, v, contentsValue) => {
+          const wx = minX + pad + x + dx, wz = minZ + pad + z + dz;
+          const key = Math.floor(wx / CHUNK) + "," + Math.floor(wz / CHUNK);
+          if (!contents.has(key)) contents.set(key, []);
+          contents.get(key).push([wx, ground + dy, wz, v, contentsValue]);
+        },
+        biome: "stonehaven", seed: gen.seed, x: minX + pad + x, z: minZ + pad + z, jobBlock: job
+      });
+    }
+    for (const { x, z, w } of DISTRICTS) {
+      const doorX = x + Math.floor(w / 2);
+      for (let zz = 44; zz <= 48; zz++) for (let xx = Math.min(doorX, 40); xx <= Math.max(doorX, 40); xx++) {
+        put(xx, ground, zz, stone(xx, zz));
+      }
+      for (const px of [x + 2, x + 10]) lamp(px, ground, 49);
+    }
+    return { cells, contents };
+  }
   for (const x of LANES) for (const { z, job } of HOMES) {
     chamber(x, ground, z, 9, 8, z === 32 ? 6 : 5, B.BIRCH_PLANKS, B.GLASS);
     roof(x, ground + (z === 32 ? 7 : 6), z, 9, 8, z === 32 ? B.DARKSLATE_BRICKS : B.ROOF_TILES);
@@ -383,5 +454,5 @@ function buildStonehaven(gen, plot) {
       }
     }
   }
-  return cells;
+  return { cells };
 }

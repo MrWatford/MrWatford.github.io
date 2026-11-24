@@ -1,5 +1,6 @@
 import { B, I, CHUNK, SOLID } from "./blocks.js";
 import { stonehavenCovers } from "./stonehaven.js";
+import { grandCapitalSiege } from "./stonehaven-grand.js";
 import { VILLAGE_OVERHAUL_GEN } from "./village-overhaul.js";
 
 const VILLAGE_WAVES = [
@@ -28,7 +29,8 @@ export function initSettlementRaids({ G, UI, Sound, SPECIES, hud, closePanel }) 
       return gate && {
         id, title: "Great Siege of Stonehaven", waves: CAPITAL_WAVES, reward: 24,
         anchor: { x: gate.x, y: gate.y, z: gate.z - 9 },
-        rally: { x: gate.x + 5, y: gate.y, z: gate.z - 19 }
+        rally: { x: gate.x + 5, y: gate.y, z: gate.z - 19 },
+        ...(gen.grandCapital ? grandCapitalSiege(gen.stonehavenSite) : {})
       };
     }
     const match = /^village:(-?\d+),(-?\d+)$/.exec(id ?? "");
@@ -130,6 +132,26 @@ export function initSettlementRaids({ G, UI, Sound, SPECIES, hud, closePanel }) 
   function spawnPosition(area, def, i) {
     const w = G.world, p = G.player.pos;
     const width = def.w > 1 ? 1 : 0, height = Math.ceil(def.h);
+    const clear = (x,y,z) => {
+      if (!w.isLoaded(x - width,z - width) || !w.isLoaded(x + width,z + width) ||
+          Math.hypot(x + .5 - p.x,z + .5 - p.z) < 6 || !SOLID[w.id(x,y-1,z)] ||
+          G.ents.list.some(e=>!e.dead&&!e.gone&&Math.hypot(e.pos.x-x-.5,e.pos.z-z-.5)<2.4)) return false;
+      for (let az=-width;az<=width;az++) for(let ax=-width;ax<=width;ax++){
+        if(width&&!SOLID[w.id(x+ax,y-1,z+az)])return false;
+        for(let ay=0;ay<height;ay++){
+          const id=w.id(x+ax,y+ay,z+az);
+          if(id!==B.AIR&&id!==B.TALL_GRASS&&id!==B.FLOWER_RED&&id!==B.FLOWER_YELLOW)return false;
+        }
+      }
+      return true;
+    };
+    if (area.spawns) {
+      for(let a=0;a<area.spawns.length;a++){
+        const q=area.spawns[(a+i*3)%area.spawns.length];
+        if(clear(Math.floor(q.x),q.y,Math.floor(q.z)))return [q.x,q.y,q.z];
+      }
+      return null;
+    }
     const radii = area.id === "stonehaven" ? [8, 12, 17, 21] : [15, 19, 12, 24, 8];
     for (const radius of radii) for (let a = 0; a < 16; a++) {
       const theta = (a + i * 5) * Math.PI / 8;
@@ -139,18 +161,7 @@ export function initSettlementRaids({ G, UI, Sound, SPECIES, hud, closePanel }) 
       if (Math.hypot(x + .5 - p.x, z + .5 - p.z) < 6) continue;
       if (G.ents.list.some(e => !e.dead && !e.gone && Math.hypot(e.pos.x - x - .5, e.pos.z - z - .5) < 2.4)) continue;
       for (let y = area.anchor.y + 3; y >= area.anchor.y - 6; y--) {
-        if (!SOLID[w.id(x, y - 1, z)]) continue;
-        let clear = true;
-        for (let az = -width; az <= width && clear; az++) for (let ax = -width; ax <= width && clear; ax++) {
-          if (width && !SOLID[w.id(x + ax, y - 1, z + az)]) { clear = false; break; }
-          for (let ay = 0; ay < height; ay++) {
-            const block = w.id(x + ax, y + ay, z + az);
-            if (block !== B.AIR && block !== B.TALL_GRASS && block !== B.FLOWER_RED && block !== B.FLOWER_YELLOW) {
-              clear = false; break;
-            }
-          }
-        }
-        if (clear) return [x + .5, y, z + .5];
+        if (clear(x,y,z)) return [x + .5, y, z + .5];
       }
     }
     return null;

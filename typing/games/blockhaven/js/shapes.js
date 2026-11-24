@@ -1,7 +1,8 @@
 // Shapes of the Sparkworks blocks: the little boxes they're drawn with, the boxes you bump into,
 // and how Sparkdust wire connects to its neighbors. Used by the drawing code, the player, and the signal engine.
 import { B, OPAQUE, idOf, metaOf, faceTile, TILE, isTrapdoor, isFence, isGate, isButton, isPlate,
-  DOT, UNLIT, AXIS_X, ON, LOCKED, SUBTRACT, CMP_ON, OPEN, TOP, EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED, isPiston, isHush, isSlab, isStairs, isWall, blockDef, SOLID } from "./blocks.js";
+  DOT, UNLIT, AXIS_X, ON, LOCKED, SUBTRACT, CMP_ON, OPEN, TOP, EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED,
+  STAIR_INNER, STAIR_OUTER, STAIR_RIGHT, isPiston, isHush, isSlab, isStairs, isWall, blockDef, SOLID } from "./blocks.js";
 
 export const DIR = [[0, 1], [1, 0], [0, -1], [-1, 0]];   // facing 0..3 → (dx, dz)
 // 6-way facing for pistons and observers: 0 up, 1 down, 2-5 = DIR[0-3]
@@ -154,7 +155,18 @@ export function model(v, get) {
   if (isSlab(id) || isStairs(id) || isWall(id)) {
     const T3 = [faceTile(v, 0), faceTile(v, 1), faceTile(v, 2)];
     if (isSlab(id)) { const k = m & 3; return { T: floorT(0), parts: [p(k === 2 ? [0, 0, 0, 16, 16, 16] : k === 1 ? [0, 8, 0, 16, 16, 16] : [0, 0, 0, 16, 8, 16], T3)] }; }
-    if (isStairs(id)) return { T: floorT(m & 3), parts: m & 4 ? [p([0, 8, 0, 16, 16, 16], T3), p([0, 0, 8, 16, 8, 16], T3)] : [p([0, 0, 0, 16, 8, 16], T3), p([0, 8, 8, 16, 16, 16], T3)] };
+    if (isStairs(id)) {
+      const upsideDown = m & 4, right = m & STAIR_RIGHT;
+      const [base, step] = upsideDown ? [8, 0] : [0, 8];
+      const halfX = right ? [8, 16] : [0, 8];
+      const parts = [p([0, base, 0, 16, base + 8, 16], T3)];
+      if (m & STAIR_OUTER) parts.push(p([halfX[0], step, 8, halfX[1], step + 8, 16], T3));
+      else {
+        parts.push(p([0, step, 8, 16, step + 8, 16], T3));
+        if (m & STAIR_INNER) parts.push(p([halfX[0], step, 0, halfX[1], step + 8, 8], T3));
+      }
+      return { T: floorT(m & 3), parts };
+    }
     const arms = [];
     for (let d = 0; d < 4; d++) if (get && wallLinks(get(DIR[d][0], 0, DIR[d][1]), d)) arms.push(d);
     return { T: floorT(0), parts: [p([4, 0, 4, 12, 16, 12], T3)], arms: arms.map(d => ({ T: floorT(d), parts: [p([5, 0, 8, 11, 14, 16], T3)] })) };

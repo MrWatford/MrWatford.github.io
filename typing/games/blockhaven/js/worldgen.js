@@ -8,6 +8,10 @@ import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD, CORALS } from "./
 import { isLanternVale, buildLanternValePlot } from "./lantern-vale.js";
 
 import { VILLAGE_OVERHAUL_GEN, VILLAGE_TERRAIN_GEN, detailedVillagePiece, buildDetailedVillage, buildCompactVillage, villagePlotHasLandmark } from "./village-overhaul.js";
+import { VILLAGE_ARCHITECTURE_GEN } from "./village-architecture.js";
+import { GRAND_VILLAGE_GEN, grandVillagePlot } from "./grand-villages.js";
+import { buildGrandVillage } from "./grand-village-build.js";
+import { GRAND_CAPITAL_GEN } from "./stonehaven-grand.js";
 
 export const LOOT = 4;   // chest meta bit: a ruin chest that fills with treasure when first opened
 // Land versions: 1 = first release, 2 = deep lava, 3 = ruined portals, 4 = strongholds, 5 = villages + jade, 6 = bee nests + berry bushes. Raise this when generation changes.
@@ -43,7 +47,7 @@ export const MONUMENT_GEN = 19;
 // 20 (Milestone 23, Part D): Pillager Outposts, Witch Huts and Woodland Mansions. Worlds made earlier get one only if
 // nobody has been anywhere on its spot (decided once per building in world.js and remembered), like the monuments.
 export const STRUCT_GEN = 20;
-export const CURRENT_GEN = STRUCT_GEN;
+export const CURRENT_GEN = GRAND_CAPITAL_GEN;
 export const PROFESSIONS = ["farmer", "fletcher", "shepherd", "cleric", "smith"];
 const JOB_BLOCK = { farmer: B.COMPOSTER, fletcher: B.FLETCH_TABLE, shepherd: B.LOOM, cleric: B.ALTAR, smith: B.SMITH_TABLE, scribe: B.BOOKSHELF, beekeeper: B.BEEHIVE };
 // Three strongholds per world, a few hundred blocks from the middle (the Eye of the Void points to the nearest)
@@ -561,20 +565,26 @@ if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like M
     if (deco && (ver >= MONUMENT_GEN || opts.monumentOk)) this.monuments(data, x0, z0, ver >= MONUMENT_GEN ? null : opts.monumentOk);   // Milestone 17, Part C
     if (deco && (ver >= STRUCT_GEN || opts.structureOk)) stampStructures(this, data, x0, z0, ver >= STRUCT_GEN ? () => true : opts.structureOk, idx);   // Milestone 23, Part D
 
-// a rare landmark: a crumbling watchtower with a treasure chest
-    if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
-    else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
+// A newly reserved capital replaces ordinary natural scenery before anyone can discover it.
+    const capital = this.grandCapital;
+    if (!capital || x0 < capital.x || z0 < capital.z || x0 >= capital.x + capital.size || z0 >= capital.z + capital.size) {
+      if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
+      else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
+    }
     if (ver >= 4) for (const s of this.strongholds) if (!s.citadel && Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
     if (ver >= 5) {
       const vp = this.villagePiece(cx, cz, Math.min(ver, this.version));
-      if (vp?.compact) buildCompactVillage(data, vp, cols, this.seed, x0, z0, JOB_BLOCK[vp.prof]);
-      else if (vp?.detailed) buildDetailedVillage(data, vp, cols, this.seed, x0, z0, JOB_BLOCK[vp.prof]);
+      if (vp?.settlement) {
+        buildGrandVillage(data, vp, cols, this.seed, opts.addContents);
+        opts.addSettlement?.(vp);
+      } else if (vp?.compact) buildCompactVillage(data, vp, cols, this.seed, x0, z0, JOB_BLOCK[vp.prof], opts.addContents);
+      else if (vp?.detailed) buildDetailedVillage(data, vp, cols, this.seed, x0, z0, JOB_BLOCK[vp.prof], opts.addContents);
       else if (vp) this.buildVillagePiece(data, vp, x0, z0, ver);
     }
-    return applyStamps(this, data, cx, cz);   // hand-built sites (the Keeper excavation, temples) in never-visited land
+    return applyStamps(this, data, cx, cz, opts.addContents);   // hand-built sites in never-visited land
   }
 
-  // ----- villages: a 3×3 group of chunks around a plaza with a well -----
+  // Legacy placement remains the reservation model used by authored landmarks.
   villageAt(cx, cz) {
     const rx = Math.floor(cx / 6), rz = Math.floor(cz / 6);
     if (hash3(this.seed, rx, 1234, rz) > 0.4) return null;
@@ -593,6 +603,7 @@ if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like M
     return detailedVillagePiece(this, village, cx, cz, this.villageTerrain, legacy);
   }
   villagePiece(cx, cz, layoutVersion = this.version, applyRenovation = true) {
+    if (layoutVersion >= GRAND_VILLAGE_GEN) return grandVillagePlot(this, cx, cz);
     const v = this.villageAt(cx, cz);
     if (!v) return null;
     if (applyRenovation && this.renovatedVillages?.has(cx + "," + cz)) {
@@ -1057,13 +1068,14 @@ export class MapGen {
     return this.stamps ? applyStamps(this, data, cx, cz) : data;   // campaign rooms (js/campaign.js) are stamped in campaign worlds only
   }
 }
-// Hand-built structures stamped into the Surface (only in places nobody has visited yet). stamp: { x, z, cells (Uint16Array), size }
-export function applyStamps(gen, data, cx, cz) {
+// Stamps use 65535 for untouched terrain. New stamps can carry full-width blocks and chunk-indexed contents.
+export function applyStamps(gen, data, cx, cz, addContents) {
   for (const st of gen.stamps || []) {
     const x0 = cx * CHUNK, z0 = cz * CHUNK;
     if (x0 >= st.x + st.size || x0 + CHUNK <= st.x || z0 >= st.z + st.size || z0 + CHUNK <= st.z) continue;
     if (st.lake) { carveLake(gen, data, x0, z0, st.lake); continue; }
-    if (st.apply) { st.apply(gen, data, x0, z0); continue; }   // a stamp that shapes the land itself (the Grand Desert Temple's sand slopes)
+    if (st.apply) { st.apply(gen, data, x0, z0, addContents); continue; }
+    if (addContents && st.contents) for (const record of st.contents.get(cx + "," + cz) || []) addContents(...record);
     for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
       const sx = x0 + lx - st.x, sz = z0 + lz - st.z;
       if (sx < 0 || sz < 0 || sx >= st.size || sz >= st.size) continue;

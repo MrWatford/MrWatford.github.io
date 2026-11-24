@@ -3,6 +3,7 @@
 // been yet (like the Ocean Monuments), so nothing ever pops up in land a player has already seen or changed.
 import { B, CHUNK, HEIGHT, make } from "./blocks.js";
 import { hash3 } from "./noise.js";
+import { VILLAGE_ARCHITECTURE_GEN } from "./village-architecture.js";
 
 const SEA = 30, LOOT = 4;   // (the same "treasure chest" bit as worldgen.js)
 const LOOT_OUTPOST = 6, LOOT_MANSION = 7;   // chest meta bits 3-5 (main.js fillLoot)
@@ -35,7 +36,10 @@ function site(gen, kind, gx, gz) {
     for (const st of gen.strongholds || []) if (Math.hypot(st.x - cx, st.z - cz) < 220) ok = false;
     if (ok && (gen.stamps || []).some(t => t.x < x0 + K.w + 16 && t.x + (t.size || 32) > x0 - 16 && t.z < z0 + K.d + 16 && t.z + (t.size || 32) > z0 - 16)) ok = false;
     if (ok && gen.villagePiece) for (let i = Math.floor((x0 - 16) / CHUNK); i <= Math.floor((x0 + K.w + 16) / CHUNK) && ok; i++)
-      for (let j = Math.floor((z0 - 16) / CHUNK); j <= Math.floor((z0 + K.d + 16) / CHUNK); j++) if (gen.villagePiece(i, j, gen.version)) { ok = false; break; }
+      for (let j = Math.floor((z0 - 16) / CHUNK); j <= Math.floor((z0 + K.d + 16) / CHUNK); j++) {
+        // Expanded villages yield to these reservations. Compute them against the earlier village grid.
+        if (gen.villagePiece(i, j, Math.min(gen.version, VILLAGE_ARCHITECTURE_GEN))) { ok = false; break; }
+      }
     if (ok) s = { key, kind, x0, z0, y0: (kind === "hut" ? Math.max(hi, SEA) : hi) + 1, w: K.w, d: K.d, h: K.h, cx, cz, newLand: K.newLand };
   }
   gen.structCache.set(key, s);
