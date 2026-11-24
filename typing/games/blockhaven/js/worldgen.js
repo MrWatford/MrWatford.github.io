@@ -3,7 +3,7 @@ import { Noise, hashSeed, rng, hash3 } from "./noise.js";
 import { treeShape } from "./trees.js";
 import { monumentCell, MONUMENT_SIZE, MONUMENT_TOP, MONUMENT_CELL } from "./ocean-monument.js";
 import { stampStructures, structuresNear } from "./land-structures.js";   // Milestone 23, Part D
-import { B, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD, CORALS } from "./blocks.js";
+import { B, I, CHUNK, HEIGHT, SEA, make, EYE_IN, OPEN, TOP, HEAD, CORALS } from "./blocks.js";
 
 import { isLanternVale, buildLanternValePlot } from "./lantern-vale.js";
 
@@ -568,7 +568,12 @@ if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like M
 // A newly reserved capital replaces ordinary natural scenery before anyone can discover it.
     const capital = this.grandCapital;
     if (!capital || x0 < capital.x || z0 < capital.z || x0 >= capital.x + capital.size || z0 >= capital.z + capital.size) {
-      if (hash3(this.seed, cx, 99, cz) < 0.035) this.ruin(data, cols, r);
+      if (hash3(this.seed, cx, 99, cz) < 0.035) {
+        if (!this.ultraHardcore) this.ruin(data, cols, r);
+        else if (hash3(this.seed, cx, 183, cz) < 0.035 && !this.villagePiece(cx, cz, ver)) {
+          this.survivalCache(data, cols, x0, z0, opts.addContents);
+        }
+      }
       else if (ver >= 3 && hash3(this.seed, cx, 77, cz) < 0.02) this.ruinedPortal(data, cols, r);
     }
     if (ver >= 4) for (const s of this.strongholds) if (!s.citadel && Math.abs(s.x - x0 - 8) < 72 && Math.abs(s.z - z0 - 8) < 72) this.stronghold(data, x0, z0, s);
@@ -736,6 +741,20 @@ if (ver >= 7) vein(B.SPARK_ORE, 8, 2, 16, 8);   // Sparkworks: deep down, like M
     for (let ly = y; ly < top; ly++) data[idx(x, ly, z)] = log;
     data[idx(x, y - 1, z)] = B.DIRT;
     return top;
+  }
+
+  survivalCache(data, cols, x0, z0, addContents) {
+    if (!addContents) return;
+    const x = 8, z = 8, h = cols[x + z * CHUNK].h;
+    if (h < SEA + 2 || ![B.GRASS, B.SAND, B.GRAVEL].includes(data[idx(x, h, z)]) ||
+        ![B.STONE, B.DIRT, B.SANDSTONE, B.SAND].includes(data[idx(x, h - 2, z)])) return;
+    const y = h - 2;
+    data[idx(x, y, z)] = B.BARREL;
+    // A mossy stone above it is the only clue. Existing content loading handles emptied and broken caches.
+    if (!data[idx(x, h + 1, z)]) data[idx(x, h + 1, z)] = B.MOSSY;
+    const slots = Array(27).fill(null);
+    slots[0] = { id: I.BREAD, n: 2 }; slots[3] = { id: B.TORCH, n: 3 }; slots[7] = { id: I.STICK, n: 2 };
+    addContents(x0 + x, y, z0 + z, B.BARREL, { type: "chest", slots });
   }
 
   ruin(data, cols, r) {

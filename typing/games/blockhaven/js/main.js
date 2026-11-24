@@ -127,9 +127,13 @@ import { beginMountedBurrow } from "./leviathan-mounted-burrow.js";
 import { createBurrowView } from "./leviathan-burrow-view.js";
 import { initTitleTips } from "./title-tips.js";
 
+import { UHC_MODE, UHC_AIR, UHC_DAY, UHC_SETTINGS, UHC_SKINS, createChallenge,
+  advanceChallenge, challengeDay, bloodMoon, hunterLevel, failChallenge, survivalMaximum } from "./ultra-hardcore.js";
+import { challengeCue, challengeHUD, challengeTime } from "./ultra-hardcore-view.js";
+
 THREE.ColorManagement.enabled = false;
 const DAY_LENGTH = 720;          // seconds for a full day and night (12 minutes)
-const AUTOSAVE = 60;
+const AUTOSAVE = 60, UHC_AUTOSAVE = 12;
 
 // ---------- 3D setup ----------
 const canvas = document.getElementById("view");
@@ -149,10 +153,10 @@ const atlasTex = new THREE.CanvasTexture(buildAtlas());
 atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestFilter; atlasTex.generateMipmaps = false;
 
 const uniforms = { map: { value: atlasTex }, desat: { value: 0 }, daylight: { value: 1 }, ambient: { value: 0.11 }, fogColor: { value: new THREE.Color(0x8fd0f5) }, fogNear: { value: 40 }, fogFar: { value: 64 }, alphaTest: { value: 0.5 }, opacity: { value: 1 },
-  coolTime: { value: 0 }, coolPulse: { value: 0.18 } };   // Echohold Reborn: teal light and its slow pulse (0 = still)
+  moonlight: { value: 0 }, coolTime: { value: 0 }, coolPulse: { value: 0.18 } };   // Echohold Reborn: teal light and its slow pulse (0 = still)
 const VERT = `attribute vec3 lt; attribute float cl; varying vec2 vUv; varying vec3 vLt; varying float vDist, vCl; varying vec2 vW;
 void main() { vUv = uv; vLt = lt; vCl = cl; vW = (modelMatrix * vec4(position, 1.0)).xz; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDist = length(mv.xyz); gl_Position = projectionMatrix * mv; }`;
-const FRAG = `uniform sampler2D map; uniform float daylight, ambient, fogNear, fogFar, alphaTest, opacity, desat, coolTime, coolPulse; uniform vec3 fogColor;
+const FRAG = `uniform sampler2D map; uniform float daylight, ambient, fogNear, fogFar, alphaTest, opacity, desat, moonlight, coolTime, coolPulse; uniform vec3 fogColor;
 #ifdef RIPPLE_WATER
 uniform float rippleTime;
 const vec2 waterTile = vec2(${TILE.water % 16}.0, ${Math.floor(TILE.water / 16)}.0);
@@ -180,6 +184,7 @@ void main() {
   l = ambient + (1.0 - ambient) * l;
   vec3 tint = mix(vec3(1.0), vec3(1.0, 0.85, 0.62), clamp((b - max(s, c)) * 1.5, 0.0, 1.0));
   tint = mix(tint, vec3(0.42, 0.92, 1.05), clamp((c - max(s, b * 0.8)) * 1.8, 0.0, 1.0));
+  tint = mix(tint, tint * vec3(1.21, 0.54, 0.61), moonlight * clamp(vLt.x - b * 0.62, 0.0, 1.0));
   vec3 col = t.rgb * l * vLt.z * tint;
   col = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))), desat);
   col = mix(col, fogColor, smoothstep(fogNear, fogFar, vDist));
@@ -398,6 +403,9 @@ window.__bh = G;   // handy for testing in the browser console
 // ---------- creatures ----------
 const guestFocus = () => ents.focus && ents.focus.mpId ? ents.focus : null;   // Play Together: a creature is busy with a visiting friend
 const ents = new Entities(scene, {
+  ultra: () => G.dim === "overworld" ? G.meta?.ultra : null,
+  ultraNoise: () => G.challengeNoise && G.challengeNoise.until >= G.meta?.ultra?.elapsed ? G.challengeNoise : null,
+  ultraBreach: breachDefense,
   world: () => G.world, player: () => ents.focus || G.player, settings: () => G.wset,
   creative: () => guestFocus() ? G.creative : G.creative || G.spectator, alive: () => guestFocus() ? !guestFocus().mpDead : G.state !== "dead",
   wildlifeDefeated: e => {
@@ -466,7 +474,11 @@ const ents = new Entities(scene, {
   holds: id => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === id),
   consume: () => { const s = G.inv.slots[G.useSlot]; if (s && !G.creative) { s.n--; if (!s.n) G.inv.slots[G.useSlot] = null; } G.hudDirty = true; heldId = -1; },
   wear: () => { const s = G.inv.slots[G.useSlot]; if (s) wearTool(s, 1); },
-  adv: (type, arg) => { if (!guestFocus()) G.adv(type, arg); }, talk: e => !!(G.campaign && G.campaign.talk(e)),
+  adv: (type, arg) => {
+    if (guestFocus()) return;
+    if (G.meta?.ultra && type === "kill") G.stats.kills = (G.stats.kills || 0) + 1;
+    G.adv(type, arg);
+  }, talk: e => !!(G.campaign && G.campaign.talk(e)),
   giveStack: st => { if (G.inv.add(st.id, 1, st)) spawnDrop(st.id, 1, G.player.pos.x, G.player.pos.y + 0.5, G.player.pos.z, st); else { Sound.pickup(); G.hudDirty = true; } },   // Milestone 17
   swapHeld: id => swapHeld(id), give: (id, n) => guestFocus() ? MP.giveGuest(guestFocus(), id, n) : G.inv.add(id, n) === 0 ? (G.hudDirty = true, Sound.pickup(), true) : false,
   invisible: () => G.effects.invis ? [36, 37, 38, 39].filter(i => G.inv.slots[i]).length : -1,   // Milestone 16: -1 = seen; else how many armor pieces give you away
@@ -617,7 +629,7 @@ function swapHeld(id) {
 // ---------- status effects (poison, queasy, burning) ----------
 // Each effect has seconds left (G.effects) and a strength (G.elv, 1 when not set)
 function addEffect(k, t, lv = 1) {
-  if (G.creative || G.spectator) return;
+  if (G.creative || G.spectator || (G.meta?.ultra && k === "absorb")) return;
   if (k === "fire" && G.effects.fireRes) return;   // Fire Resistance keeps you from catching fire
   G.effects[k] = Math.max(G.effects[k] || 0, t); G.elv[k] = Math.max(lv, G.elv[k] || 1);
   if (k === "absorb") G.absorb = Math.max(G.absorb, 4 * lv);   // golden hearts that soak up damage first
@@ -628,7 +640,7 @@ let effT = 0, regenAcc = 0;
 function applyPotion(s, mul = 1) {
   const p = G.player;
   for (const e of PO.effectsOf(s, mul)) {
-    if (e.instant === "heal") { p.health = Math.min(20, p.health + Math.round(4 * 2 ** (e.lv - 1) * mul)); puff(p.pos.x, p.pos.y + 1.6, p.pos.z, "heart"); }
+    if (e.instant === "heal") { p.health = Math.min(maxHealth(), p.health + Math.round(4 * 2 ** (e.lv - 1) * mul)); puff(p.pos.x, p.pos.y + 1.6, p.pos.z, "heart"); }
     else if (e.instant === "harm") hurt(Math.round(6 * 2 ** (e.lv - 1) * mul), "A Potion of Harming hurt you.", null, true, "magic");
     else addEffect(e.key, e.dur, e.lv);
   }
@@ -652,7 +664,7 @@ function tickEffects(dt) {
     if (k === "fire") { if ((p.inWater && !p.inLava) || G.effects.fireRes) { delete G.effects.fire; G.hudDirty = true; } else if (tick) hurt(1, "You were burned. Jump in water to put out flames!", null, true, "fire"); }
     if (k === "blight" && tick && Math.floor(G.effects[k]) % 2 === 0) hurt(1, "The Blight wore you down. Blight Rattlers cause it, so fight them with good armor.", null, true);
     // Regeneration heals 1 point every 2.5 s (level I), 1.25 s (level II)
-    if (k === "regen") { regenAcc += dt; const every = 2.5 / (G.elv.regen || 1); if (regenAcc >= every) { regenAcc = 0; if (p.health < 20) { p.health = Math.min(20, p.health + 1); G.hudDirty = true; } } }
+    if (k === "regen") { regenAcc += dt; const every = 2.5 / (G.elv.regen || 1); if (regenAcc >= every) { regenAcc = 0; if (p.health < maxHealth()) { p.health = Math.min(maxHealth(), p.health + 1); G.hudDirty = true; } } }
   }
 }
 
@@ -1832,7 +1844,8 @@ function explode(x, y, z, power, src) {
   Sound.explode(dist); R.vibrate(x, y, z, 15);
   for (let i = 0; i < 5; i++) puff(x + (Math.random() - 0.5) * power, y + (Math.random() - 0.5) * power, z + (Math.random() - 0.5) * power, "poof");
   // blocks
-  const griefing = G.wset.griefing || !(src && src.def);   // Blast Blocks always break things; creatures only if allowed
+  const mobBlast = G.meta.ultra && src?.def;
+  const griefing = (G.wset.griefing && !mobBlast) || !(src && src.def);   // Blast Blocks always break things; creatures only if allowed
   if (griefing) {
     const r = Math.ceil(power);
     for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) {
@@ -1852,11 +1865,12 @@ function explode(x, y, z, power, src) {
     ents.damage(e, Math.round(k * power * 5), "explosion", { x: (e.pos.x - x) / l * k * 1.5, z: (e.pos.z - z) / l * k * 1.5 });
   }
   MP.blast(x, y, z, reach, power, src);   // Play Together: friends nearby get caught too
-  if (dist < reach) {
+  const covered = mobBlast && !lineOfSight(w, { x, y, z }, { x: p.pos.x, y: p.pos.y + 1, z: p.pos.z });
+  if (dist < reach && !covered && !(mobBlast && G.meta.ultra.elapsed < 30)) {
     const k = 1 - dist / reach, mul = { peaceful: 0.4, easy: 0.6, normal: 1, hard: 1.4 }[G.wset.difficulty] || 1;
     const l = Math.hypot(p.pos.x - x, p.pos.z - z) || 1;
     p.vel.x += (p.pos.x - x) / l * k * 12; p.vel.z += (p.pos.z - z) / l * k * 12; p.vel.y += k * 8;
-    hurt(Math.round(k * power * 4.5 * mul), src && src.def ? `A ${src.def.name} exploded next to you!` : "You were caught in an explosion!", null, false, "blast");
+    hurt(Math.min(mobBlast ? 5 : Infinity, Math.round(k * power * 4.5 * mul)), src && src.def ? `A ${src.def.name} exploded next to you!` : "You were caught in an explosion!", mobBlast ? src : null, false, "blast");
   }
 }
 const primed = [];
@@ -2199,10 +2213,11 @@ function makeWorld(dim, reopening = false) {
   if (dim === "nether") { gen.citadel = chooseCitadel(); CP.stampNether(gen, data); }   // where Cindermaw's citadel stands in this world (+ the campaign's seal shrines)
   if (dim === "overworld") {
     const villageSafeData = surveyed ? reserveSurveyedVillages(gen, data, surveyed) : data;
-    if (!CP.plan(gen, villageSafeData)) ST.plan(gen, villageSafeData);
+    gen.ultraHardcore = !!G.meta.ultra;
+    if (!CP.plan(gen, villageSafeData) && !gen.ultraHardcore) ST.plan(gen, villageSafeData);
     const placementData = stonehavenPlacementData(gen, villageSafeData, G.story);
     L.prepareOverworld(gen, placementData);   // the Keeper excavation and temple entrances, stamped into land nobody has visited yet
-    if (CP.on()) CP.stamp(gen, data); else ST.stamp(gen);   // the village (or the house) goes in last, so nothing else draws over it
+    if (CP.on()) CP.stamp(gen, data); else if (!gen.ultraHardcore) ST.stamp(gen);   // the village (or the house) goes in last, so nothing else draws over it
     const expansion = G.story.leviathan ||= {};
     const temple = G.story.lost?.tsites?.desert;
     expansion.sites = planRelicSites(gen, placementData, expansion.sites, temple);
@@ -2272,7 +2287,35 @@ async function loadArea(x, z, label) {
 }
 
 // ---------- starting, loading, saving ----------
+let challengeSaves = Promise.resolve(), releaseChallengeLock = null;
+
+async function lockChallenge(id) {
+  if (!navigator.locks) return;
+  await new Promise((resolve, reject) => {
+    navigator.locks.request("blockhaven-ultra-" + id, { ifAvailable: true }, lock => {
+      if (!lock) { reject(new Error("This Ultra Hardcore run is already open in another tab.")); return; }
+      return new Promise(release => { releaseChallengeLock = release; resolve(); });
+    }).catch(reject);
+  });
+}
+function unlockChallenge() {
+  releaseChallengeLock?.();
+  releaseChallengeLock = null;
+}
+const maxHealth = () => survivalMaximum({ mode: G.mode, campaign: G.meta?.campaign, hardcore: G.meta?.hardcore,
+  ultra: G.meta?.ultra, expedition: G.story?.lostWorld, guest: G.guest }, G.profile);
+const maxAir = () => G.meta?.ultra ? UHC_AIR : 10;
 async function startWorld(save) {
+  if (save.ultra && (G.guest || !(await Saves.persistent()))) throw new Error("This challenge requires a local single-player save.");
+  G.profile = await Saves.profile();
+  G.challengeSaveFailed = false;
+  if (save.ultra?.fallen) {
+    G.meta = null; G.state = "title";
+    await UI.showWorlds();
+    UI.toast("This Ultra Hardcore run has ended. Create a new run to try again.", "bad");
+    return;
+  }
+  if (save.ultra) await lockChallenge(save.id);
   if (window.PlayCount) PlayCount.hit("blockhaven");
   dismount(true);
   clearWorldMeshes();
@@ -2286,6 +2329,11 @@ async function startWorld(save) {
   G.voidInv = Array.from({ length: 27 }, (_, i) => (save.voidInv && save.voidInv[i] && itemDef(save.voidInv[i].id) ? { ...save.voidInv[i] } : null));
   Adv.load(save.adv); G.story = save.story || {}; G.stats = save.stats || {};
   if (save.hardcore) { G.wset.difficulty = "hard"; G.wset.keepInv = false; }
+  if (save.ultra) { G.wset = { ...UHC_SETTINGS }; G.mode = "survival"; }
+  G.resting = null; G.challengeNoise = null; G.challengeCheck = 0; G.fatigueHUD = -1;
+  G.challengeCueUntil = 0; G.challengeHudSecond = -1; G.challengeDread = 0; G.challengeMusicAt = 0;
+  G.challengeDefenses = new Map(); G.challengeBreachAt = 0; document.getElementById("ultraCue").hidden = true;
+  G.respawnGuard = 0; iframes = 0; starveT = healT = drownT = effT = regenAcc = 0;
   if (G.dim === "forsaken") {   // the Forsaken World's map has to be downloaded first
     try { UI.setLoading(0.05, "Finding the Forsaken World…"); await F.loadTemplate(); }
     catch (e) { G.dim = "overworld"; if (save.player) save.player.pos = { ...(save.player.spawn || { x: 0, y: 70, z: 0 }) }; UI.toast("The Forsaken World couldn't load right now, so you woke up on the Surface.", "bad"); }
@@ -2297,24 +2345,27 @@ async function startWorld(save) {
   G.inv = new Inventory(); G.inv.load(save.inventory);
   G.time = save.time ?? 0.02; G.tips = save.tips || {};
   const p = G.player = new Player();
+  p.health = maxHealth();
   if (save.player) {
     Object.assign(p.pos, save.player.pos); p.yaw = save.player.yaw || 0; p.pitch = save.player.pitch || 0;
-    p.health = save.player.health ?? 20; p.hunger = save.player.hunger ?? 20; p.sat = save.player.sat ?? 5; p.exhaust = save.player.exhaust || 0; p.spawn = save.player.spawn; p.anchor = save.player.anchor || null; p.flying = !!save.player.flying && G.creative;
+    p.health = Number.isFinite(save.player.health) ? Math.max(0, Math.min(maxHealth(), save.player.health)) : maxHealth(); p.hunger = save.player.hunger ?? 20; p.sat = save.player.sat ?? 5; p.exhaust = save.player.exhaust || 0; p.spawn = save.player.spawn; p.anchor = save.player.anchor || null; p.flying = !!save.player.flying && G.creative;
     // effects you had (like a totem's regeneration) carry over a save
     for (const [k, t] of Object.entries(save.player.effects || {})) if (t > 0) G.effects[k] = t;
-    G.elv = { ...(save.player.elv || {}) }; G.absorb = save.player.absorb || 0;
+    G.elv = { ...(save.player.elv || {}) }; G.absorb = save.ultra ? 0 : save.player.absorb || 0;
   }
+  if (save.ultra) { delete G.effects.absorb; if (save.ultra.status === "active") syncChallengeClock(); }
   if (!p.spawn) {   // a new world: start on the path in front of the Starter Home (or at the natural spawn spot)
-    const h = G.dim === "overworld" ? (CP.spawnPoint() || ST.spawnPoint()) : null, s = h || G.gen.findSpawn();
+    const h = G.dim === "overworld" ? (CP.spawnPoint() || (!save.ultra && ST.spawnPoint())) : null, s = h || G.gen.findSpawn();
     p.spawn = { x: s.x, y: h ? h.y : null, z: s.z }; Object.assign(p.pos, { x: s.x, y: h ? h.y : 70, z: s.z });
     if (h) p.yaw = h.yaw;
     else if (G.dim === LOST_WORLD) p.yaw = Math.PI;
   }
   ST.resetClock(); CP.resetSession();
-  p.air = 10; G.selected = 0; G.mining = null; G.hudDirty = true;
+  p.air = save.ultra && Number.isFinite(save.player?.air) ? Math.max(0, Math.min(maxAir(), save.player.air)) : maxAir(); G.selected = 0; G.mining = null; G.hudDirty = true;
   // the page was closed on the "You fainted" screen: wake up properly (Hardcore worlds go straight to Spectator)
   if (save.hardcoreOver && G.mode !== "spectator") G.mode = G.meta.mode = "spectator";
   const needsRespawn = p.health <= 0 && !G.spectator;
+  if (needsRespawn && save.ultra) throw new Error("This challenge has no living checkpoint.");
   if (G.spectator) { p.flying = true; p.noclip = true; p.health = 20; }
   // build the land around the player before dropping them in
   await loadArea(p.pos.x, p.pos.z, G.dim === "nether" ? "Heating up the Ember Depths" : "Shaping hills and valleys");
@@ -2335,7 +2386,8 @@ async function startWorld(save) {
     updateTips();
     return;
   }
-  await saveNow(false);
+  if (save.ultra) await saveChallengeSnapshot(structuredClone(snapshot()));
+  else await saveNow(false);
   G.state = "pause"; UI.show("none"); UI.hud();
   document.body.classList.remove("menu-bg");
   G.resume();
@@ -2392,19 +2444,40 @@ function snapshot() {
   G.dimData[G.dim] = dimSnapshot(G.world);
   return {
     ...G.meta, mode: G.mode, version: SAVE_VERSION, played: Date.now(), time: G.time, day: G.meta.day || 1, tips: G.tips, mods: undefined, containers: undefined,
-    player: { pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, health: p.health, hunger: p.hunger, sat: p.sat, exhaust: p.exhaust, spawn: p.spawn, anchor: p.anchor || null, flying: p.flying, dim: G.dim, effects: { ...G.effects }, elv: { ...G.elv }, absorb: G.absorb },
+    ...(G.meta.ultra ? { ultra: G.meta.ultra } : {}),
+    player: { air: p.air, pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, health: p.health, hunger: p.hunger, sat: p.sat, exhaust: p.exhaust, spawn: p.spawn, anchor: p.anchor || null, flying: p.flying, dim: G.dim, effects: { ...G.effects }, elv: { ...G.elv }, absorb: G.absorb },
     inventory: G.inv.toJSON(), dims: { ...G.dimData }, xp: G.xp, settings: { ...G.wset }, gen: G.meta.gen || 1,
     voidInv: G.voidInv.map(s => s && { ...s }), adv: Adv.toJSON(), story: { ...copyAncientProgress(G.story) }, hardcore: !!G.meta.hardcore, hardcoreOver: !!G.meta.hardcoreOver, stats: { ...G.stats }
   };
+}
+function saveChallengeSnapshot(snap) {
+  const current = G.meta;
+  const save = challengeSaves.then(async () => {
+    if (G.challengeSaveFailed) throw new Error("Reopen the challenge to restore its most recent checkpoint.");
+    snap.ultra.revision = current.ultra.revision;
+    G.profile = await Saves.saveChallenge(snap);
+    current.ultra.revision++;
+    G.hudDirty = true;
+  });
+  challengeSaves = save.catch(() => {});
+  return save;
 }
 async function saveNow(show) {
   if (!G.world || !G.meta || G.guest || String(G.meta.id).startsWith("guest-")) return;   // a Play Together guest never saves the host's world
   try {
     const snap = snapshot();
     G.meta.played = snap.played;
-    const ok = await Saves.save(snap);
+    const ok = snap.ultra ? (await saveChallengeSnapshot(structuredClone(snap)), true) : await Saves.save(snap);
     if (show) { UI.saved(); if (!ok) UI.toast("Saved for now. Use Download world to keep it after you close the page.", "bad"); }
-  } catch (e) { UI.toast("Couldn't save: " + e.message, "bad"); }
+  } catch (e) {
+    if (G.meta?.ultra) {
+      G.challengeSaveFailed = true;
+      if (G.state === "play") pause();
+    }
+    UI.toast("Couldn't save: " + e.message, "bad");
+    return false;
+  }
+  return true;
 }
 
 // ---------- pause / resume / pointer lock ----------
@@ -2432,6 +2505,7 @@ function pause() {
   saveNow(false);
 }
 G.resume = () => {
+  if (G.meta?.ultra?.fallen || G.challengeSaveFailed) return;
   Sound.start();
   G.state = "play"; UI.show("none"); G.hudDirty = true;
   requestLock();
@@ -2444,6 +2518,7 @@ G.setMode = mode => {
   if (mode === G.mode) return true;
   const p = G.player;
   G.mode = G.meta.mode = mode;
+  p.health = Math.min(maxHealth(), p.health);
   G.mining = null; G.eat = null; G.bowT = -1;
   creativeStormUntil = 0; stormStage = 0; stormSampleT = 0;
   retireWildLeviathans();
@@ -2513,7 +2588,8 @@ window.addEventListener("keydown", e => {
   else if (e.code === G.settings.keySwap) swapHands();
   else if (e.code === "KeyL") openPanel("advancements");
   else if (e.code === "KeyJ") openPanel("journal");
-  else if (e.code === "KeyM") { if (isLostWorldDimension(G.dim) || G.dim === HOLLOW_SANDS || ST.canOpen()) openPanel("xmap"); else UI.toast("You need an Explorer's Map. Right-click the Expedition Table in your Starter Home for a new one.", "bad"); }
+  else if (e.code === "KeyM") { if (isLostWorldDimension(G.dim) || G.dim === HOLLOW_SANDS || ST.canOpen()) openPanel("xmap"); else UI.toast(G.meta.ultra ? "Craft an Explorer's Map from paper and a compass at a Workbench." :
+    "You need an Explorer's Map. Right-click the Expedition Table in your Starter Home for a new one.", "bad"); }
   else if (e.code === "KeyN") {
     if (isLostWorldDimension(G.dim)) {
       const visible = toggleLostWorldWaypoint(G);
@@ -2628,6 +2704,10 @@ const id_isLeaves = id => BLOCKS[id]?.drops === "leaves";
 const TIER_NAME = ["", "wooden", "stone", "iron"];
 
 function updateMining(dt, hit) {
+  if (G.meta.ultra && hit && mouseL && locked) {
+    challengeNoise(14);
+    dt *= 1 - Math.max(0, G.meta.ultra.fatigue - 45) * 0.005;
+  }
   if (!mouseL || G.creative || G.spectator || !hit) { G.mining = null; crack.visible = false; return; }
   const key = hit.x + "," + hit.y + "," + hit.z;
   if (!G.mining || G.mining.key !== key) {
@@ -2662,7 +2742,7 @@ function creativeBreak() {
 function wearTool(stack, n) {
   if (G.creative || stack.dur === undefined) return;
   if (!EN.wears(stack)) { G.hudDirty = true; return; }   // Unbreaking
-  stack.dur -= n;
+  stack.dur -= n * (G.meta.ultra ? 1.25 : 1);
   if (stack.dur <= 0) {
     const i = G.inv.slots.indexOf(stack); if (i >= 0) G.inv.slots[i] = null;
     Sound.breakBlock("wood"); UI.toast(`Your ${itemDef(stack.id).name} broke!`, "bad");
@@ -2834,6 +2914,7 @@ function attack() {
   }
   if (landed) {
     if (crit) puff(e.pos.x, e.pos.y + e.h, e.pos.z, "poof");
+    if (G.meta.ultra && !G.meta.ultra.fallen) { G.meta.ultra.fatigue = Math.min(100, G.meta.ultra.fatigue + 2); challengeNoise(20); }
     if (s && d.tool) wearTool(s, d.tool.type === "sword" ? 1 : 2);
   }
   G.attackCd = d?.tool?.attackCooldown ?? (d?.tool?.type === "sword" ? 0.45 : 0.6); G.swing = 0.01;
@@ -3563,7 +3644,11 @@ function finishEat() {
   // food points fill the food bar; fullness (saturation) can never be more than the food bar
   p.hunger = Math.min(20, p.hunger + sd.food);
   p.sat = Math.min(p.hunger, (p.sat || 0) + (sd.sat || 0));
-  if (sd.sideEffect === "poison" || (sd.raw && slot.id === I.RAW_CHICKEN && Math.random() < 0.3)) { addEffect("poison", 4); UI.toast("That made you feel sick!", "bad"); }
+  if (G.meta.ultra && sd.food >= 4 && !sd.raw) G.meta.ultra.meals++;
+  if (G.meta.ultra && sd.raw && Math.random() < 0.45) {
+    addEffect("queasy", 24); addEffect("poison", 4); UI.toast("Raw food made you sick. Cook your next meal.", "bad");
+  }
+  if (sd.sideEffect === "poison" || (sd.raw && !G.meta.ultra && slot.id === I.RAW_CHICKEN && Math.random() < 0.3)) { addEffect("poison", 4); UI.toast("That made you feel sick!", "bad"); }
   if (sd.sideEffect === "queasy" && Math.random() < 0.8) { addEffect("queasy", 30); UI.toast("Yuck! You feel queasy (you'll get hungry faster for a bit).", "bad"); }
   if (sd.sideEffect === "cure") { G.effects = {}; G.elv = {}; G.absorb = 0; UI.toast("Milk cleared your effects.", "good"); }
   if (sd.sideEffect === "blink") chorusBlink();
@@ -3677,6 +3762,17 @@ function placeBed(hit, slot) {
   Sound.place("soft"); G.hudDirty = true; heldId = -1;
 }
 function useBed(hit) {
+  if (G.meta.ultra) {
+    const p = G.player.pos;
+    if (G.dim !== "overworld" || skyCols.at(Math.floor(p.x), Math.floor(p.z)).top < p.y + 1 ||
+      ents.near(p.x, p.y, p.z, 10, e => !e.dead && (e.def.hostile || (e.def.wildlife && e.angry > 0))).length) {
+      UI.toast("Rest requires shelter and distance from enemies.", "bad");
+      return;
+    }
+    G.resting = { x: p.x, y: p.y, z: p.z, left: 20 };
+    UI.toast("Resting restores stamina. The night continues.", "good");
+    return;
+  }
   if (G.world.gen.isNether()) { breakBlock(hit.x, hit.y, hit.z, false); explode(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5, 3, null); UI.toast("Beds explode in the Ember Depths! Only sleep on the Surface.", "bad"); return; }
   const meta = metaOf(hit.v), [dx, dz] = DIR[meta & 3];
   const head = meta & HEAD ? { x: hit.x, z: hit.z } : { x: hit.x + dx, z: hit.z + dz };
@@ -4566,6 +4662,7 @@ function removeFor(recipe, id, n) {
   return true;
 }
 G.craft = (recipe, many) => {
+  if (recipe.ultra && !G.meta.ultra) return;
   if (recipe.cutter && G.panelKind !== "cutter") { UI.toast("Use a Stonecutter for that.", "bad"); Sound.error(); return; }   // Milestone 23
   if (recipe.table && G.panelKind !== "table") { UI.toast("Stand at a Workbench to make that.", "bad"); Sound.error(); return; }
   let made = 0;
@@ -4619,12 +4716,13 @@ function updateFurnaces(dt) {
   for (const [key, f] of G.world.containers) {
     if (f.type !== "furnace") continue;
     const [inp, fuel, out] = f.slots;
-    const [fx, fy, fz] = key.split(",").map(Number), cook = BLOCKS[G.world.id(fx, fy, fz)]?.cook;   // Milestone 23: smoker (food only) and blast furnace (ores only), twice as fast
+    const [fx, fy, fz] = key.split(",").map(Number), blockId = G.world.id(fx, fy, fz);
+    const cook = BLOCKS[blockId]?.cook, camp = blockId === B.CAMPFIRE;   // Milestone 23: smoker (food only) and blast furnace (ores only), twice as fast
     const result = inp && (!cook || cookable(cook, inp.id)) ? SMELT[inp.id] : undefined, smeltTime = cook ? SMELT_TIME / 2 : SMELT_TIME;
     const canCook = result !== undefined && (!out || (out.id === result && out.n < maxStack(result)));
     const wasLit = f.burn > 0;
     if (f.burn > 0) f.burn -= dt;
-    if (f.burn <= 0 && canCook && fuel) {
+    if (f.burn <= 0 && (canCook || camp) && fuel) {
       f.burn = f.burnMax = FUEL[fuel.id]; fuel.n--; if (!fuel.n) f.slots[1] = null;
     }
     if (f.burn > 0 && canCook) {
@@ -4914,13 +5012,17 @@ function thornsHit(src) {
     const s = G.inv.slots[i], t = EN.lvl(s, "thorns");
     if (!t || Math.random() >= 0.15 * t) continue;
     ents.damage(src, 1 + Math.floor(Math.random() * 4), "player");
-    s.dur = (s.dur ?? itemDef(s.id).armor.dur) - 2;
+    s.dur = (s.dur ?? itemDef(s.id).armor.dur) - (G.meta.ultra ? 2.5 : 2);
     if (s.dur <= 0) { G.inv.slots[i] = null; UI.toast(`Your ${itemDef(s.id).name} broke!`, "bad"); }
   }
 }
 function hurt(n, why, src, bypassArmor, kind, noKnockback, contact) {
   const p = G.player;
-  if (G.creative || G.spectator || G.state === "dead" || n <= 0) return;
+  if (G.creative || G.spectator || G.state === "dead" || G.meta?.ultra?.fallen || n <= 0) return;
+  const run = G.meta.ultra;
+  if (run && run.elapsed < 30 && G.dim === "overworld" && src?.def && !src.tame) return;
+  if (run && src?.def.wildlife) n = Math.min(n, src.sp === "grizzly_bear" ? 4 : 3);
+  G.resting = null;
   R.vibrate(p.pos.x, p.pos.y + 1, p.pos.z, 8);
   if (G.totemGuard > 0 && kind !== "void") return;
   if (G.respawnGuard > 0 && kind !== "void") return;   // just woke up   // a Lifeward Totem just saved you: a moment of safety
@@ -4948,7 +5050,7 @@ function hurt(n, why, src, bypassArmor, kind, noKnockback, contact) {
   if (!bypassArmor) {
     const a = armorPoints();
     n = n * (1 - Math.min(20, a) * 0.04);
-    for (let i = 36; i < 40; i++) { const s = G.inv.slots[i]; if (s && itemDef(s.id).armor && EN.wears(s, true)) { s.dur = (s.dur ?? itemDef(s.id).armor.dur) - 1; if (s.dur <= 0) { G.inv.slots[i] = null; UI.toast(`Your ${itemDef(s.id).name} broke!`, "bad"); } } }
+    for (let i = 36; i < 40; i++) { const s = G.inv.slots[i]; if (s && itemDef(s.id).armor && EN.wears(s, true)) { s.dur = (s.dur ?? itemDef(s.id).armor.dur) - (G.meta.ultra ? 1.25 : 1); if (s.dur <= 0) { G.inv.slots[i] = null; UI.toast(`Your ${itemDef(s.id).name} broke!`, "bad"); } } }
     iframes = 0.5;
   }
   { const epf = EN.protectionPoints(G.inv.slots.slice(36, 40), kind); if (epf) n *= 1 - epf / 25; }   // Protection enchantments (each point takes 4% off)
@@ -5054,14 +5156,17 @@ function die(why) {
   G.effects = {}; G.elv = {}; G.absorb = 0;
   G.state = "dead"; keys.clear(); mouseL = mouseR = false;
   document.getElementById("deathWhy").textContent = why;
+  if (G.meta.ultra) document.getElementById("ultraCue").hidden = true;
   if (document.pointerLockElement) document.exitPointerLock();
   if (G.meta.hardcore) {   // Hardcore: the adventure is over for good. You can still look around as a Spectator.
     G.meta.hardcoreOver = true; G.deathSpot = { ...p.pos };
   }
+  if (G.meta.ultra) failChallenge(G.meta.ultra, why);
   saveNow(false);
   UI.death(!!G.meta.hardcore);
 }
 G.respawn = async () => {
+  if (G.meta?.ultra) return;
   const p = G.player;
   if (G.meta.hardcore) {   // Spectator: float through the world where you fell; no items, no damage, nothing to break
     G.mode = G.meta.mode = "spectator";
@@ -5073,7 +5178,7 @@ G.respawn = async () => {
     UI.toast("Spectator: fly with Space and C. You can look around, but this Hardcore world's adventure is over.");
     return;
   }
-  p.health = 20; p.hunger = 20; p.sat = 5; p.air = 10; p.exhaust = 0; p.flying = false;
+  p.health = maxHealth(); p.hunger = 20; p.sat = 5; p.air = 10; p.exhaust = 0; p.flying = false;
   G.respawnGuard = 3;   // a few seconds where nothing can hurt you right after waking up
   if (G.dim === "forsaken") {   // in the Forsaken World you wake at your last restored shrine (or the refuge)
     const s = F.respawnSpot();
@@ -5141,6 +5246,151 @@ async function respawnAtAnchor(p) {
 // Food follows Minecraft Java Edition 1.20.1: actions add "exhaustion"; every 4 points of it uses up 1 fullness (saturation),
 // or 1 food point once fullness is gone. A full food bar with fullness heals quickly; 18+ food heals slowly.
 let healT = 0, starveT = 0, drownT = 0;
+function syncChallengeClock() {
+  const run = G.meta.ultra;
+  G.time = (run.elapsed % UHC_DAY) / UHC_DAY;
+  G.meta.day = challengeDay(run);
+}
+function tickChallenge(dt) {
+  if (G.dim !== "overworld") return;
+  const run = G.meta.ultra;
+  const events = advanceChallenge(run, dt);
+  syncChallengeClock();
+  for (const event of events) {
+    if (event === "dusk" || event === "moon") {
+      challengeCue(event, run, G);
+      Sound.ultraCue(event);
+      G.challengeCueUntil = G.clock + 8;
+      continue;
+    }
+    if (event === "victory") {
+      G.state = "pause"; Sound.pause();
+      UI.show("pause");
+      if (document.pointerLockElement) document.exitPointerLock();
+      document.getElementById("ultraCue").hidden = true;
+      saveNow(false).then(ok => {
+        if (!ok || G.meta?.ultra !== run) return;
+        challengeCue(event, run, G);
+        UI.show("ultraVictory");
+        Sound.start(); Sound.ultraCue("victory");
+      });
+      continue;
+    }
+    if (event === "day1") { G.challengeDread = run.elapsed + 8; Sound.ultraCue("hunt"); }
+    saveNow(false).then(ok => {
+      if (!ok || G.meta?.ultra !== run || run.fallen) return;
+      challengeCue(event, run, G);
+      G.challengeCueUntil = G.clock + 10;
+      Sound.ultraCue("reward");
+    });
+  }
+  if (bloodMoon(run) && run.elapsed > G.challengeMusicAt) {
+    G.challengeMusicAt = run.elapsed + 13;
+    Sound.ultraCue("ambience");
+  }
+}
+function challengeNoise(radius, site = G.player.pos) {
+  const run = G.meta.ultra;
+  if (run.status !== "active" || (hunterLevel(run) < 1 && radius < 26)) return;
+  if (G.challengeNoise?.until > run.elapsed + 6 && G.challengeNoise.radius >= radius) return;
+  G.challengeNoise = { x: site.x, y: site.y, z: site.z, radius, until: run.elapsed + 10 };
+}
+function breachDefense(e, x, y, z) {
+  const run = G.meta.ultra, w = G.world;
+  const id = w.id(x, y, z), def = BLOCKS[id];
+  if (run.elapsed < G.challengeBreachAt) return;
+  const cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK);
+  const edits = w.mods.get(chunkKey(cx, cz));
+  if (!edits?.has(idx(x - cx * CHUNK, y, z - cz * CHUNK))) return;
+  if (!def || def.tool !== "axe" || (!isDoor(id) && !def.fence && !def.gate) ||
+      (!def.fence && (metaOf(w.get(x, y, z)) & OPEN))) return;
+  const key = x + "," + y + "," + z;
+  const tally = G.challengeDefenses;
+  if (tally.size > 40) for (const [k, hit] of tally) if (run.elapsed - hit.at >= 8) tally.delete(k);
+  if (tally.size > 48 && !tally.has(key)) return;
+  const prior = tally.get(key);
+  if (prior && run.elapsed - prior.at < 1) return;
+  const count = prior?.id === id && run.elapsed - prior.at < 8 ? prior.count + 1 : 1;
+  if (count >= 5) {
+    G.challengeBreachAt = run.elapsed + 10;
+    tally.clear();
+    breakBlock(x, y, z, true);
+    return;
+  }
+  tally.set(key, { id, count, at: run.elapsed });
+  if (count === 1) UI.toast("A Groaner is battering a wooden defense.", "bad");
+  Sound.mob("clank", 3);
+}
+function ultraSurvival(dt, p) {
+  const run = G.meta.ultra, pos = p.pos;
+  const previous = run.fatigue;
+  const pace = Math.hypot(p.vel.x, p.vel.z);
+  const sprinting = pace > 4 && (keys.has("ShiftLeft") || keys.has("ShiftRight"));
+  const miningNow = G.mining && mouseL;
+  const rest = G.resting;
+  if (rest) {
+    rest.left -= dt;
+    if (rest.left <= 0 || Math.hypot(pos.x - rest.x, pos.y - rest.y, pos.z - rest.z) > 1.3 ||
+      ents.near(pos.x, pos.y, pos.z, 8, e => !e.dead && (e.def.hostile || (e.def.wildlife && e.angry > 0))).length) {
+      G.resting = null;
+      UI.toast(rest.left <= 0 ? "You're rested." : "Rest interrupted.");
+    }
+  }
+  run.fatigue = Math.min(100, Math.max(0, previous + dt *
+    (G.resting ? -4 : miningNow ? 0.52 : sprinting ? 0.66 : pace > 1 ? 0.1 : -0.18)));
+  p.speedMul *= 1 - Math.max(0, run.fatigue - 50) * 0.006;
+  p.exhaust += dt * (0.073 + (sprinting ? 0.055 : 0) + (run.fatigue > 75 ? 0.025 : 0));
+  if (sprinting) challengeNoise(18);
+  if (G.dim !== "overworld" || run.status !== "active" || (G.challengeCheck -= dt) > 0) return;
+  G.challengeCheck = 1;
+  updateChallengeHazards(run, p);
+}
+function updateChallengeHazards(run, p) {
+  const pos = p.pos, x = Math.floor(pos.x), y = Math.floor(pos.y), z = Math.floor(pos.z);
+  const w = G.world, col = skyCols.at(x, z);
+  const exposed = y >= col.top;
+  let warm = false;
+  for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) {
+    for (let dy = -1; dy <= 1; dy++) if (idOf(w.get(x + dx, y + dy, z + dz)) === B.CAMPFIRE &&
+      (metaOf(w.get(x + dx, y + dy, z + dz)) & LIT)) {
+      warm = true;
+      if (!G.settings.reducedMotion && Math.random() < .45) puff(x + dx + .5, y + dy + .85, z + dz + .5, "ash");
+      challengeNoise(26, { x: x + dx + .5, y: y + dy, z: z + dz + .5 });
+    }
+  }
+  const cold = col.kind === 2 && (G.time > .54 || G.wx.rain > .4);
+  const heat = ["sandy", "badlands"].includes(col.biome) && G.time > .16 && G.time < .34;
+  const danger = exposed && !warm && (cold || G.wx.rain > .65);
+  if (exposed && heat) p.exhaust += 0.19;
+  run.exposure = danger ? run.exposure + 1 : Math.max(0, run.exposure - 3);
+  if (run.exposure === 30) UI.toast("You're getting chilled. Find cover or a campfire.", "bad");
+  if (run.exposure >= 65 && run.exposure % 15 === 5) hurt(1, "Cold exposure wore you down.", null, true);
+  const underground = w.gen.column(x, z).h - y > 7;
+  if (!run.cave && run.elapsed >= run.nextCave && underground && G.mining) {
+    run.nextCave = run.elapsed + 105;
+    run.cave = { x, y, z, at: run.elapsed + 4 };
+    UI.toast("The ceiling is cracking. Move away!", "bad");
+    Sound.mob("rumble", 2);
+  }
+  if (run.cave) {
+    const c = run.cave;
+    if (!G.settings.reducedMotion) puff(c.x + .5, c.y + 1.85, c.z + .5, "ash");
+    if (run.elapsed >= c.at) {
+      run.cave = null;
+      Sound.mob("rumble", 5);
+      if (Math.hypot(pos.x - c.x - .5, pos.y - c.y, pos.z - c.z - .5) < 2.5) {
+        hurt(2, "Falling rock struck you.", null, true);
+      } else if (w.id(c.x, c.y + 2, c.z) === B.GRAVEL && !w.id(c.x, c.y + 1, c.z)) {
+        w.set(c.x, c.y + 2, c.z, B.AIR);
+        startFall(c.x, c.y + 2, c.z, B.GRAVEL);
+      }
+      if (!G.settings.reducedMotion) for (let i = 0; i < 12; i++) puff(c.x + .5, c.y + 1.8, c.z + .5, "ash");
+    }
+  }
+  if (run.elapsed >= run.nextRaid && G.state !== "dead") {
+    run.nextRaid = run.elapsed + (raids.challengeStart() ? 420 : 32);
+  }
+}
 function survival(dt) {
   const p = G.player;
   if (G.totemGuard > 0) G.totemGuard -= dt;
@@ -5160,7 +5410,7 @@ function survival(dt) {
   p.swimMul = (G.effects.dolphin ? 1.9 : 1) * (1 + 0.35 * EN.lvl(G.inv.slots[39], "depth_strider"));   // Depth Strider
   tickBeacons(dt);
   if (G.inv.slots[36] && G.inv.slots[36].id === I.CINDER_CROWN) { G.effects.fireRes = Math.max(G.effects.fireRes || 0, 1.5); }   // the Cinder Crown keeps fire away
-  if (p.gliding && (G.glideT = (G.glideT || 0) + dt) >= 1) { G.glideT = 0; const wings = G.inv.slots[37]; if (wings && wings.id === I.GLIDER) { wings.dur = (wings.dur ?? 432) - 1; if (wings.dur <= 0) { G.inv.slots[37] = null; p.gliding = false; UI.toast("Your Glider Wings wore out!", "bad"); } G.hudDirty = true; } }
+  if (p.gliding && (G.glideT = (G.glideT || 0) + dt) >= 1) { G.glideT = 0; const wings = G.inv.slots[37]; if (wings && wings.id === I.GLIDER) { wings.dur = (wings.dur ?? 432) - (G.meta.ultra ? 1.25 : 1); if (wings.dur <= 0) { G.inv.slots[37] = null; p.gliding = false; UI.toast("Your Glider Wings wore out!", "bad"); } G.hudDirty = true; } }
   if (p.inLava && !G.effects.fireRes) { addEffect("fire", 6); if ((G.lavaT = (G.lavaT || 0) - dt) <= 0) { G.lavaT = 0.5; hurt(4, "Lava is very hot! Watch your step.", null, true, "fire"); } }
   const w = G.world, fx = Math.floor(p.pos.x), fy = Math.floor(p.pos.y), fz = Math.floor(p.pos.z);
   if (w.id(fx, fy, fz) === B.FIRE || w.id(fx, fy + 1, fz) === B.FIRE) addEffect("fire", 4);
@@ -5169,15 +5419,16 @@ function survival(dt) {
     if (touch) { G.cactusT = 0.5; hurt(1, "Ouch! Cactus spines are sharp.", null, false, "cactus"); }
   }
   if (p.onGround && w.id(fx, Math.floor(p.pos.y - 0.1), fz) === B.MAGMA && !p.crouch && !EN.lvl(G.inv.slots[39], "frost_walker") && (G.magmaT = (G.magmaT || 0) + dt) > 1) { G.magmaT = 0; hurt(1, "Magma blocks are hot! Crouch (C) to walk on them safely.", null, true, "fire"); }
-  const diff = G.wset.difficulty;
-  if (diff === "peaceful" && (G.peaceT = (G.peaceT || 0) + dt) > 2) { G.peaceT = 0; if (p.health < 20) p.health++; if (p.hunger < 20) p.hunger++; G.hudDirty = true; }
+  const diff = G.wset.difficulty, hp = maxHealth(), air = maxAir();
+  if (G.meta.ultra) ultraSurvival(dt, p);
+  if (diff === "peaceful" && (G.peaceT = (G.peaceT || 0) + dt) > 2) { G.peaceT = 0; if (p.health < hp) p.health++; if (p.hunger < 20) p.hunger++; G.hudDirty = true; }
   // exhaustion → fullness → food
   while (p.exhaust >= 4) { p.exhaust -= 4; if (p.sat > 0) p.sat = Math.max(0, p.sat - 1); else if (diff !== "peaceful") p.hunger = Math.max(0, p.hunger - 1); G.hudDirty = true; }
   healT += dt;
-  if (p.health < 20 && p.hunger >= 20 && p.sat > 0) {   // fast healing: every half second, using fullness
-    if (healT >= 0.5) { healT = 0; p.health = Math.min(20, p.health + 1); p.exhaust += Math.min(p.sat, 6); G.hudDirty = true; }
-  } else if (p.health < 20 && p.hunger >= 18) {        // slow healing: every 4 seconds
-    if (healT >= 4) { healT = 0; p.health = Math.min(20, p.health + 1); p.exhaust += 6; G.hudDirty = true; }
+  if (!G.meta.ultra && p.health < hp && p.hunger >= 20 && p.sat > 0) {   // fast healing: every half second, using fullness
+    if (healT >= 0.5) { healT = 0; p.health = Math.min(hp, p.health + 1); p.exhaust += Math.min(p.sat, 6); G.hudDirty = true; }
+  } else if (p.health < hp && p.hunger >= 18) {        // slow healing: every 4 seconds
+    if (healT >= (G.meta.ultra ? 25 : 4)) { healT = 0; p.health = Math.min(hp, p.health + 1); p.exhaust += 6; G.hudDirty = true; }
   } else if (healT > 4) healT = 0;
   // starving: Easy stops at 5 hearts, Normal at half a heart, Hard can make you faint
   if (p.hunger <= 0) {
@@ -5187,8 +5438,8 @@ function survival(dt) {
   // breath underwater
   if (p.inWater && Math.random() < 0.12 && bubbleColumn(G.world, p.pos.x, p.pos.y, p.pos.z)) puff(p.pos.x, p.pos.y + 0.2, p.pos.z, "spark");   // bubbles in a bubble column
   if (G.inv.slots[36]?.id === I.TURTLE_HELMET && !p.headInWater && !G.creative && !G.spectator) G.effects.waterBreath = Math.max(G.effects.waterBreath || 0, 10);   // Milestone 17, Part D
-  if (p.headInWater && !CP.breathes() && !G.effects.waterBreath && !G.effects.conduit && !G.riding?.def.waterMount) { p.air -= dt / (1 + EN.lvl(G.inv.slots[36], "respiration")); if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
-  else if (p.air < 10) { p.air = Math.min(10, p.air + dt * 4); G.hudDirty = true; }
+  if (p.headInWater && !CP.breathes() && !G.effects.waterBreath && !G.effects.conduit && !G.riding?.def.waterMount) { p.air -= dt / (G.meta.ultra ? 1 : 1 + EN.lvl(G.inv.slots[36], "respiration")); if (p.air < 0) { p.air = 0; drownT += dt; if (drownT > 1) { drownT = 0; hurt(2, "You ran out of air. Swim up for a breath!", null, true); } } G.hudDirty = true; }
+  else { drownT = 0; if (p.air < air) { p.air = Math.min(air, p.air + dt * 4); G.hudDirty = true; } }
 }
 
 // ---------- first-time tips ----------
@@ -5218,7 +5469,9 @@ G.wx = { rain: 0, thunder: 0, kind: 0 };
 function weatherHere() { return G.dim === "overworld" && !!G.meta && !!G.world && G.wset.weather !== false; }
 function updateWeather(dt, running) {
   const p = G.player;
-  const w = weatherHere() ? weatherAt(G.gen.seed, worldSeconds(), DAY_LENGTH, G.meta.wxClear || 0, G.meta.wxSet || null) : { rain: 0, thunder: 0, kind: 0 };
+  const run = G.meta.ultra;
+  const w = weatherHere() ? weatherAt(G.gen.seed, worldSeconds(), DAY_LENGTH, G.meta.wxClear || 0, G.meta.wxSet || null,
+    run?.status === "active" ? run.elapsed : null) : { rain: 0, thunder: 0, kind: 0 };
   G.wx = w;
   if (w.rain < 0.01) { if (wxView) wxView.hide(); Sound.rain(0); return; }
   wxView ||= createWeatherView(THREE, scene);
@@ -6812,6 +7065,7 @@ const mangroveHaze = new THREE.Color(0x85aca0);
 const plainsHaze = new THREE.Color(0xb4c997);
 const jungleHaze = new THREE.Color(0x92b69e);
 const hollowmereHaze = new THREE.Color(0xa1aba2);
+const ultraSky = new THREE.Color(0x761a2c);
 function updateSky() {
   const nether = G.world && G.world.gen.isNether();
   const hollow = G.world && G.world.gen.isEnd && G.world.gen.isEnd();
@@ -6823,6 +7077,10 @@ function updateSky() {
   uniforms.coolTime.value = G.clock % (Math.PI * 2 / 1.3 * 200);   // wraps on a whole wave, so the pulse never jumps
   uniforms.coolPulse.value = G.settings.reducedMotion || G.settings.fx === "low" ? 0 : (G.settings.fx === "high" ? 0.24 : 0.18) + (G.echoDanger || 0) * 0.3 + (G.echoWake || 0) * 0.7 + (G.echoGate || 0) * 0.8;   // stronger when a Stalker is near, or when the city wakes (Phase 6)
   sun.visible = moon.visible = !nether && !hollow && !forsaken && !lsky;
+  const blood = G.dim === "overworld" && bloodMoon(G.meta.ultra);
+  uniforms.moonlight.value = blood ? .9 : 0;
+  moon.scale.setScalar(blood ? 2.8 : 1);
+  moon.material.color.set(blood ? 0xfe3535 : 0xffffff);
   uniforms.desat.value = 0;
   if (G.dim === HOLLOW_SANDS || G.dim === SOLKARA_SANCTUARY) {
     const r = G.settings.renderDist * CHUNK;
@@ -6893,6 +7151,8 @@ function updateSky() {
   let daylight = 0.22 + 0.78 * day;                      // nights stay dim, not pitch black
   const wet = G.dim === "overworld" ? G.wx.rain : 0, storm = G.dim === "overworld" ? G.wx.thunder : 0;   // Milestone 19: clouds over the sun
   if (wet) daylight = Math.max(Math.min(daylight, 0.17), daylight * (1 - 0.2 * wet - 0.45 * storm));
+  if (blood) daylight *= .72;
+  if (G.meta.ultra?.elapsed < G.challengeDread) daylight *= .66;
   uniforms.daylight.value = daylight;
   skyCol.copy(SKY_NIGHT).lerp(SKY_DAY, day);
   const dusk = Math.max(0, 1 - Math.abs(h) * 4) * (day > 0.05 ? 1 : 0.4);
@@ -6929,6 +7189,11 @@ function updateSky() {
     skyCol.lerp(wxTint.copy(RAIN_SKY).multiplyScalar(0.22 + 0.78 * day), wet * 0.72).multiplyScalar(1 - 0.38 * storm);
     if (!G.fwFog) { const range = G.settings.renderDist * CHUNK; G.fwFog = [range * (0.67 - 0.32 * wet), (range - 2) * (1 - 0.18 * wet)]; }
   }
+  if (!p.headInWater && blood) skyCol.lerp(ultraSky, .57);
+  else if (G.meta.ultra && G.wx.thunder > .6 && !p.headInWater) {
+    const range = G.settings.renderDist * CHUNK;
+    G.fwFog = [range * .18, range * .61];
+  }
   scene.background = skyCol; uniforms.fogColor.value.copy(skyCol);
   const cam = camera.position, R = 80;
   if (surfaceSky.visible) {
@@ -6939,14 +7204,14 @@ function updateSky() {
     if (stormStage) sky.zenith.value.lerp(skyCol, stormStage * 0.22);
     else if (badlandsAsh) sky.zenith.value.lerp(skyCol, badlandsAsh * 0.48);
     else if (villageMist > 0) sky.zenith.value.lerp(skyCol, villageMist * 0.62);
-    if (wet) sky.zenith.value.lerp(skyCol, wet * 0.75);
+    if (wet || blood) sky.zenith.value.lerp(skyCol, blood ? .69 : wet * 0.75);
     sky.cloudLight.value = day * (1 - 0.6 * wet);
     sky.cloudDrift.value = G.settings.reducedMotion ? 0 : G.clock * 0.52;
   }
   sun.position.set(cam.x + Math.cos(a) * R, cam.y + Math.sin(a) * R, cam.z + 18); sun.lookAt(cam);
   moon.position.set(cam.x - Math.cos(a) * R, cam.y - Math.sin(a) * R, cam.z - 18); moon.lookAt(cam);
   stars.position.copy(cam); stars.material.opacity = Math.max(0, 1 - day * 1.6) * (1 - wet);
-  if (wet > 0.6) sun.visible = moon.visible = false;   // hidden behind the rain clouds
+  if (wet > 0.6) { sun.visible = false; if (!blood) moon.visible = false; }   // hidden behind the rain clouds
   stars.visible = stars.material.opacity > 0.02;
   return daylight;
 }
@@ -7042,7 +7307,18 @@ G.closeSkinPreview = () => {
   chooser.r.dispose(); chooser.r.forceContextLoss();
   chooser = null;
 };
-G.applySkin = id => { G.settings.skin = skinById(id).id; saveSettings(G.settings); heldId = -1; UI.toast(`Skin: ${skinById(id).name}`, "good"); };
+G.skinUnlocked = id => {
+  const skin = skinById(id);
+  if (!skin.locked) return true;
+  return UHC_SKINS.some(s => s.id === id) ? !!G.profile?.skins.includes(id) : (G.settings.unlocked || []).includes(id);
+};
+Saves.profile().then(profile => {
+  G.profile = profile;
+  if (!G.skinUnlocked(G.settings.skin)) G.settings.skin = "explorer";
+}).catch(() => {});
+G.maxHealth = maxHealth;
+G.maxAir = maxAir;
+G.applySkin = id => { if (!G.skinUnlocked(id)) return; G.settings.skin = skinById(id).id; saveSettings(G.settings); heldId = -1; UI.toast(`Skin: ${skinById(id).name}`, "good"); };
 
 // ---------- settings ----------
 G.applySettings = (k) => {
@@ -7111,15 +7387,18 @@ G.expeditionTravel = dim => {
 };
 G.storageOK = () => Saves.persistent();
 G.newWorld = ({ name, seed, mode, settings, campaign, lostWorld, lostWorldCampaign }) => {   // mode: survival | creative | hardcore
-  const hardcore = mode === "hardcore";
+  const ultra = mode === UHC_MODE;
+  if (ultra && (campaign || lostWorld || lostWorldCampaign || G.guest)) return;
+  const hardcore = mode === "hardcore" || ultra;
   if (hardcore) settings = { ...settings, difficulty: "hard", keepInv: false };
-  const gen = campaign || lostWorld ? LEGACY_CHUNK_GEN : seed === LANTERN_VALE_SEED ? KINGDOMS_GEN : CURRENT_GEN;
+  const gen = ultra ? CURRENT_GEN : campaign || lostWorld ? LEGACY_CHUNK_GEN : seed === LANTERN_VALE_SEED ? KINGDOMS_GEN : CURRENT_GEN;
   const campaignMeta = campaign ? { ...campaign, villageLayout: CAMPAIGN_VILLAGE_LAYOUT,
     stonehavenLayout: CAMPAIGN_STONEHAVEN_LAYOUT, sandspireLayout: CAMPAIGN_SANDSPIRE_LAYOUT,
     oakwoodLayout: CAMPAIGN_OAKWOOD_LAYOUT, seabreakLayout: CAMPAIGN_SEABREAK_LAYOUT, ironholdLayout: CAMPAIGN_IRONHOLD_LAYOUT,
     emberOutpostLayout: CAMPAIGN_EMBER_OUTPOST_LAYOUT, hollowmereLayout: CAMPAIGN_HOLLOWMERE_LAYOUT,
     skyreachLayout: CAMPAIGN_SKYREACH_LAYOUT, ruinedCapitalLayout: CAMPAIGN_RUINED_CAPITAL_LAYOUT } : null;
   const save = { id: newId(), name, seed, mode: hardcore ? "survival" : mode, hardcore, hardcoreOver: false, created: Date.now(), played: Date.now(), day: 1, version: SAVE_VERSION, gen, dims: {}, inventory: [], voidInv: [], adv: {}, story: {}, tips: {}, settings, campaign: campaignMeta };
+  if (ultra) { save.ultra = createChallenge(); save.time = 0; save.settings = { ...UHC_SETTINGS }; }
   if (lostWorld && !campaign && !hardcore) {
     save.lostWorldGen = LOST_WORLD_GEN;
     if (lostWorldCampaign && mode === "survival") save.story.lostWorld = expedition();
@@ -7142,11 +7421,12 @@ G.followHost = async (dim, data, x, y, z) => {
   G.state = "pause"; UI.show("none"); UI.hud(); G.resume();
 };
 async function openWorld(read) {
-  if (G.state === "loading") return;
+  if (G.state === "loading" || G.meta?.ultra && G.world) return;
   const menu = UI.current;
   G.state = "loading";
   try { await startWorld(await read()); }
   catch (e) {
+    unlockChallenge();
     clearWorldMeshes();
     G.world = null; G.meta = null; G.state = "title";
     document.body.classList.add("menu-bg");
@@ -7158,9 +7438,16 @@ G.deleteWorld = id => Saves.remove(id);
 G.exportWorld = async id => { try { Saves.exportFile(await Saves.load(id)); } catch (e) { UI.toast(e.message, "bad"); } };
 G.exportCurrent = () => { Saves.exportFile(snapshot()); UI.toast("World file downloaded.", "good"); };
 G.importWorld = file => Saves.importFile(file);
+G.challengeHistory = () => Saves.challengeHistory();
+G.challengeTime = challengeTime;
 G.toTitle = async () => {
+  if (G.meta?.ultra && (G.state === "play" || G.state === "panel")) {
+    if (G.state === "panel") { UI.closePanel(); G.panelKind = null; G.panelCtx = null; }
+    G.state = "pause"; Sound.pause();
+  }
   dismount(true);
-  await saveNow(false);
+  if (!G.challengeSaveFailed) await saveNow(false);
+  unlockChallenge();
   MP.worldClosed();
   clearWorldMeshes();
   if (G.world) { G.world.chunks.clear(); G.world.dirtyQueue.clear(); }
@@ -7259,7 +7546,9 @@ function loop(now) {
   fpsT += dt; fpsN++; if (fpsT > 0.5) { fps = Math.round(fpsN / fpsT); fpsT = 0; fpsN = 0; }
   Sound.menuMusic(!G.world && G.state !== "loading");   // the title theme plays on the menus
   if (!G.world || G.state === "loading" || G.state === "title") { if (G.state === "title") renderer.clear(); return; }
-  const p = G.player, running = G.state === "play" || G.state === "panel" || (G.state === "pause" && MP.keepRunning());   // a host's friends keep playing while the host is in the menu
+  const p = G.player, run = G.meta.ultra;
+  const running = run ? !document.hidden && (G.state === "panel" || (G.state === "play" && locked)) :
+    G.state === "play" || G.state === "panel" || (G.state === "pause" && MP.keepRunning());   // a host's friends keep playing while the host is in the menu
 
   if (running) {
     if ((leviathanJournalT -= dt) <= 0) {
@@ -7268,8 +7557,11 @@ function loop(now) {
       recordWildlifeSightings(p);
       tickSolkaraSandfall();
     }
-    G.time = (G.time + dt / DAY_LENGTH) % 1;
-    if (G.time < dt / DAY_LENGTH) { G.meta.day = (G.meta.day || 1) + 1; }
+    if (run?.status !== "active") {
+      const step = dt / (run ? UHC_DAY : DAY_LENGTH);
+      G.time = (G.time + step) % 1;
+      if (G.time < step) G.meta.day = (G.meta.day || 1) + 1;
+    }
     updateHollowDrift(dt);
     updateSandstorm(dt);
     ML.update(dt);   // the Grand Desert Temple: fires, dust, and guards
@@ -7357,7 +7649,7 @@ function loop(now) {
     updateClouds(dt); updatePotionClouds(dt); trackBiome(dt);
     if (G.dim === "end" && !G.guest) { ensureBoss(); tickWyrmSummon(dt); }
     if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // Play Together: the host leads the way through portals
-    if (!G.guest) { tickCinder(dt); F.tick(dt); MU.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }
+    if (!G.guest) { tickCinder(dt); F.tick(dt); MU.tick(dt); L.tick(dt); if (!run) ST.tick(dt); CP.tick(dt); }
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) { G.bowT += dt; loadCrossbow(); }   // (Milestone 22: a crossbow loads itself once held long enough)
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }
@@ -7430,7 +7722,7 @@ function loop(now) {
   updateAncientFury();
   updateAncientPresentation(running);
   // calm background music: only in the Overworld, and never while a boss bar is up
-  Sound.calmMusic(running && G.state !== "dead" && G.dim === "overworld" && bossBar.hidden);
+  Sound.calmMusic(!bloodMoon(run) && running && G.state !== "dead" && G.dim === "overworld" && bossBar.hidden);
   // epic music while any boss bar is up (also makes monsters nearby growl louder and more often)
   Sound.bossMusic(running && G.state !== "dead" && !bossBar.hidden, Math.max(0, bossBarPercent) / 100);
   updateDuneSweep(dt, running);
@@ -7492,10 +7784,18 @@ function loop(now) {
     attribute.addUpdateRange(0, n * 3);
     attribute.needsUpdate = true;
   }
+  if (running && run?.status === "active" && !G.cutscene && G.state !== "dead" && G.state !== "loading") tickChallenge(dt);
   MP.tick(dt, daylight);
   updateBossBar(p);
+  if (run && (G.challengeHudSecond !== Math.floor(run.elapsed) || G.challengeDim !== G.dim || G.challengeHudStatus !== run.status)) {
+    G.challengeHudSecond = Math.floor(run.elapsed); G.challengeDim = G.dim; G.challengeHudStatus = run.status;
+    challengeHUD(run, G.dim);
+  }
+  if (G.challengeCueUntil && G.clock > G.challengeCueUntil) {
+    document.getElementById("ultraCue").hidden = true; G.challengeCueUntil = 0;
+  }
   if (G.hudDirty) { G.hudDirty = false; UI.hud(); }
-  if (running) { G.autosaveT += dt; if (G.autosaveT > AUTOSAVE) { G.autosaveT = 0; saveNow(true); } }
+  if (running) { G.autosaveT += dt; if (G.autosaveT > (run ? UHC_AUTOSAVE : AUTOSAVE)) { G.autosaveT = 0; saveNow(!run); } }
   if (G.debug) {
     document.getElementById("debug").textContent =
       `${DIM_NAMES[G.dim]}\nx ${p.pos.x.toFixed(1)}  y ${p.pos.y.toFixed(1)}  z ${p.pos.z.toFixed(1)}\nchunk ${Math.floor(p.pos.x / 16)}, ${Math.floor(p.pos.z / 16)}   loaded ${G.world.chunks.size}\n${fps} fps   day ${G.meta.day || 1}  time ${(G.time * 24).toFixed(1)}h\n${G.gen.column(Math.floor(p.pos.x), Math.floor(p.pos.z)).biome}`;

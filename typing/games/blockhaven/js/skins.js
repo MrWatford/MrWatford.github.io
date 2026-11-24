@@ -1,5 +1,6 @@
 // Player skins: blocky player models, the skin chooser's pictures, and the first-person arm.
 // Skins only change how you look. Every skin has the same body size, collision box, and abilities.
+import { ultraSkins, skinAccessories } from "./ultra-hardcore-skins.js";
 import * as THREE from "../lib/three.module.min.js";
 import { weaponSwing } from "./weapon-motion.js";
 import { LEVIATHAN_ARMOR_STYLE } from "./leviathan-armor-style.js";
@@ -111,6 +112,7 @@ SKINS.push((() => { const c = { skin: "#d8b090", hair: "#e8e8f0", eye: "#ffffff"
     head: standardHead(c, (P, f) => { if (f === "front") { P.rect(3, 7, 3, 2, "#ffffff"); P.rect(10, 7, 3, 2, "#ffffff"); P.rect(2, 6, 5, 1, "rgba(200,230,255,.5)"); P.rect(9, 6, 5, 1, "rgba(200,230,255,.5)"); } if (f === "top") P.rect(5, 5, 6, 6, "#8ad8ff"); }),
     body: shirtBody(c, (P, f) => { if (f === "front") { P.rect(7, 0, 2, 16, "#8ad8ff"); P.rect(4, 5, 8, 2, "#8ad8ff"); } }),
     arm: sleeveArm(c, 14), leg: (P, f) => { P.fill(pal(c.shirt)); if (f !== "top" && f !== "bottom") P.rect(0, 13, 16, 3, c.shoes); } }; })());
+SKINS.push(...ultraSkins({ pal, standardHead, shirtBody, sleeveArm, pantsLeg }));
 export const skinById = id => SKINS.find(s => s.id === id) || SKINS[0];
 
 // ---------- models ----------
@@ -156,9 +158,10 @@ export function makeModel(skinId) {
     const m = new THREE.Mesh(b.geos[p.name], mat); m.position.set(p.off[0] / 16, p.off[1] / 16, p.off[2] / 16);
     pivot.add(m); root.add(pivot); parts[p.name] = pivot;
   }
+  const accessories = skin.gear ? skinAccessories(THREE, parts, skin.gear) : [];
   root.scale.setScalar(0.9);
   const holder = new THREE.Group(); holder.add(root);
-  return { holder, root, parts, mat, skinId: skin.id, armor: {}, held: {} };
+  return { holder, root, parts, mat, accessories, skinId: skin.id, armor: {}, held: {} };
 }
 // Show armor pieces (colors from the armor item) — rebuilt only when what you wear changes
 export function dressModel(model, armorColors, armorStyles = []) {
@@ -269,6 +272,7 @@ export function holdItems(model, mainMesh, offMesh) {
 }
 export function disposeModel(model) {
   dressModel(model, []);
+  for (const mesh of model.accessories || []) { mesh.geometry.dispose(); mesh.material.dispose(); }
   model.mat.dispose();
 }
 // The first-person arm: a piece of the skin's own arm, so sleeves and hands match

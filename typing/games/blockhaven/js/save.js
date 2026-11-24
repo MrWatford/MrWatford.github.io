@@ -14,17 +14,26 @@ import { GODZILLA_CALDERA, GODZILLA_START } from "./godzilla-caldera.js";
 import { validGodzillaRecord } from "./godzilla-encounter.js";
 import { validExpedition } from "./lost-world-campaign.js";
 import { LOST_WORLD_GEN } from "./lost-world.js";
+import { applyChallengeRewards, challengeSummary, checkChallengeWrite } from "./ultra-hardcore.js";
 export const SAVE_VERSION = 4;
-const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data";
+const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data", PROFILE = "profile", RUNS = "ultra-runs";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
 
 function openDB() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve) => {
     try {
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = () => { const db = req.result; db.createObjectStore(META, { keyPath: "id" }); db.createObjectStore(DATA, { keyPath: "id" }); };
-      req.onsuccess = () => resolve(req.result);
+      const req = indexedDB.open(DB_NAME, 2);
+      req.onupgradeneeded = ({ oldVersion }) => {
+        const db = req.result;
+        if (oldVersion < 1) {
+          db.createObjectStore(META, { keyPath: "id" });
+          db.createObjectStore(DATA, { keyPath: "id" });
+        }
+        db.createObjectStore(PROFILE, { keyPath: "id" });
+        db.createObjectStore(RUNS, { keyPath: "id" });
+      };
+      req.onsuccess = () => { req.result.onversionchange = () => req.result.close(); resolve(req.result); };
       req.onerror = req.onblocked = () => resolve(null);
     } catch (e) { resolve(null); }
   }).then(db => { if (!db) memory = memory || { meta: new Map(), data: new Map() }; return db; });
@@ -37,6 +46,43 @@ const tx = (db, store, mode, fn) => new Promise((resolve, reject) => {
 
 export const Saves = {
   async persistent() { return !!(await openDB()); },
+  async profile() {
+    const db = await openDB();
+    return db ? await tx(db, PROFILE, "readonly", s => s.get("local")) : undefined;
+  },
+  async challengeHistory() {
+    const db = await openDB();
+    return db ? await tx(db, RUNS, "readonly", s => s.getAll()) : [];
+  },
+  async saveChallenge(world) {
+    const db = await openDB();
+    if (!db) throw new Error("Ultra Hardcore requires browser storage for its one-life saves and rewards.");
+    return new Promise((resolve, reject) => {
+      const t = db.transaction([META, DATA, PROFILE, RUNS], "readwrite");
+      const metaStore = t.objectStore(META), dataStore = t.objectStore(DATA);
+      const profileStore = t.objectStore(PROFILE), runs = t.objectStore(RUNS);
+      let profile, failure;
+      const old = dataStore.get(world.id);
+      old.onsuccess = () => {
+        try {
+          checkChallengeWrite(old.result?.ultra, world.ultra);
+          if (old.result && !old.result.ultra) throw new Error("The world ID is already in use.");
+          const { meta, data } = split(world);
+          data.ultra = { ...world.ultra, revision: world.ultra.revision + 1 };
+          metaStore.put(meta);
+          dataStore.put(data);
+          if (data.ultra.status !== "active") runs.put(challengeSummary(world));
+          const current = profileStore.get("local");
+          current.onsuccess = () => {
+            profile = applyChallengeRewards(current.result, world);
+            profileStore.put(profile);
+          };
+        } catch (error) { failure = error; t.abort(); }
+      };
+      t.oncomplete = () => resolve(profile);
+      t.onabort = t.onerror = () => reject(failure || t.error || new Error("The checkpoint could not be saved."));
+    });
+  },
   async list() {
     const db = await openDB();
     const all = db ? await tx(db, META, "readonly", s => s.getAll()) : [...memory.meta.values()];
@@ -100,6 +146,7 @@ export const Saves = {
     let obj;
     try { obj = JSON.parse(await file.text()); } catch (e) { throw new Error("That file isn't a Blockhaven world."); }
     if (!obj || !obj.blockhaven || !obj.seed || !obj.name) throw new Error("That file isn't a Blockhaven world.");
+    if (obj.ultra || obj.ultraStatus) throw new Error("Ultra Hardcore runs can only be resumed from their original browser save.");
     const w = upgrade(obj);
     validateDimensions(w.dims);
     w.id = newId(); w.played = Date.now();
@@ -186,11 +233,12 @@ function validateLeviathan(expansion) {
 export const newId = () => "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 function split(w) {
   const meta = { id: w.id, name: w.name, seed: w.seed, mode: w.mode, created: w.created, played: w.played, version: SAVE_VERSION, day: w.day || 1, gen: w.gen || 1, hardcore: !!w.hardcore, hardcoreOver: !!w.hardcoreOver, campaign: w.campaign || null };
+  if (w.ultra) meta.ultraStatus = w.ultra.fallen ? (w.ultra.status === "completed" ? "completed-fallen" : "failed") : w.ultra.status;
   if (w.lostWorldGen !== undefined) {
     meta.lostWorldGen = w.lostWorldGen;
     if (w.story?.lostWorld) meta.lostWorldExpedition = true;
   }
-  const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips, voidInv: w.voidInv, adv: w.adv, story: w.story, stats: w.stats };
+  const data = { id: w.id, player: w.player, inventory: w.inventory, dims: w.dims, xp: w.xp || 0, settings: w.settings, time: w.time, tips: w.tips, voidInv: w.voidInv, adv: w.adv, story: w.story, stats: w.stats, ...(w.ultra ? { ultra: w.ultra } : {}) };
   return { meta, data };
 }
 const isRecord = v => v && typeof v === "object" && !Array.isArray(v);

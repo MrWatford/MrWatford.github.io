@@ -3,6 +3,8 @@ import { B, I, ITEMS, BLOCKS, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, itemDef, i
 import { TRADES, tradesOf, levelOf, LEVEL_NAMES, LEVEL_XP } from "./entities.js";
 import { maxStack, newStack, OFF } from "./inventory.js";
 import { Adv, CATEGORIES } from "./advancements.js";
+import { UHC_MODE, UHC_ACHIEVEMENT } from "./ultra-hardcore.js";
+import { challengeHistory } from "./ultra-hardcore-view.js";
 import { Sound } from "./audio.js";
 import { leviathanJournalHTML, bindLeviathanBondControls } from "./leviathan-journal.js?v=bonds-1";
 import { SOLKARA_RECORDS, hasSolkaraRecord } from "./solkara-lore.js";
@@ -28,7 +30,7 @@ import { isEnchanted, tooltipLines, enchantability, enchName, enchList, ENCH, EN
 const $ = id => document.getElementById(id);
 let G = null;                       // the game (set in init)
 let disposeLostWorldMap = null;
-const screens = ["title", "worlds", "newWorld", "loading", "pause", "settings", "controls", "death", "panel", "skins", "campaign", "together"];
+const screens = ["title", "worlds", "newWorld", "loading", "pause", "settings", "controls", "death", "panel", "skins", "campaign", "together", "ultraVictory"];
 let current = "title", backTo = "title", skinFrom = "title", skinPick = "explorer";
 let cursor = null, hoverRef = null, panelKind = null, panelCtx = null, craftFilter = "can", craftSearch = "", creativeCat = "All", creativeSearch = "", advCat = CATEGORIES[0];
 
@@ -57,14 +59,24 @@ export const UI = {
     $("btnControls2").onclick = () => { backTo = "pause"; this.show("controls"); };
     document.querySelectorAll("[data-back]").forEach(b => b.onclick = () => { Sound.click(); const s = b.closest(".screen").id; this.show(s === "settings" || s === "controls" ? backTo : "title"); });
     const terrain = $("nwTerrain");
+    const ultraRadio = document.querySelector("input[name=mode][value=ultra-hardcore]");
+    const modeOptions = () => {
+      const mode = document.querySelector("input[name=mode]:checked").value;
+      const ultra = mode === UHC_MODE, hc = ultra || mode === "hardcore";
+      $("ultraBrief").hidden = !ultra;
+      $("nwDiff").disabled = $("nwKeep").disabled = hc;
+      for (const id of ["nwGrief", "nwFire", "nwFlow", "nwWeather"]) $(id).disabled = ultra;
+      if (hc) { $("nwDiff").value = "hard"; $("nwKeep").checked = false; }
+    };
     if (terrain) terrain.onchange = () => {
       const hardcore = document.querySelector("input[name=mode][value=hardcore]");
       const creative = document.querySelector("input[name=mode][value=creative]");
-      hardcore.disabled = terrain.value !== "overworld";
+      hardcore.disabled = ultraRadio.disabled = terrain.value !== "overworld";
       creative.disabled = terrain.value === "lost_world_campaign";
-      if ((hardcore.disabled && hardcore.checked) || (creative.disabled && creative.checked)) {
+      if ((hardcore.disabled && (hardcore.checked || ultraRadio.checked)) || (creative.disabled && creative.checked)) {
         document.querySelector("input[name=mode][value=survival]").checked = true;
       }
+      modeOptions();
     };
     $("newForm").onsubmit = e => {
       e.preventDefault(); Sound.start();
@@ -73,9 +85,17 @@ export const UI = {
       const lostWorldCampaign = terrain?.value === "lost_world_campaign";
       const lostWorld = lostWorldCampaign || terrain?.value === "lost_world";
       const go = () => G.newWorld({ name: $("nwName").value.trim() || (lostWorld ? "The Lost World" : "My World"), seed: $("nwSeed").value.trim() || String(Math.floor(Math.random() * 1e9)), mode, settings, lostWorld, lostWorldCampaign });
-      if (mode === "hardcore") this.confirm("Start a Hardcore world?", "Hardcore is Survival on Hard difficulty with one life. If you faint, this world's adventure ends for good: you drop everything and can only look around as a Spectator afterward. The difficulty can't be changed.", go, "Start Hardcore");
+      if (mode === UHC_MODE) this.confirm("Begin Ultra Hardcore?", "Three hearts, one life, and an empty pack. Pauses and time away from the Surface stop the challenge clock. Each completed day earns permanent rewards.", go, "Begin Challenge");
+      else if (mode === "hardcore") this.confirm("Start a Hardcore world?", "Hardcore is Survival on Hard difficulty with one life. If you faint, this world's adventure ends for good: you drop everything and can only look around as a Spectator afterward. The difficulty can't be changed.", go, "Start Hardcore");
       else go();
     };
+    $("btnUltra").onclick = () => {
+      Sound.start(); Sound.click(); this.show("newWorld");
+      if (terrain) { terrain.value = "overworld"; terrain.onchange(); }
+      ultraRadio.checked = true; modeOptions(); $("nwName").select();
+    };
+    $("ultraContinue").onclick = () => G.resume();
+    $("ultraRetire").onclick = () => G.toTitle();
     $("btnResume").onclick = () => G.resume();
     $("btnSave").onclick = () => G.saveNow(true);
     $("btnExport").onclick = () => G.exportCurrent();
@@ -101,7 +121,7 @@ export const UI = {
     };
     $("btnAdv").onclick = () => { Sound.click(); G.openAdvancements(); };
     $("btnJournal")?.addEventListener("click", () => { Sound.click(); G.openJournal(); });
-    $("nwModes").onchange = () => { const hc = document.querySelector("input[name=mode]:checked").value === "hardcore"; $("nwDiff").disabled = $("nwKeep").disabled = hc; if (hc) { $("nwDiff").value = "hard"; $("nwKeep").checked = false; } };
+    $("nwModes").onchange = modeOptions;
     $("pMode").onchange = e => { if (!G.setMode(e.target.value)) e.target.value = G.mode; };
     $("pGrief").onchange = e => { G.wset.griefing = e.target.checked; };
     $("pKeep").onchange = e => { G.wset.keepInv = e.target.checked; };
@@ -123,6 +143,14 @@ export const UI = {
     for (const s of screens) $(s).hidden = s !== name;
     $("hud").hidden = !(name === "none" || name === "panel" || name === "pause" || name === "death" || (name === "together" && !!G.world));
     if (name === "title") paintTitleScene();
+    if (name === "ultraVictory") $("ultraVictoryTitle").focus();
+    if (name === "pause") {
+      for (const id of ["pGrief", "pFire", "pFlow", "pWeather"]) $(id).disabled = !!G.meta?.ultra;
+      $("btnResume").disabled = !!G.challengeSaveFailed;
+      $("btnExport").hidden = !!G.meta?.ultra;
+      $("hcNote").textContent = G.meta?.ultra ? "Ultra Hardcore locks its world rules. Each run has one life." :
+        "Hardcore worlds always stay on Hard, and you lose your items if you faint.";
+    }
     Cinema.setActive(name === "title");
     if (name === "pause" && G.wset) { const hc = !!(G.meta && G.meta.hardcore); $("pDiff").value = G.wset.difficulty; $("pMode").value = G.mode === "creative" ? "creative" : "survival"; $("pMode").disabled = hc || G.spectator; $("pGrief").checked = G.wset.griefing; $("pKeep").checked = G.wset.keepInv; if ($("pFire")) $("pFire").checked = G.wset.fireSpread !== false; if ($("pFlow")) $("pFlow").checked = G.wset.liquidFlow !== false; if ($("pWeather")) $("pWeather").checked = G.wset.weather !== false; if ($("pWxRow")) $("pWxRow").hidden = !G.creative || !!G.guest || G.dim !== "overworld"; $("pDiff").disabled = $("pKeep").disabled = hc; $("hcNote").hidden = !hc; }
     if (G.onShow) G.onShow(name);   // Play Together updates its screen and the pause menu
@@ -133,16 +161,24 @@ export const UI = {
     this.show("worlds");
     const list = $("worldList"), worlds = (await G.listWorlds()).filter(w => !w.campaign);
     $("storageWarn").hidden = await G.storageOK();
+    challengeHistory(await G.challengeHistory());
     list.innerHTML = worlds.length ? "" : `<p class="empty">No worlds yet. Make your first one!</p>`;
     for (const w of worlds) {
       const row = document.createElement("div"); row.className = "world";
       const when = w.played ? new Date(w.played).toLocaleDateString() : "";
-      row.innerHTML = `<div><b></b><small>${w.hardcore ? (w.hardcoreOver ? "💀 Hardcore (ended)" : "💀 Hardcore") : w.mode === "creative" ? "Creative" : "Survival"}${w.lostWorldExpedition ? " • Lost World Expedition" : w.lostWorldGen ? " • The Lost World" : ""} • Day ${escapeAttr(w.day || 1)} • Seed <span></span> • ${when}</small></div>
+      const ended = ["failed", "completed-fallen"].includes(w.ultraStatus);
+      const title = w.ultraStatus && ("Ultra Hardcore" + (ended ? " (ended)" : w.ultraStatus === "completed" ? " (completed)" : ""));
+      row.innerHTML = `<div><b></b><small>${title || (w.hardcore ? (w.hardcoreOver ? "💀 Hardcore (ended)" : "💀 Hardcore") : w.mode === "creative" ? "Creative" : "Survival")}${w.lostWorldExpedition ? " • Lost World Expedition" : w.lostWorldGen ? " • The Lost World" : ""} • Day ${escapeAttr(w.day || 1)} • Seed <span></span> • ${when}</small></div>
         <div class="acts"><button class="btn small primary" data-a="play">Play</button><button class="btn small" data-a="dl">Download</button><button class="btn small danger" data-a="del">Delete</button></div>`;
       row.querySelector("b").textContent = w.name; row.querySelector("small span").textContent = w.seed;
+      row.querySelector("[data-a=play]").disabled = ended;
+      row.querySelector("[data-a=play]").textContent = ended ? "Ended" : w.ultraStatus ? "Resume" : "Play";
       row.querySelector("[data-a=play]").onclick = () => { Sound.click(); G.loadWorld(w.id); };
+      row.querySelector("[data-a=dl]").hidden = !!w.ultraStatus;
       row.querySelector("[data-a=dl]").onclick = () => G.exportWorld(w.id);
-      row.querySelector("[data-a=del]").onclick = () => this.confirm(`Delete "${w.name}"?`, "This removes the world from this device for good. Download it first if you might want it later.", async () => { await G.deleteWorld(w.id); await this.showWorlds(); });
+      row.querySelector("[data-a=del]").onclick = () => this.confirm(`Delete "${w.name}"?`, w.ultraStatus ?
+        "This removes the world. Earned rewards and completed run history stay on your profile." :
+        "This removes the world from this device for good. Download it first if you might want it later.", async () => { await G.deleteWorld(w.id); await this.showWorlds(); });
       list.appendChild(row);
     }
   },
@@ -179,7 +215,7 @@ export const UI = {
     skinFrom = from; skinPick = G.settings.skin; Sound.click();
     const grid = $("skinGrid"); grid.innerHTML = "";
     for (const s of G.skins) {
-      const locked = s.locked && !(G.settings.unlocked || []).includes(s.id);
+      const locked = !G.skinUnlocked(s.id);
       const b = document.createElement("button"); b.className = "skin-card" + (locked ? " locked" : ""); b.type = "button"; b.dataset.skin = s.id;
       if (locked) { b.disabled = true; b.title = s.unlock; }
       b.setAttribute("aria-pressed", s.id === skinPick);
@@ -274,9 +310,11 @@ export const UI = {
     const survival = G.mode === "survival", p = G.player;
     $("bottom").hidden = G.mode === "spectator";
     $("stats").style.visibility = survival ? "visible" : "hidden";
-    $("hearts").innerHTML = icons(p.health, "heart") + (G.absorb > 0 ? icons(G.absorb, "gold", false, Math.ceil(G.absorb / 2)) : "");
+    const hp = G.maxHealth(), air = G.maxAir();
+    $("hearts").innerHTML = icons(p.health, "heart", false, Math.min(hp, 20) / 2) +
+      (hp > 20 ? icons(p.health - 20, "bonus", false, 1) : "") + (G.absorb > 0 ? icons(G.absorb, "gold", false, Math.ceil(G.absorb / 2)) : "");
     $("food").innerHTML = icons(p.hunger, "food", true);
-    $("air").innerHTML = survival && p.air < 10 ? icons(Math.ceil(p.air) * 2, "bubble") : "";
+    $("air").innerHTML = survival && p.air < air ? icons(Math.ceil(p.air) * 2, "bubble", false, air) : "";
     let armor = 0; for (let i = 36; i < 40; i++) { const s = inv.slots[i]; if (s && itemDef(s.id).armor) armor += itemDef(s.id).armor.points; }
     $("armor").innerHTML = survival && armor ? icons(armor, "shield") : "";
     const lv = G.levelInfo(); $("xpbar").style.visibility = survival ? "visible" : "hidden";
@@ -284,7 +322,7 @@ export const UI = {
     const names = { badOmen: "🏴 Bad Omen", hero: "🏅 Hero of the Village", poison: "☠️ Poisoned", queasy: "🤢 Queasy", fire: "🔥 On fire", blight: "💀 Blighted", levitation: "🎈 Floating", regen: "💖 Regenerating", swift: "💨 Swift", dolphin: "🐬 Swift swimmer", conduit: "🌊 Conduit Power", fatigue: "🪨 Mining Fatigue", absorb: "💛 Absorption", fireRes: "🧯 Fire Resistance", haste: "⛏️ Haste", resist: "🛡️ Resistance", jump: "🐇 Jump Boost", strength: "💪 Strength", slow: "🐌 Slowness", weakness: "🥀 Weakness", waterBreath: "🫧 Water Breathing", invis: "👻 Invisible", nightVision: "🌙 Night Vision", slowFall: "🪶 Slow Falling" };
     const roman = k => (G.elv[k] || 1) > 1 ? " " + ["", "I", "II", "III", "IV", "V", "VI"][G.elv[k]] : "";
     $("effects").innerHTML = Object.keys(G.effects).map(k => `<span>${escapeAttr(names[k] || k)}${roman(k)} <small>${Math.ceil(G.effects[k])}s</small></span>`).join("");
-    $("modeTag").textContent = G.mode === "spectator" ? "SPECTATOR • HARDCORE OVER" : survival ? (G.meta && G.meta.hardcore ? "HARDCORE" : "") : "CREATIVE" + (p.flying ? " • FLYING" : "");
+    $("modeTag").textContent = G.mode === "spectator" ? "SPECTATOR • HARDCORE OVER" : survival ? (G.meta?.ultra ? "ULTRA HARDCORE" : G.meta?.hardcore ? "HARDCORE" : "") : "CREATIVE" + (p.flying ? " • FLYING" : "");
   },
   itemName(text) { const el = $("itemName"); el.textContent = text; el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = 0, 1600); },
   toast(text, kind = "") {
@@ -301,6 +339,15 @@ export const UI = {
     clearTimeout(t._t); t._t = setTimeout(() => { t.hidden = true; }, 1800);
   },
   death(hardcore) {
+    if (G.meta?.ultra) {
+      const run = G.meta.ultra;
+      $("deathTitle").textContent = "Ultra Hardcore · Run ended";
+      $("deathNote").textContent = G.challengeTime(run.elapsed) + " survived. Any earned rewards stay on your profile.";
+      $("btnRespawn").hidden = true; $("btnDeathTitle").hidden = false;
+      this.show("death");
+      return;
+    }
+    $("btnRespawn").hidden = false;
     $("deathTitle").textContent = hardcore ? "Game over!" : "You fainted!";
     $("deathNote").textContent = hardcore ? "This was a Hardcore world, so its adventure is over. You can still fly around it as a Spectator to look at what you built." : G.wset.keepInv ? "You'll wake up at your bed (or the starting spot), and you keep everything you were carrying." : "You'll wake up at your bed (or the starting spot). Your things were dropped where you fainted, so go back for them soon (dropped items vanish after 5 minutes).";
     $("btnRespawn").textContent = hardcore ? "Spectate this world" : "Wake up";
@@ -458,7 +505,8 @@ export const UI = {
       $("noteClose").onclick = () => G.closePanel();
       return;
     } else if (panelKind === "advancements") {
-      p.innerHTML = `<div style="display:grid;gap:12px">${Adv.html(advCat)}</div>`;
+      const achievement = G.profile?.lastDawn ? `<div class="inv-card"><h3>${UHC_ACHIEVEMENT}</h3><p class="help">Ultra Hardcore completed · +1 heart in normal Survival</p></div>` : "";
+      p.innerHTML = `<div style="display:grid;gap:12px">${achievement}${Adv.html(advCat)}</div>`;
       p.querySelectorAll("[data-advcat]").forEach(b => b.onclick = () => { advCat = b.dataset.advcat; Sound.click(); this.renderPanel(); });
       return;
     } else if (panelKind === "brew") {   // Milestone 16: the Brewing Stand
@@ -568,15 +616,17 @@ export const UI = {
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (panelKind === "furnace") {
       const f = G.world.containers.get(panelCtx);
-      const prog = f ? f.prog / SMELT_TIME : 0, burn = f && f.burnMax ? f.burn / f.burnMax : 0;
-      left = `<div class="inv-card"><h3>Furnace</h3>
+      const camp = G.world.id(...panelCtx.split(",").map(Number)) === B.CAMPFIRE;
+      const prog = f ? f.prog / (camp ? SMELT_TIME / 2 : SMELT_TIME) : 0, burn = f && f.burnMax ? f.burn / f.burnMax : 0;
+      left = `<div class="inv-card"><h3>${camp ? "Campfire" : "Furnace"}</h3>
         <div class="furnace">
           <div><div class="label">Cook this</div>${slotHTML("fur:0")}</div>
           <div class="arrow" title="Progress"><i style="width:${Math.round(prog * 100)}%"></i></div>
           <div><div class="label">Result</div>${slotHTML("fur:2")}</div>
           <div><div class="flame" title="Fuel left"><i style="height:${Math.round(burn * 100)}%"></i></div><div class="label">Fuel</div>${slotHTML("fur:1")}</div>
         </div>
-        <p class="help">Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore.</p></div>`;
+        <p class="help">${camp ? "Use fuel to light the campfire for warmth and cooking. Smoke can draw creatures toward camp." :
+          "Put ore, sand, cobblestone, clay, or logs on top and fuel (coal, wood, planks, sticks) below. The furnace keeps working while you explore."}</p></div>`;
       p.innerHTML = `<div style="display:grid;gap:12px">${left}${inv}</div>`;
     } else if (G.mode === "creative" && panelKind !== "cutter") {   // (Milestone 23: the Stonecutter shows its own recipes even in Creative)
       const cats = ["All", "Building", "Nature", "Useful", "Mechanisms", "Village", "Tools", "Food", "Items", "Enchanting", "Brewing", "Oceans", "Decor", "Farm & Gadgets", "Ember Depths", "The Hollow", "Creatures"];
@@ -829,6 +879,7 @@ const escapeAttr = s => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;")
 function recipeRows(atTable, atCutter = false) {
   const q = craftSearch.toLowerCase(), rows = [];
   RECIPES.forEach((r, i) => {
+    if (r.ultra && !G.meta.ultra) return;
     if (!!r.cutter !== atCutter) return;   // Milestone 23
     const out = itemDef(r.out[0]);
     if (q && !out.name.toLowerCase().includes(q)) return;
@@ -860,7 +911,7 @@ function iconImg(kind, part) {
     bubble: ["001111100", "010000010", "100100001", "100000001", "100000001", "010000010", "001111100"],
     shield: ["111111111", "111111111", "111111111", "111111111", "011111110", "001111100", "000111000", "000010000"]
   };
-  const color = { heart: ["#e0302a", "#ff8a80"], food: ["#c47a3a", "#f0b070"], bubble: ["#7fd0ff", "#ffffff"], shield: ["#b8c0c8", "#ffffff"], gold: ["#f0c020", "#fff2a0"] }[kind];
+  const color = { heart: ["#e0302a", "#ff8a80"], food: ["#c47a3a", "#f0b070"], bubble: ["#7fd0ff", "#ffffff"], shield: ["#b8c0c8", "#ffffff"], gold: ["#f0c020", "#fff2a0"], bonus: ["#e55b66", "#ffd48b"] }[kind];
   (shapes[kind] || shapes.heart).forEach((row, y) => [...row].forEach((ch, xx) => {
     if (ch !== "1") return;
     const empty = part === 0 || (part === 1 && xx > 4);

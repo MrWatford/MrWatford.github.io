@@ -188,6 +188,19 @@ export const Sound = {
   // Lifeward Totem: a rising shimmer with a bright chord
   totem() { this.noise(3000, 0.6, 0.3, 0.8, "highpass"); [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.5, "triangle", 0.12, 200), i * 90)); },
   door(open) { this.tone(open ? 220 : 180, 0.12, "triangle", 0.12, open ? 60 : -40); this.noise(500, 0.1, 0.2); },
+  // Ultra Hardcore uses short synthesized cues routed through the normal sound settings.
+  ultraCue(event) {
+    if (!ctx || ctx.state !== "running" || muted) return;
+    if (event === "victory" || event === "reward") {
+      const notes = event === "victory" ? [196, 294, 392, 494, 587, 784] : [392, 523, 659];
+      notes.forEach((f, i) => setTimeout(() => this.tone(f, event === "victory" ? .9 : .45, "triangle", .10), 145 * i));
+      return;
+    }
+    const ambience = event === "ambience";
+    this.tone(ambience ? 44 : 57, ambience ? 4.5 : 2.4, "sine", ambience ? .10 : .26, -13);
+    this.tone(event === "hunt" ? 102 : 81, 1.9, "triangle", ambience ? .035 : .10, -35);
+    if (!ambience) this.noise(145, 2.5, .22, .8, "lowpass");
+  },
   // creature sounds, quieter the farther away they are
   mob(kind, dist = 0) {
     const k = Math.max(0, 1 - dist / 28);

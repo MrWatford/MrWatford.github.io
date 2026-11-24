@@ -208,6 +208,7 @@ B.JUKEBOX = nb(557);
 Object.assign(I, { FIREWORK_ROCKET: 1029, DISC_SUNRISE: 1030, DISC_WALTZ: 1031, DISC_CAVES: 1032, DISC_BREEZE: 1033, DISC_STARLIGHT: 1034 });
 // Milestone 23, Part A: village job blocks (block numbers 558-562)
 Object.assign(B, { SMOKER: nb(558), BLAST_FURNACE: nb(559), BARREL: nb(560), STONECUTTER: nb(561), LECTERN: nb(562) });
+B.CAMPFIRE = nb(563);
 export const DISC_ITEMS = [I.DISC_SUNRISE, I.DISC_WALTZ, I.DISC_CAVES, I.DISC_BREEZE, I.DISC_STARLIGHT];
 export const isCrop = id => id === B.WHEAT || id === B.CARROTS || id === B.POTATOES || id === B.BEETROOTS;   // the 8-stage farm crops
 export const woolOf = C => C === "WHITE" ? B.WOOL : C === "BLACK" ? B.BLACK_WOOL : B[C + "_WOOL"];
@@ -560,6 +561,8 @@ block(B.ITEM_FRAME, "Item Frame", { shape: "model", render: "cutout", solid: fal
 block(B.ARMOR_STAND, "Armor Stand", { shape: "model", render: "cutout", hardness: 0, tex: "planks", iconShape: "stand", interact: "armorstand", category: "Useful" });
 block(B.PAINTING, "Painting", { shape: "model", render: "cutout", solid: false, hardness: 0, drops: 0, tex: "painting_back", icon: "tile:painting_icon", category: "Useful" });
 // Milestone 23, Part A: job blocks. The Smoker cooks only food and the Blast Furnace only ores, both twice as fast.
+block(B.CAMPFIRE, "Campfire", { shape: "model", render: "cutout", hardness: 1.5, tool: "axe",
+  cook: "food", interact: "furnace", tex: "log_side", icon: "tile:candle_flame", category: "Useful" });
 block(B.SMOKER, "Smoker", { hardness: 3.5, tool: "pick", tier: 1, interact: "furnace", tex: ["smoker_top", "smoker_side", "smoker_top"], front: "smoker_front", cook: "food", category: "Village", job: "butcher" });
 block(B.BLAST_FURNACE, "Blast Furnace", { hardness: 3.5, tool: "pick", tier: 1, interact: "furnace", tex: ["blast_top", "blast_side", "blast_top"], front: "blast_front", cook: "ore", category: "Village", job: "armorer" });
 block(B.BARREL, "Barrel", { hardness: 2.5, tool: "axe", interact: "chest", tex: ["barrel_top", "barrel_side", "barrel_top"], category: "Village", job: "fisherman" });
@@ -677,7 +680,7 @@ export const isSlab = id => !!defs[id]?.slab, isStairs = id => !!defs[id]?.stair
 export const isGate = id => id >= B.OAK_GATE && id <= B.WARPED_GATE;
 export const isButton = id => id >= B.STONE_BUTTON && id <= B.WARPED_BUTTON;
 export const isPlate = id => id >= B.OAK_PLATE && id <= B.IRON_PLATE;
-export const lightOf = v => (v & ID_MASK) === B.CAKE ? ((metaOf(v) & 24) === 24 ? 3 : 0) : CANDLE[v & ID_MASK] ? (metaOf(v) & 4 ? 3 * ((metaOf(v) & 3) + 1) : 0) : ((idOf(v) === B.FURNACE || idOf(v) === B.SMOKER || idOf(v) === B.BLAST_FURNACE) && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SEA_PICKLE ? 6 + 3 * (metaOf(v) & 3) : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
+export const lightOf = v => (v & ID_MASK) === B.CAKE ? ((metaOf(v) & 24) === 24 ? 3 : 0) : CANDLE[v & ID_MASK] ? (metaOf(v) & 4 ? 3 * ((metaOf(v) & 3) + 1) : 0) : ((idOf(v) === B.FURNACE || idOf(v) === B.SMOKER || idOf(v) === B.BLAST_FURNACE || idOf(v) === B.CAMPFIRE) && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SEA_PICKLE ? 6 + 3 * (metaOf(v) & 3) : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
   (idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) ? (metaOf(v) & 1 ? 9 : 0) : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & ID_MASK];
 
 // ---------- Items ----------
@@ -1068,6 +1071,8 @@ export const RECIPES = [
   { out: [B.LANTERN, 1], ins: [[I.IRON_INGOT, 1], [B.TORCH, 1]], table: true }, { out: [B.CANDLE, 1], ins: [[I.STRING, 1], [I.HONEYCOMB, 1]] },
   { out: [B.GLASS_PANE, 16], ins: [[B.GLASS, 6]], table: true }, { out: [B.IRON_BARS, 16], ins: [[I.IRON_INGOT, 6]], table: true },
   // Milestone 23, Part A: job blocks
+  { out: [I.EXPLORER_MAP, 1], ins: [[I.PAPER, 8], [I.COMPASS, 1]], table: true, ultra: true },
+  { out: [B.CAMPFIRE, 1], ins: [["logs", 2], [I.STICK, 3], [I.COAL, 1]], table: true, ultra: true },
   { out: [B.SMOKER, 1], ins: [[B.FURNACE, 1], ["logs", 4]], table: true }, { out: [B.BLAST_FURNACE, 1], ins: [[B.FURNACE, 1], [I.IRON_INGOT, 5], [B.STONE, 3]], table: true },
   { out: [B.BARREL, 1], ins: [["planks", 6], [B.OAK_SLAB, 2]], table: true }, { out: [B.STONECUTTER, 1], ins: [[I.IRON_INGOT, 1], [B.STONE, 3]], table: true },
   { out: [B.LECTERN, 1], ins: [[B.OAK_SLAB, 4], [B.BOOKSHELF, 1]], table: true },

@@ -801,7 +801,7 @@ export function initLost(api) {
   function useBeacon(hit) {
     const c = M().checkpoints.find(q => q.x === hit.x && q.y === hit.y && q.z === hit.z);
     if (!c) return;
-    st().cp[G.dim] = c.id; G.player.health = Math.min(20, G.player.health + 4); G.hudDirty = true;
+    st().cp[G.dim] = c.id; G.player.health = Math.min(G.maxHealth?.() ?? 20, G.player.health + 4); G.hudDirty = true;
     puff(hit.x + 0.5, hit.y + 1.3, hit.z + 0.5, "pale"); Sound.tone(880, 0.5, "triangle", 0.08, 200);
     UI.toast(`Keeper Beacon lit: ${c.name}. If you faint, you'll wake here.`, "good"); saveNow(false);
   }
@@ -1232,7 +1232,7 @@ export function initLost(api) {
     window.addEventListener("keydown", reveal.onKey, true);
   }
   L.tick = dt => {
-    if (G.dim === "overworld" && st().site && !st().mapGiven && G.mode === "survival" && G.state === "play" && !(G.story.starter && (G.story.starter.house || G.story.starter.campaign))) {   // worlds with a Starter Home (or a campaign) get the Explorer's Map instead
+    if (!G.meta.ultra && G.dim === "overworld" && st().site && !st().mapGiven && G.mode === "survival" && G.state === "play" && !(G.story.starter && (G.story.starter.house || G.story.starter.campaign))) {   // worlds with a Starter Home (or a campaign) get the Explorer's Map instead
       st().mapGiven = true; giveItem(I.SURVEY_MAP, 1);
       UI.toast("A Survey Map was tucked into your pack. Hold it to see the way to a Keeper excavation.", "good");
     }
