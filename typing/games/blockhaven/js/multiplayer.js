@@ -12,7 +12,7 @@
 import { marineWaterRoom } from "./wildlife-ocean.js";
 import { randomName, randomCode, validName, tidyCode, CODE_RE } from "./mp-words.js";
 
-export const MP_PROTOCOL = 4;      // raise when messages change, so old and new games don't mix
+export const MP_PROTOCOL = 5;      // raise when games need compatible multiplayer behavior
 const RELAY = "wss://blockhaven-relay.watford-ai.workers.dev/ws";
 const NAME_KEY = "blockhaven-mp-name";
 const PACK_KEY = "blockhaven-mp-pack:";   // + the host's world id: a guest's backpack for that world
@@ -28,7 +28,7 @@ const BOX_KINDS = new Set(["chest", "shellbox", "furnace"]);
 const r2 = n => Math.round(n * 100) / 100;
 
 export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeModel, poseModel, disposeModel, World, CHUNK, HEIGHT, idx, chunkKey, version,
-  openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, validBlock, blockDef, itemDef, WATER, LAVA,
+  openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, trackGuestCrop, validBlock, blockDef, itemDef, WATER, LAVA,
   ents, Player, hurt, addEffect, spawnOrbs, spawnDrop, removeDrop, itemMesh, disposeItemMesh, lightItem, maxStack, mount, dismount, SPECIES }) {
   const $ = id => document.getElementById(id);
   // a development copy can point at a relay running on this computer: ?relay=ws://localhost:8787/ws
@@ -191,16 +191,21 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     const undo = [];
     for (let i = 0; i + 3 < l.length && i < 1200; i += 4) {
       const x = l[i], y = l[i + 1], z = l[i + 2], v = l[i + 3];
-      if (![x, y, z, v].every(Number.isInteger) || y < 0 || y >= HEIGHT || v < 0 || v > 0xffff) continue;
-      const old = w.get(x, y, z), t = from.tgt;
-      if (old === v) continue;
+      if (![x, y, z, v].every(Number.isSafeInteger) || y < 0 || y >= HEIGHT || v < 0 || v > 0xffffff) continue;
+      const t = from.tgt;
       const far = Math.hypot(x + 0.5 - t.x, y + 0.5 - (t.y + 1), z + 0.5 - t.z) > REACH;
-      if (far || !validBlock(v) || !guestMayChange(x, y, z, old, v)) { if (w.isLoaded(x, z)) undo.push(x, y, z, old); continue; }
-      if (!w.isLoaded(x, z)) { setUnloaded(w, x, y, z, v); blocks.set(x + "," + y + "," + z, v); continue; }
+      if (!far && validBlock(v)) w.load(Math.floor(x / CHUNK), Math.floor(z / CHUNK));
+      if (!w.isLoaded(x, z)) continue;
+      const old = w.get(x, y, z);
+      if (old === v) continue;
+      if (far || !validBlock(v) || !guestMayChange(x, y, z, old, v) || locks.has(x + "," + y + "," + z)) {
+        undo.push(x, y, z, old);
+        continue;
+      }
       // the guest broke something: let the game do everything breaking does (doors, chests spilling, story pieces)
       const nid = v & 0xFFFF00FF, oid = old & 0xFFFF00FF;
       if ((nid === 0 || nid === WATER) && oid !== 0 && oid !== WATER && oid !== LAVA) breakBlock(x, y, z, false, true);
-      else w.set(x, y, z, v);
+      else if (w.set(x, y, z, v)) trackGuestCrop(x, y, z, v);
     }
     if (undo.length) send({ t: "b", to: from.id, l: undo });
   }
@@ -220,6 +225,8 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (G.panelCtx === k) return no("The host is using that right now.");
     const user = locks.get(k);
     if (user && user !== from.id) return no((players.get(user)?.name || "Someone") + " is using that right now.");
+    if (y < 0 || y >= HEIGHT) return no("That can't be opened.");
+    w.load(Math.floor(x / CHUNK), Math.floor(z / CHUNK));
     if (!prepareContainer(x, y, z)) return no("That can't be opened.");
     locks.set(k, from.id);
     const box = w.containers.get(k);
@@ -256,6 +263,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
   };
   function flushBlocks() {
     if (!blocks.size) return;
+    if (role === "guest") sendPosition();
     const l = [], max = role === "host" ? 8000 : 1200;
     for (const [k, v] of blocks) { const [x, y, z] = k.split(",").map(Number); l.push(x, y, z, v); if (l.length >= max) break; }
     for (let i = 0; i < l.length; i += 4) blocks.delete(l[i] + "," + l[i + 1] + "," + l[i + 2]);
@@ -611,7 +619,7 @@ function rideTick(dt) {
       worldName = (host ? host.name : "The host") + "'s world";
       hostWorld = typeof m.wid === "string" ? m.wid.slice(0, 40) : null;
       save.name = worldName + " (visiting)";
-      save.inventory = loadPack();
+      Object.assign(save, loadPack());
       G.guest = { code };
       await G.joinWorld(save);
       if (!G.world || !G.guest) { if (role === "guest") { message = "The world couldn't be opened."; close(); reset(); render(); } return; }
@@ -685,11 +693,30 @@ function rideTick(dt) {
     if (!stillOpen) openBox = null;
   }
 
-  // a guest's backpack, kept on their own computer for each world they visit
+  // A guest's personal inventory and XP, kept on their own computer for each world they visit.
   function packKey() { return hostWorld ? PACK_KEY + hostWorld : null; }
-  function loadPack() { try { const k = packKey(), t = k && localStorage.getItem(k); const a = t ? JSON.parse(t) : []; return Array.isArray(a) ? a : []; } catch (e) { return []; } }
-  function savePack() { try { const k = packKey(); if (k && G.inv) localStorage.setItem(k, JSON.stringify(G.inv.toJSON())); } catch (e) { /* storage blocked or full */ } }
-  window.addEventListener("pagehide", () => { if (role === "guest" && G.guest) savePack(); });
+  function loadPack() {
+    try {
+      const k = packKey(), t = k && localStorage.getItem(k), data = t && JSON.parse(t);
+      if (Array.isArray(data)) return { inventory: data };
+      return { inventory: Array.isArray(data?.inventory) ? data.inventory : [],
+        voidInv: Array.isArray(data?.voidInv) ? data.voidInv : [],
+        xp: Number.isFinite(data?.xp) && data.xp >= 0 ? data.xp : 0 };
+    } catch (e) { return {}; }
+  }
+  function savePack() {
+    try {
+      const k = packKey();
+      if (k && G.inv) localStorage.setItem(k, JSON.stringify({ inventory: G.inv.toJSON(), voidInv: G.voidInv, xp: G.xp }));
+    } catch (e) { /* storage blocked or full */ }
+  }
+  function flushGuest() {
+    if (role !== "guest" || phase !== "in" || !G.guest || !G.world) return;
+    flushBlocks();
+    watchBox();
+    savePack();
+  }
+  window.addEventListener("pagehide", flushGuest);
 
   // Guests: chests and furnaces go through the host, story pieces stay with the host, and signs can't be written.
   // Host: can't open a container a guest is using.
@@ -699,6 +726,7 @@ function rideTick(dt) {
     if (!G.guest) return false;
     if (BOX_KINDS.has(kind)) {
       if (wantBox) return true;
+      flushBlocks();
       wantBox = k; send({ t: "open", x: hit.x, y: hit.y, z: hit.z });
       setTimeout(() => { if (wantBox === k) { wantBox = null; UI.toast("The host didn't answer. Try again.", "bad"); } }, 5000);
       return true;
@@ -818,9 +846,10 @@ function rideTick(dt) {
     if ((blockT += dt) >= 0.1) { blockT = 0; flushBlocks(); }
     // my position: only when I moved (and once every few seconds so a new arrival sees me)
     sendT += dt; sinceSend += dt;
-    if (sendT < SEND_EVERY) return;
+    if (sendT >= SEND_EVERY && (role !== "host" || players.size)) sendPosition();
+  }
+  function sendPosition() {
     sendT = 0;
-    if (role === "host" && !players.size) return;
     const p = G.player, now = [r2(p.pos.x), r2(p.pos.y), r2(p.pos.z), r2(p.yaw), r2(p.pitch), p.crouch && !p.flying ? 1 : 0, Math.round(p.health * 2) / 2, G.state === "dead" ? 1 : 0, G.dim];
     if (last && sinceSend < 3 && now.every((v, i) => v === last[i])) return;
     last = now; sinceSend = 0;
@@ -941,7 +970,15 @@ function rideTick(dt) {
     askRide, placeEntity, ejectGuest, hostSpot,
     keepRunning: () => role === "host" && phase === "hosting" && players.size > 0,   // the host's pause menu doesn't freeze friends' world
     noPortals: () => role === "guest",   // guests follow the host through portals instead of using them
-    worldClosed() { if (role) { close(); reset(); } },
+    keepsChunk(cx, cz) {
+      if (role !== "host" || phase !== "hosting") return false;
+      for (const p of players.values()) {
+        if (p.tgt && (!p.dim || p.dim === G.dim) &&
+          Math.abs(Math.floor(p.tgt.x / CHUNK) - cx) <= 1 && Math.abs(Math.floor(p.tgt.z / CHUNK) - cz) <= 1) return true;
+      }
+      return false;
+    },
+    worldClosed() { if (role) { flushGuest(); close(); reset(); } },
     // for tests
     _state: () => ({ role, phase, code, myName, worldName, players: [...players.values()].map(p => ({ id: p.id, name: p.name, at: p.cur && [r2(p.cur.x), r2(p.cur.y), r2(p.cur.z)], say: p.say })), asks: [...asks.keys()], locks: [...locks], openBox, message, locked, hostPaused }),
     _allow: allow, _join: join, _host: startHosting, _say: say,

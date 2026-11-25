@@ -1770,8 +1770,8 @@ G.anvilMake = key => {
   const { c } = st, renamed = (res.out.name || "") !== (c.slots[0].name || "");
   c.slots[0] = null;
   if (c.slots[1] && res.used) { c.slots[1].n -= res.used; if (c.slots[1].n <= 0) c.slots[1] = null; }
-  const left = G.inv.add(res.out.id, 1, res.out);
-  if (left) spawnDrop(res.out.id, 1, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z, res.out);
+  const left = G.inv.add(res.out.id, res.out.n, res.out);
+  if (left) spawnDrop(res.out.id, left, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z, res.out);
   Sound.anvil(); if (res.used) G.adv("anvil", "work"); if (renamed) G.adv("anvil", "rename");
   puff(st.x + 0.5, st.y + 1.1, st.z + 0.5, "poof");
   // the Anvil wears out: 12% of uses, chipped → damaged → broken (never in Creative)
@@ -2122,7 +2122,7 @@ function stream(budget) {
   }
   if (++unloadTick % 30 === 0) {
     for (const c of [...w.chunks.values()]) {
-      if (Math.max(Math.abs(c.cx - pcx), Math.abs(c.cz - pcz)) > R + 2) { disposeMesh(c); w.unload(c); }
+      if (Math.max(Math.abs(c.cx - pcx), Math.abs(c.cz - pcz)) > R + 2 && !MP.keepsChunk(c.cx, c.cz)) { disposeMesh(c); w.unload(c); }
       else if (c.mesh && Math.max(Math.abs(c.cx - pcx), Math.abs(c.cz - pcz)) > R) { disposeMesh(c); c.dirty = true; }
     }
   }
@@ -2468,12 +2468,16 @@ function saveChallengeSnapshot(snap) {
   challengeSaves = save.catch(() => {});
   return save;
 }
-async function saveNow(show) {
+async function saveNow(show, requirePersistent = false) {
   if (!G.world || !G.meta || G.guest || String(G.meta.id).startsWith("guest-")) return;   // a Play Together guest never saves the host's world
   try {
     const snap = snapshot();
     G.meta.played = snap.played;
     const ok = snap.ultra ? (await saveChallengeSnapshot(structuredClone(snap)), true) : await Saves.save(snap);
+    if (requirePersistent && !ok) {
+      UI.toast("Browser storage is unavailable. Download your world before leaving this page.", "bad");
+      return false;
+    }
     if (show) { UI.saved(); if (!ok) UI.toast("Saved for now. Use Download world to keep it after you close the page.", "bad"); }
   } catch (e) {
     if (G.meta?.ultra) {
@@ -2511,7 +2515,7 @@ function pause() {
   saveNow(false);
 }
 G.resume = () => {
-  if (G.meta?.ultra?.fallen || G.challengeSaveFailed) return;
+  if (returningToTitle || G.meta?.ultra?.fallen || G.challengeSaveFailed) return;
   Sound.start();
   G.state = "play"; UI.show("none"); G.hudDirty = true;
   requestLock();
@@ -2931,6 +2935,10 @@ function attack() {
   F.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z); if (!d?.echoBlade) L.noise(G.player.pos.x, G.player.pos.y, G.player.pos.z, 12, "fighting");   // the Echo Blade strikes silently
   return true;
 }
+function bowArrowSlot() {
+  if (itemDef(G.inv.slots[OFF]?.id)?.arrow) return OFF;
+  for (let i = 0; i < 36; i++) if (itemDef(G.inv.slots[i]?.id)?.arrow) return i;
+}
 function releaseBow() {
   R.vibrate(G.player.pos.x, G.player.pos.y + 1.4, G.player.pos.z, 3);
   const charge = Math.min(1, G.bowT), s = G.inv.slots[G.bowHand ?? G.selected];
@@ -2939,7 +2947,7 @@ function releaseBow() {
   if (s && s.id === I.CROSSBOW) return;   // Milestone 22: letting go too early doesn't load it
   if (charge < 0.15 || !s || s.id !== I.BOW) return;
   const inf = EN.lvl(s, "infinity");
-  const ai = [OFF, ...Array.from({ length: 36 }, (_, i) => i)].find(i => G.inv.slots[i] && itemDef(G.inv.slots[i].id).arrow);
+  const ai = bowArrowSlot();
   const arrowId = ai === undefined ? I.ARROW : G.inv.slots[ai].id, tip = itemDef(arrowId).tip;
   if (!G.creative) {
     if (ai === undefined) return;
@@ -3398,7 +3406,7 @@ function useWith(offhand) {
   }
   if (slot.id === I.SPYGLASS) { G.scoping = true; return true; }   // hold to look through it
   if (slot.id === I.BOW) {
-    if (G.creative || G.inv.count(I.ARROW) > 0) { G.bowT = 0; G.bowHand = G.useSlot; return true; }
+    if (G.creative || bowArrowSlot() !== undefined) { G.bowT = 0; G.bowHand = G.useSlot; return true; }
     UI.toast("You need arrows to shoot. Make them from flint, a stick, and a feather.", "bad"); Sound.error(); return true;
   }
   if (sd.kind === "spawn" && hit) {
@@ -3544,6 +3552,10 @@ function useWith(offhand) {
     return true;
   }
   if (!isBlockItem(slot.id) && slot.id !== I.SPARKDUST && slot.id !== I.STRING) return false;
+  if (G.guest && slot.id === B.SHELL_BOX && slot.contents?.some(Boolean)) {
+    UI.toast("Ask the host to place a filled Shell Box. You can place an empty one.", "bad");
+    return true;
+  }
   if (slot.id === B.TURTLE_EGG && idOf(hit.v) === B.TURTLE_EGG && (metaOf(hit.v) & 3) < 3) { w.set(hit.x, hit.y, hit.z, make(B.TURTLE_EGG, metaOf(hit.v) + 1)); take(); G.swing = 0.01; G.hudDirty = true; return true; }   // Milestone 17
   if (slot.id === B.SEA_PICKLE && idOf(hit.v) === B.SEA_PICKLE && (metaOf(hit.v) & 3) < 3) {   // Milestone 17: up to 4 pickles in one spot
     w.set(hit.x, hit.y, hit.z, make(B.SEA_PICKLE, (metaOf(hit.v) & 3) + 1)); take(); Sound.place("leaf"); G.swing = 0.01; G.hudDirty = true; return true;
@@ -3810,7 +3822,7 @@ function useBed(hit) {
   const meta = metaOf(hit.v), [dx, dz] = DIR[meta & 3];
   const head = meta & HEAD ? { x: hit.x, z: hit.z } : { x: hit.x + dx, z: hit.z + dz };
   G.player.spawn = { x: head.x + 0.5, y: hit.y + 1, z: head.z + 0.5, bed: [hit.x, hit.y, hit.z] };
-  if (isLostWorldRegion(G.dim)) G.player.spawn.dim = G.dim;
+  if (G.dim === worldHome(G.meta) || isLostWorldRegion(G.dim)) G.player.spawn.dim = G.dim;
   G.player.anchor = null;
   const night = G.time > 0.53 && G.time < 0.97, storm = G.dim === "overworld" && G.wx.thunder > 0.5;   // Milestone 19: you can sleep through a thunderstorm
   if (!night && !storm) { UI.toast("Respawn point set. You can only sleep at night or during a thunderstorm."); return; }
@@ -4644,9 +4656,10 @@ function spawnDrop(id, n, x, y, z, stack = null, vel = null) {
   if (!id || n <= 0) return;
   if (G.guest) { MP.guestDrop(id, n, x, y, z, stack, vel); return; }
   // a matching stack lying right here soaks it up (so dropper and dispenser machines don't fill the world with separate items)
-  if (maxStack(id) > 1) { const m = G.drops.find(d => d.id === id && !d.stack && d.n + n <= maxStack(id) && Math.abs(d.x - x) < 0.8 && Math.abs(d.y - y) < 0.8 && Math.abs(d.z - z) < 0.8); if (m) { m.n += n; return; } }
+  const keepStack = stack && (maxStack(id) === 1 || stack.name);
+  if (!keepStack && maxStack(id) > 1) { const m = G.drops.find(d => d.id === id && !d.stack && d.n + n <= maxStack(id) && Math.abs(d.x - x) < 0.8 && Math.abs(d.y - y) < 0.8 && Math.abs(d.z - z) < 0.8); if (m) { m.n += n; return; } }
   if (G.drops.length >= 150) removeDrop(G.drops.shift());
-  addDrop({ id, n, stack: stack && itemDef(id).stack === 1 ? { ...stack } : null, x, y, z, vx: vel ? vel.x : (Math.random() - 0.5) * 2, vy: vel ? vel.y : 3, vz: vel ? vel.z : (Math.random() - 0.5) * 2, age: 0, pickDelay: vel ? 1.2 : 0.3 });
+  addDrop({ id, n, stack: keepStack ? { ...stack } : null, x, y, z, vx: vel ? vel.x : (Math.random() - 0.5) * 2, vy: vel ? vel.y : 3, vz: vel ? vel.z : (Math.random() - 0.5) * 2, age: 0, pickDelay: vel ? 1.2 : 0.3 });
 }
 function addDrop(drop) {
   const mesh = itemMesh(drop.id, 0.25);
@@ -5207,6 +5220,38 @@ function die(why) {
   saveNow(false);
   UI.death(!!G.meta.hardcore);
 }
+function wakeBesideBed(p) {
+  const w = G.world, [x, y, z] = p.spawn.bed, value = w.get(x, y, z);
+  if (idOf(value) !== B.BED) return false;
+  const meta = metaOf(value), [dx, dz] = DIR[meta & 3], sign = meta & HEAD ? -1 : 1;
+  const otherX = x + dx * sign, otherZ = z + dz * sign;
+  const other = w.get(otherX, y, otherZ);
+  if (idOf(other) !== B.BED || (metaOf(other) & (HEAD | 3)) !== ((meta ^ HEAD) & (HEAD | 3))) return false;
+  const sides = [[dz, -dx], [-dz, dx], [-dx * sign, -dz * sign]];
+  const candidates = [...sides.map(([sx, sz]) => [x + sx, z + sz]),
+    ...sides.map(([sx, sz]) => [otherX - sx, otherZ - sz])];
+  for (const [cx, cz] of candidates) {
+    const floor = w.id(cx, y - 1, cz);
+    if (!SOLID[floor] || floor === B.MAGMA) continue;
+    const feet = w.id(cx, y, cz), head = w.id(cx, y + 1, cz);
+    if ([feet, head].some(id => WATERY[id] || id === B.LAVA || id === B.FIRE)) continue;
+    if (p.collides(w, p.aabb(cx + 0.5, y, cz + 0.5, 1.8))) continue;
+    const support = p.aabb(cx + 0.5, y - 0.02, cz + 0.5, 0.03);
+    if (!p.collides(w, support)) continue;
+    Object.assign(p.pos, { x: cx + 0.5, y, z: cz + 0.5 });
+    return true;
+  }
+  const boxes = [];
+  blockBoxes(value, x, y, z, boxes, w);
+  const top = Math.max(...boxes.map(box => box[4]));
+  if (Number.isFinite(top) && !WATERY[w.id(x, y + 1, z)] &&
+      ![B.LAVA, B.FIRE].includes(w.id(x, y + 1, z)) &&
+      !p.collides(w, p.aabb(x + 0.5, top, z + 0.5, 1.8))) {
+    Object.assign(p.pos, { x: x + 0.5, y: top, z: z + 0.5 });
+    return true;
+  }
+  return false;
+}
 G.respawn = async () => {
   if (G.meta?.ultra) return;
   const p = G.player;
@@ -5241,8 +5286,8 @@ G.respawn = async () => {
   }
   if (G.guest && G.dim !== "overworld") { const h = MP.hostSpot(); placeSafely(p, h.x, h.z); G.state = "pause"; G.resume(); UI.toast("You woke up near the host."); return; }   // Play Together: stay with the group
   if (p.anchor && await respawnAtAnchor(p)) { G.state = "pause"; G.resume(); return; }
-  const home = isLostWorldRegion(p.spawn.dim) ? p.spawn.dim : worldHome(G.meta);
-  if (G.dim !== home || (G.meta.lostWorldGen && !G.world.isLoaded(p.spawn.x, p.spawn.z))) {
+  const home = p.spawn.dim || worldHome(G.meta);
+  if (G.dim !== home) {
     G.state = "loading"; UI.show("loading");
     G.dimData[G.dim] = dimSnapshot(G.world);
     clearWorldMeshes(); G.world.chunks.clear();
@@ -5250,16 +5295,33 @@ G.respawn = async () => {
     p.pos.x = p.spawn.x; p.pos.z = p.spawn.z; p.pos.y = p.spawn.y || 60;
     await loadArea(p.spawn.x, p.spawn.z, "Waking up in " + DIM_NAMES[home] + "…");
   }
-  if (isLostWorldRegion(home) && p.spawn.bed && G.world.id(...p.spawn.bed) !== B.BED) {
-    const { x, z } = G.gen.findSpawn();
-    p.spawn = { x, y: null, z, dim: home };
-    if (!G.world.isLoaded(x, z)) await loadArea(x, z, "Returning to " + DIM_NAMES[home] + "…");
-    UI.toast("Your bed was missing, so you woke up at the region’s arrival point.", "bad");
+  let besideBed = false;
+  if (p.spawn.bed) {
+    const [x, , z] = p.spawn.bed, cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK);
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) G.world.load(cx + dx, cz + dz);
+    besideBed = wakeBesideBed(p);
+    if (!besideBed) {
+      const fallback = isLostWorldRegion(home) ? home : worldHome(G.meta);
+      if (G.dim !== fallback) {
+        G.dimData[G.dim] = dimSnapshot(G.world);
+        clearWorldMeshes(); G.world.chunks.clear();
+        G.dim = fallback; G.world = makeWorld(fallback); G.gen = G.world.gen;
+      }
+      const start = (fallback === "overworld" && (CP.spawnPoint() || ST.spawnPoint())) || G.gen.findSpawn();
+      p.spawn = { x: start.x, y: start.y ?? null, z: start.z, dim: fallback };
+      UI.toast("Your bed was missing or blocked. You woke up at the starting point.", "bad");
+    }
   }
-  if (home === AMBER_CAVERNS) p.pos.y = p.spawn.y ?? AMBER_ARRIVAL.y;
-  placeSafely(p, p.spawn.x, p.spawn.z);
-  if (isLostWorldRegion(home) && p.spawn.y == null) p.spawn.y = p.pos.y;
-  if (p.spawn.bed && G.world.id(...p.spawn.bed) !== B.BED) { UI.toast("Your bed was missing, so you woke up at the world's starting spot.", "bad"); delete p.spawn.bed; }
+  p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; p.gliding = false;
+  if (!besideBed) {
+    if (!G.world.isLoaded(p.spawn.x, p.spawn.z)) {
+      G.state = "loading"; UI.show("loading");
+      await loadArea(p.spawn.x, p.spawn.z, "Returning to the starting point…");
+    }
+    if (G.dim === AMBER_CAVERNS) p.pos.y = p.spawn.y ?? AMBER_ARRIVAL.y;
+    placeSafely(p, p.spawn.x, p.spawn.z);
+    if (p.spawn.y == null) p.spawn.y = p.pos.y;
+  }
   G.state = "pause"; G.resume();
 };
 // Wake up next to a charged Respawn Anchor in the Ember Depths. Returns false (with a reason) if that isn't possible.
@@ -7483,21 +7545,36 @@ G.exportCurrent = () => { Saves.exportFile(snapshot()); UI.toast("World file dow
 G.importWorld = file => Saves.importFile(file);
 G.challengeHistory = () => Saves.challengeHistory();
 G.challengeTime = challengeTime;
-G.toTitle = async () => {
-  if (G.meta?.ultra && (G.state === "play" || G.state === "panel")) {
-    if (G.state === "panel") { UI.closePanel(); G.panelKind = null; G.panelCtx = null; }
-    G.state = "pause"; Sound.pause();
+let returningToTitle = false;
+G.toTitle = async (requirePersistent = false) => {
+  if (returningToTitle) return false;
+  returningToTitle = true;
+  try {
+    if (G.state === "panel") {
+      UI.closePanel();
+      if (String(G.panelCtx).startsWith("cart:")) G.world.containers.delete(G.panelCtx);
+      G.panelKind = null; G.panelCtx = null;
+      G.state = "pause"; Sound.pause();
+    } else if (G.state === "play") {
+      G.state = "pause"; Sound.pause();
+    }
+    dismount(true);
+    if (!G.challengeSaveFailed && await saveNow(false, requirePersistent) === false) {
+      UI.show("pause");
+      return false;
+    }
+    unlockChallenge();
+    MP.worldClosed();
+    clearWorldMeshes();
+    if (G.world) { G.world.chunks.clear(); G.world.dirtyQueue.clear(); }
+    G.world = null; G.meta = null; G.state = "title"; CP.hideHud();
+    document.body.classList.add("menu-bg");
+    outline.visible = crack.visible = false;
+    UI.show("title");
+    return true;
+  } finally {
+    returningToTitle = false;
   }
-  dismount(true);
-  if (!G.challengeSaveFailed) await saveNow(false);
-  unlockChallenge();
-  MP.worldClosed();
-  clearWorldMeshes();
-  if (G.world) { G.world.chunks.clear(); G.world.dirtyQueue.clear(); }
-  G.world = null; G.meta = null; G.state = "title"; CP.hideHud();
-  document.body.classList.add("menu-bg");
-  outline.visible = crack.visible = false;
-  UI.show("title");
 };
 window.addEventListener("pagehide", () => { if (G.world && G.state !== "loading") saveNow(false); Sound.stop(); });
 
@@ -7654,7 +7731,11 @@ function loop(now) {
       if (res.crash > 10) hurt(Math.round((res.crash - 10) * 0.7), "You glided into a wall! Slow down by looking up before you land.", null, true);
       if (!wasWater && p.inWater && p.vel.y < -4) Sound.splash();
       if (G.dim === "end" && p.pos.y < -4) {   // the void below the Hollow
-        if (G.creative) { p.pos.x = 100.5; p.pos.z = 0.5; p.pos.y = 60; p.vel.y = 0; }
+        if (G.creative) {
+          G.world.load(Math.floor(100 / CHUNK), 0);
+          const hasPlatform = SOLID[G.world.id(100, 48, 0)];
+          placeSafely(p, hasPlatform ? 100.5 : 0.5, 0.5);
+        }
         else if ((G.voidT = (G.voidT || 0) - 1 / 60) <= 0) { G.voidT = 0.5; hurt(4, "You fell into the void.", null, true, "void"); }
       } else if (p.pos.y < -20) { placeSafely(p, p.spawn.x, p.spawn.z); }
     }
@@ -7883,6 +7964,14 @@ const R = initRedstone({ G, Sound, puff, breakBlock, primeTNT, UI, ents, lookFac
   boneMeal: (x, y, z) => useBoneMeal({ x, y, z, v: G.world.get(x, y, z), ny: 1 }, null), openMachine: k => { Sound.door(true); openPanel("machine", k); } });
 G.rs = R;
 // Play Together (js/multiplayer.js)
+const guestGrowthBlocks = new Set([B.FARMLAND, B.MELON_STEM, B.PUMPKIN_STEM, B.SAPLING, B.SUGAR_CANE, B.BERRY_BUSH,
+  B.CACTUS, B.BAMBOO, B.KELP, B.CONDUIT, B.TURTLE_EGG, B.CAVE_VINES, B.COCOA, B.EMBER_WART, B.FROSTED_ICE]);
+function trackGuestCrop(x, y, z, value) {
+  const id = idOf(value), block = BLOCKS[id];
+  if (isCrop(id) || guestGrowthBlocks.has(id) || block?.deadAs || (block?.tree && !block.tree.endsWith("mushroom"))) {
+    G.world.crops.add(x + "," + y + "," + z);
+  }
+}
 // May a guest change this block? The host's game checks every change a guest sends.
 function guestMayChange(x, y, z, old, v) {
   const oid = idOf(old), nid = idOf(v);
@@ -7911,7 +8000,7 @@ function prepareContainer(x, y, z) {
 }
 const MP = G.mp = initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeModel, poseModel, disposeModel, World, CHUNK, HEIGHT, idx, chunkKey,
   version: MP_PROTOCOL + "." + SAVE_VERSION + "." + CURRENT_GEN,
-  openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, validBlock: v => Number.isInteger(v) && !!BLOCKS[idOf(v)], blockDef, itemDef, WATER: B.WATER, LAVA: B.LAVA,
+  openPanel, closePanel, breakBlock, prepareContainer, guestMayChange, trackGuestCrop, validBlock: v => Number.isInteger(v) && !!BLOCKS[idOf(v)], blockDef, itemDef, WATER: B.WATER, LAVA: B.LAVA,
   ents, Player, hurt, addEffect, spawnOrbs, spawnDrop, removeDrop, itemMesh, disposeItemMesh, lightItem, maxStack, mount, dismount, SPECIES });
 Adv.init(G, SPECIES, { xp: n => spawnOrbs(n, G.player.pos.x, G.player.pos.y + 1, G.player.pos.z), give: (id, n) => { if (G.inv.add(id, n)) G.dropItem(id, n); } });
 UI.init(G);
