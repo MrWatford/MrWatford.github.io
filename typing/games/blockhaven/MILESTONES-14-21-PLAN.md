@@ -426,22 +426,61 @@ Already in Blockhaven: villages that grow (Hamlet → Fortified town), festivals
 | **D** | **Raids and new places**: pillager outposts, witch huts and woodland mansions in new land; Bad Omen and village raids |
 | **E** | A Journal page, achievements, and a Creative tab |
 
-### 14.2 Part A done (2026-11-22, not published)
+### 14.2 Part A done (2026-11-22, PUBLISHED 2026-11-22, PR #37)
 - 5 job blocks, 5 new jobs with their own trades, and villagers who can change jobs.
 - **Next:** Part B (villager levels and families).
 
-### 14.3 Part B done (2026-11-22, not published)
+### 14.3 Part B done (2026-11-22, PUBLISHED 2026-11-22, PR #37)
 - Villager levels (each level adds a bonus trade; nothing is locked) and villager families (babies when there are spare beds).
 - **Next:** Part C (zombie villagers and curing).
 
-### 14.4 Part C done (2026-11-22, not published)
+### 14.4 Part C done (2026-11-22, PUBLISHED 2026-11-22, PR #37)
 - Zombies hunt villagers on Normal and Hard, villagers can turn into zombie villagers, and curing them gives half-price trades.
 - **Next:** Part D (outposts, witch huts, mansions, Bad Omen raids).
 
-### 14.5 Part D done (2026-11-22, not published)
+### 14.5 Part D done (2026-11-22, PUBLISHED 2026-11-22, PR #37)
 - Pillager Outposts, Witch Huts and Woodland Mansions (land version 20; older worlds only in unvisited land), Bad Omen, village raids, Hero of the Village.
 - **Next:** Part E (Journal page, achievements, Creative tab).
 
-### 14.6 Part E done: Milestone 23 complete (2026-11-22, not published)
+### 14.6 Part E done: Milestone 23 complete (2026-11-22, PUBLISHED 2026-11-22, PR #37)
 - 10 Villages achievements and a "Villages" Journal chapter.
 - **Next in the plan:** publish Milestone 23, then Milestone 24 (creature behaviors).
+
+---
+
+## 15. Milestone 24: Creature behaviors (started 2026-11-25)
+
+Already in Blockhaven: about 40 Minecraft-style creatures with spawn eggs (`js/creature-catalog.js`, behaviors in `js/creatures.js`). Some already act like Java: Guardian and Elder Guardian lasers and curse, Witch potions, Drowned tridents, the Allay fetching items, the Copper Golem sorting chests, the Creaking freezing when you look at it, Armadillos rolling up, frogs eating small slimes, tadpoles growing up, the Happy Ghast and Nautilus as mounts. The rest only walk, bite or shoot.
+
+### 15.1 Parts
+
+| Part | What it adds |
+|---|---|
+| **A** | **Night terrors and spellcasters**: Phantoms only come after 3 days without sleep (and swoop down from high above); Evoker fang lines and rings, Vexes that fly through walls and fade away; Evokers drop a Lifeward Totem |
+| **B** | **Mountains and snow**: goats leap and ram (Goat Horns), Snow Golems throw real snowballs, leave snow and melt in hot places, polar bears guard their cubs, Strays and Husks give Slowness and Hunger |
+| **C** | **Wind and wild animals**: the Breeze hops and fires wind charges (Breeze Rods, Wind Charges you can throw), bats hang and sleep, pandas with moods, ocelots that learn to trust you and scare off Hissers |
+| **D** | **Helpers and odd ones**: Axolotls play dead and help you fight, Glow Squid ink, Sniffers dig up ancient seeds, silverfish hiding in stone, ravagers roaring, zoglins attacking everything, and other leftovers |
+| **E** | A Journal page, achievements, and a Creative tab |
+
+### 15.2 Part A done (2026-11-25, not published)
+- Phantoms (only after 3+ days awake, swooping), Evoker fangs and Vexes, Totem drop. Phantoms, Evokers and Vexes no longer appear at random (Evokers still come in mansions and raids; all three have spawn eggs).
+- **Next:** Part B (mountains and snow).
+
+### 15.3 Part B done (2026-11-25, not published)
+- Goats ram and leap (Goat Horns, milking), Snow Golems you can build (snowballs, snow trails, melting, shearing), polar bears guarding cubs, Stray Slowness arrows, Parched Weakness arrows, Husk hunger.
+- **Next:** Part C (the Breeze and wind charges, bats, pandas, ocelots).
+
+### 15.4 Part C done (2026-11-25, not published)
+- The Breeze hops and fires Wind Charges (Breeze Rods; Wind Charges you can throw and leap with), bats that hang and sleep, pandas with 6 moods, ocelots you can win over (they hunt chickens and scare off Hissers).
+- **Next:** Part D (Axolotls, Glow Squid, Sniffers, silverfish, ravagers, zoglins and other leftovers).
+
+### 15.5 Part D done (2026-11-25, not published)
+- Axolotls (play dead, help fight, Regeneration), Glow Squid (Glow Ink Sacs, glowing item frames), Sniffers (Torchflower and Pitcher Plant), silverfish hiding in Infested Stone, Endermites from Void Pearls, Ravager trampling and roars, Zoglins attacking everything, Allays dancing to Jukeboxes.
+- **Next:** Part E (Journal page, achievements, Creative tab).
+
+### 15.6 Part E done: Milestone 24 complete (2026-11-25, not published)
+- 11 Creatures achievements, a "Creatures" Journal chapter, and a "Creature Finds" Creative tab.
+- **Next in the plan:** publish Milestone 24. That finishes every milestone in this plan (14–24).
+
+### 15.7 Merged with two newer updates before publishing (2026-11-25)
+- Village Overhaul 2.0 (PR #38) and Ultra Hardcore (PR #39) went live after Milestone 23, so Milestone 24 was redone on top of them (backup of the old copy: `tools/backups/pre-sync-uhc-villages-2026-11-25/`). The Village Overhaul's Campfire already used block 563, so Milestone 24's blocks are 564-568. Everything was re-tested in a new world (land version 23) and an Ultra Hardcore world.

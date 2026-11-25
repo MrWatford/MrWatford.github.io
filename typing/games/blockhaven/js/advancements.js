@@ -12,7 +12,7 @@ const NOTE_INSTRUMENTS = ["harp", "bass", "snare", "hat", "basedrum", "bell", "f
 const has = (G, ...ids) => G.inv.slots.some(s => s && ids.includes(s.id));
 const wearing = (G, ids) => [36, 37, 38, 39].some(i => G.inv.slots[i] && ids.includes(G.inv.slots[i].id));
 
-export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "The World", "Building", "Food & Gadgets", "Villages", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
+export const CATEGORIES = ["Getting Started", "Farming", "Exploration", "Taming", "Machinery", "Enchanting", "Brewing", "Oceans", "The World", "Building", "Food & Gadgets", "Villages", "Creatures", "Combat & Bosses", "Forsaken World", "Lost Civilization", "Legacy Campaign"];
 export const ADVANCEMENTS = [
   // building and getting started
   { id: "start", cat: "Getting Started", icon: B.LOG, title: "Blockhaven", desc: "Chop a log.", check: G => has(G, B.LOG, B.BIRCH_LOG, B.CRIMSON_STEM, B.WARPED_STEM) },
@@ -124,6 +124,18 @@ export const ADVANCEMENTS = [
   { id: "endless", cat: "The World", icon: I.WATER_BUCKET, title: "Endless Water", desc: "Make a new full block of water between two others.", ev: "watersource", reward: { xp: 20 } },
   { id: "waterlog", cat: "The World", icon: B.OAK_FENCE, title: "Water Feature", desc: "Fill a fence, gate, trapdoor or sign with water.", ev: "waterlog" },
   { id: "firefighter", cat: "The World", icon: B.FIRE, title: "Firefighter", desc: "Put out a fire with flowing water.", ev: "extinguish", reward: { xp: 15 } },
+  // Milestone 24, Part E: creatures
+  { id: "phantom", cat: "Creatures", icon: I.PHANTOM_MEMBRANE, title: "Should Have Slept", desc: "Defeat a Phantom.", ev: "kill", match: sp => sp === "phantom" },
+  { id: "evoker", cat: "Creatures", icon: I.TOTEM, title: "Spellbreaker", desc: "Defeat an Evoker.", ev: "kill", match: sp => sp === "evoker", reward: { xp: 30 } },
+  { id: "goathorn", cat: "Creatures", icon: I.GOAT_HORN, title: "Sound the Horn", desc: "Blow a Goat Horn.", ev: "horn" },
+  { id: "snowgolem", cat: "Creatures", icon: B.CARVED_PUMPKIN, title: "Snow Buddy", desc: "Build a Snow Golem.", ev: "snowGolem" },
+  { id: "breeze", cat: "Creatures", icon: I.BREEZE_ROD, title: "Calm Winds", desc: "Defeat a Breeze.", ev: "kill", match: sp => sp === "breeze" },
+  { id: "windride", cat: "Creatures", icon: I.WIND_CHARGE, title: "Riding the Gust", desc: "Throw a Wind Charge.", parent: "breeze", ev: "windcharge" },
+  { id: "ocelot", cat: "Creatures", icon: I.RAW_MINNOW, title: "Shy No More", desc: "Win an Ocelot's trust.", ev: "ocelot" },
+  { id: "axolotl", cat: "Creatures", icon: I.WATER_BUCKET, title: "Teamwork Underwater", desc: "Have an Axolotl help you defeat a foe.", ev: "axolotl" },
+  { id: "sniffer", cat: "Creatures", icon: I.TORCHFLOWER_SEEDS, title: "Ancient Garden", desc: "Watch a Sniffer dig up an ancient seed.", ev: "sniffer" },
+  { id: "glowframe", cat: "Creatures", icon: I.GLOW_INK_SAC, title: "Shine On", desc: "Make an Item Frame glow with a Glow Ink Sac.", ev: "glowframe" },
+  { id: "ravager", cat: "Creatures", icon: I.SHIELD, title: "Stand Your Ground", desc: "Stun a Ravager by blocking its bite with a shield.", ev: "ravagerStun", reward: { xp: 30 } },
   // Milestone 23, Part E: villages
   { id: "newjob", cat: "Villages", icon: B.SMOKER, title: "Career Change", desc: "See a villager take a job at a job block you placed.", ev: "villagerJob" },
   { id: "apprentice", cat: "Villages", icon: I.JADE, title: "Learning the Trade", desc: "Trade until a villager becomes an Apprentice.", ev: "villagerLevel", match: n => n >= 2 },

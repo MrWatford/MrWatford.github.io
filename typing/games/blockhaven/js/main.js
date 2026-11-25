@@ -500,6 +500,12 @@ const ents = new Entities(scene, {
   pylonGone: i => { const c = cinderData(); if (!c.pylonsGone.includes(i)) c.pylonsGone.push(i); const left = CITADEL_PYLONS.length - c.pylonsGone.length; UI.toast(left ? `Ember Pylon broken! ${left} left.` : "All the Ember Pylons are broken! Cindermaw's shield is gone.", "good"); },
   push: (vx, vy, vz) => { if (guestFocus()) { MP.pushGuest(guestFocus(), vx, vy, vz); return; } const p = G.player; if (G.creative || G.spectator) return; p.vel.x += vx; p.vel.y = Math.max(p.vel.y, vy); p.vel.z += vz; },
   time: () => G.time, day: () => G.meta.day || 1, toast: m => UI.toast(m), story: () => G.story,
+  restless: () => restlessDays(),
+  jukeboxNear: (x, y, z, r) => [...playing.keys()].some(k => { const [a, b, c] = k.split(",").map(Number); return Math.hypot(a + 0.5 - x, b + 0.5 - y, c + 0.5 - z) < r; }),   // Milestone 24, Part D
+  blocking: () => !guestFocus() && !!G.blocking,
+  axolotlHelp: () => { if (G.creative || guestFocus()) return; addEffect("regen", 5); if (G.effects.fatigue) { delete G.effects.fatigue; G.hudDirty = true; } G.adv("axolotl"); },
+  windLaunch: y => { if (!guestFocus()) G.player.windY = y; },   // Milestone 24, Part C
+  thunder: () => G.dim === "overworld" && (G.wx?.thunder || 0) > 0.5,   // Milestone 24, Part A: Phantoms come after 3 nights without sleep
   villagerZombified: v => { if (Math.hypot(v.pos.x - G.player.pos.x, v.pos.z - G.player.pos.z) < 32) UI.toast("A zombie turned a villager into a zombie villager! You can cure it: Splash Potion of Weakness, then a Golden Apple.", "bad"); },   // Milestone 23, Part C
   villagerCured: n => { UI.toast("The villager is cured! It thanks you with half-price trades.", "good"); G.adv("cure"); },
   captainDefeated: e => { if (G.creative) return; addEffect("badOmen", 6000); UI.toast("You defeated the Pillager Captain and got Bad Omen! If you walk into a village, raiders will come.", "bad"); G.adv("captain"); },   // Milestone 23, Part D
@@ -514,7 +520,7 @@ const ents = new Entities(scene, {
   droppedItems: () => G.drops,
   nearDrop: (pos, r) => G.drops.find(d => d.pickDelay <= 0 && itemDef(d.id).kind === "food" && Math.abs(d.y - pos.y) < 1.5 && Math.hypot(d.x - pos.x, d.z - pos.z) < r),
   takeDrop: d => { d.n--; if (d.n <= 0) { removeDrop(d); G.drops.splice(G.drops.indexOf(d), 1); } return d.id; },
-  pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); }
+  pearlLand: (x, y, z) => { const p = G.player; if (!G.world.isLoaded(x, z)) return; p.pos.x = x; p.pos.y = y; p.pos.z = z; p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; puff(x, y + 1, z, "void"); Sound.mob("teleport", 0); hurt(2, "Void Pearls sting a little when you land.", null); if (!G.creative && !G.guest && Math.random() < 0.05) ents.add("endermite", x, y, z, { bestiary: { life: 0 } }); }   // (Milestone 24, Part D: 1 in 20 pearls brings an Endermite)
 });
 G.ents = ents;
 const PUFF_COLORS = { poison: [0.35, 0.65, 0.2], hush: [0.35, 0.95, 0.9], spark: [1, 0.32, 0.1], poof: [0.85, 0.85, 0.85], heart: [1, 0.35, 0.45], void: [0.75, 0.3, 0.95], fire: [1, 0.55, 0.15], xp: [0.5, 1, 0.3], ember: [1, 0.45, 0.1], ash: [0.45, 0.4, 0.4], portal: [0.7, 0.35, 1], ink: [0.06, 0.06, 0.1], splash: [0.65, 0.8, 1], pale: [0.88, 0.94, 1], crumb: [0.85, 0.7, 0.45], totem: [1, 0.85, 0.25], totemGreen: [0.4, 0.95, 0.5] };
@@ -2755,6 +2761,7 @@ function breakBlock(x, y, z, drops, quiet) {
   const w = G.world, v = w.get(x, y, z), id = idOf(v), d = blockDef(v);
   if (!id || id === B.WATER || id === B.LAVA) return;
   if (id === B.PAINTING) { removePainting(x, y, z, drops); if (!quiet) Sound.breakBlock("wood"); return; }   // Milestone 21, Part D
+  if (id === B.INFESTED_STONE && !G.guest && !G.creative) setTimeout(() => ents.add("silverfish", x + 0.5, y, z + 0.5), 0);   // Milestone 24, Part D: a silverfish was hiding inside
   if (id === B.ITEM_FRAME && !quiet) { const fc = w.containers.get(x + "," + y + "," + z); if (fc?.slots?.[0]) { if (!G.creative) spawnDrop(fc.slots[0].id, 1, x + 0.5, y + 0.5, z + 0.5, fc.slots[0]); fc.slots[0] = null; fc.rot = 0; Sound.pickup(); return; } }   // hitting a frame takes its item out first
   if (id === B.SOLKARA_GATE || (G.dim === AMBER_CAVERNS && id === B.GATE_FRAME && isAmberSeal(x,y,z))) return;
   if (id === B.LORE_TABLET && (G.dim === GODZILLA_CALDERA && isGodzillaConsole({ x, y, z }) ||
@@ -2821,6 +2828,8 @@ function breakBlock(x, y, z, drops, quiet) {
       if (id === B.MELON_STEM) drop = [I.MELON_SEEDS, 1];
       else if (id === B.PUMPKIN_STEM) drop = [I.PUMPKIN_SEEDS, 1];   // Milestone 22
       else if (id === B.POTATOES) { if (ripe && Math.random() < 0.02) spawnDrop(I.POISONOUS_POTATO, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.POTATO, ripe ? 1 + Math.floor(Math.random() * 4) : 1]; }
+      else if (id === B.TORCHFLOWER_CROP) drop = ripe ? [B.TORCHFLOWER, 1] : [I.TORCHFLOWER_SEEDS, 1];   // Milestone 24, Part D: the Sniffer's ancient plants
+      else if (id === B.PITCHER_CROP) drop = ripe ? [B.PITCHER_PLANT, 1] : [I.PITCHER_POD, 1];
       else if (id === B.BEETROOTS) { if (ripe) spawnDrop(I.BEETROOT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.BEETROOT_SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
       else if (id === B.WHEAT) { if (ripe) spawnDrop(I.WHEAT, 1, x + 0.5, y + 0.5, z + 0.5); drop = [I.SEEDS, ripe ? 1 + Math.floor(Math.random() * 3) : 1]; }
       else drop = [I.CARROT, ripe ? 2 + Math.floor(Math.random() * 3) : 1];
@@ -3356,6 +3365,23 @@ function useWith(offhand) {
   if (slot.id === I.VOID_CRYSTAL && hit && !G.guest) return placeVoidCrystal(hit);
   if (slot.id === I.SHIELD) { G.blocking = true; G.blockHand = G.useSlot; return true; }   // hold to keep the shield up
   if (slot.id === I.TRIDENT) { G.bowT = 0; G.bowHand = G.useSlot; return true; }   // Milestone 17, Part D: hold, then let go to throw
+  if (slot.id === I.WIND_CHARGE) {   // Milestone 24, Part C: throw a Wind Charge (twice a second at most)
+    const now = performance.now() / 1000;
+    if (now < (G.windT || 0)) return true;
+    if (G.guest) { UI.toast("Throwing things is only for the host while playing together (bows work)."); return true; }
+    G.windT = now + 0.5;
+    const p = G.player, dir = lookDir();
+    ents.addProjectile("windburst", p.pos.x + dir.x * 0.6, p.pos.y + p.eye - 0.15 + dir.y * 0.6, p.pos.z + dir.z * 0.6, dir.x * 20, dir.y * 20, dir.z * 20, { fromPlayer: true, noGrav: true, dmg: 1 });
+    if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; }
+    Sound.mob("cast", 0); G.swing = 0.01; G.hudDirty = true; heldId = -1;
+    return true;
+  }
+  if (slot.id === I.GOAT_HORN) {   // Milestone 24, Part B: sound the horn (once every 7 seconds)
+    const now = performance.now() / 1000;
+    if (now < (G.hornT || 0)) return true;
+    G.hornT = now + 7; Sound.mob("goathorn", 0); G.swing = 0.01; G.adv?.("horn");
+    return true;
+  }
   if (slot.id === I.FIREWORK_ROCKET) {   // Milestone 22, Part D: launch from a block, or boost while gliding
     const p = G.player;
     if (p.gliding) { G.rocketBoost = 1.6; launchRocket(p.pos.x, p.pos.y, p.pos.z, 0, -3, 0, 0.35, false); G.adv("boost"); }
@@ -3629,6 +3655,13 @@ function useWith(offhand) {
   Sound.place(MATERIAL(id)); G.swing = 0.01; G.hudDirty = true; heldId = -1;
   G.adv("place", id);
   if (id === B.WARD_CANDLE) F.placeCandle(x, y, z);
+  if ((id === B.CARVED_PUMPKIN || id === B.JACK_O_LANTERN) && w.id(x, y - 1, z) === B.SNOW && w.id(x, y - 2, z) === B.SNOW && !G.guest) {   // Milestone 24, Part B: build a Snow Golem
+    for (let k = 0; k < 3; k++) w.set(x, y - k, z, B.AIR);
+    const g = ents.add("snow_golem", x + 0.5, y - 2, z + 0.5, { persist: true });
+    if (g) g.persist = true;
+    for (let k = 0; k < 6; k++) puff(x + 0.5, y - 1 + Math.random() * 2, z + 0.5, "poof");
+    UI.toast("You built a Snow Golem! It throws snowballs at monsters, but it melts in hot places and in the rain.", "good"); G.adv("snowGolem");
+  }
   R.placed(x, y, z);
   L.blockChanged(x, y, z, false);
   tipDone("place");
@@ -3785,8 +3818,15 @@ function useBed(hit) {
   if (MP.sleep()) return;   // Play Together: the night is skipped once everyone is in bed
   const shade = document.getElementById("flash");
   shade.style.background = "#000"; shade.classList.add("on");
-  setTimeout(() => { G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; const wet = sleepClearsWeather(); if (storm) G.adv("stormsleep"); shade.classList.remove("on"); setTimeout(() => shade.style.background = "", 400); UI.toast(wet ? "Good morning! The storm has passed. Respawn point set." : "Good morning! Respawn point set.", "good"); G.adv("sleep"); }, 1200);
+  setTimeout(() => { G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; const wet = sleepClearsWeather(); if (storm) G.adv("stormsleep"); shade.classList.remove("on"); setTimeout(() => shade.style.background = "", 400); UI.toast(wet ? "Good morning! The storm has passed. Respawn point set." : "Good morning! Respawn point set.", "good"); G.adv("sleep"); G.rested(); }, 1200);
 }
+// Milestone 24, Part A: days since you last slept (or died). Older worlds start counting when they are first loaded.
+function restlessDays() {
+  const now = (G.meta.day || 1) + G.time;
+  if (typeof G.meta.rest !== "number" || G.meta.rest > now) G.meta.rest = now;
+  return now - G.meta.rest;
+}
+G.rested = () => { G.meta.rest = (G.meta.day || 1) + G.time; };
 function blocksPlayer(v, x, y, z) {
   const boxes = []; blockBoxes(v, x, y, z, boxes);
   const a = G.player.aabb();
@@ -3850,6 +3890,7 @@ function useDecor(hit, kind, key) {
   if (!c) return;
   const take = () => { if (!G.creative) { slot.n--; if (!slot.n) G.inv.slots[G.useSlot] = null; } };
   if (kind === "itemframe") {   // put something in; click again to turn it; hit the frame to take it out
+    if (slot?.id === I.GLOW_INK_SAC && !c.glow) { c.glow = true; take(); Sound.place("soft"); UI.toast("The item frame glows now: what's inside shines even in the dark."); G.adv("glowframe"); return; }   // Milestone 24, Part D
     if (!c.slots[0] && slot) { c.slots[0] = { ...slot, n: 1 }; take(); Sound.place("wood"); G.adv("itemframe"); }
     else if (c.slots[0]) { c.rot = ((c.rot || 0) + 1) % 8; Sound.click(); }
   } else {   // armor stand: armor goes on in its place; an empty hand takes the top piece back
@@ -5132,6 +5173,7 @@ function retireWildLeviathans() {
 }
 function die(why) {
   raids.clear();
+  G.rested?.();   // Milestone 24, Part A: dying resets the Phantom count, like Java
   GC.onFaint();
   G.deathSpot = { ...G.player.pos };   // (where you fell: the Endwatch dungeons wake you by their watchfire; Hardcore floats you here)
   retireWildLeviathans();

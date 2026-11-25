@@ -204,8 +204,8 @@ export class Player {
     let fall = 0;
     if (this.onGround || this.inWater || this.flying || creative) {
       if (this.airTop !== null && (this.onGround && landed) && !this.inWater && !this.flying && !creative) fall = this.airTop - p.y;
-      this.airTop = null;
-    } else this.airTop = this.airTop === null ? p.y : Math.max(this.airTop, p.y);
+      this.airTop = null; this.windY = null;
+    } else { this.airTop = this.airTop === null ? p.y : Math.max(this.airTop, p.y); if (this.windY != null) this.airTop = Math.min(this.airTop, this.windY); }   // (Milestone 24, Part C: a Wind Charge leap)
     return { fall, crash };
   }
 }

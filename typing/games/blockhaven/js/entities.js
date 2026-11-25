@@ -1904,6 +1904,8 @@ export class Entities {
     }
     this.projectiles = [];
     this.clearHazards();
+    for (const f of this.fangs || []) this.scene.remove(f.mesh);   // Milestone 24, Part A
+    this.fangs = [];
   }
 
   // ----- saving -----
@@ -2258,6 +2260,7 @@ export class Entities {
     this.sweep();
     this.updateProjectiles(dt);
     this.updateHazards(dt);
+    this.updateFangs(dt);   // Milestone 24, Part A
   }
 
   // ----- Cindermaw's fight -----
@@ -2432,6 +2435,64 @@ export class Entities {
     e.goal = { x: p.pos.x, y: p.pos.y + 1.6, z: p.pos.z, speed: e.def.speed };
     if (d < e.def.reach && e.attackCd <= 0 && this.targetable()) { this.ctx.hurtPlayer(e.def.dmg * dmgMul, "A Resonance Mote zapped you. Break motes with a quick hit!", e); e.attackCd = 1.4; }
   }
+  // Milestone 24, Part C: a Wind Charge bursts into a gust: everything within 3 blocks is pushed away and up (no block damage).
+  // A burst right at your feet launches you high, and you only take fall damage for falling below where it burst.
+  windBurst(x, y, z, pr) {
+    const ctx = this.ctx, p = ctx.player(), R = 3;
+    for (let k = 0; k < 10; k++) ctx.particles(x + rand(-1.2, 1.2), y + rand(-0.6, 1.2), z + rand(-1.2, 1.2), "poof");
+    Sound.mob("windburst", this.dist({ pos: { x, y, z } }));
+    const pd = Math.hypot(p.pos.x - x, p.pos.y + 0.6 - y, p.pos.z - z);
+    if (pd < R) {
+      const k = 1 - pd / (R + 0.5), hx = p.pos.x - x, hz = p.pos.z - z, hl = Math.hypot(hx, hz) || 1, horiz = hl < 0.35 ? 0 : 9 * k;
+      ctx.push(hx / hl * horiz, 17 * k, hz / hl * horiz);
+      ctx.windLaunch?.(y);
+    }
+    for (const e of this.list) {
+      if (e.dead || e.gone || e.def.boss || e.def.object || e.def.static || e.sp === "breeze" || e.ridden) continue;
+      const d = Math.hypot(e.pos.x - x, e.pos.y + e.h / 2 - y, e.pos.z - z);
+      if (d >= R) continue;
+      const k = 1 - d / (R + 0.5), hx = e.pos.x - x, hz = e.pos.z - z, hl = Math.hypot(hx, hz) || 1;
+      e.vel.x += hx / hl * 10 * k; e.vel.z += hz / hl * 10 * k; e.vel.y = Math.max(e.vel.y, 9 * k); e.knock = Math.max(e.knock || 0, 0.5);
+    }
+    if (pr?.fromPlayer) ctx.adv?.("windcharge");
+  }
+  // Milestone 24, Part A: Evoker fangs wait under the ground, snap up, bite whatever stands on them (but never illagers), then sink
+  addFang(x, y, z, delay, owner, dmg) {
+    if (!this.fangs) this.fangs = [];
+    if (this.fangs.length >= 48) return;
+    if (!this.fangKit) this.fangKit = { geo: new THREE.BoxGeometry(1, 1, 1), bone: new THREE.MeshBasicMaterial({ color: 0xd9cfa6 }), dark: new THREE.MeshBasicMaterial({ color: 0x6b5f4c }) };
+    const K = this.fangKit, mesh = new THREE.Group(), jaws = [];
+    for (const side of [-1, 1]) {
+      const jaw = new THREE.Group(); jaw.position.x = side * 0.06;
+      const plate = new THREE.Mesh(K.geo, K.dark); plate.scale.set(0.1, 0.62, 0.62); plate.position.set(side * 0.08, 0.31, 0); jaw.add(plate);
+      for (let k = 0; k < 3; k++) { const tooth = new THREE.Mesh(K.geo, K.bone); tooth.scale.set(0.09, 0.16, 0.12); tooth.position.set(side * 0.02, 0.62 - k * 0.04, -0.2 + k * 0.2); jaw.add(tooth); }
+      mesh.add(jaw); jaws.push([jaw, side]);
+    }
+    mesh.position.set(x, y - 0.8, z); mesh.rotation.y = Math.random() * Math.PI; mesh.visible = false; this.scene.add(mesh);
+    this.fangs.push({ x, y, z, t: -delay, mesh, jaws, owner, dmg, bit: false });
+  }
+  updateFangs(dt) {
+    if (!this.fangs?.length) return;
+    const ILLAGERS = new Set(["evoker", "vindicator", "pillager", "vex", "ravager"]), p = this.ctx.player();
+    for (const f of this.fangs) {
+      f.t += dt;
+      if (f.t < 0) continue;
+      f.mesh.visible = true;
+      const rise = Math.min(1, f.t / 0.15), sink = Math.max(0, (f.t - 0.45) / 0.35);
+      f.mesh.position.y = f.y - 0.8 + 0.8 * rise - 0.8 * sink;
+      const open = f.t < 0.15 ? 0.7 : f.t < 0.32 ? 0.7 * (1 - (f.t - 0.15) / 0.17) : 0;
+      for (const [jaw, side] of f.jaws) jaw.rotation.z = side * open;
+      if (!f.bit && f.t >= 0.3) {
+        f.bit = true;
+        Sound.mob("clank", this.dist({ pos: f }));
+        if (Math.hypot(p.pos.x - f.x, p.pos.z - f.z) < 0.8 && p.pos.y > f.y - 0.6 && p.pos.y < f.y + 1.2) this.ctx.hurtPlayer(f.dmg, "An Evoker's fangs bit you! Step out of the line of fangs.", f.owner || null);
+        for (const o of this.list) if (!o.dead && !o.gone && o !== f.owner && !ILLAGERS.has(o.sp) && !o.def.boss && !o.def.object &&
+          Math.hypot(o.pos.x - f.x, o.pos.z - f.z) < 0.6 + o.w / 2 && o.pos.y > f.y - 0.6 && o.pos.y < f.y + 1.2) this.damage(o, 6, f.owner || null);
+      }
+      if (f.t > 0.8) f.gone = true;
+    }
+    this.fangs = this.fangs.filter(f => { if (!f.gone) return true; this.scene.remove(f.mesh); return false; });
+  }
   // Marked danger rings on the floor: a warning glow, then damage to anyone inside (lasting `burn` seconds for breath)
   addHazard(x, y, z, r, warn, dmg, why, burn, options = {}) {
     if (!this.hazards) this.hazards = [];
@@ -2518,8 +2579,9 @@ export class Entities {
       e.vel.y = Math.max(e.vel.y - GRAV * 0.4 * dt, -2.5); e.vel.x *= 0.9; e.vel.z *= 0.9;
     } else if (def.flies) {   // flyers steer up and down toward their goal height
       const gy = e.goal && e.goal.y !== undefined ? e.goal.y : e.pos.y;
-      const up = def.flightLift ?? (e.sp === "bald_eagle" ? 4.8 : 2), down = e.wild?.phase === "dive" ? (def.diveSpeed ?? 8) : up;
-      e.vel.y += (Math.max(-down, Math.min(up, (gy - e.pos.y) * (e.wild?.phase === "dive" ? 2.6 : 1.2))) - e.vel.y) * 0.1;
+      const diving = e.wild?.phase === "dive" || e.bestiary?.mode === "swoop";   // (Milestone 24, Part A: a swooping Phantom dives too)
+      const up = def.flightLift ?? (e.sp === "bald_eagle" ? 4.8 : 2), down = diving ? (def.diveSpeed ?? 8) : up;
+      e.vel.y += (Math.max(-down, Math.min(up, (gy - e.pos.y) * (diving ? 2.6 : 1.2))) - e.vel.y) * (diving && def.diveSpeed ? 0.25 : 0.1);
       if (!e.goal) { e.vel.x *= 0.95; e.vel.z *= 0.95; }
     } else if (def.amphibious && (e.inWater || waterLedge)) {
       const sample = waterLedge ? { ...e.pos, y: e.pos.y - 0.72 } : e.pos;
@@ -2560,7 +2622,7 @@ export class Entities {
       else if (def.flies) e.vel.y = 2.5;               // flyers rise over things in the way
       else if (e.onGround) e.wantJump = true;          // everyone else hops up one block
     }
-    if (e.onGround) { const fall = airTop - e.pos.y; if (fall > 3.5 && !def.flutters && e.def.ai !== "slime") this.damage(e, Math.floor(fall - 3), null); e.airTop = null; }
+    if (e.onGround) { const fall = airTop - e.pos.y; if (fall > 3.5 && !def.flutters && !def.flies && !def.noFall && e.def.ai !== "slime") this.damage(e, Math.floor(fall - 3), null); e.airTop = null; }
     else e.airTop = airTop;
     // stuck checks and hazards
     e.walkPhase += Math.hypot(e.vel.x, e.vel.z) * dt * 3;
@@ -2857,7 +2919,7 @@ export class Entities {
     }
     if (def.ai === "creeper") {
       // Hissers are afraid of tame Whiskers
-      const cat = this.list.find(o => o.sp === "whisker" && o.tame && !o.dead && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 6);
+      const cat = this.list.find(o => (o.sp === "whisker" && o.tame || o.sp === "ocelot") && !o.dead && !o.gone && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 6);   // (Milestone 24, Part C: and of Ocelots)
       if (cat) { const ax = e.pos.x - cat.pos.x, az = e.pos.z - cat.pos.z, l = Math.hypot(ax, az) || 1; e.goal = { x: e.pos.x + ax / l * 5, z: e.pos.z + az / l * 5, speed: def.speed * 1.3 }; e.path = null; e.fuse = 0; return; }
       if (d < 2.8 && sees) { if (e.fuse === 0) Sound.mob("fuse", d); e.fuse += 0.15; e.goal = null; }
       else { e.fuse = Math.max(0, e.fuse - 0.15); this.chase(e, tp); }
@@ -2879,6 +2941,8 @@ export class Entities {
       ctx.hurtPlayer(def.dmg * dmgMul, `A ${def.name} got you!`, e);
       if (def.poison && dmgMul > 0.7) ctx.effect("poison", dmgMul > 1 ? 15 : 7);
       if (def.blight) ctx.effect("blight", 8);
+      if (def.hunger) ctx.effect("queasy", 7 * Math.max(1, dmgMul));   // Milestone 24, Part B: a Husk's hit makes you hungry
+      if (e.sp === "ravager" && ctx.blocking?.() && e.bestiary) { e.bestiary.stunT = 2; ctx.adv?.("ravagerStun"); }   // Milestone 24, Part D: a Ravager's bite on a shield stuns it, then it roars
       e.attackCd = hunt ? 1.35 - hunt * .08 : 1; e.swing = 0.35;
     }
     this.chase(e, tp);
@@ -3567,7 +3631,7 @@ export class Entities {
     // following someone holding food
     const held = ctx.heldId();
     if (def.food.includes(held) && d < 8 && d > 2) { e.goal = { x: p.pos.x, z: p.pos.z, speed: def.speed * 1.1 }; if (def.hops) e.wantJump = true; return; }
-    if (def.skittish && d < 4 && !def.food.includes(held) && !ctx.creative()) { e.fleeT = 1; return; }
+    if (def.skittish && d < 4 && !def.food.includes(held) && !ctx.creative() && !e.bestiary?.trust) { e.fleeT = 1; return; }
     // sheep nibble grass and regrow wool
     if (e.sp === "sheep" && e.sheared && Math.random() < 0.004) {
       const x = Math.floor(e.pos.x), y = Math.floor(e.pos.y) - 1, z = Math.floor(e.pos.z);
@@ -3805,6 +3869,7 @@ export class Entities {
       if (e.breedCd <= 0 && e.love <= 0) { e.love = 30; ctx.consume(); ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "heart"); Sound.mob(def.sound, 2); return true; }
       return false;
     }
+    if (e.sp === "goat" && id === I.BUCKET && !e.baby) { ctx.swapHeld(I.MILK_BUCKET); Sound.mob("baa", 2); return true; }   // Milestone 24, Part B
     if (e.sp === "sheep" && id === I.SHEARS && !e.sheared && !e.baby) { e.sheared = true; ctx.drop(B.WOOL, randi(1, 3), e.pos.x, e.pos.y + 1, e.pos.z); ctx.wear(); Sound.mob("baa", 2); return true; }
     if (e.sp === "cow" && id === I.BUCKET && !e.baby) { ctx.swapHeld(I.MILK_BUCKET); Sound.mob("moo", 2); return true; }
     if (e.sp === "boarkin" && id === I.GOLD_INGOT && !(e.angry > 0) && e.barterT <= 0) { ctx.consume(); e.barterT = 4; e.goal = null; Sound.mob("snort", 2); return true; }
@@ -3872,6 +3937,7 @@ export class Entities {
       if (pr.gone || pr.kind === "obsidianshard" && pr.owner?.gone) { pr.gone = true; continue; }
       pr.age += dt;
       if (["sandbolt", "obsidianshard"].includes(pr.kind) && pr.age > 5) { pr.gone = true; continue; }
+      if (pr.kind === "windburst" && pr.age > 4) { this.windBurst(pr.x, pr.y, pr.z, pr); pr.gone = true; continue; }   // Milestone 24, Part C
       if (pr.kind === "bobber") { this.updateBobber(pr, dt); continue; }
       if (pr.returning) { this.tridentHome(pr, dt, p); continue; }   // Milestone 17, Part D
       if (pr.stuck) { if (pr.age > 30) pr.gone = true; if (pr.fromPlayer && !ctx.creative() && Math.hypot(pr.x - p.pos.x, pr.y - p.pos.y - 0.8, pr.z - p.pos.z) < 1.4 && pr.age > 0.5) { if (pr.infinite || ctx.give(pr.itemId || I.ARROW, 1)) pr.gone = true; } continue; }
@@ -3891,7 +3957,8 @@ export class Entities {
         // Resolve the nearest swept contact, rather than favoring list order or
         // a creature behind cover within the same quarter-block substep.
         let hitE = null, entityTime = Infinity;
-        if (pr.kind !== "pearl" && (pr.fromPlayer || pr.kind === "bigfire" || pr.kind === "arrow")) for (const e of this.list) {
+        if (pr.kind !== "pearl" && (pr.fromPlayer || pr.kind === "bigfire" || pr.kind === "arrow" || pr.golemBall)) for (const e of this.list) {
+          if (pr.golemBall && (!e.def.hostile || e.tame)) continue;   // Milestone 24, Part B: a Snow Golem's snowballs only hit monsters
           if (e.dead || e.gone || e === pr.owner || e.def.segmentedLeviathan && (!e.emerged || e.ridden) || pr.pierced?.has(e)) continue;
           if (pr.kind === "arrow" && !pr.fromPlayer && pr.owner?.def.hostile && e.def.hostile && !e.armored) continue;
           const r = e.w / 2 + 0.1;
@@ -3900,7 +3967,7 @@ export class Entities {
               e.pos.x - r, e.pos.y, e.pos.z - r, e.pos.x + r, e.pos.y + e.h, e.pos.z + r);
           if (t !== null && t < entityTime) { entityTime = t; hitE = e; }
         }
-        const playerTime = pr.fromPlayer ? null : segmentBoxTime(pr.x, pr.y, pr.z, nx, ny, nz,
+        const playerTime = pr.fromPlayer || pr.golemBall ? null : segmentBoxTime(pr.x, pr.y, pr.z, nx, ny, nz,
           p.pos.x - 0.35, p.pos.y, p.pos.z - 0.35, p.pos.x + 0.35, p.pos.y + 1.8, p.pos.z + 0.35);
         if (playerTime !== null && playerTime < entityTime) hitE = null;
         this.projectileContact ||= {};
@@ -3914,7 +3981,8 @@ export class Entities {
           else if (pr.kind === "bigfire") { ctx.explode(pr.x, pr.y, pr.z, pr.power || 1.3, pr.owner); pr.gone = true; }
           else if (pr.kind === "fireball") { ctx.ignite(blockHit.x, blockHit.y, blockHit.z); pr.gone = true; }
           else if (pr.kind === "breath") { ctx.cloud(pr.x, pr.y + 0.5, pr.z); pr.gone = true; }
-          else if (["bullet", "windburst", "witchbrew", "sandbolt", "obsidianshard"].includes(pr.kind)) { ctx.particles(pr.x, pr.y, pr.z, "poof"); pr.gone = true; }
+          else if (pr.kind === "windburst") { this.windBurst(pr.x - pr.vx * 0.01, pr.y - pr.vy * 0.01, pr.z - pr.vz * 0.01, pr); pr.gone = true; }   // Milestone 24, Part C
+          else if (["bullet", "witchbrew", "sandbolt", "obsidianshard", "snowball"].includes(pr.kind)) { ctx.particles(pr.x, pr.y, pr.z, "poof"); pr.gone = true; }
           else if (pr.kind === "skull") { ctx.explode(pr.x, pr.y, pr.z, 1, pr.owner); pr.gone = true; }
           else if (pr.kind === "potion") { ctx.potionBurst?.(pr.x, pr.y + 0.2, pr.z, pr.stack, pr.fromPlayer ? "player" : pr.owner); pr.gone = true; }   // Milestone 16
           else this.landThrown(pr);
@@ -3922,6 +3990,16 @@ export class Entities {
         }
         if (hitE && hitE.armored && pr.kind === "arrow") { pr.gone = true; ctx.particles(nx, ny, nz, "poof"); Sound.mob("clank", this.dist(hitE)); break; }   // arrows bounce off the Blightking's armor
         if (hitE && pr.kind === "potion") { ctx.potionBurst?.(nx, ny, nz, pr.stack, pr.fromPlayer ? "player" : pr.owner, hitE); pr.gone = true; break; }   // Milestone 16: a thrown potion breaks on a creature
+        if (hitE && pr.kind === "windburst") {   // Milestone 24, Part C: a wind charge bursts on a creature (Breezes shrug off wind)
+          if (hitE.sp !== "breeze") this.damage(hitE, 1, pr.fromPlayer ? "player" : pr.owner || null);
+          this.windBurst(nx, ny, nz, pr); pr.gone = true; break;
+        }
+        if (hitE && pr.golemBall) {   // Milestone 24, Part B: a snowball pushes a monster back (and hurts fiery ones)
+          const l = Math.hypot(pr.vx, pr.vz) || 1;
+          if (hitE.def.fireproof) this.damage(hitE, 3, pr.owner || null);
+          hitE.vel.x += pr.vx / l * 3; hitE.vel.z += pr.vz / l * 3; hitE.vel.y = Math.max(hitE.vel.y, 2); hitE.knock = Math.max(hitE.knock || 0, 0.25);
+          ctx.particles(nx, ny, nz, "poof"); pr.gone = true; break;
+        }
         if (hitE && pr.kind === "skull" && hitE !== pr.owner) { this.damage(hitE, pr.dmg || 6, null); ctx.explode(nx, ny, nz, 1, pr.owner); pr.gone = true; break; }
         if (hitE && pr.kind !== "pearl" && pr.kind !== "skull" && (pr.fromPlayer || pr.kind !== "arrow" || !pr.owner || !pr.owner.def.hostile || !hitE.def.hostile)) {
           if (pr.kind === "arrow" && pr.impaling && hitE.def.swims) pr.dmg += 2.5 * pr.impaling;   // Milestone 17: Impaling
@@ -3939,15 +4017,16 @@ export class Entities {
             const source = pr.owner?.def.name || "Rattler";
             ctx.hurtPlayer(pr.dmg, pr.tridentMob ? `A ${source}'s trident hit you!` : `A ${source}'s arrow hit you!`, { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } }, "projectile");
             if (pr.owner?.sp === "bogged") ctx.effect("poison", 5);
-            if (pr.owner?.sp === "stray" || pr.owner?.sp === "parched") ctx.effect("queasy", 6);
+            if (pr.owner?.sp === "stray") ctx.effect("slow", 30);   // Milestone 24, Part B: Strays slow you, Parched weaken you (like Java)
+            if (pr.owner?.sp === "parched") ctx.effect("weakness", 30);
           }
           if (pr.kind === "sandbolt") ctx.hurtPlayer(pr.dmg, "A Sand Wraith's rune bolt hit you.", pr.owner, "sand");
           if (pr.kind === "obsidianshard") ctx.hurtPlayer(pr.dmg, "The Obsidian Leviathan's shrapnel struck you.", pr.owner);
           if (pr.kind === "potion") ctx.potionBurst?.(p.pos.x, p.pos.y + 1, p.pos.z, pr.stack, pr.owner, "player");   // Milestone 16: a Witch's splash potion
           if (pr.kind === "witchbrew") { ctx.hurtPlayer(pr.dmg, "A Witch's brew hit you!", pr.owner); ctx.effect("poison", 6); }
-          if (pr.kind === "windburst") {
-            ctx.hurtPlayer(pr.dmg, "A Breeze's wind burst hit you!", pr.owner);
-            p.vel.x += pr.vx * 0.45; p.vel.z += pr.vz * 0.45; p.vel.y = Math.max(p.vel.y, 4);
+          if (pr.kind === "windburst") {   // Milestone 24, Part C: a Breeze's Wind Charge stings a little and throws you back
+            ctx.hurtPlayer(pr.dmg || 1, "A Breeze's Wind Charge hit you!", pr.owner);
+            this.windBurst(nx, ny, nz, pr);
           }
           if (pr.kind === "fireball") { ctx.hurtPlayer(pr.dmg || 5, "A Flare's fireball got you!", { pos: { x: pr.x - pr.vx, z: pr.z - pr.vz } }); ctx.effect("fire", 4); }
           if (pr.kind === "bigfire") ctx.explode(nx, ny, nz, pr.power || 1.3, pr.owner);
@@ -4380,7 +4459,7 @@ export class Entities {
     let b = L ? Math.max(L[0] / 15 * daylight, L[1] / 15) : daylight;
     const amb = this.world.gen.isNether() ? 0.3 : e.def.triceratops ? 0.25 : 0.12;   // the Ember Depths glow a little everywhere
     b = amb + (1 - amb) * Math.pow(b, 1.5);
-    if (e.def.expansion && ["glow_squid", "allay", "vex", "breeze"].includes(e.sp)) b = Math.max(b, 0.55);
+    if (e.def.expansion && ["glow_squid", "allay", "vex", "breeze"].includes(e.sp) && !(e.bestiary?.dim > 0)) b = Math.max(b, 0.55);   // (Milestone 24, Part D: a hurt Glow Squid goes dark for a while)
     if (e.def.lostBoss || (this.world.gen.isMap && this.world.gen.isMap())) b = Math.max(b, e.def.lostBoss ? 0.8 : 0.5);   // the Keepers' creatures glow faintly, so you can always see them in the dark
     if (e.fuse > 0 && Math.sin(e.age * 25) > 0) e.mat.color.setRGB(1, 1, 1);
     else if (e.hurtT > 0) e.mat.color.setRGB(1, 0.35 * b, 0.35 * b);

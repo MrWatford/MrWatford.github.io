@@ -339,7 +339,69 @@ Code: `js/companions.js` (new), plus changes in `js/blocks.js` (items 617–623,
 | 5 new advancements | Done | Walkies (lead), What's Your Name? (name tag), Knight's Steed (Trotter armor), Growing Family (pet babies), The Hollow... Again? (call the Wyrm back) |
 | Not yet checked | Partial | Not played by hand on a Chromebook. Fights and placements were driven with test shortcuts. Play Together guests can't use leads or name tags (host only) |
 
-## Milestone 23, Part E: Journal and achievements (built and browser-tested 2026-11-22, not published yet). Milestone 23 is now complete.
+## Milestone 24, Part E: Journal, achievements and Creative tab (built and browser-tested 2026-11-25, not published yet). Milestone 24 is now complete.
+Merged with Village Overhaul 2.0 (PR #38) and Ultra Hardcore (PR #39) before publishing: Milestone 24 was redone on top of them, its blocks moved to 564-568 (563 is their Campfire), and everything was re-tested.
+Code: `js/creatures-guide.js` (new: Journal tab "Creatures", 5 pages), `js/advancements.js` (new "Creatures" category, 11 achievements), `js/ui.js` (Journal tab, Creative tab "Creature Finds"), `js/main.js` and `js/entities.js` (events for the glowing frame and the Ravager stun), `index.html` (tags `?v=beh-e-1`, import map entry for the guide). Backups: `tools/backups/pre-m24e-2026-11-25/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| 11 achievements | Done | "Creatures" tab: Should Have Slept (Phantom), Spellbreaker (Evoker), Sound the Horn, Snow Buddy, Calm Winds (Breeze), Riding the Gust (Wind Charge), Shy No More (Ocelot), Teamwork Underwater (Axolotl), Ancient Garden (Sniffer), Shine On (glowing frame), Stand Your Ground (Ravager stun) |
+| Journal: "Creatures" | Done | 5 pages: night and magic, mountains and snow, wind and the wild, water friends, diggers and pests |
+| Creative: "Creature Finds" | Done | 13 things: Goat Horn, Breeze Rod, Wind Charge, Glow Ink Sac, Torchflower Seeds, Pitcher Pod, Torchflower, Pitcher Plant, Infested Stone, Phantom Membrane, Lifeward Totem, Carved Pumpkin, Snow |
+| Not yet checked | Partial | Achievements were unlocked by firing their events directly, not by playing. Not played by hand on a Chromebook |
+
+## Milestone 24, Part D: Axolotls, Glow Squid, Sniffers, silverfish, Endermites, Ravagers, Zoglins and Allays (built and browser-tested 2026-11-25, not published yet)
+Code: `js/creatures.js` (`thinkAxolotl`, `thinkSniffer`, `thinkSilverfish`, `thinkRavager`, `thinkZoglin`, Glow Squid dimming, Endermite lifetime, Allay dancing, new poses), `js/blocks.js` (blocks 564-568 (563 is the Village Overhaul's Campfire): Infested Stone, Torchflower Crop, Torchflower, Pitcher Crop, Pitcher Plant; items 1038-1040: Glow Ink Sac, Torchflower Seeds, Pitcher Pod; their pictures and dye recipes), `js/main.js` (ancient crop harvests, Infested Stone releasing a silverfish, Endermites from Void Pearls, glowing item frames, ctx `jukeboxNear`, `blocking`, `axolotlHelp`), `js/entities.js` (Ravager shield stun, a hurt Glow Squid goes dark), `js/decor.js` (glowing frames), `index.html` (tags `?v=beh-d-1`, creatures `beh-d-2`). Backups: `tools/backups/pre-m24d-2026-11-25/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Axolotls | Done | Hunt Drowned and Guardians in the water. When one of their foes dies near you, you get Regeneration and lose Mining Fatigue. When hurt, an Axolotl sometimes plays dead (belly up) for 10 seconds while it heals |
+| Glow Squid | Done | Goes dark for a few seconds when hurt. Drops 1-3 Glow Ink Sacs. Use a Glow Ink Sac on an Item Frame and what's inside shines even in the dark |
+| Sniffers | Done | About every 5 minutes a Sniffer sniffs the ground, digs, and finds Torchflower Seeds or a Pitcher Pod. Plant them on farmland: they grow into a Torchflower (orange dye) or a Pitcher Plant (2 cyan dye) |
+| Silverfish | Done | When nobody is close they slip into nearby Stone to hide (it becomes Infested Stone). Hurting a silverfish wakes up to 5 hiding nearby; breaking Infested Stone lets one out. Their bites are weaker (1 damage) |
+| Endermites | Done | 1 in 20 thrown Void Pearls brings one along. They wander off for good after 2 minutes |
+| Ravagers | Done | 100 health. They trample leaves and crops in their way. If a Ravager bites your raised shield it's stunned for 2 seconds, then roars: everything within 4 blocks is hurt and thrown back (other raiders aren't). Drops a Saddle |
+| Zoglins | Done | Attack the nearest creature of any kind (except Hissers and other Zoglins) when you're not around |
+| Allays | Done | Dance while a Jukebox plays within 10 blocks |
+| Not yet checked | Partial | Not played by hand on a Chromebook. Driven with test shortcuts (the shield stun was tested with a stand-in for holding the shield). Infested Stone only appears where silverfish hide (no new land generation). Not tested in Play Together |
+
+## Milestone 24, Part C: the Breeze and Wind Charges, bats, pandas and ocelots (built and browser-tested 2026-11-25, not published yet)
+Code: `js/creatures.js` (`thinkBreeze`, `thinkBat`, `thinkPanda`, `thinkOcelot`, Ocelot trust, bat and panda poses), `js/entities.js` (`windBurst`, Wind Charge hits, Hissers fear Ocelots, trusted Ocelots don't flee, `def.noFall`), `js/main.js` (throwing Wind Charges, ctx `windLaunch` and `thunder`), `js/player.js` (a Wind Charge leap only counts the fall below the burst), `js/blocks.js` (Breeze Rod 1036, Wind Charge 1037, pictures, recipe), `js/audio.js` (gust sound), `index.html` (tags `?v=beh-c-1`, creatures `beh-c-2`). Backups: `tools/backups/pre-m24c-2026-11-25/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| The Breeze | Done | No longer flies: it bounces around on the ground, circling you at 5-12 blocks, and fires Wind Charges (1 damage and a big push). Takes no fall damage. Drops 1-2 Breeze Rods |
+| Wind Charges | Done | 1 Breeze Rod makes 4. Right-click to throw (twice a second at most). It bursts into a gust that pushes everything within 3 blocks away and up, with no damage to blocks. Throw one at your feet to leap about 4 blocks high; you only take fall damage for falling below where it burst |
+| Bats | Done | Flit about. Under a ceiling they may hang upside down to rest (more often in the daytime). They wake up when you come within 4 blocks |
+| Pandas | Done | Each has a mood: normal, lazy (lies down for naps), worried (hides its face in thunderstorms), playful (rolls over), aggressive (fights back when hit, 6 damage) or weak (sneezes). Baby pandas sneeze too, sometimes dropping a Gloop Ball. Pandas now eat Bamboo (for breeding) |
+| Ocelots | Done | Shy until you feed them Raw Minnow or Raw Salmon (1 try in 3 wins their trust; then they stop running away and never wander off for good). They hunt chickens, and Hissers keep away from them |
+| Not yet checked | Partial | Not played by hand on a Chromebook. Driven with test shortcuts. Not tested in Play Together (guests can't throw Wind Charges) |
+
+## Milestone 24, Part B: goats, Snow Golems, polar bears, Strays and Husks (built and browser-tested 2026-11-25, not published yet)
+Code: `js/creatures.js` (`thinkGoat`, `thinkSnowGolem`, `guardCubs`, goat horns and sheared Snow Golem drawing), `js/entities.js` (golem snowballs, Stray/Parched arrow effects, Husk hunger, milking goats), `js/main.js` (Goat Horn use, building a Snow Golem), `js/blocks.js` (Goat Horn, item 1035, and its picture), `js/audio.js` (horn sound), `index.html` (tags `?v=beh-b-1`, creatures `beh-b-2`). Backups: `tools/backups/pre-m24b-2026-11-25/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Goats ram | Done | Every 30 s to 5 min (a rare "screaming" goat every 5-15 s) a goat lowers its head, then charges at you (Survival only) or another creature: 2 damage and a big push. Goats also take big leaps. They no longer fight back like bears |
+| Goat Horns | Done | A goat that rams into stone, ore, logs or ice loses a horn (it has 2), which drops as a Goat Horn. Right-click a Goat Horn to sound it (once every 7 seconds) |
+| Milking goats | Done | Use a Bucket on a grown goat |
+| Snow Golems | Done | Build one: 2 Snow blocks with a Carved Pumpkin or Jack o'Lantern on top. They throw snowballs at monsters within 10 blocks (once a second): no damage, just a push (fiery creatures take 3). They leave snow where they walk in cool places (forests, taiga, snow, mountains, cherry groves; not plains, like Java), and melt in deserts, badlands, savannas, the Ember Depths, rain and water. Shears take the pumpkin off |
+| Polar bears guard cubs | Done | About 1 in 4 grown polar bears has a cub. Come within 8 blocks while a cub is near and the parent roars and attacks |
+| Strays, Parched, Husks | Done | Stray arrows give Slowness (30 s), Parched arrows give Weakness (30 s), a Husk's hit makes you hungry |
+| Not yet checked | Partial | Not played by hand on a Chromebook. Driven with test shortcuts. Not tested in Play Together (guests can't build Snow Golems) |
+
+## Milestone 24, Part A: Phantoms, Evokers and Vexes (built and browser-tested 2026-11-25, not published yet)
+Code: `js/creatures.js` (`thinkPhantom`, `thinkVex`, `thinkEvoker`, `spawnPhantoms`, `noNatural` spawn flag), `js/entities.js` (`addFang`/`updateFangs`; swooping Phantoms dive fast; flying creatures no longer take fall damage), `js/main.js` (`restlessDays`, `G.rested`, ctx `restless`), `js/multiplayer.js` (everyone sleeping resets the count), `index.html` (tags `?v=beh-a-3`). Backups: `tools/backups/pre-m24a-2026-11-25/`.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Phantoms | Done | Only after 3 or more days without sleeping (sleeping or dying resets the count; older worlds start counting when loaded). At night, under the open sky, a bigger chance the longer you stay awake: 1-2 on Easy, up to 3 on Normal, up to 4 on Hard. They circle high above, then swoop down to bite and climb away. A toast warns you the first time. They still burn in daylight and drop Phantom Membrane |
+| Evokers | Done | Keep 8-14 blocks away and cast spells: a line of 16 fangs toward you (a ring of fangs if you're close), or 3 Vexes every 17 seconds (if fewer than 8 are around). Fangs bite anything except illagers. 24 health. Drop a Lifeward Totem (and sometimes Jade) |
+| Vexes | Done | Fly straight through walls, hover near you and dart in to strike. Summoned Vexes fade away after 30 to 120 seconds |
+| No random spawns | Done | Phantoms, Evokers and Vexes no longer appear at random. Evokers still come in Woodland Mansions and village raids; all three have spawn eggs |
+| Not yet checked | Partial | Not played by hand on a Chromebook. Fights were driven with test shortcuts. Not tested in Play Together |
+
+## Milestone 23, Part E: Journal and achievements (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #37). Milestone 23 is now complete.
 Code: `js/villages-guide.js` (new: Journal tab "Villages", 4 pages), `js/advancements.js` (new "Villages" category, 10 achievements), `js/ui.js` (Journal tab), `js/blocks.js` (the Cauldron and Beehive count as job blocks for jobless villagers), `index.html` (tags `?v=vill-e-1`, import map). Backups: `tools/backups/pre-m23e-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -348,7 +410,7 @@ Code: `js/villages-guide.js` (new: Journal tab "Villages", 4 pages), `js/advance
 | Journal: "Villages" | Done | 4 pages: jobs (all 12 job blocks), levels and families, zombie villagers, outposts and raids |
 | Creative | Done | The new job blocks are in the existing "Village" tab (no new tab needed) |
 
-## Milestone 23, Part D: outposts, witch huts, mansions and raids (built and browser-tested 2026-11-22, not published yet)
+## Milestone 23, Part D: outposts, witch huts, mansions and raids (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #37)
 Code: `js/land-structures.js` (new: where the buildings go, what they look like, who lives there), `js/worldgen.js` (land version 20 = `STRUCT_GEN`), `js/world.js` (`structureOk`: older worlds get a building only where nobody has been), `js/entities.js` (the Pillager Captain, raiders heading into the village), `js/main.js` (residents, loot, Bad Omen, raids, Hero of the Village), `js/ui.js` (effect names), `index.html` (tags `?v=vill-d-1`, import map). Backups: `tools/backups/pre-m23d-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -361,7 +423,7 @@ Code: `js/land-structures.js` (new: where the buildings go, what they look like,
 | Village raids | Done | 3 waves on Easy, 4 on Normal, 5 on Hard: pillagers, vindicators, witches, ravagers, an evoker. Raiders head for the village and go after villagers. Leaving the village ends the raid |
 | Hero of the Village | Done | Beat every wave: villagers sell for less (about 30% off) for an hour |
 
-## Milestone 23, Part C: zombie villagers (built and browser-tested 2026-11-22, not published yet)
+## Milestone 23, Part C: zombie villagers (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #37)
 Code: `js/entities.js` (`huntVillager`, `zombify`, `cureZombie`, curing with a Golden Apple; zombie villagers remember who they were), `js/main.js` (half-price trades for cured villagers, messages), `js/ui.js` ("Cured: half-price Jade!"), `index.html` (tags `?v=vill-c-1`). Backups: `tools/backups/pre-m23c-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -370,7 +432,7 @@ Code: `js/entities.js` (`huntVillager`, `zombify`, `cureZombie`, curing with a G
 | Turning | Done | A villager beaten by a zombie becomes a zombie villager: always on Hard, half the time on Normal (otherwise it's just gone, as in Minecraft). It remembers its job, level and home |
 | Curing | Done | Hit a zombie villager with a Splash Potion of Weakness, then right-click it with a Golden Apple. After about a minute (keep it out of the sun!) it turns back into the same villager, with the same job and level, and sells everything for half the Jade |
 
-## Milestone 23, Part B: villager levels and families (built and browser-tested 2026-11-22, not published yet)
+## Milestone 23, Part B: villager levels and families (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #37)
 Code: `js/entities.js` (`LEVEL_NAMES`, `LEVEL_XP`, `BONUS` trades, `levelOf`, `tradesOf`, `villagerFamily`), `js/main.js` (trading experience, level-ups, "a baby villager was born"), `js/ui.js` (level and progress bar on the trading screen, bonus trades listed), `index.html` (tags `?v=vill-b-1`). Backups: `tools/backups/pre-m23b-2026-11-22/`.
 
 | Feature | Status | Notes |
@@ -379,7 +441,7 @@ Code: `js/entities.js` (`LEVEL_NAMES`, `LEVEL_XP`, `BONUS` trades, `levelOf`, `t
 | Bonus trades | Done | Each new level adds one bonus trade (4 per job, 52 in all), e.g. a Master Farmer sells Glistering Melon, a Master Armorer sells Skyshard armor, a Master Shepherd sells paintings. Unlike Minecraft, no regular trade is ever locked, so villagers in existing worlds keep every trade they had |
 | Villager families | Done | In the daytime, two grown villagers standing together may have a child if the village has more beds than villagers (their homes' beds plus beds you place within 32 blocks). The child gets a free bed as its home, has no job, and grows up in about 20 minutes, then takes a job block like any jobless villager |
 
-## Milestone 23, Part A: job blocks and new jobs (built and browser-tested 2026-11-22, not published yet)
+## Milestone 23, Part A: job blocks and new jobs (built and browser-tested 2026-11-22, PUBLISHED 2026-11-22, PR #37)
 Code: `js/blocks.js` (block numbers 558-562, 14 textures, recipes including the Stonecutter's), `js/shapes.js` (stonecutter, lectern), `js/entities.js` (5 new jobs and their trades, jobless villagers, `checkJob`/`changeJob`), `js/main.js` (smoker and blast furnace cooking, the Stonecutter, traded villagers keep their job), `js/ui.js` (Stonecutter screen; smoker/blast furnace only take what they cook), `index.html` (tags `?v=vill-a-*`). Backups: `tools/backups/pre-m23a-2026-11-22/`.
 
 | Feature | Status | Notes |

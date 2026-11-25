@@ -238,6 +238,12 @@ export const Sound = {
       case "fireshoot": this.noise(900, 0.3, g(0.35), 0.8); break;
       case "portal": this.tone(200, 2.5, "sine", g(0.08), 300); this.noise(1200, 2, g(0.06), 0.5); break;
       case "rumble": this.noise(80, 3, g(0.18), 0.5, "lowpass"); break;
+      case "windburst":   // Milestone 24, Part C: a sharp gust
+        this.noise(1400, 0.45, g(.22), 1.2); this.tone(260, 0.3, "sine", g(.06), 300);
+        break;
+      case "goathorn":   // Milestone 24, Part B: a long, rough horn call
+        this.tone(196, 1.7, "sawtooth", g(.1), 12); this.tone(294, 1.5, "triangle", g(.08), 8); this.noise(400, 1.2, g(.05), 1, "lowpass");
+        break;
       case "roar":
         this.noise(180, 1.15, g(.22), .7, "lowpass");
         this.tone(95 * r(), .95, "sawtooth", g(.055), -45);
