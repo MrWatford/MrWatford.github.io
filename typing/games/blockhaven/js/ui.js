@@ -1,7 +1,7 @@
 // Menus, the on-screen HUD, and the inventory / crafting / chest / furnace screens.
 import { B, I, ITEMS, BLOCKS, RECIPES, SMELT, FUEL, SMELT_TIME, TAGS, itemDef, iconURL, buildAtlas, TILE, CORALS } from "./blocks.js";
 import { TRADES, tradesOf, levelOf, LEVEL_NAMES, LEVEL_XP } from "./entities.js";
-import { maxStack, newStack, OFF } from "./inventory.js";
+import { canStack, maxStack, newStack, OFF } from "./inventory.js";
 import { Adv, CATEGORIES } from "./advancements.js";
 import { UHC_MODE, UHC_ACHIEVEMENT } from "./ultra-hardcore.js";
 import { challengeHistory } from "./ultra-hardcore-view.js";
@@ -101,6 +101,10 @@ export const UI = {
     $("btnSave").onclick = () => G.saveNow(true);
     $("btnExport").onclick = () => G.exportCurrent();
     $("btnTitle").onclick = () => G.toTitle();
+    $("btnLeave").onclick = async e => {
+      e.preventDefault();
+      if (await G.toTitle(true)) location.assign($("btnLeave").href);
+    };
     $("btnRespawn").onclick = () => G.respawn();
     $("clickToPlay").onclick = () => G.resume();
     $("importFile").onchange = async e => {
@@ -691,17 +695,17 @@ export const UI = {
     else {
       const s = getSlot(ref), max = cursor ? maxStack(cursor.id) : 0;
       if (ref === "fur:2") {   // furnace output: take only
-        if (s && (!cursor || (cursor.id === s.id && cursor.n + s.n <= maxStack(s.id)))) { cursor = cursor ? { ...cursor, n: cursor.n + s.n } : s; setSlot(ref, null); G.onTakeSmelted(s); }
+        if (s && (!cursor || (canStack(cursor, s) && cursor.n + s.n <= maxStack(s.id)))) { cursor = cursor ? { ...cursor, n: cursor.n + s.n } : s; setSlot(ref, null); G.onTakeSmelted(s); }
       } else if (!right) {
         if (!cursor) { if (s) { cursor = s; setSlot(ref, null); } }
         else if (!s) { if (accepts(ref, cursor)) { setSlot(ref, cursor); cursor = null; } else bad(ref); }
-        else if (s.id === cursor.id && max > 1) { const k = Math.min(cursor.n, max - s.n); s.n += k; cursor.n -= k; if (!cursor.n) cursor = null; }
+        else if (canStack(s, cursor)) { const k = Math.min(cursor.n, max - s.n); s.n += k; cursor.n -= k; if (!cursor.n) cursor = null; }
         else if (accepts(ref, cursor)) { setSlot(ref, cursor); cursor = s; } else bad(ref);
       } else {
         if (!cursor && s) { const half = Math.ceil(s.n / 2); cursor = { ...s, n: half }; s.n -= half; if (!s.n) setSlot(ref, null); }
         else if (cursor && accepts(ref, cursor)) {
           if (!s) { setSlot(ref, { ...cursor, n: 1 }); cursor.n--; }
-          else if (s.id === cursor.id && s.n < maxStack(s.id)) { s.n++; cursor.n--; }
+          else if (canStack(s, cursor) && s.n < maxStack(s.id)) { s.n++; cursor.n--; }
           if (cursor.n <= 0) cursor = null;
         }
       }
@@ -830,7 +834,7 @@ function quickMove(ref) {
   } else targets = [...range("inv", 0, 9), ...range("inv", 9, 36)];
   if (!targets.length) { bad(panelKind === "chest" || panelKind === "machine" ? "box:0" : "fur:0"); return; }
   const max = maxStack(s.id);
-  for (const t of targets) { const d = getSlot(t); if (d && d.id === s.id && d.n < max) { const k = Math.min(s.n, max - d.n); d.n += k; s.n -= k; if (!s.n) break; } }
+  for (const t of targets) { const d = getSlot(t); if (d && canStack(d, s) && d.n < max) { const k = Math.min(s.n, max - d.n); d.n += k; s.n -= k; if (!s.n) break; } }
   for (const t of targets) { if (!s.n) break; if (!getSlot(t) && accepts(t, s)) { setSlot(t, { ...s }); s.n = 0; } }
   if (!s.n) setSlot(ref, null);
   if (ref === "fur:2") G.onTakeSmelted(s);

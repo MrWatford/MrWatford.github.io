@@ -6,7 +6,7 @@ import { B, I, BLOCKS, OPAQUE, idOf, metaOf, make, isDoor, isTrapdoor, isGate, i
   EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED, HOOK_ON, DISARMED, OPENED, BELL_POWERED, isPiston, isHush, SOLID,
   HOPPER_LOCKED, TRIGGERED, CRAFTING, isMachine, RECIPES, TAGS, SMELT, FUEL, HONEY_MAX, isRail, RAIL_ON } from "./blocks.js";
 import { railShape as railShapeFor, needsShape as needsRailShape, EXITS as RAIL_EXITS, shapeOf as railShapeOf } from "./rails.js";
-import { maxStack, newStack } from "./inventory.js";
+import { canStack, maxStack, newStack } from "./inventory.js";
 import { DIR, PF, oppPF, conductor, dustConn, dustPoints, supportOf } from "./shapes.js";
 import { CHUNK } from "./blocks.js";
 
@@ -396,15 +396,17 @@ export function initRedstone(ctx) {
 
   // ---------- Part B: pistons (Java rules: push up to 12 blocks, sticky blocks drag their neighbors, 2 game ticks to move) ----------
   const PUSH_LIMIT = 12;
-  const IMMOVABLE = new Set([B.HOPPER, B.DROPPER, B.DISPENSER, B.CRAFTER, B.OBSIDIAN, B.BEDROCK, B.PORTAL, B.END_PORTAL, B.GATEWAY, B.END_FRAME, B.CHEST, B.TRAPPED_CHEST, B.FURNACE, B.SHELL_BOX, B.VOID_CHEST, B.BEACON, B.RESPAWN_ANCHOR, B.PISTON_HEAD, B.MOVING]);
+  const IMMOVABLE = new Set([B.HOPPER, B.DROPPER, B.DISPENSER, B.CRAFTER, B.OBSIDIAN, B.BEDROCK, B.PORTAL, B.END_PORTAL, B.GATEWAY, B.END_FRAME,
+    B.CHEST, B.TRAPPED_CHEST, B.BARREL, B.FURNACE, B.BLAST_FURNACE, B.SMOKER, B.BREWING_STAND, B.ARMOR_STAND, B.SHELL_BOX, B.VOID_CHEST,
+    B.BEACON, B.RESPAWN_ANCHOR, B.PISTON_HEAD, B.MOVING]);
   const SMASH = new Set([B.REPEATER, B.COMPARATOR, B.HUSH_SENSOR, B.TUNED_SENSOR, B.BELL, B.SKULL, B.BED, B.FIRE]);
   const STICKY = id => id === B.GLOOP_BLOCK || id === B.HONEY_BLOCK;
   const sticks = (a, b) => !((a === B.GLOOP_BLOCK && b === B.HONEY_BLOCK) || (a === B.HONEY_BLOCK && b === B.GLOOP_BLOCK));
   // what happens to a block in a piston's way: "air" (nothing there), "move", "smash" (pops off as an item), or "stop"
-  function reaction(v) {
+  function reaction(v, x, y, z) {
     const id = idOf(v), d = BLOCKS[id];
     if (!id || id === B.WATER || id === B.LAVA) return "air";
-    if (!d || d.hardness === Infinity || IMMOVABLE.has(id)) return "stop";
+    if (!d || d.hardness === Infinity || IMMOVABLE.has(id) || W().containers.has(key(x, y, z))) return "stop";
     if (isPiston(id)) return metaOf(v) & EXTENDED ? "stop" : "move";
     if (isRail(id)) return "move";
     if (SMASH.has(id) || !d.solid || isDoor(id) || d.replaceable) return "smash";
@@ -417,8 +419,7 @@ export function initRedstone(ctx) {
       const [x, y, z, why] = q[qi], k = key(x, y, z);
       if (moving.has(k)) continue;
       if (x === base[0] && y === base[1] && z === base[2]) { if (why === "push") return null; continue; }
-      if (y + dir[1] < 1 || y + dir[1] >= 79) { if (why === "push" && reaction(w.get(x, y, z)) === "move") return null; }
-      const v = w.get(x, y, z), r = reaction(v);
+      const v = w.get(x, y, z), r = reaction(v, x, y, z);
       if (r === "air") continue;
       if (r === "stop") { if (why === "push") return null; continue; }
       if (r === "smash") { if (why === "push" && !smash.some(s => s[0] === x && s[1] === y && s[2] === z)) smash.push([x, y, z]); continue; }
@@ -429,7 +430,7 @@ export function initRedstone(ctx) {
       if (STICKY(idOf(v))) for (const e of D6) {
         if (e[0] === dir[0] && e[1] === dir[1] && e[2] === dir[2]) continue;
         const nx = x + e[0], ny = y + e[1], nz = z + e[2], nv = w.get(nx, ny, nz);
-        if (reaction(nv) === "move" && sticks(idOf(v), idOf(nv))) q.push([nx, ny, nz, "stick"]);
+        if (reaction(nv, nx, ny, nz) === "move" && sticks(idOf(v), idOf(nv))) q.push([nx, ny, nz, "stick"]);
       }
     }
     return { cells: [...moving.values()], smash };
@@ -657,13 +658,12 @@ export function initRedstone(ctx) {
     if (id === B.CRAFTER) { box.locked = box.locked || new Array(9).fill(false); return { box, ins: all.filter(i => !box.locked[i]), outs: [], even: true, accept: () => true }; }
     return { box, ins: all, outs: all, accept: (i, s) => !(id === B.SHELL_BOX && s.id === B.SHELL_BOX) && !(itemDef(s.id) || {}).quest };
   }
-  const sameKind = (a, b) => a.id === b.id && maxStack(a.id) > 1;
   // Put ONE item into a container (Java order: the first slot that can take it; the Crafter fills its emptiest slot). Returns the slot, or -1.
   function insertOne(acc, one) {
     const sl = acc.box.slots;
     let best = -1;
     for (const i of acc.ins) {
-      const s = sl[i], ok = s ? sameKind(s, one) && s.n < maxStack(s.id) : acc.accept(i, one);
+      const s = sl[i], ok = s ? canStack(s, one) && s.n < maxStack(s.id) : acc.accept(i, one);
       if (!ok) continue;
       if (!acc.even) { best = i; break; }
       if (best < 0 || (s ? s.n : 0) < (sl[best] ? sl[best].n : 0)) best = i;
@@ -809,6 +809,7 @@ export function initRedstone(ctx) {
     for (const r of RECIPES) {
       if (r.ultra && !G.meta?.ultra) continue;
       if (r.upgrade || r.ins.reduce((a, [, n]) => a + n, 0) !== total) continue;
+      if (r.tip && !slots.some(s => s?.id === I.LINGERING_POTION && s.pot === r.tip)) continue;
       const left = new Map(have);
       let ok = true;
       for (const [want, n] of [...r.ins].sort((a, b) => (typeof a[0] === "string") - (typeof b[0] === "string"))) {

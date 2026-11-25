@@ -3,6 +3,7 @@
 import { itemDef, TAGS } from "./blocks.js";
 
 export const maxStack = id => (itemDef(id) ? itemDef(id).stack : 64);
+export const canStack = (a, b) => a.id === b.id && maxStack(a.id) > 1 && (a.name || "") === (b.name || "");
 export const matches = (id, want) => (typeof want === "string" ? TAGS[want].includes(id) : id === want);
 export function newStack(id, n = 1) {
   const d = itemDef(id), s = { id, n };
@@ -17,13 +18,13 @@ export class Inventory {
 
   // Adds items; returns how many did not fit
   add(id, n = 1, stack = null) {
-    const max = maxStack(id);
+    const max = maxStack(id), incoming = stack || newStack(id);
     if (max > 1) for (let i = 0; i < MAIN; i++) {
       const s = this.slots[i];
-      if (s && s.id === id && s.n < max) { const k = Math.min(n, max - s.n); s.n += k; n -= k; if (!n) return 0; }
+      if (s && canStack(s, incoming) && s.n < max) { const k = Math.min(n, max - s.n); s.n += k; n -= k; if (!n) return 0; }
     }
     for (let i = 0; i < MAIN && n > 0; i++) {
-      if (!this.slots[i]) { const k = Math.min(n, max); this.slots[i] = stack && max === 1 ? { ...stack, n: 1 } : newStack(id, k); n -= k; }
+      if (!this.slots[i]) { const k = Math.min(n, max); this.slots[i] = { ...incoming, n: k }; n -= k; }
     }
     return n;
   }
@@ -37,7 +38,8 @@ export class Inventory {
   }
   roomFor(id, n) {
     const max = maxStack(id); let room = 0;
-    for (let i = 0; i < MAIN; i++) { const s = this.slots[i]; room += !s ? max : s.id === id && max > 1 ? max - s.n : 0; }
+    const incoming = { id };
+    for (let i = 0; i < MAIN; i++) { const s = this.slots[i]; room += !s ? max : canStack(s, incoming) ? max - s.n : 0; }
     return room >= n;
   }
   toJSON() { return this.slots.map(s => (s ? { ...s } : null)); }

@@ -190,7 +190,7 @@ export class Player {
         if (!this.collides(world, a)) { p[axis] = before; v[axis] = 0; }
       }
     }
-    if (!this.onGround && !hit) {   // still standing on something just below?
+    if (wasGround && !this.onGround && !hit) {   // Keep ground contact across small seams. Airborne players must land in the vertical collision pass.
       const a = this.aabb(); a[1] -= 0.02; a[4] = p.y + 0.01;
       if (v.y <= 0 && this.collides(world, a)) this.onGround = true;
     }

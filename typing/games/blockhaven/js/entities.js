@@ -1846,6 +1846,8 @@ function moveBody(world, e, dt) {
 }
 
 // ---------- the manager: updates, draws, spawns, and saves every creature ----------
+const shoulderPerched = e => e.perched === -1 || e.perched === 1;
+
 export class Entities {
   constructor(scene, ctx) {
     this.scene = scene; this.ctx = ctx;      // ctx: game hooks (player, world, hurtPlayer, drop, explode, settings…)
@@ -2240,7 +2242,7 @@ export class Entities {
         if (e.iframes > 0) e.iframes -= dt; if (e.hurtT > 0) e.hurtT -= dt;
         this.animate(e, dt, d2, daylight); e.mesh.visible = true; continue;
       }
-      if (e.perched) { e.age += dt; this.perch(e); this.animate(e, dt, d2, daylight); e.mesh.visible = !!e.perched; continue; }   // a Chatterbird riding on your shoulder
+      if (shoulderPerched(e)) { e.age += dt; this.perch(e); this.animate(e, dt, d2, daylight); e.mesh.visible = shoulderPerched(e); continue; }
       if (e.inHive) {   // Buzzers spend the night inside their nest
         e.mesh.visible = false; e.thinkT -= dt;
         if (e.thinkT <= 0) { e.thinkT = 1; this.think(e, daylight); }
@@ -3332,7 +3334,7 @@ export class Entities {
   // ----- Chatterbirds [parrots] -----
   canPerch() {
     const ctx = this.ctx, p = ctx.player();
-    return this.list.filter(o => o.perched).length < 2 && !p.inWater && !p.flying && !p.gliding && !ctx.riding() && !p.crouch && ctx.alive();
+    return this.list.filter(shoulderPerched).length < 2 && !p.inWater && !p.flying && !p.gliding && !ctx.riding() && !p.crouch && ctx.alive();
   }
   // Rides on your shoulder (shown small in the corner of your view) until you crouch, swim, fly, ride, or get hurt
   perch(e) {
@@ -4172,7 +4174,7 @@ export class Entities {
     const def = e.def, P = e.parts, sp = Math.hypot(e.vel.x, e.vel.z), swing = Math.sin(e.walkPhase * 2.2) * Math.min(1, sp / 2) * 0.9;
     e.mesh.position.set(e.pos.x, e.pos.y - (def.segmentedLeviathan ? e.burrowDepth || 0 : 0), e.pos.z);
     e.mesh.rotation.y = e.yaw + Math.PI;
-    const s = e.scale * (e.perched ? 0.35 : 1); e.root.scale.setScalar(s);
+    const s = e.scale * (shoulderPerched(e) ? 0.35 : 1); e.root.scale.setScalar(s);
     if (def.segmentedLeviathan) {
       const spacing = def.segmentSpacing || 4, targetResting = Math.max(0, 1 - sp / 1.5);
       e.dunePose ||= new DunePose(e.pos.x, e.pos.y, e.pos.z, e.yaw, targetResting);

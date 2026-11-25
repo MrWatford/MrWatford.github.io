@@ -483,8 +483,8 @@ console.log("A seeded, unmodified ocean supports the whale's full spawn footprin
 
 {
   const w = new World(new Generator("wildlife-wetland-review"));
-  for (let cz = -6; cz <= 0; cz++) for (let cx = -5; cx <= 4; cx++) w.load(cx, cz);
-  for (const [species, site, roll] of [[crocId, [-7.5, -57.5], 0.3], [hippoId, [25.5, -34.5], 0.35]]) {
+  for (let cz = -8; cz <= -7; cz++) for (let cx = -3; cx <= 5; cx++) w.load(cx, cz);
+  for (const [species, site, roll] of [[crocId, [-16.5, -121.5], 0.3], [hippoId, [65.5, -119.5], 0.35]]) {
     const { manager } = fixture();
     manager.ctx.world = () => w;
     manager.ctx.player = () => ({ pos: { x: site[0] - 28, y: 30, z: site[1] } });
@@ -656,18 +656,18 @@ console.log("Coastal wildlife passed: a seal slides, dives and returns ashore; w
 
 {
   const w = new World(new Generator("wildlife-coast-review"));
-  for (let cz = -74; cz <= -70; cz++) for (let cx = -68; cx <= -63; cx++) w.load(cx, cz);
+  for (let cz = -73; cz <= -70; cz++) for (let cx = -66; cx <= -62; cx++) w.load(cx, cz);
   for (const [species, roll] of [[sealId, 0.17], [walrusId, 0.22]]) {
     const { manager } = fixture();
     manager.ctx.world = () => w;
-    manager.ctx.player = () => ({ pos: { x: -1075.5, y: 31, z: -1151.5 } });
+    manager.ctx.player = () => ({ pos: { x: -1036.5, y: 31, z: -1137.5 } });
     const values = [0, 0, roll];
     spawnWildlife(manager, 1, 1, () => values.shift() ?? 0.1);
     assert(manager.list.length >= 2 && manager.list.length <= 3, "Natural cold-coast colony for " + species);
     for (const e of manager.list) {
       assert.equal(e.sp, species);
       assert.equal(e.persist, false);
-      assert.deepEqual(e.home, [-1047.5, 31, -1151.5]);
+      assert.deepEqual(e.home, [-1008.5, 31, -1137.5]);
     }
     if (species === walrusId) assert(manager.list.some(e => e.baby));
   }
@@ -811,16 +811,16 @@ console.log("Woodland wildlife passed: tiger stalking, actual leap physics and a
 
 {
   const w = new World(new Generator("wildlife-woodland-review"));
-  for (let cz = -47; cz <= -43; cz++) for (let cx = -20; cx <= -15; cx++) w.load(cx, cz);
+  for (let cz = -45; cz <= -41; cz++) for (let cx = -18; cx <= -13; cx++) w.load(cx, cz);
   for (const [species, roll] of [[tigerId, 0.25], [deerId, 0.52]]) {
     const { manager } = fixture();
     manager.ctx.world = () => w;
-    manager.ctx.player = () => ({ pos: { x: -299.5, y: 33, z: -719.5 } });
+    manager.ctx.player = () => ({ pos: { x: -266.5, y: 36, z: -687.5 } });
     const values = [0, 0, roll];
     spawnWildlife(manager, 1, 1, () => values.shift() ?? 0.1);
     assert(manager.list.every(e => !e.persist && e.sp === species));
     assert.equal(manager.list[0]?.sp, species);
-    assert.deepEqual(manager.list[0].home, [-271.5, 33, -719.5]);
+    assert.deepEqual(manager.list[0].home, [-238.5, 36, -687.5]);
     assert(species === tigerId ? manager.list.length === 1 : manager.list.length >= 2);
   }
   assert.equal(w.mods.size, 0);
@@ -906,18 +906,18 @@ console.log("Taiga wildlife passed: red panda climbing, branch travel, rest, los
 }
 
 {
-  const w = new World(new Generator("wildlife-taiga-review"));
-  for (let cz = -47; cz <= -43; cz++) for (let cx = -9; cx <= -4; cx++) w.load(cx, cz);
-  for (const [species, roll] of [[mooseId, 0.63], [pandaId, 0.69]]) {
+  const w = new World(new Generator("wildlife-wetland-review"));
+  for (let cz = -10; cz <= -6; cz++) for (let cx = -5; cx <= 1; cx++) w.load(cx, cz);
+  for (const [species, roll, x, z] of [[mooseId, 0.63, -35.5, -114.5], [pandaId, 0.69, -0.5, -137.5]]) {
     const { manager } = fixture();
     manager.ctx.world = () => w;
-    manager.ctx.player = () => ({ pos: { x: -123.5, y: 33, z: -719.5 } });
+    manager.ctx.player = () => ({ pos: { x: x - 28, y: 33, z } });
     const values = [0, 0, roll];
     spawnWildlife(manager, 1, 1, () => values.shift() ?? 0.1);
     const [animal] = manager.list;
     assert.equal(animal?.sp, species);
     assert.equal(animal.persist, false);
-    assert.deepEqual(animal.home, [-95.5, 33, -719.5]);
+    assert.deepEqual(animal.home, [x, 33, z]);
     if (species === pandaId) assert(animal.wild.tree.top > animal.pos.y + 1.6);
   }
   assert.equal(w.mods.size, 0);
@@ -1170,16 +1170,16 @@ console.log("Ostrich passed: generated flock, both plumages, herd flight, defens
 
 {
   const w = new World(new Generator("wildlife-woodland-review"));
-  for (let cz = -47; cz <= -43; cz++) for (let cx = -20; cx <= -15; cx++) w.load(cx, cz);
+  for (let cz = -45; cz <= -41; cz++) for (let cx = -18; cx <= -13; cx++) w.load(cx, cz);
   const { manager } = fixture();
   manager.ctx.world = () => w;
-  manager.ctx.player = () => ({ pos: { x: -290.5, y: 40, z: -742.5 } });
+  manager.ctx.player = () => ({ pos: { x: -270.5, y: 40, z: -676.5 } });
   const values = [0, 0, 0.944];
   spawnWildlife(manager, 1, 1, () => values.shift() ?? 0.5);
   const [sloth] = manager.list;
   assert.equal(sloth?.sp, slothId);
   assert.equal(sloth.persist, false);
-  assert.equal(w.id(Math.floor(sloth.wild.tree.branch.x), 43, Math.floor(sloth.wild.tree.branch.z)), B.LEAVES);
+  assert.equal(w.id(Math.floor(sloth.wild.tree.branch.x), Math.round(sloth.wild.tree.top + sloth.h + 0.11), Math.floor(sloth.wild.tree.branch.z)), B.LEAVES);
   assert.equal(sloth.wild.phase, "treeRest");
   assert.deepEqual(sloth.pos, sloth.wild.tree.branch);
   const tree = sloth.wild.tree;
@@ -1247,11 +1247,11 @@ console.log("Sloth passed: warm woodland spawn, physical climb and traverse, sus
 }
 
 {
-  const w = new World(new Generator("wildlife-taiga-review"));
-  for (let cz = -47; cz <= -43; cz++) for (let cx = -9; cx <= -4; cx++) w.load(cx, cz);
+  const w = new World(new Generator("wildlife-wetland-review"));
+  for (let cz = -10; cz <= -6; cz++) for (let cx = -5; cx <= 1; cx++) w.load(cx, cz);
   const { manager } = fixture();
   manager.ctx.world = () => w;
-  manager.ctx.player = () => ({ pos: { x: -129.5, y: 34, z: -737.5 } });
+  manager.ctx.player = () => ({ pos: { x: -27.5, y: 33, z: -136.5 } });
   const roll = () => {
     const values = [0, 0, 0.981];
     return () => values.shift() ?? 0.5;
@@ -1333,10 +1333,10 @@ console.log("Koala passed: rare birch spawn, canopy feeding and sleep, physical 
 
 {
   const w = new World(new Generator("wildlife-woodland-review"));
-  for (let cz = -47; cz <= -43; cz++) for (let cx = -20; cx <= -15; cx++) w.load(cx, cz);
+  for (let cz = -45; cz <= -41; cz++) for (let cx = -18; cx <= -13; cx++) w.load(cx, cz);
   const { manager } = fixture();
   manager.ctx.world = () => w;
-  manager.ctx.player = () => ({ pos: { x: -291.5, y: 39, z: -742.5 } });
+  manager.ctx.player = () => ({ pos: { x: -266.5, y: 36, z: -687.5 } });
   const values = [0, 0, 0.892];
   spawnWildlife(manager, 1, 1, () => values.shift() ?? 0.5);
   assert.equal(manager.list.length, 2);
@@ -1475,7 +1475,7 @@ for (const dodge of [false, true]) {
   for (let cz = -26; cz <= -22; cz++) for (let cx = -21; cx <= -15; cx++) w.load(cx, cz);
   const { manager } = fixture();
   manager.ctx.world = () => w;
-  manager.ctx.player = () => ({ pos: { x: -298.5, y: 36, z: -395.5 } });
+  manager.ctx.player = () => ({ pos: { x: -299.5, y: 36, z: -395.5 } });
   const values = [0, 0, 0.94, 0.18, 0.7, 0.7];
   spawnWildlife(manager, 1, 1, () => values.shift() ?? 0.5);
   assert.equal(manager.list.length, 3);
@@ -1588,10 +1588,10 @@ console.log("A kangaroo without a safe landing site kicked a nearby predator.");
 
 {
   const w = new World(new Generator("wildlife-grassland-review"));
-  for (let cz = -30; cz <= -27; cz++) for (let cx = -21; cx <= -17; cx++) w.load(cx, cz);
+  for (let cz = -26; cz <= -22; cz++) for (let cx = -20; cx <= -15; cx++) w.load(cx, cz);
   const { manager } = fixture();
   manager.ctx.world = () => w;
-  manager.ctx.player = () => ({ pos: { x: -331.5, y: 33, z: -456.5 } });
+  manager.ctx.player = () => ({ pos: { x: -298.5, y: 36, z: -387.5 } });
   const values = [0, 0, 0.976, 0.2];
   spawnWildlife(manager, 1, 1, () => values.shift() ?? 0.5);
   assert.equal(manager.list.length, 3);
@@ -1697,12 +1697,13 @@ console.log("Elephant cargo drops once and an open cargo panel closes on death."
   for (let cz = -26; cz <= -22; cz++) for (let cx = -21; cx <= -15; cx++) w.load(cx, cz);
   const { manager } = fixture();
   manager.ctx.world = () => w;
-  manager.ctx.player = () => ({ pos: { x: -298.5, y: 36, z: -395.5 } });
+  manager.ctx.player = () => ({ pos: { x: -299.5, y: 36, z: -395.5 } });
   const values = [0, 0, 0.219];
   spawnWildlife(manager, 1, 1, () => values.shift() ?? 0.5);
   const [falcon] = manager.list;
   assert.equal(falcon?.sp, falconId);
-  assert.equal(falcon.pos.y, w.surfaceY(-271, -396) + 6);
+  assert.deepEqual([falcon.pos.x, falcon.pos.z], [-271.5, -395.5]);
+  assert.equal(falcon.pos.y, w.surfaceY(-272, -396) + 6);
   assert.equal(falcon.persist, false);
   assert.equal(w.mods.size, 0);
 }
