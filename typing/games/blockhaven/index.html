@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blockhaven | Mr. Watford's Free-Time Games</title>
 <meta name="description" content="Blockhaven: explore, mine, craft, and build in a block world. Saves on your own device.">
-<meta name="blockhaven-release" content="kingdoms-sandspire-oakwood-districts-1">
+<meta name="blockhaven-release" content="ultra-hardcore-2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -562,6 +562,42 @@ body.tc-on #title .foot { color: #d9ddd2; }
 #mpQuick[hidden] { display: none; }
 #mpQuick kbd { display: inline-block; min-width: 20px; text-align: center; border-radius: 4px; background: #f5c431; color: #1d2433; font-weight: 800; margin-right: 4px; }
 #mpQuick small { opacity: .75; margin-top: 4px; }
+#newWorld, #ultraVictory { grid-template-columns: minmax(0, 1fr); align-items: safe center; }
+#newForm, #newForm .field, #newForm .text-in { min-width: 0; }
+.ultra-mode, .ultra-entry { border-color: #a63c3b; }
+.ultra-entry { color: #ffd8c3; background: #482323; }
+#ultraBrief { margin: 12px 0; padding: 10px 14px; border-left: 3px solid #d66350; background: #332a29; }
+#ultraBrief h3, #ultraBrief p { margin: 4px 0; }
+.ultra-brief-art { aspect-ratio: 4/1; min-height: 86px; display: flex; align-items: end; padding: 10px 12px;
+  background: linear-gradient(transparent,#180e13 90%), url("img/title/ultra-hardcore-1280.jpg") center 38% / cover;
+  border-radius: 4px; text-shadow: 0 2px 5px #000; }
+.ultra-brief-art h3 { font-size: clamp(17px, 4vw, 28px); }
+#ultraBrief ol { display: flex; flex-wrap: wrap; column-gap: 30px; padding-left: 21px; margin: 6px 0; }
+#ultraBrief, #ultraVictory { color: #fff1e4; }
+.ultra-hud { align-self: center; display: grid; gap: 4px; background: #211a1be8; color: #fff4e4; border: 1px solid #b47f55; padding: 9px 12px; border-radius: 5px; font-size: 12px; }
+.ultra-hud.blood { border-color: #ff635b; color: #ffbfb2; }
+.ultra-hud label { display: flex; align-items: center; gap: 6px; }
+.ultra-hud meter { width: 82px; }
+#ultraCue { position: absolute; left: 50%; top: 17%; transform: translateX(-50%); width: min(92vw,420px); padding: 13px 16px; background: #201518ee; border-block: 2px solid #f18b5a; color: #fff2e3; text-align: center; }
+#ultraCue b { color: #ffb283; letter-spacing: .08em; }
+#ultraCue p { margin: 6px 0; }
+.ultra-skins { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.ultra-skins figure { margin: 0; padding: 6px; background: #201a1a; border: 1px solid #875e4b; border-radius: 5px; text-align: center; font-size: 12px; }
+.ultra-skins canvas { max-width: 100%; }
+.ultra-heart { color: #ffb78c; font-weight: 800; }
+#ultraVictoryTitle:focus { outline: none; }
+#ultraVictory .card { border-color: #cd835d; background: linear-gradient(165deg,#4d2d2b,#241f22 58%); }
+#ultraHistory { margin-top: 10px; }
+@keyframes ultra-reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: no-preference) {
+  #ultraVictory:not([hidden]):not(.ultra-reduced) .card { animation: ultra-reveal .7s ease-out both; }
+  #ultraVictory:not([hidden]):not(.ultra-reduced) figure { animation: ultra-reveal .5s .45s ease-out both; }
+  #ultraVictory:not([hidden]):not(.ultra-reduced) .ultra-heart { animation: ultra-reveal .6s .8s ease-out both; }
+}
+@media (max-width: 560px) {
+  .ultra-hud { padding: 5px; font-size: 10px; }
+  #ultraCue { top: 25%; }
+}
 </style>
   <script src="../../../js/play-counter.js"></script>
 </head>
@@ -587,6 +623,10 @@ body.tc-on #title .foot { color: #d9ddd2; }
       <span class="warning-symbol" aria-hidden="true">!</span><span><b></b><small></small></span><i aria-hidden="true"></i>
     </div>
     <div id="waypoint" hidden><span class="wp-arrow"><i></i></span><span class="wp-text"><b></b><em></em></span></div>
+    <div id="ultraHud" class="ultra-hud" hidden>
+      <b id="ultraDay"></b><span id="ultraTime"></span>
+      <label>Fatigue <meter id="ultraFatigue" min="0" max="100" low="45" high="75" optimum="0" value="0"></meter></label>
+    </div>
     <div id="settlementRaidHud" role="status" hidden></div>
     <div id="tip" hidden></div>
     <div id="toasts" aria-live="polite"></div>
@@ -600,6 +640,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     <div class="hotrow-wrap"><div class="slot" id="offslot" title="Offhand"></div><div id="hotbar"></div></div>
   </div>
   <div id="modeTag"></div>
+  <div id="ultraCue" role="status" aria-live="polite" hidden><b></b><p></p><div class="ultra-skins"></div></div>
   <div id="clickToPlay" hidden>Click here to play</div>
   <div id="mpBanner" hidden></div>
   <div id="mpQuick" hidden></div>
@@ -618,6 +659,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     <p class="warn" id="touchWarn" hidden>Blockhaven needs a keyboard and mouse (or trackpad). It works best on a Chromebook or laptop.</p>
     <button class="btn primary" id="btnPlay">Play</button>
     <button class="btn" id="btnNew">New World</button>
+    <button class="btn ultra-entry" id="btnUltra">Ultra Hardcore</button>
     <button class="btn campaign-btn" id="btnCampaign">⚔️ Legacy Campaign</button>
     <a class="btn campaign-btn" href="gus.html">Gus, the Iron Golem · Preview</a>
     <a class="btn campaign-btn" href="furious-four.html">The Furious Four · Preview</a>
@@ -635,6 +677,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     <h2>Your worlds</h2>
     <div id="storageWarn" class="warn" hidden>This browser isn't letting the game save. Worlds last until you close the page, so use <b>Download</b> to keep a copy.</div>
     <div class="world-list" id="worldList"></div>
+    <details id="ultraHistory" hidden><summary>Ultra Hardcore run history</summary><ul></ul></details>
     <div class="row">
       <button class="btn primary" id="btnNew2">New World</button>
       <label class="btn" for="importFile" tabindex="0">Load a world file…</label>
@@ -685,7 +728,13 @@ body.tc-on #title .foot { color: #d9ddd2; }
       <label class="mode-opt"><input type="radio" name="mode" value="survival" checked><b>⛏️ Survival</b><span>Gather resources, craft tools, keep your health and food up.</span></label>
       <label class="mode-opt"><input type="radio" name="mode" value="creative"><b>🏗️ Creative</b><span>Every block, unlimited supplies, flying, and no damage.</span></label>
       <label class="mode-opt hc"><input type="radio" name="mode" value="hardcore"><b>💀 Hardcore</b><span>Survival on Hard with one life. If you faint, the world's adventure ends and you can only look around as a Spectator.</span></label>
+      <label class="mode-opt hc ultra-mode"><input type="radio" name="mode" value="ultra-hardcore"><b>Ultra Hardcore</b><span>Three hearts. One life. Three days.</span></label>
     </div>
+    <aside id="ultraBrief" hidden>
+      <div class="ultra-brief-art"><h3>BlockHaven Ultra Hardcore</h3></div>
+      <ol><li>Survive &amp; prepare</li><li>The hunt begins</li><li>The Final Hunt</li></ol>
+      <p>Survive about 60 minutes to earn four exclusive skins and a permanent heart in normal Survival.</p>
+    </aside>
     <details class="more"><summary>More world options</summary>
       <label class="set"><span>Difficulty</span><select id="nwDiff" class="text-in"><option value="peaceful">Peaceful (no monsters)</option><option value="easy" selected>Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
       <label class="set"><span>Monsters can break blocks</span><input type="checkbox" id="nwGrief" checked></label>
@@ -696,6 +745,17 @@ body.tc-on #title .foot { color: #d9ddd2; }
     </details>
     <div class="row"><button class="btn primary" type="submit">Create World</button><button class="btn" type="button" data-back>Cancel</button></div>
   </form>
+</section>
+
+<section class="screen dim" id="ultraVictory" hidden aria-labelledby="ultraVictoryTitle">
+  <div class="menu wide card">
+    <h2 id="ultraVictoryTitle" tabindex="-1">Legend of the Last Dawn</h2>
+    <p>You survived BlockHaven Ultra Hardcore.</p>
+    <div class="ultra-skins" id="ultraVictorySkins"></div>
+    <p class="ultra-heart">♥ +1 permanent heart in normal Survival</p>
+    <p id="ultraVictoryStats"></p>
+    <div class="row"><button class="btn primary" id="ultraContinue">Continue World</button><button class="btn" id="ultraRetire">Retire Run</button></div>
+  </div>
 </section>
 
 <!-- Loading -->
@@ -896,10 +956,10 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/ancient-warning-view.js": "./js/ancient-warning-view.js?v=leviathan-1.0.0",
     "./js/ancient-warning.js": "./js/ancient-warning.js?v=leviathan-1.0.0",
     "./js/arena-fractures.js": "./js/arena-fractures.js?v=leviathan-1.0.0",
-    "./js/audio.js": "./js/audio.js?v=wx-a-1",
+    "./js/audio.js": "./js/audio.js?v=ultra-hardcore-1",
     "./js/calm-score.js": "./js/calm-score.js?v=music-2",
     "./js/epic-score.js": "./js/epic-score.js?v=music-3",
-    "./js/blocks.js": "./js/blocks.js?v=village-architecture-1",
+    "./js/blocks.js": "./js/blocks.js?v=ultra-hardcore-1",
     "./js/buried-throne.js": "./js/buried-throne.js?v=leviathan-1.0.0",
     "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=campaign-8",
     "./js/campaign-data.js": "./js/campaign-data.js?v=kingdoms-sandspire-oakwood-districts-1",
@@ -952,16 +1012,16 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/wildlife-peafowl.js": "./js/wildlife-peafowl.js?v=wildlife-roster-1",
     "./js/wildlife-savanna.js": "./js/wildlife-savanna.js?v=wildlife-roster-1",
     "./js/wildlife-taiga.js": "./js/wildlife-taiga.js?v=wildlife-roster-1",
-    "./js/wildlife-woodland.js": "./js/wildlife-woodland.js?v=wildlife-roster-1",
-    "./js/wildlife-grassland.js": "./js/wildlife-grassland.js?v=wildlife-roster-1",
+    "./js/wildlife-woodland.js": "./js/wildlife-woodland.js?v=ultra-hardcore-1",
+    "./js/wildlife-grassland.js": "./js/wildlife-grassland.js?v=ultra-hardcore-1",
     "./js/wildlife-coast.js": "./js/wildlife-coast.js?v=wildlife-preview-1",
     "./js/wildlife-reef.js": "./js/wildlife-reef.js?v=wildlife-preview-1",
-    "./js/wildlife-wetlands.js": "./js/wildlife-wetlands.js?v=wildlife-preview-1",
+    "./js/wildlife-wetlands.js": "./js/wildlife-wetlands.js?v=ultra-hardcore-1",
     "./js/wildlife-ocean.js": "./js/wildlife-ocean.js?v=wildlife-preview-1",
-    "./js/wildlife.js": "./js/wildlife.js?v=wildlife-roster-1",
+    "./js/wildlife.js": "./js/wildlife.js?v=ultra-hardcore-1",
     "./js/wildlife-models.js": "./js/wildlife-models.js?v=mob-visuals-1",
     "./js/wildlife-dens.js": "./js/wildlife-dens.js?v=wildlife-preview-1",
-    "./js/entities.js": "./js/entities.js?v=stonehaven-grand-1",
+    "./js/entities.js": "./js/entities.js?v=ultra-hardcore-2",
     "./js/echohold-atmosphere.js": "./js/echohold-atmosphere.js?v=blocks-1024-1",
     "./js/echohold-hunt.js": "./js/echohold-hunt.js?v=echohold-1",
     "./js/echohold-secrets.js": "./js/echohold-secrets.js?v=echohold-1",
@@ -1001,7 +1061,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/oceans-guide.js": "./js/oceans-guide.js?v=wx-b-1",
     "./js/fluids.js": "./js/fluids.js?v=build-b-1",
     "./js/world-guide.js": "./js/world-guide.js?v=wx-d-1",
-    "./js/weather.js": "./js/weather.js?v=wx-a-2",
+    "./js/weather.js": "./js/weather.js?v=ultra-hardcore-1",
     "./js/decor.js": "./js/decor.js?v=build-d-1",
     "./js/building-guide.js": "./js/building-guide.js?v=build-e-1",
     "./js/music.js": "./js/music.js?v=farm-d-1",
@@ -1023,7 +1083,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/lost-author.js": "./js/lost-author.js?v=echohold-1",
     "./js/lost-lore.js": "./js/lost-lore.js?v=echohold-1",
     "./js/lost-temples.js": "./js/lost-temples.js?v=leviathan-1.0.0",
-    "./js/lost.js": "./js/lost.js?v=ocean-c-1",
+    "./js/lost.js": "./js/lost.js?v=ultra-hardcore-1",
     "./js/desert-monument.js": "./js/desert-monument.js?v=blocks-1024-1",
     "./js/monument-life.js": "./js/monument-life.js?v=temple-1",
     "./js/citadel.js": "./js/citadel.js?v=blocks-1024-1",
@@ -1054,7 +1114,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/lost-world.js": "./js/lost-world.js?v=lost-world-1",
     "./js/mangrove-wetlands.js": "./js/mangrove-wetlands.js?v=lost-world-1",
     "./js/redwood-escarpment.js": "./js/redwood-escarpment.js?v=lost-world-1",
-    "./js/main.js": "./js/main.js?v=stonehaven-grand-1",
+    "./js/main.js": "./js/main.js?v=ultra-hardcore-2",
     "./js/mutants.js": "./js/mutants.js?v=mob-visuals-1",
     "./js/forsaken-reaches.js": "./js/forsaken-reaches.js?v=mutants-4",
     "./js/maps.js": "./js/maps.js?v=blocks-1024-1",
@@ -1070,21 +1130,24 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/player.js": "./js/player.js?v=build-c-3",
     "./js/projectile-collision.js": "./js/projectile-collision.js?v=leviathan-1.0.0",
     "./js/rails.js": "./js/rails.js?v=leviathan-1.0.0",
-    "./js/redstone.js": "./js/redstone.js?v=blocks-1024-1",
+    "./js/redstone.js": "./js/redstone.js?v=ultra-hardcore-1",
     "./js/sandstorm.js": "./js/sandstorm.js?v=leviathan-1.0.0",
-    "./js/save.js": "./js/save.js?v=grand-villages-1",
-    "./js/shapes.js": "./js/shapes.js?v=village-architecture-1",
-    "./js/skins.js": "./js/skins.js?v=leviathan-1.0.0",
+    "./js/save.js": "./js/save.js?v=ultra-hardcore-1",
+    "./js/shapes.js": "./js/shapes.js?v=ultra-hardcore-1",
+    "./js/skins.js": "./js/skins.js?v=ultra-hardcore-1",
     "./js/solkara-annex.js": "./js/solkara-annex.js?v=leviathan-1.0.0",
     "./js/solkara-gate-view.js": "./js/solkara-gate-view.js?v=leviathan-1.0.0",
     "./js/solkara-lore.js": "./js/solkara-lore.js?v=leviathan-1.0.0",
     "./js/solkara-scenery.js": "./js/solkara-scenery.js?v=leviathan-1.0.0",
     "./js/solkara-mural-view.js": "./js/solkara-mural-view.js?v=leviathan-1.0.0",
-    "./js/starter.js": "./js/starter.js?v=stonehaven-grand-1",
+    "./js/starter.js": "./js/starter.js?v=ultra-hardcore-1",
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
-    "./js/title-cinema.js": "./js/title-cinema.js?v=lost-world-1",
+    "./js/title-cinema.js": "./js/title-cinema.js?v=ultra-hardcore-1",
     "./js/title-tips.js": "./js/title-tips.js?v=tips-2",
-    "./js/ui.js": "./js/ui.js?v=vill-e-1",
+    "./js/ultra-hardcore.js": "./js/ultra-hardcore.js?v=ultra-hardcore-1",
+    "./js/ultra-hardcore-view.js": "./js/ultra-hardcore-view.js?v=ultra-hardcore-1",
+    "./js/ultra-hardcore-skins.js": "./js/ultra-hardcore-skins.js?v=ultra-hardcore-1",
+    "./js/ui.js": "./js/ui.js?v=ultra-hardcore-1",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
     "./js/world.js": "./js/world.js?v=grand-villages-1",
     "./js/multiplayer.js": "./js/multiplayer.js?v=wx-d-1",
@@ -1094,20 +1157,20 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/settlement-life.js": "./js/settlement-life.js?v=stonehaven-grand-1",
     "./js/stonehaven.js": "./js/stonehaven.js?v=stonehaven-grand-1",
     "./js/lantern-vale.js": "./js/lantern-vale.js?v=village-overhaul-1",
-    "./js/settlement-raids.js": "./js/settlement-raids.js?v=stonehaven-grand-1",
+    "./js/settlement-raids.js": "./js/settlement-raids.js?v=ultra-hardcore-1",
     "./js/village-growth.js": "./js/village-growth.js?v=stonehaven-grand-1",
     "./js/village-renovation.js": "./js/village-renovation.js?v=village-terrain-preview-1",
     "./js/grand-villages.js": "./js/grand-villages.js?v=stonehaven-grand-1",
     "./js/grand-village-build.js": "./js/grand-village-build.js?v=stonehaven-grand-1",
     "./js/village-architecture.js": "./js/village-architecture.js?v=grand-villages-1",
     "./js/village-overhaul.js": "./js/village-overhaul.js?v=village-architecture-1",
-    "./js/worldgen.js": "./js/worldgen.js?v=stonehaven-grand-1",
+    "./js/worldgen.js": "./js/worldgen.js?v=ultra-hardcore-1",
     "./js/dune-leviathan.js?v=pose-2": "./js/dune-leviathan.js?v=leviathan-1.0.0",
     "./js/leviathan-glow.js?v=charge-1": "./js/leviathan-glow.js?v=leviathan-1.0.0",
     "./js/dune-warning.js?v=physical-2": "./js/dune-warning.js?v=leviathan-1.0.0",
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=stonehaven-grand-1"></script>
+<script type="module" src="js/main.js?v=ultra-hardcore-2"></script>
 </body>
 </html>

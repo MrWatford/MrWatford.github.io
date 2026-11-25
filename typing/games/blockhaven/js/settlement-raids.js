@@ -93,6 +93,25 @@ export function initSettlementRaids({ G, UI, Sound, SPECIES, hud, closePanel }) 
     Sound.mob("roar", 10);
     void G.saveNow(false);
   }
+  function challengeStart() {
+    if (ledger()?.active || !canFight()) return false;
+    const p = G.player.pos;
+    const nearby = G.ents.near(p.x, p.y, p.z, 36, e => e.def.villager && !e.dead && !e.gone && e.home);
+    for (const e of nearby) {
+      const [x, , z] = e.home;
+      const plot = G.world.gen.villagePiece(Math.floor(x / CHUNK), Math.floor(z / CHUNK));
+      const id = stonehavenCovers(G.world.gen, x, z) ? "stonehaven" :
+        plot?.detailed ? "village:" + plot.center.map(n => Math.floor(n / CHUNK)).join(",") : null;
+      const area = site(id);
+      if (!area || record(id)) continue;
+      write(id, { state: "active", wave: 0, hp: [] }, id);
+      UI.toast(area.title + " begins in six seconds. Defend the settlement or retreat.", "bad");
+      Sound.mob("roar", 10);
+      void G.saveNow(false);
+      return true;
+    }
+    return false;
+  }
   function capture() {
     if (!session || !live.size) return;
     const r = record(session.id);
@@ -228,5 +247,5 @@ export function initSettlementRaids({ G, UI, Sound, SPECIES, hud, closePanel }) 
     show(area.title + " · Wave " + (r.wave + 1) + "/" + area.waves.length +
       " · " + left + " remaining" + (live.size < left ? " · Reinforcements approaching" : ""));
   }
-  return { offer, interact, update, defeated, capture, clear };
+  return { offer, interact, update, defeated, capture, clear, challengeStart };
 }

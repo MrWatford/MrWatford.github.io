@@ -1,3 +1,4 @@
+import { hunterLevel } from "./ultra-hardcore.js";
 import { B, HEIGHT, SOLID } from "./blocks.js";
 import { Sound } from "./audio.js";
 
@@ -83,8 +84,14 @@ function crocodileThink(manager, e, p, d, multiplier, clearPath) {
   s.phase = "ambush";
   e.goal = resting;
   const fromHome = distance(e.pos, { x: e.home[0], y: e.home[1], z: e.home[2] });
-  const pCanTrigger = e.inWater ? couldReach(e, p.pos, p.inWater ? 6.6 : 3.7) : e.angry > 0 && d < 5.5;
-  if (fromHome > 12 || now < (s.scanAt ?? 0)) return;
+  const run = manager.ctx.ultra?.(), hunt = hunterLevel(run);
+  const pCanTrigger = e.inWater ? couldReach(e, p.pos, (p.inWater ? 6.6 : 3.7) + (run ? .7 : 0) + hunt * .6)
+    : e.angry > 0 && d < 5.5 + hunt;
+  if (run && pCanTrigger && manager.targetable() && !(s.rippleAt > now)) {
+    s.rippleAt = now + 4;
+    manager.ctx.particles(e.pos.x, e.pos.y + e.h * .8, e.pos.z, "splash");
+  }
+  if (fromHome > 12 + hunt || now < (s.scanAt ?? 0)) return;
   s.scanAt = now + 0.6;
   s.player = pCanTrigger && manager.targetable() && manager.canSeePlayer(e);
   s.prey = !s.player && e.inWater ? manager.near(e.pos.x, e.pos.y, e.pos.z, 6.5, o =>

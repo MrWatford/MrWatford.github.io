@@ -1,4 +1,5 @@
 import { B, I, HEIGHT, SOLID } from "./blocks.js";
+import { hunterLevel } from "./ultra-hardcore.js";
 import { Sound } from "./audio.js";
 import { WILDLIFE_EGGS } from "./wildlife-catalog.js";
 import { findGrizzlyDen, grizzlyDenRoom } from "./wildlife-dens.js";
@@ -111,14 +112,15 @@ function bearThink(manager, e, p, d, multiplier, daylight) {
     }
     return;
   }
-  const outOfTerritory = fromHome > 23;
+  const run = ctx.ultra?.(), hunt = hunterLevel(run);
+  const outOfTerritory = fromHome > 23 + hunt * 2;
   const ancient = e.variant === 1;
-  const seen = d < 22 && manager.targetable() && manager.canSeePlayer(e);
+  const seen = d < 22 + hunt * 2 && manager.targetable() && manager.canSeePlayer(e);
   const cubNearby = seen && d < 12 && manager.near(p.pos.x, p.pos.y, p.pos.z, 4.75,
     o => o.baby && sameGrizzlyFamily(e, o)).length > 0;
   const denIntrusion = e.den && distance(p.pos, home) < 4.5;
-  if (seen && (d < (p.crouch ? 3.25 : 5.5) || cubNearby || denIntrusion)) e.angry = Math.max(e.angry, 8);
-  if (outOfTerritory || !manager.targetable() || d > 24 || e.angry <= 0) {
+  if (seen && (d < (p.crouch ? 3.25 : 5.5 + (run ? 2 : 0) + hunt) || cubNearby || denIntrusion)) e.angry = Math.max(e.angry, 8);
+  if (outOfTerritory || !manager.targetable() || d > 24 + hunt * 2 || e.angry <= 0) {
     s.phase = "patrol";
     if (outOfTerritory) e.angry = 0;
     if (e.den && daylight < 0.35) {
@@ -323,6 +325,11 @@ function eagleThink(manager, e, d, clearPath) {
 
 export function thinkWildlife(manager, e, d, multiplier, clearPath, daylight) {
   e.angry = Math.max(0, e.angry - (e.thinkT || 0.15));
+  const run = manager.ctx.ultra?.(), hunt = hunterLevel(run);
+  const noise = run?.status === "active" && manager.ctx.ultraNoise?.();
+  if (noise && (hunt || noise.radius >= 26) && !e.baby && [BEAR, CROC, TIGER, LION].includes(e.sp) && e.home &&
+    Math.hypot(noise.x - e.home[0], noise.z - e.home[2]) < (e.sp === CROC ? 11 : 23) &&
+    distance(e.pos, noise) < noise.radius) e.angry = Math.max(e.angry, 1.5 * (1 + hunt));
   if (e.sp === BEAR) bearThink(manager, e, manager.ctx.player(), d, multiplier, daylight);
   else if (e.sp === SHARK) sharkThink(manager, e, manager.ctx.player(), d, multiplier, clearPath);
   else if (e.sp === FALCON) thinkFalcon(manager, e, d, clearPath);
@@ -693,7 +700,7 @@ function groundRoom(w, x, y, z, radius) {
 export function spawnWildlife(manager, dt, daylight, random = Math.random) {
   manager.wildlifeSpawnT = (manager.wildlifeSpawnT ?? 0) - dt;
   if (manager.wildlifeSpawnT > 0) return;
-  manager.wildlifeSpawnT = 7;
+  manager.wildlifeSpawnT = manager.ctx.ultra?.() ? 5 : 7;
   const w = manager.world, ctx = manager.ctx, p = ctx.player();
   if (w.gen.isNether() || w.gen.isEnd?.() || w.gen.isForsaken || w.gen.isMap?.() ||
       ctx.creative() || !ctx.alive() || daylight < 0.38 || manager.list.length >= 110) return;

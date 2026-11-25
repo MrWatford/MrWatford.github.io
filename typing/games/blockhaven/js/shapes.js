@@ -1,6 +1,6 @@
 // Shapes of the Sparkworks blocks: the little boxes they're drawn with, the boxes you bump into,
 // and how Sparkdust wire connects to its neighbors. Used by the drawing code, the player, and the signal engine.
-import { B, OPAQUE, idOf, metaOf, faceTile, TILE, isTrapdoor, isFence, isGate, isButton, isPlate,
+import { B, OPAQUE, idOf, metaOf, faceTile, TILE, LIT, isTrapdoor, isFence, isGate, isButton, isPlate,
   DOT, UNLIT, AXIS_X, ON, LOCKED, SUBTRACT, CMP_ON, OPEN, TOP, EXTENDED, STICKY_HEAD, OBS_ON, ATTACHED,
   STAIR_INNER, STAIR_OUTER, STAIR_RIGHT, isPiston, isHush, isSlab, isStairs, isWall, blockDef, SOLID } from "./blocks.js";
 
@@ -128,6 +128,13 @@ export function model(v, get) {
     if (m & 4) return { T: floorT(m & 3), parts: [p([0, 14, 13.5, 16, 15.5, 16], pole), ...tall([1, -10, 14.5, 15, 14, 15.5], tex)] };   // on a wall, hanging down from the top
     return { T: floorT(m & 3), parts: [...tall([7, 0, 7, 9, 30, 9], pole), { ...p([0, 28, 7, 16, 30, 9], pole), uvY: 1 }, ...tall([1, 4, 6.5, 15, 28, 7], tex)] };
   }   // Milestone 21, Part C: flat against its wall
+  if (id === B.CAMPFIRE) {
+    const parts = [p([1, 0, 1, 15, 2, 15], TILE.cobble), p([2, 2, 3, 14, 5, 6], tex),
+      p([2, 2, 10, 14, 5, 13], tex), p([4, 5, 2, 7, 7, 14], tex), p([9, 5, 2, 12, 7, 14], tex)];
+    if (m & LIT) parts.push(p([6, 7, 6, 10, 15, 10], TILE.candle_flame),
+      p([4, 6, 7, 6, 11, 9], TILE.candle_flame), p([10, 6, 8, 12, 12, 10], TILE.candle_flame));
+    return { T: floorT(0), parts };
+  }
   if (id === B.LANTERN) {
     const h = m & 1 ? 1 : 0, parts = [p([5, h, 5, 11, h + 7, 11], tex), p([6, h + 7, 6, 10, h + 9, 10], TILE.iron_bars)];
     if (h) parts.push(p([7.5, 10, 7.5, 8.5, 16, 8.5], TILE.iron_bars));   // the chain it hangs from
@@ -275,6 +282,7 @@ export function shapeBoxes(v, get) {
   if (isSlab(id) || isStairs(id)) { const mo = model(v); return mo.parts.map(q => box(mo.T, q.b)); }   // Milestone 21
   if (id === B.LADDER) return [box(floorT(m & 3), [0, 0, 13 * S, 1, 1, 1])];
   if (id === B.STONECUTTER) return [[0, 0, 0, 1, 9 * S, 1]];   // Milestone 23
+  if (id === B.CAMPFIRE) return [[S, 0, S, 15 * S, 7 * S, 15 * S]];
   if (id === B.CAKE) return [[(1 + (m & 7) * 2) * S, 0, S, 15 * S, 0.5, 15 * S]];   // Milestone 22
   if (id === B.ARMOR_STAND) return [[6 * S, 0, 6 * S, 10 * S, 1.4, 10 * S]];   // Milestone 21, Part D
   if (id === B.SCAFFOLDING) return [[0, 15 * S, 0, 1, 1, 1]];   // you stand on top (the player skips it while climbing inside or crouching)

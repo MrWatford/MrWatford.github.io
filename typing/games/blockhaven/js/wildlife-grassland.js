@@ -1,3 +1,4 @@
+import { hunterLevel } from "./ultra-hardcore.js";
 import { B, SOLID } from "./blocks.js";
 import { Sound } from "./audio.js";
 
@@ -171,7 +172,8 @@ function stopHunt(e, delay) {
 
 function guardPlayer(manager, e, p, d, multiplier) {
   const s = e.wild, now = e.age;
-  const canGuard = manager.targetable() && d < 9 && distance(e.pos, homePoint(e)) < 20;
+  const run = manager.ctx.ultra?.(), hunt = hunterLevel(run);
+  const canGuard = manager.targetable() && d < 9 + hunt * 2 && distance(e.pos, homePoint(e)) < 20 + hunt * 2;
   if (!canGuard) {
     if (s.phase === "warnPlayer" || s.phase === "guard") stopHunt(e, 4);
     return false;
@@ -189,11 +191,13 @@ function guardPlayer(manager, e, p, d, multiplier) {
     } else steerGrassland(manager, e, p.pos, 4.85, 1.75);
     return true;
   }
-  if ((d < 3.2 || e.angry > 0) && manager.canSeePlayer(e)) {
+  if ((d < 3.2 + (run ? 1.5 : 0) + hunt || e.angry > 0) && manager.canSeePlayer(e)) {
     stopHunt(e, 8);
     s.playerId = p.mpId ?? null;
     s.phase = "warnPlayer";
-    s.until = now + 0.85;
+    s.until = now + .85;
+    if (hunt) for (const lion of manager.near(e.pos.x, e.pos.y, e.pos.z, 12, o => o !== e && o.sp === LION &&
+      distance(homePoint(o), homePoint(e)) < 12).slice(0, 2)) lion.angry = Math.max(lion.angry, 2 + hunt);
     e.yaw = Math.atan2(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
     Sound.mob("lionroar", d);
     return true;

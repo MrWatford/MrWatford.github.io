@@ -807,6 +807,7 @@ export function initRedstone(ctx) {
     for (const s of slots) if (s) { have.set(s.id, (have.get(s.id) || 0) + 1); total++; }
     if (!total) return null;
     for (const r of RECIPES) {
+      if (r.ultra && !G.meta?.ultra) continue;
       if (r.upgrade || r.ins.reduce((a, [, n]) => a + n, 0) !== total) continue;
       const left = new Map(have);
       let ok = true;

@@ -75,7 +75,8 @@ const WELCOME = "Welcome to Blockhaven! Your starter home is stocked, your adven
 export function initStarter(api) {
   const { G, UI, Sound, L, openPanel, closePanel } = api;
   const S = {};
-  const data = () => G.story.starter || null;
+  const data = () => G.meta?.ultra ?
+    (G.story.ultraMap ||= { mapOnly: true, waypoint: false, zoom: 2 }) : G.story.starter || null;
   const k3 = (x, y, z) => x + "," + y + "," + z;
   // the Surface's land shape (the map reads it even while you're in another dimension)
   let ow = null;
@@ -326,9 +327,9 @@ export function initStarter(api) {
   S.openMap = () => { if (G.state === "play" || G.state === "panel") openPanel("xmap"); };
   S.canOpen = () => G.creative || hasMap();
   S.toggleWaypoint = () => {
-    const s = data(); if (!s || (!s.house && !s.campaign)) return;
+    const s = data(); if (!s || (!s.house && !s.campaign && !s.mapOnly)) return;
     s.waypoint = !s.waypoint;
-    UI.toast(s.waypoint ? `Waypoint on: ${destOf(s.dest) ? destOf(s.dest).title : "Starter Home"}` : "Waypoint hidden. Press N to show it again.");
+    UI.toast(s.waypoint ? `Waypoint on: ${destOf(s.dest) ? destOf(s.dest).title : s.mapOnly ? "choose a destination on the map" : "Starter Home"}` : "Waypoint hidden. Press N to show it again.");
   };
 
   // ---------- destinations ----------
@@ -470,7 +471,7 @@ export function initStarter(api) {
     // Milestone 17, Part B: holding a Treasure Map points the way to its X
     const held = active && G.dim === "overworld" && !jurassic && !sands ? G.inv.slots[G.selected] : null;
     const tmap = held && held.id === I.TREASURE_MAP && held.tx != null ? { kind: "treasure", title: "Buried treasure", x: held.tx + 0.5, z: held.tz + 0.5 } : null;
-    const d = jurassic || sands || tmap || (active && G.dim === "overworld" && s?.waypoint && (s.house || s.campaign) ? destOf(s.dest) : null);
+    const d = jurassic || sands || tmap || (active && G.dim === "overworld" && s?.waypoint && (s.house || s.campaign || s.mapOnly) ? destOf(s.dest) : null);
     hudEl.hidden = !d;
     if (!d) return;
     const p = G.player, dist = Math.hypot(d.x - p.pos.x, d.z - p.pos.z), ang = Math.atan2(-(d.x - p.pos.x), -(d.z - p.pos.z)) - p.yaw;
@@ -485,7 +486,7 @@ export function initStarter(api) {
   S.mapHTML = () => {
     const s = data();
     TYPES.home.label = s && s.campaign ? "Legacy Village" : "Starter Home";
-    if (!s || (!s.house && !s.campaign)) return `<div class="inv-card"><h3>Explorer's Map</h3><p class="help">This world has no Starter Home or map data yet.</p></div>`;
+    if (!s || (!s.house && !s.campaign && !s.mapOnly)) return `<div class="inv-card"><h3>Explorer's Map</h3><p class="help">This world has no Starter Home or map data yet.</p></div>`;
     const visibleKinds = new Set(destinations().map(d => d.kind));
     const legend = ORDER.filter(k => (!LEVIATHAN_MAP_TYPES[k] && k !== "stonehaven") || visibleKinds.has(k)).map(k => `<span><canvas class="xm-ico" data-ico="${k}" width="22" height="22"></canvas>${TYPES[k].label}</span>`).join("") +
       `<span><canvas class="xm-ico" data-ico="you" width="22" height="22"></canvas>You (arrow = facing)</span><span><canvas class="xm-ico" data-ico="shore" width="22" height="22"></canvas>Boat launch (shore)</span><span><i class="xm-dash"></i>Direction only, not a path</span>` +
@@ -502,9 +503,9 @@ export function initStarter(api) {
   };
   let mapEl = null, tickT = null;
   S.mountMap = root => {
-    mapEl = root; const s = data(); if (!s || (!s.house && !s.campaign)) return;
+    mapEl = root; const s = data(); if (!s || (!s.house && !s.campaign && !s.mapOnly)) return;
     if (view.follow) { view.cx = G.player.pos.x; view.cz = G.player.pos.z; }
-    if (G.dim !== "overworld") { const h = S.house(); view.cx = h.x; view.cz = h.z; view.follow = false; }
+    if (G.dim !== "overworld") { const h = S.house() || G.player.spawn; view.cx = h.x; view.cz = h.z; view.follow = false; }
     root.querySelectorAll("[data-ico]").forEach(c => drawIcon(c.getContext("2d"), c.dataset.ico, 11, 11, 9, false));
     root.querySelectorAll("[data-xz]").forEach(b => b.onclick = () => {
       Sound.click(); const k = +b.dataset.xz;

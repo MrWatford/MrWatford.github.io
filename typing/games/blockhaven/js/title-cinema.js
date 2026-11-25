@@ -13,6 +13,7 @@ const FADE = 1800;          // crossfade length
 // art: picture ids to try in order (artwork first, in-game capture as a backup). Scenes with no art are skipped.
 export const SCENES = [
   { id: "overworld", name: "The Surface", line: "Where every adventure begins.", accent: "#f5c431", fx: "pollen", focus: "50% 60%", art: ["overworld-castle", "overworld"], status: "live" },
+  { id: "ultra-hardcore", name: "BlockHaven Ultra Hardcore", line: "Three hearts. One life. Three days.", accent: "#e45a4d", fx: "embersRed", focus: "50% 45%", art: ["ultra-hardcore"], status: "live" },
   { id: "village", name: "Legacy Village", line: "The castle at the heart of the Legacy Campaign.", accent: "#4a7fe0", fx: "dust", focus: "50% 45%", art: ["legacy-village"], status: "live" },
   { id: "gus", name: "Gus, the Iron Golem", line: "A three-chapter story campaign.", accent: "#ffb040", fx: "sparks", focus: "100% 50%", art: ["gus-iron-golem"], status: "planned" },
   { id: "echohold", name: "Echohold", line: "A lost city sleeps beneath the world.", accent: "#2fd3d6", fx: "motes", focus: "50% 50%", art: ["echohold"], status: "live" },
@@ -51,7 +52,7 @@ const STD = ["1920.webp", "1280.webp", "1280.jpg"];
 const FILES = {
   "overworld-castle": ["1280.jpg"], echohold: ["1920.jpg", "1280.jpg"], "forsaken-world": ["1920.jpg", "1280.jpg"], jurassic: ["1280.jpg"],
   leviathan: ["1920.jpg", "1280.jpg"], "furious-four": ["1920.jpg", "1280.jpg"], grizzly: ["1280.jpg"],
-  "gus-iron-golem": ["1920.jpg", "1280.jpg"]
+  "gus-iron-golem": ["1920.jpg", "1280.jpg"], "ultra-hardcore": ["1280.jpg"]
 };
 const canWebp = document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp");
 // best size for this screen first, then smaller/plainer ones

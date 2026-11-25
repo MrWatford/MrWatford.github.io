@@ -22,6 +22,7 @@ import { FERN_PLAINS } from "./fern-plains.js";
 import { installTriceratops, populateTriceratops, thinkTriceratops, animateTriceratops } from "./lost-world-triceratops.js";
 import { LOST_WORLD } from "./lost-world.js";
 import { installLostWorldRaptor, populateLostWorld, thinkLostWorldRaptor, animateLostWorldRaptor } from "./lost-world-raptor.js";
+import { hunterLevel } from "./ultra-hardcore.js";
 import { installCreatures, animateCreature, thinkCreature, interactCreature, spawnCreatures } from "./creatures.js";
 import { ELDER_SPOTS } from "./ocean-monument.js";
 import { OSTRICH, rhinoProvoked, stepOstrichEgg } from "./wildlife-savanna.js";
@@ -1927,10 +1928,14 @@ export class Entities {
   toJSON() {   // everything that should be remembered, loaded or not
     const w = this.world, store = {};
     for (const [k, v] of w.entityStore) store[k] = v;
+    const challenge = this.ctx.ultra?.();
     for (const e of this.list) {
-      if (!e.persist || e.dead || e.def.noSave) continue;
+      const threat = challenge && !e.settlementRaid && (e.def.hostile || ["lion", "tiger", "grizzly_bear", "crocodile"].includes(e.sp));
+      if ((!e.persist && !threat) || e.gone || e.dead || e.def.noSave) continue;
       const k = Math.floor(e.pos.x / CHUNK) + "," + Math.floor(e.pos.z / CHUNK);
-      (store[k] = store[k] || []).push(e.toJSON());
+      const saved = e.toJSON();
+      if (threat && e.def.wildlife && !e.persist) saved.ambient = true;
+      (store[k] = store[k] || []).push(saved);
     }
     return store;
   }
@@ -2060,10 +2065,12 @@ export class Entities {
       }
     }
     if (plain && (this.waterT = (this.waterT || 0) - 1) <= 0) { this.waterT = 2; this.waterSpawn(w, p); }
-    if (s.difficulty === "peaceful" || ctx.creative()) return;
+    const run = ctx.ultra?.(), hunt = hunterLevel(run);
+    if (s.difficulty === "peaceful" || ctx.creative() || (run && run.elapsed < 30)) return;
     if (ctx.lantern && ctx.lantern()) return;   // a Wardlight Lantern in your hand keeps monsters from forming nearby
-    const cap = ({ easy: 8, normal: 12, hard: 16 }[s.difficulty] || 10) * (w.gen.isForsaken ? 0.5 : 1);
-    const hostiles = this.list.filter(e => e.def.hostile || e.sp === "voidwalker").length;
+    const cap = ({ easy: 8, normal: 12, hard: 16 }[s.difficulty] || 10) * (w.gen.isForsaken ? 0.5 : 1) *
+      (run ? (hunt === 3 ? 2.5 : hunt === 2 ? 2.25 : 2) : 1);
+    let hostiles = this.list.filter(e => e.def.hostile || e.sp === "voidwalker").length;
     if (hostiles >= cap) return;
     this.tmpM.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); this.frustum.setFromProjectionMatrix(this.tmpM);
     if (w.gen.isNether()) { this.netherSpawn(w, p, camera); return; }
@@ -2077,23 +2084,30 @@ export class Entities {
       this.add("voidwalker", x + 0.5, y, z + 0.5);
       return;
     }
-    for (let tries = 0; tries < 4; tries++) {
-      const ang = Math.random() * Math.PI * 2, dist = rand(22, 44);
+    const caveNearby = run && w.gen.column(Math.floor(p.pos.x), Math.floor(p.pos.z)).h - p.pos.y > 7;
+    let budget = run ? (hunt === 3 ? 3 : 2) : 1;
+    for (let tries = 0; tries < (run ? 8 + Number(hunt >= 2) : 4); tries++) {
+      const ang = Math.random() * Math.PI * 2, dist = caveNearby ? rand(18, 32) : rand(22, 44);
       const x = Math.floor(p.pos.x + Math.cos(ang) * dist), z = Math.floor(p.pos.z + Math.sin(ang) * dist);
       if (!w.isLoaded(x, z)) continue;
-      const surface = w.surfaceY(x, z), under = Math.random() < 0.5 && surface > 12;
+      const surface = w.surfaceY(x, z), under = Math.random() < (caveNearby ? .88 : .50) && surface > 12;
       if (!under && w.biomeAt && w.biomeAt(x, z) === "mushroom_fields") continue;   // Milestone 20: no monsters in mushroom fields
       let y = surface + 1;
       if (under) {   // a cave pocket somewhere below
-        let yy = randi(4, surface - 6), found = -1;
+        if (run && w.mods?.has(Math.floor(x / CHUNK) + "," + Math.floor(z / CHUNK))) continue;
+        let yy = caveNearby ? Math.max(4, Math.min(surface - 6, Math.floor(p.pos.y) - 5)) : randi(4, surface - 6), found = -1;
         for (let k = 0; k < 12 && yy + k < surface - 3; k++) if (solidCell(w, x, yy + k - 1, z) && !solidCell(w, x, yy + k, z) && !solidCell(w, x, yy + k + 1, z)) { found = yy + k; break; }
         if (found < 0) continue; y = found;
       }
       const ground = w.id(x, y - 1, z);
       if (ctx.warded && ctx.warded(x + 0.5, z + 0.5)) continue;   // nothing forms inside a ward
+      if (run && !under && (w.gen.villagePiece?.(Math.floor(x / CHUNK), Math.floor(z / CHUNK)) ||
+          w.gen.grandCapital && x >= w.gen.grandCapital.x && z >= w.gen.grandCapital.z &&
+          x < w.gen.grandCapital.x + w.gen.grandCapital.size && z < w.gen.grandCapital.z + w.gen.grandCapital.size)) continue;
+      if (run && [B.PLANKS, B.COBBLE, B.STONE_BRICKS, B.BRICKS].includes(ground)) continue;
       if (!SOLID[ground] || [B.LEAVES, B.BIRCH_LEAVES, B.GLASS, B.BEDROCK].includes(ground) || liquidAt(w, x + 0.5, y + 0.5, z + 0.5)) continue;
       const L = w.lightAt(x, y, z);
-      if (!L || L[1] > 0 || L[0] * daylight > 5) continue;          // must be dark: no torchlight, little sky light
+      if (!L || L[1] > 0 || (run && !under && L[0] < 12) || L[0] * daylight > 5) continue;          // must be dark: no torchlight, little sky light
       const sp = this.pickHostile(w, x, y, z, under || L[0] === 0);
       const def = SPECIES[sp], tall = Math.ceil(def.h);
       let room = true; for (let k = 0; k < tall; k++) if (solidCell(w, x, y + k, z)) room = false;
@@ -2101,7 +2115,7 @@ export class Entities {
       const pt = new THREE.Vector3(x + 0.5, y + 1, z + 0.5);
       if (dist < 34 && this.frustum.containsPoint(pt)) continue;    // don't pop into view
       this.add(sp, x + 0.5, y, z + 0.5);
-      return;
+      if (--budget <= 0 || ++hostiles >= cap) return;
     }
   }
   // Fish, Inklings, and Splashers show up in lakes and rivers around the player (they swim off again when you leave)
@@ -2792,12 +2806,38 @@ export class Entities {
     }
     if (e.angry > 0) e.angry -= 0.15;
     const can = this.targetable();
-    const hidden = ctx.invisible ? ctx.invisible() : -1, sight = hidden < 0 ? 24 : 2 + hidden * 4;   // Milestone 16: Invisibility (armor still gives you away)
+    const hunt = def.hostile && !def.boss && !e.settlementRaid ? hunterLevel(ctx.ultra?.()) : 0;
+    const hidden = ctx.invisible ? ctx.invisible() : -1, sight = hidden < 0 ? 24 + hunt * 3 : 2 + hidden * 4;   // Milestone 16: Invisibility (armor still gives you away)
     const sees = can && d < sight && this.canSeePlayer(e);
     // skitters are calm in bright light unless provoked
     const calm = def.ai === "spider" && !e.angry && (() => { const L = w.lightAt(Math.floor(e.pos.x), Math.floor(e.pos.y), Math.floor(e.pos.z)); return L && L[0] * daylight > 11; })();
     const chasing = can && !calm && (sees || (d < (hidden < 0 ? 10 : Math.min(10, sight)) && Math.abs(p.pos.y - e.pos.y) < 6) || (e.target && d < (hidden < 0 ? 32 : sight + 2)));   // monsters also sense you up close
     e.target = chasing ? p : null;
+    const lure = (hunt || ctx.ultra?.()?.status === "active") && ctx.ultraNoise?.();
+    if ((hunt || lure?.radius >= 26) && can && !calm) {
+      if (hunt && sees) e.ultraTrail = { ...p.pos, until: e.age + 5 + hunt * 3 };
+      if (!sees && lure && Math.abs(lure.y - e.pos.y) < 9 &&
+          Math.hypot(lure.x - e.pos.x, lure.z - e.pos.z) < lure.radius) {
+        e.ultraTrail = { x: lure.x, y: lure.y, z: lure.z, until: e.age + 5 + hunt * 3 };
+      }
+      const trail = e.ultraTrail;
+      const goal = sees ? p.pos : trail;
+      if (hunt && goal && e.sp === "zombie" && d < 8 && (e.ultraBreachAt ?? 0) <= e.age) {
+        e.ultraBreachAt = e.age + 1.25;
+        const gx = goal.x - e.pos.x, gz = goal.z - e.pos.z;
+        const n = Math.hypot(gx, gz) || 1;
+        const strikeY = Math.floor(e.pos.y + .55);
+        // A mob can stand inside a door's block before it hits the door's thin collision box.
+        for (const reach of [0, .44, .88]) {
+          if (ctx.ultraBreach?.(Math.floor(e.pos.x + gx / n * reach), strikeY,
+            Math.floor(e.pos.z + gz / n * reach))) break;
+        }
+      }
+      if (!sees && trail?.until > e.age && Math.hypot(trail.x - e.pos.x, trail.y - e.pos.y, trail.z - e.pos.z) > 1.7) {
+        this.chase(e, trail);
+        return;
+      }
+    }
     if (!chasing && ZOMBIES.has(e.sp) && this.huntVillager(e, def, dmgMul)) return;   // Milestone 23, Part C
     if (!chasing && e.omenRally) { if (this.huntVillager(e, def, dmgMul, true)) return; this.moveTo(e, e.omenRally, def.speed, 3); return; }   // Milestone 23, Part D: raiders head into the village
     if (!chasing && e.settlementRaid) { this.moveTo(e, e.settlementRaid.rally, def.speed, 2); return; }
@@ -2839,7 +2879,7 @@ export class Entities {
       ctx.hurtPlayer(def.dmg * dmgMul, `A ${def.name} got you!`, e);
       if (def.poison && dmgMul > 0.7) ctx.effect("poison", dmgMul > 1 ? 15 : 7);
       if (def.blight) ctx.effect("blight", 8);
-      e.attackCd = 1; e.swing = 0.35;
+      e.attackCd = hunt ? 1.35 - hunt * .08 : 1; e.swing = 0.35;
     }
     this.chase(e, tp);
   }
@@ -2850,8 +2890,9 @@ export class Entities {
     e.pathT -= 0.15;
     if (direct || e.def.climbs) { e.goal = { x: tp.x, z: tp.z, speed: e.def.speed }; e.path = null; return; }
     const edits = this.world.editCount || 0;
-    if (!e.path || !e.path.length || e.pathT <= 0 || e.pathEdits !== edits) {
-      e.pathT = 1.5; e.pathEdits = edits;
+    const hunting = hunterLevel(this.ctx.ultra?.()) > 0 && e.def.hostile && !e.def.boss;
+    if ((!hunting && (!e.path || !e.path.length)) || e.pathT <= 0 || e.pathEdits !== edits) {
+      e.pathT = hunting ? .55 + Math.random() * .45 : 1.5; e.pathEdits = edits;
       e.path = findPath(this.world, Math.floor(e.pos.x), Math.floor(e.pos.y + 0.01), Math.floor(e.pos.z), Math.floor(tp.x), Math.floor(tp.y + 0.01), Math.floor(tp.z), Math.ceil(e.h));
       if (e.path.length) e.goal = { ...e.path[0], speed: e.def.speed };
       else e.goal = { x: tp.x, z: tp.z, speed: e.def.speed };

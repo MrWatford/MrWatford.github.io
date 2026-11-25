@@ -17,11 +17,19 @@ function spellKind(seed, s) {
   return hash3(seed, s, 43, 7) < THUNDER_CHANCE ? 2 : 1;
 }
 // How rainy and stormy the sky is (0-1 each) at a time in world seconds
-export function weatherAt(seed, seconds, dayLength, clearUntil = 0, forced = null) {
+export function weatherAt(seed, seconds, dayLength, clearUntil = 0, forced = null, ultraElapsed = null) {
   if (forced && seconds < forced.until) {   // Part D: a weather button in Creative
     const k = forced.kind === "thunder" ? 2 : forced.kind === "rain" ? 1 : 0;
     const ease = clamp01((seconds - forced.at) / 6);
     return { rain: (k ? 1 : 0) * ease, thunder: (k === 2 ? 1 : 0) * ease, kind: k };
+  }
+  if (ultraElapsed !== null) {
+    const span = 155, slot = Math.floor(ultraElapsed / span), within = ultraElapsed % span;
+    const pressure = Math.floor(ultraElapsed / 1200);
+    const active = slot >= 1 && (slot === 1 || hash3(seed, slot, 73, 9) < .34 + pressure * .16);
+    const storm = active && (slot === 1 || hash3(seed, slot, 74, 9) < .45 + pressure * .10);
+    const intensity = active ? smooth(clamp01(Math.min(within, span - within) / 12)) : 0;
+    return { rain: intensity, thunder: storm ? intensity : 0, kind: storm ? 2 : active ? 1 : 0 };
   }
   const days = seconds / dayLength, f = days / SPELL, s = Math.floor(f), t = f - s;
   const cur = spellKind(seed, s);

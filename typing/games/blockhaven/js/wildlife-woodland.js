@@ -1,3 +1,4 @@
+import { hunterLevel } from "./ultra-hardcore.js";
 import { B } from "./blocks.js";
 import { Sound } from "./audio.js";
 import { steerGrassland, thinkGrazingHerd } from "./wildlife-grassland.js";
@@ -24,6 +25,7 @@ function tigerThink(manager, e, playerDistance, multiplier, clearPath) {
   const w = manager.world, p = manager.ctx.player(), s = e.wild, now = e.age;
   const [x, y, z] = e.home;
   const home = { x, y, z };
+  const run = manager.ctx.ultra?.(), hunt = hunterLevel(run);
   const playerId = p.mpId ?? null;
   const canStrikePlayer = manager.targetable() && s.playerId === playerId;
   const canSee = (pos, lift = 0.65) => clearPath({ ...pos, y: pos.y + lift });
@@ -50,19 +52,19 @@ function tigerThink(manager, e, playerDistance, multiplier, clearPath) {
     if (!canStrikePlayer) { s.player = false; s.phase = "prowl"; }
     else if (now < s.until) return;
   }
-  if (distance(e.pos, home) > 26) {
+  if (distance(e.pos, home) > 26 + hunt * 2) {
     s.phase = "prowl";
     s.prey = null;
     s.player = false;
     steerGrassland(manager, e, home, 3.2, 3.5);
     return;
   }
-  if (s.player && (!canStrikePlayer || p.inWater || playerDistance > 10 || now > s.targetUntil)) s.player = false;
+  if (s.player && (!canStrikePlayer || p.inWater || playerDistance > 10 + hunt * 3 || now > s.targetUntil)) s.player = false;
   if (!s.player && !e.inWater && manager.targetable() && !p.inWater &&
-      playerDistance < (e.angry > 0 ? 8 : p.crouch ? 2.55 : 4) && manager.canSeePlayer(e)) {
+      playerDistance < (e.angry > 0 ? 8 + hunt * 2 : p.crouch ? 2.55 : 4 + (run ? 1.5 : 0) + hunt) && manager.canSeePlayer(e)) {
     s.player = true;
     s.playerId = playerId;
-    s.targetUntil = now + 8;
+    s.targetUntil = now + 8 + hunt * 3;
     s.prey = null;
     s.phase = "warnTiger";
     s.until = now + 0.65;
