@@ -85,7 +85,7 @@ export function createDecor({ THREE, scene, G, itemMesh, disposeItemMesh }) {
         for (const k of [...shown.keys()]) if (!seen.has(k)) clear(k);
       }
       for (const s of shown.values()) {   // as bright as the spot they're in
-        const L = w.lightAt(s.x, s.y, s.z), b = L ? Math.max(L[0] / 15 * daylight, L[1] / 15) : daylight, k = 0.25 + 0.75 * b;
+        const L = w.lightAt(s.x, s.y, s.z), b = L ? Math.max(L[0] / 15 * daylight, L[1] / 15) : daylight, k = w.containers.get(s.x + "," + s.y + "," + s.z)?.glow ? 1 : 0.25 + 0.75 * b;   // (Milestone 24, Part D: a glowing frame)
         for (const m of s.meshes) for (const mat of Array.isArray(m.material) ? m.material : [m.material]) mat.color.setScalar(k);
       }
     },

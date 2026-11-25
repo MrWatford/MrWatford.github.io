@@ -350,6 +350,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     G.time = 0.01; G.meta.day = (G.meta.day || 1) + 1; envT = ENV_EVERY;
     const wet = G.sleepClearsWeather?.();
     if (storm) G.adv("stormsleep");   // Milestone 19: sleeping clears the weather
+    G.rested?.();   // Milestone 24, Part A
     send({ t: "morning", wet });
     UI.toast(wet ? "Good morning! Everyone slept, and the storm has passed." : "Good morning! Everyone slept.", "good"); G.adv("sleep");
   }
@@ -636,7 +637,7 @@ function rideTick(dt) {
     if (m.t === "xp") { if (Number.isInteger(m.n) && m.n > 0) spawnOrbs(Math.min(200, m.n), p.pos.x, p.pos.y + 1, p.pos.z); return; }
     if (m.t === "give") { gotItem(m); return; }
     if (m.t === "bolt") { if (G.guest && [m.x, m.y, m.z].every(Number.isFinite)) G.drawBolt?.(m.x, m.y, m.z); return; }   // Milestone 19
-    if (m.t === "morning") { UI.toast(m.wet ? "Good morning! Everyone slept, and the storm has passed." : "Good morning! Everyone slept.", "good"); return; }
+    if (m.t === "morning") { G.rested?.(); UI.toast(m.wet ? "Good morning! Everyone slept, and the storm has passed." : "Good morning! Everyone slept.", "good"); return; }
     if (m.t === "rideok") { const pp = puppets.get(m.uid); if (pp && !G.riding) { mount(pp.e); rideUid = m.uid; } else send({ t: "unride" }); return; }
     if (m.t === "rideno") { UI.toast(String(m.text || "You can't ride that right now.")); return; }
     if (m.t === "eject") { if (G.riding) dismount(); rideUid = null; return; }
