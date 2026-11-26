@@ -209,6 +209,16 @@ export const Sound = {
     switch (kind) {
       case "groan": this.tone(110 * r(), 0.6, "sawtooth", g(0.08), -40); break;
       case "rattle": for (let i = 0; i < 4; i++) setTimeout(() => this.noise(2400, 0.04, g(0.25), 6), i * 60); break;
+      case "guardianStep":
+        this.tone(88 * r(), .14, "sine", g(.095), -41);
+        this.tone(288 * r(), .07, "triangle", g(.049), -85);
+        this.noise(520, .09, g(.07), 1.3, "lowpass");
+        break;
+      case "guardianStrike":
+        this.tone(112 * r(), .21, "sine", g(.16), -58);
+        this.tone(660 * r(), .12, "triangle", g(.075), -195);
+        this.noise(1750, .13, g(.115), 2.6);
+        break;
       case "clank": this.tone(520 * r(), 0.09, "square", g(0.07)); this.tone(1310 * r(), 0.06, "triangle", g(0.05)); this.noise(3000, 0.05, g(0.12), 4); break;   // armor and shields (desert guardians, the Fallen Castellan)
       case "hiss": case "fuse": this.noise(5000, kind === "fuse" ? 1.4 : 0.5, g(0.3), 0.7, "highpass"); break;
       case "chitter": for (let i = 0; i < 3; i++) setTimeout(() => this.tone(900 * r(), 0.05, "square", g(0.05), 300), i * 50); break;
