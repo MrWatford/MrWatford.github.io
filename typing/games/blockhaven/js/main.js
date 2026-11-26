@@ -416,6 +416,8 @@ const ents = new Entities(scene, {
   inRain: (x, y, z) => G.wx.rain > 0.4 && skyCols.rainedOn(x, y, z),   // Milestone 19: rain puts out burning creatures
   desertContext: () => ({ dim: G.dim, storm: G.creative && creativeStormUntil > G.clock ? 0 : stormStage, sites: G.story.leviathan?.sites }),
   reducedMotion: () => G.settings.reducedMotion,
+  fastGraphics: () => G.settings.quality === "fast",
+  guardianTwilight: () => G.dim === "overworld" ? Math.max(0, 1 - Math.abs(Math.sin(G.time * Math.PI * 2)) * 4) * .55 : 0,
   scarabVaultDefeated: e => {
     if (scarabVaultGuards?.includes(e)) checkpointScarabVaultVictory();
   },
@@ -605,6 +607,17 @@ function pushEntities(cells, dir) {
 }
 function lookFacing() { const d = lookDir(); return Math.abs(d.x) > Math.abs(d.z) ? (d.x > 0 ? 1 : 3) : (d.z > 0 ? 0 : 2); }
 function puff(x, y, z, kind) {
+  if (kind === "guardianDust" || kind === "guardianMetal") {
+    const metal = kind === "guardianMetal", color = metal ? [.71, .63, .53] : [.48, .40, .32];
+    const count = G.settings.quality === "fast" ? 2 : metal ? 5 : 4;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * 2 * Math.PI, speed = Math.random() * (metal ? 2.6 : 1.15);
+      emitParticle(x + (Math.random() - .5) * .4, y, z + (Math.random() - .5) * .4,
+        Math.cos(angle) * speed, metal ? .5 + Math.random() * 1.6 : .22 + Math.random() * .42,
+        Math.sin(angle) * speed, .24 + Math.random() * .21, color, true);
+    }
+    return;
+  }
   if (kind === "whalespout") {
     for (let j = 0; j < 10; j++) {
       const angle = Math.random() * Math.PI * 2, scatter = Math.random() * 0.55;

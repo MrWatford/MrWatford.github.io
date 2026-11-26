@@ -9,6 +9,7 @@
 // Stage 4: guests ride minecarts and boats (the host's world moves the real one), and the group travels together:
 //          when the host goes through a portal (Surface, Ember Depths, Hollow), everyone follows.
 // Full plan: MULTIPLAYER-PLAN.md.
+import { GUARDIAN_DEATH, GUARDIAN_STRIKE } from "./iron-guardian-motion.js";
 import { marineWaterRoom } from "./wildlife-ocean.js";
 import { randomName, randomCode, validName, tidyCode, CODE_RE } from "./mp-words.js";
 
@@ -375,7 +376,9 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     for (const en of ents.list) {
       if (en.gone || !en.mesh || !close(en.pos.x, en.pos.z, en.def.boss ? 160 : 56)) continue;
       const fl = (en.baby ? 1 : 0) | (en.dead ? 2 : 0) | (en.hurtT > 0 ? 4 : 0) | (en.mesh.visible ? 0 : 8);
-      e.push([en.uid, en.sp, r2(en.pos.x), r2(en.pos.y), r2(en.pos.z), r2(en.yaw), fl, en.variant | 0, en.size | 0, Math.max(0, Math.round(en.hp))]);
+      const row = [en.uid, en.sp, r2(en.pos.x), r2(en.pos.y), r2(en.pos.z), r2(en.yaw), fl, en.variant | 0, en.size | 0, Math.max(0, Math.round(en.hp))];
+      if (en.guardianView && (en.dead || en.guardianStrike > 0)) row.push(r2(en.dead ? -en.dead : en.guardianStrike));
+      e.push(row);
       if (e.length >= 150) break;
     }
     for (const dr of G.drops) {
@@ -426,7 +429,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (!G.world || !G.guest || going || G.state === "loading" || (m.dim && m.dim !== G.dim)) return;
     const seen = new Set();
     for (const r of Array.isArray(m.e) ? m.e : []) {
-      const [uid, sp, x, y, z, yaw, fl, variant, size, hp] = r;
+      const [uid, sp, x, y, z, yaw, fl, variant, size, hp, guardianTimer] = r;
       if (typeof uid !== "string" || ![x, y, z, yaw].every(Number.isFinite)) continue;
       seen.add(uid);
       let pp = puppets.get(uid);
@@ -439,6 +442,12 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       pp.tgt = { x, y, z, yaw }; pp.dead = !!(fl & 2); pp.hidden = !!(fl & 8);
       if (fl & 4) pp.e.hurtT = 0.3;
       if (Number.isFinite(hp)) pp.e.hp = hp;
+      if (pp.e.guardianView) {
+        pp.e.guardianStrike = Number.isFinite(guardianTimer) ? Math.max(0, Math.min(GUARDIAN_STRIKE, guardianTimer)) : 0;
+        if (pp.dead && Number.isFinite(guardianTimer)) pp.guardianDeath = Math.max(0, Math.min(GUARDIAN_DEATH, -guardianTimer));
+        else if (pp.dead) pp.guardianDeath ??= GUARDIAN_DEATH;
+        else pp.guardianDeath = undefined;
+      }
     }
     for (const [uid, pp] of puppets) if (!seen.has(uid)) { dropPuppet(pp.e); puppets.delete(uid); }
     const seenD = new Set();
@@ -481,7 +490,10 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       e.walkPhase += moved * 1.5; e.age += dt;
       if (e.hurtT > 0) e.hurtT -= dt;
       const d2 = (e.pos.x - p.pos.x) ** 2 + (e.pos.z - p.pos.z) ** 2;
-      if (pp.dead) {   // fall over and turn red, like any creature that faints
+      if (pp.dead && e.guardianView) {
+        pp.guardianDeath = Math.max(0, pp.guardianDeath - dt);
+        ents.animate(e, dt, d2, daylight, 1 - pp.guardianDeath / GUARDIAN_DEATH);
+      } else if (pp.dead) {   // fall over and turn red, like any creature that faints
         e.mesh.position.set(e.pos.x, e.pos.y, e.pos.z); e.mesh.rotation.y = e.yaw + Math.PI;
         e.root.rotation.z = Math.min(Math.PI / 2, e.root.rotation.z + dt * 4); e.mat.color.setRGB(1, 0.4, 0.4);
       } else {

@@ -28,6 +28,8 @@ import { ELDER_SPOTS } from "./ocean-monument.js";
 import { OSTRICH, rhinoProvoked, stepOstrichEgg } from "./wildlife-savanna.js";
 import { installWildlife, spawnWildlife, thinkWildlife, animateWildlife, sharkWater, alertGrizzlyFamily } from "./wildlife.js";
 import { Sound } from "./audio.js";
+import { attachIronGuardian } from "./iron-guardian-model.js";
+import { animateIronGuardian, GUARDIAN_DEATH, GUARDIAN_STRIKE } from "./iron-guardian-motion.js";
 import { interactFalcon } from "./wildlife-falcon.js";
 import { alertElephantFamily, interactElephant } from "./wildlife-elephant.js";
 import { kangarooProvoked } from "./wildlife-kangaroo.js";
@@ -426,17 +428,10 @@ Object.assign(SPECIES, {
   ...Object.fromEntries(["farmer", "fletcher", "shepherd", "cleric", "smith", "scribe", "beekeeper", "wanderer", "butcher", "armorer", "fisherman", "mason", "leatherworker", "villager"].map(prof => [prof, {
     name: prof === "villager" ? "Villager (no job)" : prof === "wanderer" ? "Wanderer" : "Villager (" + prof[0].toUpperCase() + prof.slice(1) + ")", villager: true, persist: prof !== "wanderer", prof,
     hp: 20, speed: 1.8, w: 0.6, h: 1.95, ai: "villager", xp: 0, sound: "hmm", drops: () => [], model: villagerModel(prof) }])),
+  // The taller guardian rig uses the existing physical envelope for village routes.
   golem: { name: "Ironwarden", persist: true, hp: 100, speed: 1.8, w: 1.4, h: 2.7, ai: "golem", dmg: 9, xp: 0, sound: "clank", knockUp: true,
     drops: () => [[I.IRON_INGOT, randi(3, 5)]],
-    model: { type: "golem", parts: [
-      { name: "body", size: [18, 12, 11], pivot: [0, 31, 0], off: [0, 6, 0], paint: { all: P => { P.fill(["#d8d4cc", "#ccc8c0", "#e0dcd4"]); for (let i = 0; i < 4; i++) P.rect(Math.floor(Math.random() * 12), Math.floor(Math.random() * 12), 2, 5, "#5a8a3a"); } } },
-      { name: "waist", size: [9, 5, 6], pivot: [0, 26, 0], off: [0, 2.5, 0], paint: { all: solid(["#ccc8c0"]) } },
-      { name: "head", size: [8, 10, 8], pivot: [0, 43, -2], off: [0, 5, 0], paint: { all: solid(["#d8d4cc"]), front: face(["#d8d4cc"], P => { P.rect(3, 6, 3, 2, "#a02020"); P.rect(10, 6, 3, 2, "#a02020"); P.rect(2, 4, 12, 1, "#8a8680"); }) } },
-      { name: "nose", parent: "head", size: [2, 4, 2], pivot: [0, -1, 5], off: [0, 0, 0], paint: { all: solid(["#c0bcb4"]) } },
-      { name: "armR", size: [4, 30, 6], pivot: [-11, 42, 0], off: [0, -13, 0], paint: { all: solid(["#ccc8c0", "#d8d4cc"]) } },
-      { name: "armL", size: [4, 30, 6], pivot: [11, 42, 0], off: [0, -13, 0], paint: { all: solid(["#ccc8c0", "#d8d4cc"]) } },
-      { name: "legR", size: [6, 26, 5], pivot: [-4, 26, 0], off: [0, -13, 0], paint: { all: solid(["#ccc8c0"]) } },
-      { name: "legL", size: [6, 26, 5], pivot: [4, 26, 0], off: [0, -13, 0], paint: { all: solid(["#ccc8c0"]) } }] } },
+    model: { type: "iron-guardian", parts: [] } },
   blightking: { name: "Blightking", boss: true, persist: true, hostile: true, hp: 300, speed: 5, w: 1.2, h: 3.4, ai: "blightking", flies: true, fireproof: true, dmg: 8, xp: 0, sound: "roar",
     drops: () => [],
     model: { type: "blightking", parts: [
@@ -1092,11 +1087,6 @@ function applySurfaceArtwork() {
   for (const [side, sign] of limbSides) {
     get("zombie", "leg" + side).paint = { all: solid(["#51423a"]) };
     parts("zombie").push(plate("sleeve" + side, "arm" + side, [4.5, 5, 4.5], [0, 4, 0], edge(cloth, "#65858a")));
-    parts("golem").push(
-      plate("shoulder" + side, "arm" + side, [8, 8, 8], [0, 11, 0], edge(["#aaa494", "#c6bcaa", "#ded5c2"], "#e7ddca")),
-      plate("forearm" + side, "arm" + side, [6, 12, 6], [0, -7, 0], edge(["#aaa494", "#c6bcaa"], "#9a8165")),
-      plate("vine" + side, "body", [2, 7, 1], [sign * 5, 1, 6], { all: solid(moss) })
-    );
   }
 
   parts("skeleton").push(
@@ -1866,6 +1856,7 @@ export class Entities {
     return e;
   }
   attachModel(e) {
+    if (e.sp === "golem") { attachIronGuardian(e, this.scene); return; }
     const def = e.def;
     const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife || !!def.mutant || !!def.lostWorldRaptor || !!def.triceratops || !!def.wetlandPredator || !!def.brachiosaurus || !!def.caveCreature || !!def.tyrannosaurus || !!def.godzilla;
     if (!def.geos) makeSpecies(def, shaded);
@@ -1896,7 +1887,7 @@ export class Entities {
       e.hitVolumes = createLeviathanHitVolumes(e); updateLeviathanHitVolumes(e);
     }
   }
-  remove(e) { e.glow?.dispose(); e.glow = null; this.scene.remove(e.mesh); e.mat.dispose(); if (e.glowMat) { e.glowMat.dispose(); e.glowMat = null; } e.mesh = null; e.hitVolumes = null; if (e.heldMesh) { e.heldMesh.material.dispose(); e.heldMesh = null; } if (e.beam) { this.scene.remove(e.beam); e.beam.geometry.dispose(); e.beam.material.dispose(); e.beam = null; } }
+  remove(e) { e.guardianView?.dispose(); e.guardianView = null; e.guardianMotion = null; e.guardianTarget = null; e.glow?.dispose(); e.glow = null; this.scene.remove(e.mesh); e.mat.dispose(); if (e.glowMat) { e.glowMat.dispose(); e.glowMat = null; } e.mesh = null; e.hitVolumes = null; if (e.heldMesh) { e.heldMesh.material.dispose(); e.heldMesh = null; } if (e.beam) { this.scene.remove(e.beam); e.beam.geometry.dispose(); e.beam.material.dispose(); e.beam = null; } }
   clear() {
     for (const e of this.list) this.remove(e);
     this.list = [];
@@ -2231,7 +2222,11 @@ export class Entities {
       if (e.def.boss && !e.persist && d2 > 200 * 200) { e.gone = true; continue; }
       if (e.sp === "wanderer" && e.age > 300) { this.ctx.particles(e.pos.x, e.pos.y + 1, e.pos.z, "poof"); e.gone = true; continue; }   // the Wanderer moves on
       if (!w.isLoaded(e.pos.x, e.pos.z)) continue;
-      if (e.dead) { this.dying(e, dt); continue; }
+      if (e.dead) {
+        if (e.guardianView) this.dyingGuardian(e, dt, daylight);
+        else this.dying(e, dt);
+        continue;
+      }
       if (e.inCart) {   // a creature sitting in a minecart goes wherever the cart goes
         const c = e.inCart;
         if (c.gone || c.dead || !this.list.includes(c)) { e.inCart = null; }
@@ -3228,15 +3223,20 @@ export class Entities {
         this.list.filter(o => o.def.hostile && !o.dead && !o.def.boss && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 16).sort((a, b) => Math.hypot(a.pos.x - e.pos.x, a.pos.z - e.pos.z) - Math.hypot(b.pos.x - e.pos.x, b.pos.z - e.pos.z))[0];
       if (foe) target = { pos: foe.pos, ent: foe };
     }
+    e.guardianTarget = target && (target.ent || p);
     if (target) {
       const dd = Math.hypot(target.pos.x - e.pos.x, target.pos.z - e.pos.z);
       this.moveTo(e, target.pos, e.def.speed * 1.3, 1.6);
       e.yaw = Math.atan2(-(target.pos.x - e.pos.x), -(target.pos.z - e.pos.z));
       if (dd < 2.6 && Math.abs(target.pos.y - e.pos.y) < 2 && e.attackCd <= 0) {
-        e.attackCd = 1.5; e.swing = 0.5;
+        e.attackCd = 1.5; e.guardianStrike = GUARDIAN_STRIKE;
         if (target.isPlayer) ctx.hurtPlayer(e.def.dmg * dmgMul, "The Ironwarden protects its village!", e);
         else { const l = dd || 1; this.damage(target.ent, 15, e, { x: (target.pos.x - e.pos.x) / l, z: (target.pos.z - e.pos.z) / l }); target.ent.vel.y = 8; }
-        Sound.mob("clank", d);
+        Sound.mob("guardianStrike", d);
+        if (d < 22 && !ctx.reducedMotion?.()) {
+          ctx.particles(target.pos.x, target.pos.y + .42, target.pos.z, "guardianMetal");
+          if (e.onGround && !e.inWater) ctx.particles(e.pos.x, e.pos.y + .03, e.pos.z, "guardianDust");
+        }
       }
       return;
     }
@@ -3716,6 +3716,9 @@ export class Entities {
     if (e.def.static || e.def.object) knock = null;
     if (e.sp === "voidwalker" && attacker && attacker.projectile) { this.teleport(e); return false; }   // dodges arrows
     e.hp -= n; e.hurtT = 0.3; e.iframes = 0.5;
+    if (e.guardianView && this.dist(e) < 20 && !this.ctx.reducedMotion?.()) {
+      this.ctx.particles(e.pos.x, e.pos.y + 1.8, e.pos.z, "guardianMetal");
+    }
     if (e.def.godzilla) this.ctx.godzillaDamaged(e);
     if (e.def.triceratops && attacker === "player") e.trikeAlarmUntil = e.age + 4;
     alertGrazingHerd(this, e, attacker);
@@ -3742,8 +3745,9 @@ export class Entities {
     return true;
   }
   kill(e, attacker) {
-    e.dead = e.def.boss ? 4 : 0.6; e.goal = null; e.path = null;
+    e.dead = e.guardianView ? GUARDIAN_DEATH : e.def.boss ? 4 : 0.6; e.goal = null; e.path = null;
     const ctx = this.ctx;
+    if (e.guardianView) { e.guardianStrike = 0; e.guardianTarget = null; }
     if (e.encounterOwner) return;
     if (e.settlementRaid) { ctx.settlementRaiderDefeated?.(e); return; }
     if (attacker === "player" && ctx.adv) ctx.adv("kill", e.sp);
@@ -3774,6 +3778,18 @@ export class Entities {
     }
     if (e.scarabVaultGuard) ctx.scarabVaultDefeated?.(e);
     if (e.desertVaultGuard) ctx.desertVaultDefeated?.(e.desertVaultGuard);
+  }
+  dyingGuardian(e, dt, daylight) {
+    e.dead = Math.max(0, e.dead - dt);
+    const distance = this.dist(e);
+    this.animate(e, dt, distance ** 2, daylight, 1 - e.dead / GUARDIAN_DEATH);
+    if (e.dead) return;
+    if (distance < 20 && !this.ctx.reducedMotion?.()) {
+      this.ctx.particles(e.pos.x, e.pos.y + .35, e.pos.z, "guardianDust");
+      this.ctx.particles(e.pos.x, e.pos.y + .30, e.pos.z, "guardianMetal");
+    }
+    Sound.mob("guardianStrike", distance + 6);
+    e.gone = true;
   }
   dying(e, dt) {
     if (e.def.mutant) return mutantDying(this, e, dt);
@@ -4170,11 +4186,16 @@ export class Entities {
   }
 
   // ----- animation -----
-  animate(e, dt, d2, daylight) {
+  animate(e, dt, d2, daylight, guardianDying = 0) {
     const def = e.def, P = e.parts, sp = Math.hypot(e.vel.x, e.vel.z), swing = Math.sin(e.walkPhase * 2.2) * Math.min(1, sp / 2) * 0.9;
     e.mesh.position.set(e.pos.x, e.pos.y - (def.segmentedLeviathan ? e.burrowDepth || 0 : 0), e.pos.z);
     e.mesh.rotation.y = e.yaw + Math.PI;
     const s = e.scale * (shoulderPerched(e) ? 0.35 : 1); e.root.scale.setScalar(s);
+    if (e.guardianView) {
+      animateIronGuardian(this, e, dt, d2, daylight, guardianDying);
+      e.guardianStrike = Math.max(0, (e.guardianStrike || 0) - dt);
+      return;
+    }
     if (def.segmentedLeviathan) {
       const spacing = def.segmentSpacing || 4, targetResting = Math.max(0, 1 - sp / 1.5);
       e.dunePose ||= new DunePose(e.pos.x, e.pos.y, e.pos.z, e.yaw, targetResting);
