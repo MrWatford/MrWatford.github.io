@@ -1,0 +1,295 @@
+/* =========================================================
+   Holiday & Season Themes — styles
+   js/holidays.js turns these on by adding classes to <html>:
+     .hol-on        a theme is showing      [data-holiday="christmas"]
+     .hol-season    only a plain season (lighter touches)
+     .hol-solemn    a day of remembrance (quiet, no motion)
+     .hol-still     animations paused
+     .hol-snowcap   snow piles on card tops
+   Everything decorative ignores clicks (pointer-events: none),
+   so buttons, links, and lessons always work.
+   ========================================================= */
+
+@media screen {
+
+/* ---------- Header ---------- */
+.hol-on .site-header::before { background: var(--hol-top); height: 6px; }
+.hol-trim { position: absolute; left: 0; right: 0; top: 100%; pointer-events: none; z-index: 1; }
+.hol-trim > span { position: absolute; inset: 0; background-repeat: repeat-x; background-size: auto 100%; }
+.hol-trim-blink { animation: hol-glow 1.7s ease-in-out infinite alternate; }
+@keyframes hol-glow { from { opacity: 0.15; } to { opacity: 1; } }
+
+.hol-brand { position: relative; }
+.hol-hat { position: absolute; left: -4px; top: -10px; width: 30px; pointer-events: none; transform: rotate(-16deg); z-index: 2; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+.hol-hat svg { display: block; width: 100%; height: auto; }
+.hol-hat-christmas { left: 6px; top: -15px; width: 42px; transform: rotate(-10deg); }
+.hol-hat-newyear { left: 10px; top: -22px; width: 30px; transform: rotate(-8deg); }
+.site-footer .hol-hat { display: none; }
+
+:where(.hol-on:not(.hol-season)) .site-nav a[aria-current="page"] { background: var(--hol-head); box-shadow: inset 0 -3px 0 var(--hol-accent); }
+:where(.hol-on:not(.hol-season)) .site-nav a:hover { box-shadow: inset 0 -3px 0 var(--hol-accent); }
+:where(.hol-on:not(.hol-season)) .brand-avatar { border-color: var(--hol-head); }
+
+/* ---------- Greeting ribbon ---------- */
+.hol-ribbon {
+  position: relative;
+  background: linear-gradient(100deg, var(--hol-head), var(--hol-head2));
+  color: #fff;
+  border-bottom: 3px solid var(--hol-accent);
+  padding: 30px 0 12px;
+  overflow: hidden;
+}
+.hol-ribbon::after {   /* soft wallpaper of the theme's little pictures */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: var(--hol-badge, none) 0 0 / 34px 34px; opacity: 0.08;
+}
+.hol-ribbon-in { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.hol-ribbon-ic { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); box-shadow: 0 0 0 2px var(--hol-accent); }
+.hol-ribbon-ic svg { width: 26px; height: 26px; }
+.hol-ribbon-text { margin: 0; flex: 1 1 420px; line-height: 1.35; font-weight: 600; }
+.hol-ribbon-text strong { font-family: "Fredoka", "Nunito Sans", sans-serif; font-size: 1.3rem; font-weight: 600; margin-right: 6px; letter-spacing: .01em; }
+.hol-verse { display: block; margin-top: 3px; font-size: 0.9rem; font-style: italic; opacity: 0.95; }
+.hol-verse b { font-style: normal; font-weight: 800; color: var(--hol-accent); white-space: nowrap; }
+.hol-ribbon-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.hol-btn {
+  display: inline-flex; align-items: center; min-height: 34px; padding: 4px 13px;
+  border: 2px solid rgba(255,255,255,.6); border-radius: 999px; background: rgba(255,255,255,.12);
+  color: #fff; font: 800 0.82rem "Nunito Sans", sans-serif; text-decoration: none; cursor: pointer;
+}
+.hol-btn:hover { background: rgba(255,255,255,.26); color: #fff; }
+.hol-btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.hol-chip { display: inline-flex; align-items: center; min-height: 30px; padding: 3px 12px; border-radius: 999px; background: var(--hol-accent); color: #1d1d1d; font-weight: 800; font-size: 0.82rem; }
+.hol-preview { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 12px; border-radius: 999px; background: #fff; color: #1d1d1d; font-weight: 800; font-size: 0.82rem; }
+.hol-preview .hol-btn { color: #1d1d1d; border-color: #1d1d1d; background: #fff; min-height: 28px; }
+.hol-solemn .hol-ribbon { border-bottom-color: rgba(255,255,255,.35); }
+@media (max-width: 600px) {
+  .hol-ribbon { padding-top: 28px; }
+  .hol-ribbon-ic { display: none; }
+  .hol-ribbon { padding-bottom: 8px; }
+  .hol-ribbon-in { gap: 6px; }
+  .hol-ribbon-text { flex-basis: 100%; }
+  .hol-ribbon-text strong { display: block; font-size: 1.12rem; }
+  .hol-ribbon-text > span, .hol-btn-scene { display: none; }
+  .hol-verse { font-size: 0.82rem; }
+  .hol-btn, .hol-chip { min-height: 30px; padding: 2px 10px; font-size: 0.74rem; }
+  .hol-preview { font-size: 0.74rem; }
+  .hol-preview .hol-btn { min-height: 26px; }
+}
+
+/* ---------- Cards, buttons, background ---------- */
+/* :where() keeps these weak, so special cards (safety, warnings, print) keep their own colors */
+:where(.hol-on:not(.hol-season)) body { background-image: var(--hol-pattern, none); background-size: 160px 160px; }
+:where(.hol-on:not(.hol-season)) .panel { border-color: var(--hol-head); }
+:where(.hol-on:not(.hol-season)) .panel > .panel-head { background: linear-gradient(100deg, var(--hol-head), var(--hol-head2)); box-shadow: inset 0 -3px 0 var(--hol-accent); }
+:where(.hol-on:not(.hol-season)) .panel-head::after { content: ""; margin-left: auto; width: 22px; height: 22px; flex: none; background: var(--hol-badge, none) center / contain no-repeat; }
+:where(.hol-on:not(.hol-season)) .btn {
+  background-color: var(--hol-btn); border-color: var(--hol-btn);
+  background-image: linear-gradient(110deg, transparent 38%, rgba(255,255,255,.32) 50%, transparent 62%);
+  background-size: 260% 100%; background-position: 140% 0; background-repeat: no-repeat;
+  transition: background-position 0.6s ease, transform 0.1s ease;
+}
+:where(.hol-on:not(.hol-season)) .btn:hover { background-color: var(--hol-head); background-position: -40% 0; }
+
+/* Classroom doors on the home page get a little holiday badge */
+:where(.hol-on:not(.hol-season)) .door-top::after {
+  content: ""; position: absolute; left: 50%; top: 4px; width: 34px; height: 34px; transform: translateX(-50%);
+  background: var(--hol-badge, none) center / contain no-repeat; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); pointer-events: none; z-index: 2;
+}
+:where(.hol-on:not(.hol-season)) .door-flag { box-shadow: 0 0 0 2px var(--hol-accent); }
+
+/* Snow piling up on card tops (grows slowly over the first minute) */
+.hol-snowcap .panel > .panel-head { position: relative; }
+.hol-snowcap .panel > .panel-head::before,
+.hol-snowcap .door-top::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 12px; z-index: 1; pointer-events: none;
+  background: var(--hol-cap) repeat-x 0 0 / 60px 12px; transform-origin: top;
+  animation: hol-cap 50s ease-out both;
+}
+@keyframes hol-cap { from { transform: scaleY(0.15); } to { transform: scaleY(1); } }
+
+/* ---------- Garlands across the classroom wall and page tops ---------- */
+.hol-garland { position: absolute; left: 0; right: 0; top: 0; height: var(--gh); background-repeat: repeat-x; background-size: var(--gw) var(--gh); background-position: center top; pointer-events: none; z-index: 1; }
+.classroom > .hol-garland { height: 4.4cqw; background-size: auto 100%; z-index: 1; }
+.hol-on .classroom .school-banner { z-index: 2; }
+.hol-on:not(.hol-season) .scene-hero.wall { background-image: repeating-linear-gradient(90deg, transparent 0 36px, var(--wall-stripe) 36px 42px); background-repeat: repeat; background-size: auto; background-position: 0 0; }
+@media (min-width: 1360px) {
+  .hol-on:not(.hol-season) .scene-hero.wall {
+    background-image: url("../images/decor/poster-solar-system.svg"), url("../images/decor/poster-atom.svg"), repeating-linear-gradient(90deg, transparent 0 36px, var(--wall-stripe) 36px 42px);
+    background-repeat: no-repeat, no-repeat, repeat; background-size: 104px auto, 104px auto, auto;
+    background-position: calc(50% - 616px) 96px, calc(50% + 616px) 96px, 0 0;
+  }
+}
+.hol-wreath { position: absolute; left: 70.5%; top: 3.4%; width: 9.9%; pointer-events: none; z-index: 2; filter: drop-shadow(0 0.3cqw 0.4cqw rgba(0,0,0,.3)); }
+.hol-wreath svg { display: block; width: 100%; height: auto; }
+
+/* ---------- Footer ---------- */
+.hol-footer-art { height: 64px; background-repeat: repeat-x; background-size: auto 100%; background-position: center bottom; margin-bottom: -1px; }
+.hol-restore { text-align: center; padding: 0 16px 16px; }
+.hol-restore .hol-btn { border-color: rgba(255,255,255,.35); }
+
+/* ---------- Falling snow / leaves / hearts ---------- */
+.hol-fx { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 45; }
+
+/* ---------- Paused or reduced motion ---------- */
+.hol-still .hol-anim, .hol-still .hol-trim-blink, .hol-still .hol-snowcap *,
+.hol-still .hol-scene *, .hol-still .hol-scene *::before, .hol-still .hol-scene *::after { animation: none !important; }
+.hol-still .hol-trim-blink { opacity: 0.8; }
+.hol-still.hol-snowcap .panel > .panel-head::before, .hol-still.hol-snowcap .door-top::before { animation: none; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hol-trim-blink, .hol-scene *, .hol-scene *::before, .hol-scene *::after { animation: none !important; }
+  .hol-snowcap .panel > .panel-head::before, .hol-snowcap .door-top::before { animation: none !important; transform: none; }
+  .hol-trim-blink { opacity: 0.8; }
+}
+
+@media print {
+  .hol-trim, .hol-ribbon, .hol-fx, .hol-footer-art, .hol-restore, .hol-garland, .hol-hat, .hol-wreath, .hol-scene { display: none !important; }
+}
+
+/* =========================================================
+   Home-page holiday scenes (js/holiday-scenes.js)
+   ========================================================= */
+.hol-scene { padding: 26px 20px 6px; }
+.hol-scene-frame { max-width: 1400px; margin: 0 auto; border-radius: 26px; overflow: hidden; background: #0b1020; border: 4px solid var(--hol-accent); box-shadow: var(--shadow-lg); }
+.hol-stage { position: relative; aspect-ratio: 2 / 1; overflow: hidden; }
+.hol-banner .hol-stage { aspect-ratio: 4 / 1; min-height: 230px; }
+.hs-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hol-stage-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.hs-layer { transition: transform 0.6s ease-out; }
+
+.hs-title-big { font-family: "Fredoka", "Nunito Sans", sans-serif; font-weight: 600; font-size: 84px; letter-spacing: 1px; filter: drop-shadow(0 3px 8px rgba(0,0,0,.45)); }
+.hs-title-small { font-family: "Nunito Sans", sans-serif; font-weight: 700; font-style: italic; font-size: 24px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
+.hs-title-easter { font-size: 110px; filter: drop-shadow(0 0 18px rgba(255,236,160,.9)) drop-shadow(0 3px 4px rgba(120,70,0,.4)); }
+.hs-title-easter + .hs-title-small, .hol-scene-easter .hs-title-small { filter: drop-shadow(0 0 6px rgba(255,255,255,.9)); }
+.hs-title-usa { font-size: 60px; filter: drop-shadow(0 0 10px rgba(255,90,90,.6)) drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
+.hs-title-thanks { font-size: 96px; filter: drop-shadow(0 3px 10px rgba(120,40,0,.6)); }
+
+/* Caption bar under the scene (like Mr. Watford's videos) */
+.hol-scene-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; background: var(--caption); padding: 12px 16px; }
+.hol-caption { margin: 0; flex: 1 1 320px; color: #fff; font-weight: 700; line-height: 1.45; min-height: 2.9em; }
+.hol-caption-tag { display: inline-block; margin-right: 8px; padding: 1px 10px; border-radius: 6px; background: var(--blue); color: #fff; font-size: 0.74rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; vertical-align: 2px; }
+.hol-sbtn { min-height: 38px; padding: 6px 16px; border-radius: 999px; border: 2px solid var(--hol-accent); background: transparent; color: #fff; font: 800 0.88rem "Nunito Sans", sans-serif; cursor: pointer; }
+.hol-sbtn:hover { background: rgba(255,255,255,.12); }
+.hs-hot { cursor: pointer; outline: none; }
+.hs-hot:hover, .hs-hot:focus-visible { filter: drop-shadow(0 0 7px rgba(255,236,160,.95)); }
+
+/* Banner text card */
+.hol-banner-text { position: absolute; left: clamp(12px, 4%, 60px); top: 50%; transform: translateY(-50%); max-width: min(580px, 58%);
+  background: rgba(255,255,255,.9); color: #1d2a22; border-radius: 18px; padding: 16px 22px; box-shadow: 0 10px 30px -10px rgba(0,0,0,.45); border-left: 7px solid var(--hol-head); }
+.hol-banner-text p { margin: 0 0 6px; line-height: 1.4; }
+.hol-banner-kicker { font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 800; color: #5c6a60; }
+.hol-banner-title { font: 600 clamp(1.5rem, 3.2vw, 2.4rem) / 1.1 "Fredoka", sans-serif; color: var(--hol-head); }
+.hol-banner-verse { font-style: italic; font-size: 0.93rem; margin-bottom: 0 !important; }
+.hol-banner-verse b { font-style: normal; color: var(--hol-head); }
+
+@media (max-width: 700px) {
+  .hol-scene { padding: 16px 10px 4px; }
+  .hol-scene-frame { border-radius: 18px; }
+  .hol-diorama .hol-stage { aspect-ratio: 4 / 3.4; }
+  .hs-title-small { display: none; }
+  .hs-title-big { font-size: 104px; }
+  .hs-title-usa { font-size: 74px; }
+  .hol-banner .hol-stage { aspect-ratio: auto; min-height: 250px; display: flex; align-items: flex-end; }
+  .hol-banner-text { position: relative; left: auto; top: auto; transform: none; max-width: none; margin: 90px 10px 10px; padding: 12px 16px; }
+}
+
+/* ---------- Scene animations ---------- */
+.hs-twinkle { animation: hs-twinkle 3s ease-in-out infinite; }
+@keyframes hs-twinkle { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
+.hs-pulse { transform-box: fill-box; transform-origin: center; animation: hs-pulse 4.5s ease-in-out infinite; }
+@keyframes hs-pulse { 0%, 100% { opacity: .75; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.04); } }
+.hs-spin { transform-box: fill-box; transform-origin: center; animation: hs-spin 80s linear infinite; }
+.hs-spin-slow { transform-box: view-box; animation: hs-spin 14s linear infinite; }
+.hs-spin-rev { transform-box: view-box; animation: hs-spin 10s linear infinite reverse; }
+@keyframes hs-spin { to { transform: rotate(360deg); } }
+.hs-rays { transform-box: view-box; transform-origin: 1130px 330px; animation: hs-rock 16s ease-in-out infinite alternate; }
+@keyframes hs-rock { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+.hs-flicker { animation: hs-flicker 6s steps(1) infinite; }
+@keyframes hs-flicker { 0%, 100% { opacity: 1; } 47% { opacity: 1; } 48% { opacity: .55; } 50% { opacity: 1; } 81% { opacity: .7; } 82% { opacity: 1; } }
+.hs-flicker-soft { animation: hs-soft 2.6s ease-in-out infinite alternate; }
+@keyframes hs-soft { from { opacity: .65; } to { opacity: 1; } }
+.hs-smoke { transform-box: fill-box; transform-origin: center; opacity: 0; animation: hs-smoke 5.2s linear infinite; }
+@keyframes hs-smoke { 0% { opacity: 0; transform: translate(0, 0) scale(.6); } 15% { opacity: .65; } 100% { opacity: 0; transform: translate(22px, -100px) scale(2.4); } }
+.hs-grow { transform-box: fill-box; transform-origin: 50% 100%; animation: hs-grow 45s ease-out both; }
+@keyframes hs-grow { from { transform: scaleY(.45); } to { transform: scaleY(1); } }
+.hs-tw0, .hs-tw1, .hs-tw2 { animation: hs-tw 1.8s ease-in-out infinite alternate; }
+.hs-tw1 { animation-delay: -.6s; } .hs-tw2 { animation-delay: -1.2s; }
+@keyframes hs-tw { from { opacity: .35; } to { opacity: 1; } }
+.hs-mode-1 .hs-lights { animation: hs-hue 3s linear infinite; }
+@keyframes hs-hue { to { filter: hue-rotate(360deg); } }
+.hs-mode-2 .hs-lights g { animation: none; opacity: 1; }
+.hs-mode-2 .hs-lights { filter: brightness(1.25) saturate(1.2); }
+.hs-dark .hs-win { fill: #3a3550; }
+.hs-dark .hs-tw0, .hs-dark .hs-tw1, .hs-dark .hs-tw2 { animation: none; opacity: .15; }
+.hs-dark .hs-flicker-soft { opacity: 0; animation: none; }
+.hs-hat { transform-box: fill-box; transform-origin: 30% 100%; }
+.hs-tipping .hs-hat { animation: hs-tip 1.3s ease; }
+@keyframes hs-tip { 0%, 100% { transform: none; } 35%, 65% { transform: translateY(-14px) rotate(-22deg); } }
+.hs-pop { transform-box: fill-box; transform-origin: center; animation: hs-pop .45s ease; }
+@keyframes hs-pop { 40% { transform: scale(1.03); } }
+.hs-walk-r { animation: hs-walk-r 60s linear infinite; }
+.hs-walk-l { animation: hs-walk-l 60s linear infinite; }
+@keyframes hs-walk-r { from { transform: translateX(-240px); } to { transform: translateX(1840px); } }
+@keyframes hs-walk-l { from { transform: translateX(1840px); } to { transform: translateX(-240px); } }
+.hs-bob { animation: hs-bob .36s ease-in-out infinite alternate; }
+@keyframes hs-bob { to { transform: translateY(-2px); } }
+.hs-leg-a, .hs-leg-b { transform-box: fill-box; transform-origin: 50% 0; }
+.hs-walk .hs-leg-a { animation: hs-leg .72s ease-in-out infinite alternate; }
+.hs-walk .hs-leg-b { animation: hs-leg .72s ease-in-out infinite alternate-reverse; }
+@keyframes hs-leg { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
+.hs-flap { transform-box: fill-box; transform-origin: center; animation: hs-flap .45s ease-in-out infinite alternate; }
+@keyframes hs-flap { to { transform: scaleY(-.5); } }
+.hs-wing { transform-box: fill-box; transform-origin: center; animation: hs-wing .22s ease-in-out infinite alternate; }
+@keyframes hs-wing { to { transform: scaleX(.25); } }
+.hs-sway { transform-box: fill-box; transform-origin: 50% 100%; animation: hs-sway 6s ease-in-out infinite alternate; }
+@keyframes hs-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
+.hs-fsway { transform-box: fill-box; transform-origin: 50% 100%; animation: hs-fsway 3.2s ease-in-out infinite alternate; }
+@keyframes hs-fsway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.hs-drift { animation: hs-drift 40s ease-in-out infinite alternate; }
+.hs-drift2 { animation-duration: 55s; animation-direction: alternate-reverse; }
+@keyframes hs-drift { from { transform: translateX(-50px); } to { transform: translateX(50px); } }
+.hs-float { animation: hs-float 8s ease-in-out infinite; }
+@keyframes hs-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-26px); } }
+.hs-spark { transform-box: fill-box; transform-origin: center; animation: hs-spark .3s steps(2) infinite; }
+@keyframes hs-spark { 50% { transform: scale(.55); opacity: .6; } }
+.hs-wave { animation: hs-wave 1.7s ease-in-out infinite; }
+@keyframes hs-wave { 0%, 100% { transform: translateY(calc(var(--a, 2px) * -1)); } 50% { transform: translateY(var(--a, 2px)); } }
+.hs-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: hs-flame .5s ease-in-out infinite alternate; }
+@keyframes hs-flame { to { transform: scale(.82, 1.18); } }
+.hs-shimmer { animation: hs-soft 1.8s ease-in-out infinite alternate; }
+.hs-paused *, .hs-paused *::before, .hs-paused *::after,
+.hs-offscreen *, .hs-offscreen *::before, .hs-offscreen *::after { animation-play-state: paused !important; }
+
+/* =========================================================
+   Holiday Theme Settings page (holidays.html)
+   ========================================================= */
+.ha-status { margin: 0; padding: 12px 16px; border-radius: 12px; background: var(--green-50); border: 2px solid var(--green-200); }
+.ha-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 12px 0; }
+.ha-field { display: flex; flex-direction: column; gap: 4px; font-weight: 800; font-size: 0.92rem; color: var(--green-900); }
+.ha-field select, .ha-field input, .ha-num { font: inherit; font-weight: 600; min-height: 42px; padding: 6px 10px; border: 2px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+.ha-wide { max-width: 420px; margin-top: 14px; }
+.ha-year { max-width: 200px; margin: 6px 0 12px; }
+.ha-switches { display: grid; gap: 10px; }
+.ha-check { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 2px solid var(--line); border-radius: 12px; cursor: pointer; }
+.ha-check input { width: 22px; height: 22px; margin-top: 3px; flex: none; accent-color: var(--green-700); }
+.ha-check span { display: flex; flex-direction: column; }
+.ha-check small { color: var(--muted); font-size: 0.9rem; }
+.ha-note, .ha-source { color: var(--muted); font-size: 0.92rem; margin: 8px 0 0; }
+.ha-source { margin: 0 0 12px; font-weight: 700; }
+.ha-table-wrap { overflow-x: auto; border: 2px solid var(--line); border-radius: 12px; }
+.ha-table { width: 100%; border-collapse: collapse; font-size: 0.94rem; min-width: 760px; }
+.ha-table th, .ha-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.ha-table thead th { background: var(--green-50); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--green-900); }
+.ha-table tbody th { font-weight: 800; }
+.ha-table input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green-700); }
+.ha-num { width: 76px; min-height: 36px; }
+.ha-dates { white-space: nowrap; font-weight: 700; }
+.ha-off th, .ha-off .ha-dates { opacity: 0.45; text-decoration: line-through; }
+.ha-tag { display: inline-block; margin-left: 4px; padding: 0 8px; border-radius: 999px; background: var(--yellow-50); border: 1px solid #e8cf7a; font-size: 0.72rem; font-weight: 800; color: #5a4300; vertical-align: 1px; }
+.ha-tag-quiet { background: #eef0f6; border-color: #c9cfe0; color: #3a4460; }
+.ha-tag-now { background: var(--green-700); border-color: var(--green-700); color: #fff; }
+.ha-save h3 { margin-bottom: 6px; }
+.ha-quick { border-top: 2px dashed var(--line); padding-top: 14px; }
+.ha-msg { font-weight: 800; color: var(--green-800); min-height: 1.5em; margin: 0; }
+@media (max-width: 700px) { .ha-save { grid-template-columns: 1fr; } }
