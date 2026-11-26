@@ -12,6 +12,7 @@ import { HOLLOW_SANDS } from "./hollow-sands.js";
 import { hollowSandsMapHTML, mountHollowSandsMap } from "./hollow-sands-map.js";
 import { isLostWorldDimension } from "./lost-world-regions.js";
 import { lostWorldMapHTML, mountLostWorldMap } from "./lost-world-map.js";
+import { mountRealmMap } from "./forsaken-realm-map.js";
 import { Cinema } from "./title-cinema.js";
 import { expeditionJournal } from "./lost-world-campaign.js";
 import { wildlifeJournalHTML } from "./wildlife-journal.js";
@@ -470,6 +471,14 @@ export const UI = {
       if (tab === "fw") {
         G.forsaken.drawMap($("fwMap"));
         G.forsaken.drawKingdomMap($("fwKingdomMap"));
+        if (G.dim === "forsaken") {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "btn small";
+          button.textContent = "Open Forsaken Realm Map (M)";
+          button.onclick = () => { Sound.click(); G.openForsakenRealmMap(); };
+          p.querySelector(".fw-card").append(button);
+        }
       }
       p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
         const record = SOLKARA_RECORDS[Number(b.dataset.solkaraRecord)];
@@ -497,6 +506,16 @@ export const UI = {
     } else if (panelKind === "talk") {
       p.innerHTML = G.campaign.talkHTML(panelCtx);
       G.campaign.mountTalk(p);
+      return;
+    } else if (panelKind === "forsakenMap") {
+      p.innerHTML = `<section class="inv-card xmap realm-map" aria-label="Forsaken Realm Map">
+        <h3>Forsaken Realm Map <button type="button" class="chip-btn" data-realm-close>Close</button></h3>
+        <div class="xm-body"><div><canvas width="576" height="576" role="img" aria-label="Revealed Forsaken Realm terrain and numbered landmarks"></canvas>
+        <div class="xm-legend" data-realm-legend></div></div>
+        <div><p class="xm-coords" data-realm-position></p><p class="help">Choose a landmark to set the waypoint arrow. Press N to hide or show it while exploring.</p>
+        <div class="xm-list" data-realm-locations aria-label="Forsaken landmarks"></div></div></div></section>`;
+      p.querySelector("[data-realm-close]").onclick = () => G.closePanel();
+      mountRealmMap(p, G, () => Sound.click());
       return;
     } else if (panelKind === "xmap") {
       if (isLostWorldDimension(G.dim)) {
@@ -751,7 +770,7 @@ export const UI = {
     const DIMS = { overworld: "the Surface", nether: "the Ember Depths", end: "the Hollow" };
     if (d.quest) line("A story item for the Forsaken World. It stays in your pack: it can't be dropped or stored, and you keep it if you faint");
     if (s.id === I.PALE_SHARD) line("Found in Ember Depths fortresses and on Blight Rattlers. 4 shards + Shinestone + 2 iron ingots make a Pale Lantern");
-    if (s.id === I.PALE_LANTERN) line("Right-click on the Surface to enter the Forsaken World, Herobrine's optional adventure. It's never used up");
+    if (s.id === I.PALE_LANTERN) line("Right-click on the Surface for the Forsaken Stronghold waypoint. Use the lantern on the stronghold pedestal to open the gateway");
     if (s.id === I.WARD_LANTERN) line("Hold it in either hand and monsters won't form near you. (Ones already around can still attack.)");
     if (s.id === B.WARD_CANDLE) line("In the Forsaken World, a lit candle makes a small safe ring (5 blocks) for about 2 minutes. Elsewhere it's just a light");
     if (s.id === B.PALE_EFFIGY) line("A trophy from banishing Herobrine");

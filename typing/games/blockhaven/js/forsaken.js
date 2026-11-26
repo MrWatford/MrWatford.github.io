@@ -125,6 +125,16 @@ export function initForsaken(api) {
   const personalGates = () => G.dimData.overworld?.personalForsaken || [];
   const kingdom = () => G.dimData.forsaken?.kingdom;
   const refuge = () => kingdom()?.sanctuary;
+  function grantRealmMap(state) {
+    if (state.realmMapGranted || G.guest || G.spectator) return;
+    if (!G.inv.slots.some(slot => slot?.id === I.FORSAKEN_REALM_MAP)) {
+      if (G.inv.add(I.FORSAKEN_REALM_MAP, 1)) return;
+      G.hudDirty = true;
+      UI.toast("Forsaken Realm Map added. Press M to open it.", "good");
+    }
+    state.realmMapGranted = true;
+    saveNow(false);
+  }
   let entering = false, blockedGate = false;
   async function walkIn(gate = null, personal = null) {
     if (entering || G.traveling || G.guest || G.dim !== "overworld") return;
@@ -158,6 +168,10 @@ export function initForsaken(api) {
         s.visits = visits;
         s.arrived = arrived;
         await saveNow(false);
+      } else {
+        G.forsakenWaypoint = null;
+        grantRealmMap(s);
+        if (!s.realmMapGranted) UI.toast("Press M for the realm map. Make room to receive your copy.");
       }
     } catch (error) {
       UI.toast(error.message, "bad");
@@ -177,8 +191,8 @@ export function initForsaken(api) {
       return;
     }
     const { entrance } = gatewayPoints(gate);
-    const d = Math.round(Math.hypot(G.player.pos.x - entrance.x, G.player.pos.z - entrance.z));
-    UI.toast(`The lantern points to the Forsaken Stronghold · X ${Math.floor(entrance.x)}, Z ${Math.floor(entrance.z)} · ${d} blocks.`);
+    G.forsakenWaypoint = { x: entrance.x, z: entrance.z, title: "Forsaken Stronghold", color: "#e6b0ff", hidden: false };
+    UI.toast(`Follow the waypoint to the Forsaken Stronghold · X ${Math.floor(entrance.x)}, Z ${Math.floor(entrance.z)}.`);
   };
 
   F.leave = () => {
@@ -614,6 +628,7 @@ export function initForsaken(api) {
       const outcome = socketGateway(G.world, gate, slot, Date.now(), G.creative);
       if (outcome === "opening") {
         if (!G.creative && --slot.n === 0) G.inv.slots[slotIndex] = null;
+        G.forsakenWaypoint = null;
         G.hudDirty = true;
         Sound.noise(180, 1.7, 0.075 * vol("fwSudden"), 0.5, "lowpass");
         UI.toast("Pale Lantern socketed. The gateway is waking.", "good");
@@ -950,13 +965,18 @@ export function initForsaken(api) {
   }
 
   // ---------- the main tick (only while playing in the Forsaken World) ----------
+  let mapGrantTimer = 0;
   F.tick = dt => {
-    if (!inFw()) { reign.tick(dt); ashStorm = 0; tickGateway(dt); if (hero) clearHero(); hud(); return; }
+    if (!inFw()) { mapGrantTimer = 0; reign.tick(dt); ashStorm = 0; tickGateway(dt); if (hero) clearHero(); hud(); return; }
+    const state = fw();
+    if (!state.realmMapGranted && !entering && (mapGrantTimer -= dt) <= 0) {
+      mapGrantTimer = 1;
+      grantRealmMap(state);
+    }
     tickCandles(dt);
     fallen.tick(dt);
     const regionId = G.world.biomeAt(G.player.pos.x, G.player.pos.z);
     if (Object.hasOwn(KINGDOM_BIOMES, regionId)) {
-      const state = fw();
       const seen = state.kingdomSeen ||= {};
       if (!seen[regionId]) { seen[regionId] = true; UI.toast("Discovered: " + KINGDOM_BIOMES[regionId].name); }
     }
@@ -1070,7 +1090,7 @@ export function initForsaken(api) {
         if (G.dim === "forsaken") { await F.leave(); if (G.dim === "forsaken") return; }
         const before=fw(), won=reignWon(before), unlocked=reignGatewaysUnlocked(before);
         delete G.dimData.forsaken;
-        G.story.fw={returnTo:null, ...(won?{reign:before.reign}:{}),
+        G.story.fw={returnTo:null, ...(before.realmMapGranted?{realmMapGranted:true}:{}), ...(won?{reign:before.reign}:{}),
           ...(unlocked&&!won?{legacyGatewayUnlock:true}:{}), ...(before.rewarded?{rewarded:before.rewarded}:{})}; UI.toast("The Forsaken World is fresh again.", "good"); saveNow(false);
       }, "Start over");
       return;
