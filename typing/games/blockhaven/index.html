@@ -198,6 +198,8 @@ details.more .set { margin-top: 10px; }
 #bossbar.pale i { background: linear-gradient(#e8f4ff, #7a8aa0); }
 #bossbar.mutant b { color: #dcffc4; }
 #bossbar.mutant i { background: linear-gradient(#c4ff7a, #3e8a1a); }
+#reignTitle { position:absolute; top:23%; left:50%; transform:translateX(-50%); width:max-content; max-width:90vw; text-align:center; color:#ffe5ed; font-size:clamp(1rem,4vw,2.2rem); font-weight:900; letter-spacing:.06em; text-shadow:0 2px 5px #130713, 0 0 20px #b73770; pointer-events:none; }
+#bossbar.reign i { background:linear-gradient(90deg,#7d2e97,#ef567c); }
 #fwHud { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: grid; gap: 6px; font-weight: 800; font-size: 13px; }
 #fwHud > span:empty { display: none; }
 #fwHud .fw-eye { display: flex; gap: 8px; align-items: center; background: rgba(20,24,28,.75); border-radius: 18px; padding: 4px 10px 4px 4px; width: max-content; }
@@ -266,7 +268,7 @@ details.more .set { margin-top: 10px; }
 .fw-obj { font-weight: 800; background: #e8f2c8; border: 2px solid #b8960c; border-radius: 8px; padding: 6px 8px; margin: 0; }
 .fw-notes, .fw-test, .fw-journal .help { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .fw-test { background: #f0e0c0; border: 2px dashed #8a6a1a; border-radius: 8px; padding: 6px; }
-#fwMap { width: 240px; height: 240px; border: 2px solid #333; border-radius: 6px; image-rendering: pixelated; }
+#fwMap, #fwKingdomMap { width: 240px; height: 240px; border: 2px solid #333; border-radius: 6px; image-rendering: pixelated; }
 .note-card { width: min(560px, 94vw); background: #efe6cf; }
 .note-text { white-space: pre-wrap; font: 600 15px/1.5 var(--body); color: #2a2418; max-height: 64vh; overflow-y: auto; }
 .skin-card.locked { opacity: .45; cursor: not-allowed; }
@@ -613,6 +615,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
   <div id="saveDot">💾 Saved</div>
   <div id="advToasts"></div>
   <div id="totemPop" hidden></div>
+  <div id="reignTitle" role="status" hidden></div>
   <div id="fwHud" hidden><span class="fw-eye"><i></i><b></b></span><span class="fw-ward"></span><span class="fw-task"></span></div>
   <div id="victory" hidden><h2></h2><p></p><button class="btn small" onclick="window.__bh.skipVictory()">Skip (Space)</button></div>
   <div id="lostHud" hidden><span class="meter"><span class="bar"><i></i></span><b></b></span><em></em></div>
@@ -959,7 +962,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/audio.js": "./js/audio.js?v=ancient-guardian-2",
     "./js/calm-score.js": "./js/calm-score.js?v=music-2",
     "./js/epic-score.js": "./js/epic-score.js?v=music-3",
-    "./js/blocks.js": "./js/blocks.js?v=creatures-24-1",
+    "./js/blocks.js": "./js/blocks.js?v=forsaken-kingdom-2",
     "./js/buried-throne.js": "./js/buried-throne.js?v=leviathan-1.0.0",
     "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=campaign-8",
     "./js/campaign-data.js": "./js/campaign-data.js?v=kingdoms-sandspire-oakwood-districts-1",
@@ -1021,7 +1024,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/wildlife.js": "./js/wildlife.js?v=ultra-hardcore-1",
     "./js/wildlife-models.js": "./js/wildlife-models.js?v=mob-visuals-1",
     "./js/wildlife-dens.js": "./js/wildlife-dens.js?v=wildlife-preview-1",
-    "./js/entities.js": "./js/entities.js?v=ancient-guardian-2",
+    "./js/entities.js": "./js/entities.js?v=forsaken-kingdom-2",
     "./js/iron-guardian-model.js": "./js/iron-guardian-model.js?v=ancient-guardian-2",
     "./js/iron-guardian-motion.js": "./js/iron-guardian-motion.js?v=ancient-guardian-2",
     "./js/echohold-atmosphere.js": "./js/echohold-atmosphere.js?v=blocks-1024-1",
@@ -1032,7 +1035,18 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/forgotten-heat-view.js": "./js/forgotten-heat-view.js?v=leviathan-1.0.0",
     "./js/forgotten-heat.js": "./js/forgotten-heat.js?v=leviathan-1.0.0",
     "./js/forsaken-author.js": "./js/forsaken-author.js?v=leviathan-1.0.0",
-    "./js/forsaken.js": "./js/forsaken.js?v=blocks-1024-1",
+    "./js/forsaken-guardians.js": "./js/forsaken-guardians.js?v=forsaken-kingdom-2",
+    "./js/forsaken-stronghold-rooms.js": "./js/forsaken-stronghold-rooms.js?v=forsaken-kingdom-2",
+    "./js/forsaken-fallen.js": "./js/forsaken-fallen.js?v=forsaken-kingdom-2",
+    "./js/forsaken-kingdom.js": "./js/forsaken-kingdom.js?v=forsaken-kingdom-2",
+    "./js/forsaken-art.js": "./js/forsaken-art.js?v=forsaken-kingdom-2",
+    "./js/forsaken-reign.js": "./js/forsaken-reign.js?v=forsaken-kingdom-2",
+    "./js/forsaken-restoration.js": "./js/forsaken-restoration.js?v=forsaken-kingdom-2",
+    "./js/forsaken-personal-gates.js": "./js/forsaken-personal-gates.js?v=forsaken-kingdom-2",
+    "./js/forsaken-fortress.js": "./js/forsaken-fortress.js?v=forsaken-kingdom-2",
+    "./js/forsaken-fortress-rooms.js": "./js/forsaken-fortress-rooms.js?v=forsaken-kingdom-2",
+    "./js/forsaken-gateway.js": "./js/forsaken-gateway.js?v=forsaken-kingdom-2",
+    "./js/forsaken.js": "./js/forsaken.js?v=forsaken-kingdom-2",
     "./js/hollow-sands-footprint.js": "./js/hollow-sands-footprint.js?v=leviathan-1.0.0",
     "./js/hollow-sands-ground-view.js": "./js/hollow-sands-ground-view.js?v=leviathan-1.0.0",
     "./js/hollow-sands.js": "./js/hollow-sands.js?v=leviathan-1.0.0",
@@ -1117,8 +1131,8 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/lost-world.js": "./js/lost-world.js?v=lost-world-1",
     "./js/mangrove-wetlands.js": "./js/mangrove-wetlands.js?v=lost-world-1",
     "./js/redwood-escarpment.js": "./js/redwood-escarpment.js?v=lost-world-1",
-    "./js/main.js": "./js/main.js?v=ancient-guardian-2",
-    "./js/mutants.js": "./js/mutants.js?v=mob-visuals-1",
+    "./js/main.js": "./js/main.js?v=forsaken-kingdom-2",
+    "./js/mutants.js": "./js/mutants.js?v=forsaken-kingdom-2",
     "./js/forsaken-reaches.js": "./js/forsaken-reaches.js?v=mutants-4",
     "./js/maps.js": "./js/maps.js?v=blocks-1024-1",
     "./js/mesher.js": "./js/mesher.js?v=village-architecture-1",
@@ -1135,9 +1149,9 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/rails.js": "./js/rails.js?v=leviathan-1.0.0",
     "./js/redstone.js": "./js/redstone.js?v=gameplay-fixes-1",
     "./js/sandstorm.js": "./js/sandstorm.js?v=leviathan-1.0.0",
-    "./js/save.js": "./js/save.js?v=ultra-hardcore-1",
-    "./js/shapes.js": "./js/shapes.js?v=ultra-hardcore-1",
-    "./js/skins.js": "./js/skins.js?v=ultra-hardcore-1",
+    "./js/save.js": "./js/save.js?v=forsaken-kingdom-2",
+    "./js/shapes.js": "./js/shapes.js?v=forsaken-kingdom-2",
+    "./js/skins.js": "./js/skins.js?v=forsaken-kingdom-2",
     "./js/solkara-annex.js": "./js/solkara-annex.js?v=leviathan-1.0.0",
     "./js/solkara-gate-view.js": "./js/solkara-gate-view.js?v=leviathan-1.0.0",
     "./js/solkara-lore.js": "./js/solkara-lore.js?v=leviathan-1.0.0",
@@ -1147,12 +1161,12 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
     "./js/title-cinema.js": "./js/title-cinema.js?v=ultra-hardcore-1",
     "./js/title-tips.js": "./js/title-tips.js?v=tips-2",
-    "./js/ultra-hardcore.js": "./js/ultra-hardcore.js?v=ultra-hardcore-1",
+    "./js/ultra-hardcore.js": "./js/ultra-hardcore.js?v=forsaken-kingdom-2",
     "./js/ultra-hardcore-view.js": "./js/ultra-hardcore-view.js?v=ultra-hardcore-1",
     "./js/ultra-hardcore-skins.js": "./js/ultra-hardcore-skins.js?v=ultra-hardcore-1",
-    "./js/ui.js": "./js/ui.js?v=gameplay-fixes-1",
+    "./js/ui.js": "./js/ui.js?v=forsaken-kingdom-2",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
-    "./js/world.js": "./js/world.js?v=gameplay-fixes-1",
+    "./js/world.js": "./js/world.js?v=forsaken-kingdom-2",
     "./js/multiplayer.js": "./js/multiplayer.js?v=ancient-guardian-2",
     "./js/mp-words.js": "./js/mp-words.js?v=together-1",
     "./js/settlement-festivals.js": "./js/settlement-festivals.js?v=stonehaven-grand-1",
@@ -1165,15 +1179,15 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/village-renovation.js": "./js/village-renovation.js?v=village-terrain-preview-1",
     "./js/grand-villages.js": "./js/grand-villages.js?v=stonehaven-grand-1",
     "./js/grand-village-build.js": "./js/grand-village-build.js?v=stonehaven-grand-1",
-    "./js/village-architecture.js": "./js/village-architecture.js?v=grand-villages-1",
+    "./js/village-architecture.js": "./js/village-architecture.js?v=forsaken-kingdom-2",
     "./js/village-overhaul.js": "./js/village-overhaul.js?v=village-architecture-1",
-    "./js/worldgen.js": "./js/worldgen.js?v=ultra-hardcore-1",
+    "./js/worldgen.js": "./js/worldgen.js?v=forsaken-kingdom-2",
     "./js/dune-leviathan.js?v=pose-2": "./js/dune-leviathan.js?v=leviathan-1.0.0",
     "./js/leviathan-glow.js?v=charge-1": "./js/leviathan-glow.js?v=leviathan-1.0.0",
     "./js/dune-warning.js?v=physical-2": "./js/dune-warning.js?v=leviathan-1.0.0",
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=ancient-guardian-2"></script>
+<script type="module" src="js/main.js?v=forsaken-kingdom-2"></script>
 </body>
 </html>

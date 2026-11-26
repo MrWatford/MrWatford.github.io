@@ -68,6 +68,9 @@ const oak = { timber: B.LOG, wall: B.WHITE_TERRACOTTA, floor: B.PLANKS, stair: B
   worn: B.MOSSY, trim: B.STONE_BRICK_STAIRS, glass: B.GLASS_PANE, ground: B.GRASS };
 const palettes = {
   plains: oak,
+  forsaken: { ...oak, timber: B.DEADWOOD_LOG, wall: B.DEADWOOD_PLANKS, floor: B.DEADWOOD_PLANKS,
+    stair: B.FORSAKEN_STAIRS, slab: B.FORSAKEN_SLAB, stone: B.FORSAKEN_BRICKS, worn: B.FORSAKEN_MOSSY,
+    trim: B.FORSAKEN_STAIRS, glass: B.FORSAKEN_PANE, ground: B.ASH_SOIL },
   forest: { ...oak, wall: B.BIRCH_PLANKS, floor: B.SPRUCE_PLANKS, stair: B.SPRUCE_STAIRS, slab: B.SPRUCE_SLAB, stone: B.COBBLE },
   birch: { ...oak, wall: B.BIRCH_PLANKS, floor: B.BIRCH_PLANKS, stair: B.BIRCH_STAIRS, slab: B.BIRCH_SLAB, fence: B.BIRCH_FENCE, shutter: B.BIRCH_TRAPDOOR },
   sandy: { ...oak, wall: B.TEMPLE_STONE, floor: B.ACACIA_PLANKS, stair: B.ACACIA_STAIRS, slab: B.ACACIA_SLAB,
@@ -169,7 +172,7 @@ export function buildVillageBuilding(plan, { put, decorate = () => {}, biome, se
   const front = d - 1, right = w - 1;
   const eaves = upper ? 8 : kind === "stable" || kind === "storehouse" ? 4 : 5;
   const sections = roofSections(plan, eaves, door);
-  const color = roof === "terrace" ? "sand" : kind === "smithy" ? "slate" : biome === "sandy" ? (variant % 2 ? "tile" : "sand") :
+  const color = biome === "forsaken" ? (variant % 3 ? "tile" : "slate") : roof === "terrace" ? "sand" : kind === "smithy" ? "slate" : biome === "sandy" ? (variant % 2 ? "tile" : "sand") :
     biome === "taiga" ? "spruce" : biome === "mountain" ? "slate" :
     kind === "farmhouse" || kind === "stable" ? "spruce" : kind === "shop" || kind === "inn" ? "tile" :
     ["oak", "spruce", "tile", "slate", "spruce", "tile"][variant];

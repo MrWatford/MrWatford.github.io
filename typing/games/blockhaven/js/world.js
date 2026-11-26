@@ -146,7 +146,7 @@ export class World {
   unload(c) { if (this.onUnload) this.onUnload(c); this.chunks.delete(c.key); this.dirtyQueue.delete(c); }
 
   get(x, y, z) {
-    if (y < 0) return this.gen.isEnd?.() ? B.AIR : B.BEDROCK;
+    if (y < 0) return (this.gen.isEnd?.() || this.gen.voidAt?.(x, z)) ? B.AIR : B.BEDROCK;
     if (y >= HEIGHT) return B.AIR;
     const cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK);
     const c = this.chunks.get(chunkKey(cx, cz));

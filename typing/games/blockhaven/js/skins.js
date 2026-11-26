@@ -1,5 +1,6 @@
 // Player skins: blocky player models, the skin chooser's pictures, and the first-person arm.
 // Skins only change how you look. Every skin has the same body size, collision box, and abilities.
+import { reignPaint } from "./forsaken-art.js";
 import { ultraSkins, skinAccessories } from "./ultra-hardcore-skins.js";
 import * as THREE from "../lib/three.module.min.js";
 import { weaponSwing } from "./weapon-motion.js";
@@ -113,6 +114,12 @@ SKINS.push((() => { const c = { skin: "#d8b090", hair: "#e8e8f0", eye: "#ffffff"
     body: shirtBody(c, (P, f) => { if (f === "front") { P.rect(7, 0, 2, 16, "#8ad8ff"); P.rect(4, 5, 8, 2, "#8ad8ff"); } }),
     arm: sleeveArm(c, 14), leg: (P, f) => { P.fill(pal(c.shirt)); if (f !== "top" && f !== "bottom") P.rect(0, 13, 16, 3, c.shoes); } }; })());
 SKINS.push(...ultraSkins({ pal, standardHead, shirtBody, sleeveArm, pantsLeg }));
+for (const [id,name,phase] of [["herobrine","Herobrine",0],["forsaken_king","Forsaken King",2]]) {
+  const c={ skin:"#af7c60",hair:"#3b251e",eye:"#fff",shirt:"#26888c",pants:"#34346d",shoes:"#392d41" };
+  SKINS.push({id,name,c,locked:true,desc:phase?"Royal cloth and corruption marks":"Turquoise shirt and white eyes",
+    unlock:"Defeat the Forsaken King in Survival",head:reignPaint("head",phase),body:reignPaint("body",phase),
+    arm:reignPaint("arm",phase),leg:reignPaint("leg",phase)});
+}
 export const skinById = id => SKINS.find(s => s.id === id) || SKINS[0];
 
 // ---------- models ----------
@@ -173,6 +180,21 @@ export function dressModel(model, armorColors, armorStyles = []) {
   ARMOR_FIT.forEach(([slot, names, grow]) => {
     const col = armorColors[slot];
     if (!col) return;
+    if (slot===0 && armorStyles[slot]==="reign_crown") {
+      const head=model.parts.head, y=head.children[0].position.y+.228;
+      const trim=(width,height,depth,x,dy,z,color)=>{
+        const part=new THREE.Mesh(new THREE.BoxGeometry(width,height,depth),new THREE.MeshBasicMaterial({color}));
+        part.position.set(x,y+dy,z); head.add(part); return part;
+      };
+      model.armor[slot]=[
+        trim(.59,.072,.57,0,0,0,col),
+        trim(.62,.035,.59,0,-.015,0,"#c04a64"),
+        trim(.105,.15,.08,0,.086,.255,"#e35e6e"),
+        trim(.085,.10,.08,-.224,.052,.245,"#a44967"),
+        trim(.085,.10,.08,.224,.052,.245,"#a44967"),
+      ];
+      return;
+    }
     model.armor[slot] = names.flatMap(n => {
       const p = PARTS.find(q => q.name === n), sx = (p.size[0] + grow) / 16, sy = (slot === 2 ? 7 : slot === 3 ? 4.5 : p.size[1] + grow) / 16, sz = (p.size[2] + grow) / 16;
       const solid = new THREE.MeshBasicMaterial({ color: col });
@@ -191,8 +213,9 @@ export function dressModel(model, armorColors, armorStyles = []) {
 }
 
 function legendaryArmorDetails(shell, slot, name, style, width, height, depth) {
-  if (!["sand", "obsidian", "ancient"].includes(style)) return [];
-  const meshes = [], { dark, trim, glow } = LEVIATHAN_ARMOR_STYLE[style];
+  const colors=style==="forsaken" ? {dark:"#302338",trim:"#694158",glow:"#cd527f"} : LEVIATHAN_ARMOR_STYLE[style];
+  if (!colors) return [];
+  const meshes = [], { dark, trim, glow } = colors;
   const plate = (sx, sy, sz, x, y, z, color) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), new THREE.MeshBasicMaterial({ color }));
     mesh.position.set(x, y, z);

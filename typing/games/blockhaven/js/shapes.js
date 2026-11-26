@@ -135,7 +135,7 @@ export function model(v, get) {
       p([4, 6, 7, 6, 11, 9], TILE.candle_flame), p([10, 6, 8, 12, 12, 10], TILE.candle_flame));
     return { T: floorT(0), parts };
   }
-  if (id === B.LANTERN) {
+  if (blockDef(v)?.lantern) {
     const h = m & 1 ? 1 : 0, parts = [p([5, h, 5, 11, h + 7, 11], tex), p([6, h + 7, 6, 10, h + 9, 10], TILE.iron_bars)];
     if (h) parts.push(p([7.5, 10, 7.5, 8.5, 16, 8.5], TILE.iron_bars));   // the chain it hangs from
     return { T: floorT(0), parts };
@@ -286,7 +286,7 @@ export function shapeBoxes(v, get) {
   if (id === B.CAKE) return [[(1 + (m & 7) * 2) * S, 0, S, 15 * S, 0.5, 15 * S]];   // Milestone 22
   if (id === B.ARMOR_STAND) return [[6 * S, 0, 6 * S, 10 * S, 1.4, 10 * S]];   // Milestone 21, Part D
   if (id === B.SCAFFOLDING) return [[0, 15 * S, 0, 1, 1, 1]];   // you stand on top (the player skips it while climbing inside or crouching)
-  if (id === B.LANTERN) return [m & 1 ? [5 * S, S, 5 * S, 11 * S, 1, 11 * S] : [5 * S, 0, 5 * S, 11 * S, 9 * S, 11 * S]];
+  if (blockDef(v)?.lantern) return [m & 1 ? [5 * S, S, 5 * S, 11 * S, 1, 11 * S] : [5 * S, 0, 5 * S, 11 * S, 9 * S, 11 * S]];
   if (blockDef(v)?.pane) {
     const out = [[7 * S, 0, 7 * S, 9 * S, 1, 9 * S]];
     for (let d = 0; d < 4; d++) if (get && paneLinks(get(DIR[d][0], 0, DIR[d][1]))) out.push(box(floorT(d), [7 * S, 0, 9 * S, 9 * S, 1, 1]));
