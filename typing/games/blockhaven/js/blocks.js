@@ -234,7 +234,7 @@ Object.assign(I, {
   CRYPT_KEY: 1041, BONE_KEY: 1042, BLAST_KEY: 1043, WEB_KEY: 1044, VOID_KEY: 1045,
   CRYPT_TROPHY: 1046, BASTION_TROPHY: 1047, CRATER_TROPHY: 1048, NEST_TROPHY: 1049, SHRINE_TROPHY: 1050,
   FORSAKEN_BLADE: 1051, HEROBRINE_CROWN: 1052, CORRUPTION_CRYSTAL: 1053,
-  FORSAKEN_HELMET: 1054, FORSAKEN_CHEST: 1055, FORSAKEN_LEGS: 1056, FORSAKEN_BOOTS: 1057,
+  FORSAKEN_HELMET: 1054, FORSAKEN_CHEST: 1055, FORSAKEN_LEGS: 1056, FORSAKEN_BOOTS: 1057, FORSAKEN_REALM_MAP: 1058,
 });
 export const DISC_ITEMS = [I.DISC_SUNRISE, I.DISC_WALTZ, I.DISC_CAVES, I.DISC_BREEZE, I.DISC_STARLIGHT];
 export const isCrop = id => id === B.WHEAT || id === B.CARROTS || id === B.POTATOES || id === B.BEETROOTS || id === B.TORCHFLOWER_CROP || id === B.PITCHER_CROP;   // the 8-stage farm crops
@@ -956,6 +956,8 @@ item(I.MOLTEN_HEART, "Molten Heart", { icon: "relic", colors: ["#682c2e", "#ff9c
 item(I.INFERNO_FANG, "Inferno Fang", { icon: "relic", colors: ["#4a3541", "#ff7344"] });
 item(I.VOLCANIC_ESSENCE, "Volcanic Essence", { icon: "relic", colors: ["#773d3a", "#f6ac62"] });
 item(I.EXPLORER_MAP, "Explorer's Map", { icon: "explorer_map", stack: 1, category: "Tools", offhand: true });   // press M (or right-click it) to open; see js/starter.js
+item(I.FORSAKEN_REALM_MAP, "Forsaken Realm Map", { icon: "treasure_map", stack: 1, category: "Tools",
+  desc: "Right-click inside the Forsaken Realm to see its terrain, roads, and landmarks." });
 item(I.CHEST_BOAT, "Boat with Chest",{ icon: "boat", colors: ["chest"], stack: 1, category: "Tools" });   // string can be laid down as tripwire between two hooks
 item(I.SPARKDUST, "Sparkdust", { icon: "dust", colors: ["#ff5a2a", "#c2361a", "#ff8a4a"], category: "Mechanisms", places: B.SPARK_DUST });
 // Saturation ("fullness") from each food, following Minecraft Java Edition 1.20.1. Fullness is used up before the food bar drops.

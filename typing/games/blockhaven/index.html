@@ -309,6 +309,9 @@ details.more .set { margin-top: 10px; }
 .xmap .xm-dest.on { border-color: #d8a000; background: #fff3b0; box-shadow: 0 0 0 2px #ffd84a; }
 .xmap .xm-dest small { display: block; color: #555; font-size: 11px; }
 .xmap .xm-dest em { font-style: normal; font-weight: 700; font-size: 12px; white-space: nowrap; }
+.realm-map { width: min(890px, 100%); }
+.realm-map canvas { width: 100%; height: auto; display: block; border: 3px solid #3c2d46; border-radius: 6px; background: #1d1728; }
+.realm-map .xm-dest { grid-template-columns: 22px minmax(0, 1fr); }
 .xmap .xm-info { margin: 10px 0; font-size: 13px; color: #222; }
 .xmap .xm-info h4 { margin: 0 0 2px; }
 .xmap .xm-info p { margin: 4px 0; }
@@ -881,7 +884,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     <p class="note"><b>The Ember Depths:</b> build an obsidian frame (at least 4 wide and 5 tall, corners optional) and light it with Flint and Steel. Stand in the portal for a moment to travel. Water boils away there, beds explode, and Boarkin leave you alone if you wear gold. Hand them gold ingots to trade. One step there equals 8 steps on the Surface.</p>
     <p class="note"><b>The Hollow:</b> craft an <b>Eye of the Void</b> (Void Pearl + Flare Powder) and right-click to throw it. It flies toward a stronghold, so follow it. When it dives into the ground, dig down. Put eyes in all 12 frames to open the portal. In Creative you can build your own ring from Hollow Portal Frames: 3 frames on each side of a 3×3 space, no corners, all at the same height. In the Hollow, shoot the crystals on the pillars, then defeat the Wyrm (it takes the most damage while it rests in the middle). Afterward, a Gateway leads to the outer islands, where Hollow towers hide <b>Glider Wings</b>: wear them as a chestplate and press Space while falling to glide.</p>
     <p class="note"><b>The final dragon:</b> after you defeat the Hollow Wyrm it gives you a <b>Cinder Eye</b> (or craft one from a Wyrm Scale, an Eye of the Void, Magma Cream, and 2 Flare Powder). Throw it in the Ember Depths and follow it to the <b>Cinder Citadel</b>. Charge the Respawn Anchor in its entrance hall, then put the eye in the Cinder Altar to wake <b>Cindermaw, the Ember Dragon</b>. Watch for its warnings: a roar before it dives, glowing rings before fire, spread wings before a gust (hide behind a pillar). Hit it hardest when it lands. In its second phase, break the glowing Ember Pylons to remove its shield.</p>
-    <p class="note"><b>The Forsaken World (optional):</b> find <b>Pale Shards</b> in Ember Depths fortresses (chests and Blight Rattlers). 4 shards + Shinestone + 2 iron ingots make a <b>Pale Lantern</b>: right-click it on the Surface to enter Herobrine's valley. You start in a safe refuge with a Return Gate home. Inside a ward's ring you're always safe. Running, mining, and fighting draw his attention; walking and crouching don't. The eye in the corner shows the real danger. Read the notes, restore the three shrines with their sigils, and face him in his citadel. Press <kbd>J</kbd> for your journal.</p>
+    <p class="note"><b>The Forsaken World (optional):</b> find <b>Pale Shards</b> in Ember Depths fortresses (chests and Blight Rattlers). 4 shards + Shinestone + 2 iron ingots make a <b>Pale Lantern</b>. Right-click it on the Surface to show the <b>Forsaken Stronghold</b> waypoint. Press <kbd>N</kbd> to hide or show the arrow. Use the lantern on the stronghold pedestal, then walk through the gateway. Inside a ward's ring you're safe. Running, mining, and fighting draw Herobrine's attention. Press <kbd>J</kbd> for your journal.</p>
     <p class="note"><b>Villages:</b> villagers work at their job blocks by day and go home at night. Right-click one to trade with <b>Jade</b> (found in mountain caves, chests, or earned by selling to villagers). The Ironwarden guards each village, so don't hurt the villagers! A Wanderer sometimes visits with rare goods.</p>
     <p class="note"><b>Pets and riding:</b> tame a <b>Scout</b> (grey, in forests) by giving it bones, and a <b>Whisker</b> (ginger, near villages and in grassland) with raw chicken or raw rabbit. It may take a few tries. Pets follow you, Scouts fight monsters near you, and Hissers stay away from Whiskers. Right-click a pet to make it sit or follow. To tame a wild <b>Trotter</b> (grassland), right-click it with an empty hand to climb on until it stops bucking you off (feeding it wheat or apples helps). Then craft a <b>Saddle</b> (5 leather + 1 iron ingot), right-click the Trotter with it, and ride: Shift gallops, Space jumps high, and C gets you off.</p>
     <p class="note"><b>The Blightking:</b> stack 4 Wailing Sand in a T and place 3 Blight Skulls on top. Back away! It explodes when it wakes. Below half health its armor stops arrows, so finish it with a sword. Its Radiant Star crafts a <b>Beacon</b> that heals you and speeds you up nearby.</p>
@@ -962,7 +965,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/audio.js": "./js/audio.js?v=ancient-guardian-2",
     "./js/calm-score.js": "./js/calm-score.js?v=music-2",
     "./js/epic-score.js": "./js/epic-score.js?v=music-3",
-    "./js/blocks.js": "./js/blocks.js?v=forsaken-kingdom-2",
+    "./js/blocks.js": "./js/blocks.js?v=forsaken-navigation-1",
     "./js/buried-throne.js": "./js/buried-throne.js?v=leviathan-1.0.0",
     "./js/campaign-bosses.js": "./js/campaign-bosses.js?v=campaign-8",
     "./js/campaign-data.js": "./js/campaign-data.js?v=kingdoms-sandspire-oakwood-districts-1",
@@ -1046,7 +1049,8 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/forsaken-fortress.js": "./js/forsaken-fortress.js?v=forsaken-kingdom-2",
     "./js/forsaken-fortress-rooms.js": "./js/forsaken-fortress-rooms.js?v=forsaken-kingdom-2",
     "./js/forsaken-gateway.js": "./js/forsaken-gateway.js?v=forsaken-kingdom-2",
-    "./js/forsaken.js": "./js/forsaken.js?v=forsaken-kingdom-2",
+    "./js/forsaken-realm-map.js": "./js/forsaken-realm-map.js?v=forsaken-navigation-1",
+    "./js/forsaken.js": "./js/forsaken.js?v=forsaken-navigation-1",
     "./js/hollow-sands-footprint.js": "./js/hollow-sands-footprint.js?v=leviathan-1.0.0",
     "./js/hollow-sands-ground-view.js": "./js/hollow-sands-ground-view.js?v=leviathan-1.0.0",
     "./js/hollow-sands.js": "./js/hollow-sands.js?v=leviathan-1.0.0",
@@ -1131,7 +1135,7 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/lost-world.js": "./js/lost-world.js?v=lost-world-1",
     "./js/mangrove-wetlands.js": "./js/mangrove-wetlands.js?v=lost-world-1",
     "./js/redwood-escarpment.js": "./js/redwood-escarpment.js?v=lost-world-1",
-    "./js/main.js": "./js/main.js?v=forsaken-kingdom-2",
+    "./js/main.js": "./js/main.js?v=forsaken-navigation-1",
     "./js/mutants.js": "./js/mutants.js?v=forsaken-kingdom-2",
     "./js/forsaken-reaches.js": "./js/forsaken-reaches.js?v=mutants-4",
     "./js/maps.js": "./js/maps.js?v=blocks-1024-1",
@@ -1157,14 +1161,14 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/solkara-lore.js": "./js/solkara-lore.js?v=leviathan-1.0.0",
     "./js/solkara-scenery.js": "./js/solkara-scenery.js?v=leviathan-1.0.0",
     "./js/solkara-mural-view.js": "./js/solkara-mural-view.js?v=leviathan-1.0.0",
-    "./js/starter.js": "./js/starter.js?v=ultra-hardcore-1",
+    "./js/starter.js": "./js/starter.js?v=forsaken-navigation-1",
     "./js/structure-placement.js": "./js/structure-placement.js?v=leviathan-1.0.0",
     "./js/title-cinema.js": "./js/title-cinema.js?v=ultra-hardcore-1",
     "./js/title-tips.js": "./js/title-tips.js?v=tips-2",
     "./js/ultra-hardcore.js": "./js/ultra-hardcore.js?v=forsaken-kingdom-2",
     "./js/ultra-hardcore-view.js": "./js/ultra-hardcore-view.js?v=ultra-hardcore-1",
     "./js/ultra-hardcore-skins.js": "./js/ultra-hardcore-skins.js?v=ultra-hardcore-1",
-    "./js/ui.js": "./js/ui.js?v=forsaken-kingdom-2",
+    "./js/ui.js": "./js/ui.js?v=forsaken-navigation-1",
     "./js/weapon-motion.js": "./js/weapon-motion.js?v=leviathan-1.0.0",
     "./js/world.js": "./js/world.js?v=forsaken-kingdom-2",
     "./js/multiplayer.js": "./js/multiplayer.js?v=ancient-guardian-2",
@@ -1188,6 +1192,6 @@ body.tc-on #title .foot { color: #d9ddd2; }
     "./js/leviathan-journal.js?v=bonds-1": "./js/leviathan-journal.js?v=leviathan-1.0.0"
   }
 }</script>
-<script type="module" src="js/main.js?v=forsaken-kingdom-2"></script>
+<script type="module" src="js/main.js?v=forsaken-navigation-1"></script>
 </body>
 </html>

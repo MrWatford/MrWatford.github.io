@@ -2432,6 +2432,8 @@ async function startWorld(save) {
   clearWorldMeshes();
   G.state = "loading"; UI.show("loading"); UI.setLoading(0, "Shaping hills and valleys");
   G.meta = save; G.mode = save.mode;
+  G.forsakenWaypoint = null;
+  G.realmWaypoint = null;
   G.dimData = save.dims || { overworld: { mods: save.mods || {}, containers: save.containers || [] } };
   G.journalTab = save.lostWorldGen ? "expedition" : G.journalTab;
   G.dim = (save.player && save.player.dim) || worldHome(save);
@@ -2664,6 +2666,7 @@ function openPanel(kind, ctx) {
 }
 G.openAdvancements = () => openPanel("advancements");
 G.openJournal = () => { if (G.world && ["play", "pause", "panel"].includes(G.state)) openPanel("journal"); };
+G.openForsakenRealmMap = () => { if (G.dim === "forsaken" && G.state === "panel") openPanel("forsakenMap"); };
 G.openHollowSandsMap = () => { if (G.dim === HOLLOW_SANDS && G.state === "panel") openPanel("xmap"); };
 G.openLostWorldMap = () => { if (isLostWorldDimension(G.dim) && ["play", "pause", "panel"].includes(G.state)) openPanel("xmap"); };
 G.openNoteRaw = n => { if (G.state === "play" || G.state === "panel") openPanel("note", n); };
@@ -2679,7 +2682,7 @@ function closePanel() {
 window.addEventListener("keydown", e => {
   if (G.state === "panel") {
     const typing = document.activeElement && document.activeElement.tagName === "INPUT";
-    if (e.code === "KeyE" || e.code === "Escape" || (e.code === "KeyL" && G.panelKind === "advancements") || (e.code === "KeyJ" && G.panelKind === "journal") || (e.code === "KeyM" && G.panelKind === "xmap")) { if (typing && e.code !== "Escape") return; e.preventDefault(); closePanel(); return; }
+    if (e.code === "KeyE" || e.code === "Escape" || (e.code === "KeyL" && G.panelKind === "advancements") || (e.code === "KeyJ" && G.panelKind === "journal") || (e.code === "KeyM" && ["xmap", "forsakenMap"].includes(G.panelKind))) { if (typing && e.code !== "Escape") return; e.preventDefault(); closePanel(); return; }
     if (/^Digit[1-9]$/.test(e.code) && !typing) { if (UI.hotkey(+e.code.slice(5) - 1)) e.preventDefault(); }
     if (e.code === G.settings.keySwap && !typing) { if (UI.hotkey(OFF)) e.preventDefault(); }   // swap the slot you point at with the offhand
     return;
@@ -2703,6 +2706,7 @@ window.addEventListener("keydown", e => {
   else if (e.code === G.settings.keySwap) swapHands();
   else if (e.code === "KeyL") openPanel("advancements");
   else if (e.code === "KeyJ") openPanel("journal");
+  else if (e.code === "KeyM" && G.dim === "forsaken") openPanel("forsakenMap");
   else if (e.code === "KeyM") { if (isLostWorldDimension(G.dim) || G.dim === HOLLOW_SANDS || ST.canOpen()) openPanel("xmap"); else UI.toast(G.meta.ultra ? "Craft an Explorer's Map from paper and a compass at a Workbench." :
     "You need an Explorer's Map. Right-click the Expedition Table in your Starter Home for a new one.", "bad"); }
   else if (e.code === "KeyN") {
@@ -2712,7 +2716,7 @@ window.addEventListener("keydown", e => {
     } else if (G.dim === HOLLOW_SANDS) {
       if (G.sandsWaypoint) G.sandsWaypointHidden = !G.sandsWaypointHidden;
       else UI.toast("Choose a destination on the Hollow Sands map (M).");
-    } else if (ST.canOpen()) ST.toggleWaypoint();
+    } else if (ST.guidedWaypoint() || ST.canOpen()) ST.toggleWaypoint();
   }
   else if (e.code === "KeyE" && G.spectator) UI.toast("Spectators can look around but can't use items.");
   else if (e.code === "KeyE") openPanel("inventory");
@@ -3474,6 +3478,11 @@ function useWith(offhand) {
     else if (d.interact && d.interact !== "tnt") { G.swing = 0.01; interact(hit, d.interact); return true; }
   }
   if (!slot) return false;
+  if (slot.id === I.FORSAKEN_REALM_MAP) {
+    if (G.dim === "forsaken") openPanel("forsakenMap");
+    else UI.toast("Open the Forsaken Realm Map inside the realm.");
+    return true;
+  }
   if (slot.id === I.EXPLORER_MAP) { openPanel("xmap"); return true; }
   if (slot.id === I.VOID_CRYSTAL && hit && !G.guest) return placeVoidCrystal(hit);
   if (slot.id === I.SHIELD) { G.blocking = true; G.blockHand = G.useSlot; return true; }   // hold to keep the shield up
@@ -7914,7 +7923,7 @@ function loop(now) {
     updateClouds(dt); updatePotionClouds(dt); trackBiome(dt);
     if (G.dim === "end" && !G.guest) { ensureBoss(); tickWyrmSummon(dt); }
     if (G.state === "play" && !MP.noPortals()) checkPortal(dt);   // Play Together: the host leads the way through portals
-    if (!G.guest) { tickCinder(dt); F.tick(dt); MU.tick(dt); L.tick(dt); if (!run) ST.tick(dt); CP.tick(dt); }
+    if (!G.guest) { tickCinder(dt); F.tick(dt); MU.tick(dt); L.tick(dt); ST.tick(dt); CP.tick(dt); }
     if (G.attackCd > 0) G.attackCd -= dt;
     if (G.bowT >= 0) { G.bowT += dt; loadCrossbow(); }   // (Milestone 22: a crossbow loads itself once held long enough)
     if (G.panelKind === "furnace" && (G.panelT = (G.panelT || 0) + dt) > 0.25) { G.panelT = 0; UI.refreshPanel(); }

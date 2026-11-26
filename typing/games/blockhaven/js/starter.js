@@ -275,6 +275,7 @@ export function initStarter(api) {
   let startT = 0;
   S.tick = dt => {
     hudTick();
+    if (G.meta?.ultra) return;
     const s = data(); if (!s || (!s.house && !s.campaign)) return;
     if (!s.granted && G.dim === "overworld" && G.world && G.inv) grant();
     if (G.state === "play") startT += dt; else if (!s.welcomed) startT = Math.min(startT, 0.6);
@@ -326,7 +327,14 @@ export function initStarter(api) {
   };
   S.openMap = () => { if (G.state === "play" || G.state === "panel") openPanel("xmap"); };
   S.canOpen = () => G.creative || hasMap();
+  S.guidedWaypoint = () => G.dim === "forsaken" ? G.realmWaypoint : G.dim === "overworld" ? G.forsakenWaypoint : null;
   S.toggleWaypoint = () => {
+    const guide = S.guidedWaypoint();
+    if (guide) {
+      guide.hidden = !guide.hidden;
+      UI.toast(guide.hidden ? "Waypoint hidden. Press N to show it again." : `Waypoint on: ${guide.title}`);
+      return;
+    }
     const s = data(); if (!s || (!s.house && !s.campaign && !s.mapOnly)) return;
     s.waypoint = !s.waypoint;
     UI.toast(s.waypoint ? `Waypoint on: ${destOf(s.dest) ? destOf(s.dest).title : s.mapOnly ? "choose a destination on the map" : "Starter Home"}` : "Waypoint hidden. Press N to show it again.");
@@ -464,19 +472,24 @@ export function initStarter(api) {
   function hudTick() {
     hudEl = hudEl || document.getElementById("waypoint");
     if (!hudEl) return;
-    const s = data();
-    const active = (G.state === "play" || G.state === "panel") && !G.cutscene;
+    const guide = S.guidedWaypoint();
+    const active = (G.state === "play" || G.state === "panel") && !G.cutscene && (!G.meta?.ultra || !!guide);
+    const surface = active && G.dim === "overworld";
     const sands = active && G.dim === "hollow_sands" && !G.sandsWaypointHidden ? G.sandsWaypoint : null;
     const jurassic = active && isLostWorldDimension(G.dim) ? lostWorldWaypoint(G) : null;
     // Milestone 17, Part B: holding a Treasure Map points the way to its X
-    const held = active && G.dim === "overworld" && !jurassic && !sands ? G.inv.slots[G.selected] : null;
+    const held = surface ? G.inv.slots[G.selected] : null;
     const tmap = held && held.id === I.TREASURE_MAP && held.tx != null ? { kind: "treasure", title: "Buried treasure", x: held.tx + 0.5, z: held.tz + 0.5 } : null;
-    const d = jurassic || sands || tmap || (active && G.dim === "overworld" && s?.waypoint && (s.house || s.campaign || s.mapOnly) ? destOf(s.dest) : null);
+    let d = jurassic || sands || tmap || (active && guide && !guide.hidden ? guide : null);
+    if (!d && surface && !guide) {
+      const s = data();
+      if (s?.waypoint && (s.house || s.campaign || s.mapOnly)) d = destOf(s.dest);
+    }
     hudEl.hidden = !d;
     if (!d) return;
     const p = G.player, dist = Math.hypot(d.x - p.pos.x, d.z - p.pos.z), ang = Math.atan2(-(d.x - p.pos.x), -(d.z - p.pos.z)) - p.yaw;
     hudEl.querySelector("i").style.transform = `rotate(${-ang}rad)`;
-    hudEl.querySelector("i").style.background = jurassic ? jurassic.color : sands ? "#b9ddfa" : TYPES[d.kind].color;
+    hudEl.querySelector("i").style.background = sands ? "#b9ddfa" : d.color || TYPES[d.kind].color;
     hudEl.querySelector("b").textContent = d.title + (d.kind === "excavation" ? " (entrance)" : "");
     hudEl.querySelector("em").textContent = tmap && dist < 3 ? "X marks the spot: dig down!" : dist < 8 ? "You're here!" : `${fmt(dist)} blocks ${compass8(d.x - p.pos.x, d.z - p.pos.z)}` + (d.kind === "excavation" ? " · underground" : "");
   }
@@ -548,6 +561,7 @@ export function initStarter(api) {
   };
   function pick(kind) {
     const s = data(); s.dest = kind; Sound.click();
+    G.forsakenWaypoint = null;
     if (!s.waypoint) s.waypoint = true;
     UI.toast(`Destination: ${destOf(kind).title}`, "good");
     draw(); renderSide();
@@ -592,7 +606,9 @@ export function initStarter(api) {
       notice.textContent = calendar;
       info.appendChild(notice);
     }
-    way.textContent = s.waypoint ? "On-screen waypoint: ON (N)" : "On-screen waypoint: OFF (N)";
+    const lantern = here && G.forsakenWaypoint;
+    const visible = lantern ? !lantern.hidden : s.waypoint;
+    way.textContent = visible ? "On-screen waypoint: ON (N)" : "On-screen waypoint: OFF (N)";
   }
   // ----- drawing -----
   const colCache = new Map();
