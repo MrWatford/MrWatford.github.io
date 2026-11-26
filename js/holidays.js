@@ -626,7 +626,7 @@
 
   function visitor() { return readJSON(localStorage, VISITOR_KEY) || {}; }
   function setVisitor(v) { writeJSON(localStorage, VISITOR_KEY, v); }
-  function motionOK(s) { return s.animations && !reduceMotion.matches && !visitor().still; }
+  function motionOK(s) { return s.animations && !reduceMotion.matches; }
 
   function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
   function add(e, where, how) { if (!where) return null; where[how || "appendChild"](e); added.push(e); return e; }
@@ -723,7 +723,6 @@
           '<p class="hol-ribbon-text"><strong>' + esc(val(th.greet, c)) + "</strong> <span>" + esc(val(th.line, c)) + "</span>" +
           '<em class="hol-verse">“' + esc(val(th.verse, c)) + "” <b>" + esc(val(th.ref, c)) + "</b></em></p>" +
           '<span class="hol-ribbon-tools">' + chip + sceneLink + pv +
-            (h.kind !== "solemn" && s.animations && !reduceMotion.matches ? '<button type="button" class="hol-btn" data-hol="still">' + (v.still ? "Play animations" : "Pause animations") + "</button>" : "") +
           "</span>" +
         "</div>");
       ribbon.setAttribute("role", "region");
@@ -792,7 +791,7 @@
     if (scenesState) return;
     scenesState = 1;
     const sc = document.createElement("script");
-    sc.src = ROOT + "js/holiday-scenes.js?v=1";
+    sc.src = ROOT + "js/holiday-scenes.js?v=2";
     sc.onload = () => { while (scenesWaiting.length) scenesWaiting.shift()(); };
     document.head.appendChild(sc);
   }
@@ -802,8 +801,7 @@
     const b = e.target.closest && e.target.closest("[data-hol]");
     if (!b) return;
     const what = b.getAttribute("data-hol"), v = visitor();
-    if (what === "still") { v.still = !v.still; setVisitor(v); }
-    else if (what === "endpreview") { writeJSON(sessionStorage, PREVIEW_KEY, null); if (/[?&]holiday/.test(location.search)) { location.href = location.pathname; return; } }
+    if (what === "endpreview") { writeJSON(sessionStorage, PREVIEW_KEY, null); if (/[?&]holiday/.test(location.search)) { location.href = location.pathname; return; } }
     else return;
     apply(resolve());
   });

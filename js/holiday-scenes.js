@@ -828,8 +828,7 @@
     sec.setAttribute("aria-label", opt.label);
     sec.innerHTML = '<h2 class="sr-only">' + esc(opt.title) + "</h2>" +
       '<div class="hol-scene-frame"><div class="hol-stage">' + svg + '<canvas class="hol-stage-fx" aria-hidden="true"></canvas>' + (opt.overlay || "") + "</div>" +
-      (kind === "diorama" ? '<div class="hol-scene-bar"><p class="hol-caption" aria-live="polite"><span class="hol-caption-tag">Mr. Watford</span><span class="hol-caption-text">' + esc(opt.hint) + "</span></p>" +
-        (o.still ? "" : '<button type="button" class="hol-sbtn" data-act="pause" aria-pressed="false">Pause scene</button>') + "</div>" : "") + "</div>";
+      (kind === "diorama" ? '<div class="hol-scene-bar"><p class="hol-caption" aria-live="polite"><span class="hol-caption-tag">Mr. Watford</span><span class="hol-caption-text">' + esc(opt.hint) + "</span></p>" + "</div>" : "") + "</div>";
     requestAnimationFrame(() => init(sec, kind, o, opt));
     return sec;
   }

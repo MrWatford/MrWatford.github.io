@@ -16,7 +16,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
 /* ---------- 0. Holiday & season decorations ----------
    Loads the holiday settings, then js/holidays.js, which decorates
    every page for the holiday or season (see holidays.html). */
-["js/holiday-settings.js?v=1", "js/holidays.js?v=2"].forEach(function (src) {
+["js/holiday-settings.js?v=1", "js/holidays.js?v=3"].forEach(function (src) {
   const s = document.createElement("script");
   s.src = SITE_ROOT + src;
   s.async = false;            // run in this order
