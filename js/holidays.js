@@ -664,7 +664,6 @@
     const s = r.settings, v = visitor(), root = document.documentElement;
     current = r;
     if (!r.id) return r;
-    if (v.off && r.source !== "preview") { addRestore(r, v); return r; }
 
     const id = r.id, th = THEMES[id], h = BY_ID[id], c = context(r);
     const still = !motionOK(s);
@@ -725,7 +724,6 @@
           '<em class="hol-verse">“' + esc(val(th.verse, c)) + "” <b>" + esc(val(th.ref, c)) + "</b></em></p>" +
           '<span class="hol-ribbon-tools">' + chip + sceneLink + pv +
             (h.kind !== "solemn" && s.animations && !reduceMotion.matches ? '<button type="button" class="hol-btn" data-hol="still">' + (v.still ? "Play animations" : "Pause animations") + "</button>" : "") +
-            '<button type="button" class="hol-btn" data-hol="hide">Hide decorations</button>' +
           "</span>" +
         "</div>");
       ribbon.setAttribute("role", "region");
@@ -763,7 +761,6 @@
       f.style.backgroundImage = svgURL(fa);
       add(f, footer, "prepend");
     }
-    addRestore(r, v);
 
     // Falling snow / leaves / hearts…
     if (th.fx && !still && h.kind !== "solemn") {
@@ -788,15 +785,6 @@
     return r;
   }
 
-  // A small "Show holiday decorations" button in the footer after a visitor hides them
-  function addRestore(r, v) {
-    if (!v.off) return;
-    const footer = document.querySelector(".site-footer");
-    if (!footer) return;
-    const b = el("div", "hol-restore", '<button type="button" class="hol-btn" data-hol="show">✨ Show holiday decorations</button>');
-    add(b, footer);
-  }
-
   let scenesState = 0; const scenesWaiting = [];
   function loadScenes(cb) {
     if (window.HolidayScenes) return cb();
@@ -814,9 +802,7 @@
     const b = e.target.closest && e.target.closest("[data-hol]");
     if (!b) return;
     const what = b.getAttribute("data-hol"), v = visitor();
-    if (what === "hide") { v.off = true; setVisitor(v); }
-    else if (what === "show") { v.off = false; setVisitor(v); }
-    else if (what === "still") { v.still = !v.still; setVisitor(v); }
+    if (what === "still") { v.still = !v.still; setVisitor(v); }
     else if (what === "endpreview") { writeJSON(sessionStorage, PREVIEW_KEY, null); if (/[?&]holiday/.test(location.search)) { location.href = location.pathname; return; } }
     else return;
     apply(resolve());
