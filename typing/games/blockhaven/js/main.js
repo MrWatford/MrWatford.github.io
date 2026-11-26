@@ -37,7 +37,11 @@ import { LOST_WORLD_REGIONS, isLostWorldDimension, isLostWorldRegion } from "./l
 import { toggleLostWorldWaypoint } from "./lost-world-map.js";
 import { expedition, isCampaignLandmark, readCampaignLandmark } from "./lost-world-campaign.js";
 import { LOST_WORLD, LOST_WORLD_GEN, LostWorldGenerator, worldHome } from "./lost-world.js";
+import { reignWon, REIGN_SKINS } from "./forsaken-reign.js";
 import { initForsaken, isQuestItem } from "./forsaken.js";
+import { makeKingdomLayout, prepareKingdom } from "./forsaken-kingdom.js";
+import { gatewayPoints, planGateway, sanctuaryPoints, strongholdStamp, validGateway } from "./forsaken-gateway.js";
+import { canAddStrongholdRooms, strongholdRoomsStamp, STRONGHOLD_ROOMS_LAYOUT } from "./forsaken-stronghold-rooms.js";
 import { initMutants } from "./mutants.js";
 import { initCompanions } from "./companions.js";
 import { initLost, LOST_DIMS } from "./lost.js";
@@ -154,15 +158,17 @@ atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestFilt
 
 const uniforms = { map: { value: atlasTex }, desat: { value: 0 }, daylight: { value: 1 }, ambient: { value: 0.11 }, fogColor: { value: new THREE.Color(0x8fd0f5) }, fogNear: { value: 40 }, fogFar: { value: 64 }, alphaTest: { value: 0.5 }, opacity: { value: 1 },
   moonlight: { value: 0 }, coolTime: { value: 0 }, coolPulse: { value: 0.18 } };   // Echohold Reborn: teal light and its slow pulse (0 = still)
-const VERT = `attribute vec3 lt; attribute float cl; varying vec2 vUv; varying vec3 vLt; varying float vDist, vCl; varying vec2 vW;
-void main() { vUv = uv; vLt = lt; vCl = cl; vW = (modelMatrix * vec4(position, 1.0)).xz; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDist = length(mv.xyz); gl_Position = projectionMatrix * mv; }`;
+const VERT = `attribute vec3 lt; attribute float cl; varying vec2 vUv; varying vec3 vLt; varying float vDist, vCl; varying vec3 vW;
+void main() { vUv = uv; vLt = lt; vCl = cl; vW = (modelMatrix * vec4(position, 1.0)).xyz; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDist = length(mv.xyz); gl_Position = projectionMatrix * mv; }`;
 const FRAG = `uniform sampler2D map; uniform float daylight, ambient, fogNear, fogFar, alphaTest, opacity, desat, moonlight, coolTime, coolPulse; uniform vec3 fogColor;
 #ifdef RIPPLE_WATER
-uniform float rippleTime;
+uniform float rippleTime, veilTime;
+uniform vec2 veilOrigin;
+const vec2 veilTile = vec2(${TILE.forsaken_veil % 16}.0, ${Math.floor(TILE.forsaken_veil / 16)}.0);
 const vec2 waterTile = vec2(${TILE.water % 16}.0, ${Math.floor(TILE.water / 16)}.0);
 const vec2 atlasPixels = vec2(${ATLAS_W}.0, ${ATLAS_H}.0);
 #endif
-varying vec2 vUv; varying vec3 vLt; varying float vDist, vCl; varying vec2 vW;
+varying vec2 vUv; varying vec3 vLt; varying float vDist, vCl; varying vec3 vW;
 void main() {
   vec2 uv = vUv;
 #ifdef RIPPLE_WATER
@@ -172,13 +178,28 @@ void main() {
     vec2 offset = vec2(floor(rippleTime * 4.0), floor(rippleTime * 2.0));
     vec2 samplePixel = waterTile * 16.0 + mod(floor(pixel) + offset, 16.0) + 0.5;
     uv = vec2(samplePixel.x / atlasPixels.x, 1.0 - samplePixel.y / atlasPixels.y);
+  } else if (all(equal(floor(pixel / 16.0), veilTile))) {
+    vec2 p = (floor(vW.xy * 19.0) / 19.0 - veilOrigin) / vec2(2.5, 4.1);
+    float radius = length(p);
+    float angle = atan(p.y, p.x + 0.0001);
+    float t = veilTime * 0.785398;
+    float spiral = sin(angle * 2.0 + radius * 10.2 - t);
+    float coil = pow(0.5 + 0.5 * spiral, 7.0);
+    float wisps = pow(0.5 + 0.5 * sin(angle * 6.0 - radius * 14.0 + t * 2.0), 8.0);
+    float rim = smoothstep(0.76, 1.06, max(abs(p.x), abs(p.y)));
+    float glow = clamp(coil * 0.73 + wisps * 0.19 + rim * 0.83, 0.0, 1.0);
+    vec3 veil = mix(vec3(0.10, 0.016, 0.19), vec3(0.69, 0.18, 0.80), glow);
+    veil = mix(veil, vec3(1.00, 0.56, 0.88), smoothstep(0.6, 1.0, glow) * 0.46);
+    veil = mix(veil, fogColor, smoothstep(fogNear, fogFar, vDist));
+    gl_FragColor = vec4(veil, 0.9);
+    return;
   }
 #endif
   vec4 t = texture2D(map, uv);
   if (t.a < alphaTest) discard;
   float s = vLt.x * daylight, b = vLt.y;
   // cool teal light (Echohold's moss, crystals, and gate stones) rolls across the floor in slow waves
-  float c = vCl * (1.0 + coolPulse * sin(coolTime * 1.3 - vW.x * 0.09 - vW.y * 0.07));
+  float c = vCl * (1.0 + coolPulse * sin(coolTime * 1.3 - vW.x * 0.09 - vW.z * 0.07));
   // teal glow reads a little brighter than torchlight of the same level, so moss and crystals stand out in the dark
   float l = max(pow(max(s, b), 1.5), c * 0.92);
   l = ambient + (1.0 - ambient) * l;
@@ -191,20 +212,20 @@ void main() {
   gl_FragColor = vec4(col, t.a * opacity);
 }`;
 const solidMat = new THREE.ShaderMaterial({ uniforms, vertexShader: VERT, fragmentShader: FRAG });
-const waterUniforms = { ...uniforms, alphaTest: { value: 0.01 }, rippleTime: { value: 0 } };
+const waterUniforms = { ...uniforms, alphaTest: { value: 0.01 }, rippleTime: { value: 0 }, veilTime: { value: 0 }, veilOrigin: { value: new THREE.Vector2() } };
 const waterMat = new THREE.ShaderMaterial({ uniforms: waterUniforms, defines: { RIPPLE_WATER: 1 }, vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide });
 
 // One background mesh draws both the Surface gradient and its distant, grid-shaped clouds.
 const surfaceSky = new THREE.Mesh(new THREE.SphereGeometry(105, 16, 8), new THREE.ShaderMaterial({
   side: THREE.BackSide, depthTest: false, depthWrite: false,
-  uniforms: { horizon: { value: new THREE.Color() }, zenith: { value: new THREE.Color() }, cloudLight: { value: 0 }, cloudDrift: { value: 0 } },
+  uniforms: { horizon: { value: new THREE.Color() }, zenith: { value: new THREE.Color() }, cloudLight: { value: 0 }, crimson: { value: 0 }, cloudDrift: { value: 0 } },
   vertexShader: `varying vec3 vRay;
     void main() {
       vRay = position;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`,
   fragmentShader: `uniform vec3 horizon, zenith;
-    uniform float cloudLight, cloudDrift;
+    uniform float cloudLight, cloudDrift, crimson;
     varying vec3 vRay;
     float cloudCell(vec2 p) {
       vec3 h = fract(vec3(p.xyx) * 0.1031);
@@ -220,6 +241,7 @@ const surfaceSky = new THREE.Mesh(new THREE.SphereGeometry(105, 16, 8), new THRE
         float shape = step(0.55, cloudCell(floor(tile / vec2(5.0, 3.0))) * 0.82 + cloudCell(tile) * 0.18);
         float fade = (1.0 - smoothstep(85.0, 240.0, distanceToCloud)) * smoothstep(0.055, 0.19, ray.y);
         vec3 cloud = mix(vec3(0.31, 0.37, 0.53), vec3(0.99, 0.99, 0.98), cloudLight);
+        cloud = mix(cloud, mix(vec3(0.17, 0.066, 0.125), vec3(0.35, 0.095, 0.16), cloudCell(tile)), crimson);
         color = mix(color, cloud, shape * fade * 0.86);
       }
       gl_FragColor = vec4(color, 1.0);
@@ -239,7 +261,50 @@ const starGeo = new THREE.BufferGeometry(), starPos = [];
 starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
 const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, depthWrite: false }));
 stars.renderOrder = -3;
-scene.add(sun, moon, stars);
+const crimsonSun = new THREE.Mesh(new THREE.PlaneGeometry(29, 29), new THREE.MeshBasicMaterial({
+  map: discTexture(ctx => {
+    const rand = rng(179);
+    const colors = ["#ff303c", "#f54c3f", "#bf1528", "#ff6a55", "#ce243c", "#ff3638"];
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+      const edge = Math.max(Math.abs(x - 15.5), Math.abs(y - 15.5));
+      if (edge > 14) continue;
+      const corner = Math.min(Math.abs(x - 15.5), Math.abs(y - 15.5));
+      if (edge > 10 && corner > 10 - Math.max(0, edge - 12)) continue;
+      ctx.fillStyle = edge > 12 ? "#f7354130" : edge > 11 ? "#ff3a5b5e" :
+        edge > 9 ? "#ff694f" : colors[Math.floor(rand() * colors.length)];
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }), fog: false, depthWrite: false, transparent: true,
+}));
+const crimsonDisc = crimsonSun.material.map;
+const eclipseDisc = discTexture(ctx => {
+  for (let y=0; y<32; y++) for (let x=0; x<32; x++) {
+    const r = Math.hypot(x-15.5,y-15.5);
+    if (r>15) continue;
+    ctx.fillStyle = r>14 ? "#fe585957" : r>13 ? "#fa3f53bc" :
+      r>11 ? ((x+y)%3 ? "#ff493d" : "#ff9870") : "#22111d";
+    ctx.fillRect(x,y,1,1);
+  }
+});
+const partialEclipseDisc=discTexture(ctx=>{
+  ctx.drawImage(crimsonDisc.image,0,0);
+  for (let y=0;y<32;y++) for (let x=0;x<32;x++) {
+    const r=Math.hypot(x-18,y-14);
+    if (r<12 && Math.hypot(x-15.5,y-15.5)<13.5) {
+      ctx.fillStyle=r>11?"#db4357":"#331327"; ctx.fillRect(x,y,1,1);
+    }
+  }
+});
+let previewConvergence = false;
+function convergencePreviewActive() {
+  const chamber = previewConvergence && F.fortress()?.arena;
+  if (!chamber) return false;
+  const { x,y,z } = G.player.pos, { restoreMin: min, restoreMax: max } = chamber;
+  return x>=min.x && x<=max.x+1 && y>=min.y && z>=min.z && z<=max.z+1;
+}
+crimsonSun.renderOrder = -2;
+crimsonSun.visible = false;
+scene.add(sun, moon, stars, crimsonSun);
 
 // block highlight and cracks
 const outline = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.6 }));
@@ -497,7 +562,7 @@ const ents = new Entities(scene, {
   godzillaDamaged: e => GC.damaged(e),
   bossDefeated: e => e.def.segmentedLeviathan ? UI.toast(`The ${e.def.name} is defeated!`, "good") : (G.campaign && G.campaign.bossDefeated(e)) ? null : L.bossDefeated(e) ? null : e.sp === "dragon" ? wyrmDefeated(e) : e.sp === "cindermaw" ? cinderDefeated(e) : blightDefeated(e),
   arena: () => arena(), cinderPylons: () => G.cinderPylons(),
-  heroHit: (e, n) => F.heroHit(e, n), warded: (x, z) => F.warded(x, z),
+  heroHit: (e, n, attacker) => F.heroHit(e, n, attacker), warded: (x, z) => F.warded(x, z),
   lantern: () => [G.selected, OFF].some(i => G.inv.slots[i] && G.inv.slots[i].id === I.WARD_LANTERN),
   pylonGone: i => { const c = cinderData(); if (!c.pylonsGone.includes(i)) c.pylonsGone.push(i); const left = CITADEL_PYLONS.length - c.pylonsGone.length; UI.toast(left ? `Ember Pylon broken! ${left} left.` : "All the Ember Pylons are broken! Cindermaw's shield is gone.", "good"); },
   push: (vx, vy, vz) => { if (guestFocus()) { MP.pushGuest(guestFocus(), vx, vy, vz); return; } const p = G.player; if (G.creative || G.spectator) return; p.vel.x += vx; p.vel.y = Math.max(p.vel.y, vy); p.vel.z += vz; },
@@ -1181,7 +1246,7 @@ function buildGateway(x, y, z) {
   for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { w.set(x + dx, y - 1, z + dz, B.BEDROCK); w.set(x + dx, y + 1, z + dz, B.BEDROCK); }
   w.set(x, y, z, B.GATEWAY);
 }
-async function changeDim(toDim, cx, cz, label, place) {
+async function changeDim(toDim, cx, cz, label, place, { requireSave = false } = {}) {
   dismount(true);   // Trotters stay behind in their own world
   const p = G.player, fromDim = G.dim, back = { ...p.pos };
   const hadDestination = Object.hasOwn(G.dimData, toDim);
@@ -1189,15 +1254,17 @@ async function changeDim(toDim, cx, cz, label, place) {
   try {
     G.state = "loading"; UI.show("loading"); UI.setLoading(0, label);
     document.getElementById("portalTint").style.opacity = 0;
-    await saveNow(false);
+    const savedOrigin = await saveNow(false);
+    if (requireSave && savedOrigin === false) throw new Error("The source world could not be saved.");
     clearWorldMeshes(); G.world.chunks.clear(); G.world.dirtyQueue.clear(); fires.length = 0; clouds.length = 0;
     G.dim = toDim; G.world = makeWorld(toDim); G.gen = G.world.gen;
     p.pos.x = cx + 0.5; p.pos.z = cz + 0.5; p.pos.y = 60;
     await loadArea(cx, cz, label);
-    place();
+    await place();
     p.vel.x = p.vel.y = p.vel.z = 0; p.airTop = null; p.gliding = false;
     portalCooldown = true; portalT = 0;
-    await saveNow(false);
+    const savedDestination = await saveNow(false);
+    if (requireSave && savedDestination === false) throw new Error("The destination could not be saved.");
     G.state = "pause"; UI.show("none"); UI.hud(); G.resume(); G.adv("dim", toDim);
   } catch (err) {
     console.error(err);
@@ -1359,13 +1426,14 @@ function checkPortal(dt) {
   let kind = 0;
   for (let yy = Math.floor(a[1]); yy <= Math.floor(a[4] - 0.01) && !inside; yy++) for (let xx = Math.floor(a[0]); xx <= Math.floor(a[3]) && !inside; xx++) for (let zz = Math.floor(a[2]); zz <= Math.floor(a[5]) && !inside; zz++) {
     const id = w.id(xx, yy, zz);
-    if (id === B.PORTAL || id === B.END_PORTAL || id === B.GATEWAY) { inside = [xx, yy, zz]; kind = id; }
+    if (id === B.PORTAL || id === B.END_PORTAL || id === B.GATEWAY || id === B.FORSAKEN_VEIL) { inside = [xx, yy, zz]; kind = id; }
   }
   const tint = document.getElementById("portalTint");
   if (!inside) { portalT = 0; portalCooldown = false; tint.style.opacity = 0; return; }
   if (portalCooldown) { tint.style.opacity = kind === B.PORTAL ? 0.15 : 0; return; }
   if (kind === B.END_PORTAL && !G.traveling) { if (G.dim === "end") leaveHollow(); else enterHollow(); return; }
   if (kind === B.GATEWAY && !G.traveling) { gatewayJump(); return; }
+  if (kind === B.FORSAKEN_VEIL) { F.walkGateway(...inside); return; }
   if (portalT === 0) Sound.mob("portal", 0);
   portalT += dt;
   const need = G.creative ? 0.6 : 2.5;
@@ -2195,6 +2263,7 @@ function clearWorldMeshes() {
   for (const d of G.drops) removeDrop(d);
   G.drops = [];
   while (parts.length) freeParticles.push(parts.pop());
+  G.forsaken?.clearAll();
   ents.clear(); if (G.companions) G.companions.clear();
   for (const o of G.orbs) { scene.remove(o.mesh); o.mesh.material.dispose(); } G.orbs = [];
   for (const t of primed) { scene.remove(t.mesh); t.mesh.material.dispose(); } primed.length = 0;
@@ -2228,7 +2297,10 @@ function makeWorld(dim, reopening = false) {
       }
     }
   }
-  if (dim === "forsaken") MU.prepareReaches(gen, data);   // the Outer Reaches in the generated ring (old changed chunks keep their shape)
+  if (dim === "forsaken") {
+    MU.prepareReaches(gen, data);
+    prepareKingdom(gen, data, G.meta.seed);
+  }
   if (dim === "nether") { gen.citadel = chooseCitadel(); CP.stampNether(gen, data); }   // where Cindermaw's citadel stands in this world (+ the campaign's seal shrines)
   if (dim === "overworld") {
     const villageSafeData = surveyed ? reserveSurveyedVillages(gen, data, surveyed) : data;
@@ -2251,9 +2323,21 @@ function makeWorld(dim, reopening = false) {
     if (gen.version === KINGDOMS_GEN || L.loadedSurface() || Object.hasOwn(G.story, "stonehaven")) prepareStonehaven(gen, villageSafeData, G.story);
     if (reopening && !G.guest) CP.applySettlementRenovations(gen, data);
     prepareVillageRenovations(gen, data, G.meta, G.story, reopening && !G.guest);
+    if (!G.guest && !G.meta.ultra) {
+      if (data.forsakenGateway === undefined) data.forsakenGateway = planGateway(gen, placementData, G.meta.id);
+      if (validGateway(data.forsakenGateway, G.meta.id)) {
+        const gate = data.forsakenGateway;
+        gen.stamps.push(strongholdStamp(gate));
+        data.forsakenRooms ??= canAddStrongholdRooms(data, gate) ? STRONGHOLD_ROOMS_LAYOUT : 0;
+        if (data.forsakenRooms === STRONGHOLD_ROOMS_LAYOUT) gen.stamps.push(strongholdRoomsStamp(gate));
+      }
+    }
   }
   const w = new World(gen);
   w.dim = dim;
+  const sanctuary = dim === "forsaken" && gen.kingdom?.sanctuary;
+  const gateway = dim === "overworld" && validGateway(data.forsakenGateway, G.meta.id) && data.forsakenGateway;
+  w.forsakenArch = sanctuary ? sanctuaryPoints(sanctuary).arch : gateway ? gatewayPoints(gateway).arch : null;
   if (surveyed) w.settlements = surveyed;
   w.modsFromJSON(data.mods);
   for (const [k, c] of data.containers || []) w.containers.set(k, c);
@@ -2272,7 +2356,13 @@ function makeWorld(dim, reopening = false) {
   for (const [k, v] of data.regions || []) w.regions.set(k, v);   // Milestone 20: which squares got the new biomes
   w.beacons = new Set(data.beacons || []);
   R.attach(w, data.rs);   // the signal engine's timers and comparator outputs
-  w.onLoad = c => { if (!G.guest) ents.loadChunk(c); R.chunkLoaded(w, c); };   // a Play Together guest gets no creatures yet (Stage 3)
+  w.onLoad = c => {
+    if (!G.guest) {
+      if (dim==="forsaken") F.restoreChunk(w,data,c);
+      ents.loadChunk(c);
+    }
+    R.chunkLoaded(w,c);
+  };
   w.onUnload = c => ents.unloadChunk(c);
   for (const drop of (Array.isArray(data.drops) ? data.drops.slice(-150) : [])) {
     if (drop && itemDef(drop.id) && Number.isInteger(drop.n) && drop.n > 0 &&
@@ -2327,6 +2417,8 @@ const maxAir = () => G.meta?.ultra ? UHC_AIR : 10;
 async function startWorld(save) {
   if (save.ultra && (G.guest || !(await Saves.persistent()))) throw new Error("This challenge requires a local single-player save.");
   G.profile = await Saves.profile();
+  if (!G.guest && reignWon(save.story?.fw) && !G.profile?.conqueror)
+    G.profile = await Saves.recordReignProfile(save.id).catch(() => undefined) || G.profile;
   G.challengeSaveFailed = false;
   if (save.ultra?.fallen) {
     G.meta = null; G.state = "title";
@@ -2877,9 +2969,9 @@ function breakBlock(x, y, z, drops, quiet) {
   if (aid === B.WHEAT || aid === B.CARROTS) { /* crops pop off with their seeds */ }
   { // Milestone 21, Part C: carpets, candles and standing lanterns on top; hanging lanterns below; ladders on the sides; scaffolding above
     const ad = BLOCKS[aid];
-    if (ad && (ad.carpet || ad.candle || (aid === B.LANTERN && !(metaOf(above) & 1)) || (id === B.SCAFFOLDING && aid === B.SCAFFOLDING))) breakBlock(x, y + 1, z, true, quiet);
+    if (ad && (ad.carpet || ad.candle || (ad.lantern && !(metaOf(above) & 1)) || (id === B.SCAFFOLDING && aid === B.SCAFFOLDING))) breakBlock(x, y + 1, z, true, quiet);
     const bv = w.get(x, y - 1, z);
-    if (idOf(bv) === B.LANTERN && (metaOf(bv) & 1)) breakBlock(x, y - 1, z, true, quiet);
+    if (BLOCKS[idOf(bv)]?.lantern && (metaOf(bv) & 1)) breakBlock(x, y - 1, z, true, quiet);
     DIR.forEach(([dx, dz], f) => { const c = w.get(x - dx, y, z - dz), cid = idOf(c), cd = BLOCKS[cid]; if ((cid === B.LADDER || cid === B.ITEM_FRAME || cid === B.PAINTING || (cd?.banner && (metaOf(c) & 4))) && (metaOf(c) & 3) === f) breakBlock(x - dx, y, z - dz, true, true); });
     if ((ad?.banner && !(metaOf(above) & 4)) || aid === B.ARMOR_STAND) breakBlock(x, y + 1, z, true, quiet);   // Milestone 21, Part D
   }
@@ -3604,7 +3696,7 @@ function useWith(offhand) {
     if (hit.ny !== 0 || hitDef.replaceable || !OPAQUE[idOf(hit.v)]) { UI.toast("Ladders go on the side of a solid block.", "bad"); Sound.error(); return true; }
     v = make(id, DIR.findIndex(([dx, dz]) => dx === -hit.nx && dz === -hit.nz));
   }
-  if (id === B.LANTERN) {   // standing on a block, or hanging from the underside of one
+  if (d.lantern) {   // standing on a block, or hanging from the underside of one
     const hang = hit.ny === -1 && !hitDef.replaceable;
     if (hang ? !SOLID[w.id(x, y + 1, z)] : !SOLID[w.id(x, y - 1, z)]) { UI.toast("A lantern stands on a block or hangs underneath one.", "bad"); Sound.error(); return true; }
     v = make(id, hang ? 1 : 0);
@@ -5282,7 +5374,9 @@ G.respawn = async () => {
   G.respawnGuard = 3;   // a few seconds where nothing can hurt you right after waking up
   if (G.dim === "forsaken") {   // in the Forsaken World you wake at your last restored shrine (or the refuge)
     const s = F.respawnSpot();
-    placeSafely(p, s.x, s.z); G.respawnGuard = 6; F.onRespawn();
+    if (s.exact) { Object.assign(p.pos,{x:s.x,y:s.y,z:s.z}); Object.assign(p.vel,{x:0,y:0,z:0}); }
+    else placeSafely(p,s.x,s.z);
+    G.respawnGuard = 6; F.onRespawn();
     UI.toast(`You woke up at ${s.name}. He won't come near for a little while.`, "");
     G.state = "pause"; G.resume(); return;
   }
@@ -5632,20 +5726,21 @@ function updateWeather(dt, running) {
 const bolts = [];
 let decor = null;   // Milestone 21, Part D
 const boltMat = new THREE.MeshBasicMaterial({ color: 0xeef3ff, transparent: true, opacity: 0.95, depthWrite: false, fog: false });
+const crimsonBoltMat = new THREE.MeshBasicMaterial({ color: 0xf24d72, transparent: true, opacity: 0.69, depthWrite: false, fog: false });
 const boltBox = new THREE.BoxGeometry(1, 1, 1);
 let boltT = 5, flashT = 0;
 const ROD_REACH = 32;
-function boltPath(g, x, y, z, top, spread, thick) {   // a zigzag from the clouds down to (x, y, z)
+function boltPath(g, x, y, z, top, spread, thick, material = boltMat) {   // a zigzag from the clouds down to (x, y, z)
   const sx = x + (Math.random() - 0.5) * spread, sz = z + (Math.random() - 0.5) * spread;
   let px = sx, py = top, pz = sz, wx = 0, wz = 0;
   while (py > y) {
     const ny = Math.max(y, py - 1.5 - Math.random() * 2.5), k = (ny - y) / (top - y), taper = Math.min(1, k * 5);
     wx = Math.max(-2.5, Math.min(2.5, wx + (Math.random() - 0.5) * 2.4)); wz = Math.max(-2.5, Math.min(2.5, wz + (Math.random() - 0.5) * 2.4));
     const nx = x + (sx - x) * k + wx * taper, nz = z + (sz - z) * k + wz * taper;
-    const len = Math.hypot(nx - px, ny - py, nz - pz), m = new THREE.Mesh(boltBox, boltMat);
+    const len = Math.hypot(nx - px, ny - py, nz - pz), m = new THREE.Mesh(boltBox, material);
     m.scale.set(thick, thick, len + thick); m.position.set((px + nx) / 2, (py + ny) / 2, (pz + nz) / 2); m.lookAt(nx, ny, nz);
     g.add(m);
-    if (thick > 0.12 && Math.random() < 0.18 && ny > y + 8) boltPath(g, nx + (Math.random() - 0.5) * 7, ny - 4 - Math.random() * 6, nz + (Math.random() - 0.5) * 7, ny, 0, 0.09);   // a side branch that fizzles out
+    if (thick > 0.12 && Math.random() < 0.18 && ny > y + 8) boltPath(g, nx + (Math.random() - 0.5) * 7, ny - 4 - Math.random() * 6, nz + (Math.random() - 0.5) * 7, ny, 0, 0.09, material);   // a side branch that fizzles out
     px = nx; py = ny; pz = nz;
   }
 }
@@ -5662,7 +5757,7 @@ G.drawBolt = drawBolt;   // Play Together friends draw the host's lightning
 function updateBolts(dt) {
   for (let i = bolts.length - 1; i >= 0; i--) {
     const b = bolts[i]; b.age += dt;
-    b.g.visible = b.age < 0.12 || (b.age > 0.2 && b.age < 0.34);   // a double flicker
+    b.g.visible = b.forsaken ? b.age < 0.24 : b.age < 0.12 || (b.age > 0.2 && b.age < 0.34);   // a double flicker
     if (b.age > 0.45) { scene.remove(b.g); bolts.splice(i, 1); }
   }
 }
@@ -7188,10 +7283,15 @@ function updateSky() {
   const nether = G.world && G.world.gen.isNether();
   const hollow = G.world && G.world.gen.isEnd && G.world.gen.isEnd();
   const forsaken = G.dim === "forsaken" && F.template(), lsky = L.sky();
+  crimsonSun.visible = false;
+  surfaceSky.material.uniforms.crimson.value = 0;
   const mist = G.dim === GODZILLA_CALDERA || G.dim === VOLCANIC_BADLANDS ? badlandsHaze : G.dim === TYRANT_CANYON ? canyonHaze : G.dim === MANGROVE ? mangroveHaze : G.dim === REDWOODS ? redwoodHaze : G.dim === LOST_WORLD ? jungleHaze : null;
   const plains = G.dim === FERN_PLAINS;
   surfaceSky.visible = (G.dim === "overworld" || isLostWorldDimension(G.dim) && G.dim !== AMBER_CAVERNS) && !G.player.headInWater && !G.player.inLava;
   waterUniforms.rippleTime.value = G.settings.reducedMotion ? 0 : G.clock % 8;
+  waterUniforms.veilTime.value = G.settings.reducedMotion || G.settings.fwEffects === false ? 0 : G.clock % 16;
+  const arch = G.world.forsakenArch;
+  if (arch) waterUniforms.veilOrigin.value.set(arch.x + 0.5, arch.y + 5);
   uniforms.coolTime.value = G.clock % (Math.PI * 2 / 1.3 * 200);   // wraps on a whole wave, so the pulse never jumps
   uniforms.coolPulse.value = G.settings.reducedMotion || G.settings.fx === "low" ? 0 : (G.settings.fx === "high" ? 0.24 : 0.18) + (G.echoDanger || 0) * 0.3 + (G.echoWake || 0) * 0.7 + (G.echoGate || 0) * 0.8;   // stronger when a Stalker is near, or when the city wakes (Phase 6)
   sun.visible = moon.visible = !nether && !hollow && !forsaken && !lsky;
@@ -7233,10 +7333,27 @@ function updateSky() {
     G.fwFog = [R * lsky.fogNear, R * lsky.fogFar];
     return lsky.daylight || 0.3;
   }
-  if (forsaken) {   // a dim, grey, misty sky (lighter once Herobrine is banished)
+  if (forsaken) {
+    if (!G.player.headInWater && !G.player.inLava) {
+      surfaceSky.visible = true;
+      surfaceSky.position.copy(camera.position);
+      const sky = surfaceSky.material.uniforms;
+      sky.crimson.value = 1;
+      sky.horizon.value.setHex(0x9b394c, THREE.LinearSRGBColorSpace);
+      sky.zenith.value.setHex(0x2c132b, THREE.LinearSRGBColorSpace);
+      sky.cloudDrift.value = G.settings.reducedMotion ? 0 : G.clock * 0.39;
+      crimsonSun.visible = true;
+      const eclipse=F.reign.eclipse();
+      crimsonSun.material.map=convergencePreviewActive() || eclipse===5 ? eclipseDisc : eclipse ? partialEclipseDisc : crimsonDisc;
+      crimsonSun.material.color.setHex(reignWon(G.story.fw) ? 0xffc878 : 0xffffff);
+      crimsonSun.position.copy(camera.position);
+      crimsonSun.position.y += 17;
+      crimsonSun.position.z -= 77;
+      crimsonSun.lookAt(camera.position);
+    }
     const s = F.sky(), R = G.settings.renderDist * CHUNK;
     uniforms.daylight.value = s.daylight; uniforms.ambient.value = s.ambient; uniforms.desat.value = s.desat;
-    skyCol.setHex(s.sky); if (G.player.headInWater) skyCol.set(0x1d3f5a);
+    skyCol.setHex(s.sky, THREE.LinearSRGBColorSpace); if (G.player.headInWater) skyCol.set(0x1d3f5a);
     scene.background = skyCol; uniforms.fogColor.value.copy(skyCol); stars.visible = false;
     G.fwFog = [R * s.fogNear, R * s.fogFar];
     return s.daylight;
@@ -7363,7 +7480,7 @@ function updatePlayerModel(dt) {
   if (!pmodel.holder.visible) return;
   // what you wear and hold
   dressModel(pmodel, [36, 37, 38, 39].map(i => { const s = G.inv.slots[i], d = s && itemDef(s.id); return d ? (d.glider ? "#6a5a7a" : d.colors && d.colors[0]) : null; }),
-    [36, 37, 38, 39].map(i => itemDef(G.inv.slots[i]?.id)?.leviathanSet));
+    [36, 37, 38, 39].map(i => itemDef(G.inv.slots[i]?.id)?.armorStyle ?? itemDef(G.inv.slots[i]?.id)?.leviathanSet));
   const mainId = (G.inv.slots[G.selected] || {}).id || 0, offIdNow = (G.inv.slots[OFF] || {}).id || 0;
   if (mainId !== pmMain || offIdNow !== pmOff) {
     for (const m of Object.values(pmodel.held)) if (m) disposeItemMesh(m);
@@ -7428,7 +7545,8 @@ G.closeSkinPreview = () => {
 G.skinUnlocked = id => {
   const skin = skinById(id);
   if (!skin.locked) return true;
-  return UHC_SKINS.some(s => s.id === id) ? !!G.profile?.skins.includes(id) : (G.settings.unlocked || []).includes(id);
+  return UHC_SKINS.some(s => s.id === id) || REIGN_SKINS.includes(id)
+    ? !!G.profile?.skins?.includes(id) : (G.settings.unlocked || []).includes(id);
 };
 Saves.profile().then(profile => {
   G.profile = profile;
@@ -7641,7 +7759,8 @@ function updateBossBar(p) {
   if (bossBarName.textContent !== label) bossBarName.textContent = label;
   const percent = Math.max(0, frac * 100);
   if (bossBarPercent !== percent) { bossBarPercent = percent; bossBarFill.style.width = percent + "%"; }
-  bossBar.classList.toggle("pale", !!hb && !hb.mutant);
+  bossBar.classList.toggle("pale", !!hb && !hb.mutant && !hb.reign);
+  bossBar.classList.toggle("reign", !!hb?.reign);
   bossBar.classList.toggle("mutant", !!hb?.mutant);
   bossBar.classList.toggle("ember", boss?.sp === "cindermaw");
 }
@@ -7672,6 +7791,7 @@ function tickBadlands(dt) {
 }
 
 let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, stepSoundT = 0, leviathanJournalT = 0;
+let captureForsakenFrame = null;
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = Math.max(last, now);   // capped so a background tab doesn't cause a huge jump (and never runs backwards)
@@ -7743,7 +7863,15 @@ function loop(now) {
       }
       if (res.crash > 10) hurt(Math.round((res.crash - 10) * 0.7), "You glided into a wall! Slow down by looking up before you land.", null, true);
       if (!wasWater && p.inWater && p.vel.y < -4) Sound.splash();
-      if (G.dim === "end" && p.pos.y < -4) {   // the void below the Hollow
+      if (G.dim === "forsaken" && p.pos.y < -4 && G.gen.voidAt(Math.floor(p.pos.x), Math.floor(p.pos.z))) {
+        if (G.creative) {
+          const spot = F.respawnSpot();
+          placeSafely(p, spot.x, spot.z);
+        } else if ((G.voidT = (G.voidT || 0) - 1 / 60) <= 0) {
+          G.voidT = 0.5;
+          hurt(4, "You fell between the Shattered Lands.", null, true, "void");
+        }
+      } else if (G.dim === "end" && p.pos.y < -4) {   // the void below the Hollow
         if (G.creative) {
           G.world.load(Math.floor(100 / CHUNK), 0);
           const hasPlatform = SOLID[G.world.id(100, 48, 0)];
@@ -7938,6 +8066,11 @@ function loop(now) {
       `${DIM_NAMES[G.dim]}\nx ${p.pos.x.toFixed(1)}  y ${p.pos.y.toFixed(1)}  z ${p.pos.z.toFixed(1)}\nchunk ${Math.floor(p.pos.x / 16)}, ${Math.floor(p.pos.z / 16)}   loaded ${G.world.chunks.size}\n${fps} fps   day ${G.meta.day || 1}  time ${(G.time * 24).toFixed(1)}h\n${G.gen.column(Math.floor(p.pos.x), Math.floor(p.pos.z)).biome}`;
   }
   renderer.render(scene, camera);
+  if (captureForsakenFrame) {
+    const deliver = captureForsakenFrame;
+    captureForsakenFrame = null;
+    canvas.toBlob(deliver, "image/png");
+  }
 }
 
 // ---------- start ----------
@@ -7945,7 +8078,41 @@ function loop(now) {
 // Milestone 14: leads, name tags, Trotter armor, pet breeding, rotting Hogbeasts, creatures through portals
 const CO = G.companions = initCompanions({ G, THREE, scene, ents, UI, Sound, puff, giveItem, spawnDrop, openPanel, closePanel, portalAt, portalKey, mount, dismount,
   crouching: () => !!G.player.crouch || keys.has("KeyC"), adv: (t, a) => G.adv(t, a) });
-const F = initForsaken({ G, THREE, scene, ents, UI, Sound, hurt, puff, saveNow, saveSettings, changeDim, lookDir, addEffect, giveItem, giveXp, OFF, placeSafely, keys, victory: showVictory });
+async function persistReignVictory() {
+  const id=G.meta.id;
+  if (!await saveNow(false) || G.meta?.id!==id) return;
+  try {
+    const profile=await Saves.recordReignProfile(id);
+    if (profile && G.meta?.id===id) G.profile=profile;
+  } catch { UI.toast("The world saved. Profile unlocks will retry when it is reopened."); }
+}
+const F = initForsaken({ persistReignVictory, G, THREE, scene, ents, UI, Sound, hurt, puff, saveNow, saveSettings, changeDim, lookDir, addEffect, giveItem, giveXp, OFF, placeSafely, keys, victory: showVictory,
+  emitAsh(storm) {
+    const high = G.settings.fx === "high" && G.settings.quality === "fancy";
+    if (parts.length >= PMAX - 30 || Math.random() >= (storm ? 0.125 : high ? 0.045 : 0.025)) return;
+    const p = G.player.pos;
+    if (G.world.id(Math.floor(p.x), Math.floor(p.y + 3), Math.floor(p.z)) !== B.AIR) return;
+    const color = Math.random() < 0.2 ? PUFF_COLORS.portal : storm ? PUFF_COLORS.ember : PUFF_COLORS.ash;
+    emitParticle(p.x + (Math.random() - 0.5) * 16, p.y + 0.5 + Math.random() * 7, p.z + (Math.random() - 0.5) * 16,
+      storm ? 1.6 : 0.4, -0.26, 0.12, 1.8, color, true);
+  },
+  weatherFlash(spot) {
+    if (bolts.some(b => b.forsaken)) return;
+    const p = G.player.pos, a = Math.random() * Math.PI * 2, d = Math.min(52, G.settings.renderDist * CHUNK - 4);
+    const x = spot?.x ?? p.x + Math.cos(a) * d, z = spot?.z ?? p.z + Math.sin(a) * d;
+    const g = new THREE.Group();
+    boltPath(g, x, 40, z, 83, 7, 0.16, crimsonBoltMat);
+    scene.add(g);
+    bolts.push({ g, age: 0, forsaken: true });
+    Sound.noise(180, 1.1, 0.08 * (G.settings.fwAmbient ?? 1), 0.4, "lowpass");
+  },
+  loadArea,
+  prepareKingdomArrival() {
+    const data = G.dimData.forsaken ||= {};
+    data.kingdom ??= makeKingdomLayout(G.meta.seed, data);
+    return data.kingdom.sanctuary;
+  },
+});
 G.forsaken = F;
 // The Lost Civilization adventure (js/lost.js). Its test controls only show on a development copy (localhost or ?dev).
 const L = initLost({ G, ents, UI, Sound, puff, saveNow, changeDim, giveItem, giveXp, placeSafely, hurt, lookDir, keys, victory: showVictory, devTools: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.search.includes("dev") });
@@ -7962,7 +8129,7 @@ const ML = G.monumentLife = initMonumentLife({ G, L, ents, Sound, emitParticle, 
 // The Starter Home and the Explorer's Map (js/starter.js)
 const ST = initStarter({ G, UI, Sound, L, openPanel, closePanel });
 const CP = G.campaign = initCampaign({ G, UI, Sound, L, ents, openPanel, closePanel, giveXp, puff, victory: showVictory, saveNow, teleport: (x, y, z, label) => teleportTo(x, y, z, label) });
-const MU = G.mutants = initMutants({ G, ents, UI, Sound, puff, F, THREE, scene });   // the Forsaken Mutants (after L and CP, which also fill ents.bossAI)
+const MU = G.mutants = initMutants({ saveNow, G, ents, UI, Sound, puff, F, THREE, scene });   // the Forsaken Mutants (after L and CP, which also fill ents.bossAI)
 G.starter = ST;
 // The Sparkworks signal engine (js/redstone.js)
 // Milestone 18, Part A: flowing water and lava (woken by players, buckets, and explosions; see js/fluids.js)
@@ -8023,7 +8190,11 @@ UI.show("title");
 requestAnimationFrame(loop);
 const GC = initGodzillaFight({ G, ents, scene, Sound, UI, saveNow, hurt });
 window.__bhLoop = loop;   // lets automated tests drive frames
-G._test = { updateStructures, updateOmenRaid, launchRocket, updateRockets, useJukebox, rockets: () => rockets, decor: () => decor, placePainting, useDecor, updateSnowAndIce, meltBlock, queueMeltCheck, strike, rodNear, lightningHit, weatherAt, nextWeather, skyCols, wxView: () => wxView, updateWeather, R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+G._test = { updateStructures, updateOmenRaid, launchRocket, updateRockets, useJukebox, rockets: () => rockets, decor: () => decor, placePainting, useDecor, updateSnowAndIce, meltBlock, queueMeltCheck, strike, rodNear, lightningHit, weatherAt, nextWeather, skyCols, wxView: () => wxView, updateWeather, R, lookFacing, pm: () => pmodel, hand, ents, Adv, swapHands, useTotem, finishEat, tickEating, survival, die, checkBlightSummon, tickBeacons, mount, dismount, tickRiding, ridingReview, armorReview, crystalReview, quicksandReview, heatReview, duneEncounterReview, duneWarningReview, duneSweepReview, duneDevourReview, duneVortexReview, enterHollow, leaveHollow, gatewayJump, checkPortal, fillFrame, throwEye, ensureBoss, wyrmDefeated, placeVoidCrystal, tickWyrmSummon, endData, clouds, lightPortal, travel, buildPortal, portalList, ignite, makeWorld, loadArea, explode, hurt, attack, entityTarget, releaseBow, tickCrops, growTree, useBed, target, useItem, breakBlock, mineInfo, interact, spawnDrop, placeSafely, keys, openPanel, closePanel, setLocked: v => { locked = v; }, setMouse: (l, r) => { mouseL = l; mouseR = r; }, pressR, releaseR, pressL, releaseL };
+if (["localhost", "127.0.0.1"].includes(location.hostname)) {
+  G._test.previewConvergence = enabled => { previewConvergence = !!enabled; };
+  G._test.captureForsakenFrame = () => new Promise(resolve => { captureForsakenFrame = resolve; });
+}
 G._test.obsidianWarningReview = obsidianWarningReview;
 G._test.ancientWarningReview = ancientWarningReview;
 G._test.ancientArrivalReview = ancientArrivalReview;

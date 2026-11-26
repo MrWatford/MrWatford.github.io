@@ -2,9 +2,18 @@
 // loading the packaged map, the wards that keep you safe, Herobrine's "director" (what he does and when),
 // eerie events, the story (notes, journal, sigils, shrines), and the final confrontation in his citadel.
 // Everything that matters is saved in G.story.fw, and timers only count while you're actually playing there.
-import { B, I, HEIGHT, SOLID, idOf, metaOf, make, OPEN, TOP, itemDef, iconURL } from "./blocks.js";
+import { B, I, CHUNK, HEIGHT, SOLID, idOf, metaOf, make, OPEN, TOP, itemDef, iconURL } from "./blocks.js";
 import { lineOfSight } from "./entities.js";
 import { NOTES, unpackForsaken } from "./forsaken-author.js";
+import { templeJournal, legacyTempleNote, STRONGHOLD_ROOMS_LAYOUT } from "./forsaken-stronghold-rooms.js";
+import { activatePersonalGate, personalGateAt, personalGateIntact, personalGateKey, personalGatePoints, PERSONAL_GATE_GUIDE } from "./forsaken-personal-gates.js";
+import { restoreClearing, restorationSites } from "./forsaken-restoration.js";
+import { initReign, reignChapter, reignWon, reignGatewaysUnlocked } from "./forsaken-reign.js";
+import { FORTRESS_NOTES, fortressPoints } from "./forsaken-fortress.js";
+import { LAIRS } from "./forsaken-fallen.js";
+import { earnedGuardianKeys, initFallenExploration } from "./forsaken-guardians.js";
+import { KINGDOM_BIOMES } from "./forsaken-kingdom.js";
+import { atGateway, canArrive, frameReady, gatewayFrameCell, gatewayLit, gatewayOpen, gatewayPoints, illuminateGateway, nearbyLanding, sanctuaryPoints, socketGateway, writeGatewayVeil } from "./forsaken-gateway.js";
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const MAP_URL = "maps/forsaken-v1.bin";
@@ -13,6 +22,7 @@ const QUEST = [I.SIGIL_HEARTH, I.SIGIL_STONE, I.SIGIL_ROOT, I.WARD_HEART];
 export const isQuestItem = id => QUEST.includes(id) || !!(itemDef(id) || {}).quest;   // the Lost Civilization's relics and stabilizers too
 // Extra notes that appear during the adventure (not part of the map)
 const LATE_NOTES = {
+  "kingdom-arrival": { title: "Logbook of the Lantern Ward", text: "This gate leads back to the stronghold. Lanterns mark the ward's edge. Beyond it, follow the paved ring to reach the six territories. The original refuge lies toward the centre of the realm. The map in your journal records regions as you find them." },
   chalk: { title: "Fresh Chalk on the Refuge Wall", text: "Someone was here while you were away. Chalk arrows point north toward the Watchtower, and beyond it, the outpost. Under them, in small letters: \"Read the logs before you go into the mine.\"" },
   free: { title: "The Vale Is Free", text: "His citadel is silent. The mist is thinning, and you can see the sun as a pale coin through it.\n\nThe shrines will keep their light. Come back whenever you like. If you ever want to face him again, the Pale Altar can call him back." }
 };
@@ -21,6 +31,7 @@ export function initForsaken(api) {
   const { G, THREE, scene, ents, UI, Sound, hurt, puff, saveNow, changeDim, lookDir, addEffect, giveItem, giveXp, OFF } = api;
   let tpl = null, loading = null;
   const F = {};
+  const fallen = F.fallen = initFallenExploration(api);
   const fw = () => {
     const s = G.story.fw || (G.story.fw = {});
     s.notes = s.notes || {}; s.seen = s.seen || {}; s.shrines = s.shrines || {}; s.sigils = s.sigils || {};
@@ -31,6 +42,51 @@ export function initForsaken(api) {
   };
   F.data = fw;
   const inFw = () => G.dim === "forsaken" && !!tpl;
+  F.fortress = () => inFw() ? G.world?.gen.kingdom?.grandFortress : undefined;
+  const fortressRecord = () => G.dimData.forsaken?.fortress;
+  const fortressNotes = () => (fortressRecord()?.notes || []).filter(id => Object.hasOwn(FORTRESS_NOTES,id));
+  const missingOaths = () => {
+    const earned = new Set(earnedGuardianKeys(G.story));
+    return Object.keys(LAIRS).filter(id => !earned.has(id));
+  };
+  function interactFortress(hit, kind) {
+    const fortress = F.fortress();
+    const id = fortress?.actionAt(hit);
+    if (!id) return false;
+    if (kind === "note" && Object.hasOwn(FORTRESS_NOTES,id)) {
+      const first = !fortress.record.notes.includes(id);
+      const [title, text] = G.guest ? FORTRESS_NOTES[id] : fortress.read(id);
+      UI.openNote(title,text,first && !G.guest);
+      if (first && !G.guest) saveNow(false);
+      return true;
+    }
+    if (kind === "fortressGate" && id === "plinth") {
+      if (G.guest) { UI.toast("The host can swear the five oaths."); return true; }
+      if (fortress.record.gateOpen) { UI.toast("The five oaths have been sworn."); return true; }
+      const missing = missingOaths();
+      if (missing.length) {
+        UI.toast("The gate awaits " + missing.map(id => itemDef(I[LAIRS[id].key]).name).join(", ") + ".");
+        return true;
+      }
+      if (!fortress.open(G.world,"gate")) { UI.toast("Clear the portcullis and try again."); return true; }
+      Sound.door(true);
+      UI.toast("The five oaths are sworn. The Fortress Gate is open.", "good");
+      saveNow(false);
+      return true;
+    }
+    if (kind === "fortressShelf" && id === "archive") {
+      if (G.guest) { UI.toast("The host can release the shelf."); return true; }
+      if (!fortress.open(G.world,"archive")) { UI.toast("Clear the shelf’s passage first."); return true; }
+      Sound.door(true);
+      UI.toast("The old shelf slides back.", "good");
+      saveNow(false);
+      return true;
+    }
+    return false;
+  }
+  const reign = F.reign = initReign(api, {
+    story:fw, fortress:F.fortress, legacyActive:()=>A().active, clearWatcher:()=>clearHero(),
+  });
   const meta = () => tpl.meta;
   const vol = k => (G.settings[k] ?? 1);
 
@@ -65,38 +121,140 @@ export function initForsaken(api) {
   }
 
   // ---------- going in and coming home ----------
-  F.enter = () => {
-    if (G.dim === "forsaken") { UI.toast("You're already in the Forsaken World."); return; }
-    if (G.dim !== "overworld") { UI.toast("The lantern's light flickers out. It only opens the way from the Surface.", "bad"); return; }
-    const hc = G.meta.hardcore;
-    UI.confirm("Enter the Forsaken World?", "An abandoned valley where Herobrine watches from the mist. It's an optional adventure, separate from the main story. You'll start in a safe refuge with a way home. Inside a ward you're always safe; outside, keep your eyes open." + (hc ? " This is a Hardcore world: fainting there ends the world, like anywhere else." : " If you faint there, you wake at the refuge or a shrine you restored, and anything you drop waits for you in a satchel chest.") + " Press J inside to open your journal.", async () => {
-      try { await F.loadTemplate(); } catch (e) { UI.toast(e.message, "bad"); return; }
+  const plannedGate = () => G.dimData.overworld?.forsakenGateway;
+  const personalGates = () => G.dimData.overworld?.personalForsaken || [];
+  const kingdom = () => G.dimData.forsaken?.kingdom;
+  const refuge = () => kingdom()?.sanctuary;
+  let entering = false, blockedGate = false;
+  async function walkIn(gate = null, personal = null) {
+    if (entering || G.traveling || G.guest || G.dim !== "overworld") return;
+    const origin = G.world;
+    entering = true;
+    try {
+      await F.loadTemplate();
+      if (G.world !== origin || G.dim !== "overworld" || G.player.health <= 0) return;
       const p = G.player, s = fw();
-      s.returnTo = { dim: G.dim, x: p.pos.x, y: p.pos.y, z: p.pos.z };
-      const a = tpl.meta.arrival;
+      const target = personal ? personalGatePoints(personal).landing : gate ? gatewayPoints(gate).landing : p.pos;
+      if (personal && !nearbyLanding(origin,target,3)) { UI.toast("Clear the portal’s approach for a safe return.","bad"); return; }
+      const previous = s.returnTo;
+      const visits = s.visits, arrived = s.arrived;
+      s.returnTo = { dim: G.dim, x: target.x, y: target.y, z: target.z, ...(gate || personal ? { gateway: true } : {}), ...(personal ? { personal:personalGateKey(personal) } : {}) };
+      const site = (gate || personal) && api.prepareKingdomArrival();
+      const a = site ? sanctuaryPoints(site).landing : tpl.meta.arrival;
       await changeDim("forsaken", Math.floor(a.x), Math.floor(a.z), "Stepping into the mist…", () => {
-        Object.assign(G.player.pos, { x: a.x, y: a.y, z: a.z }); G.player.yaw = a.yaw || 0;
-        s.visits = (s.visits || 0) + 1; s.arrived = Date.now();
-        s.hero.grace = Math.max(s.hero.grace || 0, 90);   // a quiet start, every visit
+        const landing = nearbyLanding(G.world, a, 5);
+        if (!landing) throw new Error("The Forsaken landing is obstructed.");
+        Object.assign(G.player.pos, landing);
+        G.player.yaw = a.yaw || 0;
+        G.player.pitch = 0;
+        s.visits = (s.visits || 0) + 1;
+        s.arrived = Date.now();
+        s.hero.grace = Math.max(s.hero.grace || 0, 90);
         if (s.hero.state !== "banished") s.hero.state = "dormant";
-        UI.toast(s.visits === 1 ? "The Forsaken World. Read the notes in the refuge, and press J for your journal." : s.banished ? "Back in the Vale. The mist is thin now." : "Back in the Forsaken World. The refuge's ward still holds.", s.visits === 1 ? "" : "good");
-      });
-    }, "Enter");
+        UI.toast(site ? "You are inside the Lantern Ward. Read the logbook and press J for your map." : "The refuge's ward holds. Press J for your Forsaken journal.", "good");
+      }, { requireSave: !!(gate || personal) });
+      if (G.dim !== "forsaken") {
+        s.returnTo = previous;
+        s.visits = visits;
+        s.arrived = arrived;
+        await saveNow(false);
+      }
+    } catch (error) {
+      UI.toast(error.message, "bad");
+    } finally {
+      entering = false;
+    }
+  }
+
+  F.enter = () => {
+    if (G.dim === "forsaken") { UI.toast("The Lantern Ward’s arch leads home. The old refuge also has a Return Gate."); return; }
+    if (G.dim !== "overworld" || G.guest) { UI.toast("The Pale Lantern only opens the way from the Surface.", "bad"); return; }
+    const gate = plannedGate(), s = G.story.fw;
+    // Released campaign objectives and existing Lantern access retain their original route.
+    if (!gate || G.campaign?.on() || s?.visits > 0 && !s.returnTo?.gateway && !gate.socketed) {
+      UI.confirm("Enter the Forsaken World?", "You will arrive in the old refuge, with a Return Gate and a ward. The journal opens with J." +
+        (G.meta.hardcore ? " Fainting ends this Hardcore world." : ""), () => walkIn(), "Enter");
+      return;
+    }
+    const { entrance } = gatewayPoints(gate);
+    const d = Math.round(Math.hypot(G.player.pos.x - entrance.x, G.player.pos.z - entrance.z));
+    UI.toast(`The lantern points to the Forsaken Stronghold · X ${Math.floor(entrance.x)}, Z ${Math.floor(entrance.z)} · ${d} blocks.`);
   };
+
   F.leave = () => {
+    if (G.traveling) return;
     const s = fw(), r = s.returnTo || { dim: "overworld", x: G.player.spawn.x, z: G.player.spawn.z };
-    clearHero();
-    return changeDim(r.dim || "overworld", Math.floor(r.x), Math.floor(r.z), "Returning home…", () => {
-      if (!G.campaign?.restoreHollowmereReturn?.(r)) api.placeSafely(G.player, r.x, r.z);
-      UI.toast("Home again. Your Pale Lantern can take you back any time.", "good");
-    });
+    reign.clear(); clearHero();
+    return changeDim("overworld", Math.floor(r.x), Math.floor(r.z), "Returning home…", async () => {
+      if (r.gateway && canArrive(G.world, r)) Object.assign(G.player.pos, { x: r.x, y: r.y, z: r.z });
+      else if (r.gateway) {
+        const personal=personalGates().find(g=>personalGateKey(g)===r.personal);
+        const entrance = personal ? personalGatePoints(personal).landing : plannedGate() && gatewayPoints(plannedGate()).entrance;
+        const nearby = entrance && nearbyLanding(G.world, entrance, 5);
+        if (nearby) Object.assign(G.player.pos, nearby);
+        else {
+          const spawn = G.player.spawn;
+          await api.loadArea(spawn.x, spawn.z, "Finding safe ground…");
+          api.placeSafely(G.player, spawn.x, spawn.z);
+          if (!canArrive(G.world, G.player.pos)) throw new Error("Both return landings are obstructed.");
+        }
+      } else if (!G.campaign?.restoreHollowmereReturn?.(r)) api.placeSafely(G.player, r.x, r.z);
+      UI.toast("Home again.", "good");
+    }, { requireSave: !!r.gateway });
   };
+
+  F.walkGateway = (x, y, z) => {
+    if (G.dim==="overworld" && !G.campaign?.on() && reignGatewaysUnlocked(G.story.fw)) {
+      const personal=personalGateAt(personalGates(),x,y,z);
+      if (personal) {
+        if (personalGateIntact(G.world,personal)) walkIn(null,personal);
+        return;
+      }
+    }
+    const gate = plannedGate(), site = refuge();
+    const outbound = G.dim === "overworld" && gate && gatewayOpen(gate, Date.now()) && gatewayPoints(gate).arch;
+    const inbound = G.dim === "forsaken" && site && sanctuaryPoints(site).arch;
+    const arch = outbound || inbound;
+    if (!arch || !atGateway(arch, x, y, z) || entering || G.traveling) return;
+    if (!frameReady(G.world, arch)) {
+      if (!blockedGate) UI.toast("The gateway's frame or passage is blocked.", "bad");
+      blockedGate = true;
+      return;
+    }
+    blockedGate = false;
+    if (outbound) walkIn(gate);
+    else F.leave();
+  };
+
+  function tickGateway(dt) {
+    const gate = G.dim === "overworld" && plannedGate();
+    if (!gate?.socketed || !gate.opensAt) return;
+    const { arch, pedestal } = gatewayPoints(gate), w = G.world;
+    if (Math.hypot(G.player.pos.x - arch.x, G.player.pos.z - arch.z) > 28) return;
+    if (!w.isLoaded(arch.x - 6, arch.z) || !w.isLoaded(arch.x + 6, arch.z + 6)) return;
+    if (!gatewayOpen(gate, Date.now())) {
+      if (G.settings.fwEffects !== false && !G.settings.reducedMotion && Math.random() < dt * 3) {
+        puff(arch.x + (Math.random() - 0.5) * 8, arch.y + 1 + Math.random() * 9, arch.z + 0.5, "portal");
+      }
+      return;
+    }
+    if (!frameReady(w, arch) || w.id(pedestal.x, pedestal.y, pedestal.z) !== B.FORSAKEN_SOCKET) return;
+    if (!gatewayLit(w, pedestal)) {
+      illuminateGateway(w, arch, pedestal, true);
+      Sound.mob("portal", 0);
+      UI.toast("The gateway is open. Walk through the veil.", "good");
+    }
+    delete gate.opensAt;
+    saveNow(false);
+  }
 
   // ---------- wards: rings of safety ----------
   // Permanent: the refuge's Ward Stone and every restored shrine. Temporary: Ward Candles (about 2 minutes each).
   F.wards = () => {
     if (!inFw()) return [];
     const s = fw(), list = tpl.meta.wards.map(w => ({ ...w, name: "the Ward Stone" }));
+    const site = refuge();
+    if (site) list.push({ ...sanctuaryPoints(site).ward, name: "the Lantern Ward", permanent: true });
     for (const sh of tpl.meta.shrines) if (s.shrines[sh.id]) list.push({ x: sh.x, y: sh.y, z: sh.z, r: sh.r, permanent: true, name: sh.name });
     for (const c of s.candles) list.push({ x: c.x, y: c.y, z: c.z, r: 5, t: c.t, candle: true, name: "a Ward Candle" });
     return list;
@@ -104,7 +262,16 @@ export function initForsaken(api) {
   const wardAt = (x, z, margin = 0) => F.wards().find(w => Math.hypot(x - w.x - 0.5, z - w.z - 0.5) < w.r + margin);
   F.warded = (x, z) => inFw() && !!wardAt(x, z);
   F.placeCandle = (x, y, z) => { if (!inFw()) return; fw().candles.push({ x, y, z, t: 120 }); UI.toast("Ward Candle lit: a small safe ring for about 2 minutes.", "good"); Sound.tone(880, 0.4, "triangle", 0.08, 300); };
-  F.blockBroken = (x, y, z, id) => { if (id === B.WARD_CANDLE && inFw()) fw().candles = fw().candles.filter(c => !(c.x === x && c.y === y && c.z === z)); };
+  F.blockBroken = (x,y,z,id) => {
+    if (id===B.WARD_CANDLE && inFw()) fw().candles=fw().candles.filter(c=>c.x!==x || c.y!==y || c.z!==z);
+    if (G.dim!=="overworld" || id!==B.OBSIDIAN && id!==B.PERSONAL_FORSAKEN_SOCKET) return;
+    for (const gate of personalGates()) {
+      const {arch}=personalGatePoints(gate);
+      if (id===B.PERSONAL_FORSAKEN_SOCKET && personalGateKey(gate)===personalGateKey({x,y,z}) ||
+          id===B.OBSIDIAN && gatewayFrameCell(arch,x,y,z))
+        writeGatewayVeil(G.world,arch,false);
+    }
+  };
   function tickCandles(dt) {
     const s = fw();
     for (const c of s.candles) {
@@ -145,20 +312,11 @@ export function initForsaken(api) {
 
   // ---------- Herobrine himself ----------
   let hero = null;   // the creature in the world right now (null when he's elsewhere)
-  const glowTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 32; const x = c.getContext("2d"); const g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.35, "rgba(235,245,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, 32, 32); const t = new THREE.CanvasTexture(c); return t; })();
-  function addEyeGlow(e, strength = 1) {
-    // a soft white glow in front of each eye, drawn without fog so the eyes read from far away in the mist
-    const head = e.parts.head.children[0];
-    e.glows = [-0.15, 0.15].map(dx => {
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0.85 * strength, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
-      s.position.set(dx, 0.05, 0.27); s.scale.setScalar(0.22); head.add(s); return s;
-    });
-  }
   function spawnHero(spot, opts = {}) {
     clearHero();
     hero = ents.add("herobrine", spot.x, spot.y, spot.z, {});
     hero.still = true; hero.flare = 0; hero.decoy = false;
-    addEyeGlow(hero);
+
     faceHero(hero);
     puff(spot.x, spot.y + 1, spot.z, "pale");
     if (opts.quiet !== true && vol("fwSudden") > 0) Sound.noise(5200, 0.5, 0.12 * vol("fwSudden"), 0.6, "highpass");
@@ -167,9 +325,9 @@ export function initForsaken(api) {
   function clearHero() {
     if (hero && !hero.gone) { puff(hero.pos.x, hero.pos.y + 1, hero.pos.z, "pale"); hero.gone = true; }
     hero = null;
-    for (const e of ents.list) if (e.sp === "herobrine" && !e.gone) e.gone = true;
+    for (const e of ents.list) if (e.sp === "herobrine" && !e.gone && !e.convergence) e.gone = true;
   }
-  F.clearAll = () => { clearHero(); clearArenaExtras(); };
+  F.clearAll = () => { reign.clear(); clearHero(); clearArenaExtras(); };
   function faceHero(e) { const p = G.player; e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)); const d = Math.hypot(p.pos.x - e.pos.x, p.pos.z - e.pos.z) || 1; e.headPitch = Math.max(-0.5, Math.min(0.5, Math.atan2(p.pos.y - e.pos.y, d))); }
   function teleportHero(spot) { if (!hero) return; puff(hero.pos.x, hero.pos.y + 1, hero.pos.z, "pale"); Object.assign(hero.pos, { x: spot.x, y: spot.y, z: spot.z }); hero.vel.x = hero.vel.y = hero.vel.z = 0; hero.path = null; puff(spot.x, spot.y + 1, spot.z, "pale"); hero.flare = 0.9; Sound.noise(4000, 0.25, 0.1 * vol("fwSudden"), 1, "bandpass"); }
 
@@ -210,7 +368,7 @@ export function initForsaken(api) {
         if (h.aw > 70 && h.grace <= 0) { setState("warning", "awareness"); break; }
         if (h.aw > 40 && h.grace <= 0) { startStalk(); break; }
         if (h.aw > 22 && h.lastNoise && Math.random() < dt * 0.15) { startInvestigate(); break; }
-        if ((h.aw > 8 && Math.random() < dt * 0.05) || h.stateT > rand(80, 110)) { startObserve(); break; }
+        if ((h.aw > 8 && Math.random() < dt * 0.05) || h.stateT > (G.world.biomeAt(p.pos.x,p.pos.z)==="woods" ? 65 : 100)) { startObserve(); break; }
         randomEvent(dt);
         break;
       }
@@ -299,6 +457,9 @@ export function initForsaken(api) {
 
   // ---------- events: small scary moments with rules (cooldowns, conditions, never trapping you) ----------
   const EVENTS = [
+    { id: "valeLightning", ok: () => !region() && G.player.pos.y>34 && G.settings.fwEffects!==false &&
+      !G.settings.reducedMotion && G.settings.fx!=="low" && vol("fwAmbient")>0,
+      run: () => api.weatherFlash() },
     { id: "footsteps", ok: () => H().aw > 5, run: () => footsteps(6) },
     { id: "silhouette", ok: () => !region() && G.player.pos.y > 30, run: silhouette },
     { id: "mist", ok: () => G.settings.fwEffects !== false, run: () => { warnFx = 0.6; } },
@@ -308,6 +469,7 @@ export function initForsaken(api) {
   function randomEvent(dt) {
     const h = H();
     if (h.eventCool > 0 || Math.random() > dt * 0.08) return;
+    if (G.settings.fwEffects===false) return;
     const list = EVENTS.filter(e => (h["ev_" + e.id] || 0) <= h.clock && e.ok());
     if (!list.length) return;
     const e = list[Math.floor(Math.random() * list.length)];
@@ -349,13 +511,23 @@ export function initForsaken(api) {
 
   // ---------- story: notes, landmarks, sigils, shrines ----------
   F.readNote = (key) => {
+    if (typeof key === "string" && key.startsWith("fortress:")) {
+      const id = key.slice(9);
+      if (fortressNotes().includes(id)) UI.openNote(...FORTRESS_NOTES[id], false);
+      return;
+    }
     const s = fw(), n = NOTES[key] || LATE_NOTES[key];
     if (!n) return;
     const first = !s.notes[key]; s.notes[key] = Date.now();
     UI.openNote(n.title, n.text, first);
     if (first) G.adv("note", key);
   };
-  function noteAt(x, y, z) { const k = x + "," + y + "," + z; return tpl.meta.notes[k] || (fw().extraNotes || {})[k]; }
+  function noteAt(x, y, z) {
+    const site = refuge(), note = site && sanctuaryPoints(site).journal;
+    if (note && note.x === x && note.y === y && note.z === z) return "kingdom-arrival";
+    const key = x + "," + y + "," + z;
+    return tpl.meta.notes[key] || fw().extraNotes?.[key];
+  }
   function tickStory(dt) {
     const s = fw(), p = G.player;
     for (const l of tpl.meta.landmarks) if (!s.seen[l.key] && Math.hypot(p.pos.x - l.x, p.pos.z - l.z) < l.r + 6) { s.seen[l.key] = Date.now(); UI.toast(`Discovered: ${l.name}`, "good"); G.adv("landmark", l.key); if (l.key === "tower") G.adv("tower"); }
@@ -399,6 +571,57 @@ export function initForsaken(api) {
 
   // ---------- interactions with the adventure's blocks ----------
   F.interact = (hit, kind) => {
+    if (reign.interact(hit,kind)) return true;
+    if (kind==="reignExit") {
+      const a=F.fortress()?.arena.exitPortal;
+      if (a && a.x===hit.x && a.y===hit.y && a.z===hit.z && reignWon(fw())) F.leave();
+      else UI.toast("The waystone wakes when the King has fallen.");
+      return true;
+    }
+    if (kind==="personalForsakenSocket") {
+      if (G.dim!=="overworld" || G.guest || G.creative || G.spectator || G.campaign?.on() || !reignGatewaysUnlocked(G.story.fw)) {
+        UI.toast("Personal gateways unlock after defeating Herobrine in Survival."); return true;
+      }
+      const i=G.inv.slots[G.selected]?.id===I.PALE_LANTERN ? G.selected : OFF, slot=G.inv.slots[i];
+      const gates=G.dimData.overworld.personalForsaken ||= [], home=plannedGate();
+      const {x,y,z}=hit;
+      const outcome=activatePersonalGate(G.world,gates,{x,y,z},slot,home && gatewayPoints(home).arch,Date.now());
+      if (outcome==="opened" || outcome==="relit") {
+        if (outcome==="opened" && --slot.n===0) G.inv.slots[i]=null;
+        G.hudDirty=true; Sound.mob("portal",0); UI.toast("Your gateway is linked to the Lantern Ward.","good");
+        saveNow(false);
+      } else UI.toast(({frame:"The arch is incomplete. Check the gateway guide in the Forsaken journal.",
+        landing:"Clear level ground on the south side of the arch.",space:"This arch overlaps a gateway or the world has reached its gateway limit.",
+        lantern:"Hold a Pale Lantern to link this gateway."})[outcome],"bad");
+      return true;
+    }
+    if (interactFortress(hit, kind)) return true;
+    if (fallen.interact(hit, kind)) return true;
+    if (kind === "note" && G.dim === "overworld" && G.dimData.overworld?.forsakenRooms === STRONGHOLD_ROOMS_LAYOUT && plannedGate()) {
+      const j = templeJournal(plannedGate());
+      if (hit.x === j.x && hit.y === j.y && hit.z === j.z) {
+        UI.openNote(legacyTempleNote.title, legacyTempleNote.text, false);
+        return true;
+      }
+    }
+    if (kind === "forsakenSocket") {
+      const gate = G.dim === "overworld" && !G.guest && plannedGate();
+      if (!gate) return true;
+      const { pedestal } = gatewayPoints(gate);
+      if (hit.x !== pedestal.x || hit.y !== pedestal.y || hit.z !== pedestal.z) return true;
+      const slotIndex = G.inv.slots[G.selected]?.id === I.PALE_LANTERN ? G.selected : OFF;
+      const slot = G.inv.slots[slotIndex];
+      const outcome = socketGateway(G.world, gate, slot, Date.now(), G.creative);
+      if (outcome === "opening") {
+        if (!G.creative && --slot.n === 0) G.inv.slots[slotIndex] = null;
+        G.hudDirty = true;
+        Sound.noise(180, 1.7, 0.075 * vol("fwSudden"), 0.5, "lowpass");
+        UI.toast("Pale Lantern socketed. The gateway is waking.", "good");
+        saveNow(false);
+      } else UI.toast(outcome === "active" ? "The Pale Lantern is already socketed." :
+        outcome === "damaged" ? "Clear the passage and repair the obsidian frame." : "Set a Pale Lantern into the pedestal.");
+      return true;
+    }
     if (kind === "note") { const k = inFw() ? noteAt(hit.x, hit.y, hit.z) : null; if (k) F.readNote(k); else UI.toast("The writing has faded."); return true; }
     if (kind === "wardstone") { UI.toast(inFw() ? "The Ward Stone hums. Within its blue ring you are completely safe, always." : "A Ward Stone. It only matters in the Forsaken World."); return true; }
     if (kind === "returngate") { if (inFw()) F.leave(); else UI.toast("The gate is quiet here."); return true; }
@@ -597,7 +820,8 @@ export function initForsaken(api) {
   }
   // hitting Herobrine: decoys pop; the real one only takes damage while all four wards burn
   let passMsgT = 0;
-  F.heroHit = (e, n) => {
+  F.heroHit = (e, n, attacker) => {
+    if (e.convergence) return reign.hit(e,n,attacker);
     if (e.decoy) { e.life = 0; return 0; }
     if (!A().active || e !== hero) { if (performance.now() - passMsgT > 4000) { passMsgT = performance.now(); UI.toast("Your hit passes right through him. In his world, only his citadel's wards can make him solid.", "bad"); } return 0; }
     if (F.arenaPhase() !== 3) { if (performance.now() - passMsgT > 3000) { passMsgT = performance.now(); UI.toast(`He can't be hurt yet: light all four arena wards (${litCount()} of 4 lit).`, "bad"); } return 0; }
@@ -612,6 +836,7 @@ export function initForsaken(api) {
     if (h) { h.still = true; h.chase = null; let t = 0; const rise = setInterval(() => { t += 0.05; h.pos.y += 0.05; puff(h.pos.x, h.pos.y + 1, h.pos.z, "pale"); if (h.mat) { h.mat.transparent = true; h.mat.opacity = Math.max(0, 1 - t / 2.5); } if (t > 2.5) { clearInterval(rise); h.gone = true; } }, 50); }
     clearArenaExtras();
     for (let i = 0; i < 4; i++) setDevice(i, false);
+    if (!s.banished) s.legacySurvivalVictory = !G.creative && !G.guest && !G.spectator && !G.campaign?.on();
     s.banished = Date.now(); H().state = "banished"; s.wins = (s.wins || 0) + 1;
     const flash = document.getElementById("flash"); flash.style.background = "rgba(235,245,255,.55)"; flash.classList.add("on"); setTimeout(() => { flash.classList.remove("on"); setTimeout(() => flash.style.background = "", 500); }, 400);
     Sound.levelUp(); setTimeout(() => Sound.levelUp(), 450);
@@ -627,13 +852,16 @@ export function initForsaken(api) {
     api.victory(first ? "Herobrine is banished!" : "Herobrine is banished again!", first ? "His watch is over. Your rewards: a Pale Effigy trophy, the Wardlight Lantern (hold it and monsters won't appear near you), 32 Pale Bricks, the new Wardkeeper skin, and experience. The mist is lifting. Visit any time." : "The Vale is quiet again. You earned more experience.", { x: C().x + 0.5, y: C().y, z: C().z + 0.5 });
     setTimeout(() => F.readNote("free"), 9500);
   }
-  F.onFaint = () => { if (inFw() && A().active) F.resetFight("you fainted"); clearHero(); };
+  F.onFaint = () => { reign.faint(); if (inFw() && A().active) F.resetFight("you fainted"); clearHero(); };
 
   // ---------- fainting there: a checkpoint to wake at, and a satchel chest holding what you dropped ----------
   F.respawnSpot = () => {
+    const safe = reign.checkpoint();
+    if (safe) return { ...safe, exact:true,name:"the Convergence stair" };
     const s = fw(), sh = s.checkpoint && tpl.meta.shrines.find(q => q.id === s.checkpoint && s.shrines[q.id]);
     if (sh) return { x: sh.x + 2.5, y: sh.y, z: sh.z + 0.5, name: sh.name };
-    const a = tpl.meta.arrival; return { x: a.x, y: a.y, z: a.z, name: "the refuge" };
+    const site = refuge(), a = s.returnTo?.gateway && site ? sanctuaryPoints(site).landing : tpl.meta.arrival;
+    return { x: a.x, y: a.y, z: a.z, name: s.returnTo?.gateway && site ? "the Lantern Ward" : "the refuge" };
   };
   F.satchel = (items, pos) => {   // returns true if it handled the items
     if (!inFw() || !items.length) return false;
@@ -653,12 +881,45 @@ export function initForsaken(api) {
   // ---------- atmosphere ----------
   // Returns the sky settings for this frame (main.js applies them)
   F.sky = () => {
-    const s = fw(), freed = !!s.banished, pale = region(), st = H().state;
-    const danger = st === "warning" ? 1 : st === "hunting" || st === "confrontation" ? 0.8 : st === "stalking" ? 0.35 : 0;
-    const effects = G.settings.fwEffects !== false;
+    const s = fw(), st = H().state, biome = KINGDOM_BIOMES[G.world.biomeAt(G.player.pos.x, G.player.pos.z)];
+    const effects = G.settings.fwEffects !== false && !G.settings.reducedMotion;
+    const danger = st === "warning" || st === "hunting" || st === "confrontation";
     if (warnFx > 0) warnFx = Math.max(0, warnFx - 1 / 60 / 8);
-    const mist = freed ? 0 : Math.min(1, (pale ? 0.5 : 0) + (effects ? danger * 0.5 + warnFx * 0.5 : 0));
-    return { sky: freed ? 0x8a98a8 : 0x4e555c, daylight: freed ? 0.75 : 0.5, ambient: freed ? 0.16 : 0.13, desat: freed ? 0.2 : 0.62, fogNear: freed ? 0.5 : 0.22 - mist * 0.12, fogFar: freed ? 0.95 : 0.72 - mist * 0.3 };
+    const storm = effects ? Math.min(1, ashStorm / 4) : 0;
+    const recovered = reignWon(s) && (biome===KINGDOM_BIOMES.woods || biome===KINGDOM_BIOMES.kingdom || biome===KINGDOM_BIOMES.vale);
+    const haze = effects ? Math.min(0.38, (danger ? 0.08 : 0) + warnFx * 0.09 + storm * 0.13) : 0;
+    return {
+      sky: recovered ? 0x855052 : biome?.haze ?? 0x783443, daylight: (recovered?.73:.66) - haze * .32, ambient: recovered?.29:.24,
+      desat: 0.13, fogNear: (recovered?.48:.36) - haze, fogFar: (recovered?1.04:.96) - haze, storm,
+    };
+  };
+  let ashStorm = 0, nextStorm = 35;
+  function tickWeather(dt) {
+    if (G.wset.weather === false || G.settings.fwEffects === false || G.settings.reducedMotion || G.settings.fx === "low") {
+      ashStorm = 0;
+      return;
+    }
+    const p = G.player;
+    const region = G.world.biomeAt(p.pos.x, p.pos.z);
+    if (region !== "wastelands" || p.pos.y < 22) ashStorm = 0;
+    else if (ashStorm > 0) ashStorm = Math.max(0, ashStorm - dt);
+    else if ((nextStorm -= dt) <= 0) {
+      ashStorm = 11;
+      nextStorm = 50 + Math.random() * 37;
+      api.weatherFlash();
+    }
+    api.emitAsh(ashStorm > 0);
+  }
+  const restorationPlans = new WeakMap();
+  F.restoreChunk = (world,data,c) => {
+    if (!reignWon(G.story.fw) || G.creative || G.spectator || !world.gen.kingdom?.contains(c.cx,c.cz)) return;
+    let marks=restorationPlans.get(world);
+    if (!marks) {
+      marks=restorationSites(world.gen.kingdom.layout,data.fallen?.sites);
+      restorationPlans.set(world,marks);
+    }
+    const mark=marks.find(p=>Math.floor(p.x/CHUNK)===c.cx && Math.floor(p.z/CHUNK)===c.cz);
+    if (mark) restoreClearing(world,data,ents.list,mark);
   };
   let ambT = 4;
   function ambience(dt) {
@@ -685,22 +946,35 @@ export function initForsaken(api) {
     el.querySelector(".fw-eye b").textContent = G.settings.fwWords === false ? "" : words[lvl];
     el.querySelector(".fw-ward").textContent = ward ? `🛡️ Safe inside ${ward.name}${ward.candle ? ` (${Math.ceil(ward.t)} s left)` : ""}` : "";
     const ch = channel ? `Lighting the arena ward… ${Math.round(channel.t / 2 * 100)}%` : A().active ? `Arena wards lit: ${litCount()} of 4` : "";
-    el.querySelector(".fw-task").textContent = ch;
+    el.querySelector(".fw-task").textContent = reign.title() || ch;
   }
 
   // ---------- the main tick (only while playing in the Forsaken World) ----------
   F.tick = dt => {
-    if (!inFw()) { if (hero) clearHero(); hud(); return; }
+    if (!inFw()) { reign.tick(dt); ashStorm = 0; tickGateway(dt); if (hero) clearHero(); hud(); return; }
     tickCandles(dt);
-    if (G.mode === "survival") { director(dt); tickStory(dt); }
+    fallen.tick(dt);
+    const regionId = G.world.biomeAt(G.player.pos.x, G.player.pos.z);
+    if (Object.hasOwn(KINGDOM_BIOMES, regionId)) {
+      const state = fw();
+      const seen = state.kingdomSeen ||= {};
+      if (!seen[regionId]) { seen[regionId] = true; UI.toast("Discovered: " + KINGDOM_BIOMES[regionId].name); }
+    }
+    reign.tick(dt);
+    if (G.mode === "survival") {
+      const peacefulClearing=reignWon(fw()) && (regionId==="woods" || regionId==="kingdom");
+      if (!reign.within() && !reign.active() && !peacefulClearing) director(dt);
+      else if (hero && !hero.boss) { clearHero(); setState("dormant","left the Watcher’s territory"); }
+      tickStory(dt);
+    }
     else if (G.creative) tickStory(dt);
     tickFight(dt);
-    if (hero && hero.glows) { const k = hero.flare > 0 ? 1.8 : 1; for (const g of hero.glows) g.scale.setScalar(0.22 * k); }
     ambience(dt);
+    tickWeather(dt);
     if ((dirT += dt) > 2) { dirT = 0; F.ensureSkull(); }
     hud();
   };
-  F.bossInfo = () => (hero && hero.boss && A().active ? { e: hero, label: `Herobrine • ${F.arenaPhase() === 3 ? "SOLID: strike now!" : `can't be hurt yet • arena wards ${litCount()}/4`}`, frac: (hero.hp ?? 120) / 120 } : null);
+  F.bossInfo = () => reign.info() || (hero && hero.boss && A().active ? { e: hero, label: `Herobrine • ${F.arenaPhase() === 3 ? "SOLID: strike now!" : `can't be hurt yet • arena wards ${litCount()}/4`}`, frac: (hero.hp ?? 120) / 120 } : null);
 
   // ---------- the journal (J) ----------
   F.objective = () => {
@@ -718,17 +992,40 @@ export function initForsaken(api) {
   };
   F.journalHTML = () => {
     const s = fw(), m = tpl ? tpl.meta : null;
-    if (!m) return `<p class="note" style="color:#444">The journal fills in once you've been to the Forsaken World.</p>`;
+    const [chapter, goal] = reignChapter(s,plannedGate(),fortressRecord(),5-missingOaths().length,fallen.markers().some(p=>Object.hasOwn(LAIRS,p.id)));
+    const instructions = `<h4>${chapter}</h4><p class="fw-obj">${goal}</p>
+      ${reignGatewaysUnlocked(s) ? `<p class="note">${PERSONAL_GATE_GUIDE}</p>` : ""}`;
+    const gate = plannedGate(), entrance = gate && gatewayPoints(gate).entrance;
+    const directions = entrance ? `<p class="note">Forsaken Stronghold · X ${Math.floor(entrance.x)}, Z ${Math.floor(entrance.z)}</p>` : "";
+    if (!m) return instructions + (directions || `<p class="note" style="color:#444">The journal fills in once you've been to the Forsaken World.</p>`);
     const places = m.landmarks.map(l => `<li class="${s.seen[l.key] ? "ok" : ""}">${s.seen[l.key] ? "✔" : "?"} ${s.seen[l.key] ? l.name : "Not found yet"}</li>`).join("");
     const shrines = m.shrines.map(sh => `<li class="${s.shrines[sh.id] ? "ok" : ""}">${s.shrines[sh.id] ? "✔ " + sh.name + " (awake)" : "○ " + sh.name}</li>`).join("");
+    const record = fortressRecord(), approach = record?.site && fortressPoints(record.site).approach;
+    const fortressClue = approach
+      ? `<h4>Forsaken Fortress</h4><p class="note">Bridge · X ${approach.x}, Z ${approach.z} · ${record.gateOpen ? "Gate open" : (5-missingOaths().length) + " of 5 guardian oaths"}</p>`
+      : record?.site === null ? '<p class="note">This world has no safe fortress site in the Vale reservation.</p>' : "";
+    const archiveNotes = fortressNotes().map(id => `<button class="chip-btn" data-note="fortress:${id}">${FORTRESS_NOTES[id][0]}</button>`).join("");
     const notes = Object.keys({ ...NOTES, ...LATE_NOTES }).filter(k => s.notes[k]).map(k => `<button class="chip-btn" data-note="${k}">${(NOTES[k] || LATE_NOTES[k]).title}</button>`).join("") || `<span class="note" style="color:#555">No notes yet.</span>`;
     const test = G.creative ? `<div class="fw-test"><b>Creative test controls</b> (only in Creative): <button class="chip-btn" data-fwt="observe">Observe</button><button class="chip-btn" data-fwt="stalk">Stalk</button><button class="chip-btn" data-fwt="hunt">Hunt</button><button class="chip-btn" data-fwt="sigils">Give sigils</button><button class="chip-btn" data-fwt="fight">Start finale</button><button class="chip-btn" data-fwt="light">Light all wards</button></div>` : "";
+    const regions = Object.entries(KINGDOM_BIOMES).filter(([id]) => s.kingdomSeen?.[id]).map(([id, b]) => {
+      const anchor = kingdom()?.anchors?.[id];
+      return anchor ? `<li>${b.name} · X ${anchor.x}, Z ${anchor.z}</li>` : "";
+    }).join("");
+    const markers = fallen.markers().map(v => `<li>${v.name} · X ${v.x}, Z ${v.z}${v.cleared ? " · key earned" : v.seen ? "" : " · clue"}</li>`).join("");
+    const alternativeSites = fallen.alternatives().map(p => `<li>${p.name} · ${p.where} · X ${p.x}, Z ${p.z}
+      ${p.claim ? `<button class="chip-btn" data-fallen-alternative="${p.id}">Claim guardian reward</button>` : ""}</li>`).join("");
     return `<div class="fw-journal">
-      <div><h4>Now</h4><p class="fw-obj">${F.objective()}</p>
-        <h4>Shrines</h4><ul>${shrines}</ul><h4>Places</h4><ul>${places}</ul></div>
+      <div>${instructions}
+        ${reign.within() && !reign.active() ? `<button class="chip-btn" data-reign="${reignWon(s)?"claim":"challenge"}">${reignWon(s)?"Claim royal cache nearby":"Challenge near the altar"}</button>` : ""}
+        <h4>Pale Citadel</h4><p class="fw-obj">${F.objective()}</p>
+        <h4>Shrines</h4><ul>${shrines}</ul><h4>Places</h4><ul>${places}</ul>
+        ${regions && `<h4>Kingdom regions</h4><ul>${regions}</ul>`}${directions}${fortressClue}
+        ${markers && `<h4>Fallen Kingdom landmarks</h4><ul>${markers}</ul>`}
+        ${alternativeSites && `<h4>Outer Reaches guardian routes</h4><p class="note">Explore these haunts to earn keys where new lairs have no open land.</p><ul>${alternativeSites}</ul>`}</div>
       <div><h4>Map</h4><canvas id="fwMap" width="240" height="240"></canvas>
+        ${kingdom() ? '<h4>Kingdom chart</h4><canvas id="fwKingdomMap" width="240" height="240" aria-label="Discovered Forsaken Kingdom regions"></canvas>' : ""}
         <h4>Staying safe</h4><p class="note" style="color:#333">Inside a ward's blue ring you're always safe. Walking and crouching are quiet; running, mining, and fighting draw his attention. When the eye turns red, get to a ward. After he appears he pauses, and his eyes flare before he strikes.</p></div>
-      <div class="fw-notes"><h4>Notes found</h4>${notes}</div>${test}
+      <div class="fw-notes"><h4>Notes found</h4>${notes}${archiveNotes}</div>${test}
       <p class="help">${G.inv.slots.some(q => q && q.id === I.PALE_LANTERN) || G.dim === "forsaken" ? "" : ""}<button class="chip-btn" data-fwt="reset">Start this adventure over…</button> resets only the Forsaken World in this world.</p></div>`;
   };
   F.drawMap = (canvas) => {
@@ -740,11 +1037,41 @@ export function initForsaken(api) {
     for (const sh of m.shrines) if (s.shrines[sh.id]) { x.strokeStyle = "#8ad8ff"; x.beginPath(); x.arc(X(sh.x), X(sh.z), sh.r * sc, 0, 7); x.stroke(); }
     if (G.dim === "forsaken") { const p = G.player; x.fillStyle = "#ff4040"; x.beginPath(); x.arc(X(p.pos.x), X(p.pos.z), 3.5, 0, 7); x.fill(); }
   };
+  F.drawKingdomMap = canvas => {
+    const layout = kingdom();
+    if (!canvas || !layout) return;
+    const ctx = canvas.getContext("2d"), mid = canvas.width / 2, scale = canvas.width / 680;
+    const map = v => mid + v * scale;
+    ctx.fillStyle = "#241923"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#653d58"; ctx.beginPath(); ctx.arc(mid, mid, 177 * scale, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "#544b50"; ctx.fillRect(map(-80), map(-80), 160 * scale, 160 * scale);
+    const dot = (x, z, radius, color, name) => {
+      const xx = map(x), zz = map(z);
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(xx, zz, radius, 0, Math.PI * 2); ctx.fill();
+      ctx.font = "10px sans-serif"; ctx.textAlign = xx > mid ? "right" : "left";
+      ctx.fillStyle = "#f2e3ee";
+      if (name) ctx.fillText(name, xx + (xx > mid ? -4 : 4), zz - 6);
+    };
+    const names = { woods: "Woods", wastelands: "Wastelands", kingdom: "Kingdom", caverns: "Caverns", shattered: "Islands", vale: "Vale" };
+    ctx.fillStyle = "#eadce4"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText("N", mid, 15);
+    const discovered = fw().kingdomSeen;
+    for (const id of Object.keys(KINGDOM_BIOMES)) if (discovered?.[id]) {
+      const a = layout.anchors[id]; dot(a.x, a.z, 4, "#ba72bc", names[id]);
+    }
+    for (const place of fallen.markers()) dot(place.x, place.z, 3, place.cleared ? "#bce08d" : place.seen ? "#ffca8e" : "#b5907a");
+    if (layout.sanctuary) dot(layout.sanctuary.x, layout.sanctuary.z, 3, "#92bbff", "Ward");
+    const site = fortressRecord()?.site;
+    if (site) dot(site.x,site.z,4,"#ff7774","Fortress");
+    if (G.dim === "forsaken") dot(G.player.pos.x, G.player.pos.z, 3, "#ff6161");
+  };
   F.testControl = k => {
     if (k === "reset") {
       UI.confirm("Start the Forsaken World over?", "This puts the whole Forsaken World in this world back to how it began: its map changes, shrines, notes, and Herobrine's progress. Your inventory and the rest of your world aren't touched. (If you're inside, you'll be sent home first.)", async () => {
-        if (G.dim === "forsaken") await F.leave();
-        delete G.dimData.forsaken; const keep = { returnTo: null }; G.story.fw = keep; UI.toast("The Forsaken World is fresh again.", "good"); saveNow(false);
+        if (G.dim === "forsaken") { await F.leave(); if (G.dim === "forsaken") return; }
+        const before=fw(), won=reignWon(before), unlocked=reignGatewaysUnlocked(before);
+        delete G.dimData.forsaken;
+        G.story.fw={returnTo:null, ...(won?{reign:before.reign}:{}),
+          ...(unlocked&&!won?{legacyGatewayUnlock:true}:{}), ...(before.rewarded?{rewarded:before.rewarded}:{})}; UI.toast("The Forsaken World is fresh again.", "good"); saveNow(false);
       }, "Start over");
       return;
     }

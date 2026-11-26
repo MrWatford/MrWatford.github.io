@@ -1143,11 +1143,25 @@ export class ForsakenGen {
   }
   isNether() { return false; }
   isForsaken() { return true; }
-  column(x, z) { return { h: 34, biome: x < -18 && z < -18 ? "pale" : "forsaken" }; }
+  landBiome(col) { return col.biome; }
+  column(x, z) {
+    if (this.kingdom?.contains(Math.floor(x / CHUNK), Math.floor(z / CHUNK))) return this.kingdom.column(x, z);
+    return { h: 34, biome: x < -18 && z < -18 ? "pale" : "forsaken" };
+  }
+  voidAt(x, z) {
+    return this.kingdom?.contains(Math.floor(x / CHUNK), Math.floor(z / CHUNK)) &&
+      this.kingdom.column(x, z).h < 0;
+  }
   findSpawn() { const a = this.t.meta.arrival; return { x: a.x, z: a.z }; }
   inCore(cx, cz) { const lo = this.r / CHUNK, hi = (this.r + this.size) / CHUNK; return cx >= lo && cx < hi && cz >= lo && cz < hi; }
-  generate(cx, cz) {
+  generate(cx, cz, opts = {}) {
     if (this.inCore(cx, cz)) return this.t.chunks.get(cx + "," + cz).slice();
+    if (this.kingdom?.contains(cx, cz)) {
+      const data = this.kingdom.generate(cx, cz);
+      this.kingdom.fallen?.apply(cx, cz, data, opts.addContents);
+      this.kingdom.grandFortress?.apply(cx, cz, data, opts.addContents);
+      return data;
+    }
     // scenery: low misty hills, bare trees, and the edge wall
     const data = new Uint32Array(CHUNK * CHUNK * HEIGHT), x0 = cx * CHUNK, z0 = cz * CHUNK;
     const r = rng(this.seed ^ Math.imul(cx, 83492791) ^ Math.imul(cz, 297121507));

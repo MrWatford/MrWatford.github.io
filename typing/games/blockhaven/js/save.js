@@ -15,6 +15,12 @@ import { validGodzillaRecord } from "./godzilla-encounter.js";
 import { validExpedition } from "./lost-world-campaign.js";
 import { LOST_WORLD_GEN } from "./lost-world.js";
 import { applyChallengeRewards, challengeSummary, checkChallengeWrite } from "./ultra-hardcore.js";
+import { validGateway } from "./forsaken-gateway.js";
+import { validFallen } from "./forsaken-fallen.js";
+import { validPersonalGates } from "./forsaken-personal-gates.js";
+import { validReign, reignWon, applyReignProfile } from "./forsaken-reign.js";
+import { validFortress } from "./forsaken-fortress.js";
+import { KingdomTerrain, validKingdomLayout } from "./forsaken-kingdom.js";
 export const SAVE_VERSION = 4;
 const DB_NAME = "blockhaven-worlds", META = "meta", DATA = "data", PROFILE = "profile", RUNS = "ultra-runs";
 let dbPromise = null, memory = null;   // memory = fallback store when IndexedDB isn't available
@@ -49,6 +55,22 @@ export const Saves = {
   async profile() {
     const db = await openDB();
     return db ? await tx(db, PROFILE, "readonly", s => s.get("local")) : undefined;
+  },
+  async recordReignProfile(id) {
+    const db=await openDB();
+    if (!db) return;
+    return new Promise((resolve,reject)=>{
+      const tr=db.transaction([META,DATA,PROFILE],"readwrite");
+      const profileStore=tr.objectStore(PROFILE), meta=tr.objectStore(META).get(id), data=tr.objectStore(DATA).get(id);
+      let result;
+      data.onsuccess=()=>{
+        if (meta.result?.mode!=="survival" || meta.result?.campaign || !reignWon(data.result?.story?.fw)) return;
+        const old=profileStore.get("local");
+        old.onsuccess=()=>{ result=applyReignProfile(old.result); profileStore.put(result); };
+      };
+      tr.oncomplete=()=>resolve(result);
+      tr.onerror=tr.onabort=()=>reject(tr.error || new Error("The profile update was interrupted."));
+    });
   },
   async challengeHistory() {
     const db = await openDB();
@@ -149,7 +171,22 @@ export const Saves = {
     if (obj.ultra || obj.ultraStatus) throw new Error("Ultra Hardcore runs can only be resumed from their original browser save.");
     const w = upgrade(obj);
     validateDimensions(w.dims);
+    const reign=w.story?.fw?.reign;
+    if (reign!==undefined && !validReign(reign)) throw new Error("This world file contains an invalid Convergence encounter.");
+    const personal=w.dims.overworld?.personalForsaken;
+    if (personal!==undefined && !validPersonalGates(personal)) throw new Error("This world file contains invalid personal Forsaken gateways.");
+    const gateway = w.dims.overworld?.forsakenGateway;
+    if (gateway != null && !validGateway(gateway, w.id)) throw new Error("This world file contains an invalid Forsaken Gateway.");
+    const kingdom = w.dims.forsaken?.kingdom;
+    if (kingdom !== undefined && !validKingdomLayout(kingdom, w.seed)) throw new Error("This world file contains an unsupported Forsaken Kingdom layout.");
+    const fallen = w.dims.forsaken?.fallen;
+    if (fallen !== undefined && (!kingdom || !validFallen(fallen, new KingdomTerrain(kingdom))))
+      throw new Error("This world file contains an invalid Fallen Kingdom layout.");
+    const fortress = w.dims.forsaken?.fortress;
+    if (fortress !== undefined && (!kingdom || !validFortress(fortress, new KingdomTerrain(kingdom), fallen?.sites)))
+      throw new Error("This world file contains an invalid Forsaken Fortress layout.");
     w.id = newId(); w.played = Date.now();
+    if (gateway) gateway.worldId = w.id;
     await this.save(w);
     return w;
   }

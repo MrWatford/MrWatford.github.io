@@ -1,5 +1,6 @@
 // Creatures and moving things: models, animation, movement, path finding, behavior, spawning, and saving.
 // Each species is described by data (size, health, behavior, drops, model) and shares the same body physics.
+import { reignPaint, reignDetails } from "./forsaken-art.js";
 import { stonehavenResidents } from "./stonehaven.js";
 import { villageCropCells } from "./grand-village-build.js";
 import { hasSettlementLife, nearestSettlementThreat, settlementRoutine, settlementThreatIndex, shelterFromThreat } from "./settlement-life.js";
@@ -1049,14 +1050,13 @@ Object.assign(SPECIES, {
       ...[0, 1, 2, 3, 4, 5].map(i => ({ name: "shard" + i, parent: "base", size: [3, 6, 3], pivot: [Math.cos(i * Math.PI / 3) * 18, -6, Math.sin(i * Math.PI / 3) * 18], off: [0, 0, 0], paint: { all: solid(["#8af0e8", "#c8ffff"]) } }))] } }
 });
 // ----- Herobrine (the Forsaken World's watcher) and his Pale Sentinels. js/forsaken.js directs what Herobrine does. -----
-const HSKIN = ["#b98a65", "#b0825e", "#c0926c"], HHAIR = ["#4a2e18", "#422814"], HSHIRT = ["#2fa8b0", "#2a9aa2", "#34b0b8"], HPANTS = ["#3a3aa0", "#34349a", "#40409e"];
 const blankEyes = P => { P.rect(2, 6, 4, 2, "#ffffff"); P.rect(10, 6, 4, 2, "#ffffff"); };   // bright, pupil-less eyes
 Object.assign(SPECIES, {
-  herobrine: { name: "Herobrine", noSave: true, hp: 160, speed: 3.6, w: 0.6, h: 1.95, ai: "herobrine", fireproof: true, xp: 0, sound: "", drops: () => [],
-    model: { type: "humanoid", parts: humanoidParts({ legLen: 12, limb: [4, 12, 4],
-      head: { all: solid(HSKIN), top: solid(HHAIR), back: solid(HHAIR), left: P => { P.fill(HSKIN); P.rect(0, 0, 16, 5, HHAIR[0]); }, right: P => { P.fill(HSKIN); P.rect(0, 0, 16, 5, HHAIR[0]); },
-        front: face(HSKIN, P => { P.rect(0, 0, 16, 4, HHAIR[0]); blankEyes(P); P.rect(7, 9, 2, 2, "#a8784f"); P.rect(5, 12, 6, 1, "#8a5e40"); }) },
-      body: { all: solid(HSHIRT) }, arm: { all: P => { P.fill(HSKIN); P.rect(0, 0, 16, 5, HSHIRT[0]); } }, leg: { all: P => { P.fill(HPANTS); P.rect(0, 13, 16, 3, "#4a4a52"); } } }) } },
+  herobrine: { name:"Herobrine", noSave:true, hp:160, speed:3.6, w:.6, h:1.95, ai:"herobrine",
+    fireproof:true, xp:0, sound:"", drops:()=>[], variants:[0,1,2,3,4],
+    model:{type:"humanoid", parts:[...humanoidParts({legLen:12,limb:[4,12,4],
+      head:{all:reignPaint("head")}, body:{all:reignPaint("body")}, arm:{all:reignPaint("arm")}, leg:{all:reignPaint("leg")}}),
+      ...reignDetails()]} },
   sentinel: { name: "Pale Sentinel", hostile: true, noSave: true, hp: 18, speed: 2.6, w: 0.6, h: 1.95, ai: "melee", dmg: 3, reach: 1.6, xp: 4, sound: "groan", drops: () => [[I.ROTTEN_FLESH, randi(0, 1)]],
     model: { type: "humanoid", armsOut: true, parts: humanoidParts({ legLen: 12, limb: [4, 12, 4],
       head: { all: solid(["#9aa4a8", "#8e989c"]), top: solid(["#5a6064"]), front: face(["#9aa4a8", "#8e989c"], P => { blankEyes(P); P.rect(5, 11, 6, 1, "#5a6064"); }) },
@@ -1742,6 +1742,7 @@ export class Entity {
     this.size = opts.size || (SPECIES[sp].ai === "slime" ? [1, 2, 4][randi(0, 2)] : 1);
     this.tame = !!opts.tame;   // set before health, since tame pets have more
     if (sp === "grizzly_bear") this.variant = opts.variant === 1 && !this.baby ? 1 : 0;
+    if (sp==="herobrine") this.reignForm=Number.isInteger(opts.variant)&&opts.variant>=0&&opts.variant<5 ? opts.variant : 0;
     this.hp = opts.hp ?? this.maxHp;
     this.breedCd = opts.breedCd || 0; this.love = 0; this.sheared = !!opts.sheared; this.eggT = opts.eggT ?? rand(300, 600);
     this.npc = opts.npc || null;   // a named campaign character (js/campaign.js): talks instead of trading, can't be hurt
@@ -1860,7 +1861,7 @@ export class Entities {
     const def = e.def;
     const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife || !!def.mutant || !!def.lostWorldRaptor || !!def.triceratops || !!def.wetlandPredator || !!def.brachiosaurus || !!def.caveCreature || !!def.tyrannosaurus || !!def.godzilla;
     if (!def.geos) makeSpecies(def, shaded);
-    const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.variant] || def.tex, vertexColors: shaded, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
+    const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.reignForm ?? e.variant] || def.tex, vertexColors: shaded, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
     const root = new THREE.Group(), parts = {};
     for (const p of def.model.parts) {
       const pivot = new THREE.Group(); pivot.position.set(p.pivot[0] / 16, p.pivot[1] / 16, p.pivot[2] / 16);
@@ -1873,6 +1874,7 @@ export class Entities {
         partMaterial = e.glowMat;
       }
       const m = new THREE.Mesh(def.geos[p.name], partMaterial); m.position.set(p.off[0] / 16, p.off[1] / 16, p.off[2] / 16);
+      if (p.reignMantle || p.reignCrown) pivot.visible=false;
       pivot.add(m); (p.parent ? parts[p.parent].children[0] : root).add(pivot); parts[p.name] = pivot;
     }
     if (def.model.armsOut) { parts.armR.rotation.x = parts.armL.rotation.x = -Math.PI / 2; }
@@ -2509,7 +2511,7 @@ export class Entities {
       if (h.cancelled?.() || h.owner && (h.owner.gone || h.owner.dead || h.owner.tame)) { h.gone = true; continue; }
       h.t -= dt;
       const inside = Math.hypot(p.pos.x - h.x, p.pos.z - h.z) < h.r && Math.abs(p.pos.y - h.y) < 3;
-      if (h.t > 0) { h.fill.material.opacity = 0.12 + (1 - h.t / h.warn) * 0.3; h.ring.material.opacity = h.steadyWarning && this.ctx.reducedMotion?.() ? 0.65 : 0.5 + Math.sin(h.t * 14) * 0.15; continue; }
+      if (h.t > 0) { h.fill.material.opacity = 0.12 + (1 - h.t / h.warn) * 0.3; h.ring.material.opacity = (h.steadyWarning==="always" || h.steadyWarning && this.ctx.reducedMotion?.()) ? 0.65 : 0.5 + Math.sin(h.t * 14) * 0.15; continue; }
       if (!h.fired) { h.fired = true; for (let k = 0; k < 3; k++) this.ctx.particles(h.x + rand(-h.r, h.r) * 0.6, h.y + 0.3, h.z + rand(-h.r, h.r) * 0.6, h.particle); Sound.mob("fireshoot", this.dist({ pos: h })); h.fill.material.color.setHex(h.color ?? 0xffb030); h.fill.material.opacity = 0.45; }
       if (inside && h.dmg > 0 && (h.hitT -= dt) <= 0) { h.hitT = 0.5; this.ctx.hurtPlayer(h.dmg * ({ peaceful: 0, easy: 0.67, normal: 1, hard: 1.5 }[this.ctx.settings().difficulty] ?? 1), h.why, h.owner || null, h.damageKind); if (h.statusEffect) this.ctx.effect(h.statusEffect, 3); }
       if (h.t < -Math.max(0.35, h.burn)) h.gone = true;
@@ -3705,7 +3707,7 @@ export class Entities {
     if (e.def.hears && attacker === "player") { e.alertT = Math.max(e.alertT || 0, 10); e.dormant = false; }
     if (e.def.lostBoss && this.bossAI) { n = this.bossAI.hit(this, e, n, attacker); knock = null; if (!n) return false; }
     if (e.def.mutant && this.mutantHit) { n = this.mutantHit(this, e, n, attacker); knock = null; if (!n) return false; }   // the Forsaken Mutants' rules (js/mutants.js)
-    if (e.sp === "herobrine") { n = this.ctx.heroHit ? this.ctx.heroHit(e, n) : 0; knock = null; if (!n) { e.iframes = 0.3; this.ctx.particles(e.pos.x, e.pos.y + 1.2, e.pos.z, "pale"); return false; } }
+    if (e.sp === "herobrine") { n = this.ctx.heroHit ? this.ctx.heroHit(e, n, attacker) : 0; knock = null; if (!n) { e.iframes = 0.3; this.ctx.particles(e.pos.x, e.pos.y + 1.2, e.pos.z, "pale"); return false; } }
     // Cindermaw: half damage in the air, full when landed, 1.5× when worn out; the pylons' shield blocks most of it
     if (e.sp === "cindermaw") { n *= e.perched ? (e.tired ? 1.5 : 1) : 0.5; if (e.shielded) n *= 0.2; if (attacker === "explosion") n *= 0.3; knock = null; if (e.shielded) this.ctx.particles(e.pos.x, e.pos.y + 2, e.pos.z, "ember"); }
     if (e.sp === "blightking") { knock = null; if (attacker === "explosion") n *= 0.2; }
@@ -4188,7 +4190,7 @@ export class Entities {
   // ----- animation -----
   animate(e, dt, d2, daylight, guardianDying = 0) {
     const def = e.def, P = e.parts, sp = Math.hypot(e.vel.x, e.vel.z), swing = Math.sin(e.walkPhase * 2.2) * Math.min(1, sp / 2) * 0.9;
-    e.mesh.position.set(e.pos.x, e.pos.y - (def.segmentedLeviathan ? e.burrowDepth || 0 : 0), e.pos.z);
+    e.mesh.position.set(e.pos.x, e.pos.y + (e.reignLift || 0) - (def.segmentedLeviathan ? e.burrowDepth || 0 : 0), e.pos.z);
     e.mesh.rotation.y = e.yaw + Math.PI;
     const s = e.scale * (shoulderPerched(e) ? 0.35 : 1); e.root.scale.setScalar(s);
     if (e.guardianView) {
@@ -4324,6 +4326,12 @@ export class Entities {
         if (e.raise > 0) { P.armR.rotation.x = -Math.PI / 2 - e.raise * 0.6; P.armL.rotation.x = -Math.PI / 2 - e.raise * 0.6; }
         if (e.point) { P.armR.rotation.x = -Math.PI / 2; }
         P.head.rotation.x = e.headPitch || 0;
+        const crowned = e.reignForm===2 || e.reignForm===4;
+        P.kingBand.visible=P["kingPeak-1"].visible=P.kingPeak0.visible=P.kingPeak1.visible=crowned;
+        const armored = crowned || e.reignForm===3;
+        P.kingMantle.visible=P.kingShoulderL.visible=P.kingShoulderR.visible=armored;
+        P.eyeR.visible=P.eyeL.visible=!e.decoy;
+        P.eyeR.scale.x=P.eyeL.scale.x=e.flare>0?1.10:1;
       }
     } else if (t === "quad" || t === "creeper") {
       if (P.legFR) { P.legFR.rotation.x = swing; P.legBL.rotation.x = swing; P.legFL.rotation.x = -swing; P.legBR.rotation.x = -swing; }

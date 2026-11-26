@@ -56,7 +56,7 @@ export function applyChallengeRewards(profile, world) {
   const days = Math.floor(run.elapsed / UHC_DAY);
   for (const skin of UHC_SKINS) if (skin.day <= days && (skin.day < 3 || run.status === "completed")) skins.add(skin.id);
   return {
-    id: "local", skins: [...skins], lastDawn: Boolean(profile?.lastDawn || run.status === "completed")
+    ...profile, id: "local", skins: [...skins], lastDawn: Boolean(profile?.lastDawn || run.status === "completed")
   };
 }
 

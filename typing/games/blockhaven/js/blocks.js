@@ -216,6 +216,26 @@ Object.assign(I, { BREEZE_ROD: 1036, WIND_CHARGE: 1037 });
 // Milestone 24, Part D: Infested Stone and the Sniffer's ancient plants (blocks 564-568, after the Campfire's 563); Glow Ink Sac and ancient seeds (items 1038-1040)
 Object.assign(B, { INFESTED_STONE: nb(564), TORCHFLOWER_CROP: nb(565), TORCHFLOWER: nb(566), PITCHER_CROP: nb(567), PITCHER_PLANT: nb(568) });
 Object.assign(I, { GLOW_INK_SAC: 1038, TORCHFLOWER_SEEDS: 1039, PITCHER_POD: 1040 });
+// Forsaken Kingdom materials and items follow the public Milestone 24 reservations.
+Object.assign(B, {
+  FORSAKEN_STONE: nb(569), FORSAKEN_BRICKS: nb(570), FORSAKEN_CRACKED: nb(571),
+  ASH_SOIL: nb(572), DEADWOOD_LOG: nb(573), DEADWOOD_PLANKS: nb(574), CRIMSON_BRIAR: nb(575),
+  VIOLET_CLUSTER: nb(576), SCARLET_CLUSTER: nb(577), FORSAKEN_EYE: nb(578), FORSAKEN_SOCKET: nb(579),
+  FORSAKEN_VEIL: nb(580), FORSAKEN_RUNE: nb(581), FORSAKEN_MOSSY: nb(582),
+  FORSAKEN_GLASS: nb(583), FORSAKEN_PANE: nb(584), FORSAKEN_SLAB: nb(585),
+  FORSAKEN_STAIRS: nb(586), FORSAKEN_WALL: nb(587),
+  VIOLET_FALL: nb(588), FORSAKEN_BANNER: nb(589), VIOLET_ORE: nb(590), SCARLET_ORE: nb(591),
+  PALE_LAMP: nb(592), CRIMSON_LAMP: nb(593), VIOLET_LAMP: nb(594),
+  LAIR_SEAL: nb(595), LAIR_NODE: nb(596), LAIR_WEB: nb(597),
+  FORTRESS_PLINTH: nb(598), FORTRESS_SHELF: nb(599), CRIMSON_LEAVES: nb(600), CONVERGENCE_ALTAR: nb(601), ROYAL_CACHE: nb(602),
+  HEROBRINE_TROPHY: nb(603), PERSONAL_FORSAKEN_SOCKET: nb(604), CONVERGENCE_EXIT: nb(605),
+});
+Object.assign(I, {
+  CRYPT_KEY: 1041, BONE_KEY: 1042, BLAST_KEY: 1043, WEB_KEY: 1044, VOID_KEY: 1045,
+  CRYPT_TROPHY: 1046, BASTION_TROPHY: 1047, CRATER_TROPHY: 1048, NEST_TROPHY: 1049, SHRINE_TROPHY: 1050,
+  FORSAKEN_BLADE: 1051, HEROBRINE_CROWN: 1052, CORRUPTION_CRYSTAL: 1053,
+  FORSAKEN_HELMET: 1054, FORSAKEN_CHEST: 1055, FORSAKEN_LEGS: 1056, FORSAKEN_BOOTS: 1057,
+});
 export const DISC_ITEMS = [I.DISC_SUNRISE, I.DISC_WALTZ, I.DISC_CAVES, I.DISC_BREEZE, I.DISC_STARLIGHT];
 export const isCrop = id => id === B.WHEAT || id === B.CARROTS || id === B.POTATOES || id === B.BEETROOTS || id === B.TORCHFLOWER_CROP || id === B.PITCHER_CROP;   // the 8-stage farm crops
 export const woolOf = C => C === "WHITE" ? B.WOOL : C === "BLACK" ? B.BLACK_WOOL : B[C + "_WOOL"];
@@ -553,7 +573,7 @@ block(B.LIGHTNING_ROD, "Lightning Rod", { shape: "model", render: "cutout", soli
 // Milestone 21, Part C. Ladder meta = which way its wall is (DIR); lantern meta 1 = hanging; candle meta bits 0-1 = how many - 1, bit 2 = lit.
 block(B.LADDER, "Ladder", { shape: "model", render: "cutout", hardness: 0.4, tool: "axe", tex: "ladder", icon: "tile:ladder", climb: true });
 block(B.SCAFFOLDING, "Scaffolding", { render: "cutout", hardness: 0, tex: ["scaffolding_top", "scaffolding_side", "scaffolding_top"], climb: true, scaffold: true });
-block(B.LANTERN, "Lantern", { shape: "model", render: "cutout", hardness: 3.5, tool: "pick", light: 15, tex: "lantern", icon: "tile:lantern", category: "Useful" });
+block(B.LANTERN, "Lantern", { lantern: true, shape: "model", render: "cutout", hardness: 3.5, tool: "pick", light: 15, tex: "lantern", icon: "tile:lantern", category: "Useful" });
 block(B.CANDLE, "Candle", { shape: "model", render: "cutout", solid: false, hardness: 0.1, tex: "candle", icon: "tile:candle", candle: true, category: "Useful" });
 block(B.GLASS_PANE, "Glass Pane", { shape: "model", render: "cutout", hardness: 0.3, drops: 0, tex: "glass", icon: "tile:glass", pane: true });
 block(B.IRON_BARS, "Iron Bars", { shape: "model", render: "cutout", hardness: 5, tool: "pick", tier: 1, tex: "iron_bars", icon: "tile:iron_bars", pane: true });
@@ -633,6 +653,56 @@ block(B.CAULDRON, "Cauldron", { shape: "model", render: "cutout", hardness: 2, t
 defs[B.CAULDRON].job = "leatherworker"; defs[B.BEEHIVE].job = "beekeeper";   // Milestone 23: these existing blocks are job blocks too
 block(B.ENCH_TABLE, "Enchanting Table", { shape: "model", render: "cutout", hardness: 5, tool: "pick", tier: 1, light: 7, interact: "enchant", tex: ["ench_top", "ench_side", "obsidian"], iconBox: 12 / 16, category: "Useful" });
 
+const FORSAKEN_MASONRY = { hardness: 2, tool: "pick", tier: 1, category: "Forsaken Kingdom" };
+for (const [id, name, tex] of [
+  [B.FORSAKEN_STONE, "Forsaken Stone", "forsaken_stone"],
+  [B.FORSAKEN_BRICKS, "Forsaken Bricks", "forsaken_bricks"],
+  [B.FORSAKEN_CRACKED, "Cracked Forsaken Bricks", "forsaken_cracked"],
+  [B.FORSAKEN_MOSSY, "Mossy Forsaken Bricks", "forsaken_mossy"],
+  [B.FORSAKEN_RUNE, "Forsaken Rune Tile", "forsaken_rune"],
+]) block(id, name, { ...FORSAKEN_MASONRY, tex });
+const FORSAKEN_SHAPE = { ...FORSAKEN_MASONRY, tex: "forsaken_bricks", mat: B.FORSAKEN_BRICKS, shape: "model", render: "cutout" };
+block(B.FORSAKEN_SLAB, "Forsaken Brick Slab", { ...FORSAKEN_SHAPE, slab: true, iconBox: 0.5 });
+block(B.FORSAKEN_STAIRS, "Forsaken Brick Stairs", { ...FORSAKEN_SHAPE, stairs: true, iconShape: "stairs" });
+block(B.FORSAKEN_WALL, "Forsaken Brick Wall", { ...FORSAKEN_SHAPE, wall: true, iconShape: "wall" });
+block(B.ASH_SOIL, "Ash Soil", { hardness: 0.55, tool: "shovel", tex: "forsaken_ash", category: "Forsaken Kingdom" });
+block(B.DEADWOOD_LOG, "Deadwood Log", { hardness: 2, tool: "axe", log: true, tex: ["forsaken_log_top", "forsaken_log", "forsaken_log_top"], category: "Forsaken Kingdom" });
+block(B.DEADWOOD_PLANKS, "Deadwood Planks", { hardness: 2, tool: "axe", tex: "forsaken_planks", category: "Forsaken Kingdom" });
+block(B.CRIMSON_BRIAR, "Crimson Briar", { shape: "cross", solid: false, render: "cutout", hardness: 0.25, tex: "forsaken_briar", category: "Forsaken Kingdom" });
+block(B.VIOLET_CLUSTER, "Violet Corruption Cluster", { ...FORSAKEN_MASONRY, shape: "cross", solid: false, render: "cutout", tex: "forsaken_violet", light: 11, icon: "tile:forsaken_violet" });
+block(B.SCARLET_CLUSTER, "Scarlet Corruption Cluster", { ...FORSAKEN_MASONRY, shape: "cross", solid: false, render: "cutout", tex: "forsaken_scarlet", light: 10, icon: "tile:forsaken_scarlet" });
+block(B.FORSAKEN_GLASS, "Corrupted Glass", { hardness: 0.3, render: "cutout", drops: 0, tex: "forsaken_glass", category: "Forsaken Kingdom" });
+block(B.FORSAKEN_PANE, "Corrupted Glass Pane", { shape: "model", render: "cutout", pane: true, hardness: 0.3, drops: 0, tex: "forsaken_glass", iconShape: "pane", category: "Forsaken Kingdom" });
+block(B.FORSAKEN_EYE, "White-Eye Carving", { ...FORSAKEN_MASONRY, tex: "forsaken_eye", light: 4 });
+block(B.FORSAKEN_SOCKET, "Pale Lantern Pedestal", { hardness: Infinity, drops: 0, noItem: true, tex: ["forsaken_socket_top", "forsaken_socket", "forsaken_bricks"], interact: "forsakenSocket", category: "Forsaken Kingdom" });
+block(B.FORSAKEN_VEIL, "Forsaken Gateway", { shape: "portal", render: "water", solid: false, hardness: Infinity, drops: 0, noItem: true, tex: "forsaken_veil", light: 13 });
+block(B.VIOLET_FALL, "Corruption Falls", { shape: "cross", solid: false, render: "cutout", hardness: 0, drops: 0, noItem: true, tex: "forsaken_fall", light: 9 });
+block(B.FORSAKEN_BANNER, "Forsaken Eye Banner", { shape: "model", render: "cutout", solid: false, hardness: 1, tool: "axe", tex: "forsaken_banner", iconShape: "banner", banner: true, category: "Forsaken Kingdom" });
+block(B.VIOLET_ORE, "Violet Corruption Ore", { ...FORSAKEN_MASONRY, tex: "forsaken_violet_ore", drops: B.VIOLET_CLUSTER, light: 3 });
+block(B.SCARLET_ORE, "Scarlet Corruption Ore", { ...FORSAKEN_MASONRY, tex: "forsaken_scarlet_ore", drops: B.SCARLET_CLUSTER, light: 3 });
+for (const [id, name, tex] of [
+  [B.PALE_LAMP, "Pale Ward Lantern", "forsaken_pale_lamp"],
+  [B.CRIMSON_LAMP, "Crimson Lantern", "forsaken_crimson_lamp"],
+  [B.VIOLET_LAMP, "Violet Lantern", "forsaken_violet_lamp"],
+]) block(id, name, { lantern: true, shape: "model", render: "cutout", hardness: 3, tool: "pick", light: 14, tex, icon: "tile:" + tex, category: "Forsaken Kingdom" });
+block(B.LAIR_SEAL, "Guardian Seal", { ...FORSAKEN_MASONRY, hardness: Infinity, noItem: true, drops: 0, interact: "fallenSeal", light: 8, tex: "lair_seal" });
+block(B.LAIR_NODE, "Corruption Seal", { ...FORSAKEN_MASONRY, hardness: Infinity, noItem: true, drops: 0, interact: "fallenNode", light: 10, tex: "lair_verdigris" });
+block(B.LAIR_WEB, "Hanging Silk", { shape: "cross", render: "cutout", solid: false, hardness: 0.35, tool: "shears", drops: I.STRING, tex: "lair_web", icon: "tile:lair_web", category: "Forsaken Kingdom" });
+block(B.FORTRESS_PLINTH, "Plinth of Five Oaths", { hardness: Infinity, drops: 0, noItem: true,
+  interact: "fortressGate", tex: ["forsaken_eye", "forsaken_rune", "forsaken_bricks"], light: 7 });
+block(B.FORTRESS_SHELF, "Worn Archive Shelf", { hardness: Infinity, drops: 0, noItem: true,
+  interact: "fortressShelf", tex: ["planks", "worn_bookshelf", "planks"] });
+block(B.CRIMSON_LEAVES, "Crimson Leaves", { hardness: 0.2, render: "cutout", drops: "leaves",
+  tex: "forsaken_canopy", category: "Forsaken Kingdom" });
+block(B.CONVERGENCE_ALTAR,"Convergence Altar",{ ...FORSAKEN_MASONRY, noItem:true, hardness:Infinity,
+  drops:0, light:11, interact:"reignAltar", tex:["forsaken_eye_lit","forsaken_rune","forsaken_bricks"] });
+block(B.ROYAL_CACHE,"Royal Cache",{ ...FORSAKEN_MASONRY, noItem:true, hardness:Infinity,
+  drops:0, light:9, interact:"reignCache", tex:["forsaken_socket_lit","forsaken_bricks","forsaken_rune"] });
+block(B.HEROBRINE_TROPHY,"Herobrine Trophy",{ ...FORSAKEN_MASONRY, tex:"reign_trophy", light:5 });
+block(B.PERSONAL_FORSAKEN_SOCKET,"Personal Forsaken Pedestal",{ ...FORSAKEN_MASONRY, interact:"personalForsakenSocket",
+  tex:["forsaken_socket_top","forsaken_socket","forsaken_bricks"], desc:"Use with a Pale Lantern at a complete Forsaken arch after victory." });
+block(B.CONVERGENCE_EXIT,"Convergence Waystone",{ ...FORSAKEN_MASONRY, hardness:Infinity, drops:0, noItem:true,
+  light:11, interact:"reignExit", tex:["forsaken_eye_lit","forsaken_veil","forsaken_rune"] });
 export const BEACON_BASE =[B.IRON_BLOCK, B.GOLD_BLOCK, B.JADE_BLOCK, B.SKY_BLOCK, B.DUSK_BLOCK];
 export const ANCHOR_MAX = 4;
 for (const id of [B.SAND, B.RED_SAND, B.GRAVEL]) defs[id].falls = true;   // Milestone 18, Part B: they fall when nothing holds them up
@@ -694,7 +764,8 @@ export const isGate = id => id >= B.OAK_GATE && id <= B.WARPED_GATE;
 export const isButton = id => id >= B.STONE_BUTTON && id <= B.WARPED_BUTTON;
 export const isPlate = id => id >= B.OAK_PLATE && id <= B.IRON_PLATE;
 export const lightOf = v => (v & ID_MASK) === B.CAKE ? ((metaOf(v) & 24) === 24 ? 3 : 0) : CANDLE[v & ID_MASK] ? (metaOf(v) & 4 ? 3 * ((metaOf(v) & 3) + 1) : 0) : ((idOf(v) === B.FURNACE || idOf(v) === B.SMOKER || idOf(v) === B.BLAST_FURNACE || idOf(v) === B.CAMPFIRE) && (metaOf(v) & LIT)) ? 13 : idOf(v) === B.SEA_PICKLE ? 6 + 3 * (metaOf(v) & 3) : idOf(v) === B.CAVE_VINES ? (metaOf(v) & 1 ? 14 : 0) : idOf(v) === B.SPARK_LAMP ? (metaOf(v) & 1 ? 15 : 0) : idOf(v) === B.SPARK_TORCH ? (metaOf(v) & UNLIT ? 0 : 7) :
-  (idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) ? (metaOf(v) & 1 ? 9 : 0) : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 : EMIT[v & ID_MASK];
+  (idOf(v) === B.SPARK_ORE || idOf(v) === B.DARK_SPARK_ORE) ? (metaOf(v) & 1 ? 9 : 0) : idOf(v) === B.RESPAWN_ANCHOR ? [0, 3, 7, 11, 15][Math.min(4, metaOf(v) & 7)] : (idOf(v) === B.WARD_ALTAR || idOf(v) === B.ARENA_WARD) && (metaOf(v) & 1) ? 14 :
+  (idOf(v)===B.FORSAKEN_SOCKET || idOf(v)===B.PERSONAL_FORSAKEN_SOCKET || idOf(v)===B.FORSAKEN_EYE) && (metaOf(v) & 1) ? 14 : EMIT[v & ID_MASK];
 
 // ---------- Items ----------
 const items = {};
@@ -931,6 +1002,19 @@ for (const [key, label, points, dur, set] of [
       "2: 25% less fire damage. 4: 60% less fire damage and +2 melee damage to Sand Stalkers, Sand Wraiths, Desert Burrowers and Obsidian Crawlers. Crouch + use empty hand: 5s shield, 30s cooldown, 3 durability per piece."
   });
 });
+PIECES.forEach(([piece, , icon],slot) => {
+  item(I["FORSAKEN_"+piece], "Forsaken "+["Helm","Chestplate","Leggings","Boots"][slot], {
+    icon:"armor_"+icon, colors:["#49344e","#b43a61"], kind:"armor", stack:1, category:"Tools",
+    armor:{slot,points:[3,8,6,3][slot],dur:760}, armorStyle:"forsaken", desc:"Obsidian plate tempered with corruption crystal."
+  });
+});
+item(I.HEROBRINE_CROWN,"Crown of Herobrine",{ icon:"royal_crown", armorStyle:"reign_crown", colors:["#6f384e","#e65766"], kind:"armor",
+  stack:1, category:"Tools", armor:{slot:0,points:3,dur:680}, desc:"A wearable memento of the Forsaken King." });
+item(I.FORSAKEN_BLADE,"Blade of the Forsaken",{ icon:"reign_blade", colors:["#c05189","#302037"], kind:"tool",
+  stack:1, category:"Tools", tool:{type:"sword",tier:5,speed:10,dur:1750,damage:8},
+  desc:"An obsidian blade with a crimson crystal edge." });
+item(I.CORRUPTION_CRYSTAL,"Royal Corruption Crystal",{ icon:"reign_crystal", colors:["#de5293","#582272"],
+  stack:32,category:"Forsaken Kingdom",desc:"A rare material recovered from the royal cache." });
 item(I.FANGBLADE, "Leviathan Fangblade", { icon: "sword", colors: ["#efd092", "#97693c"], kind: "tool", stack: 1, category: "Tools",
   tool: { type: "sword", tier: 4, speed: 9, dur: 900, damage: 7 }, desc: "Right-click: sand wave. 8 second cooldown. Costs 3 durability." });
 item(I.INFERNO_GREATBLADE, "Inferno Greatblade", { icon: "sword", colors: ["#e7864b", "#453040"], kind: "tool", stack: 1, category: "Tools",
@@ -1032,6 +1116,17 @@ item(I.DRAGON_BREATH, "Wyrm's Breath", { icon: "bottle", colors: ["#c060ff"], ca
 SPAWN_EGGS.push(...WILDLIFE_EGGS);
 export const spawnEggId = index => index < I.FISHING_ROD - I.SPAWN ? I.SPAWN + index : I.SPAWN_OVERFLOW + index - (I.FISHING_ROD - I.SPAWN);
 SPAWN_EGGS.forEach(([key, name, a, b], i) => item(spawnEggId(i), name + " Spawn Egg", { icon: "spawn_egg", colors: [a, b], kind: "spawn", species: key, category: "Creatures" }));
+for (const [id, name, color] of [
+  [I.CRYPT_KEY, "Crypt Key", "#88b366"], [I.BONE_KEY, "Bone Key", "#d7cbb0"], [I.BLAST_KEY, "Blast Key", "#e7a053"],
+  [I.WEB_KEY, "Web Key", "#d0a5d0"], [I.VOID_KEY, "Void Key", "#bd80e9"],
+]) item(id, name, { category: "Forsaken Kingdom", icon: "lair_key", colors: [color], stack: 1, quest: true });
+for (const [id, name, colors] of [
+  [I.CRYPT_TROPHY, "Zombie Guardian Trophy", ["#435637", "#dcebb7", "#79d26a"]],
+  [I.BASTION_TROPHY, "Skeleton Guardian Trophy", ["#c4bea9", "#2a2a34", "#e9e0c9"]],
+  [I.CRATER_TROPHY, "Creeper Guardian Trophy", ["#536735", "#241e23", "#ee934d"]],
+  [I.NEST_TROPHY, "Spider Guardian Trophy", ["#30293c", "#d7566b", "#bc84ed"]],
+  [I.SHRINE_TROPHY, "Enderman Guardian Trophy", ["#241b31", "#d0a7ff", "#9450b6"]],
+]) item(id, name, { category: "Forsaken Kingdom", icon: "fs_trophy", colors, stack: 1 });
 export const ITEMS = items;
 export const itemDef = id => items[id];
 export const isBlockItem = id => id > 0 && (id < 256 || (id >= 65536 && !!defs[id]));
@@ -1040,6 +1135,10 @@ export const isBlockItem = id => id > 0 && (id < 256 || (id >= 65536 && !!defs[i
 // Ingredient ids can be a tag like "planks" meaning any kind of planks.
 export const TAGS = { planks: [B.PLANKS, B.BIRCH_PLANKS, ...NEW_WOODS.map(([K]) => B[K + "_PLANKS"])], logs: [B.LOG, B.BIRCH_LOG, ...NEW_WOODS.map(([K]) => B[K + "_LOG"])] };
 export const RECIPES = [
+  { out:[B.PERSONAL_FORSAKEN_SOCKET,1], ins:[[B.OBSIDIAN,4],[B.FORSAKEN_RUNE,2],[B.VIOLET_CLUSTER,1]], table:true },
+  { out:[I.FORSAKEN_BLADE,1], ins:[[I.CORRUPTION_CRYSTAL,2],[I.DUSK_SWORD,1]], table:true, upgrade:true },
+  ...PIECES.map(([piece]) => ({out:[I["FORSAKEN_"+piece],1],
+    ins:[[I.CORRUPTION_CRYSTAL,1],[I["DUSK_"+piece],1]], table:true, upgrade:true })),
   ...["HELMET", "CHEST", "LEGS", "BOOTS"].map((piece, slot) => ({
     out: [I["ANCIENT_" + piece], 1], ins: [[I.ANCIENT_PLATE, [1, 3, 2, 2][slot]], [I.SKYSHARD, [3, 5, 4, 2][slot]]], table: true
   })),
@@ -1216,6 +1315,18 @@ export const RECIPES = [
   { out: [B.BLACK_WOOL, 1], ins: [[B.WOOL, 1], [I.INK_SAC, 1]] },
   { out: [B.SHELL_BOX, 1], ins: [[I.SHELL, 2], [B.CHEST, 1]], table: true },
   { out: [I.SHIELD, 1], ins: [["planks", 6], [I.IRON_INGOT, 1]], table: true },
+  { out: [B.DEADWOOD_PLANKS, 4], ins: [[B.DEADWOOD_LOG, 1]] },
+  { out: [B.FORSAKEN_BRICKS, 4], ins: [[B.FORSAKEN_STONE, 4]], table: true },
+  { out: [B.FORSAKEN_SLAB, 6], ins: [[B.FORSAKEN_BRICKS, 3]], table: true },
+  { out: [B.FORSAKEN_STAIRS, 4], ins: [[B.FORSAKEN_BRICKS, 6]], table: true },
+  { out: [B.FORSAKEN_WALL, 6], ins: [[B.FORSAKEN_BRICKS, 6]], table: true },
+  { out: [B.PALE_LAMP, 1], ins: [[B.LANTERN, 1], [I.PALE_SHARD, 1]] },
+  { out: [B.CRIMSON_LAMP, 1], ins: [[B.LANTERN, 1], [B.SCARLET_CLUSTER, 1]] },
+  { out: [B.VIOLET_LAMP, 1], ins: [[B.LANTERN, 1], [B.VIOLET_CLUSTER, 1]] },
+  { out: [B.FORSAKEN_BANNER, 1], ins: [[B.RED_BANNER, 1], [B.VIOLET_CLUSTER, 1]] },
+  { out: [B.FORSAKEN_RUNE, 4], ins: [[B.FORSAKEN_BRICKS, 4], [B.VIOLET_CLUSTER, 1]], table: true },
+  { out: [B.FORSAKEN_GLASS, 4], ins: [[B.GLASS, 4], [B.VIOLET_CLUSTER, 1]], table: true },
+  { out: [B.FORSAKEN_PANE, 16], ins: [[B.FORSAKEN_GLASS, 6]], table: true },
   { out: [I.PALE_LANTERN, 1], ins: [[I.PALE_SHARD, 4], [B.SHINESTONE, 1], [I.IRON_INGOT, 2]], table: true },
   { out: [B.WARD_CANDLE, 2], ins: [[I.PALE_SHARD, 1], [I.HONEYCOMB, 1], [I.STRING, 1]], table: true },
   { out: [B.WARD_CANDLE, 1], ins: [[I.PALE_SHARD, 1], [I.STRING, 1], [I.COAL, 1]], table: true },
@@ -1388,7 +1499,13 @@ const TILE_NAMES = ["grass_top", "grass_side", "dirt", "stone", "cobble", "sand"
   "smoker_top", "smoker_side", "smoker_front", "smoker_front_lit", "blast_top", "blast_side", "blast_front", "blast_front_lit", "barrel_top", "barrel_side", "stonecutter_top", "stonecutter_side", "lectern_top", "lectern_side",   // Milestone 23, Part A
   "potatoes0", "potatoes1", "potatoes2", "potatoes3", "beetroots0", "beetroots1", "beetroots2", "beetroots3", "pumpkin_top", "pumpkin_side", "carved_pumpkin", "jack_o_lantern",   // Milestone 22, Part A
   "ladder", "scaffolding_top", "scaffolding_side", "lantern", "candle", "candle_flame", "iron_bars",   // Milestone 21, Part C
-  "torchflower0", "torchflower1", "torchflower2", "torchflower3", "torchflower", "pitcher0", "pitcher1", "pitcher2", "pitcher3", "pitcher_plant"];   // Milestone 24, Part D
+  "torchflower0", "torchflower1", "torchflower2", "torchflower3", "torchflower", "pitcher0", "pitcher1", "pitcher2", "pitcher3", "pitcher_plant",   // Milestone 24, Part D
+  "forsaken_stone", "forsaken_bricks", "forsaken_cracked", "forsaken_mossy", "forsaken_ash",
+  "forsaken_log_top", "forsaken_log", "forsaken_planks", "forsaken_briar", "forsaken_violet", "forsaken_scarlet",
+  "forsaken_eye", "forsaken_eye_lit", "forsaken_socket", "forsaken_socket_top", "forsaken_socket_lit", "forsaken_veil",
+  "forsaken_rune", "forsaken_glass", "forsaken_fall", "forsaken_banner", "forsaken_violet_ore", "forsaken_scarlet_ore",
+  "forsaken_pale_lamp", "forsaken_crimson_lamp", "forsaken_violet_lamp",
+  "lair_seal", "lair_verdigris", "lair_amethyst", "lair_egg", "lair_node_clear", "lair_web", "forsaken_canopy", "reign_trophy"];   // Milestone 21, Part C
 export const ATLAS_W = 256, ATLAS_H = 1024;   // pixels: 16 tiles across, 64 down (doubled for Milestone 21's colors)
 export const TILE = {};
 TILE_NAMES.forEach((n, i) => { TILE[n] = i; });
@@ -1406,6 +1523,12 @@ export function faceTile(v, dir, front) {
   if (idOf(v) === B.ANCHOR_STATION && dir === 0 && (metaOf(v) & 1)) return TILE.anchor_top_on;
   if (idOf(v) === B.KEEPER_SWITCH && dir === 0 && (metaOf(v) & 1)) return TILE.switch_top_on;
   if (idOf(v) === B.SUN_MIRROR && dir === 0 && (metaOf(v) & 1)) return TILE.mirror_top_on;
+  if (idOf(v) === B.LAIR_NODE) {
+    const state = metaOf(v);
+    return TILE[state & 16 ? "lair_node_clear" : ["lair_verdigris", "lair_amethyst", "lair_egg"][state & 3] || "lair_verdigris"];
+  }
+  if (idOf(v) === B.FORSAKEN_EYE && (metaOf(v) & 1)) return TILE.forsaken_eye_lit;
+  if (idOf(v) === B.FORSAKEN_SOCKET && dir === 0 && (metaOf(v) & 1)) return TILE.forsaken_socket_lit;
   if (idOf(v) === B.ARENA_WARD && dir !== 2 && (metaOf(v) & 1)) return TILE.arena_ward_lit;
   if (idOf(v) === B.DOOR) return TILE[metaOf(v) & TOP ? "door_top" : "door_bottom"];
   if (idOf(v) === B.IRON_DOOR) return TILE[metaOf(v) & TOP ? "iron_door_top" : "iron_door_bottom"];
@@ -2100,7 +2223,12 @@ PAINT.lightning_rod = P => { P.fill(["#c9ccd1", "#b7bbc2", "#d8dbe0"]); P.rect(0
 PAINT.ladder = P => { for (const x of [1, 13]) { P.rect(x, 0, 2, 16, "#8a6436"); P.rect(x, 0, 1, 16, "#a27a46"); } for (let y = 2; y < 16; y += 4) { P.rect(3, y, 10, 2, "#9a7040"); P.rect(3, y + 1, 10, 1, "#6e4e2a"); } };
 PAINT.scaffolding_top = P => { const a = "#d8b24c", b = "#b08a34"; P.rect(0, 0, 16, 2, a); P.rect(0, 14, 16, 2, a); P.rect(0, 0, 2, 16, a); P.rect(14, 0, 2, 16, a); for (let i = 2; i < 14; i++) { P.px(i, i, b); P.px(i, 15 - i, b); } for (let i = 0; i < 16; i += 3) P.px(i, 0, b); };
 PAINT.scaffolding_side = P => { const a = "#d8b24c", b = "#b08a34"; P.rect(0, 0, 2, 16, a); P.rect(14, 0, 2, 16, a); P.rect(0, 0, 16, 2, a); P.rect(0, 14, 16, 1, b); for (let i = 2; i < 14; i++) P.px(i, i, b); };
-PAINT.lantern = P => { P.fill(["#3a3c42", "#33353a"]); P.rect(2, 3, 12, 10, "#f8c45a"); P.rect(4, 5, 8, 6, "#fff0b0"); P.rect(2, 3, 12, 1, "#4a4c52"); P.rect(2, 12, 12, 1, "#4a4c52"); };
+function lanternTile(P, glow, inner) {
+  P.fill(["#3a3c42", "#33353a"]);
+  P.rect(2, 3, 12, 10, glow); P.rect(4, 5, 8, 6, inner);
+  P.rect(2, 3, 12, 1, "#4a4c52"); P.rect(2, 12, 12, 1, "#4a4c52");
+}
+PAINT.lantern = P => lanternTile(P, "#f8c45a", "#fff0b0");
 PAINT.candle = P => { P.fill(["#e8d8b0", "#f0e2bc", "#dccca4"]); P.rect(0, 0, 16, 2, "#f6ecd0"); P.rect(13, 0, 3, 16, "#cdbd96"); };
 PAINT.candle_flame = P => { P.fill(["#ffd24a", "#ffb02e", "#ffe680"]); P.rect(4, 4, 8, 8, "#fff4c0"); };
 PAINT.iron_bars = P => { for (let x = 1; x < 16; x += 5) { P.rect(x, 0, 2, 16, "#6c6e74"); P.rect(x, 0, 1, 16, "#9a9ca2"); } P.rect(0, 0, 16, 1, "#7c7e84"); P.rect(0, 15, 16, 1, "#5c5e64"); };
@@ -2177,6 +2305,152 @@ CORALS.forEach(([K, , c], i) => {
   PAINT[k + "_coral"] = P => PAINT._coralPlant(P, c, i);
   PAINT[k + "_coral_fan"] = P => PAINT._coralFan(P, c);
 });
+const FORSAKEN_ROCK = ["#413943", "#39313b", "#534750", "#4a414c", "#302831"];
+function forsakenBricks(P, finish) {
+  patches(P, FORSAKEN_ROCK, 34, 4, 2);
+  for (let y = 0; y < 16; y += 5) {
+    P.rect(0, y, 16, 1, "#241e27");
+    for (let x = (y % 2) * 4; x < 16; x += 8) P.rect(x, y, 1, 5, "#241e27");
+    P.rect(0, y + 1, 16, 1, "#5b4a54");
+  }
+  if (finish === "cracked") {
+    for (const [x, y, w] of [[4, 1, 2], [5, 2, 1], [5, 3, 3], [7, 4, 1], [7, 5, 2], [8, 6, 1], [7, 7, 2], [7, 8, 1]]) P.rect(x, y, w, 1, "#1f1720");
+  }
+  if (finish === "mossy") for (let i = 0; i < 17; i++) P.rect(Math.floor(P.r() * 15), 9 + Math.floor(P.r() * 6), 2, 1, P.pick(["#51433c", "#544b3a", "#3f3d32"]));
+}
+function forsakenGem(P, colors) {
+  for (const [x, y, h] of [[2, 9, 7], [5, 6, 10], [8, 2, 14], [11, 8, 8], [13, 11, 5]]) {
+    P.rect(x, y + 2, 3, h - 2, colors[0]);
+    P.rect(x + 1, y, 1, h - 1, colors[1]);
+    P.rect(x + 1, y + 2, 1, Math.max(1, h - 6), colors[2]);
+  }
+}
+function forsakenEyes(P, lit) {
+  forsakenBricks(P);
+  P.rect(1, 5, 14, 7, "#251923");
+  P.rect(2, 6, 12, 4, "#392437");
+  for (const x of [3, 9]) {
+    P.rect(x, 7, 4, 2, lit ? "#ffebff" : "#857486");
+    P.rect(x + 1, 8, 2, 1, lit ? "#fffdf4" : "#ad9aa7");
+  }
+}
+function forsakenSocket(P, lit) {
+  forsakenBricks(P);
+  P.rect(3, 3, 10, 10, "#1f1722");
+  P.rect(4, 4, 8, 8, lit ? "#833aa9" : "#4a344d");
+  P.rect(5, 5, 6, 6, lit ? "#e998ff" : "#312534");
+  P.rect(6, 6, 4, 4, lit ? "#fff3ff" : "#261b29");
+}
+Object.assign(PAINT, {
+  lair_seal: P => {
+    forsakenBricks(P, "cracked");
+    P.rect(3, 3, 10, 10, "#241729");
+    P.rect(5, 5, 6, 3, "#ca934f"); P.rect(7, 7, 2, 5, "#c79968"); P.rect(8, 10, 3, 2, "#dfb174");
+  },
+  lair_verdigris: P => {
+    forsakenBricks(P, "mossy");
+    P.rect(3, 3, 10, 10, "#26332d"); P.rect(5, 5, 6, 6, "#6aaa55"); P.rect(7, 7, 2, 2, "#b1df7b");
+  },
+  lair_amethyst: P => {
+    forsakenBricks(P);
+    P.rect(4, 2, 8, 12, "#623381"); P.rect(6, 3, 4, 10, "#bc7bdf"); P.rect(7, 4, 1, 6, "#ebc8ff");
+  },
+  lair_egg: P => {
+    P.fill(["#513c59", "#604767", "#4a3550", "#63475d"]);
+    for (let y = 3; y <= 12; y++) for (let x = 3; x <= 12; x++) if (Math.hypot(x - 8, (y - 8) * .9) < 5) P.px(x, y, (x+y)%3 ? "#ac7c96" : "#d2aec9");
+    P.rect(6, 6, 3, 2, "#e6bed4");
+  },
+  lair_node_clear: P => {
+    forsakenBricks(P, "cracked");
+    P.rect(4, 4, 8, 8, "#38383b"); P.rect(6, 6, 4, 4, "#a2a9ac");
+  },
+  lair_web: P => {
+    for (let i = 0; i < 16; i++) {
+      P.px(i, i, "#a88eac"); P.px(i, 15-i, "#a88eac"); P.px(7, i, "#9b859a"); P.px(i, 7, "#9b859a");
+      if (i%4 === 0) { P.rect(i, 3, 1, 10, "#7e6c82"); P.rect(3, i, 10, 1, "#7e6c82"); }
+    }
+  },
+  forsaken_stone: P => patches(P, FORSAKEN_ROCK, 44, 4, 3),
+  forsaken_bricks: P => forsakenBricks(P),
+  forsaken_cracked: P => forsakenBricks(P, "cracked"),
+  forsaken_mossy: P => forsakenBricks(P, "mossy"),
+  forsaken_ash: P => patches(P, ["#514143", "#4a393b", "#645155", "#3d3136", "#74343c"], 55, 3, 2),
+  forsaken_log: P => {
+    P.rect(0, 0, 16, 16, "#3a282d");
+    for (let i = 0; i < 29; i++) P.rect(Math.floor(P.r() * 16), Math.floor(P.r() * 13), 1, 2 + Math.floor(P.r() * 6), P.pick(["#513339", "#2b2127", "#674349"]));
+  },
+  forsaken_log_top: P => {
+    for (let i = 0; i < 8; i++) P.rect(i, i, 16 - i * 2, 16 - i * 2, i % 2 ? "#593f43" : "#442f34");
+  },
+  forsaken_planks: P => {
+    patches(P, ["#624147", "#593940", "#755356", "#492f36"], 36, 6, 1);
+    for (let i = 0; i < 16; i += 4) { P.rect(0, i, 16, 1, "#32242b"); P.rect(i, i, 1, 4, "#32242b"); }
+  },
+  forsaken_briar: P => {
+    for (const [x, y, h] of [[3, 8, 8], [5, 6, 10], [8, 3, 13], [10, 7, 9], [13, 9, 7]]) {
+      P.rect(x, y, 1, h, "#6c2339"); P.rect(x - 1, y + 1, 3, 2, "#a03549"); P.px(x, y, "#c85c5f");
+    }
+  },
+  reign_trophy: P => {
+    forsakenBricks(P);
+    P.rect(3,2,10,12,"#412a37"); P.rect(4,3,8,3,"#291c2b");
+    P.rect(4,7,3,2,"#ffffff"); P.rect(9,7,3,2,"#ffffff");
+    P.rect(5,11,6,1,"#c04a5c"); P.rect(3,14,10,2,"#675177");
+  },
+  forsaken_canopy: P => {
+    const dark = ["#381321", "#55152b", "#711938", "#982243"];
+    for (let y=0; y<16; y+=2) for (let x=0; x<16; x+=2) {
+      if (P.r()>0.13) P.rect(x, y, 2, 2, P.pick(dark));
+      if (P.r()>0.61) P.px(x, y, P.pick(["#9b2c45","#ba3e52","#db6157"]));
+    }
+  },
+  forsaken_violet: P => forsakenGem(P, ["#5c247b", "#bb4fe7", "#f2baff"]),
+  forsaken_scarlet: P => forsakenGem(P, ["#782239", "#e44256", "#ffae83"]),
+  forsaken_eye: P => forsakenEyes(P, false),
+  forsaken_eye_lit: P => forsakenEyes(P, true),
+  forsaken_socket: P => forsakenBricks(P),
+  forsaken_socket_top: P => forsakenSocket(P, false),
+  forsaken_socket_lit: P => forsakenSocket(P, true),
+  forsaken_veil: P => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const bend = Math.sin(x * Math.PI / 8) * 3 + Math.cos(y * Math.PI / 8) * 2;
+      const band = Math.abs(Math.sin((x + y + bend) * Math.PI / 8));
+      P.px(x, y, band > 0.93 ? "#e577edc8" : band > 0.71 ? "#9a37bac1" : band > 0.43 ? "#692575b6" : "#421743bc");
+    }
+  },
+  forsaken_rune: P => {
+    forsakenBricks(P);
+    for (let i = 0; i < 7; i++) { P.px(2 + i, 8 - i, "#925477"); P.px(8 + i, 2 + i, "#925477"); P.px(2 + i, 8 + i, "#925477"); P.px(8 + i, 14 - i, "#925477"); }
+    P.rect(7, 7, 3, 3, "#ce8fac");
+  },
+  forsaken_pale_lamp: P => lanternTile(P, "#a0c5e9", "#e7f3ff"),
+  forsaken_crimson_lamp: P => lanternTile(P, "#e64c60", "#ffb89f"),
+  forsaken_violet_lamp: P => lanternTile(P, "#b864e3", "#f2b8ff"),
+  forsaken_fall: P => {
+    P.rect(4, 0, 8, 16, "#7f3ca8bc");
+    P.rect(6, 0, 2, 16, "#a951dbe4"); P.rect(8, 0, 2, 16, "#df7df9ba");
+    for (let y = 0; y < 16; y += 5) { P.px(5, y, "#d279fd"); P.px(10, y + 2, "#b96fec"); }
+  },
+  forsaken_banner: P => {
+    patches(P, ["#582735", "#772e46", "#672b40", "#61223b"], 22, 2, 4);
+    P.rect(1, 0, 1, 16, "#aa646e"); P.rect(14, 0, 1, 16, "#a96772");
+    for (const [x, y, w] of [[7, 4, 2], [5, 5, 2], [9, 5, 2], [3, 6, 2], [11, 6, 2], [2, 7, 2], [12, 7, 2],
+      [3, 8, 2], [11, 8, 2], [5, 9, 2], [9, 9, 2], [7, 10, 2], [7, 7, 2]]) P.rect(x, y, w, 1, "#eed9c8");
+  },
+  forsaken_violet_ore: P => {
+    patches(P, FORSAKEN_ROCK, 38, 4, 2);
+    for (const [x, y] of [[4, 5], [5, 6], [11, 8], [10, 9], [11, 10], [3, 12]]) P.rect(x, y, 2, 1, "#9a499d");
+  },
+  forsaken_scarlet_ore: P => {
+    patches(P, FORSAKEN_ROCK, 38, 4, 2);
+    for (const [x, y] of [[5, 4], [6, 5], [6, 6], [13, 7], [12, 8], [4, 10], [3, 11]]) P.rect(x, y, 2, 1, "#ac424e");
+  },
+  forsaken_glass: P => {
+    P.rect(0, 0, 16, 1, "#9265a5"); P.rect(0, 15, 16, 1, "#6a427b");
+    P.rect(0, 1, 1, 14, "#9265a5"); P.rect(15, 1, 1, 14, "#6a427b");
+    for (let i = 3; i < 13; i++) { P.px(i, 15 - i, "#835493a5"); P.px(i - 1, 15 - i, "#61336e8a"); }
+  }
+});
 let atlasCanvas = null;
 export function buildAtlas() {
   if (atlasCanvas) return atlasCanvas;
@@ -2212,6 +2486,12 @@ const ICON_PAINT = {
   tool_shovel(P, c) { handle(P); for (let y = 1; y < 6; y++) for (let x = 9; x < 14; x++) if ((x - 11.5) ** 2 + (y - 3.5) ** 2 < 6.5) P.px(x, y, x === 9 ? c[1] : c[0]); },
   tool_sword(P, c) { for (let i = 0; i < 9; i++) { P.px(5 + i, 10 - i, c[0]); P.px(6 + i, 10 - i, c[1]); } P.px(14, 1, c[0]); P.rect(3, 10, 4, 1, "#5a3d20"); P.rect(5, 8, 1, 4, "#5a3d20"); P.px(3, 12, "#8a6235"); P.px(2, 13, "#8a6235"); }
 };
+ICON_PAINT.lair_key = (P, colors) => {
+  const c = colors[0];
+  P.rect(2, 2, 7, 6, "#241927"); P.rect(3, 3, 5, 4, c); P.rect(4, 4, 3, 2, "#453343");
+  P.rect(7, 6, 2, 7, c); P.rect(8, 11, 5, 2, c); P.rect(11, 9, 2, 3, c); P.rect(7, 12, 2, 2, "#d3aea8");
+};
+
 Object.assign(ICON_PAINT, {
   seeds(P, c) { c = c && c.length === 2 ? c : ["#5a9a2a", "#3a7a1a"]; for (const [x, y] of [[4, 6], [8, 4], [11, 8], [6, 10], [9, 12], [3, 12]]) { P.px(x, y, c[0]); P.px(x + 1, y, c[1]); } },
   wheat(P) { for (let i = 0; i < 4; i++) { const x = 4 + i * 2; P.rect(x, 7, 1, 8, "#8a7a2a"); P.rect(x - 1, 2, 3, 6, i % 2 ? "#e0c060" : "#c9a640"); } },
@@ -2247,6 +2527,23 @@ Object.assign(ICON_PAINT, {
   bow(P) { for (let i = 0; i < 11; i++) { const t = i / 10, x = 2 + Math.round(t * 11), y = 13 - Math.round(t * 11) - Math.round(Math.sin(t * Math.PI) * 3); P.px(x, y, "#8a6235"); P.px(x, y - 1, "#6a4825"); } for (let i = 0; i < 11; i++) P.px(3 + i, 12 - i, "#e8e8e8"); },
   shears(P) { P.rect(5, 3, 2, 6, "#dcdcdc"); P.rect(9, 3, 2, 6, "#c0c0c0"); P.rect(4, 9, 3, 4, "#b03a2a"); P.rect(9, 9, 3, 4, "#b03a2a"); },
   flintsteel(P) { P.rect(3, 4, 6, 3, "#c8c8c8"); P.rect(3, 4, 2, 8, "#c8c8c8"); blob(P, ["#3a3a3a"]); },
+  royal_crown(P, c) {
+    P.rect(2,8,12,5,c[0]); for (const x of [2,7,12]) P.rect(x,4+(x===7?0:2),2,5,c[0]);
+    P.rect(2,9,12,1,c[1]); P.rect(7,8,2,3,"#ffb890"); P.rect(2,12,12,1,"#301d30");
+  },
+  reign_blade(P,c) {
+    for(let i=0;i<9;i++) { P.rect(i+4,11-i,3,2,c[1]); P.px(i+5,11-i,c[0]); }
+    P.rect(11,2,3,2,c[1]); P.px(12,3,"#f17da7");
+    P.rect(2,9,2,2,"#533755"); P.rect(5,11,3,2,"#533755");
+    P.rect(2,12,3,2,"#25192a"); P.px(2,14,"#c45483");
+  },
+  reign_crystal(P,c) {
+    for(let y=2;y<13;y++) {
+      const w=y<5?y-2:y>10?12-y:4;
+      P.rect(7-w,y,2*w+2,1,c[1]); if(w>0) P.rect(8-w,y,w+1,1,c[0]);
+    }
+    P.px(8,5,"#ffd0f2"); P.px(7,6,"#f9a9ec");
+  },
   armor_helmet(P, c) { P.rect(3, 4, 10, 6, c[0]); P.rect(5, 8, 6, 2, "rgba(0,0,0,0)"); P.clear(5, 8); for (let x = 5; x < 11; x++) for (let y = 8; y < 10; y++) P.clear(x, y); P.rect(3, 4, 10, 1, "rgba(255,255,255,.4)"); },
   armor_chest(P, c) { P.rect(3, 3, 10, 10, c[0]); for (let y = 3; y < 6; y++) for (let x = 6; x < 10; x++) P.clear(x, y); P.rect(1, 3, 2, 5, c[0]); P.rect(13, 3, 2, 5, c[0]); P.rect(3, 12, 10, 1, "rgba(0,0,0,.25)"); },
   armor_legs(P, c) { P.rect(4, 3, 8, 3, c[0]); P.rect(4, 6, 3, 8, c[0]); P.rect(9, 6, 3, 8, c[0]); P.rect(4, 3, 8, 1, "rgba(255,255,255,.4)"); },

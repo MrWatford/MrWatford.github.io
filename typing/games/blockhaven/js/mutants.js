@@ -6,6 +6,7 @@
 // Fair-fight rules for every mutant: each big attack warns first (a glowing ring, a raised arm, a sound), helpers are
 // capped, the comeback happens once, and nothing forms inside a ward, near the refuge, or right after you arrive.
 import { B, I, SOLID, iconURL, itemDef } from "./blocks.js";
+import { guardianEncounter } from "./forsaken-guardians.js";
 import { NOTES } from "./forsaken-author.js";
 import { REACHES, REACHES_VERSION, applyReaches, reachNotes } from "./forsaken-reaches.js";
 
@@ -72,7 +73,7 @@ function groanerParts() {
     pt("body", [34, 26, 20], [0, 23, 0], [0, 13, 0], { all: shirt(true), top: skin(1), back: P => { shirt(true)(P); P.rect(6, 2, 4, 9, GREEN[2]); P.rect(1, 9, 3, 5, GREEN[0]); } }, { rotation: [0.35, 0, 0.04] }),
     pt("rag", [20, 7, 1], [2, -15, 10.2], [0, 0, 0], { all: P => { P.clear(); for (let x = 0; x < 16; x++) { const len = 6 + (x * 5) % 9; for (let y = 0; y < len; y++) P.px(x, y, CLOTH[(x + y) % 3]); } } }, { parent: "body" }),
     pt("crackA", [2, 13, 1], [7, 1, 10.3], [0, 0, 0], glowPaint, { parent: "body", glow: true }),
-    pt("crackB", [8, 2, 1], [-8, -5, 10.3], [0, 0, 0], glowPaint, { parent: "body", glow: true }),
+    pt("crackB", [8, 2, 1], [-8, -5, 10.3], [0, 0, 0], royalGlow, { parent: "body", glow: true }),
     pt("crackC", [1, 10, 2], [-17.2, 3, -2], [0, 0, 0], glowPaint, { parent: "body", glow: true }),
     pt("crackD", [2, 8, 1], [-5, 6, -10.3], [0, 0, 0], glowPaint, { parent: "body", glow: true }),
     pt("spine0", [4, 11, 4], [-8, 10, -8], [0, 4, 0], bone, { parent: "body", rotation: [-0.7, 0, -0.35], taperTop: true }),
@@ -119,7 +120,7 @@ function rattlerParts() {
     pt("pelvis", [16, 6, 8], [0, 35, 0], [0, 0, 0], crackedBone),
     pt("spine", [5, 13, 5], [0, 37, -1], [0, 6.5, 0], boneP),
     pt("ribs", [5, 17, 5], [0, 48, 0], [0, 8, 0], vertebrae, { rotation: [0.14, 0, 0] }),
-    pt("heart", [5, 5, 4], [0, 1, 0], [0, 0, 0], paleGlow, { parent: "ribs", glow: true }),
+    pt("heart", [5, 5, 4], [0, 1, 0], [0, 0, 0], royalGlow, { parent: "ribs", glow: true }),
     pt("spikeR", [4, 13, 4], [-11, 7, 0], [0, 4, 0], crackedBone, { parent: "ribs", rotation: [0, 0, 0.55] }),
     pt("spikeL", [4, 13, 4], [11, 7, 0], [0, 4, 0], crackedBone, { parent: "ribs", rotation: [0, 0, -0.55] }),
     pt("back0", [2, 9, 2], [-3, 3, -5.5], [0, 3, 0], boneP, { parent: "ribs", rotation: [-0.8, 0, 0] }),
@@ -167,6 +168,7 @@ function rattlerParts() {
 const CHAR = ["#33333b", "#3b3b44", "#2a2a31", "#44444d"], CRIM = "#ff3040";
 const shell = P => { P.fill(CHAR); pixels(P, "#202028", [[0, 9, 3, 7], [11, 9, 5, 7]]); pixels(P, "#504553", [[2, 2, 8, 1], [3, 3, 3, 2]]); };
 const plates = P => { shell(P); P.rect(0, 5, 16, 1, "#141418"); P.rect(0, 11, 16, 1, "#141418"); P.rect(5, 0, 1, 16, "#141418"); };
+const royalGlow = P => P.fill(["#9c59c7","#813e9e","#b771dc"]);
 const redGlow = P => { P.fill([CRIM]); P.rect(0, 0, 16, 16, CRIM); };
 const silkP = P => { P.fill(["#e8e8f0"]); P.rect(0, 0, 16, 16, "#f0f0f8"); };
 function skitterParts() {
@@ -182,7 +184,7 @@ function skitterParts() {
     pt("plateB", [20, 3, 9], [0, 10.5, -6], [0, 0, 0], plates, { parent: "abdomen" }),
 
     pt("carapaceVeins", [24, 0.2, 27], [0, 12.18, 0], [0, 0, 0], {
-      all: clearPaint, top: fissure(CRIM, [[7, 0, 1, 5], [7, 4, 3, 1], [9, 4, 1, 6], [9, 9, 3, 1],
+      all: clearPaint, top: fissure("#c760de", [[7, 0, 1, 5], [7, 4, 3, 1], [9, 4, 1, 6], [9, 9, 3, 1],
         [11, 9, 1, 5], [11, 13, 2, 1], [12, 13, 1, 3], [4, 5, 1, 3], [4, 7, 6, 1], [10, 11, 5, 1]])
     }, { parent: "abdomen", glow: true }),
     pt("fis2", [1, 12, 1], [-13.2, 0, 4], [0, 0, 0], redGlow, { parent: "abdomen", glow: true }),
@@ -225,7 +227,7 @@ function hisserParts() {
     pt("core", [9, 9, 2], [0, 1, 10.2], [0, 0, 0], { all: P => { P.fill(["#c8ff6a"]); P.rect(3, 3, 10, 10, "#f0ffc0"); P.rect(6, 6, 4, 4, "#ffffff"); } }, { parent: "body", glow: true }),
     pt("fisC", [1, 16, 1], [12.2, 0, 2], [0, 0, 0], toxGlow, { parent: "body", glow: true }),
     pt("fisD", [1, 12, 1], [-12.2, 3, -3], [0, 0, 0], toxGlow, { parent: "body", glow: true }),
-    pt("fisE", [12, 1, 1], [0, 6, -10.2], [0, 0, 0], toxGlow, { parent: "body", glow: true }),
+    pt("fisE", [12, 1, 1], [0, 6, -10.2], [0, 0, 0], redGlow, { parent: "body", glow: true }),
     pt("head", [18, 16, 16], [0, 10, 3], [0, 8, 1], { all: hissSkin(3), front: P => { hissSkin(2)(P); 
       pixels(P, "#0c1408", [[1, 3, 5, 4], [10, 3, 5, 4], [6, 7, 4, 3], [3, 10, 10, 3], [3, 13, 3, 2], [10, 13, 3, 2]]);
      } }, { parent: "body" }),
@@ -267,19 +269,11 @@ function voidwalkerParts() {
   for (const [s, sign] of [["R", -1], ["L", 1]]) parts.push(
     pt("leg" + s, [5, 42, 5], [sign * 4, 42, 0], [0, -21, 0], armorV),
     pt("arm" + s, [5, 36, 5], [sign * 11, 68, 0], [0, -17, 0], armorV, { rotation: [0, 0, sign * 0.30] }),
-    pt("claw" + s, [6, 7, 6], [0, -18, 0], [0, -3, 0], { all: armorV, bottom: vGlow }, { parent: "arm" + s }),
+    pt("claw" + s, [6, 8, 6], [0, -18, 0], [0, -3, 0], { all: armorV, bottom: vGlow }, { parent: "arm" + s }),
     pt("low" + s, [4, 28, 4], [sign * 10, 58, 2], [0, -13, 0], armorV, { rotation: [-0.45, 0, sign * 0.13] }),
-    pt("lowClaw" + s, [5, 5, 5], [0, -14, 0], [0, -2, 0], { all: armorV, bottom: vGlow }, { parent: "low" + s }),
+    pt("lowClaw" + s, [5, 6, 5], [0, -14, 0], [0, -2, 0], { all: armorV, bottom: vGlow }, { parent: "low" + s }),
     pt("armCrack" + s, [1, 20, 1], [sign * 2.6, -2, 0], [0, 0, 0], vGlow, { parent: "arm" + s, glow: true }),
     pt("shinPlate" + s, [5.8, 17, 2], [0, -7, 2.4], [0, 0, 0], armorV, { parent: "leg" + s, taper: true }));
-  for (const side of ["R", "L"]) for (const [hand, width, y] of [["claw", 2, -3.45], ["lowClaw", 1.6, -2.45]]) {
-    for (let i = -1; i <= 1; i++) {
-      const finger = hand + side + "Finger" + (i + 1);
-      parts.push(
-        pt(finger, [1.35, 3.5, 1.8], [i * width, y, 1.2], [0, -1.35, 0], armorV, { parent: hand + side, rotation: [-0.30, 0, i * 0.18] }),
-        pt(finger + "Tip", [1.18, 1.75, 1.45], [0, -2.1, 0], [0, 0, 0], vGlow, { parent: finger, glow: true, taper: true }));
-    }
-  }
   return parts;
 }
 
@@ -294,7 +288,7 @@ const LOOT = {
 let trophyHook = null;
 export const setTrophyHook = fn => { trophyHook = fn; };
 const TROPHIES = () => [I.GROANER_TROPHY, I.RATTLER_TROPHY, I.SKITTER_TROPHY, I.HISSER_TROPHY, I.VOIDWALKER_TROPHY];
-const drops = e => { const list = (LOOT[e.def.mutant] || (() => []))(e); if (trophyHook && list.some(d => TROPHIES().includes(d[0]))) trophyHook(e); return list; };
+const drops = e => { if (e.convergenceAdd) return []; const list = (LOOT[e.def.mutant] || (() => []))(e); if (trophyHook && list.some(d => TROPHIES().includes(d[0]))) trophyHook(e); return list; };
 export function installMutants(species) {
   species.fs_rattler = { name: "Forsaken Rattler", mutant: "rattler", base: "skeleton", baseHp: 20, puff: "pale", dieTint: [0.9, 0.95, 1.1], hostile: true, noSave: true, hp: 100, speed: 2.4, w: 1.4, h: 5.2, scale: 1.15,
     ai: "mutant", dmg: 5, reach: 3.5, xp: 40, sound: "rattle", deathPuff: "pale", drops, model: { type: "mutant", parts: rattlerParts() } };
@@ -479,7 +473,7 @@ export function mutantDying(E, e, dt) {
 
 // ---------- the fights and the spawning (runs only in the Forsaken World) ----------
 export function initMutants(api) {
-  const { G, ents, UI, Sound, puff, F, THREE, scene } = api;
+  const { G, ents, UI, Sound, puff, F, THREE, scene, saveNow } = api;
   const MU = {};
   const reduced = () => !!(G.settings && G.settings.reducedMotion), fast = () => G.settings && G.settings.quality === "fast";
   const data = () => {
@@ -561,7 +555,37 @@ export function initMutants(api) {
     return e;
   }
 
+  MU.beginGuardian = (id, kind, site, points) => {
+    if (G.creative || G.spectator || G.wset.difficulty === "peaceful" || G.settings.fwMutants === "off") return "disabled";
+    if (alive().length >= MUTANT_CONFIG.maxAlive || F.arenaPhase() > 0) return "active";
+    const a = points.arena, w = G.world;
+    if (Math.hypot(a.x + 0.5 - G.player.pos.x, a.z + 0.5 - G.player.pos.z) < 4) return "unsafe";
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      if (!w.isLoaded(a.x + dx, a.z + dz) || !standable(a.x + dx, a.y, a.z + dz, 6)) return "blocked";
+    }
+    const foe = spawn(kind, { x: a.x + 0.5, y: a.y, z: a.z + 0.5 }, { enc: guardianEncounter(id) });
+    if (!foe) return "blocked";
+    foe.mut.guardian = { x: site.x, z: site.z, y: a.y, radius: 16 };
+    return "started";
+  };
+  const boundByLair = (e, spot) => {
+    const guard = e.mut?.guardian;
+    return !guard || (Math.max(Math.abs(spot.x - guard.x), Math.abs(spot.z - guard.z)) <= guard.radius && Math.abs(spot.y - guard.y) <= 10);
+  };
+
   // ---------- the brain ----------
+  MU.spawnConvergence = (kind,spot,arena) => {
+    if (G.dim!=="forsaken" || !F.reign.active() || !["rattler","groaner"].includes(kind) ||
+      alive().length>=MUTANT_CONFIG.maxAlive || !standable(Math.floor(spot.x),spot.y,Math.floor(spot.z),6)) return null;
+    const add=spawn(kind,spot);
+    if (!add) return null;
+    add.encounterOwner="convergence";
+    add.convergenceAdd=true;
+    add.mut.revived=true;
+    add.mut.guardian={ x:arena.boss.x,z:arena.boss.z,y:arena.boss.y,radius:22 };
+    add.mutHp=add.hp=Math.min(26,add.hp);
+    return add;
+  };
   function setSt(e, st, t = 0) { e.mut.st = st; e.mut.t = 0; e.mut.dur = t; }
   const face = (e, x, z) => { e.yaw = Math.atan2(-(x - e.pos.x), -(z - e.pos.z)); };
   MU.think = (E, e, d, dmgMul) => {
@@ -1010,7 +1034,7 @@ export function initMutants(api) {
   }
 
   // ---------- the Forsaken Voidwalker: teleports (with a warning), four arms, gravity, and shadow clones ----------
-  function blinkTo(e, spot, delay) { if (!spot) return false; e.mut.blink = { x: spot.x, y: spot.y, z: spot.z, t: delay }; setSt(e, "blink", delay); e.goal = null; e.path = null; return true; }
+  function blinkTo(e, spot, delay) { if (!spot || !boundByLair(e, spot)) return false; e.mut.blink = { x: spot.x, y: spot.y, z: spot.z, t: delay }; setSt(e, "blink", delay); e.goal = null; e.path = null; return true; }
   function tickBlink(e, step, d) {   // purple sparks gather where it's about to appear, then it's there
     const b = e.mut.blink; if (!b) return false;
     b.t -= step; for (let i = 0; i < (fast() ? 1 : 3); i++) puff(b.x + rand(-0.6, 0.6), b.y + rand(0.2, 5), b.z + rand(-0.6, 0.6), "portal");
@@ -1158,7 +1182,9 @@ export function initMutants(api) {
     if (attacker === "player" || e.mut?.finished) {
       s.kills[kind] = (s.kills[kind] || 0) + 1;
       if (e.mut?.enc) s.enc[e.mut.enc] = { done: true, at: Date.now() };
-      UI.toast(`You defeated the ${NAMES[kind]}!${e.trophy ? " It left a trophy behind." : ""}`, "good");
+      if (e.mut?.guardian) saveNow?.(false);
+      const reward = e.mut?.guardian ? " Return to the guardian seal for its key and trophy." : e.trophy ? " It left a trophy behind." : "";
+      UI.toast(`You defeated the ${NAMES[kind]}!${reward}`, "good");
       if (G.adv) G.adv("mutant", kind);
     }
     for (const o of ents.list) if (o.mutCaller === e && !o.dead) { if (o.def.clone) o.gone = true; else o.mutCaller = null; }   // clones vanish with it
@@ -1190,12 +1216,13 @@ export function initMutants(api) {
     for (const e of list) {
       const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
       e.mut.far = d > MUTANT_CONFIG.despawnFar ? e.mut.far + dt : 0;
-      if (e.mut.far > MUTANT_CONFIG.despawnAfter) { e.gone = true; for (const o of ents.list) if (o.mutCaller === e) o.gone = true; }
+      if (e.mut.far > MUTANT_CONFIG.despawnAfter ||
+          e.mut.guardian && (!boundByLair(e, e.pos) || G.respawnGuard > 0)) { e.gone = true; for (const o of ents.list) if (o.mutCaller === e) o.gone = true; }
     }
     if (F.arenaPhase && F.arenaPhase() > 0 && list.length) for (const e of list) { e.gone = true; puff(e.pos.x, e.pos.y + 2, e.pos.z, "poof"); for (const o of ents.list) if (o.mutCaller === e) o.gone = true; }   // Herobrine's own fight clears the field
     const often = G.settings.fwMutants || "normal";   // Settings: Forsaken Mutants (normal / rare / off)
     if (often === "off") { for (const e of list) e.gone = true; for (const o of ents.list) if (o.mutCaller && !o.mutCaller.dead) o.gone = true; return; }
-    if (s.grace > 0 || G.creative || G.spectator || G.wset.difficulty === "peaceful") return;
+    if (F.reign?.within() || s.grace > 0 || G.creative || G.spectator || G.wset.difficulty === "peaceful") return;
     const st = F.state && F.state();
     if (st === "hunting" || st === "confrontation" || (F.arenaPhase && F.arenaPhase() > 0)) return;   // never on top of Herobrine's own scares
     if (list.length >= MUTANT_CONFIG.maxAlive || warded(p.pos.x, p.pos.z)) return;
@@ -1222,7 +1249,7 @@ export function initMutants(api) {
     for (const e of alive()) { if (!e.mut || e.mut.st === "idle") continue; const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z); if (d < bd) { bd = d; best = e; } }
     if (!best) return null;
     const m = best.mut, note = m.st === "down" ? " • DOWN: hit it hard!" : m.st === "stagger" ? " • Dazed!" : m.st === "reload" ? " • Reloading: hit it!" : m.st === "brood" ? " • Brooding: hit it to stop the eggs!" : m.st === "unstable" ? " • ABOUT TO BLOW: run, or hit it!" : m.st === "tired" ? " • Worn out: hit it!" : m.st === "retreat" && best.def.mutant === "hisser" ? " • Recharging" : m.regen ? " • Healing" : m.enrageT > 0 ? " • Enraged" : m.nest ? " • Guarding its nest" : "";
-    return { e: best, label: best.def.name + note, frac: best.hp / best.mutHp, mutant: true };
+    return { e: best, label: best.def.name + (best.mut.guardian ? " • Guardian" : "") + note, frac: best.hp / best.mutHp, mutant: true };
   };
   // test helpers (Creative test controls and browser tests)
   MU._test = {

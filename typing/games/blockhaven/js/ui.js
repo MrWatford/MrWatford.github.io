@@ -467,14 +467,22 @@ export const UI = {
       bindVillagesGuide(p, G, () => this.renderPanel(), () => Sound.click());
       bindCreaturesGuide(p, G, () => this.renderPanel(), () => Sound.click());
       p.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { Sound.click(); G.campaign.journalAction(b.dataset.cp); if (G.panelKind === "journal") this.renderPanel(); });
-      if (tab === "fw") G.forsaken.drawMap($("fwMap"));
+      if (tab === "fw") {
+        G.forsaken.drawMap($("fwMap"));
+        G.forsaken.drawKingdomMap($("fwKingdomMap"));
+      }
       p.querySelectorAll("[data-solkara-record]").forEach(b => b.onclick = () => {
         const record = SOLKARA_RECORDS[Number(b.dataset.solkaraRecord)];
         if (record && hasSolkaraRecord(G.story.leviathan, record)) this.openNote(record.title, record.text, false);
       });
       p.querySelector("[data-hollow-sands-map]")?.addEventListener("click", () => G.openHollowSandsMap());
       p.querySelectorAll("[data-note]").forEach(b => b.onclick = () => G.forsaken.readNote(b.dataset.note));
+      p.querySelectorAll("[data-fallen-alternative]").forEach(b => b.onclick = () => {
+        G.forsaken.fallen.claimAlternative(b.dataset.fallenAlternative);
+        this.renderPanel();
+      });
       p.querySelectorAll("[data-lore]").forEach(b => b.onclick = () => G.lost.readLore(b.dataset.lore));
+      p.querySelectorAll("[data-reign]").forEach(b => b.onclick = () => G.forsaken.reign[b.dataset.reign]());
       p.querySelectorAll("[data-fwt]").forEach(b => b.onclick = () => { Sound.click(); G.forsaken.testControl(b.dataset.fwt); this.renderPanel(); });
       p.querySelectorAll("[data-lt]").forEach(b => b.onclick = async () => { Sound.click(); await G.lost.testControl(b.dataset.lt); if (G.panelKind === "journal") this.renderPanel(); });
       return;
@@ -512,7 +520,8 @@ export const UI = {
       return;
     } else if (panelKind === "advancements") {
       const achievement = G.profile?.lastDawn ? `<div class="inv-card"><h3>${UHC_ACHIEVEMENT}</h3><p class="help">Ultra Hardcore completed · +1 heart in normal Survival</p></div>` : "";
-      p.innerHTML = `<div style="display:grid;gap:12px">${achievement}${Adv.html(advCat)}</div>`;
+      const badge = G.profile?.conqueror ? '<div class="inv-card"><h3>Conqueror of the Forsaken</h3><p class="help">Defeated Herobrine at the Crimson Convergence.</p></div>' : "";
+      p.innerHTML = `<div style="display:grid;gap:12px">${achievement}${badge}${Adv.html(advCat)}</div>`;
       p.querySelectorAll("[data-advcat]").forEach(b => b.onclick = () => { advCat = b.dataset.advcat; Sound.click(); this.renderPanel(); });
       return;
     } else if (panelKind === "brew") {   // Milestone 16: the Brewing Stand
