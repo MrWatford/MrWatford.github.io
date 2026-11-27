@@ -102,6 +102,7 @@ function addHorns(m,a,b) {
 const hostile = new Set(['bogged','breeze','creaking','drowned','elder_guardian','endermite','evoker','aquatic_guardian','husk','parched','phantom','pillager','ravager','silverfish','stray','vex','vindicator','witch','zoglin','zombie_villager']);
 const aquatic = new Set(['axolotl','drowned','elder_guardian','glow_squid','aquatic_guardian','nautilus','salmon','tadpole','zombie_nautilus']);
 const flyers = new Set(['allay','bat','breeze','happy_ghast','phantom','vex']);
+const raiders = new Set(['pillager','vindicator','evoker','ravager']);
 const archers = new Set(['bogged','parched','stray','pillager']);
 const humanoids = new Set(['bogged','creaking','drowned','evoker','husk','parched','pillager','stray','vindicator','witch','zombie_villager','copper_golem']);
 
@@ -264,6 +265,7 @@ export function installCreatures(species) {
     if(id==='husk')def.hunger=true;
     if(id==='snow_golem'){def.drops=()=>[[B.SNOW,1]];def.model.parts.push(box('snowHead',[8,8,8],[0,24,0],facePaint('#eef4f2','#cddde0')));}
     if(id==='vex'){def.noclip=true;def.speed=5;def.dmg=5;def.xp=3;def.noNatural=true;def.drops=()=>[];}
+    if(raiders.has(id))def.model.raiderLook=id;
   }
   // Existing animals gain dimensional ears, noses, horns, and consistent face shading.
   for(const id of ['cow','pig','sheep','rabbit','trotter']){
@@ -522,9 +524,13 @@ const RAIDERS=new Set(['ravager','pillager','vindicator','evoker','witch','vex']
 function thinkRavager(manager,e,st,p,d,dt,difficulty){
   const w=manager.world,ctx=manager.ctx;
   if(st.stunT>0){
+    if(e.raiderRig)e.raiderPrep=true;
     st.stunT-=dt;e.goal=null;e.vel.x*=.3;e.vel.z*=.3;
     if(Math.random()<.3)ctx.particles(e.pos.x,e.pos.y+e.h+.3,e.pos.z,'crit');
     if(st.stunT<=0){
+      if(e.raiderRig){
+        e.raiderPrep=false;e.raiderReleaseAt=e.age;e.raiderDischarge='roar';
+      }
       Sound.mob('roar',d);
       if(d<4&&manager.targetable()){const hx=p.pos.x-e.pos.x,hz=p.pos.z-e.pos.z,l=Math.hypot(hx,hz)||1;ctx.hurtPlayer(6*difficulty,'The Ravager roared and knocked you back!',e);ctx.push(hx/l*10,5,hz/l*10);}
       for(const o of manager.list){if(o===e||o.dead||o.gone||RAIDERS.has(o.sp)||o.def.boss||o.def.object)continue;const hx=o.pos.x-e.pos.x,hz=o.pos.z-e.pos.z,l=Math.hypot(hx,hz);if(l>=4)continue;manager.damage(o,6,e);o.vel.x+=hx/(l||1)*10;o.vel.z+=hz/(l||1)*10;o.vel.y=Math.max(o.vel.y,5);o.knock=.5;}
@@ -779,9 +785,23 @@ function thinkEvoker(manager,e,st,def,p,d,difficulty,dt,attackable){
   if(st.cast>0){
     st.cast-=dt;e.goal=null;e.vel.x*=.5;e.vel.z*=.5;e.yaw=Math.atan2(-(p.pos.x-e.pos.x),-(p.pos.z-e.pos.z));
     if(Math.random()<.6)manager.ctx.particles(e.pos.x+(Math.random()-.5),e.pos.y+2.1,e.pos.z+(Math.random()-.5),st.spell==='vex'?'crystal':'pale');
-    if(st.cast>0)return true;
+    if(st.cast>0){
+      if(e.raiderRig)e.raiderPrep=true;
+      return true;
+    }
+    if(e.raiderRig){
+      e.raiderPrep=false;e.raiderReleaseAt=e.age;
+      e.raiderDischarge=st.spell==='vex'?'summon':'fangs';
+      e.raiderSummonOrigin=null;
+    }
     if(st.spell==='vex'){
-      for(let k=0;k<3;k++){const v=manager.add('vex',e.pos.x+(Math.random()-.5)*2,e.pos.y+1.5,e.pos.z+(Math.random()-.5)*2,{bestiary:{life:30+Math.random()*89}});if(v)v.persist=false;}
+      for(let k=0;k<3;k++){
+        const v=manager.add('vex',e.pos.x+(Math.random()-.5)*2,e.pos.y+1.5,e.pos.z+(Math.random()-.5)*2,{bestiary:{life:30+Math.random()*89}});
+        if(v){
+          v.persist=false;
+          if(e.raiderRig&&!e.raiderSummonOrigin)e.raiderSummonOrigin={...v.pos};
+        }
+      }
       Sound.mob('wail',d);
     }else{
       const dmg=6*difficulty;
@@ -804,6 +824,7 @@ function thinkEvoker(manager,e,st,def,p,d,difficulty,dt,attackable){
   const vexes=manager.list.filter(o=>o.sp==='vex'&&!o.dead&&!o.gone&&Math.hypot(o.pos.x-e.pos.x,o.pos.z-e.pos.z)<16).length;
   if(st.vexT<=0&&vexes<8){st.spell='vex';st.cast=1.2;st.vexT=17;Sound.mob('cast',d);}
   else if(st.fangT<=0&&d<20){st.spell='fangs';st.cast=.8;st.fangT=5;Sound.mob('cast',d);}
+  if(e.raiderRig)e.raiderPrep=st.cast>0;
   return true;
 }
 

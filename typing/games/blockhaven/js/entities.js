@@ -1,10 +1,13 @@
 // Creatures and moving things: models, animation, movement, path finding, behavior, spawning, and saving.
 // Each species is described by data (size, health, behavior, drops, model) and shares the same body physics.
 import { reignPaint, reignDetails } from "./forsaken-art.js";
-import { stonehavenResidents } from "./stonehaven.js";
+import { stonehavenOutfitDistrict, stonehavenResidents } from "./stonehaven.js";
 import { villageCropCells } from "./grand-village-build.js";
 import { hasSettlementLife, nearestSettlementThreat, settlementRoutine, settlementThreatIndex, shelterFromThreat } from "./settlement-life.js";
 import * as THREE from "../lib/three.module.min.js";
+import { villagerBiome, villagerDistrict } from "./villager-appearance.js?v=living-kingdom-1";
+import { createVillagerRig, trimVillagerGeometryCache } from "./villager-rig.js?v=living-kingdom-1";
+import { createRaiderRig, createRaiderBolt, trimRaiderGeometryCache } from "./raider-rig.js?v=living-kingdom-1";
 import { B, I, BLOCKS, CHUNK, HEIGHT, SOLID, OPAQUE, idOf, metaOf, make, OPEN, TOP, SPAWN_EGGS, HONEY_MAX, honeyOf, itemDef, isDoor, isTrapdoor, isGate, isCrop, WATERY, FISH_BUCKETS } from "./blocks.js";
 import { blockBoxes } from "./player.js";
 import { cartStep } from "./rails.js";
@@ -58,6 +61,7 @@ import { stepObsidianVent } from "./obsidian-vent.js";
 import { installMutants, animateMutant, mutantDying } from "./mutants.js";   // the Forsaken Mutants (fights run in initMutants, main.js)
 
 const GRAV = 26, EPS = 1e-4;
+const DUSTY_FOOTING = new Set([B.DIRT, B.GRASS, B.GRAVEL, B.SAND, B.RED_SAND]);
 let nextId = 1;
 const newId = () => Date.now().toString(36) + "-" + (nextId++).toString(36) + Math.random().toString(36).slice(2, 5);
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -416,19 +420,10 @@ export const BONUS = {
 const ZOMBIES = new Set(["zombie", "husk", "drowned", "zombie_villager"]);
 export const levelOf = e => { let l = 1; while (l < 5 && (e.vxp || 0) >= LEVEL_XP[l]) l++; return l; };
 export const tradesOf = e => [...(TRADES[e.def.prof] || []), ...(BONUS[e.def.prof] || []).slice(0, levelOf(e) - 1)];
-const ROBE = { butcher: ["#e8e0d0", "#c8c0b0"], armorer: ["#4a4a52", "#3e3e46"], fisherman: ["#3a6a8a", "#2e5e7e"], mason: ["#8a8a80", "#7e7e74"], leatherworker: ["#7a4a2a", "#6a3e22"],   // Milestone 23
-  villager: ["#8a5a3a", "#7e5234"], farmer: ["#8a5a3a", "#7e5234"], fletcher: ["#6a7a3a", "#5e6e34"], shepherd: ["#a08a60", "#94805a"], cleric: ["#6a3a8a", "#5e347e"], smith: ["#3a3a3a", "#2e2e2e"], scribe: ["#346462", "#254d4a"], beekeeper: ["#b58536", "#906926"], wanderer: ["#2a5aa0", "#245094"] };
-const VSKIN = ["#e8b890", "#deae86"];
-const villagerModel = prof => ({ type: "villager", parts: [
-  { name: "body", size: [8, 12, 6], pivot: [0, 12, 0], off: [0, 6, 0], paint: { all: P => { P.fill(ROBE[prof]); if (prof === "smith") P.rect(3, 4, 10, 12, "#5a3a20"); if (prof === "farmer") P.rect(3, 6, 10, 10, "#e8e0c8"); if (prof === "cleric") P.rect(6, 0, 4, 16, "#ffe27a"); } } },
-  { name: "robe", size: [8, 12, 6], pivot: [0, 0, 0], off: [0, 6, 0], paint: { all: solid(ROBE[prof]) } },
-  { name: "head", size: [8, 10, 8], pivot: [0, 24, 0], off: [0, 5, 0], paint: { all: solid(VSKIN), top: solid(prof === "farmer" ? ["#e0c060", "#d0b050"] : ["#5a3a20"]), front: face(VSKIN, P => { P.rect(0, 0, 16, 3, prof === "farmer" ? "#e0c060" : "#5a3a20"); P.rect(3, 6, 3, 2, "#fff"); P.rect(4, 6, 2, 2, "#2a6a2a"); P.rect(10, 6, 3, 2, "#fff"); P.rect(10, 6, 2, 2, "#2a6a2a"); P.rect(4, 4, 8, 1, "#4a2a10"); }) } },
-  { name: "nose", parent: "head", size: [2, 4, 2], pivot: [0, -1.5, 5], off: [0, 0, 0], paint: { all: solid(["#d8a078"]) } },
-  { name: "arms", size: [10, 4, 4], pivot: [0, 19, 3], off: [0, 0, 0], paint: { all: solid(ROBE[prof]), front: P => { P.fill(ROBE[prof]); P.rect(5, 4, 6, 8, VSKIN[0]); } } }] });
 Object.assign(SPECIES, {
   ...Object.fromEntries(["farmer", "fletcher", "shepherd", "cleric", "smith", "scribe", "beekeeper", "wanderer", "butcher", "armorer", "fisherman", "mason", "leatherworker", "villager"].map(prof => [prof, {
     name: prof === "villager" ? "Villager (no job)" : prof === "wanderer" ? "Wanderer" : "Villager (" + prof[0].toUpperCase() + prof.slice(1) + ")", villager: true, persist: prof !== "wanderer", prof,
-    hp: 20, speed: 1.8, w: 0.6, h: 1.95, ai: "villager", xp: 0, sound: "hmm", drops: () => [], model: villagerModel(prof) }])),
+    hp: 20, speed: 1.8, w: 0.6, h: 1.95, ai: "villager", xp: 0, sound: "hmm", drops: () => [], model: { type: "villager", parts: [] } }])),
   // The taller guardian rig uses the existing physical envelope for village routes.
   golem: { name: "Ironwarden", persist: true, hp: 100, speed: 1.8, w: 1.4, h: 2.7, ai: "golem", dmg: 9, xp: 0, sound: "clank", knockUp: true,
     drops: () => [[I.IRON_INGOT, randi(3, 5)]],
@@ -1137,22 +1132,6 @@ function applySurfaceArtwork() {
       P.rect(3, 4, 3, 3, "#29391a"); P.rect(10, 4, 3, 3, "#29391a"); P.rect(6, 10, 4, 2, "#31451c");
     })
   }));
-
-  const hood = ["#304d58", "#3b5c68", "#4e6f76"];
-  const wandererHead = get("wanderer", "head");
-  wandererHead.paint = { ...edge(hood, "#927e55"), front: P => {
-    P.fill(hood);
-    P.rect(2, 2, 12, 12, "#94805a");
-    P.rect(3, 3, 10, 11, "#202a2d");
-    P.rect(5, 7, 2, 2, "#fff0b3");
-    P.rect(10, 7, 2, 2, "#fff0b3");
-  } };
-  SPECIES.wanderer.model.parts = parts("wanderer").filter(part => part.name !== "nose");
-  parts("wanderer").push(
-    plate("hoodRim", "head", [9, 2, 9], [0, 5, 0], edge(hood, "#927e55")),
-    plate("mantle", "body", [10, 4, 7], [0, 6, 0], edge(hood, "#927e55")),
-    plate("satchel", "body", [4, 5, 2], [-3, -4, 3], edge(leather, "#a0754b"))
-  );
 }
 applySurfaceArtwork();
 
@@ -1757,6 +1736,11 @@ export class Entity {
       this.wild = { phase: "patrol" };
       if (sp === "grizzly_bear") this.den = valid && opts.den === true;
     }
+    if (this.def.villager && opts.villagerLook && typeof opts.villagerLook === "object") {
+      const { biome, district, seed } = opts.villagerLook;
+      this.villagerLook = { biome: villagerBiome(biome), district: villagerDistrict(district),
+        ...(typeof seed === "string" && seed.length <= 128 ? { seed } : {}) };
+    }
     this.job = opts.job || null; this.uses = opts.uses || null; this.restockT = opts.restockT || 0; this.restockDay = opts.restockDay || 0; this.restocks = opts.restocks || 0;
     this.taskT = 0; this.task = "wander"; this.summonT = opts.summonT || 0;
     // pets and mounts
@@ -1778,6 +1762,7 @@ export class Entity {
     this.charged = !!opts.charged;   // Milestone 19: a Hisser struck by lightning
     this.jobSeen = !!opts.jobSeen; this.traded = !!opts.traded; this.vxp = opts.vxp || 0;
     this.captain = !!opts.captain;   // Milestone 23, Part D: an outpost's Pillager Captain
+    if (sp === "vindicator" && opts.raiderRank === "siege") this.raiderRank = "siege";
     this.former = opts.former || null; this.cureT = opts.cureT || 0; this.cured = !!opts.cured;   // Milestone 23, Part C   // (Milestone 23, Part B: trading experience)     // Milestone 23: a villager you've traded with keeps its job for good
   }
   get maxHp() { if (this.sp === "grizzly_bear") return this.baby ? 50 : this.variant === 1 ? 365 : this.def.hp; if (this.baby && this.def.babyHp) return this.def.babyHp; if (this.mutHp) return this.mutHp; if (this.tame && this.def.tameHp) return this.def.tameHp; return this.def.ai === "slime" ? this.size * this.size * 1 + (this.size === 4 ? 0 : 0) || 1 : this.def.hp; }
@@ -1799,6 +1784,7 @@ export class Entity {
     return { uid: this.uid, sp: this.sp, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), yaw: +this.yaw.toFixed(2), hp: this.hp,
       baby: this.baby, growT: Math.round(this.growT), breedCd: Math.round(this.breedCd), sheared: this.sheared, eggT: Math.round(this.eggT), size: this.size, name: this.name, npc: this.npc,
       home: this.home, job: this.job, uses: this.uses, restockT: this.restockT, restockDay: this.restockDay, restocks: this.restocks, summonT: this.summonT,
+      ...(this.villagerLook ? { villagerLook: { ...this.villagerLook } } : {}),
       tame: this.tame, sitting: this.sitting, saddled: this.saddled, temper: this.temper,
       ...(this.leash ? { leash: this.leash } : {}), ...(this.harmor ? { harmor: this.harmor } : {}), ...(this.portalCd > 0 ? { portalCd: Math.round(this.portalCd), persist: true } : {}),
       ...(this.def.expansion ? { bestiary: { ...this.bestiary, charge: 0, bounceUntil: 0 }, persist: this.persist } : {}),
@@ -1859,6 +1845,27 @@ export class Entities {
   attachModel(e) {
     if (e.sp === "golem") { attachIronGuardian(e, this.scene); return; }
     const def = e.def;
+    if (def.model.type === "villager") {
+      if (!e.villagerLook) {
+        const world = this.world;
+        const [x, , z] = Array.isArray(e.home) ? e.home : [e.pos.x, e.pos.y, e.pos.z];
+        const [jobX, , jobZ] = Array.isArray(e.job) ? e.job : [x, e.pos.y, z];
+        const district = stonehavenOutfitDistrict(world?.gen, jobX, jobZ) ??
+          stonehavenOutfitDistrict(world?.gen, x, z);
+        e.villagerLook = { biome: villagerBiome(world?.biomeAt?.(Math.floor(x), Math.floor(z))), district };
+      }
+      const rig = createVillagerRig({ role: def.prof, id: e.villagerLook.seed ?? e.uid, ...e.villagerLook, npc: e.npc });
+      e.villagerRig = rig; e.villagerPose = {};
+      return this.attachCharacterRig(e, rig);
+    }
+    if (def.model.raiderLook === e.sp) {
+      const rank = e.captain && e.sp === "pillager" ? "banner" : e.raiderRank;
+      const rig = createRaiderRig(e.sp, e.uid, rank);
+      if (rig) {
+        e.raiderRig = rig; e.raiderPose = {};
+        return this.attachCharacterRig(e, rig);
+      }
+    }
     const shaded = BESTIARY_ART.has(e.sp) || !!def.segmentedLeviathan || !!def.wildlife || !!def.mutant || !!def.lostWorldRaptor || !!def.triceratops || !!def.wetlandPredator || !!def.brachiosaurus || !!def.caveCreature || !!def.tyrannosaurus || !!def.godzilla;
     if (!def.geos) makeSpecies(def, shaded);
     const mat = new THREE.MeshBasicMaterial({ map: def.texs[e.reignForm ?? e.variant] || def.tex, vertexColors: shaded, transparent: !!def.translucent, alphaTest: def.translucent ? 0.05 : 0.5, depthWrite: !def.translucent });
@@ -1889,9 +1896,47 @@ export class Entities {
       e.hitVolumes = createLeviathanHitVolumes(e); updateLeviathanHitVolumes(e);
     }
   }
-  remove(e) { e.guardianView?.dispose(); e.guardianView = null; e.guardianMotion = null; e.guardianTarget = null; e.glow?.dispose(); e.glow = null; this.scene.remove(e.mesh); e.mat.dispose(); if (e.glowMat) { e.glowMat.dispose(); e.glowMat = null; } e.mesh = null; e.hitVolumes = null; if (e.heldMesh) { e.heldMesh.material.dispose(); e.heldMesh = null; } if (e.beam) { this.scene.remove(e.beam); e.beam.geometry.dispose(); e.beam.material.dispose(); e.beam = null; } }
+  attachCharacterRig(e, rig) {
+    const holder = new THREE.Group();
+    holder.position.set(e.pos.x, e.pos.y, e.pos.z);
+    holder.rotation.y = e.yaw + Math.PI;
+    rig.root.scale.setScalar(e.scale);
+    holder.add(rig.root);
+    e.mesh = holder; e.root = rig.root; e.parts = rig.parts; e.mat = rig.material;
+    this.scene.add(holder);
+  }
+  remove(e) {
+    e.guardianView?.dispose();
+    e.guardianView = null;
+    e.guardianMotion = null;
+    e.guardianTarget = null;
+    e.glow?.dispose();
+    e.glow = null;
+    this.scene.remove(e.mesh);
+    if (e.villagerRig) {
+      e.villagerRig.dispose();
+      e.villagerRig = null;
+    } else if (e.raiderRig) {
+      e.raiderRig.dispose();
+      e.raiderRig = null;
+    } else {
+      e.mat.dispose();
+    }
+    if (e.glowMat) { e.glowMat.dispose(); e.glowMat = null; }
+    e.mesh = null;
+    e.hitVolumes = null;
+    if (e.heldMesh) { e.heldMesh.material.dispose(); e.heldMesh = null; }
+    if (e.beam) {
+      this.scene.remove(e.beam);
+      e.beam.geometry.dispose();
+      e.beam.material.dispose();
+      e.beam = null;
+    }
+  }
   clear() {
     for (const e of this.list) this.remove(e);
+    trimVillagerGeometryCache();
+    trimRaiderGeometryCache();
     this.list = [];
     for (const p of this.projectiles) {
       this.scene.remove(p.mesh);
@@ -2252,7 +2297,10 @@ export class Entities {
         this.physics(e, dt);
       }
       if (d2 < 64 * 64 || e.def.boss) this.animate(e, dt, d2, daylight);
-      else if (e.def.expansion && e.beam) e.beam.visible = false;
+      else {
+        e.raiderRig?.hideEffects();
+        if (e.def.expansion && e.beam) e.beam.visible = false;
+      }
       e.mesh.visible = (d2 < 64 * 64 || !!e.def.boss) && !(e.def.desertMob && e.def.burrows && !e.emerged);
     }
     this.focus = null;
@@ -2912,6 +2960,11 @@ export class Entities {
         e.goal = { x: e.pos.x + ax * want * 2 - az * side * 1.5, z: e.pos.z + az * want * 2 + ax * side * 1.5, speed: def.speed * 0.8 };
         e.path = null; e.yaw = Math.atan2(-(tp.x - e.pos.x), -(tp.z - e.pos.z));
         e.drawT += 0.15;
+        if (e.raiderRig) {
+          const flight = Math.max(.1, Math.hypot(tp.x - e.pos.x, tp.z - e.pos.z) / 20);
+          e.raiderAimAt = e.age;
+          e.raiderPitch = Math.atan2((tp.y + 1.2 - e.eyeY) / flight + 10 * flight, 20);
+        }
         if (e.drawT > 1.2 && e.attackCd <= 0) { this.shootArrow(e, p, dmgMul); e.attackCd = 1.6; e.drawT = 0; }
       } else this.chase(e, tp);
       return;
@@ -2943,6 +2996,7 @@ export class Entities {
       if (def.hunger) ctx.effect("queasy", 7 * Math.max(1, dmgMul));   // Milestone 24, Part B: a Husk's hit makes you hungry
       if (e.sp === "ravager" && ctx.blocking?.() && e.bestiary) { e.bestiary.stunT = 2; ctx.adv?.("ravagerStun"); }   // Milestone 24, Part D: a Ravager's bite on a shield stuns it, then it roars
       e.attackCd = hunt ? 1.35 - hunt * .08 : 1; e.swing = 0.35;
+      if (e.raiderRig) e.raiderImpactAt = e.age;
     }
     this.chase(e, tp);
   }
@@ -3126,7 +3180,13 @@ export class Entities {
     const v = this.list.find(o => o.def.villager && !o.gone && !o.dead && !o.npc && !o.cpRaid && o.sp !== "wanderer" && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 16 && Math.abs(o.pos.y - e.pos.y) < 4);
     if (!v) return false;
     const dv = Math.hypot(v.pos.x - e.pos.x, v.pos.z - e.pos.z);
-    if (dv < (def.reach || 1.6) + 0.3 && e.attackCd <= 0) { e.attackCd = 1; this.damage(v, (def.dmg || 3) * dmgMul, e); v.fleeT = 4; }
+    if (dv < (def.reach || 1.6) + 0.3 && e.attackCd <= 0) {
+      e.attackCd = 1; this.damage(v, (def.dmg || 3) * dmgMul, e); v.fleeT = 4;
+      if (e.raiderRig) {
+        e.raiderImpactAt = e.age;
+        e.raiderImpactTarget = v.pos;
+      }
+    }
     else this.chase(e, v.pos);
     return true;
   }
@@ -3134,7 +3194,7 @@ export class Entities {
   zombify(v) {
     const diff = this.ctx.settings().difficulty;
     if (diff !== "hard" && !(diff === "normal" && Math.random() < 0.5)) return false;
-    const z = this.add("zombie_villager", v.pos.x, v.pos.y, v.pos.z, { former: { sp: v.sp === "villager" ? null : v.sp, vxp: v.vxp || 0, home: v.home, job: v.job, name: v.name, traded: v.traded } });
+    const z = this.add("zombie_villager", v.pos.x, v.pos.y, v.pos.z, { former: { villagerLook: { ...v.villagerLook, seed: v.villagerLook?.seed ?? v.uid }, sp: v.sp === "villager" ? null : v.sp, vxp: v.vxp || 0, home: v.home, job: v.job, name: v.name, traded: v.traded } });
     if (z) { z.yaw = v.yaw; z.persist = true; }
     v.gone = true; this.ctx.particles(v.pos.x, v.pos.y + 1, v.pos.z, "poison"); Sound.mob("groan", this.dist(v));
     this.ctx.villagerZombified?.(v);
@@ -3142,7 +3202,7 @@ export class Entities {
   }
   cureZombie(z) {
     const f = z.former || {}, sp = f.sp && TRADES[f.sp] ? f.sp : "villager";
-    const n = this.add(sp, z.pos.x, z.pos.y, z.pos.z, { home: f.home, job: f.job, name: f.name, vxp: f.vxp, traded: f.traded, jobSeen: !!f.job, cured: true });
+    const n = this.add(sp, z.pos.x, z.pos.y, z.pos.z, { home: f.home, job: f.job, name: f.name, villagerLook: f.villagerLook, vxp: f.vxp, traded: f.traded, jobSeen: !!f.job, cured: true });
     if (n) n.yaw = z.yaw;
     z.gone = true; this.ctx.particles(z.pos.x, z.pos.y + 1.5, z.pos.z, "xp"); Sound.levelUp();
     this.ctx.villagerCured?.(n);
@@ -3171,7 +3231,8 @@ export class Entities {
     this.ctx.villagerBorn?.(kid);
   }
   changeJob(e, prof, job) {
-    const n = this.add(prof, e.pos.x, e.pos.y, e.pos.z, { home: e.home, job, name: e.name, yaw: e.yaw });
+    const n = this.add(prof, e.pos.x, e.pos.y, e.pos.z, { home: e.home, job, name: e.name, yaw: e.yaw,
+      villagerLook: { ...e.villagerLook, seed: e.villagerLook?.seed ?? e.uid } });
     if (n) { n.yaw = e.yaw; n.name = e.name; }
     e.gone = true;
     this.ctx.particles(e.pos.x, e.pos.y + 2, e.pos.z, prof === "villager" ? "poof" : "xp");
@@ -3181,29 +3242,46 @@ export class Entities {
     if (e.bellT > 0) e.bellT -= 0.15;   // a ringing bell sends villagers home for a while
     const ctx = this.ctx, time = ctx.time(), night = (time > 0.52 && time < 0.97) || e.bellT > 0;
     const home = e.home ? { x: e.home[0], y: e.home[1], z: e.home[2] } : null;
-    if (e.trading > 0) { e.trading -= 0.15; e.goal = null; const p = ctx.player(); e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)); return; }
+    const wasFleeing = e.villagerActivity === "flee";
+    e.villagerActivity = "idle";
+    if (e.trading > 0) { e.villagerActivity = "trade"; e.trading -= 0.15; e.goal = null; const p = ctx.player(); e.yaw = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)); return; }
     const danger = this.threatWorld === this.world && this.threatCells ? nearestSettlementThreat(this.threatCells,e.pos,8) :
       this.list.find(o => o.def.hostile && !o.dead && !o.def.boss && Math.hypot(o.pos.x - e.pos.x, o.pos.z - e.pos.z) < 8);
     if (danger || e.fleeT > 0) {
+      e.villagerActivity = "flee";
       if (e.fleeT > 0) e.fleeT -= 0.15;
       const from = danger ? danger.pos : ctx.player().pos, ax = e.pos.x - from.x, az = e.pos.z - from.z, l = Math.hypot(ax, az) || 1;
+      if (!wasFleeing) {
+        e.villagerThreat = from;
+        e.villagerGlanceUntil = e.age + .55;
+      }
       const shelter = shelterFromThreat(this.world,e,from) || (night ? home : null);
       if (shelter) this.moveTo(e, shelter, e.def.speed * 1.5);
       else { e.path = null; e.goal = { x: e.pos.x + ax / l * 5, z: e.pos.z + az / l * 5, speed: e.def.speed * 1.5 }; }
       return;
     }
     if (Math.random() < 0.01) Sound.mob("hmm", d);
-    if (night && home) { this.moveTo(e, home, e.def.speed); return; }
+    if (night && home) {
+      if (this.moveTo(e, home, e.def.speed) && !(e.bellT > 0)) e.villagerActivity = "rest";
+      return;
+    }
     const celebration = ctx.festivalGathering?.(e);
-    if (celebration) { this.moveTo(e, celebration, e.def.speed, .8); return; }
+    if (celebration) {
+      if (this.moveTo(e, celebration, e.def.speed, .8)) e.villagerActivity = "celebrate";
+      return;
+    }
     e.taskT -= 0.15;
     if ((e.jobT = (e.jobT ?? Math.random() * 5) - 0.15) <= 0) { e.jobT = 5; if (this.checkJob(e)) return; if (!night) this.villagerFamily(e); }   // Milestone 23: jobs and families   // Milestone 23: losing or finding a job
     const routine = settlementRoutine(this.world,e,time);
-    if (routine?.target) { this.moveTo(e,routine.target,e.def.speed,.9); return; }
+    if (routine?.target) {
+      if (this.moveTo(e,routine.target,e.def.speed,.9) && routine.task === "field") e.villagerActivity = "work";
+      return;
+    }
     if (e.taskT <= 0) { e.taskT = rand(8, 18); e.task = e.job && Math.random() < 0.55 ? "work" : "wander"; }
     if ((routine?.task === "work" || e.task === "work") && e.job) {
       const j = { x: e.job[0] + 0.5, y: e.job[1], z: e.job[2] + 0.5 };
       if (this.moveTo(e, j, e.def.speed, 1.9)) {
+        e.villagerActivity = "work";
         // working at the job site restocks trades (up to twice a day)
         const day = ctx.day();
         if (e.restockDay !== day) { e.restockDay = day; e.restocks = 0; }
@@ -3794,6 +3872,7 @@ export class Entities {
     e.gone = true;
   }
   dying(e, dt) {
+    e.raiderRig?.hideEffects();
     if (e.def.mutant) return mutantDying(this, e, dt);
     if (e.sp === "leviathan_ancient") {
       if (stepAncientFinale(e,dt,!!this.ctx.reducedMotion?.())) { e.gone=true;this.ctx.bossDefeated(e); }
@@ -3905,7 +3984,16 @@ export class Entities {
     const dx = tx - sx, dz = tz - sz, horiz = Math.hypot(dx, dz) || 0.01, speed = 20, t = Math.max(0.1, horiz / speed);
     const vy = (ty - sy) / t + 0.5 * 20 * t;   // aim a little high to make up for gravity
     const err = { easy: 0.12, normal: 0.07, hard: 0.04 }[this.ctx.settings().difficulty] || 0.08;
-    this.addProjectile("arrow", sx, sy, sz, dx / horiz * speed + rand(-1, 1) * err * speed, vy + rand(-1, 1) * err * speed, dz / horiz * speed + rand(-1, 1) * err * speed, { owner: from, dmg: 3 * dmgMul });
+    const vx = dx / horiz * speed + rand(-1, 1) * err * speed;
+    const arrowY = vy + rand(-1, 1) * err * speed;
+    const vz = dz / horiz * speed + rand(-1, 1) * err * speed;
+    const boltLook = from.sp === "pillager" && !!from.raiderRig;
+    this.addProjectile("arrow", sx, sy, sz, vx, arrowY, vz, { owner: from, dmg: 3 * dmgMul, ...(boltLook ? { boltLook } : {}) });
+    if (from.raiderRig) {
+      from.raiderReleaseAt = from.age;
+      from.raiderDischarge = "shot";
+      from.raiderPitch = Math.atan2(arrowY, Math.hypot(vx, vz));
+    }
     Sound.mob("bow", this.dist(from));
   }
   addProjectile(kind, x, y, z, vx, vy, vz, opts = {}) {
@@ -3923,6 +4011,8 @@ export class Entities {
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.08), new THREE.MeshBasicMaterial({ color: 0x7ad8d0 })); head.position.z = -0.6;
       mesh.add(shaft, head);
       for (const x of [-0.14, 0, 0.14]) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.25), new THREE.MeshBasicMaterial({ color: 0xbff8f0 })); t.position.set(x, 0, -0.74); mesh.add(t); }
+    } else if (kind === "arrow" && opts.boltLook) {
+      mesh = createRaiderBolt();
     } else if (kind === "arrow") {
       mesh = new THREE.Group();
       const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.5), new THREE.MeshBasicMaterial({ color: 0x8a6235 }));
@@ -4306,16 +4396,46 @@ export class Entities {
         }
       }
     }
-    if (e.baby && P.head) P.head.scale.setScalar(1.45);
-    else if (P.head) P.head.scale.setScalar(1);
-    // head follows the player when close
-    if (P.head && d2 < 100 && !e.dead && !e.ridden && !e.perched) {
+    if (!e.villagerRig && !e.raiderRig && P.head) P.head.scale.setScalar(e.baby ? 1.45 : 1);
+    // head follows the player when close; villagers blend gaze in their own rig.
+    if (!e.villagerRig && !e.raiderRig && P.head && d2 < 100 && !e.dead && !e.ridden && !e.perched) {
       const p = this.ctx.player(), rel = Math.atan2(-(p.pos.x - e.pos.x), -(p.pos.z - e.pos.z)) - e.yaw;
       const r = Math.atan2(Math.sin(rel), Math.cos(rel));
       P.head.rotation.y = Math.max(-1, Math.min(1, r)) * (def.model.type === "spider" ? 0.3 : 0.8);
-    } else if (P.head) P.head.rotation.y *= 0.9;
+    } else if (!e.villagerRig && !e.raiderRig && P.head) P.head.rotation.y *= 0.9;
     const t = def.model.type;
-    if (t === "humanoid") {
+    if (e.raiderRig) {
+      const pose = e.raiderPose;
+      pose.age = e.age; pose.speed = sp; pose.distanceSq = d2;
+      pose.fast = this.ctx.fastGraphics?.(); pose.reducedMotion = this.ctx.reducedMotion?.();
+      pose.impactAge = e.age - (e.raiderImpactAt ?? -Infinity);
+      pose.releaseAge = e.age - (e.raiderReleaseAt ?? -Infinity);
+      pose.target = e.sp === "pillager" ? e.age - (e.raiderAimAt ?? -Infinity) < .26 : !!e.target || !!e.raiderRemoteTarget;
+      pose.draw = pose.target ? e.drawT / 1.2 : 0;
+      pose.prep = !!e.raiderPrep;
+      pose.discharge = e.raiderDischarge;
+      pose.summonX = pose.summonY = pose.summonZ = undefined;
+      if (pose.discharge === "summon" && pose.releaseAge < .65 && e.raiderSummonOrigin) {
+        const { x, y, z } = e.raiderSummonOrigin;
+        const dx = x - e.pos.x, dz = z - e.pos.z;
+        const c = Math.cos(e.mesh.rotation.y), s = Math.sin(e.mesh.rotation.y), scale = e.scale;
+        pose.summonX = (c * dx - s * dz) / scale;
+        pose.summonY = (y - e.pos.y) / scale;
+        pose.summonZ = (s * dx + c * dz) / scale;
+      }
+      pose.pitch = pose.target || pose.releaseAge < .3 ? e.raiderPitch : 0;
+      pose.gaze = 0;
+      const watch = e.target?.pos ?? (pose.impactAge < .35 ? e.raiderImpactTarget : null) ??
+        (pose.prep ? this.ctx.player().pos : null);
+      if (watch && d2 < 24 ** 2) {
+        const angle = Math.atan2(e.pos.x - watch.x, e.pos.z - watch.z) - e.yaw;
+        pose.gaze = Math.atan2(Math.sin(angle), Math.cos(angle));
+      }
+      pose.grounded = e.sp === "ravager" && e.onGround && !e.inWater;
+      pose.dusty = pose.grounded && !pose.fast && !pose.reducedMotion && d2 < 23 ** 2 && sp > 1 &&
+        DUSTY_FOOTING.has(this.world.id(Math.floor(e.pos.x), Math.floor(e.pos.y - .05), Math.floor(e.pos.z)));
+      e.raiderRig.pose(dt, pose);
+    } else if (t === "humanoid") {
       P.legR.rotation.x = swing; P.legL.rotation.x = -swing;
       if (def.model.armsOut) { P.armR.rotation.x = -Math.PI / 2 + Math.sin(e.age * 2) * 0.05 - (e.swing > 0 ? Math.sin(e.swing * 9) * 0.6 : 0); P.armL.rotation.x = -Math.PI / 2 - Math.sin(e.age * 2) * 0.05; }
       else if (def.model.bow && e.target) { P.armR.rotation.x = -Math.PI / 2; P.armL.rotation.x = -Math.PI / 2 - e.drawT * 0.2; P.armL.rotation.y = 0.4; }
@@ -4437,8 +4557,23 @@ export class Entities {
       if (e.shieldUp) { const k = 0.7 + Math.sin(e.age * 8) * 0.2; e.mat.color.setRGB(k, 1.1, k); return; }
     } else if (t === "sheller") {
       P.lid.position.y = (8 + e.open * 6) / 16; P.head.visible = e.open > 0.2;
-    } else if (t === "villager") {
-      P.robe.rotation.x = swing * 0.15;
+    } else if (e.villagerRig) {
+      const pose = e.villagerPose;
+      pose.age = e.age; pose.speed = sp; pose.baby = e.baby;
+      pose.distanceSq = d2; pose.fast = this.ctx.fastGraphics?.();
+      pose.reducedMotion = this.ctx.reducedMotion?.();
+      pose.activity = e.inCart ? "seated" : e.trading > 0 ? "trade" : e.villagerActivity;
+      pose.gaze = pose.gazePitch = 0;
+      const threat = pose.activity === "flee" && e.age < e.villagerGlanceUntil ? e.villagerThreat : null;
+      if (!pose.fast && d2 < 100 && (sp < .4 || threat) && !e.inCart) {
+        const player = this.ctx.player();
+        const x = threat ? threat.x : pose.activity === "work" && e.job ? e.job[0] + .5 : player.pos.x;
+        const z = threat ? threat.z : pose.activity === "work" && e.job ? e.job[2] + .5 : player.pos.z;
+        const rel = Math.atan2(e.pos.x - x, e.pos.z - z) - e.yaw;
+        pose.gaze = Math.atan2(Math.sin(rel), Math.cos(rel));
+        if (pose.activity === "trade") pose.gazePitch = Math.max(-.4, Math.min(.4, e.eyeY - player.pos.y - (player.eye ?? 1.62)));
+      }
+      e.villagerRig.pose(dt, pose);
     } else if (t === "golem") {
       P.legR.rotation.x = swing * 0.7; P.legL.rotation.x = -swing * 0.7;
       const atk = e.swing > 0 ? -Math.sin(e.swing * 6) * 1.6 : 0;

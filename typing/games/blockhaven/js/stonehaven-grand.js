@@ -439,6 +439,13 @@ export function buildGrandCapital(gen,plot,inner) {
   return {
     x:wx,z:wz,size:GRAND_CAPITAL_SIZE,capital:true,buildings:buildings.length+9,
     landmarks,features,residentChunks,chimneys,workFields,cropChunks,gatherPoints,
+    outfitDistrict(x,z){
+      const lx=x-wx,lz=z-wz;
+      const building=buildings.find(b=>within(lx,lz,b.box));
+      if(building)return building.district === "agriculture" ? "agricultural" : building.district;
+      if(farmlands.some(field=>within(lx,lz,field)))return "agricultural";
+      if(within(lx,lz,[94,135,126,173]))return "market";
+    },
     apply(worldGen,data,x0,z0,contents){
       const a=x0-wx,b=z0-wz,k=cityKey(a,b);
       const d={x0:a,x1:a+15,z0:b,z1:b+15,key:k,contents,

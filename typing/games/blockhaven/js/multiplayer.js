@@ -378,6 +378,17 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
       const fl = (en.baby ? 1 : 0) | (en.dead ? 2 : 0) | (en.hurtT > 0 ? 4 : 0) | (en.mesh.visible ? 0 : 8);
       const row = [en.uid, en.sp, r2(en.pos.x), r2(en.pos.y), r2(en.pos.z), r2(en.yaw), fl, en.variant | 0, en.size | 0, Math.max(0, Math.round(en.hp))];
       if (en.guardianView && (en.dead || en.guardianStrike > 0)) row.push(r2(en.dead ? -en.dead : en.guardianStrike));
+      if (en.villagerLook) {
+        row[11] = en.villagerLook;
+        row[12] = en.villagerActivity;
+        row[13] = en.npc;
+      }
+      if (en.raiderRig) {
+        const recent = (at, max) => Number.isFinite(at) && en.age - at < max ? r2(en.age - at) : null;
+        const flags = (recent(en.raiderAimAt, .26) !== null ? 1 : 0) | (en.raiderPrep ? 2 : 0) | (en.target ? 4 : 0);
+        row[14] = [en.raiderRig.look.rank, flags, r2(en.drawT || 0), r2(en.raiderPitch || 0),
+          recent(en.raiderImpactAt, .36), recent(en.raiderReleaseAt, .65), en.raiderDischarge];
+      }
       e.push(row);
       if (e.length >= 150) break;
     }
@@ -390,7 +401,9 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     for (const pr of ents.projectiles) {
       if (pr.gone || pr.kind === "bobber" || pr.kind === "eye" || !close(pr.x, pr.z, 56)) continue;
       pr.mpId ||= ++shotSeq;
-      p.push([pr.mpId, pr.kind, r2(pr.x), r2(pr.y), r2(pr.z), r2(pr.vx), r2(pr.vy), r2(pr.vz), pr.stuck ? 1 : 0]);
+      const row = [pr.mpId, pr.kind, r2(pr.x), r2(pr.y), r2(pr.z), r2(pr.vx), r2(pr.vy), r2(pr.vz), pr.stuck ? 1 : 0];
+      if (pr.boltLook) row.push(1);
+      p.push(row);
       if (p.length >= 60) break;
     }
     send({ t: "ents", e, d, p, dim: G.dim });
@@ -429,12 +442,14 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     if (!G.world || !G.guest || going || G.state === "loading" || (m.dim && m.dim !== G.dim)) return;
     const seen = new Set();
     for (const r of Array.isArray(m.e) ? m.e : []) {
-      const [uid, sp, x, y, z, yaw, fl, variant, size, hp, guardianTimer] = r;
+      const [uid, sp, x, y, z, yaw, fl, variant, size, hp, guardianTimer, villagerLook, activity, npc, raiderVisual] = r;
+      const visual = Array.isArray(raiderVisual) ? raiderVisual : [];
       if (typeof uid !== "string" || ![x, y, z, yaw].every(Number.isFinite)) continue;
       seen.add(uid);
       let pp = puppets.get(uid);
       if (!pp) {
-        const e = ents.add(sp, x, y, z, { uid, variant, size: size || undefined, baby: !!(fl & 1), yaw });
+        const e = ents.add(sp, x, y, z, { uid, variant, size: size || undefined, baby: !!(fl & 1), yaw, villagerLook,
+          npc: typeof npc === "string" ? npc : undefined, captain: visual[0] === "banner", raiderRank: visual[0] });
         if (!e) continue;
         e.puppet = true;
         pp = { e }; puppets.set(uid, pp);
@@ -447,6 +462,20 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
         if (pp.dead && Number.isFinite(guardianTimer)) pp.guardianDeath = Math.max(0, Math.min(GUARDIAN_DEATH, -guardianTimer));
         else if (pp.dead) pp.guardianDeath ??= GUARDIAN_DEATH;
         else pp.guardianDeath = undefined;
+      }
+      if (pp.e.villagerRig) pp.e.villagerActivity = activity;
+      if (pp.e.raiderRig) {
+        const actor = pp.e;
+        const [, flags, draw, pitch, impact, release, discharge] = visual;
+        const at = (delta, max) => Number.isFinite(delta) && delta >= 0 && delta <= max ? actor.age - delta : undefined;
+        actor.raiderAimAt = flags & 1 ? actor.age : undefined;
+        actor.raiderPrep = !!(flags & 2);
+        actor.raiderRemoteTarget = !!(flags & 4);
+        actor.drawT = Number.isFinite(draw) ? Math.min(1.5, Math.max(0, draw)) : 0;
+        actor.raiderPitch = Number.isFinite(pitch) ? Math.max(-1.25, Math.min(1.25, pitch)) : 0;
+        actor.raiderImpactAt = at(impact, .36);
+        actor.raiderReleaseAt = at(release, .65);
+        actor.raiderDischarge = ["summon", "shot", "fangs", "roar"].includes(discharge) ? discharge : undefined;
       }
     }
     for (const [uid, pp] of puppets) if (!seen.has(uid)) { dropPuppet(pp.e); puppets.delete(uid); }
@@ -467,11 +496,11 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
     for (const [id, l] of loot) if (!seenD.has(id)) { dropLoot(l); loot.delete(id); }
     const seenP = new Set();
     for (const r of Array.isArray(m.p) ? m.p : []) {
-      const [id, kind, x, y, z, vx, vy, vz, stuck] = r;
+      const [id, kind, x, y, z, vx, vy, vz, stuck, boltLook] = r;
       if (typeof kind !== "string" || ![x, y, z, vx, vy, vz].every(Number.isFinite)) continue;
       seenP.add(id);
       let pr = shots.get(id);
-      if (!pr) { ents.addProjectile(kind, x, y, z, vx, vy, vz, { puppet: true }); pr = ents.projectiles[ents.projectiles.length - 1]; shots.set(id, pr); }
+      if (!pr) { ents.addProjectile(kind, x, y, z, vx, vy, vz, { puppet: true, boltLook: boltLook === 1 }); pr = ents.projectiles[ents.projectiles.length - 1]; shots.set(id, pr); }
       Object.assign(pr, { x, y, z, vx, vy, vz, stuck: !!stuck });
     }
     for (const [id, pr] of shots) if (!seenP.has(id)) { dropShot(pr); shots.delete(id); }
@@ -494,6 +523,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
         pp.guardianDeath = Math.max(0, pp.guardianDeath - dt);
         ents.animate(e, dt, d2, daylight, 1 - pp.guardianDeath / GUARDIAN_DEATH);
       } else if (pp.dead) {   // fall over and turn red, like any creature that faints
+        e.raiderRig?.hideEffects();
         e.mesh.position.set(e.pos.x, e.pos.y, e.pos.z); e.mesh.rotation.y = e.yaw + Math.PI;
         e.root.rotation.z = Math.min(Math.PI / 2, e.root.rotation.z + dt * 4); e.mat.color.setRGB(1, 0.4, 0.4);
       } else {
@@ -501,6 +531,7 @@ export function initMultiplayer({ G, THREE, scene, UI, Sound, snapshot, makeMode
         catch (err) { e.mesh.position.set(e.pos.x, e.pos.y, e.pos.z); e.mesh.rotation.y = e.yaw + Math.PI; }
       }
       e.mesh.visible = !pp.hidden && (d2 < 64 * 64 || !!e.def.boss);
+      if (!e.mesh.visible) e.raiderRig?.hideEffects();
     }
     for (const pr of shots.values()) {
       if (!pr.stuck) { pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.z += pr.vz * dt; }

@@ -142,6 +142,26 @@ export function stonehavenCovers(gen, x, z) {
   return !!plot && x >= plot.x && z >= plot.z && x < plot.x + sizeOf(plot) && z < plot.z + sizeOf(plot);
 }
 
+// Dress villagers from their existing work or home sites without changing city layouts.
+export function stonehavenOutfitDistrict(gen, x, z) {
+  if (!gen || !stonehavenCovers(gen, x, z)) return undefined;
+  const outer = gen.stonehavenSite;
+  const isGrand = outer.v === GRAND_CAPITAL_LAYOUT;
+  if (isGrand) {
+    const district = gen.grandCapital?.outfitDistrict(x, z);
+    if (district) return district;
+  }
+  const plot = isGrand ? innerCapital(outer) : outer;
+  const pad = padOf(plot), lx = x - plot.x - pad, lz = z - plot.z - pad;
+  if (isGrand && (lx < 0 || lz < 0 || lx >= CORE || lz >= CORE)) return undefined;
+  const wing = plot.v !== PREVIEW_LAYOUT && DISTRICTS.find(d =>
+    lx >= d.x && lx < d.x + d.w && lz >= d.z && lz < d.z + d.d);
+  if (wing) return wing.resident === "cleric" ? "civic" : "artisan";
+  if (lx >= 22 && lx <= 57 && lz >= 10 && lz <= 39) return "civic";
+  if (lx >= 29 && lx <= 51 && lz > 39 && lz < 60) return "market";
+  return "residential";
+}
+
 function capitalBuildings() {
   const designs = [
     [["cottage", 1], ["smithy", 0], ["manor", 0]],
