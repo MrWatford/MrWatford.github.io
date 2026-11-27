@@ -163,7 +163,7 @@ export function initCitadelGate({ G, ents, UI, Sound, scene, THREE, saveNow, puf
       const y = q.y === "ground" ? groundY(x, z) : q.y; if (y == null) continue;
       if (Math.hypot(x + 0.5 - p.x, z + 0.5 - p.z) < 7) continue;
       if (G.world.id(x, y, z) || G.world.id(x, y + 1, z)) continue;   // never inside a block
-      const e = ents.add(q.sp, x + 0.5, y, z + 0.5); if (!e) continue;
+      const e = ents.add(q.sp, x + 0.5, y, z + 0.5, q.role === "captain" ? { raiderRank: "siege" } : undefined); if (!e) continue;
       e.persist = false; e.noBurn = true; e.siegePost = q.k; e.home = { x: x + 0.5, y, z: z + 0.5 };
       e.patrol = { pts: (q.patrol || [[q.u, q.v]]).map(([u, v]) => { const [px2, pz2] = at(c, u, v); return { x: px2 + 0.5, y, z: pz2 + 0.5 }; }), i: 0, wait: 0 };
       if (q.role === "captain") { e.name = "Siege Captain"; e.persist = false; }
