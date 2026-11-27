@@ -5,7 +5,8 @@ import { createVillageWatch, REFUGE } from "./gus-village-watch.js?v=5";
 import { createNorthGate } from "./gus-north-gate.js?v=2";
 import { createVillagerRig } from "./villager-rig.js?v=living-kingdom-1";
 import { createRaiderRig } from "./raider-rig.js?v=living-kingdom-1";
-import { createGusAudio } from "./gus-audio.js?v=2";
+import { createGusAudio } from "./gus-audio.js?v=3";
+import { createGusCampaignMenu } from "./gus-campaign-menu.js?v=1";
 import { readGusSettings } from "./gus-settings.js?v=1";
 
 const byId = (id) => document.getElementById(id);
@@ -86,8 +87,7 @@ function saveCheckpoint(stage) {
   }
 }
 
-function startPreview() {
-  const settings = readGusSettings();
+function startPreview(settings, campaignMenu) {
   const fastGraphics = settings.quality === "fast";
   const reduceMotion = () => settings.reducedMotion || systemMotion.matches;
   const audio = createGusAudio(settings);
@@ -394,6 +394,7 @@ function startPreview() {
   function beginPlay() {
     audio.start();
     state = "playing";
+    campaignMenu.hide();
     overlay.hidden = true;
     hud.hidden = false;
     if (raidReveal !== null) skipRaid.focus();
@@ -763,10 +764,15 @@ function startPreview() {
     message.textContent = "Chapter 1 is complete. Gus must find the smith before he can follow the raiders.";
     play.textContent = "Replay Chapter 1";
   }
+  campaignMenu.ready(play, {
+    detail: initialCheckpoint === "briefing" ? "" : message.textContent,
+    complete: villageComplete(initialCheckpoint)
+  });
   let previous = performance.now();
   renderer.setAnimationLoop((now) => {
     const dt = THREE.MathUtils.clamp((now - previous) / 1000, 0, 0.04);
     previous = now;
+    if (state === "menu") return;
     const playing = state === "playing";
     if (playing) {
       if (raidReveal === null) update(dt);
@@ -785,13 +791,6 @@ function startPreview() {
       if (innerWidth < 700 && innerHeight >= 620) {
         camera.position.set(0.1, 3.5, 5.8);
         target.set(-1.05, 0.18, 14.5);
-      }
-    } else if (state === "menu") {
-      camera.position.set(target.x + 3.5, target.y + 0.7, target.z - 5);
-      if (innerWidth >= 900) {
-        target.x += 2.4;
-      } else if (innerWidth < 700 && innerHeight >= 620) {
-        target.y -= 1.35;
       }
     } else {
       const follow = 6.5;
@@ -817,10 +816,11 @@ function startPreview() {
   });
 }
 
+const settings = readGusSettings();
+const campaignMenu = createGusCampaignMenu(settings);
 try {
-  startPreview();
+  startPreview(settings, campaignMenu);
 } catch (error) {
-  message.textContent = "The 3D preview could not start. Check that WebGL is available in your browser.";
-  play.textContent = "Preview unavailable";
+  campaignMenu.unavailable();
   console.error(error);
 }
