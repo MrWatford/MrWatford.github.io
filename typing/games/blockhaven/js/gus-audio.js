@@ -1,4 +1,4 @@
-// Original synthesized cues for the teaser. Use the main game's volume and mute preferences.
+// Original synthesized cues for the teaser. Options default to the main game's audio preferences.
 const cues = {
   raid: [[165, 0, .65, .32], [124, .21, .65, .26]],
   beacon: [[330, 0, .28, .2], [495, .12, .34, .15]],
@@ -6,12 +6,13 @@ const cues = {
   reunion: [[196, 0, .65, .21], [294, .16, .64, .16], [392, .32, .81, .13]]
 };
 
-export function createGusAudio({ muted, volume }) {
+export function createGusAudio(settings) {
   let context;
   let bus;
 
   function start() {
     try {
+      const { muted, volume } = settings;
       const Context = window.AudioContext || window.webkitAudioContext;
       if (!Context || muted || !volume) return;
       if (!context) {
