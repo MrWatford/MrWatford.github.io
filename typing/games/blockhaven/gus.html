@@ -9,26 +9,26 @@
   body { margin: 0; background: #201b18; color: #fff2d9; font: 16px system-ui; }
   canvas { position: fixed; inset: 0; display: block; touch-action: none; }
   [hidden] { display: none !important; }
-  main { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; overflow: auto;
+  #overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; overflow: auto;
     background: linear-gradient(90deg, #161411f5, #16141185 55%, transparent); }
-  section { width: min(100%, 520px); padding: clamp(20px, 5vw, 44px); background: #1d1a17ed;
+  #overlay section { width: min(100%, 520px); padding: clamp(20px, 5vw, 44px); background: #1d1a17ed;
     border: 1px solid #bf8f54; border-radius: 12px; box-shadow: 0 15px 70px #0009; }
   @media (min-width: 900px) {
-    main { place-items: center start; padding-left: 8vw; }
-    section { max-width: 42vw; }
+    #overlay { place-items: center start; padding-left: 8vw; }
+    #overlay section { max-width: 42vw; }
   }
   @media (max-width: 899px) and (min-height: 620px) {
-    main { place-items: end center; padding: 16px;
+    #overlay { place-items: end center; padding: 16px;
       background: linear-gradient(0deg, #161411e6, #16141130 55%, transparent 78%); }
   }
-  h1 { font: bold clamp(2rem, 4.7vw, 3.75rem)/1 Georgia, serif; margin: 14px 0 22px; }
+  #overlay h1 { font: bold clamp(2rem, 4.7vw, 3.75rem)/1 Georgia, serif; margin: 14px 0 22px; }
   small { letter-spacing: .16em; text-transform: uppercase; color: #ffc679; }
   p { line-height: 1.5; }
   button, a { display: inline-block; padding: .65rem .95rem; border-radius: 5px; font: inherit; cursor: pointer; }
   button { color: #21160e; background: #ffc679; border: 1px solid #ffc679; font-weight: bold; }
   a { color: inherit; }
   :focus-visible { outline: 3px solid #fff2d9; outline-offset: 4px; }
-  #checkpointNotice { position: fixed; right: 16px; bottom: 16px; margin: 0; max-width: calc(100% - 32px);
+  #checkpointNotice { position: fixed; z-index: 1; right: 16px; bottom: 16px; margin: 0; max-width: calc(100% - 32px);
     padding: 8px 12px; border-radius: 5px; background: #1d1a17ed; color: #ffe1b4; }
   aside { position: fixed; inset: 16px 16px auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; pointer-events: none; }
   aside div { min-width: 0; background: #1d1a17e8; padding: 12px; border-radius: 6px; }
@@ -48,9 +48,97 @@
     #storyBeat { bottom: 10px; padding: 8px 11px; }
   }
 </style>
+<link rel="stylesheet" href="css/gus-campaign.css?v=1">
 </head>
 <body>
-<main id="overlay">
+<main id="campaignMenu" aria-labelledby="campaignTitle">
+  <div class="campaign-shell">
+    <header class="campaign-hero">
+      <p class="campaign-brand" aria-hidden="true">BlockHaven</p>
+      <h1 id="campaignTitle" class="campaign-title">
+        <span class="campaign-title-lead">The Story of</span>
+        <img class="campaign-wordmark" src="img/gus/campaign-gus.webp" width="1040" height="353" alt="Gus">
+        <span class="campaign-title-sub">The Iron Golem</span>
+      </h1>
+      <p class="campaign-story">When raiders attack BlockHaven, Gus must defend his village and guide its people to safety.</p>
+    </header>
+    <section class="campaign-chapters" aria-label="Campaign chapters">
+      <article class="campaign-chapter chapter-village">
+        <p class="chapter-number">Chapter 1</p>
+        <div class="chapter-frame">
+          <div class="chapter-copy">
+            <h2>The Village Attack</h2>
+            <p>Defend the market and lead the villagers to refuge.</p>
+            <span class="chapter-status">Available</span>
+          </div>
+        </div>
+      </article>
+      <article class="campaign-chapter chapter-journey" id="campaignChapterTwo">
+        <p class="chapter-number">Chapter 2</p>
+        <div class="chapter-frame">
+          <div class="chapter-copy">
+            <h2>Gus’s Journey</h2>
+            <p>Cross the valley in search of a smith and new allies.</p>
+            <span class="chapter-status">In development</span>
+          </div>
+        </div>
+      </article>
+      <article class="campaign-chapter chapter-fortress" id="campaignChapterThree">
+        <p class="chapter-number">Chapter 3</p>
+        <div class="chapter-frame">
+          <div class="chapter-copy">
+            <h2>The Final Fortress</h2>
+            <p>Follow the raiders to their stronghold.</p>
+            <span class="chapter-status">In development</span>
+          </div>
+        </div>
+      </article>
+    </section>
+    <footer class="campaign-footer">
+      <div class="campaign-launch">
+        <button id="campaignPlay" class="campaign-primary" type="button" disabled aria-describedby="campaignLaunchStatus">
+          <span id="campaignPlayLabel">Loading Campaign</span>
+        </button>
+        <p id="campaignLaunchStatus" class="campaign-launch-status" role="status"></p>
+      </div>
+      <a class="campaign-secondary campaign-back" href="./"><span aria-hidden="true">←</span> Back to BlockHaven</a>
+      <div class="campaign-tools">
+        <button class="campaign-secondary" type="button" id="campaignOptionsButton">Options</button>
+        <button class="campaign-secondary" type="button" id="campaignExtrasButton">Extras</button>
+      </div>
+    </footer>
+  </div>
+</main>
+<dialog id="campaignOptions" class="campaign-dialog" aria-labelledby="campaignOptionsTitle">
+  <form method="dialog">
+    <h2 id="campaignOptionsTitle">Options</h2>
+    <button class="campaign-dialog-close" aria-label="Close options">×</button>
+  </form>
+  <div class="campaign-preferences">
+    <label><input id="campaignMute" type="checkbox"> Mute campaign audio</label>
+    <label for="campaignVolume">Sound volume <output id="campaignVolumeValue" for="campaignVolume"></output></label>
+    <input id="campaignVolume" type="range" min="0" max="100">
+    <label><input id="campaignMotion" type="checkbox"> Reduce motion</label>
+    <p id="campaignOptionsStatus" role="status" hidden></p>
+  </div>
+  <h3>Controls</h3>
+  <dl class="campaign-controls">
+    <div><dt>Move</dt><dd>WASD or arrow keys</dd></div>
+    <div><dt>Orbit camera</dt><dd>Drag</dd></div>
+    <div><dt>Talk or interact</dt><dd><kbd>E</kbd></dd></div>
+    <div><dt>Punch / slam</dt><dd><kbd>F</kbd> / <kbd>Q</kbd></dd></div>
+    <div><dt>Pause</dt><dd><kbd>Esc</kbd></dd></div>
+  </dl>
+</dialog>
+<dialog id="campaignExtras" class="campaign-dialog" aria-labelledby="campaignExtrasTitle">
+  <form method="dialog">
+    <h2 id="campaignExtrasTitle">Extras</h2>
+    <button class="campaign-dialog-close" aria-label="Close extras">×</button>
+  </form>
+  <h3>BlockHaven by Mr. Watford</h3>
+  <p>Chapter 1 is a playable teaser for the full Gus campaign.</p>
+</dialog>
+<main id="overlay" hidden>
 <section>
   <small id="chapterLabel">Chapter 1 · The Village Attack</small>
   <h1 id="heading">Gus, the Iron Golem</h1>
@@ -70,6 +158,6 @@
   <p id="storyBeat" role="status"></p>
 </aside>
 <p id="checkpointNotice" role="status" hidden></p>
-<script type="module" src="js/gus-preview.js?v=chapter-one-1"></script>
+<script type="module" src="js/gus-preview.js?v=campaign-menu-1"></script>
 </body>
 </html>
