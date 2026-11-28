@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-gus-release="chapters-1-2">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -26,6 +26,10 @@
   p { line-height: 1.5; }
   button, a { display: inline-block; padding: .65rem .95rem; border-radius: 5px; font: inherit; cursor: pointer; }
   button { color: #21160e; background: #ffc679; border: 1px solid #ffc679; font-weight: bold; }
+  #forge, #finale { color: #142a22; background: #9ae6c8; border-color: #9ae6c8; }
+  #finale:not([hidden]) ~ #forge, #finale:not([hidden]) ~ #play, #forge:not([hidden]) + #play {
+    color: #ffe1b4; background: transparent; border-color: #bd9a66;
+  }
   a { color: inherit; }
   :focus-visible { outline: 3px solid #fff2d9; outline-offset: 4px; }
   #checkpointNotice { position: fixed; z-index: 1; right: 16px; bottom: 16px; margin: 0; max-width: calc(100% - 32px);
@@ -34,6 +38,7 @@
   aside div { min-width: 0; background: #1d1a17e8; padding: 12px; border-radius: 6px; }
   aside button { flex: 0 0 auto; pointer-events: auto; }
   progress { display: block; accent-color: #ffc679; max-width: 100%; }
+  #sentinelPanel { display: block; margin-top: 10px; color: #ffddaf; }
   #evacStatus { margin: .6em 0 0; color: #cff7d3; }
   #evacStatus.blocked { color: #ffc679; }
   #skipRaid { position: fixed; top: 72px; right: 16px; }
@@ -63,13 +68,13 @@
       <p class="campaign-story">When raiders attack BlockHaven, Gus must defend his village and guide its people to safety.</p>
     </header>
     <section class="campaign-chapters" aria-label="Campaign chapters">
-      <article class="campaign-chapter chapter-village">
+      <article class="campaign-chapter chapter-village" id="campaignChapterOne">
         <p class="chapter-number">Chapter 1</p>
         <div class="chapter-frame">
           <div class="chapter-copy">
-            <h2>The Village Attack</h2>
-            <p>Defend the market and lead the villagers to refuge.</p>
-            <span class="chapter-status">Available</span>
+            <h2 id="campaignChapterOneTitle">The Village Attack</h2>
+            <p id="campaignChapterOneCopy">Defend the market and lead the villagers to refuge.</p>
+            <span class="chapter-status" id="campaignChapterOneStatus">Available</span>
           </div>
         </div>
       </article>
@@ -77,9 +82,9 @@
         <p class="chapter-number">Chapter 2</p>
         <div class="chapter-frame">
           <div class="chapter-copy">
-            <h2>Gus’s Journey</h2>
-            <p>Cross the valley in search of a smith and new allies.</p>
-            <span class="chapter-status">In development</span>
+            <h2 id="campaignChapterTwoTitle">Gus’s Journey</h2>
+            <p id="campaignChapterTwoCopy">Cross the valley in search of a smith and new allies.</p>
+            <span class="chapter-status" id="campaignChapterTwoStatus">In development</span>
           </div>
         </div>
       </article>
@@ -87,9 +92,9 @@
         <p class="chapter-number">Chapter 3</p>
         <div class="chapter-frame">
           <div class="chapter-copy">
-            <h2>The Final Fortress</h2>
-            <p>Follow the raiders to their stronghold.</p>
-            <span class="chapter-status">In development</span>
+            <h2 id="campaignChapterThreeTitle">The Final Fortress</h2>
+            <p id="campaignChapterThreeCopy">Follow the raiders to their stronghold.</p>
+            <span class="chapter-status" id="campaignChapterThreeStatus">In development</span>
           </div>
         </div>
       </article>
@@ -136,7 +141,8 @@
     <button class="campaign-dialog-close" aria-label="Close extras">×</button>
   </form>
   <h3>BlockHaven by Mr. Watford</h3>
-  <p>Chapter 1 is a playable teaser for the full Gus campaign.</p>
+  <p>The Guardian and Reforged are playable chapters in the Gus campaign preview.</p>
+  <p>Story adapted from <a href="https://www.youtube.com/watch?v=lZCsJYAJGzg">Gus the Iron Golem by Skytro</a>.</p>
 </dialog>
 <main id="overlay" hidden>
 <section>
@@ -145,12 +151,15 @@
   <p id="message">It’s market day in BlockHaven. Visit the stalls and check in with the watchkeeper by the lantern.</p>
   <p id="controlsHint">WASD or arrows to move. Drag to orbit the camera. E to talk, F to punch, Q to slam, Esc to pause.</p>
   <p id="credits" hidden>Gus’s journey continues in the full campaign. · BlockHaven by Mr. Watford</p>
+  <button id="finale" hidden>Continue to the north gate</button>
+  <button id="forge" hidden>Begin Chapter 2</button>
   <button id="play" disabled>Loading…</button>
   <a href="./">Back to BlockHaven</a>
 </section>
 </main>
 <aside id="hud" hidden>
   <div><label for="health">Armor</label><progress id="health" max="100" value="100"></progress>
+    <span id="sentinelPanel" hidden><label for="sentinelHealth" id="gusOpponentLabel">Gate Sentinel</label><progress id="sentinelHealth" max="4" value="4"></progress></span>
     <p id="objective" role="status"></p><span id="slam"></span>
     <p id="evacStatus" role="status" hidden></p></div>
   <button id="pause">Pause</button>
@@ -158,6 +167,6 @@
   <p id="storyBeat" role="status"></p>
 </aside>
 <p id="checkpointNotice" role="status" hidden></p>
-<script type="module" src="js/gus-preview.js?v=campaign-menu-1"></script>
+<script type="module" src="js/gus-preview.js?v=chapters-1-2-r1"></script>
 </body>
 </html>
